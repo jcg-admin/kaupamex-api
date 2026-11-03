@@ -1,0 +1,62 @@
+[
+  {
+    "citation_id": "TASK-API-0397",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1167",
+    "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+    "description": "La referencia declara BaseModel con 194 metodos y __slots__ = ['env','_ids','_prefetch_ids'] (odoo19c: odoo/orm/models.py:334-7004). Portarlo con el criterio de dos niveles: (1) el stack lo trae hecho — hay simbolo instalado y basta llamarlo; (2) el stack tiene con que construirlo — no hay simbolo, si primitivas, sin dependencia de fuera.\n\nMedido en el banco api scripts/workbench/basemodel-contract-20260911T030334:\n- nivel 1 por NOMBRE: 21 sobre Django pristino. NO es veredicto: create/exists/update/__eq__ existen con OTRA semantica (exists() da bool, la fuente da recordset — H-API-1084).\n- nuestro arbol YA colgo: 14 sobre models.Model.\n- por construir: 159.\n- el bloque raiz es el protocolo de recordset: ids, ensure_one, with_env/sudo/with_user/with_company/with_context/with_prefetch, mapped, filtered, grouped, sorted, exists, concat, _cache, _convert_to_record, _convert_to_write — AUSENTES; sus 'presentes' del localizador son homonimos en otros archivos.\n\nPrimitivas medidas en los binarios instalados (django 6.0.5):\n- ModelBase.__new__ :97-389 y add_to_class :391-395 — el gancho de clase.\n- Model.__init__ :482-595, from_db :598-608 — el portal de instancia.\n- QuerySet.__init__(model, query, using, hints) :286-300, _clone :1979-1996, _fetch_all :1998-2002, __iter__ :375-391, __getitem__ :407-442.\n\nTDD: la mitad roja primero. Sin declarar divergencia donde toca construir.",
+    "status": "in_progress",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T09:36:13"
+  },
+  {
+    "citation_id": "TASK-API-0398",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1168",
+    "subject": "Verificar contrato por contrato los 21 del cubo TRAE de BaseModel",
+    "description": "H-API-1089 corrigió el instrumento (Django prístino en subproceso) y dejó el cubo TRAE en 21 nombres. Ese 21 es por NOMBRE, no por contrato: `exists` (bool vs recordset), `create` (una instancia vs recordset de N), `update` (filas afectadas vs escritura en caché) y `__eq__`/`__lt__` (pk vs conjunto de ids) son homónimos con contrato distinto — sub-patrón C de metrica-decide-la-conclusion.md.\n\nEntregable: por cada uno de los 21, leer su cuerpo en el binario instalado (.venv/lib/python3.12/site-packages/django) y en la referencia (odoo19c: odoo/orm/models.py:334-7004), y publicar su veredicto: LLAMABLE tal cual · ADAPTABLE con envoltura · HOMÓNIMO (hay que construirlo, y el nombre colisiona).\n\nEl instrumento ya existe: scripts/workbench/basemodel-contract-20260911T030334/census_class.py, que censa una clase de cualquiera de los dos árboles con el mismo formato.\n\nSin este veredicto, el cubo TRAE no autoriza a llamar y el conteo 21/14/159 no se puede usar para repartir trabajo.",
+    "status": "in_progress",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T09:36:13"
+  },
+  {
+    "citation_id": "TASK-API-0403",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1174",
+    "subject": "Decidir si la protección de Id.__set__ se recupera por otra vía",
+    "description": "H-API-1091. `IdFromIds` porta `Id.__get__` verbatim y NO declara `__set__`: declararlo lo convierte en descriptor de datos, que precede al `instance.__dict__`, y `Model.__init__` de Django asigna la pk por `setattr` — medido, `Sujeto(id=99)` levanta `TypeError: field 'id' cannot be assigned` y la construcción normal de una fila deja de funcionar (banco `basemodel-id-access-20260911T035612/outputs/id_setter.txt`).\n\nConsecuencia aceptada hoy: `rs.id = 5` sobre un recordset NO levanta el `TypeError` de la fuente (`odoo19c: odoo/orm/fields_misc.py:102-114`); escribe en el `__dict__`.\n\nQué decidir: si esa protección se recupera, y por cuál vía. Candidata: marcar el tramo de construcción como ya hace `_model_init_marking_the_load` en `src/orm/fields.py`, y que el `__set__` rehúse sólo FUERA de él. Precondición de la decisión: medir el coste sobre el camino caliente antes de añadir un descriptor de datos a `id` — es el mismo eje que midió el 3.12× (42.6 ns contra 132.9 ns sobre 300 000 lecturas) de H-API-1092.",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-11T04:34:31"
+  },
+  {
+    "citation_id": "TASK-API-0412",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1187",
+    "subject": "Despachar el inverse declarado al escribir el campo",
+    "description": "CERRADA en api@775c674e (TASK-API-0412). Las dos vías portadas, en tres piezas: (1) `RecordLoaderMixin.write` envuelve la escritura en `env().protecting(protected, self)` y despacha `fields[0].determine_inverse(self)` al final del bloque — ≙ `odoo19c: odoo/orm/models.py:4334,4493`; (2) `ComputedFieldDescriptor.__set__` marca el campo en `instance.__dict__[PENDING_INVERSE_FIELDS]` en sus tres cubos de escritura (fila nueva, fila real, y el cubo `_orm_building` SÓLO si el campo no tiene columna — un campo sin columna sólo llega al `__init__` por el bucle de kwargs sobrantes, o sea porque el llamador lo pasó); (3) `RecordLoaderMixin.save` vacía esa marca tras `super().save()` y despacha. Además `model_field_registry` responde ahora al attname y al name (895 attnames, 0 choques), que es lo que el KeyError 'company_id' destapó. Aceptación por CONTENIDO (columna del partner releída de la DB, no `hasattr`): 4/4 caminos. Banco: scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_declared_address_dispatches_its_inverse.py. Hallazgo: H-API-1111 (docs@d84ac6acd). Sucesores abiertos: #358 (64 rojos alcanzables), #359 (los ocho @property restantes de ResCompany).",
+    "status": "completed",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T10:57:56"
+  },
+  {
+    "citation_id": "TASK-GEN-0633",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1203",
+    "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables",
+    "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de 2026-08-28.\n\nAgrupación medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).\n\nLos grupos medidos, por dueño:\n\n- **5** — `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el relacional desde `_args__`), no de aquí.\n- **6** — `src/orm/fields.py:1593` `Compute method failed to assign …display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo triaje.\n- **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html) más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** — `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin cerrar para el resto.\n- **2** — `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no tiene atributo editable y su hermano con columna sí).\n- **2** — `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` — resolución de modelo por cadena mal formada.\n- **1 + 1 + 1** — `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminación de estado entre casos, no defecto de porte).\n\nCondición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condición de cierre escrita. Ninguno se queda sin dueño.",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T10:57:56"
+  }
+]

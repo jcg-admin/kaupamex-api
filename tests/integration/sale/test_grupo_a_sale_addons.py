@@ -12,6 +12,7 @@ de la fuente (``odoo19c:``, ``odoo-tools@622ddc2a``):
 - ``sale_mrp_margin`` — el costo de un kit es la suma de sus componentes,
   normalizado por ``product_qty`` de la BoM.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -66,8 +67,9 @@ class TestSaleService:
         linea.product.product_tmpl.type = TYPE_SERVICE
         linea.product.product_tmpl.save(update_fields=['type'])
         # check_state=False: entra sin importar el estado de la orden.
-        assert linea in service_lines(SaleOrderLine.objects.all(),
-                                      check_state=False)
+        assert linea in service_lines(
+            SaleOrderLine.objects.all(), check_state=False
+        )
         # check_state=True: sólo órdenes confirmadas ('sale').
         confirmadas = service_lines(SaleOrderLine.objects.all())
         if orden.state != 'sale':
@@ -78,15 +80,20 @@ class TestSaleLoyaltyDelivery:
 
     def _with_shipping(self, orden, precio='50.00'):
         SaleOrderLine.objects.create(
-            order=orden, product=orden.order_line.first().product,
-            name='Envío estándar', price_unit=Decimal(precio),
-            product_uom_qty=1, is_delivery=True,
+            order=orden,
+            product=orden.order_line.first().product,
+            name='Envío estándar',
+            price_unit=Decimal(precio),
+            product_uom_qty=1,
+            is_delivery=True,
         )
 
     def _con_cupon(self, orden, **voucher_kwargs):
         voucher = Voucher.objects.create(
-            code='ENVIOGRATIS', voucher_type=Voucher.TYPE_FREE_SHIPPING,
-            valid_from=timezone.now(), **voucher_kwargs,
+            code='ENVIOGRATIS',
+            voucher_type=Voucher.TYPE_FREE_SHIPPING,
+            valid_from=timezone.now(),
+            **voucher_kwargs,
         )
         SaleOrderCoupon.objects.create(order=orden, voucher=voucher)
 
@@ -108,8 +115,10 @@ class TestSaleLoyaltyDelivery:
     def test_otro_tipo_de_cupon_no_descuenta_envio(self, orden):
         self._with_shipping(orden, '50.00')
         voucher = Voucher.objects.create(
-            code='DIEZ', voucher_type=Voucher.TYPE_FIXED,
-            discount_value=Decimal('10.00'), valid_from=timezone.now(),
+            code='DIEZ',
+            voucher_type=Voucher.TYPE_FIXED,
+            discount_value=Decimal('10.00'),
+            valid_from=timezone.now(),
         )
         SaleOrderCoupon.objects.create(order=orden, voucher=voucher)
         assert free_shipping_discount(orden) == Decimal('0.00')
@@ -138,17 +147,23 @@ class TestSaleMrpMargin:
     def _kit_con_componentes(self, kit):
         # Kit (phantom) de 1 unidad con dos componentes: 2×30 + 1×15 = 75.
         bom = MrpBom.objects.create(
-            type=MrpBom.TYPE_PHANTOM, product=kit,
-            product_tmpl=kit.product_tmpl, product_qty=Decimal('1.00'),
+            type=MrpBom.TYPE_PHANTOM,
+            product=kit,
+            product_tmpl=kit.product_tmpl,
+            product_qty=Decimal('1.00'),
         )
-        comp_a = make_product(name='Componente A', price='60.00',
-                              standard_price='30.00')
-        comp_b = make_product(name='Componente B', price='40.00',
-                              standard_price='15.00')
-        MrpBomLine.objects.create(bom=bom, product=comp_a,
-                                  product_qty=Decimal('2.00'))
-        MrpBomLine.objects.create(bom=bom, product=comp_b,
-                                  product_qty=Decimal('1.00'))
+        comp_a = make_product(
+            name='Componente A', price='60.00', standard_price='30.00'
+        )
+        comp_b = make_product(
+            name='Componente B', price='40.00', standard_price='15.00'
+        )
+        MrpBomLine.objects.create(
+            bom=bom, product=comp_a, product_qty=Decimal('2.00')
+        )
+        MrpBomLine.objects.create(
+            bom=bom, product=comp_b, product_qty=Decimal('1.00')
+        )
 
     def test_el_costo_del_kit_es_la_suma_de_componentes(self):
         kit = make_product(name='Kit ceremonial', price='200.00')

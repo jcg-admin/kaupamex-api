@@ -22,12 +22,14 @@ de ``base`` (``odoo19c: odoo/addons/base/models/res_config.py``,
 ``odoo-tools@622ddc2a``). Es configuración de plataforma, no contenido — por
 eso ``banners`` fue a ``website`` y ``settings`` viene aquí.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [
     # ``users`` sobrevive como **módulo de catálogo**, no como addon: nombra el
     # dominio de administración de identidades. La referencia no tiene un addon
-    # ``users`` (:ref:`analisis-users-no-es-un-addon-en-la-referencia`), pero sí
+    # ``users`` (:ref:`analisis-users-no-es-un-addon-en-la-referencia`),
+    # pero sí
     # separa la gestión de usuarios como grupo de acceso propio.
     ModuleSpec(code='users', name='Usuarios', category='Platform'),
     ModuleSpec(code='account', name='Mi cuenta', category='Platform'),
@@ -40,6 +42,9 @@ MODULES = [
 ]
 
 CAPABILITIES = [
+    CapabilitySpec(
+        code='settings.modules', name='Consultar catálogo técnico de módulos'
+    ),
     CapabilitySpec(code='account.bus', name='Leer mi canal de eventos'),
     CapabilitySpec(code='account.deactivate', name='Dar de baja mi cuenta'),
     CapabilitySpec(

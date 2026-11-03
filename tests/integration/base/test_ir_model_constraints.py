@@ -39,6 +39,7 @@ Que haria fallar a cada control
 ``TestUnlink.test_a_base_model_row_cannot_be_deleted_by_hand``
     CONTROL de ``_unlink_if_manual``.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModel, IrModelData
@@ -76,25 +77,38 @@ class TestCheckOrder:
     """≙ ``_check_order`` (``odoo19c: :277-302``)."""
 
     def test_an_order_that_is_not_a_clause_is_refused(self, db):
-        row = IrModel(name='Prueba', model='base.IrModel', state='base',
-                      order='drop table ir_model')
+        row = IrModel(
+            name='Prueba',
+            model='base.IrModel',
+            state='base',
+            order='drop table ir_model',
+        )
         with pytest.raises(ValidationError, match='Orden inválido'):
             row._check_order()
 
     def test_a_field_that_does_not_exist_is_refused(self, db):
-        row = IrModel(name='Prueba', model='base.IrModel', state='base',
-                      order='x_inexistente asc')
+        row = IrModel(
+            name='Prueba',
+            model='base.IrModel',
+            state='base',
+            order='x_inexistente asc',
+        )
         with pytest.raises(ValidationError, match='x_inexistente'):
             row._check_order()
 
     def test_a_real_field_of_the_model_is_accepted(self, db):
-        row = IrModel(name='Prueba', model='base.IrModel', state='base',
-                      order='model asc, id desc')
+        row = IrModel(
+            name='Prueba',
+            model='base.IrModel',
+            state='base',
+            order='model asc, id desc',
+        )
         row._check_order()
 
     def test_the_magic_columns_are_always_accepted(self, db):
-        row = IrModel(name='Prueba', model='base.IrModel', state='base',
-                      order='id desc')
+        row = IrModel(
+            name='Prueba', model='base.IrModel', state='base', order='id desc'
+        )
         row._check_order()
 
 
@@ -102,26 +116,37 @@ class TestCheckFoldName:
     """≙ ``_check_fold_name`` (``odoo19c: :304-308``)."""
 
     def test_a_fold_field_that_is_not_a_field_is_refused(self, db):
-        row = IrModel(name='Prueba', model='base.IrModel', state='base',
-                      fold_name='x_no_existe')
+        row = IrModel(
+            name='Prueba',
+            model='base.IrModel',
+            state='base',
+            fold_name='x_no_existe',
+        )
         with pytest.raises(ValidationError, match='Campo de plegado'):
             row._check_fold_name()
 
     def test_a_real_field_is_accepted_as_fold_field(self, db):
-        row = IrModel(name='Prueba', model='base.IrModel', state='base',
-                      fold_name='abstract')
+        row = IrModel(
+            name='Prueba',
+            model='base.IrModel',
+            state='base',
+            fold_name='abstract',
+        )
         row._check_fold_name()
 
 
 class TestWriteGuard:
     """≙ la guarda de ``write`` (``odoo19c: :483-486``)."""
 
-    @pytest.mark.parametrize('field_name, value', [
-        ('model', 'x_otro_nombre'),
-        ('state', 'base'),
-        ('abstract', True),
-        ('transient', True),
-    ])
+    @pytest.mark.parametrize(
+        'field_name, value',
+        [
+            ('model', 'x_otro_nombre'),
+            ('state', 'base'),
+            ('abstract', True),
+            ('transient', True),
+        ],
+    )
     def test_an_unmodifiable_field_is_refused(self, db, field_name, value):
         row = _manual()
         setattr(row, field_name, value)
@@ -157,6 +182,7 @@ class TestUnlink:
     def test_deleting_drags_the_external_ids_that_name_it(self, db):
         row = _manual(model='x_con_xmlid')
         IrModelData.objects.create(
-            name='algo', module='prueba', model='x_con_xmlid', res_id=1)
+            name='algo', module='prueba', model='x_con_xmlid', res_id=1
+        )
         row.delete()
         assert not IrModelData.objects.filter(model='x_con_xmlid').exists()

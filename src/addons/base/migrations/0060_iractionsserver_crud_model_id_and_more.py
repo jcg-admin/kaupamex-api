@@ -42,14 +42,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="iractionsserver",
             name="html_value",
-            field=models.TextField(blank=True, default="", verbose_name="Valor HTML"),
+            field=models.TextField(
+                blank=True, default="", verbose_name="Valor HTML"
+            ),
         ),
         migrations.AddField(
             model_name="iractionsserver",
             name="link_field_id",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo link_field_id. Campo que ata el registro nuevo al registro sobre el que corre la acción.",
+                help_text=(
+                    "Odoo link_field_id. Campo que ata el registro nuevo al"
+                    " registro sobre el que corre la acción."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="link_server_actions",
@@ -144,7 +149,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo update_path. Ruta punteada, p. ej. 'partner_id.name'.",
+                help_text=(
+                    "Odoo update_path. Ruta punteada, p. ej."
+                    " 'partner_id.name'."
+                ),
                 max_length=255,
                 verbose_name="Ruta del campo a actualizar",
             ),
@@ -167,7 +175,10 @@ class Migration(migrations.Migration):
             field=models.TextField(
                 blank=True,
                 default="",
-                help_text='Odoo value. En modo "equation" es una expresión Python; este archivo NO la evalúa (ver el docstring del módulo).',
+                help_text=(
+                    'Odoo value. En modo "equation" es una expresión Python;'
+                    ' este archivo NO la evalúa (ver el docstring del módulo).'
+                ),
                 verbose_name="Valor",
             ),
         ),
@@ -186,7 +197,10 @@ class Migration(migrations.Migration):
             model_name="iractionsserver",
             name="webhook_url",
             field=models.CharField(
-                blank=True, default="", max_length=1024, verbose_name="URL del webhook"
+                blank=True,
+                default="",
+                max_length=1024,
+                verbose_name="URL del webhook",
             ),
         ),
     ]

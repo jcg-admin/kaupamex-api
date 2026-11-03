@@ -1,0 +1,91 @@
+{
+  "extends": "../orm-module-lifecycle-20261022T023817/outputs/module-contracts.json",
+  "incremental_contracts": [
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "consumers": [
+        "update_module_list management command",
+        "IrModule administrative requests",
+        "IrModuleDependency/IrModuleExclusion readers"
+      ],
+      "dependencies": [
+        "DEC-AISL-05",
+        "Native Django transaction.atomic/select_for_update",
+        "PostgreSQL",
+        "Existing ModuleGraph and manifest parser"
+      ],
+      "integration": "TASK-API-0382; existing feature branch and PR109; no merge or official status transition",
+      "reference_symbol": [
+        "IrModuleModule.update_list/get_values_from_terp",
+        "odoo/modules/db.py:initialize"
+      ],
+      "behavior": {
+        "precondition": "Registered target database with catalogue schema",
+        "contract": "Metadata refresh does not install importable code or overwrite operational state",
+        "postcondition": "Existing installed/pending states preserved; new available modules uninstalled; dependency metadata reconciled atomically",
+        "invariant": "One refresh uses one database; failed dependency write rolls back the refresh",
+        "exceptions": "Unknown aliases rejected before writes; operational signal failures remain errors"
+      },
+      "execution_flow": "Command --database -> atomic(target) -> locked catalogue -> existing parser -> explicit .using(target) -> dependency reconciliation -> report from persisted installed states",
+      "inputs_outputs": "Alias and available manifests -> metadata changes/report, not installation",
+      "side_effects": "Catalogue/dependency metadata only; no module DDL or hook execution; atomic rollback",
+      "installed_mechanism": "Existing update_module_list, IrModule and IrModuleDependency",
+      "existing_adaptation": "Django manager alias and native transactions replace cursor-bound Odoo env",
+      "verification": [
+        "catalog-baseline.log:5FAIL/1PASS",
+        "module-state.junit.xml",
+        "database-module-states.json",
+        "historical-fixture-verification-batch.log:84PASS/1FAIL retained"
+      ],
+      "equivalence": "partially_implemented",
+      "limitations": "Two-DB refresh probe uses matching metadata fixtures (zero metadata writes); first signal-boundary probe proves actual metadata writes in all-addon runtime can invoke automation without the database alias. Not complete catalogue/loader acceptance."
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "consumers": [
+        "update_module_list management command",
+        "IrModule administrative requests",
+        "IrModuleDependency/IrModuleExclusion readers"
+      ],
+      "dependencies": [
+        "DEC-AISL-05",
+        "Native Django transaction.atomic/select_for_update",
+        "PostgreSQL",
+        "Existing ModuleGraph and manifest parser"
+      ],
+      "integration": "TASK-API-0382; existing feature branch and PR109; no merge or official status transition",
+      "reference_symbol": [
+        "IrModuleModule._state_update/button_install/button_upgrade/button_uninstall",
+        "IrModuleDependency._compute_depend/_compute_state",
+        "IrModuleExclusion._compute_exclusion"
+      ],
+      "behavior": {
+        "precondition": "Persisted module in selected catalogue; system actor; existing available/installable dependencies",
+        "contract": "Queue administrative transitions in correct database without claiming executed installation",
+        "postcondition": "Install orders closure and auto candidates; upgrade includes installed dependents; uninstall queues dependents and protects base",
+        "invariants": [
+          "No partial transitions on invalid dependency/cycle/external requirement",
+          "Bound module/dependency/exclusion uses its own database",
+          "A dependency batch cannot mix databases with colliding IDs"
+        ],
+        "exceptions": [
+          "PermissionDenied for non-system actor",
+          "ValidationError for missing/disabled module, unavailable binary, incompatible modules or mixed database batches",
+          "ModuleGraphCycle for cyclic graph"
+        ]
+      },
+      "execution_flow": "System guard -> atomic(bound alias) -> ordered row locks -> existing dependency traversal/ModuleGraph -> dependency checks -> SQL state updates",
+      "inputs_outputs": "Bound module plus requested operation -> ordered module names and pending persisted states",
+      "side_effects": "State updates only, transactionally; no schema/data/hook execution. Native migration0087 changes field choices/help, not a taxonomy migration.",
+      "installed_mechanism": "IrModule methods; existing ModuleGraph, external-dependency checker, dependency traversals and Django transactions",
+      "existing_adaptation": "Django single-instance administrative calls return technical module lists rather than a web-client action dictionary",
+      "verification": [
+        "module-state.junit.xml",
+        "database-module-states.json: distinct states, concurrent requests, rollback, one-query bound batch and mixed-ID rejection",
+        "dependency-state-before.log: explicit failing baseline"
+      ],
+      "equivalence": "partially_implemented",
+      "limitations": "Pending requests do not consume Registry.new installation arguments. Full loader, installed-version separation, country/category exclusion semantics and process refresh require further implementation and acceptance. No production global class mutation or per-request INSTALLED_APPS changes."
+    }
+  ]
+}

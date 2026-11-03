@@ -1,0 +1,86 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "Provider native Python frontier with explicit6inputs and full actual ledger",
+  "inputs": [
+    {
+      "id": "TASK-API-0269.startup_installability",
+      "taskId": "TASK-API-0269",
+      "prompt": "Honor manifest installable before Django app/model registration, prune dependents using existing graph and retain static request graph semantics",
+      "verify": "Disabled addon/dependents absent from LOCAL_APPS and native startup model registry; disabled cycle pruned, active cycle rejected; real project manifest set and current startup unchanged when no false flags",
+      "route": "local",
+      "owned": [
+        "src/config/settings/base.py",
+        "tests/unit/config/test_local_apps_installability.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.current_fixture_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Requalify owned real two-company fixture after native service preflight changed; reuse identical-source measured required CI baseline, preserving all prior results",
+      "verify": "Five real cases, sentinel/partial-DDL/extension-failure controls, independent maintenance cleanup and source-equivalent CI evidence; no whole auth/policy acceptance",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.incremental_graph_snapshot",
+      "taskId": "TASK-API-0382",
+      "prompt": "Keep database-bound ModuleGraph extensions consistent with catalogue state, demo, versions, dependency pruning and update-phase ordering",
+      "verify": "Real PostgreSQL incremental load/update states, missing/uninstallable manifest pruning, snapshots preserved and wrong-alias negative; no automatic installation acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py",
+        "tests/unit/modules/test_module_graph.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.applied_schema_preflight",
+      "taskId": "TASK-API-0383",
+      "prompt": "Reject missing managed tables implied by known applied migrations before company migrations; preserve data/recorder and share target context with bulk migration",
+      "verify": "Real PostgreSQL negative table/M2M controls and healthy pending/router-excluded states; no automatic destructive repair; bulk continues after one failed database",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "tests/unit/service/test_provision_company.py",
+        "tests/unit/service/test_db_migrate_all.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.isolation_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Replace unqualified private TestCase bypass fixture using existing Django/pytest mechanisms and verify real two-company data before TASK acceptance",
+      "verify": "No private connection safety removal, owned fresh resources, all3legacy isolation cases discriminating, identity/session acceptance separately qualified",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_loader_acceptance",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify effective per-database model composition and loader caller integration under existing ownership",
+      "verify": "Schema alone is not loader/model/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.isolation_qualification"
+      ]
+    }
+  ],
+  "states": {},
+  "claims_count": 379,
+  "selected": [
+    "TASK-API-0269.startup_installability"
+  ],
+  "admission": "NativeTask456 owner assigned with explicit user authorization; status pending and dependencies unchanged. Startup code-selection unit independent of pending per-base Registry/policy acceptance.",
+  "coverage": "Six bounded candidates, not global task discovery"
+}

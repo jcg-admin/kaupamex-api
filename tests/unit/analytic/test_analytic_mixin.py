@@ -8,9 +8,13 @@ consultan ``AccountAnalyticAccount`` (listas vacías) se ejercen sin BD.
 ``_sanitize_distribution`` consulta ``DecimalPrecision`` (tabla de ``base``,
 ya migrada) — ver el docstring de ``test_analytic_line.py``.
 """
+
 import pytest
 
-from addons.analytic.models import AccountAnalyticDistributionModel, AnalyticMixin
+from addons.analytic.models import (
+    AccountAnalyticDistributionModel,
+    AnalyticMixin,
+)
 
 
 class TestAccountIdsFromDistributions:
@@ -18,8 +22,14 @@ class TestAccountIdsFromDistributions:
     analytic_mixin.py líneas 48-56)."""
 
     def test_empty_input_returns_empty_set(self):
-        assert AnalyticMixin._get_analytic_account_ids_from_distributions(None) == set()
-        assert AnalyticMixin._get_analytic_account_ids_from_distributions({}) == set()
+        assert (
+            AnalyticMixin._get_analytic_account_ids_from_distributions(None)
+            == set()
+        )
+        assert (
+            AnalyticMixin._get_analytic_account_ids_from_distributions({})
+            == set()
+        )
 
     def test_single_distribution_dict(self):
         result = AnalyticMixin._get_analytic_account_ids_from_distributions(
@@ -66,4 +76,7 @@ class TestSanitizeDistribution:
         model = AccountAnalyticDistributionModel()
         model.analytic_distribution = {}
         model._sanitize_distribution()  # no debe lanzar
-        assert model.analytic_distribution == {}
+        # Vacía se lee ``False``: ``Json.convert_to_cache`` guarda el falso
+        # como ``None`` y ``convert_to_record`` lo entrega como ``False``
+        # (``odoo19c: odoo/orm/fields_misc.py:66-73``).
+        assert model.analytic_distribution is False

@@ -1,4 +1,6 @@
-"""``tools.set_expression`` — espejo de ``odoo/tools/set_expression.py`` (Odoo 19).
+"""
+``tools.set_expression`` — espejo de ``odoo/tools/set_expression.py`` (Odoo
+19).
 
 Álgebra de conjuntos con nombre: unión, intersección y complemento sobre una
 colección de conjuntos declarados por id, con sus supraconjuntos y sus
@@ -31,6 +33,7 @@ atribución y aviso de licencia preservados (DEC-KX-03).
 módulo — ``no-lazy-imports.md`` prohíbe el ``import`` dentro de un bloque
 condicional, y ``collections.abc`` es stdlib sin coste de arranque.
 """
+
 from __future__ import annotations
 
 import ast
@@ -49,6 +52,7 @@ class SetDefinitions:
     expresiones de conjunto: combinaciones de conjuntos con nombre mediante
     unión, intersección y complemento.
     """
+
     __slots__ = ('__leaves',)
 
     def __init__(self, definitions: dict[int, dict]):
@@ -91,17 +95,23 @@ class SetDefinitions:
 
         for leaf_id, info in definitions.items():
             ref = info['ref']
-            assert ref != '*', "La referencia de conjunto '*' está reservada para el conjunto universal."
+            assert ref != '*', (
+                "La referencia de conjunto '*' está reservada para el conjunto"
+                " universal."
+            )
             leaf = Leaf(leaf_id, ref)
             self.__leaves[leaf_id] = leaf
             self.__leaves[ref] = leaf
 
         # clausura transitiva de subconjuntos y supraconjuntos
         subsets = {leaf.id: leaf.subsets for leaf in self.__leaves.values()}
-        supersets = {leaf.id: leaf.supersets for leaf in self.__leaves.values()}
+        supersets = {
+            leaf.id: leaf.supersets for leaf in self.__leaves.values()
+        }
         for leaf_id, info in definitions.items():
             for greater_id in info.get('supersets', ()):
-                # transitividad: smaller_ids <= leaf_id <= greater_id <= greater_ids
+                # transitividad: smaller_ids <= leaf_id <= greater_id <=
+                # greater_ids
                 smaller_ids = subsets[leaf_id]
                 greater_ids = supersets[greater_id]
                 for smaller_id in smaller_ids:
@@ -110,10 +120,13 @@ class SetDefinitions:
                     subsets[greater_id].update(smaller_ids)
 
         # clausura transitiva de la relación de disjunción
-        disjoints = {leaf.id: leaf.disjoints for leaf in self.__leaves.values()}
+        disjoints = {
+            leaf.id: leaf.disjoints for leaf in self.__leaves.values()
+        }
         for leaf_id, info in definitions.items():
             for distinct_id in info.get('disjoints', set()):
-                # todo subsets[leaf_id] es disjunto de todo subsets[distinct_id]
+                # todo subsets[leaf_id] es disjunto de todo
+                # subsets[distinct_id]
                 left_ids = subsets[leaf_id]
                 right_ids = subsets[distinct_id]
                 for left_id in left_ids:
@@ -131,7 +144,9 @@ class SetDefinitions:
         """El conjunto universal."""
         return UNIVERSAL_UNION
 
-    def parse(self, refs: str, raise_if_not_found: bool = True) -> SetExpression:
+    def parse(
+        self, refs: str, raise_if_not_found: bool = True
+    ) -> SetExpression:
         """Devuelve la expresión de conjunto correspondiente a ``refs``.
 
         :param str refs: lista de referencias de conjunto separadas por coma,
@@ -144,7 +159,9 @@ class SetDefinitions:
         negatives: list[Leaf] = []
         for xmlid in refs.split(','):
             if xmlid.startswith('!'):
-                negatives.append(~self.__get_leaf(xmlid[1:], raise_if_not_found))
+                negatives.append(
+                    ~self.__get_leaf(xmlid[1:], raise_if_not_found)
+                )
             else:
                 positives.append(self.__get_leaf(xmlid, raise_if_not_found))
 
@@ -153,34 +170,57 @@ class SetDefinitions:
         else:
             return Union([Inter(negatives)])
 
-    def from_ids(self, ids: Iterable[int], keep_subsets: bool = False) -> SetExpression:
-        """Devuelve la expresión de conjunto correspondiente a los ids dados."""
+    def from_ids(
+        self, ids: Iterable[int], keep_subsets: bool = False
+    ) -> SetExpression:
+        """
+        Devuelve la expresión de conjunto correspondiente a los ids dados.
+        """
         if keep_subsets:
             ids = set(ids)
-            ids = [leaf_id for leaf_id in ids if not any((self.__leaves[leaf_id].subsets - {leaf_id}) & ids)]
+            ids = [
+                leaf_id
+                for leaf_id in ids
+                if not any((self.__leaves[leaf_id].subsets - {leaf_id}) & ids)
+            ]
         return Union(Inter([self.__leaves[leaf_id]]) for leaf_id in ids)
 
     def from_key(self, key: str) -> SetExpression:
-        """Devuelve la expresión de conjunto correspondiente a la clave dada."""
+        """
+        Devuelve la expresión de conjunto correspondiente a la clave dada.
+        """
         # union_tuple = tuple(tuple(tuple(leaf_id, negative), ...), ...)
         union_tuple = ast.literal_eval(key)
-        return Union([
-            Inter([
-                ~leaf if negative else leaf
-                for leaf_id, negative in inter_tuple
-                for leaf in [self.__get_leaf(leaf_id, raise_if_not_found=False)]
-            ], optimal=True)
-            for inter_tuple in union_tuple
-        ], optimal=True)
+        return Union(
+            [
+                Inter(
+                    [
+                        ~leaf if negative else leaf
+                        for leaf_id, negative in inter_tuple
+                        for leaf in [
+                            self.__get_leaf(leaf_id, raise_if_not_found=False)
+                        ]
+                    ],
+                    optimal=True,
+                )
+                for inter_tuple in union_tuple
+            ],
+            optimal=True,
+        )
 
     def get_id(self, ref: LeafIdType) -> LeafIdType | None:
-        """Devuelve el id de un conjunto por su referencia, o ``None`` si no existe."""
+        """
+        Devuelve el id de un conjunto por su referencia, o ``None`` si no
+        existe.
+        """
         if ref == '*':
             return UNIVERSAL_LEAF.id
         leaf = self.__leaves.get(ref)
         return None if leaf is None else leaf.id
 
-    def __get_leaf(self, ref: str | int, raise_if_not_found: bool = True) -> Leaf:
+    def __get_leaf(
+        self, ref: str | int, raise_if_not_found: bool = True
+    ) -> Leaf:
         """Devuelve el objeto de grupo a partir de su referencia.
 
         :param ref: la referencia de una hoja.
@@ -197,13 +237,15 @@ class SetDefinitions:
         Con el ejemplo declarado en el constructor: los supraconjuntos de "Q"
         (id 3) son "R" y "C", con ids [4, 6].
         """
-        return sorted({
-            sup_id
-            for id_ in ids
-            if id_ in self.__leaves
-            for sup_id in self.__leaves[id_].supersets
-            if sup_id != id_
-        })
+        return sorted(
+            {
+                sup_id
+                for id_ in ids
+                if id_ in self.__leaves
+                for sup_id in self.__leaves[id_].supersets
+                if sup_id != id_
+            }
+        )
 
     def get_subset_ids(self, ids: Iterable[int]) -> list[int]:
         """Devuelve los subconjuntos de la lista de ids dada.
@@ -211,13 +253,15 @@ class SetDefinitions:
         Con el ejemplo declarado en el constructor: los subconjuntos de "Q"
         (id 3) son "Z" y "N", con ids [1, 2].
         """
-        return sorted({
-            sub_id
-            for id_ in ids
-            if id_ in self.__leaves
-            for sub_id in self.__leaves[id_].subsets
-            if sub_id != id_
-        })
+        return sorted(
+            {
+                sub_id
+                for id_ in ids
+                if id_ in self.__leaves
+                for sub_id in self.__leaves[id_].subsets
+                if sub_id != id_
+            }
+        )
 
     def get_disjoint_ids(self, ids: Iterable[int]) -> list[int]:
         """Devuelve los conjuntos disjuntos de la lista de ids dada.
@@ -233,25 +277,33 @@ class SetDefinitions:
         texto en vez de copiarlo: un docstring que afirma lo que el código no
         hace propaga el error a quien lo lea.
         """
-        return sorted({
-            disjoint_id
-            for id_ in ids
-            if id_ in self.__leaves
-            for disjoint_id in self.__leaves[id_].disjoints
-        })
+        return sorted(
+            {
+                disjoint_id
+                for id_ in ids
+                if id_ in self.__leaves
+                for disjoint_id in self.__leaves[id_].disjoints
+            }
+        )
 
 
 class SetExpression(ABC):
-    """Combinación de conjuntos con nombre por unión, intersección y complemento."""
+    """
+    Combinación de conjuntos con nombre por unión, intersección y complemento.
+    """
 
     @abstractmethod
     def is_empty(self) -> bool:
-        """Devuelve si ``self`` es el conjunto vacío, el que no contiene nada."""
+        """
+        Devuelve si ``self`` es el conjunto vacío, el que no contiene nada.
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def is_universal(self) -> bool:
-        """Devuelve si ``self`` es el conjunto universal, el que contiene todo."""
+        """
+        Devuelve si ``self`` es el conjunto universal, el que contiene todo.
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -321,8 +373,12 @@ class Union(SetExpression):
         return self.__key
 
     @staticmethod
-    def __combine(inters: Iterable[Inter], inters_to_add: Iterable[Inter]) -> list[Inter]:
-        """Combina una unión de intersecciones existente con intersecciones extra."""
+    def __combine(
+        inters: Iterable[Inter], inters_to_add: Iterable[Inter]
+    ) -> list[Inter]:
+        """
+        Combina una unión de intersecciones existente con intersecciones extra.
+        """
         result = list(inters)
 
         todo = list(inters_to_add)
@@ -345,11 +401,15 @@ class Union(SetExpression):
         return result
 
     def is_empty(self) -> bool:
-        """Devuelve si ``self`` es el conjunto vacío, el que no contiene nada."""
+        """
+        Devuelve si ``self`` es el conjunto vacío, el que no contiene nada.
+        """
         return not self.__inters
 
     def is_universal(self) -> bool:
-        """Devuelve si ``self`` es el conjunto universal, el que contiene todo."""
+        """
+        Devuelve si ``self`` es el conjunto universal, el que contiene todo.
+        """
         return any(item.is_universal() for item in self.__inters)
 
     def invert_intersect(self, factor: SetExpression) -> Union | None:
@@ -366,7 +426,9 @@ class Union(SetExpression):
         rself = ~self
 
         assert isinstance(rfactor, Union)
-        inters = [inter for inter in rself.__inters if inter not in rfactor.__inters]
+        inters = [
+            inter for inter in rself.__inters if inter not in rfactor.__inters
+        ]
         if len(rself.__inters) - len(inters) != len(rfactor.__inters):
             # no es posible invertir la intersección
             return None
@@ -454,7 +516,8 @@ class Union(SetExpression):
         return self != other and self.__le__(other)
 
     def __str__(self):
-        """Representación como unión de intersecciones, con referencias legibles.
+        """
+        Representación como unión de intersecciones, con referencias legibles.
 
         P. ej. ``('base.group_user' & 'base.group_multi_company') |
         ('base.group_portal' & ~'base.group_multi_company') |
@@ -467,11 +530,17 @@ class Union(SetExpression):
             return f"{'~' if leaf.negative else ''}{leaf.ref!r}"
 
         def inter_to_str(inter, wrapped=False):
-            result = " & ".join(leaf_to_str(leaf) for leaf in inter.leaves) or "*"
-            return f"({result})" if wrapped and len(inter.leaves) > 1 else result
+            result = (
+                " & ".join(leaf_to_str(leaf) for leaf in inter.leaves) or "*"
+            )
+            return (
+                f"({result})" if wrapped and len(inter.leaves) > 1 else result
+            )
 
         wrapped = len(self.__inters) > 1
-        return " | ".join(inter_to_str(inter, wrapped) for inter in self.__inters)
+        return " | ".join(
+            inter_to_str(inter, wrapped) for inter in self.__inters
+        )
 
     def __repr__(self):
         return repr(self.__str__())
@@ -485,16 +554,21 @@ class Inter:
 
     Representa una intersección de conjuntos con nombre o de su complemento.
     """
+
     __slots__ = ('key', 'leaves')
 
     def __init__(self, leaves: Iterable[Leaf] = (), optimal=False):
         if leaves and not optimal:
             leaves = self.__combine((), leaves)
         self.leaves: list[Leaf] = sorted(leaves, key=lambda leaf: leaf.key)
-        self.key: tuple[tuple[LeafIdType, bool], ...] = tuple(leaf.key for leaf in self.leaves)
+        self.key: tuple[tuple[LeafIdType, bool], ...] = tuple(
+            leaf.key for leaf in self.leaves
+        )
 
     @staticmethod
-    def __combine(leaves: Iterable[Leaf], leaves_to_add: Iterable[Leaf]) -> list[Leaf]:
+    def __combine(
+        leaves: Iterable[Leaf], leaves_to_add: Iterable[Leaf]
+    ) -> list[Leaf]:
         """Combina una intersección de hojas existente con hojas extra."""
         result = list(leaves)
         for leaf_to_add in leaves_to_add:
@@ -516,7 +590,9 @@ class Inter:
         return any(item.is_empty() for item in self.leaves)
 
     def is_universal(self) -> bool:
-        """Devuelve si ``self`` es el conjunto universal, el que contiene todo."""
+        """
+        Devuelve si ``self`` es el conjunto universal, el que contiene todo.
+        """
         return not self.leaves
 
     def matches(self, user_group_ids) -> bool:
@@ -524,7 +600,9 @@ class Inter:
         return all(leaf.matches(user_group_ids) for leaf in self.leaves)
 
     def _union_merge(self, other: Inter) -> Inter | None:
-        """Unión de ``self`` con otra intersección, si es representable como intersección.
+        """
+        Unión de ``self`` con otra intersección, si es representable como
+        intersección.
 
         Devuelve ``None`` en caso contrario.
         """
@@ -538,7 +616,9 @@ class Inter:
         if len(self.leaves) == len(other.leaves):
             opposite_index = None
             # se aprovecha que las hojas están ordenadas
-            for index, self_leaf, other_leaf in zip(range(len(self.leaves)), self.leaves, other.leaves):
+            for index, self_leaf, other_leaf in zip(
+                range(len(self.leaves)), self.leaves, other.leaves
+            ):
                 if self_leaf.id != other_leaf.id:
                     return None
                 if self_leaf.negative != other_leaf.negative:
@@ -582,17 +662,35 @@ class Leaf:
 
     Representa un conjunto con nombre o su complemento.
     """
-    __slots__ = ('disjoints', 'id', 'inverse', 'key', 'negative', 'ref', 'subsets', 'supersets')
 
-    def __init__(self, leaf_id: LeafIdType, ref: str | int | None = None, negative: bool = False):
+    __slots__ = (
+        'disjoints',
+        'id',
+        'inverse',
+        'key',
+        'negative',
+        'ref',
+        'subsets',
+        'supersets',
+    )
+
+    def __init__(
+        self,
+        leaf_id: LeafIdType,
+        ref: str | int | None = None,
+        negative: bool = False,
+    ):
         self.id = leaf_id
         self.ref = ref or str(leaf_id)
         self.negative = bool(negative)
         self.key: tuple[LeafIdType, bool] = (leaf_id, self.negative)
 
-        self.subsets: set[LeafIdType] = {leaf_id}       # todos los ids de hoja que son <= self
-        self.supersets: set[LeafIdType] = {leaf_id}     # todos los ids de hoja que son >= self
-        self.disjoints: set[LeafIdType] = set()         # todos los ids de hoja disjuntos de self
+        # todos los ids de hoja que son <= self
+        self.subsets: set[LeafIdType] = {leaf_id}
+        # todos los ids de hoja que son >= self
+        self.supersets: set[LeafIdType] = {leaf_id}
+        # todos los ids de hoja disjuntos de self
+        self.disjoints: set[LeafIdType] = set()
         self.inverse: Leaf | None = None
 
     def __invert__(self) -> Leaf:
@@ -623,7 +721,11 @@ class Leaf:
 
     def matches(self, user_group_ids: Collection[int]) -> bool:
         """Devuelve si los ids de grupo dados están incluidos en ``self``."""
-        return (self.id not in user_group_ids) if self.negative else (self.id in user_group_ids)
+        return (
+            (self.id not in user_group_ids)
+            if self.negative
+            else (self.id in user_group_ids)
+        )
 
     def __eq__(self, other) -> bool:
         return isinstance(other, Leaf) and self.key == other.key
@@ -652,6 +754,7 @@ class UnknownId(str):
 
     Se comporta como estrictamente mayor que cualquier otra clase de id.
     """
+
     __slots__ = ()
 
     def __lt__(self, other) -> bool:

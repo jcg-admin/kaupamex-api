@@ -4,6 +4,7 @@ Soft-delete contract tests for addons.helpdesk.SupportTicket (P-02).
 DEC-DOC-007: SupportTicket inherits from SoftDeleteModel to preserve
 support history referenced by SupportTicketReply via CASCADE.
 """
+
 import pytest
 from addons.helpdesk.models import SupportTicket
 from addons.base.models import SoftDeleteModel

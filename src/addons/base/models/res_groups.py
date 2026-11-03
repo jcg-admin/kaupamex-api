@@ -106,6 +106,7 @@ import api
 import fields
 import models
 from orm.domains import NEGATIVE_CONDITION_OPERATORS, Domain
+from orm.environments import get_context
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
@@ -257,11 +258,14 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
     def __str__(self):
         return self.full_name
 
+    @api.depends('privilege.name', 'name')
+    @api.depends_context('short_display_name')
     def _compute_full_name(self):
-        """``privilegio / nombre``, o el nombre solo — ≙ ``:123-129``."""
-        if self.privilege_id and self.privilege:
-            return '%s / %s' % (self.privilege.name, self.name)
-        return self.name
+        """Asigna ``privilegio / nombre`` o nombre — ≙ ``:123-129``."""
+        if self.privilege_id and not get_context().get('short_display_name'):
+            self.full_name = '%s / %s' % (self.privilege.name, self.name)
+        else:
+            self.full_name = self.name
 
     # === Búsqueda y orden por nombre completo =============================
 

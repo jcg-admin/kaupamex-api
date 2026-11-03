@@ -1,0 +1,49 @@
+{
+  "image_id": "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222",
+  "resource_name": "orm-virtual-delete-91466473a585",
+  "start_command": [
+    "docker",
+    "--host=unix:///var/run/docker.sock",
+    "run",
+    "--rm",
+    "--pull=never",
+    "--detach",
+    "--name",
+    "orm-virtual-delete-91466473a585",
+    "--label",
+    "org.kaupamex.contract=TASK-API-0424.nonstored-delete-postgresql",
+    "--env",
+    "POSTGRES_PASSWORD",
+    "--publish",
+    "127.0.0.1::5432",
+    "--memory",
+    "256m",
+    "--cpus",
+    "1",
+    "--pids-limit",
+    "128",
+    "--tmpfs",
+    "/var/lib/postgresql/data:rw",
+    "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222"
+  ],
+  "cleanup_verified": true,
+  "container_id": "fed2fc57d3c6c4c1af4eb706d51ead6f59c941cf70abeeac289360f74ac7ba0b",
+  "verification_command": [
+    "uv",
+    "run",
+    "--offline",
+    "--frozen",
+    "python",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_nonstored_delete_postgresql.py"
+  ],
+  "verification_exit": 0,
+  "cleanup_command": [
+    "docker",
+    "--host=unix:///var/run/docker.sock",
+    "stop",
+    "--timeout",
+    "5",
+    "fed2fc57d3c6c4c1af4eb706d51ead6f59c941cf70abeeac289360f74ac7ba0b"
+  ],
+  "cleanup_poll_attempts": 3
+}

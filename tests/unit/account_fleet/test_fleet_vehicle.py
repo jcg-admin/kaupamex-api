@@ -14,6 +14,7 @@ este archivo prueba la construcción del filtro y las piezas puras
 resultado de evaluar el queryset — eso queda para el nivel de integración,
 con un vehículo real en la base.
 """
+
 import pytest
 
 from addons.account.models import AccountMove, AccountMoveLine
@@ -35,7 +36,9 @@ class TestPurchaseMoveTypes:
         """≙ ``AccountMove.get_purchase_types()`` de la referencia (ausente
         en este puerto — ver el docstring del módulo). Los tres códigos
         deben existir en ``AccountMove.MOVE_TYPES``."""
-        codigos_declarados = {codigo for codigo, _label in AccountMove.MOVE_TYPES}
+        codigos_declarados = {
+            codigo for codigo, _label in AccountMove.MOVE_TYPES
+        }
         assert set(PURCHASE_MOVE_TYPES) <= codigos_declarados
 
     def test_tres_entradas_verbatim(self):
@@ -44,7 +47,9 @@ class TestPurchaseMoveTypes:
 
 class TestSimbolosColgados:
     def test_account_move_ids_es_property(self):
-        assert isinstance(FleetVehicle.__dict__.get('account_move_ids'), property)
+        assert isinstance(
+            FleetVehicle.__dict__.get('account_move_ids'), property
+        )
 
     def test_bill_count_es_property(self):
         assert isinstance(FleetVehicle.__dict__.get('bill_count'), property)

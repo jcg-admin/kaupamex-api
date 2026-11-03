@@ -1,0 +1,415 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.................FFFEEEEEE.............................................. [ 15%]
+........................................................................ [ 30%]
+................................................FFFFFF.................. [ 46%]
+F........................F.............................................. [ 61%]
+....................FF.....................F............................ [ 77%]
+........................................................................ [ 92%]
+.F...............................                                        [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestFilterFunction.test_any_discriminates_between_two_rows _
+tests/unit/orm/test_fields_properties.py:451: in scenario
+    empty = FleetVehicle.objects.create(model=container)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+_ ERROR at setup of TestFilterFunction.test_a_domain_value_takes_the_same_branch _
+tests/unit/orm/test_fields_properties.py:451: in scenario
+    empty = FleetVehicle.objects.create(model=container)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+__ ERROR at setup of TestFilterFunction.test_the_matched_corecord_comes_back ___
+tests/unit/orm/test_fields_properties.py:451: in scenario
+    empty = FleetVehicle.objects.create(model=container)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+_ ERROR at setup of TestFilterFunction.test_a_declared_property_without_value_matches_nothing _
+tests/unit/orm/test_fields_properties.py:451: in scenario
+    empty = FleetVehicle.objects.create(model=container)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+_ ERROR at setup of TestFilterFunction.test_an_undeclared_property_matches_nothing_instead_of_raising _
+tests/unit/orm/test_fields_properties.py:451: in scenario
+    empty = FleetVehicle.objects.create(model=container)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+_ ERROR at setup of TestFilterFunction.test_a_plain_operator_delegates_to_the_base_field _
+tests/unit/orm/test_fields_properties.py:451: in scenario
+    empty = FleetVehicle.objects.create(model=container)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+=================================== FAILURES ===================================
+______ TestComputeOnSave.test_the_container_default_fills_an_absent_value ______
+tests/unit/orm/test_fields_properties.py:341: in test_the_container_default_fills_an_absent_value
+    row = FleetVehicle.objects.create(model=model)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+________ TestComputeOnSave.test_a_value_without_a_definition_is_blanked ________
+tests/unit/orm/test_fields_properties.py:353: in test_a_value_without_a_definition_is_blanked
+    row = FleetVehicle.objects.create(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+_______ TestComputeOnSave.test_a_value_outside_the_definition_is_dropped _______
+tests/unit/orm/test_fields_properties.py:363: in test_a_value_outside_the_definition_is_dropped
+    row = FleetVehicle.objects.create(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/fleet/models/fleet_vehicle.py:629: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1158: in _save_table
+    else field.pre_save(self, add=True)
+src/orm/fields_properties.py:460: in pre_save
+    self._compute([model_instance])
+src/orm/fields_properties.py:454: in _compute
+    setattr(record, self.name,
+src/orm/fields.py:5079: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1840: in __set__
+    field.write(instance, value)
+src/orm/fields_properties.py:572: in write
+    for record in records}
+src/orm/models.py:3574: in _model_getitem
+    raise TypeError(
+E   TypeError: FleetVehicle[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Html] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Html
+E   assert False
+E    +  where False = isinstance(<orm.fields_textual.Html>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Binary] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Binary
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[Image] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Image
+E   assert False
+E    +  where False = isinstance(<orm.fields_binary.Image>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_a_bare_store_false_has_no_column[PropertiesDefinition] _
+tests/unit/orm/test_bare_store_false_declaration.py:42: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: PropertiesDefinition
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.PropertiesDefinition>, NonStored)
+_ TestTheRouterReadsTheResolvedStore.test_the_many_to_many_does_not_need_its_comodel _
+tests/unit/orm/test_bare_store_false_declaration.py:48: in test_the_many_to_many_does_not_need_its_comodel
+    field = fields.Many2many(store=False, compute='_compute_x')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1121: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/usr/local/lib/python3.13/inspect.py:3316: in bind
+    return self._bind(args, kwargs)
+/usr/local/lib/python3.13/inspect.py:3229: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'
+_ TestTheRouterReadsTheResolvedStore.test_the_properties_field_has_no_column_either _
+tests/unit/orm/test_bare_store_false_declaration.py:55: in test_the_properties_field_has_no_column_either
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Properties
+E   assert False
+E    +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)
+_____________ TestFieldsRegistry.test_it_maps_concrete_field_names _____________
+tests/unit/orm/test_field_to_sql.py:117: in test_it_maps_concrete_field_names
+    assert set(definition._fields) == {
+E   AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}
+E     Extra items in the left set:
+E     'properties_field_id'
+E     Use -v to get more diff
+_____________ TestDispatcher.test_store_false_is_still_non_stored ______________
+tests/unit/orm/test_company_dependent.py:42: in test_store_false_is_still_non_stored
+    assert isinstance(fields.Char(store=False), NonStored)
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)
+E    +    where <django.db.models.fields.CharField> = <function Char at 0x7f5b21df63e0>(store=False)
+E    +      where <function Char at 0x7f5b21df63e0> = fields.Char
+_ TestABareStoreFalseGivesANonStoredField.test_integer_with_store_false_is_non_stored _
+tests/unit/orm/test_company_dependent.py:373: in test_integer_with_store_false_is_non_stored
+    assert isinstance(fields.Integer(store=False), NonStored)
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.IntegerField>, NonStored)
+E    +    where <django.db.models.fields.IntegerField> = <function Integer at 0x7f5b21eb7240>(store=False)
+E    +      where <function Integer at 0x7f5b21eb7240> = fields.Integer
+_ TestABareStoreFalseGivesANonStoredField.test_float_with_store_false_is_non_stored _
+tests/unit/orm/test_company_dependent.py:376: in test_float_with_store_false_is_non_stored
+    assert isinstance(fields.Float(store=False), NonStored)
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.FloatField>, NonStored)
+E    +    where <django.db.models.fields.FloatField> = <function Float at 0x7f5b21eb71a0>(store=False)
+E    +      where <function Float at 0x7f5b21eb71a0> = fields.Float
+_ TestTheThirdConsumerAsksTheSameQuestion.test_the_count_over_a_fixed_population _
+tests/unit/orm/test_domain_in_required.py:560: in test_the_count_over_a_fixed_population
+    assert len(discrepan) == 27, (
+E   AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción
+E   assert 119 == 27
+E    +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])
+___________ TestMixinContract.test_the_definition_link_has_no_column ___________
+tests/unit/base/test_properties_base_definition.py:211: in test_the_definition_link_has_no_column
+    assert isinstance(
+E   assert False
+E    +  where False = isinstance(<orm.fields.NonStoredMany2oneAccessor object at 0x7f5b216392b0>, NonStored)
+=============================== warnings summary ===============================
+tests/unit/base_sparse_field/test_ir_model_fields.py::test_changing_the_storing_system_is_refused
+tests/unit/orm/test_company_dependent.py::TestPerCompanyIndirection::test_reading_without_an_active_company_falls_back
+  /home/user/kaupamex-api/src/orm/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/base_sparse_field/test_ir_model_fields.py::test_changing_the_storing_system_is_refused
+tests/unit/orm/test_company_dependent.py::TestPerCompanyIndirection::test_reading_without_an_active_company_falls_back
+  /home/user/kaupamex-api/src/orm/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_fields_properties.py::TestComputeOnSave::test_the_container_default_fills_an_absent_value
+FAILED tests/unit/orm/test_fields_properties.py::TestComputeOnSave::test_a_value_without_a_definition_is_blanked
+FAILED tests/unit/orm/test_fields_properties.py::TestComputeOnSave::test_a_value_outside_the_definition_is_dropped
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Html]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Binary]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Image]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[PropertiesDefinition]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_many_to_many_does_not_need_its_comodel
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_properties_field_has_no_column_either
+FAILED tests/unit/orm/test_field_to_sql.py::TestFieldsRegistry::test_it_maps_concrete_field_names
+FAILED tests/unit/orm/test_company_dependent.py::TestDispatcher::test_store_false_is_still_non_stored
+FAILED tests/unit/orm/test_company_dependent.py::TestABareStoreFalseGivesANonStoredField::test_integer_with_store_false_is_non_stored
+FAILED tests/unit/orm/test_company_dependent.py::TestABareStoreFalseGivesANonStoredField::test_float_with_store_false_is_non_stored
+FAILED tests/unit/orm/test_domain_in_required.py::TestTheThirdConsumerAsksTheSameQuestion::test_the_count_over_a_fixed_population
+FAILED tests/unit/base/test_properties_base_definition.py::TestMixinContract::test_the_definition_link_has_no_column
+ERROR tests/unit/orm/test_fields_properties.py::TestFilterFunction::test_any_discriminates_between_two_rows
+ERROR tests/unit/orm/test_fields_properties.py::TestFilterFunction::test_a_domain_value_takes_the_same_branch
+ERROR tests/unit/orm/test_fields_properties.py::TestFilterFunction::test_the_matched_corecord_comes_back
+ERROR tests/unit/orm/test_fields_properties.py::TestFilterFunction::test_a_declared_property_without_value_matches_nothing
+ERROR tests/unit/orm/test_fields_properties.py::TestFilterFunction::test_an_undeclared_property_matches_nothing_instead_of_raising
+ERROR tests/unit/orm/test_fields_properties.py::TestFilterFunction::test_a_plain_operator_delegates_to_the_base_field
+15 failed, 444 passed, 4 warnings, 6 errors in 17.99s

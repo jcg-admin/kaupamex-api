@@ -8,6 +8,7 @@ default y queda editable en caliente.
 Spec único que consumen la data-migration de arranque y ``seed()``
 (re-aplicación sobre el modelo vivo, patrón H-API-22 de ``authz_totp``).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import SystemParameter

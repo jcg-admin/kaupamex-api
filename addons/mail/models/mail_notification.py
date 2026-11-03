@@ -1,4 +1,5 @@
-"""``mail.notification`` — registro de entrega por destinatario (Odoo ``mail``).
+"""
+``mail.notification`` — registro de entrega por destinatario (Odoo ``mail``).
 
 Portacion fiel de ``mail/models/mail_notification.py`` (``mail.notification``,
 Odoo 19 community, LGPL-3). Es la fila que ata un ``mail.message`` a UN
@@ -16,6 +17,7 @@ registro con un cross-link al envio saliente concreto (``mail.mail`` = la cola
 ``sms.sms``), referenciados por **string** para no acoplar el orden de import
 (Django resuelve la FK de forma diferida).
 """
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -28,7 +30,9 @@ from .mail_message import MailMessage
 
 
 class MailNotification(TimeStampedModel):
-    """``mail.notification`` — entrega de un ``mail.message`` a un destinatario."""
+    """
+    ``mail.notification`` — entrega de un ``mail.message`` a un destinatario.
+    """
 
     # Odoo notification_type (mail_notification.py) — canal de entrega. Se
     # portan inbox/email/sms; ``snail`` (snailmail) queda fuera (no hay correo
@@ -74,52 +78,72 @@ class MailNotification(TimeStampedModel):
 
     # Odoo mail_message_id (required, ondelete cascade).
     message = fields.Many2one(
-        MailMessage, on_delete=models.CASCADE,
+        MailMessage,
+        null=False, on_delete=models.CASCADE,
         related_name='notification_ids',
         help_text='Mensaje entregado (Odoo mail_message_id).',
     )
     # Odoo res_partner_id (recipient, ondelete cascade). En este stack el
     # destinatario es el usuario/party (AUTH_USER_MODEL), no res.partner.
     partner = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,
+        null=False, on_delete=models.CASCADE,
         related_name='mail_notifications',
         help_text='Destinatario (Odoo res_partner_id).',
     )
     notification_type = fields.Selection(
-        max_length=8, choices=NOTIFICATION_TYPE_CHOICES, default=TYPE_INBOX,
+        max_length=8,
+        choices=NOTIFICATION_TYPE_CHOICES,
+        default=TYPE_INBOX,
         help_text='Canal de entrega (Odoo notification_type).',
     )
     notification_status = fields.Selection(
-        max_length=12, choices=NOTIFICATION_STATUS_CHOICES, default=STATUS_READY,
+        max_length=12,
+        choices=NOTIFICATION_STATUS_CHOICES,
+        default=STATUS_READY,
         help_text='Estado de entrega (Odoo notification_status).',
     )
     is_read = fields.Boolean(
-        default=False, help_text='Leido por el destinatario (Odoo is_read).',
+        default=False,
+        help_text='Leido por el destinatario (Odoo is_read).',
     )
     read_date = fields.Datetime(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Momento de lectura (Odoo read_date).',
     )
     failure_type = fields.Selection(
-        max_length=32, choices=FAILURE_TYPE_CHOICES, null=True, blank=True,
+        max_length=32,
+        choices=FAILURE_TYPE_CHOICES,
+        null=True,
+        blank=True,
         help_text='Clasificacion del fallo (Odoo failure_type).',
     )
     failure_reason = fields.Text(
-        blank=True, default='',
+        blank=True,
+        default='',
         help_text='Detalle del fallo (Odoo failure_reason).',
     )
-    # Cross-link al envio saliente concreto (Odoo ``mail_mail_id``). Ahora apunta
-    # al hogar fiel ``mail.mail`` (``MailMail``), ex-``notifications.EmailTask``.
+    # Cross-link al envio saliente concreto (Odoo ``mail_mail_id``).
+    # Ahora apunta
+    # al hogar fiel ``mail.mail`` (``MailMail``),
+    # ex-``notifications.EmailTask``.
     # String FK para no acoplar el orden de import; SET_NULL: el registro de
     # entrega sobrevive al purgado de la cola de envio.
     mail_mail = fields.Many2one(
-        'mail.MailMail', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='mail_notifications',
+        'mail.MailMail',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mail_notifications',
         help_text='Envio de correo asociado (Odoo mail_mail_id).',
     )
     sms = fields.Many2one(
-        'sms.SmsSms', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='mail_notifications',
+        'sms.SmsSms',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mail_notifications',
         help_text='SMS saliente asociado (Odoo sms_id).',
     )
 
@@ -140,10 +164,18 @@ class MailNotification(TimeStampedModel):
         )
 
     def mark_read(self) -> None:
-        """Marca la notificacion como leida (Odoo ``is_read=True``, ``read_date``)."""
+        """
+        Marca la notificacion como leida (Odoo ``is_read=True``,
+        ``read_date``).
+        """
         self.is_read = True
         self.read_date = timezone.now()
         self.notification_status = self.STATUS_SENT
-        self.save(update_fields=[
-            'is_read', 'read_date', 'notification_status', 'updated_at',
-        ])
+        self.save(
+            update_fields=[
+                'is_read',
+                'read_date',
+                'notification_status',
+                'updated_at',
+            ]
+        )

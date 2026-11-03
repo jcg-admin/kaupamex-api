@@ -8,6 +8,7 @@ Verifican que el middleware:
 
 No toca DB: opera sobre request/response en memoria.
 """
+
 import json
 from urllib.parse import quote
 
@@ -35,6 +36,7 @@ def _run(request, cookies):
         for name, value in cookies.items():
             resp.set_cookie(name, value)
         return resp
+
     return CookieGovernanceMiddleware(get_response)(request)
 
 

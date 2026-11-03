@@ -16,6 +16,7 @@ El auto-login tras verificar es decisión vigente
 (``analisis-auto-login-verificacion-email``): hacer clic en el enlace prueba
 control del buzón, el mismo nivel de confianza que el reset.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail as django_mail
@@ -43,10 +44,13 @@ def seeded(db):
 def unverified_user(seeded, db):
     """Cuenta recién dada de alta: inactiva y pendiente de verificar."""
     partner = ResPartner.objects.create(
-        name='Sin verificar', email='pending@kaupamex.mx')
+        name='Sin verificar', email='pending@kaupamex.mx'
+    )
     user = User.objects.create_user(
-        login='pending@kaupamex.mx', password='Str0ng-Passw0rd!',
-        partner=partner)
+        login='pending@kaupamex.mx',
+        password='Str0ng-Passw0rd!',
+        partner=partner,
+    )
     user.active = False
     user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
     user.save(update_fields=['active', 'deactivated_reason', 'updated_at'])
@@ -66,29 +70,33 @@ class TestSendVerificationEmail:
 
     def test_send_refuses_already_verified_account(self, seeded, db):
         partner = ResPartner.objects.create(
-            name='Activa', email='active@kaupamex.mx')
+            name='Activa', email='active@kaupamex.mx'
+        )
         user = User.objects.create_user(
-            login='active@kaupamex.mx', password='Str0ng-Passw0rd!',
-            partner=partner)
+            login='active@kaupamex.mx',
+            password='Str0ng-Passw0rd!',
+            partner=partner,
+        )
         with pytest.raises(UserError):
             su.send_verification_email(user)
 
     def test_send_refuses_admin_suspended_account(self, unverified_user):
         """Reactivar por correo una cuenta suspendida saltaría al admin."""
         unverified_user.deactivated_reason = User.DEACTIVATION_SUSPENDED
-        unverified_user.save(update_fields=['deactivated_reason',
-                                            'updated_at'])
+        unverified_user.save(
+            update_fields=['deactivated_reason', 'updated_at']
+        )
         with pytest.raises(UserError):
             su.send_verification_email(unverified_user)
 
 
 class TestVerifyEmailEndpoint:
     def test_valid_token_activates_and_opens_session(
-            self, api_client, unverified_user):
+        self, api_client, unverified_user
+    ):
         token = su.send_verification_email(unverified_user)
 
-        response = api_client.post(VERIFY_URL, {'token': token},
-                                   format='json')
+        response = api_client.post(VERIFY_URL, {'token': token}, format='json')
 
         assert response.status_code == 200
         assert response.data['login'] == unverified_user.login
@@ -102,8 +110,12 @@ class TestVerifyEmailEndpoint:
 
     def test_token_is_single_use(self, api_client, unverified_user):
         token = su.send_verification_email(unverified_user)
-        assert api_client.post(VERIFY_URL, {'token': token},
-                               format='json').status_code == 200
+        assert (
+            api_client.post(
+                VERIFY_URL, {'token': token}, format='json'
+            ).status_code
+            == 200
+        )
 
         second = api_client.post(VERIFY_URL, {'token': token}, format='json')
 
@@ -111,14 +123,14 @@ class TestVerifyEmailEndpoint:
         assert second.data['codigo_error'] == 'VERIFY_INVALID_TOKEN'
 
     def test_reset_token_cannot_activate_an_account(
-            self, api_client, unverified_user):
+        self, api_client, unverified_user
+    ):
         """Un token de ``reset`` no debe servir de llave de activación."""
         unverified_user.active = True
         unverified_user.save(update_fields=['active', 'updated_at'])
         token = su._action_reset_password(unverified_user)
 
-        response = api_client.post(VERIFY_URL, {'token': token},
-                                   format='json')
+        response = api_client.post(VERIFY_URL, {'token': token}, format='json')
 
         assert response.status_code == 400
         assert response.data['codigo_error'] == 'VERIFY_INVALID_TOKEN'
@@ -130,14 +142,16 @@ class TestVerifyEmailEndpoint:
         assert response.data['codigo_error'] == 'VERIFY_PAYLOAD_REQUIRED'
 
     def test_resend_does_not_leak_account_existence(
-            self, api_client, unverified_user):
+        self, api_client, unverified_user
+    ):
         """Misma respuesta exista o no la cuenta — sin enumeración."""
         django_mail.outbox.clear()
-        known = api_client.post(VERIFY_URL, {'login': unverified_user.login},
-                                format='json')
-        unknown = api_client.post(VERIFY_URL,
-                                  {'login': 'nobody@example.com'},
-                                  format='json')
+        known = api_client.post(
+            VERIFY_URL, {'login': unverified_user.login}, format='json'
+        )
+        unknown = api_client.post(
+            VERIFY_URL, {'login': 'nobody@example.com'}, format='json'
+        )
 
         assert known.status_code == unknown.status_code == 200
         # El correo sólo sale para la cuenta real.

@@ -13,6 +13,7 @@ Qué mide cada bloque:
 - ``_check_iban`` conserva el nombre de la fuente (guion bajo incluido) y
   ``clean()`` lo invoca, así que el rechazo llega por las dos puertas.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -42,7 +43,9 @@ class TestCreate:
 
     def test_create_stores_the_iban_in_its_canonical_format(self):
         partner = ResPartner.objects.create(name='Refaccionaria Zapata')
-        account, = ResPartnerBank.create([{'partner': partner, 'acc_number': SPANISH_IBAN}])
+        (account,) = ResPartnerBank.create(
+            [{'partner': partner, 'acc_number': SPANISH_IBAN}]
+        )
 
         account.refresh_from_db()
         assert account.acc_number == SPANISH_IBAN_PRETTY
@@ -52,7 +55,9 @@ class TestCreate:
     def test_create_leaves_a_domestic_number_untouched(self):
         """La fuente traga la ``ValidationError`` y no reformatea."""
         partner = ResPartner.objects.create(name='Abarrotes Don Chuy')
-        account, = ResPartnerBank.create([{'partner': partner, 'acc_number': '0012 3456 78'}])
+        (account,) = ResPartnerBank.create(
+            [{'partner': partner, 'acc_number': '0012 3456 78'}]
+        )
 
         account.refresh_from_db()
         assert account.acc_number == '0012 3456 78'
@@ -60,7 +65,9 @@ class TestCreate:
 
     def test_create_returns_a_persisted_row(self):
         partner = ResPartner.objects.create(name='Ferretería El Martillo')
-        account, = ResPartnerBank.create([{'partner': partner, 'acc_number': SPANISH_IBAN}])
+        (account,) = ResPartnerBank.create(
+            [{'partner': partner, 'acc_number': SPANISH_IBAN}]
+        )
 
         assert account.pk is not None
         assert ResPartnerBank.objects.filter(pk=account.pk).exists()
@@ -71,7 +78,9 @@ class TestWrite:
 
     def test_write_reformats_a_valid_iban(self):
         partner = ResPartner.objects.create(name='Panadería La Espiga')
-        account, = ResPartnerBank.create([{'partner': partner, 'acc_number': '0012 3456 78'}])
+        (account,) = ResPartnerBank.create(
+            [{'partner': partner, 'acc_number': '0012 3456 78'}]
+        )
 
         returned = account.write(acc_number=SPANISH_IBAN)
 
@@ -82,7 +91,9 @@ class TestWrite:
 
     def test_write_leaves_an_invalid_number_as_written(self):
         partner = ResPartner.objects.create(name='Carnicería El Novillo')
-        account, = ResPartnerBank.create([{'partner': partner, 'acc_number': SPANISH_IBAN}])
+        (account,) = ResPartnerBank.create(
+            [{'partner': partner, 'acc_number': SPANISH_IBAN}]
+        )
 
         account.write(acc_number='0099 8877 66')
 
@@ -93,7 +104,9 @@ class TestWrite:
     def test_write_carries_other_fields_through(self):
         """No sólo ``acc_number``: ``write`` escribe lo que reciba."""
         partner = ResPartner.objects.create(name='Vinos La Cava')
-        account, = ResPartnerBank.create([{'partner': partner, 'acc_number': SPANISH_IBAN}])
+        (account,) = ResPartnerBank.create(
+            [{'partner': partner, 'acc_number': SPANISH_IBAN}]
+        )
 
         account.write(acc_holder_name='María de la Luz Cárdenas')
 
@@ -107,8 +120,9 @@ class TestCheckIban:
     """``_check_iban`` — ≙ ``odoo19c: base_iban:130-134``."""
 
     def test_check_iban_rejects_a_row_marked_iban_with_a_broken_number(self):
-        account = ResPartnerBank(acc_number='ES9121000418450200051333',
-                                 acc_type='iban')
+        account = ResPartnerBank(
+            acc_number='ES9121000418450200051333', acc_type='iban'
+        )
         with pytest.raises(ValidationError):
             account._check_iban()
 
@@ -123,7 +137,8 @@ class TestCheckIban:
 
     def test_clean_delegates_to_check_iban(self):
         """``clean`` es el puente del stack, no una segunda implementación."""
-        account = ResPartnerBank(acc_number='ES9121000418450200051333',
-                                 acc_type='iban')
+        account = ResPartnerBank(
+            acc_number='ES9121000418450200051333', acc_type='iban'
+        )
         with pytest.raises(ValidationError):
             account.clean()

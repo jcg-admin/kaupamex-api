@@ -11,7 +11,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("base", "0030_rescompany_account_peppol_contact_email_and_more"),
-        ("hr", "0010_hremployee_friday_location_hremployee_hourly_cost_and_more"),
+        (
+            "hr",
+            "0010_hremployee_friday_location_hremployee_hourly_cost_and_more",
+        ),
         ("project", "0004_project_billing_type_project_timesheet_product"),
         ("sale", "0006_saleorderline_has_displayed_warning_upsell"),
     ]
@@ -35,7 +38,10 @@ class Migration(migrations.Migration):
                     "price_unit",
                     models.FloatField(
                         default=0.0,
-                        help_text="Odoo price_unit (compute, store) — se sincroniza desde sale_line.price_unit en pre_save.",
+                        help_text=(
+                            "Odoo price_unit (compute, store) — se sincroniza"
+                            " desde sale_line.price_unit en pre_save."
+                        ),
                         verbose_name="Precio unitario",
                     ),
                 ),
@@ -44,7 +50,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Odoo cost. Sustituye al hourly_cost por defecto del empleado en los apuntes de este proyecto.",
+                        help_text=(
+                            "Odoo cost. Sustituye al hourly_cost por defecto"
+                            " del empleado en los apuntes de este proyecto."
+                        ),
                         max_digits=14,
                         verbose_name="Costo por hora",
                     ),
@@ -93,7 +102,11 @@ class Migration(migrations.Migration):
                     "sale_line",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo sale_line_id. Escribible directo — su compute y su domain quedan bloqueados (ver docstring del módulo).",
+                        help_text=(
+                            "Odoo sale_line_id. Escribible directo — su"
+                            " compute y su domain quedan bloqueados (ver"
+                            " docstring del módulo)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="project_sale_line_maps",
@@ -108,7 +121,8 @@ class Migration(migrations.Migration):
                 "db_table": "project_sale_line_employee_map",
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("project", "employee"), name="uniqueness_employee"
+                        fields=("project", "employee"),
+                        name="uniqueness_employee",
                     )
                 ],
             },

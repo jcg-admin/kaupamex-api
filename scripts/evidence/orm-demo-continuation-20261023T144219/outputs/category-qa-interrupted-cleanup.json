@@ -1,0 +1,10 @@
+{
+  "resource": "orm_bootstrap_43562547fb9c",
+  "origin": "category-qa-resource.json; session41627 no longer exists",
+  "guard": "exact owner and no connections; mirrored qa_context finally block",
+  "cleanup_exit": 0,
+  "independent_query_exit": 0,
+  "remaining_databases": 0,
+  "remaining_roles": 0,
+  "probe_not_executed_before_session_loss": true
+}

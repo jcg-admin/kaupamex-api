@@ -11,14 +11,17 @@ referencia guarda el usuario **dos veces**::
     # Integer field because the related user might be deleted from the database
 
 La FK se pone a ``NULL`` cuando el usuario desaparece, pero el entero
-almacenado sobrevive. Es lo contrario de ``res.users.settings``, que **cascadea**
+almacenado sobrevive. Es lo contrario de ``res.users.settings``, que
+**cascadea**
 con el usuario: una solicitud de baja tiene que seguir existiendo después de
 ejecutarse, porque es el registro de que se ejecutó.
 
 **De dónde viene.** Reemplaza al ``UserDeactivationEvent`` que murió con el
-addon ``users`` (H-API-119). Aquél tenía FK simple y **no** conservaba nada tras
+addon ``users`` (H-API-119). Aquél tenía FK simple y **no** conservaba nada
+tras
 el borrado — la propiedad de arriba es lo que el port aporta.
 """
+
 import fields
 import models
 
@@ -40,28 +43,34 @@ class ResUsersDeletion(TimeStampedModel):
         (STATE_FAIL, 'Fallida'),
     ]
 
-    user     = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
+    user = fields.Many2one(
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='deletion_requests',
         help_text='Usuario a dar de baja (Odoo user_id, ondelete=set null).',
     )
     user_int = fields.Integer(
         db_index=True,
         help_text=(
-            'Copia del id del usuario (Odoo user_id_int). Sobrevive al borrado '
-            'de la fila de usuario: sin ella la solicitud ejecutada quedaría '
-            'sin sujeto.'
+            'Copia del id del usuario (Odoo user_id_int). Sobrevive al borrado'
+            ' de la fila de usuario: sin ella la solicitud ejecutada quedaría'
+            ' sin sujeto.'
         ),
     )
-    state    = fields.Selection(
-        max_length=8, choices=STATES, default=STATE_TODO, db_index=True,
+    state = fields.Selection(
+        max_length=8,
+        choices=STATES,
+        default=STATE_TODO,
+        db_index=True,
         help_text='Estado de la solicitud (Odoo state).',
     )
 
     class Meta:
-        db_table            = 'res_users_deletion'
-        ordering            = ['-id']
-        verbose_name        = 'Solicitud de baja'
+        db_table = 'res_users_deletion'
+        ordering = ['-id']
+        verbose_name = 'Solicitud de baja'
         verbose_name_plural = 'Solicitudes de baja'
 
     def __str__(self) -> str:

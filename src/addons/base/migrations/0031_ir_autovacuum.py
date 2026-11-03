@@ -14,6 +14,7 @@ Antes de esto la clase era plana, y el runner del cron —que resuelve su
 objetivo con ``apps.get_model``— no podía alcanzarla: sembrar el job habría
 fallado con ``LookupError`` en la corrida, no al desplegar.
 """
+
 from django.db import migrations, models
 
 

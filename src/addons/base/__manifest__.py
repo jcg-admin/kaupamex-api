@@ -25,7 +25,8 @@
     # aquí el mecanismo de declaración de capacidades es la decisión que #322
     # tiene que medir; hasta entonces la raíz se declara raíz.
     'depends': [],
-    # Licencia de la fuente de la que se adapta este addon, tal como su manifest
+    # Licencia de la fuente de la que se adapta este addon, tal como su
+    # manifest
     # la declara (DEC-KX-03 punto 1): `base` en Odoo Community es LGPL-3.
     'license': 'LGPL-3',
     'application': False,  # núcleo técnico, no módulo vendible

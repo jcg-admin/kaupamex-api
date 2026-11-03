@@ -10,7 +10,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("account", "0021_accountmove_posted_before"),
-        ("base", "0066_alter_reslang_code_reslang_res_lang_name_uniq_and_more"),
+        (
+            "base",
+            "0066_alter_reslang_code_reslang_res_lang_name_uniq_and_more",
+        ),
         ("product", "0013_productattributecustomvalue"),
         ("uom", "0005_alter_uom_options_alter_uom_relative_uom_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -22,7 +25,12 @@ class Migration(migrations.Migration):
             name="commercial_partner",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo commercial_partner_id ("Commercial Entity", account_move.py:430). La entidad que factura de verdad cuando el contacto es una direccion de una matriz. La calcula compute_commercial_partner().',
+                help_text=(
+                    'Odoo commercial_partner_id ("Commercial Entity",'
+                    ' account_move.py:430). La entidad que factura de verdad'
+                    ' cuando el contacto es una direccion de una matriz. La'
+                    ' calcula compute_commercial_partner().'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="commercial_moves",
@@ -35,7 +43,12 @@ class Migration(migrations.Migration):
             name="fiscal_position",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo fiscal_position_id ("Fiscal Position", account_move.py:456). Adapta impuestos y cuentas para un cliente o pedido concreto; su valor por omision viene del cliente.',
+                help_text=(
+                    'Odoo fiscal_position_id ("Fiscal Position",'
+                    ' account_move.py:456). Adapta impuestos y cuentas para un'
+                    ' cliente o pedido concreto; su valor por omision viene'
+                    ' del cliente.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="moves",
@@ -48,7 +61,13 @@ class Migration(migrations.Migration):
             name="invoice_currency_rate",
             field=models.FloatField(
                 default=0.0,
-                help_text='Odoo invoice_currency_rate ("Currency Rate", account_move.py:531). Tipo de cambio de la moneda de la empresa a la del documento. digits=0 en la fuente significa precision plena, que es lo que FloatField da aqui.',
+                help_text=(
+                    'Odoo invoice_currency_rate ("Currency Rate",'
+                    ' account_move.py:531). Tipo de cambio de la moneda de la'
+                    ' empresa a la del documento. digits=0 en la fuente'
+                    ' significa precision plena, que es lo que FloatField da'
+                    ' aqui.'
+                ),
                 verbose_name="Tipo de cambio",
             ),
         ),
@@ -58,7 +77,13 @@ class Migration(migrations.Migration):
             field=models.DateField(
                 blank=True,
                 db_index=True,
-                help_text='Odoo invoice_date ("Invoice/Bill Date", account_move.py:374). Fecha del documento comercial, distinta de la fecha contable. El copy=False de la fuente no tiene analogo: este ORM no tiene copia de registro.',
+                help_text=(
+                    'Odoo invoice_date ("Invoice/Bill Date",'
+                    ' account_move.py:374). Fecha del documento comercial,'
+                    ' distinta de la fecha contable. El copy=False de la'
+                    ' fuente no tiene analogo: este ORM no tiene copia de'
+                    ' registro.'
+                ),
                 null=True,
                 verbose_name="Fecha de factura",
             ),
@@ -69,7 +94,11 @@ class Migration(migrations.Migration):
             field=models.DateField(
                 blank=True,
                 db_index=True,
-                help_text='Odoo invoice_date_due ("Due Date", account_move.py:379). La calcula compute_invoice_date_due(), que save() invoca.',
+                help_text=(
+                    'Odoo invoice_date_due ("Due Date", account_move.py:379).'
+                    ' La calcula compute_invoice_date_due(), que save()'
+                    ' invoca.'
+                ),
                 null=True,
                 verbose_name="Fecha de vencimiento",
             ),
@@ -79,7 +108,12 @@ class Migration(migrations.Migration):
             name="invoice_user",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo invoice_user_id ("Salesperson", account_move.py:678). El tracking=True de la fuente no aplica: este asiento no es un hilo de mail.thread en este arbol.',
+                help_text=(
+                    'Odoo invoice_user_id ("Salesperson",'
+                    ' account_move.py:678). El tracking=True de la fuente no'
+                    ' aplica: este asiento no es un hilo de mail.thread en'
+                    ' este arbol.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="invoiced_moves",
@@ -92,7 +126,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo company_id (account_move_line.py:55). Related a move_id.company_id, materializado en save().",
+                help_text=(
+                    "Odoo company_id (account_move_line.py:55). Related a"
+                    " move_id.company_id, materializado en save()."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="move_lines",
@@ -105,7 +142,11 @@ class Migration(migrations.Migration):
             name="company_currency",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo company_currency_id ("Company Currency", account_move_line.py:59). Related a move_id.company_currency_id, materializado en save().',
+                help_text=(
+                    'Odoo company_currency_id ("Company Currency",'
+                    ' account_move_line.py:59). Related a'
+                    ' move_id.company_currency_id, materializado en save().'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="move_lines_as_company_currency",
@@ -118,7 +159,12 @@ class Migration(migrations.Migration):
             name="journal",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo journal_id (account_move_line.py:42). La fuente lo declara related a move_id.journal_id con store=True; aqui es columna propia que save() copia del asiento, que es como este arbol materializa un related almacenado.",
+                help_text=(
+                    "Odoo journal_id (account_move_line.py:42). La fuente lo"
+                    " declara related a move_id.journal_id con store=True;"
+                    " aqui es columna propia que save() copia del asiento, que"
+                    " es como este arbol materializa un related almacenado."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="lines",
@@ -131,7 +177,12 @@ class Migration(migrations.Migration):
             name="partner",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo partner_id ("Partner", account_move_line.py:152). Apunta a res.partner igual que la fuente. El asiento padre apunta al modelo de usuario -- ese desnivel es la tarea #142, y este campo ya nace del lado correcto.',
+                help_text=(
+                    'Odoo partner_id ("Partner", account_move_line.py:152).'
+                    ' Apunta a res.partner igual que la fuente. El asiento'
+                    ' padre apunta al modelo de usuario -- ese desnivel es la'
+                    ' tarea #142, y este campo ya nace del lado correcto.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",
@@ -145,7 +196,12 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_subtotal ("Subtotal", account_move_line.py:400). Base sin impuestos. La fuente la calcula en _compute_totals; ver el bloqueo declarado en ese metodo.',
+                help_text=(
+                    'Odoo price_subtotal ("Subtotal",'
+                    ' account_move_line.py:400). Base sin impuestos. La fuente'
+                    ' la calcula en _compute_totals; ver el bloqueo declarado'
+                    ' en ese metodo.'
+                ),
                 max_digits=16,
                 verbose_name="Subtotal",
             ),
@@ -156,7 +212,11 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_total ("Total", account_move_line.py:405). Base mas impuestos. Misma procedencia que price_subtotal.',
+                help_text=(
+                    'Odoo price_total ("Total", account_move_line.py:405).'
+                    ' Base mas impuestos. Misma procedencia que'
+                    ' price_subtotal.'
+                ),
                 max_digits=16,
                 verbose_name="Total",
             ),
@@ -166,7 +226,9 @@ class Migration(migrations.Migration):
             name="product",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo product_id ("Product", account_move_line.py:363).',
+                help_text=(
+                    'Odoo product_id ("Product", account_move_line.py:363).'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",
@@ -179,7 +241,12 @@ class Migration(migrations.Migration):
             name="product_uom",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo product_uom_id ("Unit", account_move_line.py:372). La calcula compute_product_uom_id(), que save() invoca. El domain= de la fuente no tiene analogo declarativo en Django y se acota al elegir candidatos.',
+                help_text=(
+                    'Odoo product_uom_id ("Unit", account_move_line.py:372).'
+                    ' La calcula compute_product_uom_id(), que save() invoca.'
+                    ' El domain= de la fuente no tiene analogo declarativo en'
+                    ' Django y se acota al elegir candidatos.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",

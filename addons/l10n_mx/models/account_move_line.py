@@ -1,4 +1,6 @@
-"""``account.move.line`` — cuenta de descuento en notas de crédito MX (Odoo ``l10n_mx``).
+"""
+``account.move.line`` — cuenta de descuento en notas de crédito MX (Odoo
+``l10n_mx``).
 
 Adaptado de Odoo Community ``l10n_mx/models/account_move_line.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3) — DEC-KX-03.
@@ -51,6 +53,7 @@ archivo hermano no llegó a esta tanda), el receptor sale sin efecto en vez
 de fallar. **DESCONOCIDO declarado** hasta que ese archivo aterrice: el
 receptor queda inerte, no roto.
 """
+
 from django.db.models.signals import pre_save
 
 import api
@@ -59,7 +62,9 @@ from addons.account.models import AccountMoveLine
 
 @api.depends('move', 'display_type')
 def _compute_account_id(self):
-    """Reimputa la línea de producto de una nota de crédito MX — ≙ ``_compute_account_id``.
+    """
+    Reimputa la línea de producto de una nota de crédito MX — ≙
+    ``_compute_account_id``.
 
     ≙ ``odoo19c: l10n_mx/models/account_move_line.py:7-17``
     (``odoo-tools@622ddc2a``). Ver las tres divergencias declaradas en el
@@ -80,13 +85,16 @@ def _compute_account_id(self):
     if company is None or company.country_code != 'MX':
         return
     discount_account = getattr(
-        company, 'l10n_mx_income_return_discount_account', None)
+        company, 'l10n_mx_income_return_discount_account', None
+    )
     if discount_account:
         self.account = discount_account
 
 
 def _apply_l10n_mx_income_return_discount(sender, instance, **kwargs):
-    """Receptor ``pre_save`` — el punto donde la referencia dispara el compute."""
+    """
+    Receptor ``pre_save`` — el punto donde la referencia dispara el compute.
+    """
     _compute_account_id(instance)
 
 
@@ -98,6 +106,7 @@ def apply_l10n_mx_extensions():
     import el registro de modelos aún no está poblado.
     """
     pre_save.connect(
-        _apply_l10n_mx_income_return_discount, sender=AccountMoveLine,
+        _apply_l10n_mx_income_return_discount,
+        sender=AccountMoveLine,
         dispatch_uid='l10n_mx.account_move_line.income_return_discount',
     )

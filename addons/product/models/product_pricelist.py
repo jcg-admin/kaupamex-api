@@ -39,6 +39,7 @@ Qué NO se porta, con su medición
   su país con los grupos de países. Depende de ``res.partner.country``, que
   existe, y del escaparate, que no está en este addon.
 """
+
 import fields
 import models
 
@@ -53,24 +54,43 @@ class ProductPricelist(TimeStampedModel):
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la tarifa')
     active = fields.Boolean(
-        default=True, verbose_name='Activa',
-        help_text='Desmarcar oculta la tarifa sin borrarla.')
+        default=True,
+        verbose_name='Activa',
+        help_text='Desmarcar oculta la tarifa sin borrarla.',
+    )
     sequence = fields.Integer(
-        default=16, verbose_name='Secuencia',
-        help_text='Desempate cuando varias tarifas encajan: gana la menor.')
+        default=16,
+        verbose_name='Secuencia',
+        help_text='Desempate cuando varias tarifas encajan: gana la menor.',
+    )
     currency = fields.Many2one(
-        ResCurrency, on_delete=models.PROTECT, null=True, blank=True,
-        related_name='pricelist_ids', verbose_name='Moneda',
-        help_text='Moneda en que sus reglas expresan los importes.')
+        ResCurrency,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='pricelist_ids',
+        verbose_name='Moneda',
+        help_text='Moneda en que sus reglas expresan los importes.',
+    )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='pricelist_ids', verbose_name='Compañía',
-        help_text='Vacío = la tarifa sirve a todas las compañías.')
+        ResCompany,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='pricelist_ids',
+        verbose_name='Compañía',
+        help_text='Vacío = la tarifa sirve a todas las compañías.',
+    )
     country_groups = fields.Many2many(
-        ResCountryGroup, blank=True, related_name='pricelist_ids',
+        ResCountryGroup,
+        blank=True,
+        related_name='pricelist_ids',
         verbose_name='Grupos de países',
-        help_text='Decide qué tarifa ve un visitante según de dónde llega. '
-                  'No interviene en el cálculo.',
+        help_text=(
+            'Decide qué tarifa ve un visitante según de dónde llega. '
+            'No interviene en el cálculo.'
+        ),
     )
 
     class Meta:

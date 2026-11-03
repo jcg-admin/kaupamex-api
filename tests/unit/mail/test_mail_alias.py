@@ -20,6 +20,7 @@ Verifica:
 
 Toca DB → django_db.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -45,6 +46,7 @@ def _dominio(name='example.com', **kw):
 
 # --- Importables desde el hogar canónico ------------------------------------
 
+
 def test_importables_desde_addons_mail_models():
     assert MailAlias.__module__ == 'addons.mail.models.mail_alias'
     assert MailAliasDomain.__module__ == 'addons.mail.models.mail_alias_domain'
@@ -57,13 +59,17 @@ def test_db_table_matches_reference():
 
 # --- sanitize_alias_name (Odoo _sanitize_alias_name) ------------------------
 
-@pytest.mark.parametrize('crudo,esperado', [
-    ('Jobs', 'jobs'),
-    ('  Josè Ñandú ', 'jose-nandu'),
-    ('jobs@example.com', 'jobs'),        # sin is_email se corta en la arroba
-    ('...jobs...', 'jobs'),              # ni empieza ni termina en punto
-    ('a..b', 'a.b'),                     # puntos consecutivos colapsan
-])
+
+@pytest.mark.parametrize(
+    'crudo,esperado',
+    [
+        ('Jobs', 'jobs'),
+        ('  Josè Ñandú ', 'jose-nandu'),
+        ('jobs@example.com', 'jobs'),  # sin is_email se corta en la arroba
+        ('...jobs...', 'jobs'),  # ni empieza ni termina en punto
+        ('a..b', 'a.b'),  # puntos consecutivos colapsan
+    ],
+)
 def test_sanitize_alias_name(crudo, esperado):
     assert MailAlias.sanitize_alias_name(crudo) == esperado
 
@@ -75,20 +81,31 @@ def test_sanitize_alias_name_vacio_devuelve_false():
 
 
 def test_sanitize_alias_name_is_email_conserva_la_derecha():
-    assert MailAlias.sanitize_alias_name(
-        'Notifications@Example.com', is_email=True) == 'notifications@example.com'
+    assert (
+        MailAlias.sanitize_alias_name(
+            'Notifications@Example.com', is_email=True
+        )
+        == 'notifications@example.com'
+    )
 
 
 def test_sanitize_alias_name_is_email_sin_arroba_no_inventa_dominio():
-    assert MailAlias.sanitize_alias_name(
-        'notifications', is_email=True) == 'notifications'
+    assert (
+        MailAlias.sanitize_alias_name('notifications', is_email=True)
+        == 'notifications'
+    )
 
 
 # --- Derivados del dominio (Odoo compute sin store) -------------------------
 
+
 def test_dominio_derivados():
-    d = _dominio('example.com', bounce_alias='bounce',
-                 catchall_alias='catchall', default_from='notifications')
+    d = _dominio(
+        'example.com',
+        bounce_alias='bounce',
+        catchall_alias='catchall',
+        default_from='notifications',
+    )
     assert d.bounce_email == 'bounce@example.com'
     assert d.catchall_email == 'catchall@example.com'
     assert d.default_from_email == 'notifications@example.com'
@@ -108,6 +125,7 @@ def test_dominio_sin_bounce_devuelve_cadena_vacia():
 
 # --- Nombre de dominio: DOT_ATOM_TEXT ---------------------------------------
 
+
 def test_dot_atom_text_acepta_dominio_valido():
     assert DOT_ATOM_TEXT.match('mail.example.com')
 
@@ -126,9 +144,11 @@ def test_clean_rechaza_dominio_vacio():
 
 # --- display_name y alias_full_name -----------------------------------------
 
+
 def test_display_name_con_dominio():
-    a = MailAlias.objects.create(alias_name='jobs', alias_model=_model(),
-                                 alias_domain=_dominio())
+    a = MailAlias.objects.create(
+        alias_name='jobs', alias_model=_model(), alias_domain=_dominio()
+    )
     assert a.display_name == 'jobs@example.com'
 
 
@@ -143,8 +163,9 @@ def test_display_name_sin_nombre_es_inactive_alias():
 
 
 def test_alias_full_name_se_calcula_al_guardar():
-    a = MailAlias.objects.create(alias_name='jobs', alias_model=_model(),
-                                 alias_domain=_dominio())
+    a = MailAlias.objects.create(
+        alias_name='jobs', alias_model=_model(), alias_domain=_dominio()
+    )
     a.refresh_from_db()
     assert a.alias_full_name == 'jobs@example.com'
 
@@ -159,27 +180,38 @@ def test_alias_full_name_no_usa_el_texto_de_ui():
 
 
 def test_alias_name_se_sanea_al_guardar():
-    a = MailAlias.objects.create(alias_name='  Josè Ñandú ', alias_model=_model())
+    a = MailAlias.objects.create(
+        alias_name='  Josè Ñandú ', alias_model=_model()
+    )
     a.refresh_from_db()
     assert a.alias_name == 'jose-nandu'
 
 
 # --- Unicidad (alias_name, COALESCE(alias_domain_id, 0)) --------------------
 
+
 def test_alias_duplicado_en_el_mismo_dominio_viola_unicidad():
     d = _dominio()
-    MailAlias.objects.create(alias_name='jobs', alias_model=_model('a.A'),
-                             alias_domain=d)
+    MailAlias.objects.create(
+        alias_name='jobs', alias_model=_model('a.A'), alias_domain=d
+    )
     with pytest.raises(IntegrityError), transaction.atomic():
-        MailAlias.objects.create(alias_name='jobs', alias_model=_model('b.B'),
-                                 alias_domain=d)
+        MailAlias.objects.create(
+            alias_name='jobs', alias_model=_model('b.B'), alias_domain=d
+        )
 
 
 def test_mismo_alias_en_dominios_distintos_es_valido():
-    MailAlias.objects.create(alias_name='jobs', alias_model=_model('a.A'),
-                             alias_domain=_dominio('uno.com'))
-    MailAlias.objects.create(alias_name='jobs', alias_model=_model('b.B'),
-                             alias_domain=_dominio('dos.com'))
+    MailAlias.objects.create(
+        alias_name='jobs',
+        alias_model=_model('a.A'),
+        alias_domain=_dominio('uno.com'),
+    )
+    MailAlias.objects.create(
+        alias_name='jobs',
+        alias_model=_model('b.B'),
+        alias_domain=_dominio('dos.com'),
+    )
     assert MailAlias.objects.filter(alias_name='jobs').count() == 2
 
 
@@ -193,6 +225,7 @@ def test_coalesce_hace_colisionar_dos_alias_sin_dominio():
 
 # --- Unicidad de bounce / catchall por dominio ------------------------------
 
+
 def test_bounce_duplicado_en_dominio_homonimo_viola_unicidad():
     _dominio('example.com', bounce_alias='bounce')
     with pytest.raises(IntegrityError), transaction.atomic():
@@ -204,8 +237,9 @@ def test_check_bounce_catchall_detecta_alias_que_ya_ocupa_la_direccion():
     ``mail.alias`` ya ocupa bounce@/catchall@, el correo entrante se rutearía
     al alias en vez de a la pasarela."""
     d = _dominio('example.com')
-    MailAlias.objects.create(alias_name='bounce', alias_model=_model(),
-                             alias_domain=d)
+    MailAlias.objects.create(
+        alias_name='bounce', alias_model=_model(), alias_domain=d
+    )
     otro = MailAliasDomain(name='example.com', bounce_alias='bounce')
     with pytest.raises(ValidationError):
         otro._check_bounce_catchall_uniqueness()

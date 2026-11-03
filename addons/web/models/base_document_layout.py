@@ -137,7 +137,8 @@ Divergencias declaradas dentro de métodos SÍ portados
   de *truthiness* (``company.report_footer or _default_report_footer(...)``),
   que sí distingue "compañía sin membrete todavía" de "compañía con membrete
   vacío a propósito" — la distinción que la fuente perseguía.
-- **:meth:`_default_company_details` / :meth:`_compute_empty_company_details`.**
+- **:meth:`_default_company_details` /
+  :meth:`_compute_empty_company_details`.**
   Usan un ``html2plaintext`` **acotado** (:func:`_html_has_visible_text`):
   sólo lo necesario para el chequeo booleano "¿queda texto visible?"
   (``strip_tags`` + colapso de espacios), no el conversor completo de la
@@ -146,6 +147,7 @@ Divergencias declaradas dentro de métodos SÍ portados
   ``tools/mail.py`` (aún no portado en este árbol) — construirlo entero
   excede el archivo que se está completando aquí.
 """
+
 from collections import defaultdict
 from math import ceil
 
@@ -169,7 +171,9 @@ DEFAULT_MITIGATE = 175
 DEFAULT_MAX_MARGIN = 140
 
 
-def _average_dominant_color(colors, mitigate=DEFAULT_MITIGATE, max_margin=DEFAULT_MAX_MARGIN):
+def _average_dominant_color(
+    colors, mitigate=DEFAULT_MITIGATE, max_margin=DEFAULT_MAX_MARGIN
+):
     """≙ referencia ``tools.image.average_dominant_color``.
 
     ``tools/image.py`` no existe en este árbol — se porta verbatim como
@@ -189,9 +193,17 @@ def _average_dominant_color(colors, mitigate=DEFAULT_MITIGATE, max_margin=DEFAUL
 
     for color in colors:
         rgb = color[1]
-        if (dominant_rgb[0] - margins[0] < rgb[0] < dominant_rgb[0] + margins[0] and
-                dominant_rgb[1] - margins[1] < rgb[1] < dominant_rgb[1] + margins[1] and
-                dominant_rgb[2] - margins[2] < rgb[2] < dominant_rgb[2] + margins[2]):
+        if (
+            dominant_rgb[0] - margins[0]
+            < rgb[0]
+            < dominant_rgb[0] + margins[0]
+            and dominant_rgb[1] - margins[1]
+            < rgb[1]
+            < dominant_rgb[1] + margins[1]
+            and dominant_rgb[2] - margins[2]
+            < rgb[2]
+            < dominant_rgb[2] + margins[2]
+        ):
             dominant_set.append(color)
         else:
             remaining.append(color)
@@ -207,7 +219,9 @@ def _average_dominant_color(colors, mitigate=DEFAULT_MITIGATE, max_margin=DEFAUL
     brightest = max(dominant_avg)
     final_dominant = []
     for value in dominant_avg:
-        scaled = value / (brightest / mitigate) if brightest > mitigate else value
+        scaled = (
+            value / (brightest / mitigate) if brightest > mitigate else value
+        )
         final_dominant.append(int(scaled))
 
     return tuple(final_dominant), remaining
@@ -228,7 +242,9 @@ def _get_saturation(rgb):
 
 def _rgb_to_hex(rgb):
     """≙ referencia ``tools.image.rgb_to_hex``."""
-    return '#' + ''.join(hex(channel).split('x')[-1].zfill(2) for channel in rgb)
+    return '#' + ''.join(
+        hex(channel).split('x')[-1].zfill(2) for channel in rgb
+    )
 
 
 def _html_has_visible_text(html):
@@ -263,7 +279,13 @@ class BaseDocumentLayout(TransientModel):
         ``' '.join`` produce el mismo resultado observable.
         """
         footer_fields = [
-            value for value in (company.phone, company.email, company.website, company.vat)
+            value
+            for value in (
+                company.phone,
+                company.email,
+                company.website,
+                company.vat,
+            )
             if isinstance(value, str) and value
         ]
         return ' '.join(footer_fields)
@@ -272,7 +294,9 @@ class BaseDocumentLayout(TransientModel):
     def _clean_address_format(address_format, company_data):
         """≙ referencia ``_clean_address_format`` (mismo nombre) — quita las
         líneas de la plantilla cuyo dato vino vacío."""
-        missing_company_data = [key for key, value in company_data.items() if not value]
+        missing_company_data = [
+            key for key, value in company_data.items() if not value
+        ]
         for key in missing_company_data:
             marker = '%%(%s)s\n' % key
             if key in address_format:
@@ -288,18 +312,22 @@ class BaseDocumentLayout(TransientModel):
         """
         country = partner.country
         state = partner.state
-        args = defaultdict(str, {
-            'state_code': getattr(state, 'code', '') or '',
-            'state_name': getattr(state, 'name', '') or '',
-            'country_code': getattr(country, 'code', '') or '',
-            'country_name': getattr(country, 'name', '') or '',
-            'company_name': partner.commercial_company_name or '',
-        })
+        args = defaultdict(
+            str,
+            {
+                'state_code': getattr(state, 'code', '') or '',
+                'state_name': getattr(state, 'name', '') or '',
+                'country_code': getattr(country, 'code', '') or '',
+                'country_name': getattr(country, 'name', '') or '',
+                'company_name': partner.commercial_company_name or '',
+            },
+        )
         for field_name in ('street', 'street2', 'zip', 'city'):
             args[field_name] = getattr(partner, field_name, '') or ''
 
-        address_format = (getattr(country, 'address_format', '') if country else '') \
-            or DEFAULT_ADDRESS_FORMAT
+        address_format = (
+            getattr(country, 'address_format', '') if country else ''
+        ) or DEFAULT_ADDRESS_FORMAT
         if without_company:
             args['company_name'] = ''
         elif partner.commercial_company_name:
@@ -311,26 +339,37 @@ class BaseDocumentLayout(TransientModel):
         """≙ referencia ``_default_company_details`` (mismo nombre)."""
         partner = company.partner
         address_format, company_data = cls.prepare_display_address(partner)
-        address_format = cls._clean_address_format(address_format, company_data)
+        address_format = cls._clean_address_format(
+            address_format, company_data
+        )
         # company_name puede seguir ausente del formato preparado si la
         # dirección no tenía entidad comercial propia — el mismo caso que
         # comenta la referencia.
         if 'company_name' not in address_format:
             address_format = '%(company_name)s\n' + address_format
-            company_data['company_name'] = company_data['company_name'] or company.name
+            company_data['company_name'] = (
+                company_data['company_name'] or company.name
+            )
         return nl2br(address_format) % company_data
 
     # --- Colores del membrete ------------------------------------------
 
     @staticmethod
-    def _compute_custom_colors(logo, primary_color, secondary_color,
-                                logo_primary_color, logo_secondary_color):
+    def _compute_custom_colors(
+        logo,
+        primary_color,
+        secondary_color,
+        logo_primary_color,
+        logo_secondary_color,
+    ):
         """≙ referencia ``_compute_custom_colors`` (mismo nombre) — ¿los
         colores del formulario difieren de los que da el logo?"""
         logo_primary = (logo_primary_color or '').lower()
         logo_secondary = (logo_secondary_color or '').lower()
         return bool(
-            logo and primary_color and secondary_color
+            logo
+            and primary_color
+            and secondary_color
             and not (
                 primary_color.lower() == logo_primary
                 and secondary_color.lower() == logo_secondary
@@ -352,13 +391,27 @@ class BaseDocumentLayout(TransientModel):
         se sincroniza).
         """
         logo = company.logo
-        report_footer = company.report_footer or cls._default_report_footer(company)
-        company_details = company.company_details or cls._default_company_details(company)
+        report_footer = company.report_footer or cls._default_report_footer(
+            company
+        )
+        company_details = (
+            company.company_details or cls._default_company_details(company)
+        )
 
-        logo_primary_color, logo_secondary_color = cls._compute_logo_colors(logo)
+        logo_primary_color, logo_secondary_color = cls._compute_logo_colors(
+            logo
+        )
 
-        primary_color = company.primary_color or logo_primary_color or DEFAULT_PRIMARY_COLOR
-        secondary_color = company.secondary_color or logo_secondary_color or DEFAULT_SECONDARY_COLOR
+        primary_color = (
+            company.primary_color
+            or logo_primary_color
+            or DEFAULT_PRIMARY_COLOR
+        )
+        secondary_color = (
+            company.secondary_color
+            or logo_secondary_color
+            or DEFAULT_SECONDARY_COLOR
+        )
 
         return {
             'logo': logo,
@@ -374,7 +427,9 @@ class BaseDocumentLayout(TransientModel):
         }
 
     @staticmethod
-    def _onchange_custom_colors(logo, custom_colors, logo_primary_color, logo_secondary_color):
+    def _onchange_custom_colors(
+        logo, custom_colors, logo_primary_color, logo_secondary_color
+    ):
         """≙ referencia ``_onchange_custom_colors`` (mismo nombre).
 
         Devuelve el dict de campos a actualizar — vacío si no aplica. El
@@ -385,20 +440,34 @@ class BaseDocumentLayout(TransientModel):
         if logo and not custom_colors:
             return {
                 'primary_color': logo_primary_color or DEFAULT_PRIMARY_COLOR,
-                'secondary_color': logo_secondary_color or DEFAULT_SECONDARY_COLOR,
+                'secondary_color': (
+                    logo_secondary_color or DEFAULT_SECONDARY_COLOR
+                ),
             }
         return {}
 
     @classmethod
-    def _onchange_logo(cls, new_logo, company_logo, company_primary_color, company_secondary_color):
+    def _onchange_logo(
+        cls,
+        new_logo,
+        company_logo,
+        company_primary_color,
+        company_secondary_color,
+    ):
         """≙ referencia ``_onchange_logo`` (mismo nombre).
 
         Devuelve el dict de campos a actualizar — vacío si no aplica (mismo
         criterio de retorno que :meth:`_onchange_custom_colors`).
         """
-        if new_logo == company_logo and company_primary_color and company_secondary_color:
+        if (
+            new_logo == company_logo
+            and company_primary_color
+            and company_secondary_color
+        ):
             return {}
-        logo_primary_color, logo_secondary_color = cls.extract_image_primary_secondary_colors(new_logo)
+        logo_primary_color, logo_secondary_color = (
+            cls.extract_image_primary_secondary_colors(new_logo)
+        )
         changes = {}
         if logo_primary_color:
             changes['primary_color'] = logo_primary_color
@@ -407,8 +476,11 @@ class BaseDocumentLayout(TransientModel):
         return changes
 
     @staticmethod
-    def extract_image_primary_secondary_colors(logo, white_threshold=DEFAULT_WHITE_THRESHOLD,
-                                                 mitigate=DEFAULT_MITIGATE):
+    def extract_image_primary_secondary_colors(
+        logo,
+        white_threshold=DEFAULT_WHITE_THRESHOLD,
+        mitigate=DEFAULT_MITIGATE,
+    ):
         """≙ referencia ``extract_image_primary_secondary_colors``.
 
         Identifica los colores dominantes primario y secundario de
@@ -443,21 +515,33 @@ class BaseDocumentLayout(TransientModel):
         colors = []
         for color in image_resized.getcolors(w * h):
             red, green, blue, alpha = color[1]
-            if not (red > white_threshold and green > white_threshold
-                    and blue > white_threshold) and alpha > 0:
+            if (
+                not (
+                    red > white_threshold
+                    and green > white_threshold
+                    and blue > white_threshold
+                )
+                and alpha > 0
+            ):
                 colors.append(color)
 
         if not colors:  # puede pasar cuando la imagen entera es blanca
             return False, False
         primary, remaining = _average_dominant_color(colors, mitigate=mitigate)
-        secondary = _average_dominant_color(remaining, mitigate=mitigate)[0] if remaining else primary
+        secondary = (
+            _average_dominant_color(remaining, mitigate=mitigate)[0]
+            if remaining
+            else primary
+        )
 
         # Si ambos colores tienen luminosidad similar, el más saturado pasa
         # a primario; si la diferencia de luminosidad es grande, el más
         # brillante pasa a primario.
         l_primary = _get_lightness(primary)
         l_secondary = _get_lightness(secondary)
-        if (l_primary < 0.2 and l_secondary < 0.2) or (l_primary >= 0.2 and l_secondary >= 0.2):
+        if (l_primary < 0.2 and l_secondary < 0.2) or (
+            l_primary >= 0.2 and l_secondary >= 0.2
+        ):
             s_primary = _get_saturation(primary)
             s_secondary = _get_saturation(secondary)
             if s_primary < s_secondary:

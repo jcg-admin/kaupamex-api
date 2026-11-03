@@ -1,0 +1,27 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.full_company_migration_verification",
+      "prompt": "Existing owned0383 residual acceptance: full domain migration on real own company database, independent from compute failure",
+      "verify": "Existing provision_company_database, complete migrations and SQL table/FK evidence, no shared QA",
+      "taskId": "TASK-API-0383",
+      "route": "local",
+      "mutates": false,
+      "owned": [
+        "src/orm/routers.py",
+        "src/service/db.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0383.full_company_migration_verification"
+  ],
+  "native_identity": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local738/TASK-API-0383",
+  "ownership": "Revalidated current owner codex-module-lifecycle; prior bounded routing correction preserved; residual full migration verifier admitted now by current scope/resources",
+  "dependencies": "Existing accepted DEC-AISL-05 and routing corrections; no dependency on successful ProductProduct.display_name test",
+  "resources": "Existing isolated PostgreSQL harness, one own random company DB, no model inference or shared QA",
+  "official_state_changes": false,
+  "objective_complete": false
+}

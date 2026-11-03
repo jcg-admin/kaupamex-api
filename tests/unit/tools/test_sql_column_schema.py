@@ -10,19 +10,28 @@ Los casos corren contra PostgreSQL real sobre una tabla que el propio caso
 crea: pytest envuelve cada uno en una transaccion, asi que el DDL se revierte
 y ninguna tabla del esquema queda tocada.
 
-**El control que discrimina** es ``test_convert_column_drops_the_view_that_blocks_it``:
+**El control que discrimina** es
+``test_convert_column_drops_the_view_that_blocks_it``:
 sin ``drop_depending_views``, PostgreSQL rechaza el ``ALTER COLUMN ... TYPE``
 de una columna que una vista consume, y el caso cae. Un
 ``convert_column`` que no supiera retirar la vista pasaria el resto de los
 casos igual.
 """
+
 import pytest
 from django.db import connection, transaction
 from django.db.utils import IntegrityError
 
-from tools.sql import (convert_column, create_column, drop_depending_views,
-                       drop_not_null, get_depending_views, rename_column,
-                       set_not_null, table_columns)
+from tools.sql import (
+    convert_column,
+    create_column,
+    drop_depending_views,
+    drop_not_null,
+    get_depending_views,
+    rename_column,
+    set_not_null,
+    table_columns,
+)
 
 TABLE = 'orm_sql_column_probe'
 
@@ -56,7 +65,8 @@ class TestCreateColumn:
             "SELECT col_description(%s::regclass, ordinal_position) "
             "FROM information_schema.columns "
             "WHERE table_name = %s AND column_name = 'label'",
-            [TABLE, TABLE])
+            [TABLE, TABLE],
+        )
         assert cursor.fetchone()[0] == 'La etiqueta'
 
 
@@ -85,7 +95,8 @@ class TestDependingViews:
         create_column(cursor, TABLE, 'amount', 'varchar')
         cursor.execute(f'CREATE VIEW {TABLE}_v AS SELECT amount FROM {TABLE}')
         assert get_depending_views(cursor, TABLE, 'amount') == [
-            (f'{TABLE}_v', 'v')]
+            (f'{TABLE}_v', 'v')
+        ]
 
     def test_a_column_nobody_reads_has_no_view(self, cursor):
         create_column(cursor, TABLE, 'amount', 'varchar')
@@ -94,9 +105,11 @@ class TestDependingViews:
     def test_drop_removes_the_materialized_view_too(self, cursor):
         create_column(cursor, TABLE, 'amount', 'varchar')
         cursor.execute(
-            f'CREATE MATERIALIZED VIEW {TABLE}_m AS SELECT amount FROM {TABLE}')
+            f'CREATE MATERIALIZED VIEW {TABLE}_m AS SELECT amount FROM {TABLE}'
+        )
         assert get_depending_views(cursor, TABLE, 'amount') == [
-            (f'{TABLE}_m', 'm')]
+            (f'{TABLE}_m', 'm')
+        ]
         drop_depending_views(cursor, TABLE, 'amount')
         assert get_depending_views(cursor, TABLE, 'amount') == []
 

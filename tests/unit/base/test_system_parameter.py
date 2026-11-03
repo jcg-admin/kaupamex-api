@@ -1,15 +1,18 @@
 """Contrato de ``SystemParameter`` (L2 global) — portación fiel de Odoo
 ``ir.config_parameter``.
 
-Diseño: ``analisis-estrategia-configuracion-capas`` (L2). Portación + hallazgos:
+Diseño: ``analisis-estrategia-configuracion-capas`` (L2). Portación +
+hallazgos:
 ``implementar-systemparameter-l2`` /
 ``hallazgos-implementar-systemparameter-l2``. Cada test verifica un
 comportamiento del original Odoo
 (``ir_config_parameter.py`` v19/v18, arquitectura idéntica): get/set, borrado
-por valor None, quirk ``or default``, caché + invalidación, protección de claves
+por valor None, quirk ``or default``, caché + invalidación, protección de
+claves
 sembradas (dict ``_DEFAULT_PARAMETERS``, NO columna ``is_system``), y ``seed``
 idempotente.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -92,9 +95,12 @@ class TestCache:
     def test_get_param_populates_cache(self):
         SystemParameter.set_param('k', 'v')
         registry.clear_cache('stable')
-        key = ('ir.config_parameter',
-               SystemParameter._get_param.__func__.__cache__.method,
-               'k', 'default')
+        key = (
+            'ir.config_parameter',
+            SystemParameter._get_param.__func__.__cache__.method,
+            'k',
+            'default',
+        )
         assert key not in registry.cache_of('stable').snapshot
         SystemParameter.get_param('k')
         assert registry.cache_of('stable')[key] == 'v'
@@ -126,7 +132,8 @@ class TestProtectedKeys:
         assert 'database.uuid' in _DEFAULT_PARAMETERS
 
     def test_cannot_delete_protected_key(self):
-        # 'database.uuid' ya existe: lo sembró la migración de datos (Odoo init,
+        # 'database.uuid' ya existe: lo sembró la migración de datos
+        # (Odoo init,
         # defaults al crear la BD). No se re-crea.
         p = SystemParameter.objects.get(key='database.uuid')
         with pytest.raises(ValidationError):
@@ -145,7 +152,10 @@ class TestProtectedKeys:
         p = SystemParameter.objects.get(key='database.uuid')
         p.value = 'edited-value'
         p.save()
-        assert SystemParameter.objects.get(key='database.uuid').value == 'edited-value'
+        assert (
+            SystemParameter.objects.get(key='database.uuid').value
+            == 'edited-value'
+        )
 
     def test_can_delete_non_protected_key(self):
         p = SystemParameter.objects.create(key='free.key', value='v')
@@ -215,9 +225,9 @@ class TestMeta:
         # la migración (database.secret/uuid), fuera de este subconjunto.
         SystemParameter.objects.create(key='zzz.b', value='1')
         SystemParameter.objects.create(key='zzz.a', value='2')
-        subset = (SystemParameter.objects
-                  .filter(key__in=['zzz.a', 'zzz.b'])
-                  .values_list('key', flat=True))
+        subset = SystemParameter.objects.filter(
+            key__in=['zzz.a', 'zzz.b']
+        ).values_list('key', flat=True)
         assert list(subset) == ['zzz.a', 'zzz.b']
 
     def test_key_is_unique(self):

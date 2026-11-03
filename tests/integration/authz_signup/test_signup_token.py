@@ -7,6 +7,7 @@ iniciar sesión (login_date en el payload) y al cancelar el signup; el reset
 manda el correo con el enlace; el alta externa respeta el flag de signup
 público. El correo corre síncrono en testing (DISPATCH_EMAIL_SYNC).
 """
+
 from datetime import timedelta
 
 import pytest
@@ -38,7 +39,8 @@ def seeded(db):
 @pytest.fixture
 def signup_abierto(db):
     SystemParameter.objects.update_or_create(
-        key='authz.signup_allow_uninvited', defaults={'value': '1'})
+        key='authz.signup_allow_uninvited', defaults={'value': '1'}
+    )
 
 
 class TestSignupToken:
@@ -46,7 +48,8 @@ class TestSignupToken:
 
     def test_token_invita_a_partner_sin_usuario(self, seeded, db):
         partner = ResPartner.objects.create(
-            name='Invitado', email='inv@kaupamex.mx')
+            name='Invitado', email='inv@kaupamex.mx'
+        )
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
         assert pp._get_partner_from_token(token) == partner
@@ -55,8 +58,7 @@ class TestSignupToken:
         assert pp._get_partner_from_token('firma.mala.zzz') is None
 
     def test_token_se_invalida_al_cancelar(self, seeded, db):
-        partner = ResPartner.objects.create(
-            name='X', email='x@kaupamex.mx')
+        partner = ResPartner.objects.create(name='X', email='x@kaupamex.mx')
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
         pp.signup_cancel(partner)
@@ -64,8 +66,7 @@ class TestSignupToken:
         assert pp._get_partner_from_token(token) is None
 
     def test_token_se_invalida_al_iniciar_sesion(self, seeded, db):
-        partner = ResPartner.objects.create(
-            name='Y', email='y@kaupamex.mx')
+        partner = ResPartner.objects.create(name='Y', email='y@kaupamex.mx')
         user = User.objects.create_user(login='y@kaupamex.mx', partner=partner)
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
@@ -81,13 +82,19 @@ class TestSignupFlow:
 
     def test_set_password_with_token(self, seeded, api_client, db):
         partner = ResPartner.objects.create(
-            name='Nuevo', email='nuevo@kaupamex.mx')
+            name='Nuevo', email='nuevo@kaupamex.mx'
+        )
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
 
-        resp = api_client.post(SIGNUP_URL, {
-            'token': token, 'password': 'Sup3rSecret!',
-        }, format='json')
+        resp = api_client.post(
+            SIGNUP_URL,
+            {
+                'token': token,
+                'password': 'Sup3rSecret!',
+            },
+            format='json',
+        )
         assert resp.status_code == 200, resp.data
         user = User.objects.get(login='nuevo@kaupamex.mx')
         assert user.check_password('Sup3rSecret!')
@@ -96,7 +103,8 @@ class TestSignupFlow:
 
     def test_signup_info_of_token(self, seeded, api_client, db):
         partner = ResPartner.objects.create(
-            name='Info', email='info@kaupamex.mx')
+            name='Info', email='info@kaupamex.mx'
+        )
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
         SystemParameter.set_param('authz.password_minlength', '10')
@@ -113,12 +121,19 @@ class TestSignupFlow:
         assert resp.data['codigo_error'] == 'SIGNUP_INVALID_TOKEN'
 
     def test_alta_externa_bloqueada_si_signup_cerrado(
-            self, seeded, api_client, db):
+        self, seeded, api_client, db
+    ):
         SystemParameter.objects.update_or_create(
-            key='authz.signup_allow_uninvited', defaults={'value': '0'})
-        resp = api_client.post(SIGNUP_URL, {
-            'login': 'externo@kaupamex.mx', 'password': 'Abc12345!',
-        }, format='json')
+            key='authz.signup_allow_uninvited', defaults={'value': '0'}
+        )
+        resp = api_client.post(
+            SIGNUP_URL,
+            {
+                'login': 'externo@kaupamex.mx',
+                'password': 'Abc12345!',
+            },
+            format='json',
+        )
         # 403 SIGNUP_CLOSED, no 400: el alta cerrada es una **denegación de
         # política**, no un payload malformado (status-codes.md). Hasta
         # api@<este commit> el gate vivía sólo en el modelo
@@ -131,10 +146,16 @@ class TestSignupFlow:
         assert resp.data['codigo_error'] == 'SIGNUP_CLOSED'
 
     def test_alta_externa_ok_si_abierto(
-            self, seeded, signup_abierto, api_client):
-        resp = api_client.post(SIGNUP_URL, {
-            'login': 'externo2@kaupamex.mx', 'password': 'Abc12345!',
-        }, format='json')
+        self, seeded, signup_abierto, api_client
+    ):
+        resp = api_client.post(
+            SIGNUP_URL,
+            {
+                'login': 'externo2@kaupamex.mx',
+                'password': 'Abc12345!',
+            },
+            format='json',
+        )
         assert resp.status_code == 200, resp.data
         assert User.objects.filter(login='externo2@kaupamex.mx').exists()
 
@@ -143,20 +164,22 @@ class TestResetPassword:
     """≙ ``reset_password`` / ``_action_reset_password``."""
 
     def test_reset_manda_correo(self, seeded, api_client, db):
-        User.objects.create_user(
-            login='reset@kaupamex.mx', password='old')
+        User.objects.create_user(login='reset@kaupamex.mx', password='old')
         assert len(django_mail.outbox) == 0
-        resp = api_client.post(RESET_URL, {
-            'login': 'reset@kaupamex.mx'}, format='json')
+        resp = api_client.post(
+            RESET_URL, {'login': 'reset@kaupamex.mx'}, format='json'
+        )
         assert resp.status_code == 202
         assert len(django_mail.outbox) == 1
         assert django_mail.outbox[0].to == ['reset@kaupamex.mx']
 
     def test_reset_login_desconocido_202_sin_correo(
-            self, seeded, api_client, db):
+        self, seeded, api_client, db
+    ):
         # No revela si la cuenta existe (enumeración de usuarios).
-        resp = api_client.post(RESET_URL, {
-            'login': 'noexiste@kaupamex.mx'}, format='json')
+        resp = api_client.post(
+            RESET_URL, {'login': 'noexiste@kaupamex.mx'}, format='json'
+        )
         assert resp.status_code == 202
         assert len(django_mail.outbox) == 0
 
@@ -195,7 +218,8 @@ class TestSignupRetrievePartner:
 
     def test_resolves_a_valid_token_to_its_partner(self, seeded):
         partner = ResPartner.objects.create(
-            name='Invitada Valida', email='invitada.valida@kaupamex.mx')
+            name='Invitada Valida', email='invitada.valida@kaupamex.mx'
+        )
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
 
@@ -207,13 +231,17 @@ class TestSignupRetrievePartner:
         assert 'is not valid or expired' in str(exc.value)
 
     def test_raise_exception_false_returns_none(self, seeded):
-        assert pp._signup_retrieve_partner(
-            'no-es-un-token', raise_exception=False) is None
+        assert (
+            pp._signup_retrieve_partner(
+                'no-es-un-token', raise_exception=False
+            )
+            is None
+        )
 
     def test_a_token_invalidated_by_login_raises_too(self, seeded):
         partner = ResPartner.objects.create(
-            name='Invitada Que Entra',
-            email='invitada.entra@kaupamex.mx')
+            name='Invitada Que Entra', email='invitada.entra@kaupamex.mx'
+        )
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
         # El token es real y su firma sigue siendo buena; lo que cambia es el
@@ -221,7 +249,8 @@ class TestSignupRetrievePartner:
         # ``name`` se delega desde el partner (inherits), así que no se
         # pasa aquí: es el mismo criterio de los tres create_user de arriba.
         user = User.objects.create_user(
-            login=partner.email, password='EntraYa12345!', partner=partner)
+            login=partner.email, password='EntraYa12345!', partner=partner
+        )
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])
 

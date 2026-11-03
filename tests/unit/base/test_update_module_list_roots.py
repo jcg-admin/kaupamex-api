@@ -33,12 +33,19 @@ def addons_on_disk():
 
 def test_addons_live_in_more_than_one_root():
     """Control positivo: si el árbol vuelve a una sola raíz, el test sobra."""
-    populated = [root for root in ADDONS_PATHS if root.is_dir() and any(
-        (root / entry / '__manifest__.py').is_file() for entry in os.listdir(root)
-    )]
+    populated = [
+        root
+        for root in ADDONS_PATHS
+        if root.is_dir()
+        and any(
+            (root / entry / '__manifest__.py').is_file()
+            for entry in os.listdir(root)
+        )
+    ]
     assert len(populated) > 1, (
         'el árbol declara %d raíz(ces) poblada(s); esta regresión sólo tiene '
-        'sentido con más de una' % len(populated)
+        'sentido con más de una'
+        % len(populated)
     )
 
 
@@ -51,9 +58,12 @@ def test_registers_every_addon_with_a_manifest():
     registered = set(IrModule.objects.values_list('name', flat=True))
 
     missing = on_disk - registered
-    assert not missing, (
-        '%d addon(s) con manifest sin registrar (de %d en disco): %s'
-        % (len(missing), len(on_disk), sorted(missing)[:10])
+    assert (
+        not missing
+    ), '%d addon(s) con manifest sin registrar (de %d en disco): %s' % (
+        len(missing),
+        len(on_disk),
+        sorted(missing)[:10],
     )
 
 

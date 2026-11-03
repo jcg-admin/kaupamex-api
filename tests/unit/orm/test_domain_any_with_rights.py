@@ -15,6 +15,7 @@ Los casos miden la reescritura y no las filas: lo que el optimizador decide es
 ausente, porque en una base de pruebas sin reglas sembradas las dos formas
 devuelven lo mismo — el verde que no discrimina.
 """
+
 import pytest
 
 from orm.domains import Domain, DomainCondition, _optimize_any_with_rights
@@ -33,14 +34,16 @@ class TestTheElevationGrantsIt:
     def test_an_any_becomes_any_bang_under_sudo(self):
         condition = Domain('privilege', 'any', Domain('name', '=', 'x'))
         with sudo():
-            assert _optimize_any_with_rights(condition, ResGroups) == \
-                DomainCondition('privilege', 'any!', condition.value)
+            assert _optimize_any_with_rights(
+                condition, ResGroups
+            ) == DomainCondition('privilege', 'any!', condition.value)
 
     def test_a_not_any_becomes_not_any_bang_under_sudo(self):
         condition = Domain('privilege', 'not any', Domain('name', '=', 'x'))
         with sudo():
-            assert _optimize_any_with_rights(condition, ResGroups) == \
-                DomainCondition('privilege', 'not any!', condition.value)
+            assert _optimize_any_with_rights(
+                condition, ResGroups
+            ) == DomainCondition('privilege', 'not any!', condition.value)
 
     def test_without_the_elevation_the_condition_is_left_alone(self):
         """Sin elevación el permiso del comodelo sigue vigente, y es la
@@ -58,8 +61,9 @@ class TestTheFieldGrantsIt:
         field.bypass_search_access = True
         try:
             condition = Domain('privilege', 'any', Domain('name', '=', 'x'))
-            assert _optimize_any_with_rights(condition, ResGroups) == \
-                DomainCondition('privilege', 'any!', condition.value)
+            assert _optimize_any_with_rights(
+                condition, ResGroups
+            ) == DomainCondition('privilege', 'any!', condition.value)
         finally:
             field.bypass_search_access = False
 
@@ -67,7 +71,10 @@ class TestTheFieldGrantsIt:
         """El atributo se declara en el campo, no se consulta con un
         ``getattr`` de respaldo: un campo relacional que no lo declarase
         haría indistinguible *"no lo concede"* de *"nadie lo marcó"*."""
-        assert ResGroups._meta.get_field('privilege').bypass_search_access is False
+        assert (
+            ResGroups._meta.get_field('privilege').bypass_search_access
+            is False
+        )
         assert IrRule._meta.get_field('groups').bypass_search_access is False
 
 

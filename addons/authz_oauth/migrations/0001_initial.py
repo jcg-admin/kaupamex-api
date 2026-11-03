@@ -49,7 +49,9 @@ class Migration(migrations.Migration):
                 (
                     "auth_endpoint",
                     models.CharField(
-                        help_text="URL del proveedor para autenticar usuarios.",
+                        help_text=(
+                            "URL del proveedor para autenticar usuarios."
+                        ),
                         max_length=1024,
                         verbose_name="URL de autorización",
                     ),
@@ -59,7 +61,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="openid profile email",
-                        help_text="Datos del usuario a los que se pide acceso.",
+                        help_text=(
+                            "Datos del usuario a los que se pide acceso."
+                        ),
                         max_length=255,
                         verbose_name="Scope",
                     ),
@@ -67,7 +71,10 @@ class Migration(migrations.Migration):
                 (
                     "validation_endpoint",
                     models.CharField(
-                        help_text="URL del proveedor para obtener la información del usuario.",
+                        help_text=(
+                            "URL del proveedor para obtener la información del"
+                            " usuario."
+                        ),
                         max_length=1024,
                         verbose_name="URL de UserInfo",
                     ),
@@ -83,7 +90,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "enabled",
-                    models.BooleanField(default=False, verbose_name="Permitido"),
+                    models.BooleanField(
+                        default=False, verbose_name="Permitido"
+                    ),
                 ),
                 (
                     "css_class",
@@ -102,7 +111,10 @@ class Migration(migrations.Migration):
                         verbose_name="Etiqueta del botón de login",
                     ),
                 ),
-                ("sequence", models.IntegerField(default=10, verbose_name="Secuencia")),
+                (
+                    "sequence",
+                    models.IntegerField(default=10, verbose_name="Secuencia"),
+                ),
             ],
             options={
                 "verbose_name": "Proveedor OAuth2",
@@ -138,7 +150,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="NO se expone por la API (NO_ACCESS en la referencia).",
+                        help_text=(
+                            "NO se expone por la API (NO_ACCESS en la"
+                            " referencia)."
+                        ),
                         max_length=2048,
                         verbose_name="Access token OAuth",
                     ),

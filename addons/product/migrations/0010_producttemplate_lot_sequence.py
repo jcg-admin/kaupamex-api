@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             name="lot_sequence",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Secuencia que genera los números de lote/serie de este producto (Odoo lot_sequence_id). Campo técnico.",
+                help_text=(
+                    "Secuencia que genera los números de lote/serie de este"
+                    " producto (Odoo lot_sequence_id). Campo técnico."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="lot_product_tmpls",

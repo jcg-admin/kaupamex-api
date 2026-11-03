@@ -17,7 +17,12 @@ class Migration(migrations.Migration):
             name="sms_template",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo sms_template_id — si está definida, al llegar una tarea a esta etapa se envía un SMS al cliente (su domain por modelo no se porta — ver la divergencia del docstring del módulo).",
+                help_text=(
+                    "Odoo sms_template_id — si está definida, al llegar una"
+                    " tarea a esta etapa se envía un SMS al cliente (su domain"
+                    " por modelo no se porta — ver la divergencia del"
+                    " docstring del módulo)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="task_stages",

@@ -39,11 +39,16 @@ Qué haría fallar a cada control
     ``write_date=now()`` en su ``UPDATE`` crudo (``:1968``), así que omitirlo
     dejaría la marca de tiempo congelada — divergencia silenciosa.
 """
+
 import pytest
 from django.db.models.signals import post_save
 
 from addons.base.models.ir_model import (
-    IrModel, IrModelConstraint, IrModelInherit, IrModelRelation)
+    IrModel,
+    IrModelConstraint,
+    IrModelInherit,
+    IrModelRelation,
+)
 from addons.base.models.ir_module import IrModule
 from addons.base.models.res_device import ResDeviceLog
 
@@ -71,14 +76,16 @@ class SaveHookProbe:
 
 def _module(name):
     row, _ = IrModule.objects.get_or_create(
-        name=name, defaults={'shortdesc': name, 'state': 'installed'})
+        name=name, defaults={'shortdesc': name, 'state': 'installed'}
+    )
     return row
 
 
 def _anchor_model():
     row, _ = IrModel.objects.get_or_create(
         model=ResDeviceLog._meta.label,
-        defaults={'name': 'Registro de dispositivo'})
+        defaults={'name': 'Registro de dispositivo'},
+    )
     return row
 
 
@@ -89,8 +96,9 @@ class TestTheProbeCanSeeThePhenomenon:
         module = _module('prueba_camino_control')
         model_row = _anchor_model()
         with SaveHookProbe(IrModelRelation) as probe:
-            IrModelRelation(name='tabla_control', module=module,
-                            model=model_row).save()
+            IrModelRelation(
+                name='tabla_control', module=module, model=model_row
+            ).save()
         assert probe.calls == 1
 
 
@@ -101,7 +109,8 @@ class TestReflectRelationWritesBelowTheOrm:
         _anchor_model()
         with SaveHookProbe(IrModelRelation) as probe:
             row = IrModelRelation._reflect_relation(
-                ResDeviceLog, 'tabla_camino_rel', 'prueba_camino_rel')
+                ResDeviceLog, 'tabla_camino_rel', 'prueba_camino_rel'
+            )
         assert probe.calls == 0
         assert row.pk is not None
 
@@ -109,12 +118,16 @@ class TestReflectRelationWritesBelowTheOrm:
         _module('prueba_camino_rel2')
         _anchor_model()
         first = IrModelRelation._reflect_relation(
-            ResDeviceLog, 'tabla_camino_rel2', 'prueba_camino_rel2')
+            ResDeviceLog, 'tabla_camino_rel2', 'prueba_camino_rel2'
+        )
         second = IrModelRelation._reflect_relation(
-            ResDeviceLog, 'tabla_camino_rel2', 'prueba_camino_rel2')
+            ResDeviceLog, 'tabla_camino_rel2', 'prueba_camino_rel2'
+        )
         assert first.pk == second.pk
-        assert IrModelRelation.objects.filter(
-            name='tabla_camino_rel2').count() == 1
+        assert (
+            IrModelRelation.objects.filter(name='tabla_camino_rel2').count()
+            == 1
+        )
 
 
 class TestReflectConstraintWritesBelowTheOrm:
@@ -124,8 +137,13 @@ class TestReflectConstraintWritesBelowTheOrm:
         _anchor_model()
         with SaveHookProbe(IrModelConstraint) as probe:
             row = IrModelConstraint._reflect_constraint(
-                ResDeviceLog, 'con_camino_a', 'u', 'unique(name)',
-                'prueba_camino_con', message='dup')
+                ResDeviceLog,
+                'con_camino_a',
+                'u',
+                'unique(name)',
+                'prueba_camino_con',
+                message='dup',
+            )
         assert probe.calls == 0
         assert row.pk is not None
         assert row.definition == 'unique(name)'
@@ -134,12 +152,20 @@ class TestReflectConstraintWritesBelowTheOrm:
         _module('prueba_camino_con2')
         _anchor_model()
         IrModelConstraint._reflect_constraint(
-            ResDeviceLog, 'con_camino_b', 'u', 'unique(name)',
-            'prueba_camino_con2')
+            ResDeviceLog,
+            'con_camino_b',
+            'u',
+            'unique(name)',
+            'prueba_camino_con2',
+        )
         with SaveHookProbe(IrModelConstraint) as probe:
             row = IrModelConstraint._reflect_constraint(
-                ResDeviceLog, 'con_camino_b', 'u', 'unique(other)',
-                'prueba_camino_con2')
+                ResDeviceLog,
+                'con_camino_b',
+                'u',
+                'unique(other)',
+                'prueba_camino_con2',
+            )
         assert probe.calls == 0
         assert row is not None
         assert row.definition == 'unique(other)'
@@ -150,23 +176,39 @@ class TestReflectConstraintWritesBelowTheOrm:
         _module('prueba_camino_con3')
         _anchor_model()
         IrModelConstraint._reflect_constraint(
-            ResDeviceLog, 'con_camino_c', 'u', 'unique(name)',
-            'prueba_camino_con3')
+            ResDeviceLog,
+            'con_camino_c',
+            'u',
+            'unique(name)',
+            'prueba_camino_con3',
+        )
         again = IrModelConstraint._reflect_constraint(
-            ResDeviceLog, 'con_camino_c', 'u', 'unique(name)',
-            'prueba_camino_con3')
+            ResDeviceLog,
+            'con_camino_c',
+            'u',
+            'unique(name)',
+            'prueba_camino_con3',
+        )
         assert again is None
 
     def test_updating_a_changed_row_refreshes_updated_at(self, db):
         _module('prueba_camino_con4')
         _anchor_model()
         created = IrModelConstraint._reflect_constraint(
-            ResDeviceLog, 'con_camino_d', 'u', 'unique(name)',
-            'prueba_camino_con4')
+            ResDeviceLog,
+            'con_camino_d',
+            'u',
+            'unique(name)',
+            'prueba_camino_con4',
+        )
         before = IrModelConstraint.objects.get(pk=created.pk).updated_at
         IrModelConstraint._reflect_constraint(
-            ResDeviceLog, 'con_camino_d', 'u', 'unique(other)',
-            'prueba_camino_con4')
+            ResDeviceLog,
+            'con_camino_d',
+            'u',
+            'unique(other)',
+            'prueba_camino_con4',
+        )
         after = IrModelConstraint.objects.get(pk=created.pk).updated_at
         assert after > before
 
@@ -184,7 +226,8 @@ class TestReflectInheritsWritesBelowTheOrm:
             if label == ResDeviceLog._meta.label:
                 continue
             row, _ = IrModel.objects.get_or_create(
-                model=label, defaults={'name': meta.object_name})
+                model=label, defaults={'name': meta.object_name}
+            )
             return row
         raise AssertionError('el modelo ancla no tiene ancestro con _meta')
 

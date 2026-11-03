@@ -13,6 +13,7 @@ que hace a estos tests una verificación del porte y no de mi lectura de él:
 
 Referencia medida sobre ``odoo-tools@622ddc2a``.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -30,11 +31,14 @@ def company():
 
 def _tax(company, nombre, amount, **kwargs):
     return AccountTax.objects.create(
-        name=nombre, amount=Decimal(str(amount)), company=company, **kwargs)
+        name=nombre, amount=Decimal(str(amount)), company=company, **kwargs
+    )
 
 
 def _sobre(*taxes):
-    """El QuerySet de esos impuestos — el análogo del recordset de la fuente."""
+    """
+    El QuerySet de esos impuestos — el análogo del recordset de la fuente.
+    """
     return AccountTax.objects.filter(pk__in=[t.pk for t in taxes])
 
 
@@ -48,8 +52,13 @@ class TestLosCuatroEjemplosDelHelp:
         assert r['total_included'] == Decimal('110.00')
 
     def test_percent_incluido_110_entre_1_10_es_100(self, company):
-        iva = _tax(company, 'IVA 10 incl', 10, amount_type='percent',
-                   price_include=True)
+        iva = _tax(
+            company,
+            'IVA 10 incl',
+            10,
+            amount_type='percent',
+            price_include=True,
+        )
         r = _sobre(iva).compute_all(Decimal('110'))
         assert r['total_excluded'] == Decimal('100.00')
         assert r['total_included'] == Decimal('110.00')
@@ -63,8 +72,13 @@ class TestLosCuatroEjemplosDelHelp:
 
     def test_division_incluido_200_por_0_90_es_180(self, company):
         """``e.g 200 * (1 - 10%) = 180 (price included)``."""
-        t = _tax(company, 'Div 10 incl', 10, amount_type='division',
-                 price_include=True)
+        t = _tax(
+            company,
+            'Div 10 incl',
+            10,
+            amount_type='division',
+            price_include=True,
+        )
         r = _sobre(t).compute_all(Decimal('200'))
         assert r['total_excluded'] == Decimal('180.00')
         assert r['total_included'] == Decimal('200.00')
@@ -80,10 +94,22 @@ class TestBatch:
         uno tras otro (116/1.1/1.06) daría 99,49. La referencia divide entre
         ``1 + Σ tasas del lote``.
         """
-        a = _tax(company, 'A 10', 10, amount_type='percent',
-                 price_include=True, sequence=1)
-        b = _tax(company, 'B 6', 6, amount_type='percent',
-                 price_include=True, sequence=2)
+        a = _tax(
+            company,
+            'A 10',
+            10,
+            amount_type='percent',
+            price_include=True,
+            sequence=1,
+        )
+        b = _tax(
+            company,
+            'B 6',
+            6,
+            amount_type='percent',
+            price_include=True,
+            sequence=2,
+        )
         r = _sobre(a, b).compute_all(Decimal('116'))
         assert r['total_excluded'] == Decimal('100.00')
         assert r['total_included'] == Decimal('116.00')
@@ -95,26 +121,46 @@ class TestBatch:
         **no** es lo que el motor devuelve — que es lo que demuestra que el
         lote hace algo, no que el número coincida por suerte.
         """
-        a = _tax(company, 'A 10', 10, amount_type='percent',
-                 price_include=True, sequence=1)
-        b = _tax(company, 'B 6', 6, amount_type='percent',
-                 price_include=True, sequence=2)
-        ingenuo = (Decimal('116') / Decimal('1.10') / Decimal('1.06'))
+        a = _tax(
+            company,
+            'A 10',
+            10,
+            amount_type='percent',
+            price_include=True,
+            sequence=1,
+        )
+        b = _tax(
+            company,
+            'B 6',
+            6,
+            amount_type='percent',
+            price_include=True,
+            sequence=2,
+        )
+        ingenuo = Decimal('116') / Decimal('1.10') / Decimal('1.06')
         r = _sobre(a, b).compute_all(Decimal('116'))
         assert ingenuo.quantize(Decimal('0.01')) == Decimal('99.49')
         assert r['total_excluded'] != ingenuo.quantize(Decimal('0.01'))
 
 
 class TestCascadaDeBase:
-    """``include_base_amount`` — un impuesto que engorda la base del siguiente."""
+    """
+    ``include_base_amount`` — un impuesto que engorda la base del siguiente.
+    """
 
     def test_el_primero_afecta_la_base_del_segundo(self, company):
         """``odoo19c: :1055-1062``: 100 → t1 10 % → base de t2 es 110.
 
         t1 = 10, t2 = 11 (10 % de 110), total 121.
         """
-        t1 = _tax(company, 'T1 10', 10, amount_type='percent',
-                  sequence=1, include_base_amount=True)
+        t1 = _tax(
+            company,
+            'T1 10',
+            10,
+            amount_type='percent',
+            sequence=1,
+            include_base_amount=True,
+        )
         t2 = _tax(company, 'T2 10', 10, amount_type='percent', sequence=2)
         r = _sobre(t1, t2).compute_all(Decimal('100'))
         assert r['total_excluded'] == Decimal('100.00')
@@ -123,8 +169,12 @@ class TestCascadaDeBase:
         assert por_nombre['T1 10'] == Decimal('10.00')
         assert por_nombre['T2 10'] == Decimal('11.00')
 
-    def test_sin_include_base_amount_ambos_van_sobre_la_misma_base(self, company):
-        """La contraparte: sin la marca, 10 % + 10 % sobre 100 son 20, no 21."""
+    def test_sin_include_base_amount_ambos_van_sobre_la_misma_base(
+        self, company
+    ):
+        """
+        La contraparte: sin la marca, 10 % + 10 % sobre 100 son 20, no 21.
+        """
         t1 = _tax(company, 'T1 10', 10, amount_type='percent', sequence=1)
         t2 = _tax(company, 'T2 10', 10, amount_type='percent', sequence=2)
         r = _sobre(t1, t2).compute_all(Decimal('100'))
@@ -137,10 +187,22 @@ class TestCascadaDeBase:
         base no se deja afectar, la cascada no ocurre aunque el primero la
         ofrezca.
         """
-        t1 = _tax(company, 'T1 10', 10, amount_type='percent',
-                  sequence=1, include_base_amount=True)
-        t2 = _tax(company, 'T2 10', 10, amount_type='percent',
-                  sequence=2, is_base_affected=False)
+        t1 = _tax(
+            company,
+            'T1 10',
+            10,
+            amount_type='percent',
+            sequence=1,
+            include_base_amount=True,
+        )
+        t2 = _tax(
+            company,
+            'T2 10',
+            10,
+            amount_type='percent',
+            sequence=2,
+            is_base_affected=False,
+        )
         r = _sobre(t1, t2).compute_all(Decimal('100'))
         assert r['total_included'] == Decimal('120.00')
 
@@ -168,10 +230,22 @@ class TestFijoAntesDeIncluido:
         Por eso el total es 122, no 121: el precio incluía el 21 %, no la
         cuota fija.
         """
-        t1 = _tax(company, 'Fijo 1', 1, amount_type='fixed',
-                  sequence=1, include_base_amount=True)
-        t2 = _tax(company, 'IVA 21 incl', 21, amount_type='percent',
-                  sequence=2, price_include=True)
+        t1 = _tax(
+            company,
+            'Fijo 1',
+            1,
+            amount_type='fixed',
+            sequence=1,
+            include_base_amount=True,
+        )
+        t2 = _tax(
+            company,
+            'IVA 21 incl',
+            21,
+            amount_type='percent',
+            sequence=2,
+            price_include=True,
+        )
         r = _sobre(t1, t2).compute_all(Decimal('121'))
         por_nombre = {d['name']: d['amount'] for d in r['taxes']}
         assert por_nombre['Fijo 1'] == Decimal('1.00')
@@ -191,8 +265,14 @@ class TestFijoAntesDeIncluido:
         y sin ``include_base_amount``, y no diría nada sobre la cascada.
         """
         t1 = _tax(company, 'Fijo 1', 1, amount_type='fixed', sequence=1)
-        t2 = _tax(company, 'IVA 21 incl', 21, amount_type='percent',
-                  sequence=2, price_include=True)
+        t2 = _tax(
+            company,
+            'IVA 21 incl',
+            21,
+            amount_type='percent',
+            sequence=2,
+            price_include=True,
+        )
         r = _sobre(t1, t2).compute_all(Decimal('121'))
         por_nombre = {d['name']: d['amount'] for d in r['taxes']}
         assert por_nombre['IVA 21 incl'] == Decimal('21.00')
@@ -200,7 +280,9 @@ class TestFijoAntesDeIncluido:
         assert r['total_included'] == Decimal('122.00')
 
     def test_el_fijo_multiplica_por_cantidad_no_por_precio(self, company):
-        """``sign * quantity * amount`` (``odoo19c: :1096``) — no por la base."""
+        """
+        ``sign * quantity * amount`` (``odoo19c: :1096``) — no por la base.
+        """
         t = _tax(company, 'Cuota 5', 5, amount_type='fixed')
         r = _sobre(t).compute_all(Decimal('100'), quantity=3)
         assert r['taxes'][0]['amount'] == Decimal('15.00')
@@ -238,8 +320,13 @@ class TestBordes:
         Es el ``special_mode='total_excluded'`` de la referencia (``:5015``):
         el 10 % incluido pasa a sumarse encima en vez de extraerse.
         """
-        t = _tax(company, 'IVA 10 incl', 10, amount_type='percent',
-                 price_include=True)
+        t = _tax(
+            company,
+            'IVA 10 incl',
+            10,
+            amount_type='percent',
+            price_include=True,
+        )
         r = _sobre(t).compute_all(Decimal('100'), handle_price_include=False)
         assert r['total_excluded'] == Decimal('100.00')
         assert r['total_included'] == Decimal('110.00')

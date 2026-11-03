@@ -1,17 +1,24 @@
-"""Vínculo BoM ↔ subcontratista + subcontratista de la orden — ``mrp_subcontracting``.
+"""
+Vínculo BoM ↔ subcontratista + subcontratista de la orden —
+``mrp_subcontracting``.
 
 Adaptación fiel de Odoo ``mrp_subcontracting`` (verificado en 18 y 19). Las
 extensiones ``_inherit`` cross-app se materializan como modelos RELATED
 (DEC-SALE-01).
 
-- ``BomSubcontractor`` — ``mrp.bom.subcontractor_ids`` (M2M ``mrp_bom_subcontractor``,
-  ``mrp_bom.py:14``): qué subcontratistas pueden fabricar esa BoM. Se materializa
+- ``BomSubcontractor`` — ``mrp.bom.subcontractor_ids`` (M2M
+  ``mrp_bom_subcontractor``,
+  ``mrp_bom.py:14``): qué subcontratistas pueden fabricar esa BoM. Se
+  materializa
   como tabla puente explícita (Django no inyecta el M2M en ``mrp.MrpBom``); el
   ``db_table`` conserva el nombre canónico de Odoo ``mrp_bom_subcontractor``.
 - ``SubcontractProduction`` — ``mrp.production.subcontractor_id``
-  (``mrp_production.py:20``): el subcontratista que fabrica la orden. El partner/
-  proveedor del proyecto es ``AUTH_USER`` (igual que ``purchase.order.partner``).
+  (``mrp_production.py:20``): el subcontratista que fabrica la orden. El
+  partner/
+  proveedor del proyecto es ``AUTH_USER`` (igual que
+  ``purchase.order.partner``).
 """
+
 from django.conf import settings
 import fields
 import models
@@ -20,14 +27,19 @@ from addons.base.models import TimeStampedModel
 
 
 class BomSubcontractor(TimeStampedModel):
-    """``mrp.bom.subcontractor_ids`` — puente BoM ↔ subcontratista (M2M Odoo)."""
+    """
+    ``mrp.bom.subcontractor_ids`` — puente BoM ↔ subcontratista (M2M Odoo).
+    """
 
-    bom          = fields.Many2one(
-        'mrp.MrpBom', on_delete=models.CASCADE, related_name='subcontractor_links',
+    bom = fields.Many2one(
+        'mrp.MrpBom',
+        null=False, on_delete=models.CASCADE,
+        related_name='subcontractor_links',
         help_text='BoM de subcontratación (Odoo mrp.bom).',
     )
     subcontractor = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,
+        null=False, on_delete=models.CASCADE,
         related_name='subcontracted_boms',
         help_text='Subcontratista (Odoo res.partner).',
     )
@@ -36,7 +48,8 @@ class BomSubcontractor(TimeStampedModel):
         db_table = 'mrp_bom_subcontractor'
         constraints = [
             models.UniqueConstraint(
-                fields=['bom', 'subcontractor'], name='unique_bom_subcontractor',
+                fields=['bom', 'subcontractor'],
+                name='unique_bom_subcontractor',
             ),
         ]
         verbose_name = 'Subcontratista de BoM'
@@ -47,15 +60,19 @@ class BomSubcontractor(TimeStampedModel):
 
 
 class SubcontractProduction(TimeStampedModel):
-    """``mrp.production.subcontractor_id`` — subcontratista de la orden (Odoo)."""
+    """
+    ``mrp.production.subcontractor_id`` — subcontratista de la orden (Odoo).
+    """
 
-    production   = models.OneToOneField(
-        'mrp.MrpProduction', on_delete=models.CASCADE,
+    production = models.OneToOneField(
+        'mrp.MrpProduction',
+        on_delete=models.CASCADE,
         related_name='subcontract',
         help_text='Orden de fabricación (Odoo mrp.production).',
     )
     subcontractor = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        settings.AUTH_USER_MODEL,
+        null=False, on_delete=models.PROTECT,
         related_name='subcontract_productions',
         help_text='Subcontratista de la orden (Odoo subcontractor_id).',
     )

@@ -4,6 +4,7 @@ La extensión se aplica en ``ready()``, cuando el registro de modelos ya está
 poblado y ``add_to_class``/``chain_method`` sobre una clase ajena no rompe con
 ``AppRegistryNotReady``. Mismo criterio que ``account_fleet``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -11,9 +12,9 @@ from django.apps import AppConfig
 
 class ProductExpiryConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.product_expiry'
-    label              = 'product_expiry'
-    verbose_name       = 'Caducidad de productos (product_expiry)'
+    name = 'addons.product_expiry'
+    label = 'product_expiry'
+    verbose_name = 'Caducidad de productos (product_expiry)'
 
     #: Los ocho módulos que espejan ``odoo19c: product_expiry/models/*.py``,
     #: en el orden en que la referencia los importa. Cuatro cuelgan símbolos y

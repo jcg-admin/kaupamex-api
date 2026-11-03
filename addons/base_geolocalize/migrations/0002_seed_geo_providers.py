@@ -13,6 +13,7 @@ modelo **histórico** vía ``apps.get_model``.
 Idempotente y ``noupdate`` como el XML de la referencia: nunca pisa un valor
 que ya exista.
 """
+
 from django.db import migrations
 
 from addons.base_geolocalize.data import GEO_PROVIDERS
@@ -30,7 +31,8 @@ def sembrar(apps, schema_editor):
     alias = schema_editor.connection.alias
     for tech_name, name in GEO_PROVIDERS:
         GeoProvider.objects.using(alias).get_or_create(
-            tech_name=tech_name, defaults={'name': name})
+            tech_name=tech_name, defaults={'name': name}
+        )
 
 
 class Migration(migrations.Migration):

@@ -3,6 +3,7 @@ Soft-delete contract tests for addons.returns.ReturnRequest (P-08).
 DEC-DOC-007: ReturnRequest debe preservar el rastro financiero
 referenciado desde ReturnItem y ReturnHistoryEntry via CASCADE.
 """
+
 import pytest
 from addons.stock.models import ReturnRequest
 from addons.base.models import SoftDeleteModel

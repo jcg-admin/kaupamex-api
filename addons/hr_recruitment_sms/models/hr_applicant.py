@@ -36,6 +36,7 @@ de envío y el transporte real lo cablea el proveedor que se integre.
 - El número destino es ``partner_phone`` del candidato (el mismo campo que
   el composer de la referencia resuelve para ``hr.applicant``).
 """
+
 from addons.sms.models import SmsSms
 from exceptions import UserError
 from orm.model_classes import extend_model
@@ -67,7 +68,8 @@ def apply_hr_recruitment_sms_hr_applicant_extensions():
     """Cuelga sobre ``hr.applicant`` el envío de SMS — ≙ ``_inherit``. Se
     invoca desde ``HrRecruitmentSmsConfig.ready()``."""
     extend_model(
-        'hr_recruitment', 'HrApplicant',
+        'hr_recruitment',
+        'HrApplicant',
         metodos={
             'action_send_sms': action_send_sms,
         },

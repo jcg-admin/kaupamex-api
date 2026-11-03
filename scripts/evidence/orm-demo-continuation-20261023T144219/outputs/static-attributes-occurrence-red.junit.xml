@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.066" timestamp="2026-10-31T23:52:36.824606" hostname="211a47b6160b"><testcase classname="tests.unit.scripts.test_orm_property_view" name="test_redeclared_class_attributes_retain_both_occurrences" time="0.021"><failure message="AssertionError: assert 1 == 2&#10; +  where 1 = len([{'acceptance': 'not_verified', 'applicability': 'not_verified', 'declaring_owner': 'Same', 'equivalence': 'not_verified', ...}])">tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-24/test_redeclared_class_attribut0')
+
+    def test_redeclared_class_attributes_retain_both_occurrences(tmp_path):
+        source = tmp_path / 'source.py'
+        source.write_text('class Same:\n    value = 1\n'
+                          'class Same:\n    value = 2\n')
+        rows = VIEW.static_attribute_rows(source, REVISION, 'source.py')['rows']
+&gt;       assert len(rows) == 2
+E       AssertionError: assert 1 == 2
+E        +  where 1 = len([{'acceptance': 'not_verified', 'applicability': 'not_verified', 'declaring_owner': 'Same', 'equivalence': 'not_verified', ...}])
+
+tests/unit/scripts/test_orm_property_view.py:138: AssertionError</failure></testcase></testsuite></testsuites>

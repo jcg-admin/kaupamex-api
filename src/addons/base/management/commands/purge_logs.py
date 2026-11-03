@@ -15,6 +15,7 @@ desaparece, **se muda** al addon dueño del modelo (H-API-752).
     ./kaupamex-bin purge_logs --dry-run
     ./kaupamex-bin purge_logs
 """
+
 from django.core.management.base import BaseCommand
 
 from addons.base.models import IrLogging
@@ -30,7 +31,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--dry-run', action='store_true',
+            '--dry-run',
+            action='store_true',
             help='No borra; solo reporta cuantas filas se purgarian.',
         )
 
@@ -40,9 +42,14 @@ class Command(BaseCommand):
 
         prefijo = '[dry-run] ' if dry else ''
         for etiqueta, n in conteos.items():
-            self.stdout.write(f'{prefijo}{etiqueta}: {n} filas '
-                              f'{"a purgar" if dry else "purgadas"}')
+            self.stdout.write(
+                f'{prefijo}{etiqueta}: {n} filas '
+                f'{"a purgar" if dry else "purgadas"}'
+            )
         total = sum(conteos.values())
-        self.stdout.write(self.style.SUCCESS(
-            f'{prefijo}Total: {total} filas '
-            f'{"a purgar" if dry else "purgadas"}'))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'{prefijo}Total: {total} filas '
+                f'{"a purgar" if dry else "purgadas"}'
+            )
+        )

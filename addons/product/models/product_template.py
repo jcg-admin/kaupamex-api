@@ -94,6 +94,7 @@ que no filtra nada — que es la verdad de la fuente, no una simplificación.
   el producto cartesiano de las líneas de atributo y sincroniza altas y bajas.
   Entra con ``product_product.py``, que es donde vive el modelo que crea.
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -133,78 +134,130 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
 
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     sequence = fields.Integer(
-        default=1, verbose_name='Secuencia',
-        help_text='Orden al listar productos.')
+        default=1,
+        verbose_name='Secuencia',
+        help_text='Orden al listar productos.',
+    )
     description = fields.Html(
-        blank=True, default='', verbose_name='Descripción')
+        blank=True, default='', verbose_name='Descripción'
+    )
     description_purchase = fields.Text(
-        blank=True, default='', verbose_name='Descripción de compra')
+        blank=True, default='', verbose_name='Descripción de compra'
+    )
     description_sale = fields.Text(
-        blank=True, default='', verbose_name='Descripción de venta',
-        help_text='Se copia a cada pedido, albarán y factura del cliente.')
+        blank=True,
+        default='',
+        verbose_name='Descripción de venta',
+        help_text='Se copia a cada pedido, albarán y factura del cliente.',
+    )
     type = fields.Selection(
-        max_length=16, choices=TYPE_CHOICES, default=TYPE_CONSU,
-        verbose_name='Tipo de producto')
+        max_length=16,
+        choices=TYPE_CHOICES,
+        default=TYPE_CONSU,
+        verbose_name='Tipo de producto',
+    )
     service_tracking = fields.Selection(
-        max_length=16, choices=SERVICE_TRACKING_CHOICES, default='no',
-        verbose_name='Crear al confirmar el pedido')
+        max_length=16,
+        choices=SERVICE_TRACKING_CHOICES,
+        default='no',
+        verbose_name='Crear al confirmar el pedido',
+    )
     categ = fields.Many2one(
-        ProductCategory, on_delete=models.PROTECT, null=True, blank=True,
-        db_index=True, related_name='product_tmpl_ids',
+        ProductCategory,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='product_tmpl_ids',
         verbose_name='Categoría de producto',
         help_text='Odoo categ_id. FK real: product.category ya está portado.',
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='product_tmpl_ids', verbose_name='Compañía',
+        ResCompany,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='product_tmpl_ids',
+        verbose_name='Compañía',
         help_text='Vacío = producto compartido por todas las compañías.',
     )
     uom = fields.Many2one(
-        Uom, on_delete=models.PROTECT, null=True, blank=True,
-        related_name='product_tmpl_ids', verbose_name='Unidad de medida',
+        Uom,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='product_tmpl_ids',
+        verbose_name='Unidad de medida',
         help_text='Odoo uom_id. FK real: uom.uom ya está portado.',
     )
     uom_ids = fields.Many2many(
-        Uom, blank=True, related_name='packaging_product_tmpl_ids',
-        db_table='product_template_uom_rel', verbose_name='Empaquetados',
-        help_text='Odoo uom_ids ("Packagings"): unidades adicionales con las '
-                  'que este producto se puede vender. La fuente excluye la '
-                  'unidad base por dominio; aquí lo hace quien las consume.',
+        Uom,
+        blank=True,
+        related_name='packaging_product_tmpl_ids',
+        db_table='product_template_uom_rel',
+        verbose_name='Empaquetados',
+        help_text=(
+            'Odoo uom_ids ("Packagings"): unidades adicionales con las '
+            'que este producto se puede vender. La fuente excluye la '
+            'unidad base por dominio; aquí lo hace quien las consume.'
+        ),
     )
     list_price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=1,
+        max_digits=16,
+        decimal_places=2,
+        default=1,
         verbose_name='Precio de venta',
-        help_text='Precio al que se vende al cliente. Monetary, no Float — '
-                  'ver el docstring del módulo.',
+        help_text=(
+            'Precio al que se vende al cliente. Monetary, no Float — '
+            'ver el docstring del módulo.'
+        ),
     )
     standard_price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0,
+        max_digits=16,
+        decimal_places=2,
+        default=0,
         verbose_name='Coste',
-        help_text='Valor del producto. En la referencia lo calcula la '
-                  'valoración AVCO del inventario; aquí es columna, y el '
-                  'cálculo automático no está portado.',
+        help_text=(
+            'Valor del producto. En la referencia lo calcula la '
+            'valoración AVCO del inventario; aquí es columna, y el '
+            'cálculo automático no está portado.'
+        ),
     )
     volume = fields.Float(default=0, verbose_name='Volumen')
     weight = fields.Float(default=0, verbose_name='Peso')
     sale_ok = fields.Boolean(default=True, verbose_name='Se puede vender')
     purchase_ok = fields.Boolean(default=True, verbose_name='Se puede comprar')
     active = fields.Boolean(
-        default=True, verbose_name='Activo',
-        help_text='Desmarcar oculta el producto sin borrarlo.')
+        default=True,
+        verbose_name='Activo',
+        help_text='Desmarcar oculta el producto sin borrarlo.',
+    )
     color = fields.Integer(default=0, verbose_name='Índice de color')
     default_code = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
-        verbose_name='Referencia interna')
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name='Referencia interna',
+    )
     is_favorite = fields.Boolean(default=False, verbose_name='Favorito')
     has_configurable_attributes = fields.Boolean(
-        default=False, verbose_name='Producto configurable',
-        help_text='Odoo lo calcula y almacena: verdadero si alguna línea de '
-                  'atributo ofrece más de un valor.',
+        default=False,
+        verbose_name='Producto configurable',
+        help_text=(
+            'Odoo lo calcula y almacena: verdadero si alguna línea de '
+            'atributo ofrece más de un valor.'
+        ),
     )
     product_properties = fields.Json(
-        default=dict, blank=True, verbose_name='Propiedades',
-        help_text='Pares libres cuyo esquema declara '
-                  'categ.product_properties_definition.',
+        default=dict,
+        blank=True,
+        verbose_name='Propiedades',
+        help_text=(
+            'Pares libres cuyo esquema declara '
+            'categ.product_properties_definition.'
+        ),
     )
 
     class Meta:
@@ -214,8 +267,11 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         verbose_name_plural = 'Productos'
 
     def __str__(self):
-        return f'[{self.default_code}] {self.name}' if self.default_code \
+        return (
+            f'[{self.default_code}] {self.name}'
+            if self.default_code
             else self.name
+        )
 
     def clean(self):
         """Las invariantes que la referencia impone sobre el tipo.
@@ -229,10 +285,12 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         super().clean()
         if self.type == TYPE_SERVICE and (self.weight or self.volume):
             raise ValidationError(
-                'Un servicio no se almacena: no tiene peso ni volumen.')
+                'Un servicio no se almacena: no tiene peso ni volumen.'
+            )
         if self.type == TYPE_COMBO and self.standard_price:
             raise ValidationError(
-                'Un combo no tiene coste propio: lo aportan sus componentes.')
+                'Un combo no tiene coste propio: lo aportan sus componentes.'
+            )
 
     def check_combo_has_no_attributes(self):
         """``_onchange_type`` — *"Combo products can't have attributes."*
@@ -256,7 +314,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         if lines is not None and lines.exists():
             raise ValidationError(
                 'Un producto combo no puede tener atributos: agrupa '
-                'elecciones, no variaciones de un artículo.')
+                'elecciones, no variaciones de un artículo.'
+            )
 
     def check_combo_choices(self):
         """Las dos invariantes de la referencia sobre ``combo_ids``.
@@ -279,7 +338,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         combos = getattr(self, 'combo_ids', None)
         if combos is None or not combos.exists():
             raise ValidationError(
-                'Un producto combo debe ofrecer al menos una elección.')
+                'Un producto combo debe ofrecer al menos una elección.'
+            )
         if not self.sale_ok:
             return
         for combo in combos.all():
@@ -289,7 +349,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
             ):
                 raise ValidationError(
                     'Un combo a la venta no puede ofrecer productos que no '
-                    'están a la venta.')
+                    'están a la venta.'
+                )
 
     # === DERIVADOS ========================================================
 
@@ -300,7 +361,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
 
     @property
     def cost_currency(self):
-        """``_compute_cost_currency_id`` — la moneda en que se expresa el coste.
+        """
+        ``_compute_cost_currency_id`` — la moneda en que se expresa el coste.
 
         Coincide con ``currency`` mientras no haya valoración de inventario en
         otra divisa; ese caso lo resuelve ``stock_account``, no portado.
@@ -396,7 +458,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
 
     # -- unidad de peso / longitud / volumen leída del parámetro de sistema --
     #
-    # ≙ los seis ayudantes de ``odoo19c: product/models/product_template.py:354-403``.
+    # ≙ los seis ayudantes de ``odoo19c:
+    # product/models/product_template.py:354-403``.
     # Son ``@api.model``: no dependen de la instancia, así que aquí son
     # ``classmethod``. Los consume ``stock.package.type`` (etiquetas de alto,
     # ancho y peso) y ``stock.storage.category`` (etiqueta de peso máximo).
@@ -409,7 +472,9 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         ``product.weight_in_lbs`` valga ``'1'``, en cuyo caso son libras.
         """
         if SystemParameter.get_param('product.weight_in_lbs') == '1':
-            return IrModelData.ref('uom.product_uom_lb', raise_if_not_found=False)
+            return IrModelData.ref(
+                'uom.product_uom_lb', raise_if_not_found=False
+            )
         return IrModelData.ref('uom.product_uom_kgm', raise_if_not_found=False)
 
     @classmethod
@@ -421,15 +486,23 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         quien mide en pies cúbicos mide en pies.
         """
         if SystemParameter.get_param('product.volume_in_cubic_feet') == '1':
-            return IrModelData.ref('uom.product_uom_foot', raise_if_not_found=False)
-        return IrModelData.ref('uom.product_uom_millimeter', raise_if_not_found=False)
+            return IrModelData.ref(
+                'uom.product_uom_foot', raise_if_not_found=False
+            )
+        return IrModelData.ref(
+            'uom.product_uom_millimeter', raise_if_not_found=False
+        )
 
     @classmethod
     def get_volume_uom_id_from_ir_config_parameter(cls):
         """≙ ``_get_volume_uom_id_from_ir_config_parameter`` (``:380-390``)."""
         if SystemParameter.get_param('product.volume_in_cubic_feet') == '1':
-            return IrModelData.ref('uom.product_uom_cubic_foot', raise_if_not_found=False)
-        return IrModelData.ref('uom.product_uom_cubic_meter', raise_if_not_found=False)
+            return IrModelData.ref(
+                'uom.product_uom_cubic_foot', raise_if_not_found=False
+            )
+        return IrModelData.ref(
+            'uom.product_uom_cubic_meter', raise_if_not_found=False
+        )
 
     @classmethod
     def get_weight_uom_name_from_ir_config_parameter(cls):
@@ -443,12 +516,16 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
 
     @classmethod
     def get_length_uom_name_from_ir_config_parameter(cls):
-        """≙ ``_get_length_uom_name_from_ir_config_parameter`` (``:396-398``)."""
+        """
+        ≙ ``_get_length_uom_name_from_ir_config_parameter`` (``:396-398``).
+        """
         unidad = cls.get_length_uom_id_from_ir_config_parameter()
         return str(unidad) if unidad is not None else ''
 
     @classmethod
     def get_volume_uom_name_from_ir_config_parameter(cls):
-        """≙ ``_get_volume_uom_name_from_ir_config_parameter`` (``:400-402``)."""
+        """
+        ≙ ``_get_volume_uom_name_from_ir_config_parameter`` (``:400-402``).
+        """
         unidad = cls.get_volume_uom_id_from_ir_config_parameter()
         return str(unidad) if unidad is not None else ''

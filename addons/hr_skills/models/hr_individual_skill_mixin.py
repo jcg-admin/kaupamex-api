@@ -103,6 +103,7 @@ Divergencias declaradas
    Sucesor: el serializer de ``hr.employee.skill``/``hr.job.skill`` cuando
    se pida esa capa.
 """
+
 from datetime import date
 
 import fields
@@ -115,8 +116,11 @@ from exceptions import ValidationError
 
 def _default_skill_type():
     """≙ ``_default_skill_type_id`` (``:41-44``) — ver DIVERGENCIA 1."""
-    return (HrSkillType.objects.order_by('sequence', 'name')
-            .values_list('pk', flat=True).first())
+    return (
+        HrSkillType.objects.order_by('sequence', 'name')
+        .values_list('pk', flat=True)
+        .first()
+    )
 
 
 def _dates_overlap(start_a, end_a, start_b, end_b):
@@ -140,35 +144,48 @@ class HrIndividualSkillMixin(TimeStampedModel):
     _rec_name = 'skill_id'
 
     skill = fields.Many2one(
-        'hr_skills.HrSkill', on_delete=models.CASCADE,
+        'hr_skills.HrSkill',
+        null=False, on_delete=models.CASCADE,
         related_name='%(app_label)s_%(class)s_skill_set',
         verbose_name='Habilidad',
-        help_text='Odoo skill_id (compute+store, readonly=False, '
-                  'required) — poblado por _compute_skill_id() o directo.',
+        help_text=(
+            'Odoo skill_id (compute+store, readonly=False, '
+            'required) — poblado por _compute_skill_id() o directo.'
+        ),
     )
     skill_level = fields.Many2one(
-        'hr_skills.HrSkillLevel', on_delete=models.CASCADE,
+        'hr_skills.HrSkillLevel',
+        null=False, on_delete=models.CASCADE,
         related_name='%(app_label)s_%(class)s_skill_level_set',
         verbose_name='Nivel',
-        help_text='Odoo skill_level_id (compute+store, readonly=False, '
-                  'required) — poblado por _compute_skill_level_id() o '
-                  'directo.',
+        help_text=(
+            'Odoo skill_level_id (compute+store, readonly=False, '
+            'required) — poblado por _compute_skill_level_id() o '
+            'directo.'
+        ),
     )
     skill_type = fields.Many2one(
-        'hr_skills.HrSkillType', on_delete=models.CASCADE,
+        'hr_skills.HrSkillType',
+        null=False, on_delete=models.CASCADE,
         default=_default_skill_type,
         related_name='%(app_label)s_%(class)s_skill_type_set',
         verbose_name='Tipo de habilidad',
     )
     valid_from = fields.Date(
-        default=date.today, verbose_name='Inicio de validez',
+        default=date.today,
+        verbose_name='Inicio de validez',
     )
-    valid_to = fields.Date(null=True, blank=True, verbose_name='Fin de validez')
+    valid_to = fields.Date(
+        null=True, blank=True, verbose_name='Fin de validez'
+    )
     display_warning_message = fields.Boolean(
-        default=False, verbose_name='Mostrar advertencia',
-        help_text='Odoo display_warning_message — poblado por '
-                  '_onchange_valid_date() (divergencia: sin motor de '
-                  'onchange, no auto-wireado).',
+        default=False,
+        verbose_name='Mostrar advertencia',
+        help_text=(
+            'Odoo display_warning_message — poblado por '
+            '_onchange_valid_date() (divergencia: sin motor de '
+            'onchange, no auto-wireado).'
+        ),
     )
 
     class Meta:
@@ -186,7 +203,9 @@ class HrIndividualSkillMixin(TimeStampedModel):
 
     @property
     def level_progress(self):
-        """≙ ``level_progress`` (``related='skill_level_id.level_progress'``)."""
+        """
+        ≙ ``level_progress`` (``related='skill_level_id.level_progress'``).
+        """
         return self.skill_level.level_progress if self.skill_level_id else 0
 
     @property
@@ -201,7 +220,9 @@ class HrIndividualSkillMixin(TimeStampedModel):
 
     @property
     def is_certification(self):
-        """≙ ``is_certification`` (``related='skill_type_id.is_certification'``)."""
+        """
+        ≙ ``is_certification`` (``related='skill_type_id.is_certification'``).
+        """
         return bool(self.skill_type_id and self.skill_type.is_certification)
 
     @property
@@ -251,15 +272,18 @@ class HrIndividualSkillMixin(TimeStampedModel):
             return
         field_name = self._linked_field_name()
         linked_id = getattr(self, f'{field_name}_id')
-        siblings = (type(self).objects
-                    .filter(**{field_name: linked_id, 'skill': self.skill_id})
-                    .exclude(pk=self.pk))
+        siblings = (
+            type(self)
+            .objects.filter(**{field_name: linked_id, 'skill': self.skill_id})
+            .exclude(pk=self.pk)
+        )
         if self.is_certification:
             if not self._can_edit_certification_validity_period():
                 return
             duplicate = siblings.filter(
                 skill_level=self.skill_level_id,
-                valid_from=self.valid_from, valid_to=self.valid_to,
+                valid_from=self.valid_from,
+                valid_to=self.valid_to,
             )
             if duplicate.exists():
                 raise ValidationError(
@@ -269,8 +293,12 @@ class HrIndividualSkillMixin(TimeStampedModel):
                 )
             return
         for sibling in siblings:
-            if _dates_overlap(self.valid_from, self.valid_to,
-                               sibling.valid_from, sibling.valid_to):
+            if _dates_overlap(
+                self.valid_from,
+                self.valid_to,
+                sibling.valid_from,
+                sibling.valid_to,
+            ):
                 raise ValidationError(
                     f'{self.skill.name if self.skill_id else ""} se solapa '
                     f'con una habilidad existente del {sibling.valid_from} '
@@ -279,7 +307,11 @@ class HrIndividualSkillMixin(TimeStampedModel):
 
     def _check_date(self):
         """≙ ``_check_date`` (``:183-192``)."""
-        if self.valid_to and self.valid_from and self.valid_from > self.valid_to:
+        if (
+            self.valid_to
+            and self.valid_from
+            and self.valid_from > self.valid_to
+        ):
             raise ValidationError(
                 f'{self} — la fecha de fin de validez es anterior a la de '
                 'inicio.',
@@ -295,8 +327,10 @@ class HrIndividualSkillMixin(TimeStampedModel):
 
     def _check_skill_level(self):
         """≙ ``_check_skill_level`` (``:200-206``)."""
-        if (self.skill_level_id
-                and self.skill_level.skill_type_id != self.skill_type_id):
+        if (
+            self.skill_level_id
+            and self.skill_level.skill_type_id != self.skill_type_id
+        ):
             raise ValidationError(
                 f'El nivel {self.skill_level.name} no es válido para el '
                 f'tipo de habilidad {self.skill_type.name}.',
@@ -317,7 +351,8 @@ class HrIndividualSkillMixin(TimeStampedModel):
         """≙ ``_compute_skill_id`` (``:219-225``)."""
         if self.skill_type_id:
             first_skill = self.skill_type.skill_ids.order_by(
-                'sequence', 'name',
+                'sequence',
+                'name',
             ).first()
             self.skill = first_skill
         else:
@@ -331,14 +366,18 @@ class HrIndividualSkillMixin(TimeStampedModel):
         else:
             levels = self.skill_type.skill_level_ids
             default = levels.filter(default_level=True).first()
-            self.skill_level = default or levels.order_by('level_progress').first()
+            self.skill_level = (
+                default or levels.order_by('level_progress').first()
+            )
         return self.skill_level
 
     def _onchange_valid_date(self):
         """≙ ``_onchange_valid_date`` (``:241-243``) — DIVERGENCIA: sin
         motor de ``@api.onchange``, no auto-wireado."""
         self.display_warning_message = bool(
-            self.valid_to and self.valid_from and self.valid_to < self.valid_from,
+            self.valid_to
+            and self.valid_from
+            and self.valid_to < self.valid_from,
         )
 
     # ------------------------------------------------------------------

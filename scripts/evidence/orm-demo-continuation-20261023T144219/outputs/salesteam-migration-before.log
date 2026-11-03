@@ -1,0 +1,58 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_salesteam_migration.py", line 22, in <module>
+    controls['test_historical_migration_preserves_local_default_without_live_models'](state)
+  File "/workspace/kaupamex-api/tests/unit/website_sale/test_salesteam_migration.py", line 99, in test_historical_migration_preserves_local_default_without_live_models
+    after_third = third.apply(state.clone(), editor)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/migration.py", line 132, in apply
+    operation.database_forwards(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/operations/fields.py", line 118, in database_forwards
+    schema_editor.add_field(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 730, in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 391, in column_sql
+    " ".join(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 336, in _iter_column_sql
+    default_value = self.effective_default(field)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 491, in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 467, in _effective_default
+    default = field.get_default()
+              ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related.py", line 1170, in get_default
+    field_default = super().get_default()
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py", line 1023, in get_default
+    return self._get_default()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/addons/website_sale/models/website.py", line 244, in _default_salesteam_id
+    team = IrModelData.ref(WEBSITE_SALESTEAM_XMLID, raise_if_not_found=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+AssertionError: Historical DDL must not query runtime XMLID models
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

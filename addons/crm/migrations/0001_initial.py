@@ -41,7 +41,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=1,
-                        help_text="Orden del pipeline; menor primero (Odoo sequence).",
+                        help_text=(
+                            "Orden del pipeline; menor primero (Odoo"
+                            " sequence)."
+                        ),
                     ),
                 ),
                 (
@@ -53,7 +56,8 @@ class Migration(migrations.Migration):
                 (
                     "fold",
                     models.BooleanField(
-                        default=False, help_text="Plegada en el pipeline (Odoo fold)."
+                        default=False,
+                        help_text="Plegada en el pipeline (Odoo fold).",
                     ),
                 ),
                 (
@@ -87,7 +91,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la oportunidad (Odoo crm.lead.name).",
+                        help_text=(
+                            "Nombre de la oportunidad (Odoo crm.lead.name)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -120,13 +126,16 @@ class Migration(migrations.Migration):
                 (
                     "active",
                     models.BooleanField(
-                        default=True, help_text="Archivar sin borrar (Odoo active)."
+                        default=True,
+                        help_text="Archivar sin borrar (Odoo active).",
                     ),
                 ),
                 (
                     "description",
                     models.TextField(
-                        blank=True, default="", help_text="Notas (Odoo description)."
+                        blank=True,
+                        default="",
+                        help_text="Notas (Odoo description).",
                     ),
                 ),
                 (
@@ -245,19 +254,26 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True si la fila fue borrada via soft delete.",
+                        help_text=(
+                            "True si la fila fue borrada via soft delete."
+                        ),
                         verbose_name="Eliminado (logico)",
                     ),
                 ),
                 (
                     "deleted_at",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name="Fecha de borrado logico"
+                        blank=True,
+                        null=True,
+                        verbose_name="Fecha de borrado logico",
                     ),
                 ),
                 ("name", models.CharField(max_length=120)),
                 ("email", models.EmailField(max_length=254)),
-                ("phone", models.CharField(blank=True, default="", max_length=40)),
+                (
+                    "phone",
+                    models.CharField(blank=True, default="", max_length=40),
+                ),
                 ("subject", models.CharField(max_length=200)),
                 ("body", models.TextField()),
                 ("read", models.BooleanField(default=False)),
@@ -281,9 +297,12 @@ class Migration(migrations.Migration):
                 "db_table": "contact_message",
                 "ordering": ["-created_at"],
                 "indexes": [
-                    models.Index(fields=["read"], name="contact_mes_read_d4ce31_idx"),
                     models.Index(
-                        fields=["-created_at"], name="contact_mes_created_54923f_idx"
+                        fields=["read"], name="contact_mes_read_d4ce31_idx"
+                    ),
+                    models.Index(
+                        fields=["-created_at"],
+                        name="contact_mes_created_54923f_idx",
                     ),
                 ],
             },

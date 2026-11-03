@@ -3,11 +3,15 @@
 Plantillas de cotización reutilizables (Odoo sale.order.template +
 sale.order.template.line).
 """
+
 from decimal import Decimal
 
 import pytest
 
-from addons.sale_management.models import SaleOrderTemplate, SaleOrderTemplateLine
+from addons.sale_management.models import (
+    SaleOrderTemplate,
+    SaleOrderTemplateLine,
+)
 from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
@@ -16,7 +20,9 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def producto(db):
     cat = make_category(name='Cat T')
-    return make_product(name='Prod T', price=Decimal('100.00'), stock=5, categ=cat)
+    return make_product(
+        name='Prod T', price=Decimal('100.00'), stock=5, categ=cat
+    )
 
 
 def test_template_creation_defaults(db):
@@ -30,10 +36,15 @@ def test_template_creation_defaults(db):
 def test_template_lines_product_and_section(producto):
     t = SaleOrderTemplate.objects.create(name='Con líneas')
     prod_line = SaleOrderTemplateLine.objects.create(
-        template=t, product_id=producto, product_uom_qty=Decimal('2.00'), sequence=20,
+        template=t,
+        product_id=producto,
+        product_uom_qty=Decimal('2.00'),
+        sequence=20,
     )
     section = SaleOrderTemplateLine.objects.create(
-        template=t, name='Servicios', display_type=SaleOrderTemplateLine.DISPLAY_SECTION,
+        template=t,
+        name='Servicios',
+        display_type=SaleOrderTemplateLine.DISPLAY_SECTION,
         sequence=10,
     )
     # _order = template, sequence → sección (10) antes que producto (20)

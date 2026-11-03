@@ -101,6 +101,7 @@ def test_the_reverse_side_counts_the_same(db):
 
 # --- lo que NO debe tocar ---------------------------------------------------
 
+
 def test_another_group_change_leaves_the_membership_alone(db):
     user = _make_user('otro-grupo@ejemplo.mx')
     _make_company('Alfa').user_ids.add(user)

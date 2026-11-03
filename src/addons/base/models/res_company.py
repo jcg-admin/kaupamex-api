@@ -124,6 +124,7 @@ que este árbol no porta (Bloque 1, tarea #137). Se resuelve con
 cuando no existe — es DIVERGENCIA DE MECANISMO, no un recorte: la fuente
 también cae al año en curso cuando no hay fecha de apertura.
 """
+
 import base64
 import calendar
 import logging
@@ -178,9 +179,17 @@ LAYOUT_BACKGROUND_CHOICES = [
 #: que ``ANNUAL_INVENTORY_MONTH_CHOICES`` de ``addons/stock/models/
 #: res_company.py``, que reutiliza esta misma lista de meses).
 MONTH_SELECTION = [
-    ('1', 'January'), ('2', 'February'), ('3', 'March'), ('4', 'April'),
-    ('5', 'May'), ('6', 'June'), ('7', 'July'), ('8', 'August'),
-    ('9', 'September'), ('10', 'October'), ('11', 'November'),
+    ('1', 'January'),
+    ('2', 'February'),
+    ('3', 'March'),
+    ('4', 'April'),
+    ('5', 'May'),
+    ('6', 'June'),
+    ('7', 'July'),
+    ('8', 'August'),
+    ('9', 'September'),
+    ('10', 'October'),
+    ('11', 'November'),
     ('12', 'December'),
 ]
 
@@ -225,7 +234,8 @@ class ResCompanyManager(models.AccessManager):
         name = kwargs.pop('name', None)
         if 'partner' not in kwargs and 'partner_id' not in kwargs:
             kwargs['partner'] = ResPartner.objects.create(
-                name=name or '', is_company=True)
+                name=name or '', is_company=True
+            )
         elif name is not None:
             partner = kwargs.get('partner')
             if partner is not None:
@@ -237,7 +247,8 @@ class ResCompanyManager(models.AccessManager):
                 kwargs['currency'] = main.currency
             else:
                 kwargs['currency'], _ = ResCurrency.objects.get_or_create(
-                    name='MXN', defaults={'symbol': '$'})
+                    name='MXN', defaults={'symbol': '$'}
+                )
         return super().create(**kwargs)
 
 
@@ -263,17 +274,28 @@ class ResCompany(TimeStampedModel):
     #: ``_get_company_root_delegated_field_names`` de ``account``
     #: (``odoo19c: company.py:311-316``): una sucursal no fija su propio
     #: cierre de ejercicio, hereda el de su matriz.
-    _ROOT_DELEGATED_FIELDS = ('currency', 'fiscalyear_last_day',
-                              'fiscalyear_last_month')
+    _ROOT_DELEGATED_FIELDS = (
+        'currency',
+        'fiscalyear_last_day',
+        'fiscalyear_last_month',
+    )
 
     #: Campos de dirección que viven en el partner y se leen a través de él.
     _ADDRESS_FIELDS = (
-        'street', 'street2', 'city', 'zip', 'state', 'country',
+        'street',
+        'street2',
+        'city',
+        'zip',
+        'state',
+        'country',
     )
 
     partner = fields.Many2one(
-        ResPartner, on_delete=models.PROTECT, db_index=True,
-        related_name='companies', verbose_name='Partner',
+        ResPartner,
+        null=False, on_delete=models.PROTECT,
+        db_index=True,
+        related_name='companies',
+        verbose_name='Partner',
         help_text='Odoo partner_id. La identidad de la compañía vive aquí.',
     )
     #: ≙ ``bank_ids`` (``odoo19c: res_company.py:77``), verbatim salvo los
@@ -285,11 +307,11 @@ class ResCompany(TimeStampedModel):
     #: escribir desde la empresa, y el inverso lo lleva al titular
     #: (``NonStored.inverse_related``). Que el extremo sea un manager y no un
     #: valor es justo lo que hacía falta construir (:ref:`h-api-979`).
-    bank_ids = fields.One2many(related='partner.bank_accounts',
-                               readonly=False)
+    bank_ids = fields.One2many(related='partner.bank_accounts', readonly=False)
     active = fields.Boolean(default=True, verbose_name='Activa')
     sequence = fields.Integer(
-        default=10, verbose_name='Secuencia',
+        default=10,
+        verbose_name='Secuencia',
         help_text='Ordena las compañías en el selector (Odoo sequence).',
     )
 
@@ -311,78 +333,128 @@ class ResCompany(TimeStampedModel):
         CANCELLED = 'cancelled', 'Cancelado'
 
     code = models.SlugField(
-        max_length=50, unique=True, null=True, blank=True,
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
         verbose_name='Código',
         help_text='Identificador estable del tenant L1 en la plataforma.',
     )
     status = fields.Selection(
-        max_length=12, choices=Status.choices, default=Status.TRIAL,
+        max_length=12,
+        choices=Status.choices,
+        default=Status.TRIAL,
         verbose_name='Estado',
-        help_text='Ciclo de vida de la contratación. Distinto de ``active``, '
-                  'que es el archivado de Odoo.',
+        help_text=(
+            'Ciclo de vida de la contratación. Distinto de ``active``, '
+            'que es el archivado de Odoo.'
+        ),
     )
     is_system = fields.Boolean(
-        default=False, verbose_name='Compañía de sistema',
-        help_text='Compañía de datos compartidos de plataforma (L0), no un '
-                  'tenant.',
+        default=False,
+        verbose_name='Compañía de sistema',
+        help_text=(
+            'Compañía de datos compartidos de plataforma (L0), no un tenant.'
+        ),
     )
     billing_email = fields.Char(
-        max_length=254, blank=True, default='',
+        max_length=254,
+        blank=True,
+        default='',
         verbose_name='Correo de facturación',
-        help_text='DIVERGENCIA DECLARADA: la referencia no separa el correo '
-                  'de contacto del de facturación en ``res.company`` — su '
-                  '``email`` es ``related`` al partner y la facturación sale '
-                  'del partner de la factura. Se conserva como columna propia '
-                  'porque el negocio sí los distingue; si se unifican, este '
-                  'campo desaparece a favor de la property ``email``.',
+        help_text=(
+            'DIVERGENCIA DECLARADA: la referencia no separa el correo '
+            'de contacto del de facturación en ``res.company`` — su '
+            '``email`` es ``related`` al partner y la facturación sale '
+            'del partner de la factura. Se conserva como columna propia '
+            'porque el negocio sí los distingue; si se unifican, este '
+            'campo desaparece a favor de la property ``email``.'
+        ),
     )
     parent = fields.Many2one(
-        'self', on_delete=models.PROTECT, null=True, blank=True,
-        db_index=True, related_name='child_ids', verbose_name='Compañía matriz',
+        'self',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='child_ids',
+        verbose_name='Compañía matriz',
         help_text='Odoo parent_id, con ondelete restrict.',
     )
     parent_path = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Ruta de ancestros',
-        help_text="Ruta materializada '1/4/9/' — evita N consultas para "
-                  'obtener la cadena de matrices.',
+        help_text=(
+            "Ruta materializada '1/4/9/' — evita N consultas para "
+            "obtener la cadena de matrices."
+        ),
     )
     currency = fields.Many2one(
-        ResCurrency, on_delete=models.PROTECT, db_index=True,
-        related_name='companies', verbose_name='Moneda',
+        ResCurrency,
+        null=False, on_delete=models.PROTECT,
+        db_index=True,
+        related_name='companies',
+        verbose_name='Moneda',
     )
     user_ids = fields.Many2many(
-        ResUsers, blank=True, related_name='company_ids',
-        through='ResCompanyUsersRel', verbose_name='Usuarios aceptados',
+        ResUsers,
+        blank=True,
+        related_name='company_ids',
+        through='ResCompanyUsersRel',
+        verbose_name='Usuarios aceptados',
     )
 
     # — Membrete de los documentos impresos —
     report_header = fields.Html(
-        blank=True, default='', verbose_name='Lema de la compañía',
-        help_text='Se incluye en la cabecera o el pie del documento impreso, '
-                  'según el diseño elegido.',
+        blank=True,
+        default='',
+        verbose_name='Lema de la compañía',
+        help_text=(
+            'Se incluye en la cabecera o el pie del documento impreso, '
+            'según el diseño elegido.'
+        ),
     )
     report_footer = fields.Html(
-        blank=True, default='', verbose_name='Pie de reporte')
+        blank=True, default='', verbose_name='Pie de reporte'
+    )
     company_details = fields.Html(
-        blank=True, default='', verbose_name='Detalles de la compañía')
+        blank=True, default='', verbose_name='Detalles de la compañía'
+    )
     paperformat = fields.Many2one(
-        ReportPaperformat, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='companies', verbose_name='Formato de papel',
+        ReportPaperformat,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='companies',
+        verbose_name='Formato de papel',
     )
     font = fields.Selection(
-        max_length=32, choices=FONT_CHOICES, default='Lato',
-        verbose_name='Tipografía')
+        max_length=32,
+        choices=FONT_CHOICES,
+        default='Lato',
+        verbose_name='Tipografía',
+    )
     primary_color = fields.Char(
-        max_length=32, blank=True, default='', verbose_name='Color primario')
+        max_length=32, blank=True, default='', verbose_name='Color primario'
+    )
     secondary_color = fields.Char(
-        max_length=32, blank=True, default='', verbose_name='Color secundario')
+        max_length=32, blank=True, default='', verbose_name='Color secundario'
+    )
     layout_background = fields.Selection(
-        max_length=16, choices=LAYOUT_BACKGROUND_CHOICES, default='Blank',
-        verbose_name='Fondo del diseño')
+        max_length=16,
+        choices=LAYOUT_BACKGROUND_CHOICES,
+        default='Blank',
+        verbose_name='Fondo del diseño',
+    )
     layout_background_image = fields.Image(
-        upload_to='company/layout/', null=True, blank=True,
-        verbose_name='Imagen de fondo')
+        upload_to='company/layout/',
+        null=True,
+        blank=True,
+        verbose_name='Imagen de fondo',
+    )
 
     # === Ejercicio fiscal (Odoo account) ==================================
     # ≙ ``fiscalyear_last_day``/``fiscalyear_last_month``
@@ -391,15 +463,22 @@ class ResCompany(TimeStampedModel):
     # extensión ``account`` de ``res.company``; aquí van directos en la
     # clase base por el alcance de la tarea #207. Ver ese docstring.
     fiscalyear_last_day = fields.Integer(
-        default=31, verbose_name='Último día del ejercicio fiscal',
-        help_text='Día del mes en que cierra el ejercicio fiscal de esta '
-                  'compañía (Odoo fiscalyear_last_day).',
+        default=31,
+        verbose_name='Último día del ejercicio fiscal',
+        help_text=(
+            'Día del mes en que cierra el ejercicio fiscal de esta '
+            'compañía (Odoo fiscalyear_last_day).'
+        ),
     )
     fiscalyear_last_month = fields.Selection(
-        max_length=2, choices=MONTH_SELECTION, default='12',
+        max_length=2,
+        choices=MONTH_SELECTION,
+        default='12',
         verbose_name='Último mes del ejercicio fiscal',
-        help_text='Mes en que cierra el ejercicio fiscal de esta compañía '
-                  '(Odoo fiscalyear_last_month).',
+        help_text=(
+            'Mes en que cierra el ejercicio fiscal de esta compañía '
+            '(Odoo fiscalyear_last_month).'
+        ),
     )
 
     class Meta:
@@ -416,7 +495,8 @@ class ResCompany(TimeStampedModel):
             # El nombre vive en el partner, así que la unicidad se declara
             # sobre el partner: una entidad legal por partner.
             models.UniqueConstraint(
-                fields=['partner'], name='res_company_partner_uniq'),
+                fields=['partner'], name='res_company_partner_uniq'
+            ),
         ]
 
     def __str__(self):
@@ -426,7 +506,9 @@ class ResCompany(TimeStampedModel):
 
     @property
     def name(self):
-        """``related='partner_id.name'`` — la razón social vive en el partner."""
+        """
+        ``related='partner_id.name'`` — la razón social vive en el partner.
+        """
         return self.partner.name
 
     @name.setter
@@ -496,31 +578,54 @@ class ResCompany(TimeStampedModel):
     #: company address fields. Fields are labeled same on both models."*
     #: Ese *"labeled same"* es lo que hace que el compute y los seis inversos
     #: puedan ser un solo ``getattr``/``setattr`` por nombre.
-    ADDRESS_FIELD_NAMES = ('street', 'street2', 'city', 'zip', 'state',
-                           'country')
+    ADDRESS_FIELD_NAMES = (
+        'street',
+        'street2',
+        'city',
+        'zip',
+        'state',
+        'country',
+    )
 
-    street = fields.Char(compute='_compute_address', inverse='_inverse_street',
-                         help_text='Odoo street.')
-    street2 = fields.Char(compute='_compute_address',
-                          inverse='_inverse_street2',
-                          help_text='Odoo street2.')
+    street = fields.Char(
+        compute='_compute_address',
+        inverse='_inverse_street',
+        help_text='Odoo street.',
+    )
+    street2 = fields.Char(
+        compute='_compute_address',
+        inverse='_inverse_street2',
+        help_text='Odoo street2.',
+    )
     #: El ``if name == 'state'`` de ``orm/fields.py`` fija ``copy=False`` sobre
     #: este campo porque su nombre es ``state``; allá la regla no lo toca
     #: porque el campo se llama ``state_id``. El resultado es el mismo: un
     #: calculado sin columna ya sale ``copy=False`` por el bloque de
     #: ``compute``, así que la coincidencia de nombre no cambia nada.
-    zip = fields.Char(compute='_compute_address', inverse='_inverse_zip',
-                      help_text='Odoo zip.')
-    city = fields.Char(compute='_compute_address', inverse='_inverse_city',
-                       help_text='Odoo city.')
+    zip = fields.Char(
+        compute='_compute_address',
+        inverse='_inverse_zip',
+        help_text='Odoo zip.',
+    )
+    city = fields.Char(
+        compute='_compute_address',
+        inverse='_inverse_city',
+        help_text='Odoo city.',
+    )
     state = fields.Many2one(
-        ResCountryState, compute='_compute_address',
-        inverse='_inverse_state', verbose_name='Fed. State',
-        help_text='Odoo state_id.')
+        ResCountryState,
+        compute='_compute_address',
+        inverse='_inverse_state',
+        verbose_name='Fed. State',
+        help_text='Odoo state_id.',
+    )
     country = fields.Many2one(
-        ResCountry, compute='_compute_address',
-        inverse='_inverse_country', verbose_name='Country',
-        help_text='Odoo country_id.')
+        ResCountry,
+        compute='_compute_address',
+        inverse='_inverse_country',
+        verbose_name='Country',
+        help_text='Odoo country_id.',
+    )
     #: ≙ ``country_code`` (``:79``), que allá es
     #: ``fields.Char(related='country_id.code', depends=['country_id'])``.
     #: Era un ``@property`` y por eso la cadena de ``SiteConfigSettings`` no
@@ -546,14 +651,21 @@ class ResCompany(TimeStampedModel):
         """≙ ``_get_company_address_update`` (``:126-128``), verbatim salvo el
         acceso: allá ``partner[fname]`` sobre un recordset, aquí ``getattr``
         sobre la fila."""
-        return {fname: getattr(partner, fname)
-                for fname in self._get_company_address_field_names()}
+        return {
+            fname: getattr(partner, fname)
+            for fname in self._get_company_address_field_names()
+        }
 
-    @api.depends(lambda self: [f'partner.{fname}'
-                               for fname in
-                               self._get_company_address_field_names()])
+    @api.depends(
+        lambda self: [
+            f'partner.{fname}'
+            for fname in self._get_company_address_field_names()
+        ]
+    )
     def _compute_address(self):
-        """La dirección se LEE del partner — ≙ ``_compute_address`` (``:136-141``).
+        """
+        La dirección se LEE del partner — ≙ ``_compute_address``
+        (``:136-141``).
 
         La fuente no toma los campos del partner directamente: pide su
         dirección de contacto con ``address_get(adr_pref=['contact'])``, que es
@@ -569,16 +681,19 @@ class ResCompany(TimeStampedModel):
         ``orm.environments.sudo``, no un recordset elevado.
 
         **Sin partner no computa, y eso es FIEL, no un recorte.** La fuente
-        abre con ``for company in self.filtered(lambda company: company.partner_id)``
+        abre con ``for company in self.filtered(lambda company:
+        company.partner_id)``
         (``:138``): una compañía sin partner sale del bucle y su dirección
         queda sin tocar. El ``return`` temprano de aquí es esa misma conducta
         sobre una fila.
 
         **Dos guardas que la fuente NO tiene, declaradas:**
 
-        - ``address_data.get('contact')`` contra su ``if address_data['contact']``
+        - ``address_data.get('contact')`` contra su ``if
+          address_data['contact']``
           (``:140``). La fuente confía en que la clave exista; aquí un
-          ``address_get`` que no la devuelva da ``None`` en vez de ``KeyError``.
+          ``address_get`` que no la devuelva da ``None`` en vez de
+          ``KeyError``.
         - ``if source is None: return``. La fuente hace ``browse(id)``, que
           nunca devuelve ``None`` — un id inexistente allá revienta con
           ``MissingError`` al leerlo. Aquí un ``contact`` colgado apuntando a
@@ -593,11 +708,16 @@ class ResCompany(TimeStampedModel):
             contact_id = address_data.get('contact')
             if not contact_id:
                 return
-            source = (partner if contact_id == partner.pk
-                      else type(partner).objects.filter(pk=contact_id).first())
+            source = (
+                partner
+                if contact_id == partner.pk
+                else type(partner).objects.filter(pk=contact_id).first()
+            )
             if source is None:
                 return
-            for fname, value in self._get_company_address_update(source).items():
+            for fname, value in self._get_company_address_update(
+                source
+            ).items():
                 setattr(self, fname, value)
 
     def _inverse_street(self):
@@ -625,7 +745,8 @@ class ResCompany(TimeStampedModel):
         self._write_address_to_partner('country')
 
     def _write_address_to_partner(self, fname):
-        """El cuerpo común de los seis inversos — ``partner_id.<f> = self.<f>``.
+        """
+        El cuerpo común de los seis inversos — ``partner_id.<f> = self.<f>``.
 
         Los seis de la fuente son la misma línea con otro nombre de campo
         (``:143-165``); aquí se factoriza porque además hay que **persistir**,
@@ -641,7 +762,8 @@ class ResCompany(TimeStampedModel):
         **El ``return`` sin partner es FIEL — medido, no supuesto.** La fuente
         escribe ``company.partner_id.street = company.street`` (``:145``) sin
         guarda: sobre un ``partner_id`` vacío eso llega a ``Field.__set__``
-        (``odoo19c: odoo/orm/fields.py:1807-1841``), que reparte ``records._ids``
+        (``odoo19c: odoo/orm/fields.py:1807-1841``), que reparte
+        ``records._ids``
         en tres cubos y, con la tupla vacía, no entra en ninguno — **no-op
         silencioso**, no excepción. La guarda de aquí produce el mismo
         desenlace de forma explícita.
@@ -766,8 +888,10 @@ class ResCompany(TimeStampedModel):
     def get_main_company(cls):
         """La compañía principal — ``_get_main_company`` de la referencia.
 
-        Adaptación de ``odoo19c: odoo/addons/base/models/res_company.py:436-440``
-        (idéntico en ``odoo18c:``): allá se resuelve ``env.ref('base.main_company')``
+        Adaptación de ``odoo19c:
+        odoo/addons/base/models/res_company.py:436-440``
+        (idéntico en ``odoo18c:``): allá se resuelve
+        ``env.ref('base.main_company')``
         con fallback al primero por ``id``. El camino primario exige
         ``ir.model.data`` (no portado), así que aquí rige el fallback de la
         propia fuente — determinista y ABSTRACTO: ``base`` no nombra a ningún
@@ -838,8 +962,10 @@ class ResCompany(TimeStampedModel):
             ejercicio.
         """
         date_from, date_to = date_utils.get_fiscal_year(
-            current_date, day=self.fiscalyear_last_day,
-            month=int(self.fiscalyear_last_month))
+            current_date,
+            day=self.fiscalyear_last_day,
+            month=int(self.fiscalyear_last_month),
+        )
         return {'date_from': date_from, 'date_to': date_to}
 
     def _check_fiscalyear_last_day(self):
@@ -863,7 +989,10 @@ class ResCompany(TimeStampedModel):
         fecha de apertura (``:337-338``, ``else: year = datetime.now()
         .year``).
         """
-        if self.fiscalyear_last_day == 29 and self.fiscalyear_last_month == '2':
+        if (
+            self.fiscalyear_last_day == 29
+            and self.fiscalyear_last_month == '2'
+        ):
             return
         opening_date = getattr(self, 'account_opening_date', None)
         year = opening_date.year if opening_date else date.today().year
@@ -917,15 +1046,18 @@ class ResCompany(TimeStampedModel):
 
 
 class ResCompanyUsersRel(models.Model):
-    """Tabla de relación ``res_company_users_rel`` — usuario ↔ compañía aceptada.
+    """
+    Tabla de relación ``res_company_users_rel`` — usuario ↔ compañía aceptada.
 
     La referencia la declara desde ambos lados con sus nombres de columna
     explícitos (``odoo-tools@622ddc2a``):
 
     - ``odoo19c: odoo/addons/base/models/res_company.py:68`` —
-      ``user_ids = fields.Many2many('res.users', 'res_company_users_rel', 'cid', 'user_id')``
+      ``user_ids = fields.Many2many('res.users', 'res_company_users_rel',
+      'cid', 'user_id')``
     - ``odoo19c: odoo/addons/base/models/res_users.py:247`` —
-      ``company_ids = fields.Many2many('res.company', 'res_company_users_rel', 'user_id', 'cid')``
+      ``company_ids = fields.Many2many('res.company', 'res_company_users_rel',
+      'user_id', 'cid')``
 
     (mismos nombres en ``odoo18c:``, líneas ``:54`` y ``:403``.)
 
@@ -936,21 +1068,28 @@ class ResCompanyUsersRel(models.Model):
     """
 
     cid = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, db_column='cid',
-        related_name='+', verbose_name='Compañía',
+        'base.ResCompany',
+        null=False, on_delete=models.CASCADE,
+        db_column='cid',
+        related_name='+',
+        verbose_name='Compañía',
     )
     user_id = fields.Many2one(
-        ResUsers, on_delete=models.CASCADE, db_column='user_id',
-        related_name='+', verbose_name='Usuario',
+        ResUsers,
+        null=False, on_delete=models.CASCADE,
+        db_column='user_id',
+        related_name='+',
+        verbose_name='Usuario',
     )
 
     class Meta:
-        db_table            = 'res_company_users_rel'
-        constraints         = [
+        db_table = 'res_company_users_rel'
+        constraints = [
             models.UniqueConstraint(
-                fields=['cid', 'user_id'], name='res_company_users_rel_uniq'),
+                fields=['cid', 'user_id'], name='res_company_users_rel_uniq'
+            ),
         ]
-        verbose_name        = 'Usuario aceptado de la compañía'
+        verbose_name = 'Usuario aceptado de la compañía'
         verbose_name_plural = 'Usuarios aceptados de la compañía'
 
     def __str__(self) -> str:

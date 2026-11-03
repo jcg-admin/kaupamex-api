@@ -1,0 +1,13 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F.F...F                                                                  [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-stored-original-readback.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_native_stored_compute_contract.py::test_native_stored_compute_preserves_each_cache_value[ids0]
+FAILED tests/unit/orm/test_native_stored_compute_contract.py::test_native_stored_compute_preserves_each_cache_value[ids2]
+FAILED tests/unit/orm/test_native_stored_compute_contract.py::test_native_m2m_readback_keeps_manager_values[ids1]
+3 failed, 4 passed in 0.11s
+{"head": "4166b38d4b06fb7af77acfa5d458c84cffdc2fda", "index_tree": "fe578624c1098eb79002bcf91d6ffc96bb5b4986", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "581891977cf888c0ffddb9ec21bff538918f0781179a5b547d8cdfeecb90a014"}, "test_sha256": {"tests/unit/orm/test_native_stored_compute_contract.py": "5311bbc124cc758dfea7b59f2e3e48d4a26527066ac16d8be1c3bc83def1a244"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": false, "annul_record_sudo": false, "keyword_only": false, "batch_only": false, "stored_only": true, "annul_stored_guard": true, "annul_m2m_readback": false, "annul_native_batch": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}

@@ -40,27 +40,63 @@ pytestmark = [pytest.mark.django_db]
 #: Los 44 campos que ``odoo19c: addons/website/models/website.py`` declara,
 #: en el orden de la fuente. Derivados por AST, no a mano.
 REFERENCE_FIELDS = [
-    'name', 'sequence', 'domain', 'domain_punycode', 'company_id',
-    'language_ids', 'language_count', 'default_lang_id', 'auto_redirect_lang',
-    'cookies_bar', 'configurator_done', 'block_third_party_domains',
-    'custom_blocked_third_party_domains', 'blocked_third_party_domains',
-    'logo', 'social_twitter', 'social_facebook', 'social_github',
-    'social_linkedin', 'social_youtube', 'social_instagram', 'social_tiktok',
-    'social_discord', 'social_default_image', 'has_social_default_image',
-    'google_analytics_key', 'google_search_console', 'google_maps_api_key',
-    'plausible_shared_key', 'plausible_site', 'user_id', 'cdn_activated',
-    'cdn_url', 'cdn_filters', 'partner_id', 'menu_id', 'homepage_url',
-    'custom_code_head', 'custom_code_footer', 'robots_txt', 'favicon',
-    'theme_id', 'specific_user_account', 'auth_signup_uninvited',
+    'name',
+    'sequence',
+    'domain',
+    'domain_punycode',
+    'company_id',
+    'language_ids',
+    'language_count',
+    'default_lang_id',
+    'auto_redirect_lang',
+    'cookies_bar',
+    'configurator_done',
+    'block_third_party_domains',
+    'custom_blocked_third_party_domains',
+    'blocked_third_party_domains',
+    'logo',
+    'social_twitter',
+    'social_facebook',
+    'social_github',
+    'social_linkedin',
+    'social_youtube',
+    'social_instagram',
+    'social_tiktok',
+    'social_discord',
+    'social_default_image',
+    'has_social_default_image',
+    'google_analytics_key',
+    'google_search_console',
+    'google_maps_api_key',
+    'plausible_shared_key',
+    'plausible_site',
+    'user_id',
+    'cdn_activated',
+    'cdn_url',
+    'cdn_filters',
+    'partner_id',
+    'menu_id',
+    'homepage_url',
+    'custom_code_head',
+    'custom_code_footer',
+    'robots_txt',
+    'favicon',
+    'theme_id',
+    'specific_user_account',
+    'auth_signup_uninvited',
 ]
 
 #: Traducción de los nombres de la fuente a los de aquí. Un FK se llama
 #: ``company`` y no ``company_id`` porque Django ya expone ``company_id`` como
 #: la columna; conservar el sufijo produciría ``company_id_id``.
 EQUIVALENCE = {
-    'company_id': 'company', 'language_ids': 'languages',
-    'default_lang_id': 'default_lang', 'user_id': 'user',
-    'partner_id': 'partner', 'menu_id': 'menu', 'theme_id': 'theme',
+    'company_id': 'company',
+    'language_ids': 'languages',
+    'default_lang_id': 'default_lang',
+    'user_id': 'user',
+    'partner_id': 'partner',
+    'menu_id': 'menu',
+    'theme_id': 'theme',
 }
 
 
@@ -107,12 +143,15 @@ def test_the_forty_four_source_fields_are_declared():
     assert not missing, f'campos de la referencia sin portar: {missing}'
 
 
-@pytest.mark.parametrize('given,expected', [
-    ('www.midominio.com', 'https://www.midominio.com'),
-    ('https://www.midominio.com/', 'https://www.midominio.com'),
-    ('http://localhost:8000', 'http://localhost:8000'),
-    ('https://x.com///', 'https://x.com'),
-])
+@pytest.mark.parametrize(
+    'given,expected',
+    [
+        ('www.midominio.com', 'https://www.midominio.com'),
+        ('https://www.midominio.com/', 'https://www.midominio.com'),
+        ('http://localhost:8000', 'http://localhost:8000'),
+        ('https://x.com///', 'https://x.com'),
+    ],
+)
 def test_normalize_domain_url_prefixes_and_trims(given, expected):
     """≙ ``_normalize_domain_url`` (``odoo19c: website.py:406-415``).
 

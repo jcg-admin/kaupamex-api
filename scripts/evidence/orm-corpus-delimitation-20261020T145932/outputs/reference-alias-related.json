@@ -1,0 +1,312 @@
+{
+  "interface": "connect_readonly + task_ids.mapping_from_store/lookup",
+  "queries": {
+    "reference_flow": [],
+    "resolve_roots": [],
+    "alias": [
+      {
+        "citation_id": "TASK-DOCS-0009",
+        "task_id": "119",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Cablear el gate del eje de árbol en cifras de la referencia (H-DOCS-20)",
+        "description": "Octavo episodio del mismo defecto: publicar una cifra de la referencia sin nombrar el árbol que la produjo. El gate que referencia-odoo-gobierna-las-decisiones.md propone desde H-API-227 sigue sin cablear: un check que rechace un número junto a \"addons\"/\"modelos\"/\"manifiestos\" sin un alias odoo1[89][ce]: en la misma línea o tabla. Habría atrapado H-API-76, H-API-227 y H-DOCS-20. Cablearlo como gate de thyrox-audit.sh (surfacing), con la lección de H-DOCS-18: probarlo contra un positivo conocido del repo, no contra un incumplidor fabricado por quien escribió el patrón.</parameter>\n<parameter name=\"activeForm\">Cableando el gate del eje de árbol",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0009"
+      },
+      {
+        "citation_id": "TASK-API-0100",
+        "task_id": "164",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Dar veredicto a los 18 símbolos fuera de sitio y arreglar la equivalencia falsa",
+        "description": "Abre H-API-356. (a) Los 18 símbolos que el gate ahora reporta como FUERA DE SITIO necesitan veredicto uno a uno: los 5 de AccountTax (compute_all, _batch_for_taxes_computation, _flatten_taxes_and_sort_them, _get_tax_details, _propagate_extra_taxes_base) viven en AccountTaxQuerySet y parecen adaptación correcta del recordset de Odoo — lo que falta es DECLARARLA en el docstring, no moverlos. Los otros 13 (_compute_name en 4 modelos, _all_reconciled_lines, _compute_amount, _get_sequence_date_range) no. (b) Arreglo de fondo: normaliza() quita guiones bajos de borde, así que casó AccountMove._compute_amount con AccountTax.compute_amount — otro modelo, otra firma. Restringir el emparejamiento a la clase, o exigir alias declarado en PORTE_ALIAS.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0100"
+      },
+      {
+        "citation_id": "TASK-API-0109",
+        "task_id": "185",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Sembrar los 251 países de la referencia — la raíz que bloqueó tres cosas hoy",
+        "description": "Raiz compartida de varias declaraciones abiertas. Medido sobre odoo-tools@622ddc2a:\n\n  odoo19c: odoo/addons/base/data/res_country_data.xml -> 251 res.country + 8 res.country.group\n  odoo19c: odoo/addons/base/data/res.country.state.csv -> 2131 res.country.state\n\nNuestro ResCountry existe (base/models/res_country.py:10) con 4 de los campos de la referencia: name, code, currency, phone_code. FALTAN: state_required, vat_label (RFC para MX), address_format, y la M2M a res.country.group (que country_group_codes necesita).\n\nNingun archivo siembra paises: grep ResCountry.objects.create|get_or_create sobre migrations/ y data/ -> 0 archivos (excluyendo el docstring que cita el patron).\n\nQué desbloquea, medido — la ausencia ya se manifesto tres veces en una sola sesion:\n 1. account.account.tag.country queda None en l10n_mx/data/account_tags_mx.py.\n 2. AccountReportExpression.create_tax_tags crea etiquetas sin pais (H-API-358).\n 3. account_fiscal_country de ResCompany no tiene a que apuntar, y de el cuelgan\n    fiscal_country_codes de res_bank y el override _get_accounts_data_values de\n    template_mx (las dos primeras declaraciones abiertas del bloque 0).\n\nLicencia: base es LGPL-3 -> se copia con atribucion (DEC-KX-03).\n\nForma: data-migration en base con los datos en base/data/res_country_data.py, mismo patron que account/data/account_tags.py (constantes + seed_*(apps, alias) sobre modelos historicos, idempotente por code).",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0109"
+      },
+      {
+        "citation_id": "TASK-API-0113",
+        "task_id": "189",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Barrer los 20 campos de orm/fields.py contra la firma de la referencia",
+        "description": "Sucesor declarado por H-API-361. orm/fields.py agrega 20 nombres (Char, Text, Html, Integer, Float, Monetary, Date, Datetime, Selection, Many2one, One2many, Many2many, Binary, Image, Boolean, Json, Reference, Many2oneReference, Properties, PropertiesDefinition) como alias de clases Django. La medición de H-API-361 cubrió sólo store=False en Char/Text/Html porque era el caso del pase. Falta auditar, campo por campo, qué parámetros declara su contraparte en odoo19c: odoo/orm/fields_*.py que este puerto NO admite (compute, inverse, search, groups, tracking, precompute, recursive, index=..., copy=False, related=..., depends_context...), y declarar por parámetro: se construye, es divergencia de mecanismo, o DESCONOCIDO con su condición de cierre. Herramientas declaradas por la directiva del ejecutor 2026-08-07: API pública, internos de Django/DRF leídos en site-packages, y PostgreSQL nativo con SQL()/Query/RunSQL.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0113"
+      },
+      {
+        "citation_id": "TASK-API-0134",
+        "task_id": "244",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Completar account_check_printing (18 ausentes) y account_payment (46 ausentes)",
+        "description": "El workflow wf_94f98348-e9b portó los cuatro satélites y dejó dos PARCIALES por conteo de los propios porters: account_check_printing 36/54 (18 símbolos ausentes) y account_payment 23/69 (46 ausentes). Los otros dos quedaron completos (7/7 y 9/9).\n\nporte-completo-no-parcial exige portarlos TODOS, o declarar por cada símbolo ausente cuál es y por qué no se porta, con uno de los tres desenlaces válidos (divergencia de mecanismo / bloqueado por algo medido / DESCONOCIDO con condición de cierre). Hoy no está ninguna de las dos cosas: sólo hay un ratio.\n\nPrimer paso, antes de portar: enumerar los 64 símbolos ausentes con el script de la regla (comparación por AST con mapa de alias, porque el puerto renombra). El conteo por intersección de nombres SIN mapa de alias da cifras muy distintas (medido por el orquestador: account_payment 130 en la referencia, 38 nuestros, 7 nombres comunes) y NO sirve para arbitrar — es ciego al renombrado.\n\nEstado verificado del porte: registro carga (manage.py check, 0 errores), 472 passed in 58.27s, gates estáticos OK. api@5630af7.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0134"
+      },
+      {
+        "citation_id": "TASK-API-0162",
+        "task_id": "292",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Barrer los docstrings que citan modelos ausentes de 18c/19c (H-API-399 abre)",
+        "description": "Sucesor de H-API-399. El censo de base_address_extended destapó que src/addons/base_address_extended/models/res_city_zip.py:1-4 declara su contraparte como `res.city.zip`, con 0 hits en odoo19c Y en odoo18c — cita a una fuente que no podemos abrir. No se barrió el resto de src/. Mecanizable: extraer los `res.*`/`ir.*` citados en docstrings y comprobar cada uno contra los dos árboles que gobiernan; los que den 0/0 se reescriben para citar lo verificable o se declaran superficie propia. Encaja con el gate candidato que referencia-odoo-gobierna-las-decisiones.md ya propone para el eje de árbol (exigir alias odoo1[89][ce]: junto a la cifra/cita). Ojo con la ceguera: 0 hits significa \"no verificable con lo montado\", no \"falso\" — 16.x no está y la directiva vigente acota a 18 y 19.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0162"
+      },
+      {
+        "citation_id": "TASK-DOCS-0063",
+        "task_id": "301",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "CERRADA — la postura UNLICENSED de docs es DEC-DOC-016",
+        "description": "Su bloqueo era literal: \"la procedencia legal de ccb es otra pregunta —bajo que titulo se conserva— y sigue atada a escribir la postura UNLICENSED como DEC-DOC-016\". Escrita el 2026-08-27 en source/gestion/decisiones/index.rst (v1.18.0), acotada por directiva del ejecutor a kaupamex-docs: api es el producto y los otros cuatro manejan su licencia. El corpus ccb se conserva bajo el titulo de referencia de lectura citada por alias; la cadena concreta de procedencia sigue en .claude/references/ccb/PROVENANCE.md, que la decision cita y no reemplaza. Ver H-DOCS-477.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0063"
+      },
+      {
+        "citation_id": "TASK-API-0180",
+        "task_id": "335",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Enseñar a check_porte_completo la equivalencia declarada (H-API-579)",
+        "description": "El gate compara por nombre literal; este árbol renombra por convención (_compute_X → compute_X | property, _compute_display_name → __str__, _onchange_X → método explícito). Medido: stock_picking.py está 83/83 y el gate le marca 15 ausentes; stock_location.py, porte cerrado, recibe 9. Cota superior en el reporte completo: 1308 de 3548 símbolos llevan prefijo renombrable.\n\nCierre: leer la tabla símbolo-por-símbolo del docstring (formato ya uniforme) en vez de exigir el literal; alternativa más barata pero laxa, un mapa de alias por prefijo. Republicar el conteo global con el denominador corregido y medir cuántos de los 1308 eran falsos positivos reales.\n\nNO renombrar nuestros métodos al literal de la referencia: la convención (property para el compute sin columna) es divergencia declarada.\n\n--- Ceguera adicional medida 2026-08-18 (verificando el entregable de #390) ---\nLa heurística de absolución del gate es 1:1 — absuelve `_compute_X` si existe\nuna `property X`. Es CIEGA al caso 1-compute → N-properties.\n\nCaso concreto: `stock/models/stock_storage_category.py`. El gate reporta\n`_compute_storage_capacity_ids` como MÉTODO AUSENTE. En la referencia\n(`odoo19c: addons/stock/models/stock_storage_category.py`) ese único compute\nalimenta DOS campos: `product_capacity_ids` y `package_capacity_ids`\n(`storage_category.product_capacity_ids = ...filtered(lambda c: c.product_id)`\ny `...package_capacity_ids = ...filtered(lambda c: c.package_type_id)`).\nAquí están portados como dos properties (`:162` y `:170`) más\n`_set_storage_capacity_ids` (`:187`). El porte es COMPLETO; el gate no puede\nverlo porque busca una property con el nombre del compute.\n\nConsecuencia para el cierre: la tabla símbolo-por-símbolo del docstring debe\nadmitir un símbolo de la referencia mapeado a VARIOS símbolos nuestros\n(relación 1:N), no sólo 1:1.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0180"
+      },
+      {
+        "citation_id": "TASK-API-0213",
+        "task_id": "380",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Unificar el hogar de NEGATIVE_CONDITION_OPERATORS (H-API-614)",
+        "description": "`orm/fields.py::condition_to_q` necesita saber qué operadores de la familia `like` son negativos. La fuente lo lee de `Domain.NEGATIVE_OPERATORS` (`odoo19c: odoo/orm/fields.py:1331`), pero importarlo aquí cierra un ciclo: `orm/domains.py` ya importa `condition_to_q` y `falsy_value` de `orm/fields.py`, y un import dentro de la función está prohibido (`no-lazy-imports.md`).\n\nHoy `fields.py` declara `_NEGATIVE_LIKE_OPERATORS` — el subconjunto de la familia `like` — duplicando cuatro entradas del mapa canónico que vive en `domains.py`.\n\nLa fuente no tiene el ciclo porque `condition_to_sql` es un **método del Field**, alcanzado en tiempo de ejecución por la instancia; aquí no puede serlo porque nuestros campos son alias de los de Django.\n\nDesenlaces a evaluar: (a) mover los mapas de operadores a un módulo que ninguno de los dos importe (`orm/types.py` ya existe y es candidato) — pero desvía del sitio que la referencia declara; (b) aceptar la duplicación con un test que la ate al mapa canónico; (c) subclasar los campos de Django para que `condition_to_q` vuelva a ser método — el cambio grande, con impacto en migraciones.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0213"
+      },
+      {
+        "citation_id": "TASK-API-0236",
+        "task_id": "407",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "RESUELTA — no había inexistentes, había una raíz sin medir",
+        "description": "Los 23 \"sin contraparte\" existen los 23 en 18.x/odoo.enterprise, que es la raiz que convencion-cita-referencia-odoo.rst declara como alias odoo18e: y que no habia medido. 7 LGPL-3 (63 def) + 16 OEEL-1 (426 def).\n\nNo hay veredicto por funcion que dar: entran al orden por dependencias como los otros 255. Ver H-API-632.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0236"
+      },
+      {
+        "citation_id": "TASK-API-0239",
+        "task_id": "410",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "DECISIÓN: cuál de las tres raíces es Enterprise 18",
+        "description": "La convencion declara odoo18e: = 18.x/odoo.enterprise (1171 manifiestos) y afirma que 18.x/odoo-18/enterprise/odoo/addons (1292) es \"la misma poblacion empaquetada distinto\". Medido: FALSO — 1102 comunes, 70 solo en la declarada, 196 solo en la otra. Hay una tercera, 18.x/my-odoo-enterprise-18.0 (593), sin medir contra las dos.\n\nDecidir cual es la referencia de Enterprise 18, si las otras merecen alias propio, y corregir la afirmacion de la convencion. Cambia que es \"la referencia\" para 18, asi que es del ejecutor.\n\nAbierta por H-API-632.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0239"
+      },
+      {
+        "citation_id": "TASK-API-0240",
+        "task_id": "411",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Gate: la raíz usada contra la raíz que el alias declara",
+        "description": "H-API-632: usé 18.x/odoo-18/enterprise/odoo/addons donde la convencion declara odoo18e: = 18.x/odoo.enterprise. Ningun gate lo vio — el de citas (H-DOCS-20) verifica que haya un alias junto a la cifra, no que la ruta detras del alias sea la correcta.\n\nMecanizable: un artefacto que cite odoo18e:/odoo19c:/etc y muestre en un code-block un comando con otra ruta es greppeable contra la tabla de la convencion.\n\nCondicion de cierre: el patron debe ver el positivo conocido de H-API-632 (el censo del 2026-08-15 citando odoo18e con la ruta excluida) antes de declararse util. Imprimir denominador.\n\nAbierta por H-API-632.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0240"
+      },
+      {
+        "citation_id": "TASK-API-0241",
+        "task_id": "412",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Barrer los artefactos que midieron 18e sobre la raíz sin alias",
+        "description": "H-API-632 corrigio los tres artefactos del 2026-08-15. Falta barrer el resto de source/ buscando mediciones contra 18.x/odoo-18/enterprise/odoo/addons o contra $ODOO18E sin declarar su expansion.\n\nCaso conocido: analisis-familia-observability (iniciativa adaptar-familias-odoo-monolito-modular) midio sobre la raiz CORRECTA pero escribio $ODOO18E sin declarar a que ruta expande — su veredicto se sostiene, su reproducibilidad no.\n\nAbierta por H-API-632.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0241"
+      },
+      {
+        "citation_id": "TASK-API-0255",
+        "task_id": "426",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Gate: licencia declarada junto a toda cifra sobre addons de terceros",
+        "description": "Hoy nada impide publicar conteos sobre addons de terceros sin decir de donde saldra el texto al integrarlos. El gate correcto exige la licencia como ANOTACION DE MECANISMO junto a la cifra, NO como filtro ni como criterio de prioridad (H-API-637 v3: tratarla como limite es el defecto, no el arreglo). Hermano del gate del eje de arbol (#119, H-DOCS-20): alli se exige el alias odoo1[89][ce]:; aqui la licencia declarada en el manifest. Precondicion: medir cuantos artefactos vivos publican conteos de addons de terceros sin licencia anotada.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0255"
+      },
+      {
+        "citation_id": "TASK-API-0026",
+        "task_id": "44",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Analizar en la referencia (ccb, hccw, ccnmt) el flujo de reanudación y reconciliación de estado",
+        "description": "Directiva del ejecutor 2026-09-02: «analizas el flujo en la referencia y documentas». Fuentes: .claude/references (ccb fuente TypeScript, hccw capítulos, ccnmt observabilidad). Qué modela cada una para resume: sessionStorage, roster de tareas/background, bgDaemon respawn (H-DOCS-140), fleet §21.4 vanished/stalled. Entregable: analisis-reanudacion-y-reconciliacion-en-la-referencia.rst con citas file:line y alias por corpus.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0026"
+      },
+      {
+        "citation_id": "TASK-GEN-0039",
+        "task_id": "93",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Revisar las afirmaciones que apoyan su peso en ccb Y ccnmt como si fueran dos",
+        "description": "ID: TASK-GEN-0039\n\nMitad 2 de h-docs-1041. `ccb` y `ccnmt` son el MISMO árbol (PROVEN: `/home/user/claude-code-nestor-monroy-tools/package.json` declara `name: ccb`, y los archivos citados bajo los dos alias viven en el mismo `packages/daemon/src/`). Reparto: 25 citas `ccb:` y 11 `ccnmt:` sobre un solo corpus.\n\nLa mitad 1 está resuelta: `harness: src/reference/triple.ts` declara `ccnmt` como alias histórico de `ccb`, con la misma raíz, así que quien resuelva un alias ya no puede creer que son dos raíces.\n\nLo que queda es JUICIO POR AFIRMACIÓN, no sustitución de cadena: revisar las frases que presentan los dos alias como dos fuentes y que por eso se leen como corroboración triple cuando son dos. El caso medido y literal:\n\n  \"La adopción al arrancar el supervisor (`ccb: bgDaemon.ts:199-215` y\n   `ccnmt: daemon/src/bgAdopt.ts`) tiene dos fuentes de verdad y las unifica\"\n\n— dos archivos hermanos del mismo directorio presentados como dos corpus. El CONTENIDO es correcto (los archivos existen y dicen lo citado); lo que está mal es su peso probatorio.\n\nNO se reescriben las 11 citas: son evidencia fechada y su contenido resuelve. Se corrige la PROSA que las lee como dos fuentes independientes, allí donde el argumento se apoya en la pluralidad.\n\nY hay una segunda mitad de la mitad: los dos análisis dan procedencias distintas ESCRITAS para el mismo directorio (`ccb` = Jcg-admin/claude-code-how-works reconstruido del sourcemap v2.1.88; `ccnmt` = \"el gemelo en fuente de la ruta de reanudación\"). La identidad que gana es la medida en el clon, no la del nombre del directorio.\n\nAlcance: `grep -rl 'ccnmt:' source/` para el universo; el juicio es por frase.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-GEN-0039"
+      },
+      {
+        "citation_id": "TASK-API-0323",
+        "task_id": "549",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Portar la clase SQL real de odoo/tools/sql.py (H-API-698)",
+        "description": "`src/tools/sql.py` declara `SQL = RawSQL` y `src/tools/query.py` declara `Query = models.QuerySet`. Ninguno de los dos implementa el contrato de la referencia: `SQL` de odoo tiene interpolación por nombre, `SQL.identifier`, `SQL.join` y anidamiento; `Query` tiene `add_where`, `make_alias`, `add_join`, `select` y se construye con `(cr, table, table_query)`. Django no ofrece nada de eso. Bloquea `Website._trigram_enumerate_words` (B3, #536) y todo porte que emita SQL componible. Medir la superficie consumida en el árbol antes de decidir el alcance del porte.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0323"
+      },
+      {
+        "citation_id": "TASK-API-0327",
+        "task_id": "554",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Dar identidad de clase a fields.Html (subclase de TextField)",
+        "description": "src/orm/fields_textual.py:33 declara `Html = models.TextField` — un alias pelado sin identidad. Consecuencia medida: no puede existir el equivalente del catálogo `ir_model_fields.ttype = 'html'` que `_get_html_fields` de la referencia consulta (odoo19c: addons/website/models/website.py:1883-1908); el porte B6 lo resuelve parseando por AST las asignaciones `fields.Html(` (divergencia declarada en su docstring). Fix: declarar `class Html(models.TextField)` (sin cambio de columna → sin migración de esquema, verificar con makemigrations --check), migrar `_get_html_fields` de AST a introspección `isinstance(field, fields.Html)`, y conservar el saneo en capa UI como declara el módulo. Ver hallazgo H-API-700 en alinear-addon-website-referencia.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0327"
+      },
+      {
+        "citation_id": "TASK-DOCS-0156",
+        "task_id": "636",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Leer los 25 capítulos restantes de hbooks, un slice por vez",
+        "description": "Este pase leyó 6 de 31 capítulos, elegidos por su título contra el problema del tablero (ten-principles, multi-agent-and-verification, team-landing-practices, delegation-verification-and-state, y los dos índices). Los 25 restantes pueden traer algo y no se midió — DESCONOCIDO declarado. Condición de cierre: cada slice deja su veredicto en analisis-harness-books-que-aplica (aporta / ya lo teníamos / no aplica), como #241 hace con hccw. Corpus en .claude/references/harness-books/, alias hbooks:.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0156"
+      },
+      {
+        "citation_id": "TASK-DOCS-0157",
+        "task_id": "637",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Derivar blocked_by_json del grafo de depends, no de la prosa (H-DOCS-228)",
+        "description": "REENCUADRADA 2026-08-20T17:08:12 tras corrección del ejecutor: «¿las aristas no están declaradas en el trabajo que se hizo?». Sí lo están, y la primera redacción de esta tarea nombró las dos fuentes más débiles.\n\nEl grafo NO falta. Medido en kaupamex-api:\n  - __manifest__.py → depends: 269 aristas (119 manifests, 118 con al menos una)\n  - .claude/scripts/addon-alias.txt: 16 equivalencias nuestro ↔ referencia\n  - alinear-arbol-addons-a-familias-odoo: 11 análisis, uno dedicado al grafo del Grupo B\n  - tabla `tasks`, lo único que el pipeline lee: 52\n\nEl trabajo es PROYECTAR el grafo de addons sobre el grafo de tareas, no declarar aristas a mano.\n\nBLOQUEADA por #634 (unidad de familia). La proyección ingenua da 15611 aristas — producto cartesiano, porque una tarea que menciona seis addons multiplica por seis. Sólo es unívoca si cada tarea declara UNA familia en metadata_json, y cuál es esa unidad (35 raíces o 118 addons) es justamente #634.\n\nPasos, en orden:\n1. #634 decide la unidad.\n2. Cada tarea de implementación declara su familia en metadata_json (201 de 375 abiertas ya nombran algún addon; 89 de 119 addons son nombrados).\n3. Derivar blocked_by_json: tarea(X) blocked_by tarea(Y) cuando X depends Y.\n4. Fuentes complementarias para aristas que NO son entre addons: la prosa de description («bloqueado por», «precursor de») y el gate check_bloqueo_declarado.py de #529, cuyas dos formas greppeables nadie vuelca al store.\n5. Re-correr implementation-order.py y comparar el orden contra el actual.\n\nPrecondición: #586 (reconciliar-store.py compara estado, no sólo presencia) — sin store fiel, el orden se calcula sobre estado viejo.\nCiega a: las 174 tareas abiertas que no nombran ningún addon (gates, barridos, decisiones, tooling); su grafo no sale de depends.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0157"
+      },
+      {
+        "citation_id": "TASK-API-0381",
+        "task_id": "736",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Cablear la resolución de base POR PETICIÓN: db_list_for_host y db_monodb tienen 0 consumidores",
+        "description": "Origen: H-API-781, y la corrección del ejecutor 2026-08-21 sobre la divergencia 1 de addons/web/controllers/session.py.\n\nEl mecanismo host→base está portado fielmente y probado: service.db.db_filter (== odoo/http.py::db_filter, con %h/%d, quita :puerto y www.), db_list_for_host (== http.db_list) y db_monodb, con tests en tests/unit/service/test_db_resolution.py. La iniciativa implementar-aislamiento-multi-db-per-company está :estado: en-ejecucion y su análisis lo declara IMPLEMENTADO.\n\nLo que NO está: nadie lo llama en el camino de la petición. Medido 2026-08-21 sobre src/ y addons/, excluyendo src/service/db.py y tests: db_list_for_host → 0 consumidores, db_monodb → 0, db_filter → 2 (y las dos son prosa de docstring, no llamadas). La base la elige hoy CompanyDatabaseRouter por app/modelo (MULTIDB_CONTROL_PLANE_APPS), no el host de la petición.\n\nConsecuencia concreta: /web/session/* no acepta el parámetro db de la referencia, y esa omisión se documentó como \"aquí la base es una\" — falso: el árbol declara DATABASE_ROUTERS, install_company_aliases, company_create, company_migrate_all y un cron que itera list_company_db_names.\n\nEntregable: decidir y cablear quién resuelve la base por petición (middleware sobre el host vs parámetro explícito vs sesión), y luego reponer o declarar con fundamento el parámetro db de session.py.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0381"
+      },
+      {
+        "citation_id": "TASK-API-0383",
+        "task_id": "738",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+        "description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-API-0383"
+      },
+      {
+        "citation_id": "TASK-GEN-0215",
+        "task_id": "951",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Guarda de ventana en migration-porter: el alias no garantiza 1 M (H-DOCS-500)",
+        "description": "`migration-porter` declara `model: sonnet` y nada sobre la ventana de contexto. Cabe hoy sólo porque el alias resuelve a `claude-sonnet-5` (1 M nativa) con el proveedor por omisión; bajo `bedrock`, `vertex`, `foundry` o `mantle` el mismo alias resuelve a `claude-sonnet-4-5`, de 200 k (H-DOCS-220).\n\nLa cuenta, con el piso siempre-cargado en 126 029 tokens (H-DOCS-99): una ventana de 200 k deja ≈74 k para el trabajo. El archivo de referencia más grande que este agente debe leer —`$ODOO19C/addons/account/models/account_move.py`, 7384 líneas / 361 135 bytes— ronda los 103 k tokens él solo. NO cabe.\n\nEl modo de fallo es el peor posible: morir a media lectura sin entregable, que es lo que H-DOCS-106 ya midió para `maxTurns` (240 708 tokens por cuatro `ls`, «returned no output»).\n\nDos vías, no excluyentes: (a) medir qué proveedor sirve esta sesión y declarar la dependencia en el agente si es estable; (b) que el agente mida el tamaño de su archivo de referencia como primer paso y rehúse —igual que ya rehúsa si le falta uno de sus cinco insumos— cuando no quepa.\n\nMétrica: `context.window` de los 17 registros del ejecutable 2.1.250 cruzado con `stat -c%s` sobre los .py de `$ODOO19C/addons`.\nCiega a: la conversión bytes→tokens, que es estimación a ~3.5 caracteres por token y no medición; y a qué proveedor sirve realmente esta sesión, que el mapa de aliases no dice.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-GEN-0215"
+      },
+      {
+        "citation_id": "TASK-DOCS-0356",
+        "task_id": "44",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a@20260904T230736",
+        "subject": "Analizar en la referencia (ccb, hccw, ccnmt) el flujo de reanudación y reconciliación de estado",
+        "description": "Directiva del ejecutor 2026-09-02: «analizas el flujo en la referencia y documentas». Fuentes: .claude/references (ccb fuente TypeScript, hccw capítulos, ccnmt observabilidad). Qué modela cada una para resume: sessionStorage, roster de tareas/background, bgDaemon respawn (H-DOCS-140), fleet §21.4 vanished/stalled. Entregable: analisis-reanudacion-y-reconciliacion-en-la-referencia.rst con citas file:line y alias por corpus.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0356"
+      },
+      {
+        "citation_id": "TASK-DOCS-0384",
+        "task_id": "93",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a@20260904T230736",
+        "subject": "Revisar las afirmaciones que apoyan su peso en ccb Y ccnmt como si fueran dos",
+        "description": "Mitad 2 de h-docs-1041. `ccb` y `ccnmt` son el MISMO árbol (PROVEN: `/home/user/claude-code-nestor-monroy-tools/package.json` declara `name: ccb`, y los archivos citados bajo los dos alias viven en el mismo `packages/daemon/src/`). Reparto: 25 citas `ccb:` y 11 `ccnmt:` sobre un solo corpus.\n\nLa mitad 1 está resuelta: `harness: src/reference/triple.ts` declara `ccnmt` como alias histórico de `ccb`, con la misma raíz, así que quien resuelva un alias ya no puede creer que son dos raíces.\n\nLo que queda es JUICIO POR AFIRMACIÓN, no sustitución de cadena: revisar las frases que presentan los dos alias como dos fuentes y que por eso se leen como corroboración triple cuando son dos. El caso medido y literal:\n\n  \"La adopción al arrancar el supervisor (`ccb: bgDaemon.ts:199-215` y\n   `ccnmt: daemon/src/bgAdopt.ts`) tiene dos fuentes de verdad y las unifica\"\n\n— dos archivos hermanos del mismo directorio presentados como dos corpus. El CONTENIDO es correcto (los archivos existen y dicen lo citado); lo que está mal es su peso probatorio.\n\nNO se reescriben las 11 citas: son evidencia fechada y su contenido resuelve. Se corrige la PROSA que las lee como dos fuentes independientes, allí donde el argumento se apoya en la pluralidad.\n\nY hay una segunda mitad de la mitad: los dos análisis dan procedencias distintas ESCRITAS para el mismo directorio (`ccb` = Jcg-admin/claude-code-how-works reconstruido del sourcemap v2.1.88; `ccnmt` = \"el gemelo en fuente de la ruta de reanudación\"). La identidad que gana es la medida en el clon, no la del nombre del directorio.\n\nAlcance: `grep -rl 'ccnmt:' source/` para el universo; el juicio es por frase.",
+        "status": "pending",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0384"
+      },
+      {
+        "citation_id": "TASK-DOCS-0480",
+        "task_id": "1091",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Documentar la arquitectura del REPL de la referencia contra la descripcion externa",
+        "description": "CERRADA — `docs@64ca880b8`, análisis de 688 líneas en `analisis-arquitectura-del-repl-en-la-referencia.rst` más `mediciones.txt` en `.claude/eventos/arquitectura-repl-20260906T052150/`. Tabla claim-contra-medición de 16 filas.\n\nLA CADENA REAL, y corrige mi encargo: `REPL.tsx` 19 líneas -> `useReplController` 35 -> `REPLView.tsx` 5708 -> 27 hooks en `screens/repl/` (1718 líneas). El eslabón sin nombrar es **`screens/repl/`**. Y el hallazgo es que el controlador **NO delega otra vez**: hace un `useEffect` que empuja `toMcpSnapshot()` al `runtimeGraph.handles.mcp` y un `useMemo` que quita `runtimeGraph` de las props. Es una **costura de adaptación, no una capa de lógica** — yo supuse lo contrario al despachar y el análisis lo corrige por escrito.\n\nInk vive en `packages/@ant/ink`: 163 archivos, 30 994 líneas. El paquete se llama `@anthropic/ink`; el directorio es un alias.\n\nHIPÓTESIS DE LAS DOS ERAS: cerrada con instrumento discriminante, no con conteo de literales. Import real `import[^;]*\\bStatic\\b[^;]*from` = **0**; uso JSX `<Static` = **0**; contra 11 hits de la palabra suelta que son comentarios más `PositionType.Static` de Yoga; `index.ts` tampoco lo exporta. Y la hipótesis además estaba mal planteada: `Cursor.fromText` (14 sitios) y `VirtualMessageList` (8 archivos) operan sobre superficies distintas y nunca fueron alternativas.\n\nDESCONOCIDO declarado, uno solo: **la fecha en que se retiró `<Static>`**. `ccnmt` no tiene `.git` (`git rev-parse --show-toplevel` → \"fatal: not a git repository\"), así que el instrumento que yo prescribí —fechar contra el historial— no existe en ese árbol. Sustituido por dos fósiles internos marcados INFERRED: el docstring de yoga cita `src/ink/layout/yoga.ts`, único residuo en 31 paquetes; y `root.ts:115` dice que `await loadYoga()` «solía» proveer una frontera de micro-tarea, con `loadYoga()` hoy reducido a envoltorio síncrono. Condición de cierre: una copia del árbol con historial, o el paquete Ink publicado con versiones.\n\nDATO QUE ALIMENTA #205: `packages/headless-sdk` (15 archivos) importa **cero** de `repl` y **cero** de Ink. Es la prueba, desde el propio árbol, de que la capa REPL es enteramente presentación para un harness headless — y de que portar `cli` sin `repl` es coherente, no un recorte.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-DOCS-0480"
+      },
+      {
+        "citation_id": "TASK-API-0415",
+        "task_id": "1190",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Despachar el compute declarado al leer un NonStored",
+        "description": "CERRADA en `api@a95c11fb`. TASK-API-0415.\n\n`NonStored.__get__` gana su tercera rama —entre `related` y `default`— que llama `determine_compute`, instalado desde `fields.py` como sus hermanos `determine_domain`/`determine_inverse` (el import inverso sería ciclo). Los dos sitios declaran ahora la forma de la referencia: `display_name = Char('Display Name', compute='_compute_display_name', search='_search_display_name')` y `full_name = fields.Char('Group Name', compute='_compute_full_name', search='_search_full_name')`; el envoltorio `_display_name_default` retirado, y la etiqueta movida de `help_text=` (alias de `help=`) al primer posicional (`verbose_name` en Django, `string` en la fuente).\n\nFlujo medido antes de escribir: `Field.__get__` abre la rama en `odoo19c: odoo/orm/fields.py:1736-1737`; su cuerpo llega a `_compute_field_value` (`odoo/orm/models.py:4953`), cuyo cuerpo entero es `determine(field.compute, self)` más un `if field.store:` que un campo sin columna nunca alcanza. `determine` ya estaba portado (`orm/fields.py:1699`).\n\nTDD con su rojo persistido: `scripts/evidence/rojo-compute-dispatch-2026-09-11T17-33-32.log` (2 failed, 6 passed) → verde (9 passed). Control de anulación: deshabilitada la rama caen EXACTAMENTE los cuatro casos que la miden (4 failed, 5 passed) y no se mueve ninguno de precedencia ni de regresión. Suite completa tras el porte: 3 failed, 10553 passed, 30 skipped en 317.63 s — los tres rojos son los heredados.\n\nEl control de control original NO discriminaba (`label != plain_label` era verde en los dos estados); se sustituyó por uno parametrizado con dos cómputos distintos, que ninguna constante satisface.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-API-0415"
+      },
+      {
+        "citation_id": "TASK-THYROX-0017",
+        "task_id": "2",
+        "session_id": "e8588da7-9c13-569f-ab69-f974894396e4",
+        "subject": "Dar nombre corto a src/session, src/verify, src/agents vía bin/ + ~/.local/bin",
+        "description": "Corrección: cada invocación de un guion de `src/session`, `src/verify` o\n`src/agents` exigía la ruta completa `/home/user/thyrox/src/.../archivo`;\n`long-running-commands.md` ya sugería \"documentar el patrón THYROX_ROOT\" pero\neso no da un nombre corto para teclear.\n\nEvidencia medida (no supuesta):\n\n- Universo: 34 `.sh` con shebang + 83 `.py` con guarda `__main__` (comilla\n  simple O doble — el primer clasificador sólo veía dobles y perdía 36 de 82\n  reales, `check_rst_sintaxis.py` entre ellos; `src/session/generate_bin.py:18-25`).\n  Cero colisiones de stem entre las tres carpetas.\n- Reproducido antes de diseñar nada: un symlink PLANO a `bg.sh` invocado desde\n  otro directorio calcula su raíz contra `bin/..` en vez de `src/session/..` y\n  muere con `ModuleNotFoundError` — porque `bg.sh` resuelve su root con\n  `${BASH_SOURCE[0]}`. Un guion envoltorio de dos líneas que hace `exec` sobre\n  la ruta ABSOLUTA real del objetivo SÍ resuelve correcto, porque `exec`\n  invoca el archivo en su ubicación verdadera.\n- `bin/` en `PATH` vía `.bash_aliases` (patrón `NestorMonroy/vvv:\n  provision/core/env/homedir/.bash_aliases`) es correcto para un shell que\n  sourcea dotfiles, y no dispara NUNCA en la herramienta Bash de esta sesión:\n  medido en dos direcciones — un `export` no sobrevive entre llamadas, y con\n  `.bash_aliases` ya escrito una llamada nueva sigue sin `bin/` en `$PATH`.\n  Causa: cada llamada es `bash -c` no interactivo y no de login, `BASH_ENV`\n  vacío — las tres condiciones bajo las que bash no lee `~/.bashrc`.\n- A petición del ejecutor, se analizó `NestorMonroy/graphify` (paquete de\n  46 958 líneas) para ver si resolvía esto: NO — usa `[project.scripts]` +\n  `uv tool install`/`pipx`, que delegan el problema a que `~/.local/bin` ya\n  esté en `PATH` (grep sobre el paquete: 0 hits de `os.environ[\"PATH\"]`,\n  `bash_aliases`, `.bashrc`, `which(`). Ese directorio SÍ está en `PATH` en\n  cada llamada de este harness — confirmado, y ya tiene entradas de\n  `uv tool install` (`black`, `mypy`, …) puestas por la misma convención.\n\nVerdicto: `src/session/generate_bin.py` genera `bin/<stem>` (117 entradas) con\n`--check`/`--dry-run`, más `--install-user-bin` que copia un envoltorio de\nsegundo salto (`THYROX_ROOT` por env-o-literal → delega a `bin/<stem>`) a\n`~/.local/bin`, sin tocar nunca un archivo que no lleve su propio marcador\n(probado con un archivo `black` sintético: sobrevive intacto, y con la\nanulación de la guarda se confirma que SÍ se habría sobreescrito sin ella).\n\nCaso de aceptación, antes/después: `agent_store censo-medicion` bare, en una\nllamada de Bash nueva sin ningún `export` previo — antes: `command not\nfound`; después (con `bin/` generado y `--install-user-bin` corrido una vez):\nimprime el censo real. Verificado en vivo, `wait-jobs` también resuelve por\n`which`.\n\nUna colisión real, declarada y no resuelta por renombre: `bg` (de `bg.sh`)\nchoca con el builtin de bash del mismo nombre — `bin/bg` y la ruta completa\nfuncionan; `bg` suelto bajo `PATH` resuelve el builtin primero\n(`bash: bg: status: no such job`, reproducido). El generador avisa por stderr\nen cada corrida (`generate_bin.py:335-340`) en vez de renombrar, porque\nrenombrar rompería la simetría con `bg.sh` y el fallo sólo afecta la forma\nsuelta, no `bin/bg`.\n\nLo que esto NO cierra: `long-running-commands.md`/`bash-background-tasks.md`\nsiguen citando `$T/src/session/bg.sh` por ruta completa en sus ejemplos —\nactualizarlos a `bin/bg`/`bin/wait-jobs` (o documentar por qué no) es trabajo\nde propagación a los 5 consumidores, análogo al de `TASK-THYROX-0016`, y no\nse hizo en este pase. Tampoco se extendió `SOURCE_DIRS` a otras carpetas del\nárbol con entrypoints propios (p. ej. `src/lib/`) — no medido si los hay.\n\nTests: `tests/session/test_generate_bin.py`, 37 aserciones, con anulación del\nregex de comillas (retirarla hace caer exactamente el caso de comilla simple)\ny anulación de la guarda de archivo ajeno en `install_user_bin` (sin ella, la\nescritura naïve sí sobreescribiría — confirmado comparando el cuerpo\ngenerado contra el contenido ajeno).\n\nCommits: `thyrox@0ecb187c` (bookkeeping de sesión), `thyrox@fbd74598`\n(generador + tests + `bin/`), rama `feature/thyrox-l2`, ambos pusheados.\nCierra el pedido explícito del ejecutor: \"que los scripts de src/session,\nsrc/verify, src/agents se puedan invocar por nombre corto […] para que\nanalices como lo hacen con bash y así lo podamos implementar nosotros\" — el\nanálisis de VVV fundamenta `.bash_aliases`; el de graphify fundamenta\n`--install-user-bin`.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-THYROX-0017"
+      },
+      {
+        "citation_id": "TASK-THYROX-0121",
+        "task_id": "1322",
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "subject": "Dar hogar a reference/triple.ts: su bloqueo declarado era falso",
+        "description": "CERRADO en thyrox@21fa4706 (mitad roja) y thyrox@fef8dd6f (implementacion).\n\nEl bloqueo declarado era falso, y esa era la mitad util de la tarea. El analisis de la particion agrupaba `testing/` y `reference/` bajo una razon —«su unico consumidor real es bin/harness.ts»— que el propio documento contradice tres tablas mas arriba, donde la fila de `reference/triple.ts` declara «solo su test». Medido sobre todo el clon: `checkPortDeclaration`, `declaredAlias`, `canonicalAlias` y `sameCorpus` tienen CERO consumidores fuera del paquete.\n\nSu hogar no lo decide un consumidor —no lo hay— sino el PRECEDENTE, que estaba ejecutado y no se habia leido como tal: `src/workbench/manifest.ts` es un primitivo de la misma clase (procedimiento de construccion, ni producto ni estado) y vive en `src/<dominio>/` con su suite en `tests/<dominio>/`. `triple.ts` toma esa forma: `src/reference/triple.ts` + `tests/reference/triple.test.ts`.\n\nCon eso el paquete quedo vacio y se retiro entero: el workspace baja de 26 a 25.\n\nAnulacion: se recrea el `package.json` del paquete y cae 1 de 4 casos, el que mide que el directorio no esta. Los otros tres sobreviven, y deben: miden donde vive cada modulo y que declara el workspace, no si un directorio quedo en disco.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-THYROX-0121"
+      },
+      {
+        "citation_id": "TASK-THYROX-0392",
+        "task_id": "149",
+        "session_id": "efec8688-6a45-5d65-b899-cd988aa8816f",
+        "subject": "MITM F7h-6 — una responsabilidad por módulo de rutas, dependencias estrechas y docstrings de intención",
+        "description": "Partir agentBridgeState/agentBridgePrivileged/inspector/inspectorCapture/mitmSettings en un módulo por recurso (agents, bypass, config, state, server, cert, agent DNS+reset, repair, diagnose, upstream CA, tproxy, requests, sessions, hosts, capture modes, ingest, settings, antigravity CLI, aliases), cada uno con su interfaz de dependencias mínima. Las cabeceras dicen interfaz, procedencia (Porte de…) e intención; las listas de divergencias con la referencia pasan al banco, y en el código queda el comentario de intención junto a la línea que explica. Nombres por el papel, no por el mecanismo. Refactor bajo verde: suites intactas en conducta, tsc 0/0, y la anulación sigue discriminando. Antes de F7h-5.",
+        "status": "completed",
+        "owner": null,
+        "identity_lookup": "TASK-THYROX-0392"
+      }
+    ]
+  },
+  "hallazgo_schemas": {},
+  "limit": "Zero matches or unrelated matches do not demonstrate no equivalent TASK/hallazgo globally.",
+  "store_write": false
+}

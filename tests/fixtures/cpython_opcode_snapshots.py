@@ -2,7 +2,8 @@ r"""Instantánea del ``opmap`` de una versión de CPython que no es la nuestra.
 
 El dato se **versiona aquí** y no se lee del clon: el clon vive en
 ``/home/user/nestormonroy/cpython`` y muere con el contenedor, así que un
-caso que lo leyera sería verde hoy y error de ruta mañana. Ver la tarea #94 — un artefacto no
+caso que lo leyera sería verde hoy y error de ruta mañana. Ver la tarea #94 —
+un artefacto no
 cita una ruta efímera como si fuera evidencia estable.
 
 Procedencia

@@ -1,0 +1,55 @@
+{
+  "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.applied_schema_preflight",
+      "taskId": "TASK-API-0383",
+      "prompt": "Reject missing managed tables implied by known applied migrations before company migrations; preserve data/recorder and share target context with bulk migration",
+      "verify": "Real PostgreSQL negative table/M2M controls and healthy pending/router-excluded states; no automatic destructive repair; bulk continues after one failed database",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "tests/unit/service/test_provision_company.py",
+        "tests/unit/service/test_db_migrate_all.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.isolation_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Replace unqualified private TestCase bypass fixture using existing Django/pytest mechanisms and verify real two-company data before TASK acceptance",
+      "verify": "No private connection safety removal, owned fresh resources, all3legacy isolation cases discriminating, identity/session acceptance separately qualified",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_loader_acceptance",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify effective per-database model composition and loader caller integration under existing ownership",
+      "verify": "Schema alone is not loader/model/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.isolation_qualification"
+      ]
+    }
+  ],
+  "states": {},
+  "claims_count": 342,
+  "selected": [
+    "TASK-API-0383.applied_schema_preflight"
+  ],
+  "dependency_evidence": "Independent read-only preflight for existing applied schema under native Task738 owner codex-module-lifecycle. Does not require accepting metadata proposal, whole isolation or Registry TASK; current migration state and router contract must be verified. Known missing-table history already recorded in existing job.",
+  "coverage": "3declared units only; no global discovery/admission or model dispatch inferred",
+  "official_states_changed": false,
+  "command": "PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/.venv/bin/python - <existing supplied candidate rows and full actual Consumer claims ledger>",
+  "task_authority": "task-738.json: native task_id738, owner codex-module-lifecycle, pending; no TaskUpdate",
+  "claim_interface": "bun claimsCommand([--claim|--release,path,--owner,codex-module-lifecycle,--branch,feature/codex-workspace-bootstrap,--task,TASK-API-0383], Consumer cwd)",
+  "claim_evidence": ".claude/coordination/claims.jsonl"
+}

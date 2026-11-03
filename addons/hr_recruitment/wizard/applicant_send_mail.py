@@ -33,6 +33,7 @@ su propio docstring lo declara). Sin plantilla, el asunto/cuerpo son
 literales — sin variables por candidato (mismo límite que la referencia
 sin ``template_id``).
 """
+
 from orm.models_transient import TransientModel
 
 
@@ -50,11 +51,16 @@ class ApplicantSendMail(TransientModel):
     def missing_emails(cls, applicants):
         """≙ la guarda ``without_emails`` de ``action_send`` (``odoo19c:
         :22-30``)."""
-        return [a for a in applicants
-                if not a.email_from and not (a.partner_id and a.partner.email)]
+        return [
+            a
+            for a in applicants
+            if not a.email_from and not (a.partner_id and a.partner.email)
+        ]
 
     @classmethod
-    def action_send(cls, applicants, author, subject='', body='', template=None):
+    def action_send(
+        cls, applicants, author, subject='', body='', template=None
+    ):
         """≙ ``action_send`` (``odoo19c: :20-59``).
 
         :param author: ``base.ResPartner`` que firma el mensaje.
@@ -71,6 +77,8 @@ class ApplicantSendMail(TransientModel):
             if template is not None:
                 applicant.message_post_with_template(template, author=author)
             else:
-                applicant.message_post(subject=subject, body=body, author=author)
+                applicant.message_post(
+                    subject=subject, body=body, author=author
+                )
             sent.append(applicant)
         return {'sent': sent, 'missing_emails': []}

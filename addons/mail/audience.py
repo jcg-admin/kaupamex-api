@@ -14,6 +14,7 @@ referencia) hacia ``sale`` (profundidad 10). Con el registro, ``sale`` conoce a
 Un tipo de destinatario sin resolutor inscrito devuelve audiencia vacía —
 fail-closed: no se notifica a nadie por accidente.
 """
+
 import logging
 
 logger = logging.getLogger('apps')
@@ -33,7 +34,8 @@ def register_audience_resolver(recipient_type, resolver):
         logger.warning(
             'register_audience_resolver: %s ya estaba inscrito por %s; '
             'lo reemplaza %s',
-            recipient_type, getattr(previo, '__module__', previo),
+            recipient_type,
+            getattr(previo, '__module__', previo),
             getattr(resolver, '__module__', resolver),
         )
     AUDIENCE_RESOLVERS[recipient_type] = resolver
@@ -41,7 +43,10 @@ def register_audience_resolver(recipient_type, resolver):
 
 
 def resolve_audience_user_ids(recipient_type, **kwargs):
-    """Devuelve el iterable de ``user_id`` del público, o vacío si no hay resolutor."""
+    """
+    Devuelve el iterable de ``user_id`` del público, o vacío si no hay
+    resolutor.
+    """
     resolver = AUDIENCE_RESOLVERS.get(recipient_type)
     if resolver is None:
         return []

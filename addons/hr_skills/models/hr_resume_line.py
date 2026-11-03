@@ -46,6 +46,7 @@ Porte símbolo por símbolo — 15 campos + 1 constraint + 3 métodos
    * - ``_compute_color`` (``:57-61``)
      - portado
 """
+
 import re
 from datetime import date
 
@@ -63,58 +64,84 @@ class HrResumeLine(TimeStampedModel):
     _order = 'line_type_id, date_end desc, date_start desc'
 
     employee = fields.Many2one(
-        'hr.HrEmployee', on_delete=models.CASCADE,
-        db_index=True, related_name='resume_line_ids',
+        'hr.HrEmployee',
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='resume_line_ids',
         verbose_name='Empleado',
     )
     name = fields.Char(
-        required=True, translate=True, verbose_name='Nombre',
+        required=True,
+        translate=True,
+        verbose_name='Nombre',
     )
     date_start = fields.Date(
-        default=date.today, verbose_name='Fecha de inicio',
+        default=date.today,
+        verbose_name='Fecha de inicio',
     )
     date_end = fields.Date(null=True, blank=True, verbose_name='Fecha de fin')
     duration = fields.Integer(
-        default=0, verbose_name='Duración',
+        default=0,
+        verbose_name='Duración',
         help_text='Odoo duration.',
     )
     description = fields.Html(
-        null=True, blank=True, verbose_name='Descripción',
-        help_text='Odoo description (translate=True en la fuente — sin '
-                  'dispatcher de traducción en fields.Html, ver '
-                  'fields.Char.translate en la fachada).',
+        null=True,
+        blank=True,
+        verbose_name='Descripción',
+        help_text=(
+            'Odoo description (translate=True en la fuente — sin '
+            'dispatcher de traducción en fields.Html, ver '
+            'fields.Char.translate en la fachada).'
+        ),
     )
     line_type = fields.Many2one(
-        'hr_skills.HrResumeLineType', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='resume_line_ids',
+        'hr_skills.HrResumeLineType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resume_line_ids',
         verbose_name='Tipo',
     )
     course_type = fields.Selection(
         choices=[('external', 'Externo')],
-        default='external', verbose_name='Tipo de curso',
+        default='external',
+        verbose_name='Tipo de curso',
     )
     color = fields.Char(
-        default='#000000', verbose_name='Color',
+        default='#000000',
+        verbose_name='Color',
         help_text='Odoo color (compute) — recómputo: _compute_color().',
     )
     external_url = fields.Char(
-        blank=True, default='', verbose_name='URL externa',
-        help_text='Odoo external_url (compute, store=True) — recómputo: '
-                  '_compute_external_url().',
+        blank=True,
+        default='',
+        verbose_name='URL externa',
+        help_text=(
+            'Odoo external_url (compute, store=True) — recómputo: '
+            '_compute_external_url().'
+        ),
     )
     certificate_filename = fields.Char(
-        blank=True, default='',
+        blank=True,
+        default='',
         verbose_name='Nombre de archivo del certificado',
     )
     certificate_file = fields.Binary(
-        null=True, blank=True, verbose_name='Certificado',
+        null=True,
+        blank=True,
+        verbose_name='Certificado',
     )
     resume_line_properties = fields.Properties(
-        null=True, blank=True, verbose_name='Propiedades',
+        null=True,
+        blank=True,
+        verbose_name='Propiedades',
         definition='line_type.resume_line_type_properties_definition',
-        help_text='Odoo resume_line_properties — esquema definido por '
-                  'line_type_id.resume_line_type_properties_definition '
-                  '(JSON en este árbol).',
+        help_text=(
+            'Odoo resume_line_properties — esquema definido por '
+            'line_type_id.resume_line_type_properties_definition '
+            '(JSON en este árbol).'
+        ),
     )
 
     class Meta:
@@ -159,7 +186,8 @@ class HrResumeLine(TimeStampedModel):
         motor de ``@api.onchange``, disponible como método explícito."""
         if not self.name and self.external_url:
             match = re.search(
-                r'((https|http):\/\/)?(www\.)?(.*)\.', self.external_url,
+                r'((https|http):\/\/)?(www\.)?(.*)\.',
+                self.external_url,
             )
             if match:
                 self.name = match.group(4).capitalize()

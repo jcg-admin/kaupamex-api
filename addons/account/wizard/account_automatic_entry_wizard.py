@@ -98,6 +98,7 @@ Divergencias transversales declaradas (mismas que el resto del directorio):
   baja por cuentas) se colapsa a la empresa de las líneas — el puerto de
   cuenta tiene FK simple de empresa, no ``company_ids``.
 """
+
 import json
 from collections import defaultdict
 from datetime import timedelta
@@ -106,7 +107,9 @@ from django.db import transaction
 
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
-from addons.account.models.account_partial_reconcile import AccountPartialReconcile
+from addons.account.models.account_partial_reconcile import (
+    AccountPartialReconcile,
+)
 from addons.account.models.res_company import (
     format_lock_dates,
     get_violated_lock_dates,
@@ -151,8 +154,7 @@ class AccountAutomaticEntryWizard(TransientModel):
     @classmethod
     def _compute_total_amount(cls, lines, percentage=None):
         """≙ ``_compute_total_amount`` — el porcentaje del balance total."""
-        return (percentage or 100) * sum(
-            line.balance for line in lines) / 100
+        return (percentage or 100) * sum(line.balance for line in lines) / 100
 
     @classmethod
     def _compute_percentage(cls, lines, total_amount):
@@ -166,7 +168,9 @@ class AccountAutomaticEntryWizard(TransientModel):
     @classmethod
     def _compute_account_type(cls, lines):
         """≙ ``_compute_account_type`` — ingreso si el balance es negativo."""
-        return 'income' if sum(line.balance for line in lines) < 0 else 'expense'
+        return (
+            'income' if sum(line.balance for line in lines) < 0 else 'expense'
+        )
 
     @classmethod
     def _compute_lock_date_message(cls, action, lines):
@@ -179,7 +183,8 @@ class AccountAutomaticEntryWizard(TransientModel):
         for line in lines:
             move = line.move
             violations = get_violated_lock_dates(
-                move.company, move.date, False)
+                move.company, move.date, False
+            )
             if violations:
                 return format_lock_dates(move.company, violations)
         return False
@@ -188,8 +193,9 @@ class AccountAutomaticEntryWizard(TransientModel):
     def _compute_display_currency_helper(cls, destination_account):
         """≙ ``_compute_display_currency_helper`` — hay ayuda de conversión
         cuando la cuenta destino declara moneda propia."""
-        return bool(destination_account is not None
-                    and destination_account.currency_id)
+        return bool(
+            destination_account is not None and destination_account.currency_id
+        )
 
     @classmethod
     def _check_date(cls, date, lines):
@@ -197,13 +203,16 @@ class AccountAutomaticEntryWizard(TransientModel):
         bloqueado."""
         for line in lines:
             move = line.move
-            violated = get_violated_lock_dates(
-                move.company, date, False)
+            violated = get_violated_lock_dates(move.company, date, False)
             if violated:
-                raise ValidationError(_(
-                    'The date selected is protected by: %(lock_date_info)s.'
-                ) % {'lock_date_info': format_lock_dates(move.company,
-                                                          violated)})
+                raise ValidationError(
+                    _('The date selected is protected by: %(lock_date_info)s.')
+                    % {
+                        'lock_date_info': format_lock_dates(
+                            move.company, violated
+                        )
+                    }
+                )
 
     @classmethod
     def default_get(cls, lines, default_action=None):
@@ -217,46 +226,62 @@ class AccountAutomaticEntryWizard(TransientModel):
         if not lines:
             raise UserError(_('This can only be used on journal items'))
         if any(line.move.state != 'posted' for line in lines):
-            raise UserError(_(
-                "Oops! You can only change the period or account for "
-                "posted entries! Other ones aren't up for an adventure "
-                "like that!"))
+            raise UserError(
+                _(
+                    "Oops! You can only change the period or account for "
+                    "posted entries! Other ones aren't up for an adventure "
+                    "like that!"
+                )
+            )
         if any(_line_is_reconciled(line) for line in lines):
-            raise UserError(_(
-                "Oops! You can only change the period or account for items "
-                "that are not yet reconciled! Other ones aren't up for an "
-                "adventure like that!"))
+            raise UserError(
+                _(
+                    "Oops! You can only change the period or account for items"
+                    " that are not yet reconciled! Other ones aren't up for an"
+                    " adventure like that!"
+                )
+            )
         companies = {line.move.company_id for line in lines}
         if len(companies) > 1:
-            raise UserError(_(
-                'You cannot use this wizard on journal entries belonging '
-                'to different companies.'))
+            raise UserError(
+                _(
+                    'You cannot use this wizard on journal entries belonging '
+                    'to different companies.'
+                )
+            )
         company = lines[0].move.company
 
         allowed_actions = set(dict(ACTION_SELECTION))
         if default_action:
             allowed_actions = {default_action}
-        if any(line.account.account_type != lines[0].account.account_type
-               for line in lines):
+        if any(
+            line.account.account_type != lines[0].account.account_type
+            for line in lines
+        ):
             allowed_actions.discard('change_period')
         if not allowed_actions:
-            raise UserError(_(
-                'No possible action found with the selected lines.'))
+            raise UserError(
+                _('No possible action found with the selected lines.')
+            )
         return lines, company, allowed_actions.pop()
 
     # -- construcción de asientos ----------------------------------------
 
     @classmethod
     def _get_cut_off_label_format(cls, percentage):
-        """ Get the translated format string used in cut-off labels
+        """Get the translated format string used in cut-off labels
 
         (Docstring verbatim de la referencia.)"""
-        return _("Cut-off {label}") if percentage == 100 \
+        return (
+            _("Cut-off {label}")
+            if percentage == 100
             else _("Cut-off {label} {percent}%")
+        )
 
     @classmethod
-    def _get_move_dict_vals_change_account(cls, lines, journal,
-                                            destination_account, date):
+    def _get_move_dict_vals_change_account(
+        cls, lines, journal, destination_account, date
+    ):
         """≙ ``_get_move_dict_vals_change_account`` (parcial declarado —
         agrupado por cuenta, sin partner/moneda/analítica por línea; ver el
         docstring del módulo)."""
@@ -265,8 +290,9 @@ class AccountAutomaticEntryWizard(TransientModel):
         counterpart_balance = 0
         grouped_source_lines = defaultdict(list)
         for line in lines:
-            if line.account_id == (destination_account.pk
-                                   if destination_account else None):
+            if line.account_id == (
+                destination_account.pk if destination_account else None
+            ):
                 continue
             counterpart_balance += line.balance
             grouped_source_lines[line.account].append(line)
@@ -274,61 +300,96 @@ class AccountAutomaticEntryWizard(TransientModel):
         source_accounts = {line.account for line in lines}
         if len(source_accounts) == 1:
             counterpart_label = _("Transfer from %s") % next(
-                iter(source_accounts))
+                iter(source_accounts)
+            )
         else:
             counterpart_label = _("Transfer counterpart")
 
         if counterpart_balance:
-            line_vals.append({
-                'name': counterpart_label,
-                'debit': counterpart_balance if counterpart_balance > 0 else 0,
-                'credit': -counterpart_balance if counterpart_balance < 0 else 0,
-                'account_id': destination_account.pk,
-            })
+            line_vals.append(
+                {
+                    'name': counterpart_label,
+                    'debit': (
+                        counterpart_balance if counterpart_balance > 0 else 0
+                    ),
+                    'credit': (
+                        -counterpart_balance if counterpart_balance < 0 else 0
+                    ),
+                    'account_id': destination_account.pk,
+                }
+            )
 
         for account, account_lines in grouped_source_lines.items():
             account_balance = sum(line.balance for line in account_lines)
             if account_balance:
-                line_vals.append({
-                    'name': _('Transfer to %s') % (
-                        destination_account or _('[Not set]')),
-                    'debit': -account_balance if account_balance < 0 else 0,
-                    'credit': account_balance if account_balance > 0 else 0,
-                    'account_id': account.pk,
-                })
+                line_vals.append(
+                    {
+                        'name': (
+                            _('Transfer to %s')
+                            % (destination_account or _('[Not set]'))
+                        ),
+                        'debit': (
+                            -account_balance if account_balance < 0 else 0
+                        ),
+                        'credit': (
+                            account_balance if account_balance > 0 else 0
+                        ),
+                        'account_id': account.pk,
+                    }
+                )
 
-        return [{
-            'move_type': 'entry',
-            'name': '/',
-            'journal_id': journal.pk,
-            'date': date.isoformat(),
-            'ref': _("Transfer entry to %s") % (destination_account or ''),
-            'line_ids': line_vals,
-        }]
+        return [
+            {
+                'move_type': 'entry',
+                'name': '/',
+                'journal_id': journal.pk,
+                'date': date.isoformat(),
+                'ref': _("Transfer entry to %s") % (destination_account or ''),
+                'line_ids': line_vals,
+            }
+        ]
 
     @classmethod
-    def _get_move_line_dict_vals_change_period(cls, aml, date_key,
-                                                accrual_account, percentage):
+    def _get_move_line_dict_vals_change_period(
+        cls, aml, date_key, accrual_account, percentage
+    ):
         """≙ ``_get_move_line_dict_vals_change_period`` — el par de líneas
         (cuenta original ↔ cuenta de devengo) por apunte, prorrateado
         (parcial declarado: sin ``amount_currency``/analítica/partner)."""
         reported_debit = round((percentage / 100) * float(aml.debit), 2)
         reported_credit = round((percentage / 100) * float(aml.credit), 2)
         name = cls._format_strings(
-            cls._get_cut_off_label_format(percentage), aml.move, percentage)
+            cls._get_cut_off_label_format(percentage), aml.move, percentage
+        )
 
         if date_key == 'new_date':
             return [
-                {'name': name, 'debit': reported_debit,
-                 'credit': reported_credit, 'account_id': aml.account_id},
-                {'name': name, 'debit': reported_credit,
-                 'credit': reported_debit, 'account_id': accrual_account.pk},
+                {
+                    'name': name,
+                    'debit': reported_debit,
+                    'credit': reported_credit,
+                    'account_id': aml.account_id,
+                },
+                {
+                    'name': name,
+                    'debit': reported_credit,
+                    'credit': reported_debit,
+                    'account_id': accrual_account.pk,
+                },
             ]
         return [
-            {'name': name, 'debit': reported_credit,
-             'credit': reported_debit, 'account_id': aml.account_id},
-            {'name': name, 'debit': reported_debit,
-             'credit': reported_credit, 'account_id': accrual_account.pk},
+            {
+                'name': name,
+                'debit': reported_credit,
+                'credit': reported_debit,
+                'account_id': aml.account_id,
+            },
+            {
+                'name': name,
+                'debit': reported_debit,
+                'credit': reported_credit,
+                'account_id': accrual_account.pk,
+            },
         ]
 
     @classmethod
@@ -349,8 +410,9 @@ class AccountAutomaticEntryWizard(TransientModel):
         return latest + timedelta(days=1)
 
     @classmethod
-    def _get_move_dict_vals_change_period(cls, lines, journal, date,
-                                           accrual_account, percentage):
+    def _get_move_dict_vals_change_period(
+        cls, lines, journal, date, accrual_account, percentage
+    ):
         """≙ ``_get_move_dict_vals_change_period`` — un asiento en la fecha
         nueva y uno por cada fecha (a salvo de candados) de origen."""
         ref_format = cls._get_cut_off_label_format(percentage)
@@ -359,48 +421,71 @@ class AccountAutomaticEntryWizard(TransientModel):
             # La línea del puerto no lleva fecha propia: la del asiento.
             return cls._get_lock_safe_date(aml.move.date, aml.move.company)
 
-        move_data = {'new_date': {
-            'move_type': 'entry',
-            'line_ids': [],
-            'ref': cls._format_strings(ref_format, lines[0].move, percentage),
-            'date': date.isoformat(),
-            'journal_id': journal.pk,
-        }}
+        move_data = {
+            'new_date': {
+                'move_type': 'entry',
+                'line_ids': [],
+                'ref': cls._format_strings(
+                    ref_format, lines[0].move, percentage
+                ),
+                'date': date.isoformat(),
+                'journal_id': journal.pk,
+            }
+        }
         for date_key, grouped_lines in groupby(lines, get_lock_safe_date):
             grouped_lines = list(grouped_lines)
-            amount = sum(l.balance for l in grouped_lines)
+            amount = sum(item.balance for item in grouped_lines)
             move_data[date_key] = {
                 'move_type': 'entry',
                 'line_ids': [],
                 'ref': cls._format_strings(
-                    ref_format, grouped_lines[0].move, percentage, amount),
+                    ref_format, grouped_lines[0].move, percentage, amount
+                ),
                 'date': date_key.isoformat(),
                 'journal_id': journal.pk,
             }
 
         for aml in lines:
             for date_key in ('new_date', get_lock_safe_date(aml)):
-                move_data[date_key]['line_ids'] += \
-                    cls._get_move_line_dict_vals_change_period(
-                        aml, date_key, accrual_account, percentage)
+                move_data[date_key][
+                    'line_ids'
+                ] += cls._get_move_line_dict_vals_change_period(
+                    aml, date_key, accrual_account, percentage
+                )
 
         return list(move_data.values())
 
     @classmethod
-    def _compute_move_data(cls, action, lines, journal, date,
-                            accrual_account=None, percentage=100,
-                            destination_account=None):
+    def _compute_move_data(
+        cls,
+        action,
+        lines,
+        journal,
+        date,
+        accrual_account=None,
+        percentage=100,
+        destination_account=None,
+    ):
         """≙ ``_compute_move_data`` — el JSON de los asientos a crear."""
         if action == 'change_period':
-            if any(line.account.account_type != lines[0].account.account_type
-                   for line in lines):
-                raise UserError(_(
-                    'All accounts on the lines must be of the same type.'))
-            return json.dumps(cls._get_move_dict_vals_change_period(
-                lines, journal, date, accrual_account, percentage))
+            if any(
+                line.account.account_type != lines[0].account.account_type
+                for line in lines
+            ):
+                raise UserError(
+                    _('All accounts on the lines must be of the same type.')
+                )
+            return json.dumps(
+                cls._get_move_dict_vals_change_period(
+                    lines, journal, date, accrual_account, percentage
+                )
+            )
         if action == 'change_account':
-            return json.dumps(cls._get_move_dict_vals_change_account(
-                lines, journal, destination_account, date))
+            return json.dumps(
+                cls._get_move_dict_vals_change_account(
+                    lines, journal, destination_account, date
+                )
+            )
         return None
 
     # -- ejecución --------------------------------------------------------
@@ -434,25 +519,43 @@ class AccountAutomaticEntryWizard(TransientModel):
 
     @classmethod
     @transaction.atomic
-    def do_action(cls, action, lines, journal, date, company,
-                   accrual_account=None, percentage=100,
-                   destination_account=None):
+    def do_action(
+        cls,
+        action,
+        lines,
+        journal,
+        date,
+        company,
+        accrual_account=None,
+        percentage=100,
+        destination_account=None,
+    ):
         """≙ ``do_action`` — despacha a la operación elegida."""
-        move_vals = json.loads(cls._compute_move_data(
-            action, lines, journal, date,
-            accrual_account=accrual_account, percentage=percentage,
-            destination_account=destination_account))
+        move_vals = json.loads(
+            cls._compute_move_data(
+                action,
+                lines,
+                journal,
+                date,
+                accrual_account=accrual_account,
+                percentage=percentage,
+                destination_account=destination_account,
+            )
+        )
         if action == 'change_period':
             return cls._do_action_change_period(
-                move_vals, lines, company, accrual_account)
+                move_vals, lines, company, accrual_account
+            )
         if action == 'change_account':
             return cls._do_action_change_account(
-                move_vals, lines, company, destination_account)
+                move_vals, lines, company, destination_account
+            )
         return None
 
     @classmethod
-    def _do_action_change_period(cls, move_vals, lines, company,
-                                  accrual_account):
+    def _do_action_change_period(
+        cls, move_vals, lines, company, accrual_account
+    ):
         """≙ ``_do_action_change_period`` (parcial declarado — sin los
         ``message_post`` de chatter ni el ``ir.actions.act_window`` final;
         devuelve los asientos creados).
@@ -464,24 +567,29 @@ class AccountAutomaticEntryWizard(TransientModel):
         created_moves = cls._create_moves_from_vals(move_vals, company)
         if accrual_account is not None and accrual_account.reconcile:
             destination_move = created_moves[0]
-            destination_lines = list(destination_move.line_ids.filter(
-                account=accrual_account))
+            destination_lines = list(
+                destination_move.line_ids.filter(account=accrual_account)
+            )
             for accrual_move in created_moves[1:]:
-                accrual_lines = list(accrual_move.line_ids.filter(
-                    account=accrual_account))
+                accrual_lines = list(
+                    accrual_move.line_ids.filter(account=accrual_account)
+                )
                 for dest, accr in zip(destination_lines, accrual_lines):
                     debit_line = dest if dest.debit else accr
                     credit_line = accr if dest.debit else dest
                     amount = debit_line.debit
                     if amount:
                         AccountPartialReconcile.create_partial(
-                            debit_move=debit_line, credit_move=credit_line,
-                            amount=amount)
+                            debit_move=debit_line,
+                            credit_move=credit_line,
+                            amount=amount,
+                        )
         return created_moves
 
     @classmethod
-    def _do_action_change_account(cls, move_vals, lines, company,
-                                   destination_account):
+    def _do_action_change_account(
+        cls, move_vals, lines, company, destination_account
+    ):
         """≙ ``_do_action_change_account`` (parcial declarado — mismo
         recorte que ``_do_action_change_period``: sin chatter ni acción de
         ventana; reconcilia por cuenta conciliable vía ``create_partial``).
@@ -491,8 +599,10 @@ class AccountAutomaticEntryWizard(TransientModel):
 
         grouped_lines = defaultdict(list)
         for line in lines:
-            if destination_account is not None \
-                    and line.account_id == destination_account.pk:
+            if (
+                destination_account is not None
+                and line.account_id == destination_account.pk
+            ):
                 continue
             grouped_lines[line.account].append(line)
 
@@ -506,8 +616,10 @@ class AccountAutomaticEntryWizard(TransientModel):
                 amount = debit_line.debit
                 if amount:
                     AccountPartialReconcile.create_partial(
-                        debit_move=debit_line, credit_move=credit_line,
-                        amount=amount)
+                        debit_move=debit_line,
+                        credit_move=credit_line,
+                        amount=amount,
+                    )
         return new_moves
 
     # -- formato ----------------------------------------------------------

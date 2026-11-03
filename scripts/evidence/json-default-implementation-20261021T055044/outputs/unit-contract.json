@@ -1,0 +1,45 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c: odoo/orm/fields_misc.py::Json.convert_to_record:67-69; test_orm.discussion.history; JsonFieldTest.test_json_field_read_write",
+  "behavior": "Preserve declared history content while isolating mutable values across records. This unit does not cover full copy-on-read or tuple normalization.",
+  "execution_flow": "Odoo declaration -> defaults/cache -> Json.convert_to_record deepcopy -> record read. Kaupamex Json factory -> Django JSONField -> get_default returns same literal; mutation contaminates a second value.",
+  "inputs_outputs": {
+    "input": {
+      "delete_messages": []
+    },
+    "expected_second_default": {
+      "delete_messages": []
+    },
+    "actual_second_default": {
+      "delete_messages": [
+        "only-first"
+      ]
+    }
+  },
+  "side_effects": "Observed mutation leaks into field.default and second retrieved default. Probe uses no product model or permanent table.",
+  "dependencies": [
+    "Django6 JSONField.get_default and CheckFieldDefaultMixin",
+    "Python nested value copying",
+    "Related/store metadata preserved",
+    "Future implementation must verify MigrationWriter serialization/clone and actual Discussion consumer",
+    "PostgreSQL16.15 resource verified; QA lacks res_users; app QA credentials missing from current option resolution"
+  ],
+  "consumers": [
+    "Kaupamex addons.test_orm TestOrmDiscussion.history; locate via existing alias/consumer root",
+    "Odoo JsonFieldTest read/write; native Odoo execution NOT_EVALUATED"
+  ],
+  "installed_mechanism": "Django6 JSONField callable defaults; functools.partial(copy.deepcopy, literal) serializable by MigrationWriter",
+  "existing_adaptation": "Json factory wraps only declared non-callable non-None default. None/missing/callable unchanged. Related/store dispatch unchanged.",
+  "verification": {
+    "historical_probe_before": "5 PASS, 2 BASELINE_FAILURE; exit1",
+    "historical_probe_after": "7 PASS; exit0",
+    "new_model_unit_cases": "7 PASS; exit0",
+    "postgresql": "real model save/read/update with least-privilege QA role and TEMP table PASS; role and scoped SCRAM rule removed",
+    "regressions": "47 PASS, 3 BASELINE_FAILURE; exit1",
+    "negative_control": "original Json in memory: 41 PASS, 9 FAIL; same3 plus6 JSON failures",
+    "global_addons_migrations": "not_verified"
+  },
+  "equivalence": "Bounded literal default isolation/check/migration serialization proven. Not whole Json Odoo equivalence.",
+  "limitations": "Global QA fixtures incomplete; full addon integration, global makemigrations, related runtime semantics and final acceptance pending.",
+  "integration": "Prepared for existing API PR109; no merge or task status change."
+}

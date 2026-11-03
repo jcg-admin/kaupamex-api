@@ -6,6 +6,7 @@ cuando el registro de modelos ya está poblado (mismo patrón que
 ``HrFleetConfig``). El tercer archivo de la referencia
 (``report/report_project_task_user.py``) está BLOQUEADO — ver ese módulo.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -24,10 +25,12 @@ class ProjectHrSkillsConfig(AppConfig):
     #: usuario (el orden aquí sólo documenta la dependencia — la resolución
     #: real es en runtime).
     _EXTENSIONES = {
-        'addons.project_hr_skills.models.res_users':
-            'apply_project_hr_skills_res_users_extensions',
-        'addons.project_hr_skills.models.project_task':
-            'apply_project_hr_skills_project_task_extensions',
+        'addons.project_hr_skills.models.res_users': (
+            'apply_project_hr_skills_res_users_extensions'
+        ),
+        'addons.project_hr_skills.models.project_task': (
+            'apply_project_hr_skills_project_task_extensions'
+        ),
     }
 
     def ready(self):

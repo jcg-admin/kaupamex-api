@@ -1,7 +1,8 @@
 """Tests — E5 paso 1: el canónico lleva su propia bitácora (chatter).
 
 Cierra la capacidad que el diff contra la referencia detectó ausente en
-``sale.SaleOrder``: en Odoo la bitácora de la venta **no es una tabla lateral**,
+``sale.SaleOrder``: en Odoo la bitácora de la venta **no es una tabla
+lateral**,
 es ``mail.thread`` + ``tracking=True`` sobre ``state``
 (``odoo19x sale/models/sale_order.py:81``). El espejo ``orders.Order`` sí
 heredaba ``MailThread`` (``orders/models.py:22``); la canónica no.
@@ -12,7 +13,8 @@ Lo que se fija aquí:
    con la identidad de la referencia (``sale.order``): desde que
    ``SaleOrder`` declara ``_name``, ``_mail_thread_res_model()`` resuelve
    al nombre de la fuente y ya no al rótulo de Django.
-2. Cada transición de la máquina de estados **deja rastro**: ``action_confirm``,
+2. Cada transición de la máquina de estados **deja rastro**:
+   ``action_confirm``,
    ``action_cancel`` y ``action_draft`` registran un ``mail.tracking.value``
    del campo ``state`` con su valor viejo y nuevo.
 3. Una transición que **no cambia** el estado no ensucia el hilo — el
@@ -24,6 +26,7 @@ la canónica, el proyecto pierde la bitácora de la venta. Es el mismo
 acoplamiento invertido que ya corrigieron H-API-26 y H-API-32 — la capacidad
 canónica viviendo en el espejo.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -47,15 +50,21 @@ def _tracking_of(order, field):
 @pytest.fixture
 def producto():
     cat = make_category(name='Cat E5p1')
-    return make_product(name='Prod E5p1', price=Decimal('100.00'), stock=5, categ=cat)
+    return make_product(
+        name='Prod E5p1', price=Decimal('100.00'), stock=5, categ=cat
+    )
 
 
 @pytest.fixture
 def orden(producto):
     order = SaleOrder.objects.create()
     SaleOrderLine.objects.create(
-        order=order, product=producto, name='Línea E5p1',
-        price_unit=Decimal('100.00'), product_uom_qty=1)
+        order=order,
+        product=producto,
+        name='Línea E5p1',
+        price_unit=Decimal('100.00'),
+        product_uom_qty=1,
+    )
     return order
 
 
@@ -72,7 +81,9 @@ class TestElCanonicoEsUnHilo:
     def test_publicar_en_el_hilo_crea_el_mensaje(self, orden):
         orden.message_post(body='nota interna')
         assert MailMessage.objects.filter(
-            model='sale.order', res_id=orden.pk, body='nota interna',
+            model='sale.order',
+            res_id=orden.pk,
+            body='nota interna',
         ).exists()
 
 

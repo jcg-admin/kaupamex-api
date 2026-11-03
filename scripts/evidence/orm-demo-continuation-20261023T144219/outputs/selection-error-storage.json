@@ -1,0 +1,26 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.demo_error_storage",
+      "taskId": "TASK-API-0382",
+      "prompt": "Preserve complete demo failure traceback: pinned unbounded Char versus current varchar255; prove and migrate without truncating old records",
+      "verify": "Owned PostgreSQL red/green, actual AlterField old-state compatibility, new long error and negative control",
+      "route": "local",
+      "owned": [
+        "src/addons/base/models/ir_demo_failure.py",
+        "src/addons/base/migrations/0089_demo_failure_error_length.py",
+        "tests/unit/modules/test_demo_failure_storage.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0382.demo_error_storage"
+  ],
+  "native_identity": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737/TASK-API-0382",
+  "admission": "Existing owned loader task, actual pinned model/load_demo source and published dependency probe; no foreign path claims",
+  "objective_complete": false,
+  "official_state_changes": false
+}

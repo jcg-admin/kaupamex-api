@@ -32,6 +32,7 @@ El bloqueo de mayor alcance del addon está documentado en
 Un ``grep so_line`` sobre este directorio recupera el conjunto entero de
 símbolos que arrastra.
 """
+
 from .project_sale_line_employee_map import ProjectSaleLineEmployeeMap
 
 __all__ = ['ProjectSaleLineEmployeeMap']

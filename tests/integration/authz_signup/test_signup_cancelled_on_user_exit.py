@@ -48,6 +48,7 @@ conjetura sobre el llamador, no un caso medido.
     caso separaba las dos señales; era falso. La elección de ``post_delete``
     se sostiene por la fuente —que cancela **al** borrar— y no por este test.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -69,7 +70,8 @@ def _invited(login, name):
     partner = ResPartner.objects.create(name=name, email=login)
     pp.signup_prepare(partner)
     user = User.objects.create_user(
-        login=login, password=PASSWORD, partner=partner)
+        login=login, password=PASSWORD, partner=partner
+    )
     return partner, user
 
 
@@ -126,5 +128,6 @@ def test_a_rolled_back_deletion_keeps_the_signup(seeded):
             user.delete()
             raise _Abortar
 
-    assert _pending(partner), \
-        'la cancelación sobrevivió al rollback del borrado que la motivó'
+    assert _pending(
+        partner
+    ), 'la cancelación sobrevivió al rollback del borrado que la motivó'

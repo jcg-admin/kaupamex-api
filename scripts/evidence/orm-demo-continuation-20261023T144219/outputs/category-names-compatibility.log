@@ -1,0 +1,137 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+{
+  "postgresql_catalogue_cases": [
+    {
+      "schema": "contract_names_first",
+      "requested": [],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "base",
+        "base",
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "sale"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "sale"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "stock"
+      ],
+      "warnings": [
+        "invalid module names, ignored: stock"
+      ]
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "unknown_contract",
+        "base"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown_contract"
+      ]
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "unknown'); DROP TABLE ir_module_module; --"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown'); DROP TABLE ir_module_module; --"
+      ]
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "base",
+        "base",
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "stock"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "sale"
+      ],
+      "warnings": [
+        "invalid module names, ignored: sale"
+      ]
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "stock"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "unknown_contract",
+        "base"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown_contract"
+      ]
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "unknown'); DROP TABLE ir_module_module; --"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown'); DROP TABLE ir_module_module; --"
+      ]
+    }
+  ],
+  "states_unchanged": true,
+  "scope": "Two isolated schemas in one owned database; not productive multi-database acceptance"
+}

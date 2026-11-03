@@ -6,7 +6,8 @@ atribución por DEC-KX-03). Es una data-migration por la misma razón que
 de archivos de datos de la referencia, así que lo que allá instala el módulo
 aquí lo instala una migración.
 
-**Qué desbloquea, y es lo único que la motiva.** ``ResUsers.has_group`` resuelve
+**Qué desbloquea, y es lo único que la motiva.** ``ResUsers.has_group``
+resuelve
 el grupo por ``ir.model.data``; sobre una tabla sin filas devolvería ``False``
 para todo — un mecanismo escrito e inerte, la misma forma de defecto que los
 países tenían antes de :ref:`h-api-358`. Los consumidores que hoy citan
@@ -29,11 +30,14 @@ Tres decisiones de forma, todas por diferencias declaradas del puerto
    que ``group_user`` / ``group_portal`` / ``group_public`` nazcan con tipo.
    La semántica es la misma; el docstring de ``res_groups.py`` lleva el porqué.
 
-3. **``group_system.user_ids`` no se graba.** La fuente enlaza ``base.user_root``
-   y ``base.user_admin``; este puerto **no siembra ningún usuario** — la empresa
+3. **``group_system.user_ids`` no se graba.** La fuente enlaza
+   ``base.user_root``
+   y ``base.user_admin``; este puerto **no siembra ningún usuario** — la
+   empresa
    y el usuario inicial se declaran en config (``BOOTSTRAP_COMPANY_CODE``, con
    ``default=''``) y los crea ``kaupamex-bin company_create``. El enlace queda
-   BLOQUEADO por ``base.user_root`` — no hay tal fila que enlazar, y fabricar un
+   BLOQUEADO por ``base.user_root`` — no hay tal fila que enlazar, y fabricar
+   un
    administrador desde una migración contradiría esa decisión.
 
 Lo que esta migración NO siembra, y no por olvido
@@ -64,6 +68,7 @@ grafo de implicación; qué autoriza cada grupo vive en ``ir.model.access`` /
 ``ir.rule``, y este árbol autoriza por capacidad (DEC-11). Sembrar el grupo no
 cambia ninguna decisión de acceso por sí solo.
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_model import IrModelData as _IrModelData
@@ -72,7 +77,6 @@ from addons.base.models.res_groups import ResGroups as _ResGroups
 from addons.base.models.res_groups_privilege import (
     ResGroupsPrivilege as _ResGroupsPrivilege,
 )
-
 
 #: ``(nombre sin módulo, nombre visible, secuencia)`` — la única categoría que
 #: ``base_groups.xml`` crea, y de la que cuelgan los dos privilegios.
@@ -166,7 +170,8 @@ def _xmlid_row(IrModelData, alias, name, record):
     cambia bajo sus pies. ``noupdate=True`` como el XML de la referencia.
     """
     IrModelData.objects.using(alias).update_or_create(
-        module='base', name=name,
+        module='base',
+        name=name,
         defaults={
             'model': type(record)._meta.label,
             'res_id': record.pk,
@@ -177,15 +182,17 @@ def _xmlid_row(IrModelData, alias, name, record):
 
 def _existing(IrModelData, model, alias, name):
     """El registro que ya designa ``base.<name>``, o ``None``."""
-    row = IrModelData.objects.using(alias).filter(
-        module='base', name=name).first()
+    row = (
+        IrModelData.objects.using(alias)
+        .filter(module='base', name=name)
+        .first()
+    )
     if row is None:
         return None
     return model.objects.using(alias).filter(pk=row.res_id).first()
 
 
-def _seed(IrModelData, IrModuleCategory, ResGroupsPrivilege, ResGroups,
-          alias):
+def _seed(IrModelData, IrModuleCategory, ResGroupsPrivilege, ResGroups, alias):
     """Crea categoría, privilegios y grupos, y luego teje las implicaciones.
 
     Dos pases a propósito: una arista de implicación necesita sus dos extremos
@@ -200,7 +207,8 @@ def _seed(IrModelData, IrModuleCategory, ResGroupsPrivilege, ResGroups,
     category = _existing(IrModelData, IrModuleCategory, alias, name)
     if category is None:
         category = IrModuleCategory.objects.using(alias).create(
-            name=label, sequence=sequence)
+            name=label, sequence=sequence
+        )
     _xmlid_row(IrModelData, alias, name, category)
 
     # --- Privilegios ---
@@ -209,7 +217,8 @@ def _seed(IrModelData, IrModuleCategory, ResGroupsPrivilege, ResGroups,
         privilege = _existing(IrModelData, ResGroupsPrivilege, alias, name)
         if privilege is None:
             privilege = ResGroupsPrivilege.objects.using(alias).create(
-                name=label, category=category)
+                name=label, category=category
+            )
         privileges[name] = privilege
         _xmlid_row(IrModelData, alias, name, privilege)
 
@@ -242,13 +251,17 @@ def seed(using=DEFAULT_DB_ALIAS):
     """Siembra sobre los modelos vivos — entrada del catálogo de tests.
 
     Está en ``_SEEDERS`` de ``tests/conftest.py`` por lo mismo que países e
-    idiomas: un ``flush`` de un test transaccional borra las filas que sembró la
-    migración, y ``django_migrations`` las sigue dando por aplicadas, así que sin
-    esta entrada la sesión siguiente arranca sin grupos y ``has_group`` devuelve
+    idiomas: un ``flush`` de un test transaccional borra las filas que sembró
+    la
+    migración, y ``django_migrations`` las sigue dando por aplicadas, así que
+    sin
+    esta entrada la sesión siguiente arranca sin grupos y ``has_group``
+    devuelve
     ``False`` para todo — el fallo aparece lejos de su causa (H-API-337).
     """
-    return _seed(_IrModelData, _IrModuleCategory, _ResGroupsPrivilege,
-                 _ResGroups, using)
+    return _seed(
+        _IrModelData, _IrModuleCategory, _ResGroupsPrivilege, _ResGroups, using
+    )
 
 
 def seed_base_groups(apps, alias):

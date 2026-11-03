@@ -1,0 +1,10 @@
+{
+  "existing_population": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "descriptor": "protected_compute_scope",
+  "bounded_unit": "TASK-GEN-0558.native_pending_batch_recompute",
+  "evidence": "native-pending-contract-14.json",
+  "parent_acceptance": "not_verified",
+  "historical_population_rewritten": false,
+  "global_denominator": "not established",
+  "additional_verification": "native-pending-postgresql.json: actual SQL get/exists and bounded missing cleanup; no parent acceptance promotion"
+}

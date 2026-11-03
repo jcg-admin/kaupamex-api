@@ -1,0 +1,35 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": {
+    "path": "odoo19c:odoo/orm/models.py",
+    "qualified_symbol": "BaseModel.exists",
+    "source_sha256": "4dc0f7ed1bfedf292b91d9603a67e83b740910601f418880e2ebf12902297c1e"
+  },
+  "behavior": "Return the existing subset by physical IDs independently of public visibility predicates, preserving virtual records, input order and duplicates.",
+  "execution_flow": "BaseModel recordset -> partition NewId/persisted IDs -> native base manager id-IN query -> valid ID set -> browse surviving input IDs.",
+  "inputs_outputs": "Hidden existing11 remains; missing88 removed; duplicated11 order preserved; NewId retained; query failures propagate; query cannot add99 outside input.",
+  "side_effects": "Read-only existence lookup; no new permission/sudo behavior, no writes, schema or migrations. Query transport mocked and SQL prohibited in qualification.",
+  "dependencies": [
+    "NativeTASK-API-0397/session168b0fdf-bfe4-590b-b6c0-b6be124c124a/task1167 ownerVM-b501 in_progress",
+    "Existing BaseModel._from_ids/browse, Environment, partition, NewId, native Django base/default manager separation",
+    "QA, required CI, routing and actual PostgreSQL verification remain separate"
+  ],
+  "consumers": [
+    "BaseModel.exists callers using recordsets",
+    "Native private operation; public search/capability gates unchanged"
+  ],
+  "installed_mechanism": "Django _base_manager rather than a new SQL query abstraction; existing Thyrox TaskGet/claims/node_frontier and ordinary commit hooks",
+  "existing_adaptation": "Reference Query(self.env,table,table_sql) uses id-IN without public search predicates. Consumer uses native Django manager. Global BaseModel integration not inferred.",
+  "verification": {
+    "baseline": "4FAIL/1PASS exit1",
+    "candidate": "5PASS exit0 in exists-manager-ready.json",
+    "annulment": "4expectedFAIL/1PASS exit1 with only exists manager restored",
+    "preservation": "Unrelated working bytes backed up and restored after each commit attempt; exact index hash checked",
+    "style_context": "Only reported invalidated E501 lines wrapped with unchanged AST",
+    "postgresql": "PASS actual PostgreSQL16.15, hidden row retained, order/duplicates/NewId/missing subset checked, old manager loses hidden row; exists-manager-postgresql.json",
+    "resource_cleanup": "Cleanup verified by follow-up after immediate --rm race; outer exit1 retained separately"
+  },
+  "equivalence": "Bounded manager-selection/existence contract verified with explicit transport doubles; no native Odoo runtime or complete recordset equivalence claimed.",
+  "limitations": "Filtered custom base managers, active multi-database routing, concurrent deletion, all security consumers and full ORM acceptance not_verified. Bounded PostgreSQL behavior is verified, not the complete system.",
+  "integration": "Published bf468b936338045fff846a09655b5d72d57c6691 in PR109; no merge or acceptance"
+}

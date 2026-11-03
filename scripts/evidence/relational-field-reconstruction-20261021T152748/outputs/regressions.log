@@ -1,0 +1,68 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+................................................FFF.....                 [100%]
+=================================== FAILURES ===================================
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[compute] _
+
+self = <tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped object at 0x7fbbe5fe2780>
+attribute = 'compute'
+
+    @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
+    def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
+        """El control del control: si ``apply_source_defaults`` dejara de poner
+        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        universo más chico — verde por ausencia de sujeto, que es el
+        sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        attrs = apply_source_defaults(None, {})
+>       assert attribute in attrs, (
+            f'{attribute} ya no viaja en attrs: el control de no-estampado '
+            f'dejó de medirlo')
+E       AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E       assert 'compute' in {'declared_keys': frozenset(), 'store': True}
+
+tests/unit/orm/test_declared_source_vocabulary.py:178: AssertionError
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[inverse] _
+
+self = <tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped object at 0x7fbbe5e68590>
+attribute = 'inverse'
+
+    @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
+    def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
+        """El control del control: si ``apply_source_defaults`` dejara de poner
+        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        universo más chico — verde por ausencia de sujeto, que es el
+        sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        attrs = apply_source_defaults(None, {})
+>       assert attribute in attrs, (
+            f'{attribute} ya no viaja en attrs: el control de no-estampado '
+            f'dejó de medirlo')
+E       AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E       assert 'inverse' in {'declared_keys': frozenset(), 'store': True}
+
+tests/unit/orm/test_declared_source_vocabulary.py:178: AssertionError
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[precompute] _
+
+self = <tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped object at 0x7fbbe5e68620>
+attribute = 'precompute'
+
+    @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
+    def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
+        """El control del control: si ``apply_source_defaults`` dejara de poner
+        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        universo más chico — verde por ausencia de sujeto, que es el
+        sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        attrs = apply_source_defaults(None, {})
+>       assert attribute in attrs, (
+            f'{attribute} ya no viaja en attrs: el control de no-estampado '
+            f'dejó de medirlo')
+E       AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E       assert 'precompute' in {'declared_keys': frozenset(), 'store': True}
+
+tests/unit/orm/test_declared_source_vocabulary.py:178: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[compute]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[inverse]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[precompute]
+3 failed, 53 passed in 0.18s

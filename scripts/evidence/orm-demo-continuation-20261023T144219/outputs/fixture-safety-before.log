@@ -1,0 +1,35 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+__ test_setup_failure_drops_only_successfully_created_resources[preexisting] ___
+tests/unit/service/test_isolation_fixture_safety.py:35: in test_setup_failure_drops_only_successfully_created_resources
+    drop.assert_not_called()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:910: in assert_not_called
+    raise AssertionError(msg)
+E   AssertionError: Expected 'drop_database' to not have been called. Called 2 times.
+E   Calls: [call('company_8801_db'), call('company_8802_db')].
+_ test_setup_failure_drops_only_successfully_created_resources[create_failed] __
+tests/unit/service/test_isolation_fixture_safety.py:35: in test_setup_failure_drops_only_successfully_created_resources
+    drop.assert_not_called()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:910: in assert_not_called
+    raise AssertionError(msg)
+E   AssertionError: Expected 'drop_database' to not have been called. Called 2 times.
+E   Calls: [call('company_8801_db'), call('company_8802_db')].
+_ test_setup_failure_drops_only_successfully_created_resources[migration_failed] _
+tests/unit/service/test_isolation_fixture_safety.py:33: in test_setup_failure_drops_only_successfully_created_resources
+    drop.assert_called_once_with(fixture._ALIAS_A)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:960: in assert_called_once_with
+    raise AssertionError(msg)
+E   AssertionError: Expected 'drop_database' to be called once. Called 2 times.
+E   Calls: [call('company_8801_db'), call('company_8802_db')].
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/service/test_isolation_fixture_safety.py::test_setup_failure_drops_only_successfully_created_resources[preexisting]
+FAILED tests/unit/service/test_isolation_fixture_safety.py::test_setup_failure_drops_only_successfully_created_resources[create_failed]
+FAILED tests/unit/service/test_isolation_fixture_safety.py::test_setup_failure_drops_only_successfully_created_resources[migration_failed]
+3 failed, 1 warning in 0.20s

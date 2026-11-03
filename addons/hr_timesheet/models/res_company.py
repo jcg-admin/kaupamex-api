@@ -55,6 +55,7 @@ Métodos — desenlace por símbolo
        seed data (ver ``BOOTSTRAP_COMPANY_CODE``/``company_create`` en
        ``.claude/CLAUDE.md``).
 """
+
 import fields
 import models
 
@@ -80,12 +81,19 @@ def _default_hours_uom():
 
 def _check_internal_project_id_company(self):
     """≙ ``_check_internal_project_id_company`` (``odoo19c: :31-34``)."""
-    if self.internal_project_id and self.internal_project_id.company_id \
-            and self.internal_project_id.company_id != self:
-        raise ValidationError({
-            'internal_project_id': 'El proyecto interno de una compañía '
-                                    'debe pertenecer a esa compañía.',
-        })
+    if (
+        self.internal_project_id
+        and self.internal_project_id.company_id
+        and self.internal_project_id.company_id != self
+    ):
+        raise ValidationError(
+            {
+                'internal_project_id': (
+                    'El proyecto interno de una compañía '
+                    'debe pertenecer a esa compañía.'
+                ),
+            }
+        )
 
 
 def apply_hr_timesheet_res_company_extensions():
@@ -93,23 +101,52 @@ def apply_hr_timesheet_res_company_extensions():
 
     La llama ``HrTimesheetConfig.ready()``.
     """
-    _add_if_absent(ResCompany, 'project_time_mode_id', fields.Many2one(
-        Uom, on_delete=models.SET_NULL, null=True, blank=True,
-        default=_default_hours_uom, related_name='+',
-        help_text='Odoo project_time_mode_id. Unidad de tiempo usada en '
-                  'proyectos y tareas.',
-    ))
-    _add_if_absent(ResCompany, 'timesheet_encode_uom_id', fields.Many2one(
-        Uom, on_delete=models.SET_NULL, null=True, blank=True,
-        default=_default_hours_uom, related_name='+',
-        help_text='Odoo timesheet_encode_uom_id. Unidad de captura de la '
-                  'hoja de horas.',
-    ))
-    _add_if_absent(ResCompany, 'internal_project_id', fields.Many2one(
-        Project, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+',
-        help_text='Odoo internal_project_id. Proyecto por defecto para la '
-                  'hoja de horas generada desde ausencias.',
-    ))
+    _add_if_absent(
+        ResCompany,
+        'project_time_mode_id',
+        fields.Many2one(
+            Uom,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            default=_default_hours_uom,
+            related_name='+',
+            help_text=(
+                'Odoo project_time_mode_id. Unidad de tiempo usada en '
+                'proyectos y tareas.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'timesheet_encode_uom_id',
+        fields.Many2one(
+            Uom,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            default=_default_hours_uom,
+            related_name='+',
+            help_text=(
+                'Odoo timesheet_encode_uom_id. Unidad de captura de la '
+                'hoja de horas.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'internal_project_id',
+        fields.Many2one(
+            Project,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='+',
+            help_text=(
+                'Odoo internal_project_id. Proyecto por defecto para la '
+                'hoja de horas generada desde ausencias.'
+            ),
+        ),
+    )
 
     chain_method(ResCompany, 'clean', _check_internal_project_id_company)

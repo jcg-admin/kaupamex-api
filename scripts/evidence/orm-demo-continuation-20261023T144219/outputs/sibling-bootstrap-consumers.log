@@ -1,0 +1,4 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.....................................................                    [100%]
+- generated xml file: /workspace/pep8-review/sibling-bootstrap-consumers.junit.xml -
+53 passed in 5.06s

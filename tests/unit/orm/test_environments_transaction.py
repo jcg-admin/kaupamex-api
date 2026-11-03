@@ -20,15 +20,26 @@ referencia, este caso falle y la fila se reescriba. Un test que sólo afirmara
 que el registro funciona sería verde con la tabla vieja y con la nueva: no
 distinguiría nada (sub-patrón D de ``metrica-decide-la-conclusion``).
 """
+
 import pytest
 from django.apps import apps
 from django.db import connection, connections, transaction
 
 from orm import registry
-from orm.environments import (Transaction, _connection_transaction,
-                              context_scope, env, get_context,
-                              get_current_uid, get_transaction, is_su, sudo,
-                              transaction_scope, user_scope)
+from orm.environments import (
+    Environment,
+    Transaction,
+    _connection_transaction,
+    context_scope,
+    env,
+    get_context,
+    get_current_uid,
+    get_transaction,
+    is_su,
+    sudo,
+    transaction_scope,
+    user_scope,
+)
 
 
 class TestTheModelIndex:
@@ -121,8 +132,16 @@ class TestTheTransaction:
         en el docstring de la clase.
         """
         assert Transaction.__slots__ == (
-            'cache', 'default_env', 'envs', 'field_cache_memo', 'field_data',
-            'field_data_patches', 'field_dirty', 'protected', 'tocompute')
+            'cache',
+            'default_env',
+            'envs',
+            'field_cache_memo',
+            'field_data',
+            'field_data_patches',
+            'field_dirty',
+            'protected',
+            'tocompute',
+        )
 
     def test_a_slot_outside_the_declared_set_is_refused(self):
         """El control de que ``__slots__`` está de verdad cerrado.
@@ -135,20 +154,26 @@ class TestTheTransaction:
             Transaction().registry = object()
 
     def test_the_field_cache_defaults_to_a_mapping(self):
-        """``field_data[campo]`` nace como el mapa ``{id: valor}`` de la fuente."""
+        """
+        ``field_data[campo]`` nace como el mapa ``{id: valor}`` de la fuente.
+        """
         tx = Transaction()
         tx.field_data['un.campo'][7] = 'valor'
         assert tx.field_data['un.campo'] == {7: 'valor'}
 
     def test_the_pending_computations_keep_insertion_order(self):
-        """``tocompute`` es un ``OrderedSet``: el orden de llegada se conserva."""
+        """
+        ``tocompute`` es un ``OrderedSet``: el orden de llegada se conserva.
+        """
         tx = Transaction()
         for record_id in (9, 3, 9, 5):
             tx.tocompute['un.campo'].add(record_id)
         assert list(tx.tocompute['un.campo']) == [9, 3, 5]
 
     def test_the_protected_fields_stack_by_scope(self):
-        """``protected`` es un ``StackMap``: el tope tapa sin borrar lo de abajo."""
+        """
+        ``protected`` es un ``StackMap``: el tope tapa sin borrar lo de abajo.
+        """
         tx = Transaction()
         tx.protected.pushmap({'a': 1})
         tx.protected.pushmap({'b': 2})
@@ -267,7 +292,9 @@ class TestTheEnvironmentSugar:
         assert env()['res.partner'].__name__ == 'ResPartner'
 
     def test_it_falls_back_to_a_django_label(self):
-        """Un modelo propio del L0 sin ``_name`` sólo se alcanza por etiqueta."""
+        """
+        Un modelo propio del L0 sin ``_name`` sólo se alcanza por etiqueta.
+        """
         assert env()['base.ResPartner'].__name__ == 'ResPartner'
 
     def test_an_unknown_name_raises_key_error(self):
@@ -334,3 +361,48 @@ class TestTheEnvironmentSugar:
     def test_it_is_hashable(self):
         """El contexto es un dict; si no se congelara, esto levantaría."""
         assert len({env(), env()}) == 1
+
+
+class TestTheCommitCutLeavesNoOpenTransaction:
+    """El corte de ``commit`` vuelca antes de confirmar — H-API-1134.
+
+    Medido en la suite en paralelo: el ``flush`` de un test transaccional
+    confirma con la transacción del ORM sin ``default_env`` (los entornos de
+    prueba no llevan ``uid``), el respaldo de la fuente resuelve
+    ``base.public_user`` justo después del ``TRUNCATE`` y lanza ``ValueError``.
+    ``Atomic.__exit__`` sólo revierte ante ``DatabaseError``: la conexión
+    quedaba en ``INTRANS`` y todo el worker se colgaba detrás.
+    """
+
+    def test_a_flush_with_nothing_pending_needs_no_user(self, monkeypatch):
+        """Sin escrituras ni cómputos pendientes ``flush_all`` no hace nada, y
+        resolver un usuario para eso es un efecto que la fuente nunca ejerce
+        (allí ``base.public_user`` siempre existe)."""
+        current = get_transaction()
+        current.default_env = None
+        current.field_dirty.clear()
+        current.tocompute.clear()
+        keep = Environment(connection.alias, None, {})
+
+        def refuse(*args, **kwargs):
+            raise AssertionError('no user is needed to flush nothing')
+
+        monkeypatch.setattr(Environment, 'ref', refuse)
+        current.flush()
+        assert keep is not None
+
+    @pytest.mark.django_db(transaction=True)
+    def test_a_failed_pre_commit_flush_does_not_leave_the_connection_open(
+            self, monkeypatch):
+        def broken_flush(self):
+            raise ValueError('pre-commit flush failed')
+
+        monkeypatch.setattr(Transaction, 'flush', broken_flush)
+        with pytest.raises(ValueError, match='pre-commit flush failed'):
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute('SELECT 1')
+                _connection_transaction()
+        monkeypatch.undo()
+        assert connection.connection.info.transaction_status.name == 'IDLE'
+        assert connection.get_autocommit() is True

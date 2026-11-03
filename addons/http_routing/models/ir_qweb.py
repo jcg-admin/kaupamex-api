@@ -55,6 +55,7 @@ Divergencias declaradas
   —un ``RequestFactory`` en un test, un comando de consola—. Se conserva la
   constante y la guarda: su valor está en que el aviso nombre la salida.
 """
+
 import logging
 
 from addons.base.models.ir_http import IrHttp, get_current_request
@@ -132,14 +133,20 @@ def _prepare_frontend_environment(self, values):
 
 
 def apply_ir_qweb_extensions():
-    """Cuelga los dos métodos sobre ``base.IrTemplateExpressions`` — ≙ ``_inherit``.
+    """
+    Cuelga los dos métodos sobre ``base.IrTemplateExpressions`` — ≙
+    ``_inherit``.
 
     ``_prepare_environment`` va con la previa en la mano (la fuente llama a
     ``super()`` primero); ``_prepare_frontend_environment`` no llama a
     ``super()`` en la fuente (``:50-53``), así que el relevo de
     ``chain_method`` reproduce exactamente eso.
     """
-    wrap_method(IrTemplateExpressions, '_prepare_environment',
-                _prepare_environment)
-    chain_method(IrTemplateExpressions, '_prepare_frontend_environment',
-                 _prepare_frontend_environment)
+    wrap_method(
+        IrTemplateExpressions, '_prepare_environment', _prepare_environment
+    )
+    chain_method(
+        IrTemplateExpressions,
+        '_prepare_frontend_environment',
+        _prepare_frontend_environment,
+    )

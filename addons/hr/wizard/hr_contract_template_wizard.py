@@ -49,6 +49,7 @@ Divergencias declaradas
 4. **``groups="hr.group_hr_user"``** — ACL por grupo (familia (d) de
    ``hr_employee.py``); el enforcement por capacidad es de la capa DRF.
 """
+
 from addons.hr.models.hr_version import HrVersion
 from orm.environments import get_current_company
 from orm.models_transient import TransientModel
@@ -91,7 +92,9 @@ class HrDepartureWizard(TransientModel):
             # FKs (lee ``<field>_id`` primero); se asigna por el attname
             # cuando el valor es una PK cruda y por el nombre cuando es una
             # instancia o un escalar (``wage``).
-            if hasattr(version, f'{field_name}_id') and not hasattr(value, 'pk'):
+            if hasattr(version, f'{field_name}_id') and not hasattr(
+                value, 'pk'
+            ):
                 setattr(version, f'{field_name}_id', value)
             else:
                 setattr(version, field_name, value)

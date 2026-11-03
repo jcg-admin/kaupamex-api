@@ -1,4 +1,5 @@
 """``ReferralCode`` — código de referidos del usuario."""
+
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
@@ -14,19 +15,21 @@ class ReferralCode(TimeStampedModel):
     referral del framework de fidelidad de Odoo — respalda cada codigo como un
     ``Voucher`` de tipo REFERRAL para reutilizar la validacion de vigencia.
     """
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='referral_code',
     )
     code = models.CharField(
-        max_length=50, unique=True,
+        max_length=50,
+        unique=True,
         verbose_name='Codigo referral',
         help_text='Formato REF-{user.id}-{6 chars}. Siempre en mayusculas.',
     )
 
     class Meta:
-        db_table     = 'referral_code'
+        db_table = 'referral_code'
         verbose_name = 'Codigo referral'
 
     def __str__(self):
@@ -61,6 +64,8 @@ class ReferralCode(TimeStampedModel):
     def _build_unique_code(cls, user) -> str:
         while True:
             candidate = f'REF-{user.id}-{generate_suffix()}'
-            if not cls.objects.filter(code=candidate).exists() \
-                    and not Voucher.objects.filter(code=candidate).exists():
+            if (
+                not cls.objects.filter(code=candidate).exists()
+                and not Voucher.objects.filter(code=candidate).exists()
+            ):
                 return candidate

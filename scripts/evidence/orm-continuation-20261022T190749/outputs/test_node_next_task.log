@@ -1,0 +1,33 @@
+  ok    1 el nodo toma la primera de su carril
+  ok    1 sin tareas en su carril no toma nada
+  ok    2 con la dependencia sin aceptar toma la siguiente
+  ok    2 con la dependencia integrada, la dependiente es elegible en su orden
+  ok    3 una ruta reservada por otro nodo excluye la tarea
+  ok    3 una reserva liberada ya no excluye
+  ok    4 la tarea en vuelo del nodo no se vuelve a tomar, ni su conflicto
+  ok    5 control: running en el grafo no se toma
+  ok    6 una fila con status y sin state rehúsa
+  ok    7 'A' sin prefijo es otro dueño: su reserva excluye la ruta
+  ok    7 'vm-A' es el propio nodo: su reserva de otra tarea no excluye
+  ok    8 una reserva ajena sobre el directorio excluye la fila que posee un archivo dentro
+  ok    8 ./ y la barra final no cambian la ruta
+  ok    8 el release del mismo (owner, ruta) retira la reserva aunque nombre otra tarea
+  ok    8 control: src/sessionX no solapa src/session
+  ok    8 una fila que contiene la ruta de la tarea en vuelo choca con ella
+  ok    9 un claim posterior al release vuelve a reservar la ruta
+  ok    9 normalizar quita «./», no el punto de una ruta oculta
+  ok    9 una fila running sin rutas está en vuelo
+  ok    9 una fila con reserva propia sobre su tarea está en vuelo aunque no posea rutas
+  ok    10 dos filas pendientes que comparten ruta: se toma la primera
+  ok    10 una fila integrada que comparte ruta no está en vuelo
+  ok    10 la tarea en vuelo choca con la primera ruta poseída, no sólo con la última
+  ok    10 una fila sin rutas junto a otra con rutas se toma
+  ok    11 el release de otro dueño no anula la reserva ajena
+  ok    11 una fila bloqueada por dependencia no impide tomar la siguiente
+  ok    13 una dependencia accepted habilita a la dependiente y no se vuelve a tomar
+  ok    12 importa active_claims de session.claim_fold
+  ok    12 importa in_flight_rows y blocked_by_in_flight de session.in_flight
+  ok    12 no pliega el ledger por su cuenta
+  ok    12 no define otra función de solape ni de normalización
+
+test_node_next_task: 31 ok, 0 fallo(s)

@@ -27,7 +27,8 @@ Lo que NO se porta — **el sistema de columna dinámica por plan**
     ``makemigrations``, no runtime"*, dando a entender que Django no puede
     alterar el esquema en ejecución. Es falso y se midió:
     ``connection.schema_editor().add_field()`` creó ``x_plan3_id_id`` con su
-    FK real contra MariaDB, y ``remove_field()`` la eliminó. ``ir.model.fields``
+    FK real contra MariaDB, y ``remove_field()`` la eliminó.
+    ``ir.model.fields``
     también está portado (``base/models/ir_model.py:377``).
 
     Lo que sí falta es el **re-registro de campos en el arranque** —que la
@@ -70,7 +71,8 @@ sin valor propio responde ``ir.default``.
 
 Dos consecuencias medibles del cambio, y las dos son de la fuente:
 
-- **La columna deja de ser ``varchar``**: es ``jsonb`` con ``{empresa: valor}``,
+- **La columna deja de ser ``varchar``**: es ``jsonb`` con ``{empresa:
+  valor}``,
   así que ``choices`` ya no la restringe. La enumeración sigue siendo el
   contrato del valor (``APPLICABILITY_CHOICES``, compartida con
   ``AccountAnalyticApplicability.applicability``, que **sí** sigue escalar
@@ -79,6 +81,7 @@ Dos consecuencias medibles del cambio, y las dos son de la fuente:
   default de columna respondía siempre lo mismo; ahora responde lo que la
   empresa tenga, que es el punto del campo.
 """
+
 from random import randint
 
 from django.core.exceptions import ValidationError
@@ -123,24 +126,35 @@ class AccountAnalyticPlan(models.Model):
     dinámica; ver docstring del módulo)."""
 
     name = fields.Char(
-        max_length=255, verbose_name='Nombre',
+        max_length=255,
+        verbose_name='Nombre',
         help_text='Nombre del plan (Odoo name, requerido, traducible).',
     )
     description = fields.Text(
-        blank=True, default='', verbose_name='Descripción',
+        blank=True,
+        default='',
+        verbose_name='Descripción',
     )
     parent = fields.Many2one(
-        'self', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='children', verbose_name='Plan padre',
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children',
+        verbose_name='Plan padre',
         help_text='Odoo parent_id (ondelete=cascade).',
     )
     parent_path = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
     )
     color = fields.Integer(default=_default_color, verbose_name='Color')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     default_applicability = fields.Selection(
-        company_dependent=True, choices=APPLICABILITY_CHOICES,
+        company_dependent=True,
+        choices=APPLICABILITY_CHOICES,
         verbose_name='Aplicabilidad por defecto',
         help_text=(
             'Odoo default_applicability, company_dependent: cada empresa fija '
@@ -172,7 +186,9 @@ class AccountAnalyticPlan(models.Model):
         return f'{self.parent.parent_path}{self.pk}/'
 
     def save(self, *args, **kwargs):
-        """Mantiene la ruta materializada, que en la referencia mantiene el ORM."""
+        """
+        Mantiene la ruta materializada, que en la referencia mantiene el ORM.
+        """
         super().save(*args, **kwargs)
         path = self._compute_parent_path()
         if path != self.parent_path:
@@ -222,12 +238,16 @@ class AccountAnalyticApplicability(models.Model):
     sin dependencia del sistema de columna dinámica."""
 
     analytic_plan = fields.Many2one(
-        'analytic.AccountAnalyticPlan', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='applicability_ids',
+        'analytic.AccountAnalyticPlan',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicability_ids',
         verbose_name='Plan analítico',
     )
     business_domain = fields.Selection(
-        max_length=32, required=True,
+        max_length=32,
+        required=True,
         choices=[('general', 'Miscelánea')],
         verbose_name='Dominio de negocio',
         help_text=(
@@ -238,12 +258,18 @@ class AccountAnalyticApplicability(models.Model):
         ),
     )
     applicability = fields.Selection(
-        max_length=16, choices=APPLICABILITY_CHOICES, required=True,
+        max_length=16,
+        choices=APPLICABILITY_CHOICES,
+        required=True,
         verbose_name='Aplicabilidad',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='analytic_applicabilities', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='analytic_applicabilities',
+        verbose_name='Empresa',
     )
 
     class Meta:
@@ -270,4 +296,8 @@ class AccountAnalyticApplicability(models.Model):
         score = 0.5 if self.company_id and kwargs.get('company_id') else 0
         if not kwargs.get('business_domain'):
             return score
-        return score + 1 if kwargs.get('business_domain') == self.business_domain else -1
+        return (
+            score + 1
+            if kwargs.get('business_domain') == self.business_domain
+            else -1
+        )

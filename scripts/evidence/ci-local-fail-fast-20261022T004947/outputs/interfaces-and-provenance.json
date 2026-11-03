@@ -1,0 +1,90 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "consumer_baseline": "12f8eee5218c69c316b67a80bc0c409dbe6f6c74",
+  "interfaces": [
+    {
+      "interface": "session.job_runs.jobs_dir",
+      "signature": "(start: 'str | pathlib.Path | None' = None) -> 'pathlib.Path'"
+    },
+    {
+      "interface": "session.job_runs.scaffold_run",
+      "signature": "(base_dir: 'str | pathlib.Path', slug: 'str', command: 'str | None' = None, now: 'datetime | None' = None, flat_home: 'str | None' = None) -> 'pathlib.Path'"
+    },
+    {
+      "interface": "session.job_runs.settle",
+      "signature": "(run_dir: 'str | pathlib.Path', exit_code: 'int', now: 'datetime | None' = None, force: 'bool' = False) -> 'pathlib.Path'"
+    },
+    {
+      "interface": "workbench.manifest.declare_workbench",
+      "signature": "(run_dir: 'str | Path', *, question: 'str', instrument: 'str', metric: 'str', blind_to: 'str', destination: 'str | None' = None) -> 'None'"
+    },
+    {
+      "interface": "task.task_ids.mapping_from_store",
+      "signature": "(store_path) -> 'Mapping'"
+    },
+    {
+      "interface": "task.task_ids.assign_missing_ids",
+      "signature": "(mapping: 'Mapping', refs) -> 'dict'"
+    },
+    {
+      "interface": "task.task_ids.persist_to_store",
+      "signature": "(store_path, assignments: 'dict') -> 'int'"
+    },
+    {
+      "interface": "task.task_ids.lookup",
+      "signature": "(mapping: 'Mapping', session_id: 'str', task_id: 'str') -> 'str | None'"
+    },
+    {
+      "interface": "task.task_ids.correct_layer",
+      "signature": "(store_path, citation_id: 'str', layer: 'str', reason: 'str') -> 'tuple[str, str, str | None]'"
+    }
+  ],
+  "native_task_tools": {
+    "interface": "taskTools({dbPath:storePath(),sessionId}).find(t=>t.name===TaskCreate|TaskGet).run(input,ctx)",
+    "command": "bun /tmp/create-ci-task.ts; bun /tmp/ci-native-evidence.ts (temporary invocations of existing interfaces, no custom persistence)",
+    "result": "TaskCreate exit 0; session 168b0fdf-bfe4-590b-b6c0-b6be124c124a / task 1441; native assignment TASK-API-0478; TaskGet verifies owner codex-ci-local, pending, no declared graph blockers",
+    "evidence": [
+      "task-created.json",
+      "task-registered.json",
+      "related-tasks.json"
+    ]
+  },
+  "claims": {
+    "interface": "claimsCommand(argv,cwd)",
+    "command": "bun --eval import claimsCommand; --claim/--release <five Consumer paths> --owner codex-ci-local --branch feature/codex-workspace-bootstrap --task TASK-API-0478",
+    "result": "no foreign overlaps; an initial incorrect citation in claim metadata was released and reclaimed as TASK-API-0478, without creating another TASK",
+    "evidence": "../../../../.claude/coordination/claims.jsonl"
+  },
+  "generic_verification": {
+    "interface": "bin/runner --only provider-evidence --consumer <API> --json",
+    "result": "exit 0; 1 pass/1 gate; evidence home only, NOT the product test suite",
+    "evidence": "provider-evidence-gate.json",
+    "limitation": "verify.runner owns fixed Provider registry, has no API suite entry or fail-fast option; hooks.stop_tests intentionally reports asynchronously, does not block. No replacement runner was created. Existing Consumer Makefile and pytest own API-specific verification."
+  },
+  "local_prerequisites": {
+    "libpng_dev": {
+      "source": "https://deb.debian.org/debian/pool/main/libp/libpng1.6/libpng-dev_1.6.48-1+deb13u5_amd64.deb",
+      "sha256": "9027d5ace59ce266124c87054302805f49f9cb1ec4a6c8264a64596c7916fbff",
+      "installation": "dpkg-deb --extract /tmp/ci-libpng-dev.deb /workspace/.cache/ci-native-deps; CPATH and LIBRARY_PATH for command only",
+      "runtime": "libpng16-16t64 1.6.48-1+deb13u5, already present"
+    },
+    "pg_isready": {
+      "source": "docker cp kaupamex-postgres-cloud:/usr/lib/postgresql/16/bin/pg_isready /workspace/.cache/ci-native-deps/pg_isready",
+      "version": "PostgreSQL 16.15; local libpq5 17.11; ldd and pg_isready --version successful",
+      "installation": "PATH prefix on command only"
+    },
+    "python": "3.12.14",
+    "uv": "0.12.23"
+  },
+  "workflow_lint": {
+    "command": "/workspace/.cache/actionlint/actionlint .github/workflows/api-tests.yml",
+    "version": "1.7.12",
+    "source": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+    "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
+    "exit_code": 0
+  },
+  "preservation": {
+    "taskstore": "Native Provider store updated only through TaskCreate and task_ids APIs. API exports only this task, not a copy of the Provider store. Task state pending, no other task transitions or Provider code changes.",
+    "restrictions": "No ORM changes, hook installation/configuration, .env edits, merges or branch-protection changes."
+  }
+}

@@ -693,7 +693,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     }
 
     partner       = fields.Many2one(
-        'base.ResPartner', on_delete=models.PROTECT, related_name='users',
+        'base.ResPartner', null=False, on_delete=models.PROTECT, related_name='users',
         help_text=(
             'Party al que pertenece esta credencial (Odoo partner_id). '
             'Requerido: en la referencia no hay usuario sin partner.'
@@ -2270,7 +2270,7 @@ class ResUsersLog(TimeStampedModel):
     """
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        'base.ResUsers', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='logs',
         help_text='Usuario que accedió (Odoo create_uid).',
     )
@@ -2620,14 +2620,16 @@ class _ResUsersApikeysBase(TimeStampedModel):
         cls._check_expiration_date(expiration_date)
         k = binascii.hexlify(os.urandom(API_KEY_SIZE)).decode()
         actor = get_current_user()
-        cls.objects.create(
+        # La fuente inserta por SQL (``:1604-1609``), sin el ``create`` del
+        # ORM: ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni señales.
+        cls.objects.bulk_create([cls(
             name=name,
             user_id=getattr(actor, 'pk', None),
             scope=scope,
             expiration_date=expiration_date or None,
             key=_hash_api_key(k),
             index=k[:INDEX_SIZE],
-        )
+        )])
         _logger.info(
             "%s generated: scope: <%s> for '%s' (#%s)",
             cls._description, scope, getattr(actor, 'login', 'n/a'),
@@ -2799,7 +2801,7 @@ class ResUsersApikeys(_ResUsersApikeysBase):
     _allow_sudo_commands = False
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        'base.ResUsers', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='api_keys',
         help_text='Odoo user_id — el dueño de la clave.',
     )

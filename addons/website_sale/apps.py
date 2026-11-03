@@ -23,13 +23,16 @@ class WebsiteSaleConfig(AppConfig):
         statement ``import``.
         """
         module = importlib.import_module(
-            'addons.website_sale.models.product_template')
+            'addons.website_sale.models.product_template'
+        )
         module.apply_website_extensions()
 
-        # Recuperación de carrito abandonado (tarea #258): ``is_abandoned_cart``
+        # Recuperación de carrito abandonado (tarea #258):
+        # ``is_abandoned_cart``
         # y los métodos que lo consumen se cuelgan de ``sale.order``.
         sale_order_module = importlib.import_module(
-            'addons.website_sale.models.sale_order')
+            'addons.website_sale.models.sale_order'
+        )
         sale_order_module.apply_website_sale_order_extensions()
 
         # Contador de carritos abandonados del equipo de venta (tarea #568):
@@ -40,7 +43,8 @@ class WebsiteSaleConfig(AppConfig):
         # anterior instala. El orden no es cosmético aunque hoy nadie lea el
         # campo durante el arranque.
         crm_team_module = importlib.import_module(
-            'addons.website_sale.models.crm_team')
+            'addons.website_sale.models.crm_team'
+        )
         crm_team_module.apply_website_sale_crm_team_extensions()
 
         # ``models/res_config_settings.py`` NO se invoca a propósito: es un

@@ -1,0 +1,40 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/models.py BaseModel._recompute_field; odoo/orm/fields.py Field.recompute recursive pending iteration",
+  "behavior": "Physical pending rows remain eligible despite public visibility predicates; recursive computation follows requested pending-ID order without duplicate work; only physical absence clears the computed group",
+  "execution_flow": "Pending intersection -> persisted IDs -> physical base-manager query -> stable distinct requested-ID reconstruction -> existing field.recompute -> missing-group cleanup only after successful computation",
+  "inputs_outputs": "Visible31, hidden32, missing99; requested subsets, virtual NewId/None, duplicated IDs32,31,32,99, reversed query results, real callback AccessError and query RuntimeError; unchanged unrelated pending work",
+  "side_effects": "Existing cache, dirty/protection/pending machinery only. Physical rows not recreated. SQL probes do not flush or alter stored columns; owned TEMP tables rolled back, both containers removed",
+  "dependencies": [
+    "TASK-GEN-0559 session29a5e555-e34f-5a20-8c39-ad6cf2f19961 native307 pending ownerVM-b501; existing automatic delegation recovered and preserved",
+    "Published physical exists/flush paths and existing Field.recompute/cache/grouping; no global acceptance inferred",
+    "TaskGet, claims and node_frontier interfaces reused at Providerc3c5d2f2868701b37644426e2266262613eb9c60; no local-model execution claimed"
+  ],
+  "consumers": "Django-backed _recompute_model/_recompute_recordset callers of the existing helper; native recordset recompute branch retains its independent prior scope",
+  "installed_mechanism": "Consumer helper and existing staged-source and PostgreSQL probes; native Provider TaskGet/claims/node_frontier. No scheduler, store or schema introduced",
+  "existing_adaptation": "Django performs a physical lookup where Odoo browse is lazy. Dictionary reconstruction preserves requested order and unique work after SQL lookup. Remaining module AST and compute/access/write adapters unchanged",
+  "verification": {
+    "before": "4FAIL2PASS for public visibility selector",
+    "intermediate_order": "2FAIL6PASS with physical selector alone",
+    "final": "121PASS12 inherited warnings; recompute-visibility-ordered-final.json",
+    "selector_annulment": "6expectedFAIL2PASS; recompute-visibility-ordered-selector-annulled.json",
+    "order_annulment": "2expectedFAIL6PASS; model hash equals intermediate physical-selector-only source",
+    "postgresql": "PostgreSQL16.15 real baselineFAIL/candidatePASS; ordered finalPASS; order-only annulmentFAIL with correct cache but wrong callback order; both resource receipts removedtrue",
+    "denial": "Actual compute callback AccessError propagates and restores pending; query failure preserves pending",
+    "source_sha256": {
+      "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+      "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9",
+      "orm.models": "613032ef6b8cbbb579dad80d4be81f90768b398239d6c73b67db53461f9e84db"
+    },
+    "source_proof": "recompute-visibility-source-proof.json; original SQL fixture and initial instrument preserved with hashes"
+  },
+  "equivalence": "Bounded pending physical-row membership, grouping and requested recursive order contract. No complete Field/BaseModel, dependency discovery or runtime equivalence claim",
+  "limitations": "Global contractual denominator unknown. Full permissions, routing/multi-company, prefetch IO, bootstrap fallback, full persistence scenarios, CI and independent acceptance remain not_verified",
+  "integration": {
+    "functional_commit": "768d561657cab1720af6dc7c2b9067f405ed1117",
+    "pr": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+    "publication": "Published normal API feature push verified:918ac836..768d5616",
+    "merge": "not_performed",
+    "acceptance": "not_verified"
+  }
+}

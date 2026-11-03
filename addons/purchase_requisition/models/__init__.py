@@ -14,6 +14,7 @@ está poblado. Por eso ``product.py`` no aparece en esta lista y sí en
 
 El orden espeja ``odoo19c: addons/purchase_requisition/models/__init__.py``.
 """
+
 from .purchase import PurchaseOrderGroup
 from .purchase_requisition import PurchaseRequisition, PurchaseRequisitionLine
 

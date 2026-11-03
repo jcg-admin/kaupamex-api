@@ -1,0 +1,39 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "tasks": [
+    {
+      "task_id": "547",
+      "citation_id": "TASK-API-0321",
+      "subject": "Barrer los campos portados sin su default= de la fuente (H-API-696)",
+      "description": "Medido en `addons/website/models/website.py`: 19 de 45 campos de la fuente declaran `default=` y 12 no lo tenían en el porte. Doce en un archivo es un indicio, no un censo. Medir por AST, sobre todos los archivos con contraparte, cuántos campos declaran `default=` en `odoo19c` y no aquí; dar veredicto por campo (cablear / divergencia declarada / DESCONOCIDO). Ojo con los dos casos legítimos que el episodio ya midió: un `ManyToManyField` NO puede llevar `default=` en Django (va en `save()`), y un campo `required` que la fuente deja sin `default` (su dato lo suministra la data del addon, como `user` de `website`).",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "522",
+      "citation_id": "TASK-API-0307",
+      "subject": "Gate: default= en un campo cuya fuente lo declara precompute (H-API-687)",
+      "description": "Un campo portado desde un compute con precompute=True y readonly=False no debe llevar default= en Django: el default borra la distinción entre «el llamador no lo dio» y «lo dio igual al derivado», que es justamente la que el precompute necesita para ceder ante un valor explícito. Medir cuántos campos portados de un compute+precompute llevan default=, y cablear el check. Episodio: StockPicking.move_type, donde save() pisaba un move_type='one' explícito y el albarán tomaba el límite más temprano en vez del más tardío.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1195",
+      "citation_id": "TASK-API-0420",
+      "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+      "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL — `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perdería el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificación: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminación. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ]
+}

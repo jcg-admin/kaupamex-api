@@ -27,7 +27,8 @@ Porte símbolo por símbolo — 1 de 2
      - **bloqueado**
      - extiende un método que ``product`` **no porta**, con causa ya medida
 
-*Métrica:* entradas del cuerpo de ``class ProductCatalogMixin`` en el archivo de
+*Métrica:* entradas del cuerpo de ``class ProductCatalogMixin`` en el archivo
+de
 la referencia, contadas por AST — 3, de las que ``_inherit`` no es un símbolo a
 portar (aquí lo expresa la herencia de Python).
 *Ciega a:* lo que otros addons cuelgan del mismo mixin.
@@ -59,9 +60,11 @@ Divergencia declarada
 **D-1 — clase Python, no modelo abstracto de Django.** El mixin de ``product``
 al que extiende ya es una clase Python plana
 (``addons/product/models/product_catalog_mixin.py:99``) porque **ninguno de sus
-símbolos es una columna**. Esta extensión hereda esa forma; es el mismo criterio
+símbolos es una columna**. Esta extensión hereda esa forma; es el mismo
+criterio
 que ``stock_replenish_mixin.py`` declara en su D-1.
 """
+
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 
 

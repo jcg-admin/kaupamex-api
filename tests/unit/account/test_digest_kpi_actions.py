@@ -10,15 +10,19 @@ prueba — la cadena completa (base + ``crm`` + ``hr_recruitment`` +
 ``tests/unit/digest/test_digest_kpi_actions.py``. Sin fixtures de DB: esta
 acción no depende de grupos ni de ``user``.
 """
+
 from addons.account.models.digest import (
-    ACTION_OUT_INVOICE, _compute_kpis_actions,
+    ACTION_OUT_INVOICE,
+    _compute_kpis_actions,
 )
 
 
 def _previous(seed=None):
     """Mismo doble de prueba que ``tests/unit/crm/test_digest_kpi_actions``."""
+
     def previous(company, user):
         return dict(seed or {})
+
     return previous
 
 
@@ -27,7 +31,10 @@ class TestChainsWithThePrevious:
 
     def test_keeps_whatever_the_previous_link_already_set(self):
         res = _compute_kpis_actions(
-            None, _previous({'kpi_other_addon': 'other.action'}), None, None,
+            None,
+            _previous({'kpi_other_addon': 'other.action'}),
+            None,
+            None,
         )
         assert res['kpi_other_addon'] == 'other.action'
         assert res['kpi_account_total_revenue'] == ACTION_OUT_INVOICE
@@ -38,7 +45,8 @@ class TestChainsWithThePrevious:
         falso."""
         seed = {}
         res = _compute_kpis_actions(
-            None, lambda company, user: seed, None, None)
+            None, lambda company, user: seed, None, None
+        )
         assert res is seed
 
 

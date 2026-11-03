@@ -19,7 +19,9 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 default=addons.hr_work_entry.models.resource_calendar_attendance._default_work_entry_type_id,
-                help_text="Odoo work_entry_type_id (groups=hr.group_hr_user — ACL del cliente, no se porta).",
+                help_text=(
+                    "Odoo work_entry_type_id (groups=hr.group_hr_user — ACL"
+                    " del cliente, no se porta)."),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="calendar_attendances",
@@ -32,7 +34,9 @@ class Migration(migrations.Migration):
             name="work_entry_type",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo work_entry_type_id (groups=hr.group_hr_user — ACL del cliente, no se porta).",
+                help_text=(
+                    "Odoo work_entry_type_id (groups=hr.group_hr_user — ACL"
+                    " del cliente, no se porta)."),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="calendar_leaves",

@@ -31,6 +31,7 @@ Qué haría fallar a cada control
 ``TestForms.test_under_su_the_three_forms_allow_everything``
     CONTROL del bypass, en las tres formas a la vez.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -61,51 +62,68 @@ def _rows():
 
 def _grant(mode='read', group=None):
     row, _ = IrModel.objects.get_or_create(
-        model=MODEL_LABEL, defaults={'name': 'Compañía'})
+        model=MODEL_LABEL, defaults={'name': 'Compañía'}
+    )
     return IrModelAccess.objects.create(
         name=f'acqs {mode} {group.pk if group else "global"}',
-        model_id=row, group_id=group, **{f'perm_{mode}': True})
+        model_id=row,
+        group_id=group,
+        **{f'perm_{mode}': True},
+    )
 
 
 def _user(login):
     return get_user_model().objects.create_user(
-        login=login, password='AcqsPrueba123!')
+        login=login, password='AcqsPrueba123!'
+    )
 
 
 class TestComposedResolver:
     """≙ ``_check_access`` — el par ``(prohibidos, fábrica de error)``."""
 
     def test_without_model_permission_every_row_is_forbidden(
-            self, three_companies):
+        self, three_companies
+    ):
         who = _user('acqs.sin.modelo@kaupamex.mx')
         forbidden, make_error = _rows()._check_access('read', user=who)
         assert forbidden.count() == 3, 'sin permiso de modelo, todas'
         assert isinstance(make_error(), AccessError)
 
     def test_with_model_permission_and_no_rule_nothing_is_forbidden(
-            self, three_companies):
+        self, three_companies
+    ):
         _grant('read')
         who = _user('acqs.con.modelo@kaupamex.mx')
         assert _rows()._check_access('read', user=who) is None
 
     def test_with_model_permission_the_rules_still_narrow(
-            self, three_companies):
+        self, three_companies
+    ):
         """CONTROL — sin esto, consultar sólo la ACL pasaría igual."""
         _grant('read')
         IrRule.objects.create(
-            name='acqs sólo alfa', model_name=MODEL_LABEL,
-            domain_force="[('code', '=', 'acqs-alfa')]")
+            name='acqs sólo alfa',
+            model_name=MODEL_LABEL,
+            domain_force="[('code', '=', 'acqs-alfa')]",
+        )
         who = _user('acqs.regla@kaupamex.mx')
         forbidden, _ = _rows()._check_access('read', user=who)
         assert set(forbidden.values_list('code', flat=True)) == {
-            'acqs-beta', 'acqs-gama'}
+            'acqs-beta',
+            'acqs-gama',
+        }
 
     def test_the_rules_are_not_evaluated_without_model_permission(
-            self, three_companies):
-        """El orden es observable: la regla dejaría pasar una, la ACL ninguna."""
+        self, three_companies
+    ):
+        """
+        El orden es observable: la regla dejaría pasar una, la ACL ninguna.
+        """
         IrRule.objects.create(
-            name='acqs sólo alfa (sin acl)', model_name=MODEL_LABEL,
-            domain_force="[('code', '=', 'acqs-alfa')]")
+            name='acqs sólo alfa (sin acl)',
+            model_name=MODEL_LABEL,
+            domain_force="[('code', '=', 'acqs-alfa')]",
+        )
         who = _user('acqs.orden@kaupamex.mx')
         forbidden, _ = _rows()._check_access('read', user=who)
         assert forbidden.count() == 3
@@ -115,7 +133,8 @@ class TestForms:
     """Las tres formas públicas — ``check_access``/``has_access``/filtrado."""
 
     def test_has_access_is_false_without_model_permission(
-            self, three_companies):
+        self, three_companies
+    ):
         who = _user('acqs.has.no@kaupamex.mx')
         assert _rows().has_access('read', user=who) is False
 
@@ -136,25 +155,31 @@ class TestForms:
         assert _rows().check_access('write', user=who) is None
 
     def test_filtered_access_returns_the_subset_the_rules_allow(
-            self, three_companies):
+        self, three_companies
+    ):
         _grant('read')
         IrRule.objects.create(
-            name='acqs filtra a beta', model_name=MODEL_LABEL,
-            domain_force="[('code', '=', 'acqs-beta')]")
+            name='acqs filtra a beta',
+            model_name=MODEL_LABEL,
+            domain_force="[('code', '=', 'acqs-beta')]",
+        )
         who = _user('acqs.filtra@kaupamex.mx')
         allowed = _rows()._filtered_access('read', user=who)
         assert set(allowed.values_list('code', flat=True)) == {'acqs-beta'}
 
     def test_filtered_access_returns_nothing_without_model_permission(
-            self, three_companies):
+        self, three_companies
+    ):
         who = _user('acqs.filtra.no@kaupamex.mx')
         assert _rows()._filtered_access('read', user=who).count() == 0
 
     def test_under_su_the_three_forms_allow_everything(self, three_companies):
         """CONTROL del bypass — la fuente ni consulta bajo ``su``."""
         IrRule.objects.create(
-            name='acqs nada pasa', model_name=MODEL_LABEL,
-            domain_force="[('code', '=', 'no-existe')]")
+            name='acqs nada pasa',
+            model_name=MODEL_LABEL,
+            domain_force="[('code', '=', 'no-existe')]",
+        )
         who = _user('acqs.su@kaupamex.mx')
         with sudo():
             assert _rows().has_access('read', user=who) is True
@@ -162,10 +187,13 @@ class TestForms:
             assert _rows()._filtered_access('read', user=who).count() == 3
 
     def test_a_group_acl_opens_it_to_its_members(self, three_companies):
-        group = ResGroups.objects.create(name='lectores de compañía',
-                                         user_type='internal')
+        group = ResGroups.objects.create(
+            name='lectores de compañía', user_type='internal'
+        )
         _grant('read', group=group)
         who = _user('acqs.grupo@kaupamex.mx')
-        assert _rows().has_access('read', user=who) is False, 'sin el grupo, no'
+        assert (
+            _rows().has_access('read', user=who) is False
+        ), 'sin el grupo, no'
         who.group_ids.add(group)
         assert _rows().has_access('read', user=who) is True

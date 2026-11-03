@@ -31,15 +31,19 @@ Uso
     python3 scripts/pendientes_cascara.py web --args     # JSON para Workflow
     python3 scripts/pendientes_cascara.py web --args --limite 12
 """
+
 import argparse
 import ast
 import json
 import os
 import sys
-
-import sys as _s, os.path as _op
-_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+import sys as _s
+import os.path as _op
+import sys as _sys
+import os as _os
 from reference_roots import addon_root as _addon_root, tree as _tree
+from addons_roots import addon_path
+
 
 #: La raiz del arbol, para los mensajes. La raiz de UN addon NO se compone a
 #: mano: Community reparte sus addons en dos —``addons/`` y ``odoo/addons/``—
@@ -47,9 +51,6 @@ from reference_roots import addon_root as _addon_root, tree as _tree
 #: ``tree() / 'addons' / addon`` lo declaraba ausente con el mensaje *"no
 #: existe en la referencia"*, que es falso: describia donde se habia mirado.
 REFERENCE_19C = str(_tree('odoo19c'))
-import sys as _sys, os as _os
-_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from addons_roots import addon_path
 
 
 def simbolos(ruta):
@@ -91,7 +92,9 @@ def archivos_de_produccion(raiz):
 
 
 def estado(addon):
-    """Clasifica cada archivo de la referencia. Devuelve (pendientes, hechos)."""
+    """
+    Clasifica cada archivo de la referencia. Devuelve (pendientes, hechos).
+    """
     ref_raiz = str(_addon_root(addon, 'odoo19c'))
     mio_raiz = str(addon_path(addon) or '')
     if not os.path.isdir(ref_raiz):
@@ -100,23 +103,32 @@ def estado(addon):
     for rel in archivos_de_produccion(ref_raiz):
         de_ref = simbolos(os.path.join(ref_raiz, rel))
         if not de_ref:
-            continue                      # __init__ vacíos y afines: nada que portar
+            continue  # __init__ vacíos y afines: nada que portar
         mio = os.path.join(mio_raiz, rel)
         if not os.path.exists(mio):
             pendientes.append((rel, len(de_ref), len(de_ref)))
             continue
         falta = de_ref - simbolos(mio)
-        (pendientes if falta else hechos).append((rel, len(de_ref), len(falta)))
+        (pendientes if falta else hechos).append(
+            (rel, len(de_ref), len(falta))
+        )
     return pendientes, hechos
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('addon')
-    p.add_argument('--args', action='store_true',
-                   help='emite el JSON de args para completar-cascara.js')
-    p.add_argument('--limite', type=int, default=12,
-                   help='cuántos archivos meter en el lote (default 12)')
+    p.add_argument(
+        '--args',
+        action='store_true',
+        help='emite el JSON de args para completar-cascara.js',
+    )
+    p.add_argument(
+        '--limite',
+        type=int,
+        default=12,
+        help='cuántos archivos meter en el lote (default 12)',
+    )
     a = p.parse_args()
 
     pendientes, hechos = estado(a.addon)
@@ -124,13 +136,21 @@ def main():
     pendientes.sort(key=lambda x: -x[2])
 
     if a.args:
-        print(json.dumps({'addon': a.addon,
-                          'archivos': [r for r, _, _ in pendientes[:a.limite]]},
-                         ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    'addon': a.addon,
+                    'archivos': [r for r, _, _ in pendientes[: a.limite]],
+                },
+                ensure_ascii=False,
+            )
+        )
         return
 
-    print(f"{a.addon}: {len(hechos)} archivos completos · "
-          f"{len(pendientes)} con símbolos ausentes")
+    print(
+        f"{a.addon}: {len(hechos)} archivos completos · "
+        f"{len(pendientes)} con símbolos ausentes"
+    )
     print(f"  símbolos ausentes en total: {sum(f for _, _, f in pendientes)}")
     if pendientes:
         print(f"\n  {'archivo':<44} {'ref':>5} {'falta':>6}")
@@ -138,8 +158,10 @@ def main():
             print(f"  {rel:<44} {ref:>5} {falta:>6}")
         if len(pendientes) > 30:
             print(f"  … {len(pendientes) - 30} archivos más")
-        print(f"\n  Siguiente lote:\n"
-              f"    python3 scripts/pendientes_cascara.py {a.addon} --args")
+        print(
+            "\n  Siguiente lote:\n"
+            f"    python3 scripts/pendientes_cascara.py {a.addon} --args"
+        )
 
 
 if __name__ == '__main__':

@@ -29,6 +29,7 @@ este addon.
 El censo símbolo a símbolo, las divergencias y sus sucesores viven en el
 docstring de cada archivo — no se resumen aquí para que haya una sola fuente.
 """
+
 from .diff_utils import (
     apply_patch,
     generate_comparison,

@@ -1,0 +1,91 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFFFFF                                                                [100%]
+=================================== FAILURES ===================================
+___________ test_catalogue_requires_session_and_explicit_capability ____________
+tests/integration/base/test_module_catalogue_api.py:53: in test_catalogue_requires_session_and_explicit_capability
+    assert client.get(URL).status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+E    +    where <HttpResponseNotFound status_code=404, "text/html; charset=utf-8"> = <bound method APIClient.get of <rest_framework.test.APIClient object at 0x7f21193b6270>>('/api/v2/admin/technical-modules/')
+E    +      where <bound method APIClient.get of <rest_framework.test.APIClient object at 0x7f21193b6270>> = <rest_framework.test.APIClient object at 0x7f21193b6270>.get
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+_________ test_catalogue_paginates_without_implicit_application_filter _________
+tests/integration/base/test_module_catalogue_api.py:63: in test_catalogue_paginates_without_implicit_application_filter
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+______________ test_catalogue_filters_are_typed[filters0-names0] _______________
+tests/integration/base/test_module_catalogue_api.py:81: in test_catalogue_filters_are_typed
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+______________ test_catalogue_filters_are_typed[filters1-names1] _______________
+tests/integration/base/test_module_catalogue_api.py:81: in test_catalogue_filters_are_typed
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+______________ test_catalogue_filters_are_typed[filters2-names2] _______________
+tests/integration/base/test_module_catalogue_api.py:81: in test_catalogue_filters_are_typed
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+____ test_catalogue_rejects_invalid_filters_and_database_selection[query0] _____
+tests/integration/base/test_module_catalogue_api.py:88: in test_catalogue_rejects_invalid_filters_and_database_selection
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+____ test_catalogue_rejects_invalid_filters_and_database_selection[query1] _____
+tests/integration/base/test_module_catalogue_api.py:88: in test_catalogue_rejects_invalid_filters_and_database_selection
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/
+_________ test_catalogue_preserves_version_provenance_and_is_read_only _________
+tests/integration/base/test_module_catalogue_api.py:95: in test_catalogue_preserves_version_provenance_and_is_read_only
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <HttpResponseNotFound status_code=404, "text/html; charset=utf-8">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Not Found: /api/v2/admin/technical-modules/14/
+_________ test_catalogue_capability_is_declared_by_existing_collector __________
+tests/integration/base/test_module_catalogue_api.py:109: in test_catalogue_capability_is_declared_by_existing_collector
+    assert 'settings.modules' in capabilities
+E   AssertionError: assert 'settings.modules' in {'account.bus': CapabilitySpec('account.bus'), 'account.deactivate': CapabilitySpec('account.deactivate'), 'account.notifications': CapabilitySpec('account.notifications'), 'account.orders': CapabilitySpec('account.orders'), ...}
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/base/test_module_catalogue_api.py::test_catalogue_paginates_without_implicit_application_filter
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_module_catalogue_api.py::test_catalogue_paginates_without_implicit_application_filter
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/technical-catalogue-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_requires_session_and_explicit_capability
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_paginates_without_implicit_application_filter
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_filters_are_typed[filters0-names0]
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_filters_are_typed[filters1-names1]
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_filters_are_typed[filters2-names2]
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_rejects_invalid_filters_and_database_selection[query0]
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_rejects_invalid_filters_and_database_selection[query1]
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_preserves_version_provenance_and_is_read_only
+FAILED tests/integration/base/test_module_catalogue_api.py::test_catalogue_capability_is_declared_by_existing_collector
+9 failed, 3 warnings in 4.13s

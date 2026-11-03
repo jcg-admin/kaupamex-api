@@ -47,6 +47,7 @@ verdad: comprueba que la longitud llega hasta el tipo de columna, así que un
 alias que aceptara ``size=`` y lo tirara —el ``**kwargs`` que se lo traga—
 seguiría rojo aquí y verde en el anterior.
 """
+
 import pytest
 from django.db import models as django_models
 
@@ -57,7 +58,9 @@ class TestTheSignatureAliasesTranslateNamesNotMechanisms:
     """Los cuatro nombres de la fuente y su destino en Django."""
 
     def test_the_size_alias_becomes_max_length(self):
-        """El alias que cerró el viaje de ida (33 declaraciones en la fuente)."""
+        """
+        El alias que cerró el viaje de ida (33 declaraciones en la fuente).
+        """
         field = fields.Char('Label', size=64)
         assert isinstance(field, django_models.CharField)
         assert field.max_length == 64
@@ -69,7 +72,10 @@ class TestTheSignatureAliasesTranslateNamesNotMechanisms:
         es el otro extremo de la misma traducción, y sólo este caso comprueba
         que los dos extremos se hablan.
         """
-        assert fields.Char('Label', size=64).column_type == ('varchar', 'VARCHAR(64)')
+        assert fields.Char('Label', size=64).column_type == (
+            'varchar',
+            'VARCHAR(64)',
+        )
 
     def test_max_length_still_works_by_its_django_name(self):
         """El nombre de Django sigue admitido: el alias suma, no sustituye."""

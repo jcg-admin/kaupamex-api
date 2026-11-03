@@ -1,4 +1,6 @@
-"""Candado por tiempo configurable por grupo — el eje que ``authz_reauth`` no cubre.
+"""
+Candado por tiempo configurable por grupo — el eje que ``authz_reauth`` no
+cubre.
 
 Adaptación de Odoo ``auth_timeout/models/res_groups.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 236 líneas) — atribución y
@@ -97,6 +99,7 @@ Divergencias declaradas
    ``ResGroups._get_lock_timeouts(group_ids)``. Misma clave de caché
    (``self._ids`` ≙ ``frozenset(group_ids)``), mismo resultado.
 """
+
 import api
 import fields
 from orm.model_classes import extend_model
@@ -156,6 +159,7 @@ def _clear_lock_timeouts_cache():
 # La fuente los escribe como bucle sobre el recordset asignando el campo; aquí
 # devuelven el valor y la ``property`` homónima los expone (#360/#384).
 
+
 def _compute_has_lock_timeout(self):
     """≙ ``_compute_has_lock_timeout`` (``:91-94``)."""
     return bool(self.lock_timeout)
@@ -192,6 +196,7 @@ def _compute_lock_timeout_inactivity_2fa_selection(self):
 
 # === Los 2 inversos ======================================================
 
+
 def _inverse_lock_timeout_2fa_selection(self, value):
     """≙ ``_inverse_lock_timeout_2fa_selection`` (``:109-111``).
 
@@ -210,6 +215,7 @@ def _inverse_lock_timeout_inactivity_2fa_selection(self, value):
 # El decorador anota y no dispara (``src/orm/decorators.py:37``): lo invoca
 # quien edita el grupo. Los defaults son los de la fuente, verbatim.
 
+
 @api.onchange('has_lock_timeout')
 def _onchange_has_lock_timeout(self, enabled):
     """≙ ``_onchange_has_lock_timeout`` (``:136-144``).
@@ -220,8 +226,8 @@ def _onchange_has_lock_timeout(self, enabled):
         self.lock_timeout = 0
         self.lock_timeout_mfa = False
     else:
-        self.lock_timeout = 1440           # un día por defecto
-        self.lock_timeout_mfa = True       # exige 2FA por defecto
+        self.lock_timeout = 1440  # un día por defecto
+        self.lock_timeout_mfa = True  # exige 2FA por defecto
 
 
 @api.onchange('lock_timeout_delay_unit', 'lock_timeout_delay_in_unit')
@@ -241,18 +247,21 @@ def _onchange_has_lock_timeout_inactivity(self, enabled):
         self.lock_timeout_inactivity = 0
         self.lock_timeout_inactivity_mfa = False
     else:
-        self.lock_timeout_inactivity = 15      # 15 minutos por defecto
-        self.lock_timeout_inactivity_mfa = False   # no exige 2FA por defecto
+        self.lock_timeout_inactivity = 15  # 15 minutos por defecto
+        self.lock_timeout_inactivity_mfa = False  # no exige 2FA por defecto
 
 
-@api.onchange('lock_timeout_inactivity_delay_unit',
-              'lock_timeout_inactivity_delay_in_unit')
+@api.onchange(
+    'lock_timeout_inactivity_delay_unit',
+    'lock_timeout_inactivity_delay_in_unit',
+)
 def _onchange_lock_timeout_inactivity_delay_unit(self, delay, unit):
     """≙ ``_onchange_lock_timeout_inactivity_delay_unit`` (``:163-169``)."""
     self.lock_timeout_inactivity = human_readable_delay_to_minutes(delay, unit)
 
 
 # === Invalidación de la caché ============================================
+
 
 def save(self, *args, **kwargs):
     """≙ ``create`` (``:171-177``) + ``write`` (``:179-184``) — divergencia 2.
@@ -267,7 +276,9 @@ def save(self, *args, **kwargs):
     hace el encadenador, no este cuerpo.
     """
     update_fields = kwargs.get('update_fields')
-    if update_fields is None or set(update_fields) & set(CACHE_INVALIDATE_FIELDS):
+    if update_fields is None or set(update_fields) & set(
+        CACHE_INVALIDATE_FIELDS
+    ):
         _clear_lock_timeouts_cache()
 
 
@@ -312,7 +323,8 @@ def _get_lock_timeouts(cls, group_ids):
     # existe porque su ``ormcache`` no puede depender del contexto; aquí no
     # hay contexto de recordset que neutralizar.
     implied = cls.objects.filter(
-        pk__in=cls._closure(seeds, lambda group: group.implied_ids.all()))
+        pk__in=cls._closure(seeds, lambda group: group.implied_ids.all())
+    )
 
     result = {}
     for field_name, mfa_field_name in (
@@ -340,6 +352,7 @@ def _get_lock_timeouts(cls, group_ids):
 
 
 # === Las 8 propiedades — los campos que la fuente computa sin almacenar ====
+
 
 def has_lock_timeout(self):
     """≙ ``has_lock_timeout`` — la propiedad que expone el cómputo."""
@@ -382,50 +395,80 @@ def lock_timeout_inactivity_2fa_selection(self):
 
 
 def apply_authz_timeout_res_groups_extensions():
-    """Cuelga sobre ``res.groups`` el eje de candado por tiempo — ≙ ``_inherit``."""
+    """
+    Cuelga sobre ``res.groups`` el eje de candado por tiempo — ≙ ``_inherit``.
+    """
     extend_model(
-        'base', 'ResGroups',
+        'base',
+        'ResGroups',
         campos={
             'lock_timeout': fields.Integer(
                 default=0,
                 verbose_name='Caducidad de sesión',
-                help_text='Odoo lock_timeout ("Session timeout") — minutos '
-                          'tras los cuales se vuelve a exigir identidad, haya '
-                          'o no actividad.',
+                help_text=(
+                    'Odoo lock_timeout ("Session timeout") — minutos '
+                    'tras los cuales se vuelve a exigir identidad, haya '
+                    'o no actividad.'
+                ),
             ),
             'lock_timeout_mfa': fields.Boolean(
                 default=False,
                 verbose_name='Exigir MFA al caducar la sesión',
-                help_text='Odoo lock_timeout_mfa ("Require MFA on session '
-                          'timeout").',
+                help_text=(
+                    'Odoo lock_timeout_mfa ("Require MFA on session timeout").'
+                ),
             ),
             'lock_timeout_inactivity': fields.Integer(
                 default=0,
                 verbose_name='Caducidad por inactividad',
-                help_text='Odoo lock_timeout_inactivity ("Inactivity '
-                          'timeout") — minutos de inactividad tras los cuales '
-                          'se vuelve a exigir identidad.',
+                help_text=(
+                    'Odoo lock_timeout_inactivity ("Inactivity '
+                    'timeout") — minutos de inactividad tras los cuales '
+                    'se vuelve a exigir identidad.'
+                ),
             ),
             'lock_timeout_inactivity_mfa': fields.Boolean(
                 default=False,
                 verbose_name='Exigir MFA al caducar por inactividad',
-                help_text='Odoo lock_timeout_inactivity_mfa ("Require MFA on '
-                          'inactivity timeout").',
+                help_text=(
+                    'Odoo lock_timeout_inactivity_mfa ("Require MFA on '
+                    'inactivity timeout").'
+                ),
             ),
         },
         metodos={
             '_compute_has_lock_timeout': _compute_has_lock_timeout,
-            '_compute_lock_timeout_delay_unit': _compute_lock_timeout_delay_unit,
-            '_compute_lock_timeout_2fa_selection': _compute_lock_timeout_2fa_selection,
-            '_compute_lock_timeout_inactivity_bool': _compute_lock_timeout_inactivity_bool,
-            '_compute_lock_timeout_inactivity_delay_unit': _compute_lock_timeout_inactivity_delay_unit,
-            '_compute_lock_timeout_inactivity_2fa_selection': _compute_lock_timeout_inactivity_2fa_selection,
-            '_inverse_lock_timeout_2fa_selection': _inverse_lock_timeout_2fa_selection,
-            '_inverse_lock_timeout_inactivity_2fa_selection': _inverse_lock_timeout_inactivity_2fa_selection,
+            '_compute_lock_timeout_delay_unit': (
+                _compute_lock_timeout_delay_unit
+            ),
+            '_compute_lock_timeout_2fa_selection': (
+                _compute_lock_timeout_2fa_selection
+            ),
+            '_compute_lock_timeout_inactivity_bool': (
+                _compute_lock_timeout_inactivity_bool
+            ),
+            '_compute_lock_timeout_inactivity_delay_unit': (
+                _compute_lock_timeout_inactivity_delay_unit
+            ),
+            '_compute_lock_timeout_inactivity_2fa_selection': (
+                _compute_lock_timeout_inactivity_2fa_selection
+            ),
+            '_inverse_lock_timeout_2fa_selection': (
+                _inverse_lock_timeout_2fa_selection
+            ),
+            '_inverse_lock_timeout_inactivity_2fa_selection': (
+                _inverse_lock_timeout_inactivity_2fa_selection
+            ),
             '_onchange_has_lock_timeout': _onchange_has_lock_timeout,
-            '_onchange_lock_timeout_delay_unit': _onchange_lock_timeout_delay_unit,
-            '_onchange_has_lock_timeout_inactivity': _onchange_has_lock_timeout_inactivity,
-            '_onchange_lock_timeout_inactivity_delay_unit': _onchange_lock_timeout_inactivity_delay_unit,
+            '_onchange_lock_timeout_delay_unit': (
+                _onchange_lock_timeout_delay_unit
+            ),
+            '_onchange_has_lock_timeout_inactivity': (
+                _onchange_has_lock_timeout_inactivity
+            ),
+            '_onchange_lock_timeout_inactivity_delay_unit': (
+                _onchange_lock_timeout_inactivity_delay_unit
+            ),
             'save': save,
             'delete': delete,
             '_get_lock_timeouts': classmethod(_get_lock_timeouts),
@@ -436,8 +479,14 @@ def apply_authz_timeout_res_groups_extensions():
             'lock_timeout_delay_in_unit': lock_timeout_delay_in_unit,
             'lock_timeout_2fa_selection': lock_timeout_2fa_selection,
             'has_lock_timeout_inactivity': has_lock_timeout_inactivity,
-            'lock_timeout_inactivity_delay_unit': lock_timeout_inactivity_delay_unit,
-            'lock_timeout_inactivity_delay_in_unit': lock_timeout_inactivity_delay_in_unit,
-            'lock_timeout_inactivity_2fa_selection': lock_timeout_inactivity_2fa_selection,
+            'lock_timeout_inactivity_delay_unit': (
+                lock_timeout_inactivity_delay_unit
+            ),
+            'lock_timeout_inactivity_delay_in_unit': (
+                lock_timeout_inactivity_delay_in_unit
+            ),
+            'lock_timeout_inactivity_2fa_selection': (
+                lock_timeout_inactivity_2fa_selection
+            ),
         },
     )

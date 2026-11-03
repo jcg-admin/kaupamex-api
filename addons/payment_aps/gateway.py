@@ -7,6 +7,7 @@ el servicio externo está pendiente; cada operación falla explícito con
 NotImplementedError (provider registrado, sin credenciales ni flujo
 cableado) — nunca simula un resultado.
 """
+
 from decimal import Decimal
 
 from addons.payment.gateways.registry import register_gateway
@@ -25,13 +26,17 @@ _PENDING = (
 
 
 class ApsGateway(BaseGateway):
-    """Provider Amazon Payment Services — contrato registrado, integración pendiente."""
+    """
+    Provider Amazon Payment Services — contrato registrado, integración
+    pendiente.
+    """
 
     def refund(self, gateway_payment_id: str, amount: Decimal) -> RefundResult:
         raise NotImplementedError(_PENDING)
 
-    def create_preference(self, order, back_urls: dict,
-                          installments: int = 1) -> PreferenceResult:
+    def create_preference(
+        self, order, back_urls: dict, installments: int = 1
+    ) -> PreferenceResult:
         raise NotImplementedError(_PENDING)
 
     def get_installment_plans(self, amount: Decimal) -> list[InstallmentPlan]:

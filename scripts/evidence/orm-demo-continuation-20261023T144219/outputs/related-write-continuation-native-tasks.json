@@ -1,0 +1,40 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet",
+  "command": "bun native TaskGet1187/1193/1194",
+  "rows": [
+    {
+      "task_id": "1187",
+      "citation_id": "TASK-API-0412",
+      "subject": "Despachar el inverse declarado al escribir el campo",
+      "description": "CERRADA en api@775c674e (TASK-API-0412). Las dos vías portadas, en tres piezas: (1) `RecordLoaderMixin.write` envuelve la escritura en `env().protecting(protected, self)` y despacha `fields[0].determine_inverse(self)` al final del bloque — ≙ `odoo19c: odoo/orm/models.py:4334,4493`; (2) `ComputedFieldDescriptor.__set__` marca el campo en `instance.__dict__[PENDING_INVERSE_FIELDS]` en sus tres cubos de escritura (fila nueva, fila real, y el cubo `_orm_building` SÓLO si el campo no tiene columna — un campo sin columna sólo llega al `__init__` por el bucle de kwargs sobrantes, o sea porque el llamador lo pasó); (3) `RecordLoaderMixin.save` vacía esa marca tras `super().save()` y despacha. Además `model_field_registry` responde ahora al attname y al name (895 attnames, 0 choques), que es lo que el KeyError 'company_id' destapó. Aceptación por CONTENIDO (columna del partner releída de la DB, no `hasattr`): 4/4 caminos. Banco: scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_declared_address_dispatches_its_inverse.py. Hallazgo: H-API-1111 (docs@d84ac6acd). Sucesores abiertos: #358 (64 rojos alcanzables), #359 (los ocho @property restantes de ResCompany).",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1193",
+      "citation_id": "TASK-API-0418",
+      "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+      "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1194",
+      "citation_id": "TASK-API-0419",
+      "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+      "description": "Cota declarada por TASK-API-0416 en el docstring de `_merge_field_definitions` (src/orm/fields.py). La fusión reconstruye el campo con `type(chain[-1])(**merged)`, y `merged` sale de `_args__`, que sólo guarda lo que pasó por `Field.__init__` (el parche `_field_init_with_copy`). Una relacional entrega `to` y `on_delete` a `ForeignKey.__init__`/`ManyToManyField.__init__` y nunca al de `Field`, así que su reconstrucción sale sin destino ni política de borrado. Hoy no se alcanza —la rama de fusión entera es inalcanzable hasta que cierre TASK-API-0418— pero al abrirse será el primer caso que rompa. Dos caminos a medir contra la referencia antes de elegir: capturar los kwargs en el `__init__` de cada relacional, o reconstruir desde `deconstruct()` en vez de desde `_args__`. Verificación: un caso con una cadena de dos declaraciones sobre un ForeignKey que conserve `to` y `on_delete`.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ]
+}

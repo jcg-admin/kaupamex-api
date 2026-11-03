@@ -10,6 +10,7 @@ Endpoints under test:
 
 English JSON keys per DEC-DOC-005. Spanish business codes per DEC-DOC-006.
 """
+
 from decimal import Decimal
 from addons.sale.status_projection import (
     STATUS_DRAFT,
@@ -33,23 +34,35 @@ from tests.factories.product_factory import make_category, make_product
 pytestmark = pytest.mark.integration
 
 
-PANEL_URL    = '/api/v2/logistics/'
-COURIER_URL  = '/api/v2/logistics/couriers/'
-GUIDES_URL   = '/api/v2/logistics/guides/'
-CONFIRM_URL  = lambda pk: f'/api/v2/logistics/guides/{pk}/confirm-delivery/'
-GUIDE_URL    = lambda pk: f'/api/v2/logistics/guides/{pk}/'
+PANEL_URL = '/api/v2/logistics/'
+COURIER_URL = '/api/v2/logistics/couriers/'
+GUIDES_URL = '/api/v2/logistics/guides/'
+
+
+def _confirm_url(pk):
+    return f'/api/v2/logistics/guides/{pk}/confirm-delivery/'
+
+
+def _guide_url(pk):
+    return f'/api/v2/logistics/guides/{pk}/'
 
 
 @pytest.fixture
 def cat_log(db):
-    return make_category(name='Logistics',)
+    return make_category(
+        name='Logistics',
+    )
 
 
 @pytest.fixture
 def prod_log(db, cat_log):
     _p = make_product(
-        name='Pulsera Yoruba', default_code='LOG-PY-001',
-        price=Decimal('500.00'), stock=10, categ=cat_log)
+        name='Pulsera Yoruba',
+        default_code='LOG-PY-001',
+        price=Decimal('500.00'),
+        stock=10,
+        categ=cat_log,
+    )
     return _p
 
 
@@ -70,13 +83,19 @@ def _canonical_ready_order(user, prod, *, approved=True):
     """
     order = make_order(
         status=STATUS_PAID if approved else STATUS_PENDING,
-        user=user, product=prod, quantity=1,
+        user=user,
+        product=prod,
+        quantity=1,
         amount=Decimal('580.00'),
     )
     set_delivery_line(order, Decimal('80.00'))
     DeliveryAddress.objects.create(
-        sale_order=order, recipient_name='Test', street='Av', city='CDMX',
-        state='CDMX', zip_code='06600',
+        sale_order=order,
+        recipient_name='Test',
+        street='Av',
+        city='CDMX',
+        state='CDMX',
+        zip_code='06600',
     )
     return order
 
@@ -115,12 +134,21 @@ class TestLogisticsPanel:
     ):
         # group A: order_log has no guide.
         # group B: create another order + guide.
-        o2 = make_order(user=user, product=prod_log, quantity=1,
-                        unit_price=Decimal('100'))   # la guía se crea abajo
-        DeliveryAddress.objects.create(sale_order=o2, recipient_name='X',
-            street='Y', city='Z', state='Z', zip_code='00000')
+        o2 = make_order(
+            user=user, product=prod_log, quantity=1, unit_price=Decimal('100')
+        )  # la guía se crea abajo
+        DeliveryAddress.objects.create(
+            sale_order=o2,
+            recipient_name='X',
+            street='Y',
+            city='Z',
+            state='Z',
+            zip_code='00000',
+        )
         ShipmentGuide.objects.create(
-            sale_order=o2, courier=courier_log, tracking_number='TRK-001',
+            sale_order=o2,
+            courier=courier_log,
+            tracking_number='TRK-001',
         )
         r = admin_client.get(PANEL_URL)
         assert r.status_code == 200
@@ -137,7 +165,9 @@ class TestLogisticsPanel:
     ):
         c2 = Courier.objects.create(name='DHL', code='DHL')
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=c2, tracking_number='OTHER-001',
+            sale_order=order_log,
+            courier=c2,
+            tracking_number='OTHER-001',
         )
         r = admin_client.get(PANEL_URL + f'?courier_id={courier_log.id}')
         assert r.status_code == 200
@@ -157,31 +187,56 @@ class TestGuideGuardOnCanonicalAxes:
     ``Payment`` APPROVED (y, para el panel, sin guía viva)."""
 
     def test_crea_guia_con_venta_confirmada_y_pago_aprobado(
-        self, admin_client, courier_log, prod_log, user, db,
+        self,
+        admin_client,
+        courier_log,
+        prod_log,
+        user,
+        db,
     ):
         # Los dos ejes cumplidos: venta confirmada + pago aprobado.
         o = _canonical_ready_order(user, prod_log, approved=True)
-        r = admin_client.post(GUIDES_URL, {
-            'order_id': o.id, 'courier_id': courier_log.id,
-            'tracking_number': 'CANON-OK-1',
-        }, format='json')
+        r = admin_client.post(
+            GUIDES_URL,
+            {
+                'order_id': o.id,
+                'courier_id': courier_log.id,
+                'tracking_number': 'CANON-OK-1',
+            },
+            format='json',
+        )
         assert r.status_code == 201, r.content
 
     def test_rechaza_guia_sin_pago_aprobado(
-        self, admin_client, courier_log, prod_log, user, db,
+        self,
+        admin_client,
+        courier_log,
+        prod_log,
+        user,
+        db,
     ):
         o = _canonical_ready_order(user, prod_log, approved=False)
-        r = admin_client.post(GUIDES_URL, {
-            'order_id': o.id, 'courier_id': courier_log.id,
-            'tracking_number': 'CANON-NOPAY-1',
-        }, format='json')
+        r = admin_client.post(
+            GUIDES_URL,
+            {
+                'order_id': o.id,
+                'courier_id': courier_log.id,
+                'tracking_number': 'CANON-NOPAY-1',
+            },
+            format='json',
+        )
         assert r.status_code == 400
         # El serializer envuelve el valor en lista (mismo shape que
         # ORDER_REQUIRED): assert loose sobre el código de negocio estable.
         assert 'ORDER_NOT_IN_PREPARATION' in str(r.json())
 
     def test_rechaza_guia_con_venta_en_borrador(
-        self, admin_client, courier_log, prod_log, user, db,
+        self,
+        admin_client,
+        courier_log,
+        prod_log,
+        user,
+        db,
     ):
         # El otro eje de la guarda. Antes este caso era "orden sin
         # ``sale_order``", imposible desde que la venta ES la orden
@@ -190,35 +245,49 @@ class TestGuideGuardOnCanonicalAxes:
         # mantiene probados los dos ejes, no sólo el del pago.
         o = make_order(user=user, status=STATUS_DRAFT)
         SaleOrderLine.objects.create(
-            order=o, product=prod_log, name=prod_log.name, price_unit=prod_log.lst_price,
+            order=o,
+            product=prod_log,
+            name=prod_log.name,
+            price_unit=prod_log.lst_price,
             product_uom_qty=1,
         )
-        r = admin_client.post(GUIDES_URL, {
-            'order_id': o.id, 'courier_id': courier_log.id,
-            'tracking_number': 'CANON-DRAFT-1',
-        }, format='json')
+        r = admin_client.post(
+            GUIDES_URL,
+            {
+                'order_id': o.id,
+                'courier_id': courier_log.id,
+                'tracking_number': 'CANON-DRAFT-1',
+            },
+            format='json',
+        )
         assert r.status_code == 400
         # El serializer envuelve el valor en lista (mismo shape que
         # ORDER_REQUIRED): assert loose sobre el código de negocio estable.
         assert 'ORDER_NOT_IN_PREPARATION' in str(r.json())
 
     def test_panel_lista_solo_venta_pagada_sin_guia(
-        self, admin_client, courier_log, prod_log, user, db,
+        self,
+        admin_client,
+        courier_log,
+        prod_log,
+        user,
+        db,
     ):
-        ready  = _canonical_ready_order(user, prod_log, approved=True)
+        ready = _canonical_ready_order(user, prod_log, approved=True)
         unpaid = _canonical_ready_order(user, prod_log, approved=False)
         shipped = _canonical_ready_order(user, prod_log, approved=True)
         ShipmentGuide.objects.create(
-            sale_order=shipped, courier=courier_log,
+            sale_order=shipped,
+            courier=courier_log,
             tracking_number='PANEL-CANON-GUIDE-1',
         )
 
         r = admin_client.get(PANEL_URL)
         assert r.status_code == 200
         nums = {row['order_number'] for row in r.json()['pending_pickup']}
-        assert ready.name in nums          # sale + pagada, sin guía
-        assert unpaid.name not in nums      # sale pero sin pago
-        assert shipped.name not in nums     # sale + pagada, con guía
+        assert ready.name in nums  # sale + pagada, sin guía
+        assert unpaid.name not in nums  # sale pero sin pago
+        assert shipped.name not in nums  # sale + pagada, con guía
 
 
 class TestCreateShipmentGuide:
@@ -235,7 +304,9 @@ class TestCreateShipmentGuide:
         assert data['tracking_number'] == 'TRK-NEW-001'
         assert data['status'] == 'CREATED'
 
-    def test_admin_crea_guia_por_order_number(self, admin_client, order_log, courier_log, db):
+    def test_admin_crea_guia_por_order_number(
+        self, admin_client, order_log, courier_log, db
+    ):
         # La UI del admin usa order_number (el PK entero se oculta,
         # H-CICLO79-03), así que el serializer debe aceptar order_number.
         payload = {
@@ -247,9 +318,13 @@ class TestCreateShipmentGuide:
         assert r.status_code == 201
         assert r.json()['tracking_number'] == 'TRK-BYNUM-001'
 
-    def test_admin_obtiene_guia_por_order_number(self, admin_client, order_log, courier_log, db):
+    def test_admin_obtiene_guia_por_order_number(
+        self, admin_client, order_log, courier_log, db
+    ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='ADM-GET-1',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='ADM-GET-1',
         )
         r = admin_client.get(
             f'/api/v2/logistics/admin/orders/{order_log.name}/guide/'
@@ -264,11 +339,17 @@ class TestCreateShipmentGuide:
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
 
-    def test_crea_guia_sin_orden_emite_order_required(self, admin_client, courier_log, db):
-        r = admin_client.post(GUIDES_URL, {
-            'courier_id': courier_log.id,
-            'tracking_number': 'TRK-NOORDER',
-        }, format='json')
+    def test_crea_guia_sin_orden_emite_order_required(
+        self, admin_client, courier_log, db
+    ):
+        r = admin_client.post(
+            GUIDES_URL,
+            {
+                'courier_id': courier_log.id,
+                'tracking_number': 'TRK-NOORDER',
+            },
+            format='json',
+        )
         assert r.status_code == 400
         assert 'ORDER_REQUIRED' in str(r.json())
 
@@ -276,13 +357,19 @@ class TestCreateShipmentGuide:
         self, admin_client, order_log, courier_log, db
     ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='DUPE',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='DUPE',
         )
-        r = admin_client.post(GUIDES_URL, {
-            'order_id': order_log.id,
-            'courier_id': courier_log.id,
-            'tracking_number': 'DUPE',
-        }, format='json')
+        r = admin_client.post(
+            GUIDES_URL,
+            {
+                'order_id': order_log.id,
+                'courier_id': courier_log.id,
+                'tracking_number': 'DUPE',
+            },
+            format='json',
+        )
         assert r.status_code == 400
         assert 'TRACKING_DUPLICATE' in str(r.json())
 
@@ -290,27 +377,46 @@ class TestCreateShipmentGuide:
 class TestUpdateGuideStatus:
 
     def test_admin_actualiza_status(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='UPD-1',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='UPD-1',
         )
-        r = admin_client.patch(GUIDE_URL(g.id), {
-            'status': 'PICKED_UP',
-            'description': 'Recolectado',
-        }, format='json')
+        r = admin_client.patch(
+            _guide_url(g.id),
+            {
+                'status': 'PICKED_UP',
+                'description': 'Recolectado',
+            },
+            format='json',
+        )
         assert r.status_code == 200
         assert r.json()['status'] == 'PICKED_UP'
         g.refresh_from_db()
         assert g.events.count() == 1
 
     def test_status_invalido_emite_codigo_error_loud(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='UPD-2',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='UPD-2',
         )
-        r = admin_client.patch(GUIDE_URL(g.id), {'status': 'X'}, format='json')
+        r = admin_client.patch(
+            _guide_url(
+                g.id), {
+                'status': 'X'}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'STATUS_INVALID'
 
@@ -319,14 +425,19 @@ class TestConfirmDelivery:
     """UC-LOG-05 — idempotent."""
 
     def test_confirmacion_primera_vez_marca_delivered(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
             sale_order=order_log,
-            courier=courier_log, tracking_number='DEL-1',
+            courier=courier_log,
+            tracking_number='DEL-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
-        r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
+        r = admin_client.post(_confirm_url(g.id), {}, format='json')
         assert r.status_code == 200
         data = r.json()
         assert data['status'] == 'DELIVERED'
@@ -336,30 +447,42 @@ class TestConfirmDelivery:
         assert order_status(order_log) == 'DELIVERED'
 
     def test_confirmacion_idempotente(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='DEL-2',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='DEL-2',
             status=ShipmentGuide.STATUS_DELIVERED,
             delivered_at=timezone.now(),
         )
-        r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
+        r = admin_client.post(_confirm_url(g.id), {}, format='json')
         assert r.status_code == 200
         assert r.json()['already_delivered'] is True
 
     def test_guia_cancelada_no_se_puede_confirmar(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='DEL-3',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='DEL-3',
             status=ShipmentGuide.STATUS_CANCELLED,
         )
-        r = admin_client.post(CONFIRM_URL(g.id), {}, format='json')
+        r = admin_client.post(_confirm_url(g.id), {}, format='json')
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_CANCELLED'
 
     def test_guia_no_encontrada_loud_404(self, admin_client, db):
-        r = admin_client.post(CONFIRM_URL(999999), {}, format='json')
+        r = admin_client.post(_confirm_url(999999), {}, format='json')
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
 
@@ -368,16 +491,24 @@ class TestOrderStatusShippedAfterGuide:
     """UC-LOG-01 POST-01: order.status → SHIPPED when guide created."""
 
     def test_order_pasa_a_shipped_al_crear_guia(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         # O2C R8: antes de la guía la orden proyecta PAID (pago aprobado,
         # sin guía); crear la guía ES la transición a SHIPPED (eje).
         assert order_status(order_log) == STATUS_PAID
-        r = admin_client.post(GUIDES_URL, {
-            'order_id': order_log.id,
-            'courier_id': courier_log.id,
-            'tracking_number': 'TRK-SHP-001',
-        }, format='json')
+        r = admin_client.post(
+            GUIDES_URL,
+            {
+                'order_id': order_log.id,
+                'courier_id': courier_log.id,
+                'tracking_number': 'TRK-SHP-001',
+            },
+            format='json',
+        )
         assert r.status_code == 201
         order_log.refresh_from_db()
         assert order_status(order_log) == STATUS_SHIPPED
@@ -387,41 +518,74 @@ class TestCancelGuide:
     """UC-LOG-01 Alt-C: cancel shipment guide."""
 
     def test_admin_cancela_guia_creada(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='CAN-001',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='CAN-001',
         )
-        r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/',
-                              {'reason': 'Cliente cancelo'}, format='json')
+        r = admin_client.post(
+            f'/api/v2/logistics/guides/{g.id}/cancellations/',
+            {'reason': 'Cliente cancelo'},
+            format='json',
+        )
         assert r.status_code == 200
         assert r.json()['cancelled'] is True
-        assert ShipmentGuide.all_objects.filter(id=g.id, is_deleted=True).exists()
+        assert ShipmentGuide.all_objects.filter(
+            id=g.id, is_deleted=True
+        ).exists()
 
     def test_no_cancela_guia_entregada(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='CAN-002',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='CAN-002',
             status=ShipmentGuide.STATUS_DELIVERED,
         )
-        r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/', {}, format='json')
+        r = admin_client.post(
+            f'/api/v2/logistics/guides/{g.id}/cancellations/',
+            {},
+            format='json',
+        )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_DELIVERED'
 
     def test_no_cancela_guia_ya_cancelada(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='CAN-003',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='CAN-003',
             status=ShipmentGuide.STATUS_CANCELLED,
         )
-        r = admin_client.post(f'/api/v2/logistics/guides/{g.id}/cancellations/', {}, format='json')
+        r = admin_client.post(
+            f'/api/v2/logistics/guides/{g.id}/cancellations/',
+            {},
+            format='json',
+        )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_ALREADY_CANCELLED'
 
     def test_cancela_guia_404_loud(self, admin_client, db):
-        r = admin_client.post('/api/v2/logistics/guides/999999/cancellations/', {}, format='json')
+        r = admin_client.post(
+            '/api/v2/logistics/guides/999999/cancellations/', {}, format='json'
+        )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
 
@@ -430,11 +594,18 @@ class TestCourierCRUD:
     """UC-LOG-06 CRUD couriers."""
 
     def test_admin_crea_courier(self, admin_client, db):
-        r = admin_client.post('/api/v2/logistics/couriers/', {
-            'name': 'FedEx', 'code': 'FDX',
-            'tracking_url_template': 'https://fedex.com/track?trk={tracking_number}',
-            'is_active': True,
-        }, format='json')
+        r = admin_client.post(
+            '/api/v2/logistics/couriers/',
+            {
+                'name': 'FedEx',
+                'code': 'FDX',
+                'tracking_url_template': (
+                    'https://fedex.com/track?trk={tracking_number}'
+                ),
+                'is_active': True,
+            },
+            format='json',
+        )
         assert r.status_code == 201
         assert r.json()['code'] == 'FDX'
 
@@ -448,31 +619,47 @@ class TestCourierCRUD:
         assert r.json()['is_active'] is False
 
     def test_admin_desactiva_courier(self, admin_client, courier_log, db):
-        r = admin_client.delete(f'/api/v2/logistics/couriers/{courier_log.id}/')
+        r = admin_client.delete(
+            f'/api/v2/logistics/couriers/{courier_log.id}/'
+        )
         assert r.status_code == 200
         assert r.json()['deactivated'] is True
         courier_log.refresh_from_db()
         assert courier_log.is_active is False
 
     def test_courier_no_encontrado_loud_404(self, admin_client, db):
-        r = admin_client.patch('/api/v2/logistics/couriers/999999/', {'name': 'X'}, format='json')
+        r = admin_client.patch(
+            '/api/v2/logistics/couriers/999999/', {'name': 'X'}, format='json'
+        )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'COURIER_NOT_FOUND'
 
 
 class TestUpdateTrackingNumber:
-    """UC-LOG-02 — registrar/actualizar el número de rastreo tras crear la guía."""
+    """
+    UC-LOG-02 — registrar/actualizar el número de rastreo tras crear la guía.
+    """
 
     def test_admin_actualiza_tracking_number(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='TRK-OLD',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='TRK-OLD',
         )
-        r = admin_client.patch(GUIDE_URL(g.id), {
-            'tracking_number': 'TRK-NEW',
-            'tracking_url': 'https://estafeta.com/track?n=TRK-NEW',
-        }, format='json')
+        r = admin_client.patch(
+            _guide_url(g.id),
+            {
+                'tracking_number': 'TRK-NEW',
+                'tracking_url': 'https://estafeta.com/track?n=TRK-NEW',
+            },
+            format='json',
+        )
         assert r.status_code == 200
         data = r.json()
         assert data['tracking_number'] == 'TRK-NEW'
@@ -483,52 +670,90 @@ class TestUpdateTrackingNumber:
         assert g.events.filter(description__contains="'TRK-OLD'").exists()
 
     def test_actualizar_tracking_requiere_admin_403(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='TRK-AUTH',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='TRK-AUTH',
         )
-        r = auth_client.patch(GUIDE_URL(g.id), {'tracking_number': 'X'}, format='json')
+        r = auth_client.patch(
+            _guide_url(g.id), {'tracking_number': 'X'}, format='json'
+        )
         assert r.status_code == 403
 
     def test_tracking_number_vacio_emite_codigo_error(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='TRK-VAL',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='TRK-VAL',
         )
-        r = admin_client.patch(GUIDE_URL(g.id), {'tracking_number': '   '}, format='json')
+        r = admin_client.patch(
+            _guide_url(g.id), {'tracking_number': '   '}, format='json'
+        )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'TRACKING_REQUIRED'
 
     def test_tracking_duplicado_advierte_pero_permite(
-        self, admin_client, order_log, courier_log, prod_log, user, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        prod_log,
+        user,
+        db,
     ):
-        # EX-02: otra guía activa (de OTRO courier) ya tiene el número → warning
-        # pero permite. Nota: la unicidad es per-courier (unique_tracking_per_courier),
+        # EX-02: otra guía activa (de OTRO courier) ya tiene el número →
+        # warning
+        # pero permite. Nota: la unicidad es per-courier
+        # (unique_tracking_per_courier),
         # así que el duplicado reachable es cross-courier.
         c2 = Courier.objects.create(name='DHL-dup', code='DHLD')
         o2 = make_order(user=user, status=STATUS_PAID)
         ShipmentGuide.objects.create(
-            sale_order=o2, courier=c2, tracking_number='DUP-TRK',
+            sale_order=o2,
+            courier=c2,
+            tracking_number='DUP-TRK',
         )
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='TRK-ORIG',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='TRK-ORIG',
         )
-        r = admin_client.patch(GUIDE_URL(g.id), {'tracking_number': 'DUP-TRK'}, format='json')
+        r = admin_client.patch(
+            _guide_url(g.id), {'tracking_number': 'DUP-TRK'}, format='json'
+        )
         assert r.status_code == 200
         assert 'warning' in r.json()
         g.refresh_from_db()
         assert g.tracking_number == 'DUP-TRK'
 
     def test_actualizar_status_sigue_funcionando(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         # Regresión: el PATCH de status no se rompe con la rama de tracking.
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='TRK-STS',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='TRK-STS',
         )
-        r = admin_client.patch(GUIDE_URL(g.id), {'status': 'PICKED_UP'}, format='json')
+        r = admin_client.patch(
+            _guide_url(g.id), {'status': 'PICKED_UP'}, format='json'
+        )
         assert r.status_code == 200
         assert r.json()['status'] == 'PICKED_UP'
 
@@ -536,19 +761,32 @@ class TestUpdateTrackingNumber:
 class TestBuyerReportIncident:
     """UC-LOG-07 — el comprador dueño reporta un problema de su envío."""
 
-    INCIDENT_URL = lambda self, oid: f'/api/v2/logistics/buyer/order/{oid}/incident/'
+    def _incident_url(self, oid):
+        return f'/api/v2/logistics/buyer/order/{oid}/incident/'
 
     def test_comprador_reporta_problema(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         g = ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-1',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
-        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'NOT_RECEIVED',
-            'description': 'No he recibido mi paquete y ya pasaron 10 dias.',
-        }, format='json')
+        r = auth_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'NOT_RECEIVED',
+                'description': (
+                    'No he recibido mi paquete y ya pasaron 10 dias.'
+                ),
+            },
+            format='json',
+        )
         assert r.status_code == 201
         data = r.json()
         assert data['status'] == 'RECEIVED'
@@ -558,108 +796,183 @@ class TestBuyerReportIncident:
         assert g.events.filter(status=ShipmentGuide.STATUS_INCIDENT).exists()
 
     def test_comprador_reporta_problema_por_order_number(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         # La UI usa order_number (no conoce el PK).
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-NUM-1',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-NUM-1',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         r = auth_client.post(
             f'/api/v2/logistics/buyer/orders/{order_log.name}/incident/',
             {
                 'problem_type': 'DAMAGED_PRODUCT',
-                'description': 'El paquete llegó con el producto roto por dentro.',
-            }, format='json',
+                'description': (
+                    'El paquete llegó con el producto roto por dentro.'
+                ),
+            },
+            format='json',
         )
         assert r.status_code == 201
         assert r.json()['problem_type'] == 'DAMAGED_PRODUCT'
 
     def test_no_dueno_recibe_404(
-        self, admin_client, order_log, courier_log, db,
+        self,
+        admin_client,
+        order_log,
+        courier_log,
+        db,
     ):
         # admin_client está autenticado como un usuario distinto al dueño.
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-2',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-2',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
-        r = admin_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'DELAY',
-            'description': 'El paquete lleva mucho tiempo sin avanzar la verdad.',
-        }, format='json')
+        r = admin_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'DELAY',
+                'description': (
+                    'El paquete lleva mucho tiempo sin avanzar la verdad.'
+                ),
+            },
+            format='json',
+        )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_anonimo_recibe_401(self, api_client, order_log, db):
-        r = api_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'DELAY', 'description': 'x' * 25,
-        }, format='json')
+        r = api_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'DELAY',
+                'description': 'x' * 25,
+            },
+            format='json',
+        )
         assert r.status_code == 401
 
     def test_problem_type_invalido_400(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-3',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-3',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
-        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'NOPE',
-            'description': 'Descripcion suficientemente larga para pasar.',
-        }, format='json')
+        r = auth_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'NOPE',
+                'description': 'Descripcion suficientemente larga para pasar.',
+            },
+            format='json',
+        )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'INVALID_PAYLOAD'
 
     def test_descripcion_corta_400(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-4',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-4',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
-        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'DELAY', 'description': 'corto',
-        }, format='json')
+        r = auth_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'DELAY',
+                'description': 'corto',
+            },
+            format='json',
+        )
         assert r.status_code == 400
         assert r.json()['codigo_error'] == 'INVALID_PAYLOAD'
 
     def test_envio_no_despachado_409(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         # EX-02: guía en CREATED (paquete no ha salido).
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-5',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-5',
             status=ShipmentGuide.STATUS_CREATED,
         )
-        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'NOT_RECEIVED',
-            'description': 'No me ha llegado nada todavia por favor revisen.',
-        }, format='json')
+        r = auth_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'NOT_RECEIVED',
+                'description': (
+                    'No me ha llegado nada todavia por favor revisen.'
+                ),
+            },
+            format='json',
+        )
         assert r.status_code == 409
         assert r.json()['codigo_error'] == 'SHIPMENT_NOT_DISPATCHED'
 
     def test_reporte_duplicado_reciente_409(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='INC-6',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='INC-6',
             status=ShipmentGuide.STATUS_IN_TRANSIT,
         )
         body = {
             'problem_type': 'DELAY',
             'description': 'El envio lleva semanas sin novedad alguna ya.',
         }
-        r1 = auth_client.post(self.INCIDENT_URL(order_log.id), body, format='json')
+        r1 = auth_client.post(
+            self._incident_url(order_log.id), body, format='json'
+        )
         assert r1.status_code == 201
-        r2 = auth_client.post(self.INCIDENT_URL(order_log.id), body, format='json')
+        r2 = auth_client.post(
+            self._incident_url(order_log.id), body, format='json'
+        )
         assert r2.status_code == 409
         assert r2.json()['codigo_error'] == 'RECENT_REPORT_EXISTS'
 
     def test_sin_guia_404(self, auth_client, order_log, db):
-        r = auth_client.post(self.INCIDENT_URL(order_log.id), {
-            'problem_type': 'DELAY',
-            'description': 'No tengo guia pero quiero reportar algo igual.',
-        }, format='json')
+        r = auth_client.post(
+            self._incident_url(order_log.id),
+            {
+                'problem_type': 'DELAY',
+                'description': (
+                    'No tengo guia pero quiero reportar algo igual.'
+                ),
+            },
+            format='json',
+        )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
 
@@ -668,23 +981,37 @@ class TestBuyerGuide:
     """UC-LOG-03: buyer sees shipment guide for own order."""
 
     def test_comprador_ve_su_guia(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='BYR-001',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='BYR-001',
         )
-        r = auth_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
+        r = auth_client.get(
+            f'/api/v2/logistics/buyer/order/{order_log.id}/guide/'
+        )
         assert r.status_code == 200
         data = r.json()
         assert data['tracking_number'] == 'BYR-001'
         assert 'courier_name' in data
 
     def test_comprador_ve_su_guia_por_order_number(
-        self, auth_client, order_log, courier_log, db,
+        self,
+        auth_client,
+        order_log,
+        courier_log,
+        db,
     ):
         # La UI del comprador consulta por order_number (no conoce el PK).
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='BYR-NUM-001',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='BYR-NUM-001',
         )
         r = auth_client.get(
             f'/api/v2/logistics/buyer/orders/{order_log.name}/guide/'
@@ -692,22 +1019,32 @@ class TestBuyerGuide:
         assert r.status_code == 200
         assert r.json()['tracking_number'] == 'BYR-NUM-001'
 
-    def test_comprador_no_ve_orden_ajena(self, admin_client, order_log, courier_log, db):
+    def test_comprador_no_ve_orden_ajena(
+        self, admin_client, order_log, courier_log, db
+    ):
         ShipmentGuide.objects.create(
-            sale_order=order_log, courier=courier_log, tracking_number='BYR-002',
+            sale_order=order_log,
+            courier=courier_log,
+            tracking_number='BYR-002',
         )
-        # admin_client is authenticated as a different user (admin, not order_log.user)
-        r = admin_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
+        # admin_client is authenticated as a different user (admin, not
+        # order_log.user)
+        r = admin_client.get(
+            f'/api/v2/logistics/buyer/order/{order_log.id}/guide/'
+        )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'ORDER_NOT_FOUND'
 
     def test_comprador_sin_guia_recibe_404(self, auth_client, order_log, db):
-        r = auth_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
+        r = auth_client.get(
+            f'/api/v2/logistics/buyer/order/{order_log.id}/guide/'
+        )
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'SHIPMENT_GUIDE_NOT_FOUND'
 
 
-# ─────────────── Enforcement — account.shipments (DEC-ENF-01) ─────────────────
+# ──────── Enforcement — account.shipments (DEC-ENF-01) ────────
+
 
 class TestBuyerShipmentCapabilityGate:
     """El seguimiento de envíos del comprador exige ``account.shipments``.
@@ -715,23 +1052,36 @@ class TestBuyerShipmentCapabilityGate:
     candado se evalúa antes del owner-check."""
 
     def test_buyer_guide_without_shipments_capability_returns_403(
-        self, api_client, order_log, db,
+        self,
+        api_client,
+        order_log,
+        db,
     ):
         outsider = get_user_model().objects.create_user(
-            login='no_ship@x.mx', password='NoShipPass123!')
+            login='no_ship@x.mx', password='NoShipPass123!'
+        )
         api_client.force_login(outsider)
-        r = api_client.get(f'/api/v2/logistics/buyer/order/{order_log.id}/guide/')
+        r = api_client.get(
+            f'/api/v2/logistics/buyer/order/{order_log.id}/guide/'
+        )
         assert r.status_code == 403
 
     def test_buyer_incident_without_shipments_capability_returns_403(
-        self, api_client, order_log, db,
+        self,
+        api_client,
+        order_log,
+        db,
     ):
         outsider = get_user_model().objects.create_user(
-            login='no_ship2@x.mx', password='NoShip2Pass123!')
+            login='no_ship2@x.mx', password='NoShip2Pass123!'
+        )
         api_client.force_login(outsider)
         r = api_client.post(
             f'/api/v2/logistics/buyer/order/{order_log.id}/incident/',
-            {'problem_type': 'NOT_RECEIVED',
-             'description': 'No he recibido mi paquete tras muchos dias.'},
-            format='json')
+            {
+                'problem_type': 'NOT_RECEIVED',
+                'description': 'No he recibido mi paquete tras muchos dias.',
+            },
+            format='json',
+        )
         assert r.status_code == 403

@@ -1,0 +1,34 @@
+{
+  "task": "TASK-API-0420",
+  "owner": "VM-b501",
+  "discovery": "Existing implementation already published; do not implement literal wrapping again",
+  "implementation_commit": "8aca3900cdec39a17584521031e741ddd64e6b55",
+  "implementation_is_ancestor": true,
+  "body_checks": [
+    {
+      "path": "src/orm/fields_misc.py",
+      "function": "Json",
+      "executable_ast_unchanged": true,
+      "current_file_sha256": "a86ce81da069e092f7d8d610c956e179ec1a59b11b90f24c7990a3859ddf7a63"
+    },
+    {
+      "path": "src/orm/fields_nonstored.py",
+      "function": "apply_source_defaults",
+      "executable_ast_unchanged": true,
+      "current_file_sha256": "8e5f5f86a3d432a34924c797c226091a4cce201dfc5c605ea72a2df230dc4b4a"
+    },
+    {
+      "path": "src/orm/fields_nonstored.py",
+      "function": "annotate_related",
+      "executable_ast_unchanged": true,
+      "current_file_sha256": "8e5f5f86a3d432a34924c797c226091a4cce201dfc5c605ea72a2df230dc4b4a"
+    }
+  ],
+  "historical_evidence": "scripts/evidence/json-default-implementation-20261021T055044/outputs/",
+  "historical_results": "7field-onlyPASS;7model/unitPASS; bounded PostgreSQL persistencePASS;47regressionsPASS/3baselineFAIL; full acceptance not verified",
+  "current_test_run": "NOT_REPEATED",
+  "reuse_scope": "Existing executable factory/helper definitions unchanged where indicated; historical results retain their original runtime scope, not new full-HEAD acceptance",
+  "integration": "OpenPR109 ancestry; no merge",
+  "acceptance": "not_verified",
+  "next_action": "Integration/acceptance reconciliation or verification justified by an actual dependency change; no duplicate implementation"
+}

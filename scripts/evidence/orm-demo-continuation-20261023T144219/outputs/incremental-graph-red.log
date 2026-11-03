@@ -1,0 +1,59 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+............FFF.                                                         [100%]
+=================================== FAILURES ===================================
+__ test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state ___
+
+bound_graph = (ModuleGraph(2 nodos), [('base',)])
+
+    def test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state(bound_graph):
+        graph, calls = bound_graph
+        graph['base'].state = 'to upgrade'
+        graph.extend(['child'])
+        child = graph['child']
+>       assert (child.id, child.state, child.load_state, child.demo) == (22, 'to install', 'to install', True)
+E       AssertionError: assert (0, 'uninstal...alled', False) == (22, 'to inst...nstall', True)
+E         At index 0 diff: 0 != 22
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:129: AssertionError
+_____________ test_bound_extension_prunes_uninstallable_manifests ______________
+
+bound_graph = (ModuleGraph(2 nodos), [('base',)])
+
+    def test_bound_extension_prunes_uninstallable_manifests(bound_graph):
+        graph, _ = bound_graph
+        graph.extend(['disabled'])
+>       assert set(graph._nodes) == {'base'}
+E       AssertionError: assert {'base', 'disabled'} == {'base'}
+E         Extra items in the left set:
+E         'disabled'
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:140: AssertionError
+______________ test_bound_extension_prunes_new_dependency_cycles _______________
+
+bound_graph = (ModuleGraph(3 nodos), [('base',)])
+
+    def test_bound_extension_prunes_new_dependency_cycles(bound_graph):
+        graph, _ = bound_graph
+        graph.extend(['cycle_a'])
+>       assert set(graph._nodes) == {'base'}
+E       AssertionError: assert {'base', 'cycle_a', 'cycle_b'} == {'base'}
+E         Extra items in the left set:
+E         'cycle_a'
+E         'cycle_b'
+E         Use -v to get more diff
+
+tests/unit/modules/test_module_graph.py:146: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_module_graph.py::test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state
+FAILED tests/unit/modules/test_module_graph.py::test_bound_extension_prunes_uninstallable_manifests
+FAILED tests/unit/modules/test_module_graph.py::test_bound_extension_prunes_new_dependency_cycles
+3 failed, 13 passed, 1 warning in 0.12s

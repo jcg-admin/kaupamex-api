@@ -15,6 +15,7 @@ caso de uso real, un step a la vez, vía
 (``consolidate_just_done_queryset``) para el caso plural de
 ``OnboardingProgress.get_and_update_onboarding_state``.
 """
+
 from django.db import models
 from django.db.models.functions import Coalesce
 
@@ -35,22 +36,28 @@ class OnboardingProgressStep(TimeStampedModel):
     # Odoo step_id (onboarding_progress_step.py:16-17, required, ondelete
     # cascade, index).
     step = fields.Many2one(
-        'onboarding.OnboardingOnboardingStep', on_delete=models.CASCADE,
-        related_name='progress_step_records', db_index=True,
+        'onboarding.OnboardingOnboardingStep',
+        null=False, on_delete=models.CASCADE,
+        related_name='progress_step_records',
+        db_index=True,
         verbose_name='Paso del onboarding',
-        help_text='Paso cuyo progreso trackea este registro '
-                  '(Odoo step_id).',
+        help_text='Paso cuyo progreso trackea este registro (Odoo step_id).',
     )
     # Odoo company_id (onboarding_progress_step.py:19, ondelete cascade).
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='onboarding_progress_step_records',
         verbose_name='Empresa (si el paso es per-company)',
     )
     # Odoo step_state (onboarding_progress_step.py:14-15).
     step_state = fields.Selection(
-        max_length=16, choices=ONBOARDING_PROGRESS_STATES,
-        default=STATE_NOT_DONE, verbose_name='Estado de progreso del paso',
+        max_length=16,
+        choices=ONBOARDING_PROGRESS_STATES,
+        default=STATE_NOT_DONE,
+        verbose_name='Estado de progreso del paso',
     )
 
     # Soporte del UniqueIndex con COALESCE — mismo patrón que
@@ -112,10 +119,12 @@ class OnboardingProgressStep(TimeStampedModel):
         Devuelve el número de filas consolidadas ``just_done`` -> ``done``.
         """
         just_done_ids = list(
-            queryset.filter(step_state=STATE_JUST_DONE)
-            .values_list('pk', flat=True),
+            queryset.filter(step_state=STATE_JUST_DONE).values_list(
+                'pk', flat=True
+            ),
         )
         if just_done_ids:
             cls.objects.filter(pk__in=just_done_ids).update(
-                step_state=STATE_DONE)
+                step_state=STATE_DONE
+            )
         return len(just_done_ids)

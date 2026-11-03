@@ -1,0 +1,17 @@
+{
+  "case": "Registry.setup_signaling on prepared but unmigrated QA",
+  "missing_tables": [
+    "orm_signaling_registry",
+    "orm_signaling_default",
+    "orm_signaling_assets",
+    "orm_signaling_stable",
+    "orm_signaling_templates",
+    "orm_signaling_routing",
+    "orm_signaling_groups"
+  ],
+  "expected_error": "Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.",
+  "sql_statement_count": 1,
+  "only_select": true,
+  "ddl_or_data_writes": false,
+  "classification_scope": "actual persistence dependency; not an architectural impossibility"
+}

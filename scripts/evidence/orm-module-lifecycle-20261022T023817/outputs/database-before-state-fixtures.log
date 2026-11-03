@@ -1,0 +1,35 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-lifecycle-20261022T023817/probes/database_contract.py", line 136, in <module>
+    'product_models_in_a': sorted(k for k, v in registries[0].models.items()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-lifecycle-20261022T023817/probes/database_contract.py", line 137, in <genexpr>
+    if v._meta.app_label == 'product'),
+       ^^^^^^^
+AttributeError: type object 'IrFieldsConverter' has no attribute '_meta'
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

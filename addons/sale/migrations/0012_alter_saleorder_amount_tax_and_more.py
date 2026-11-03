@@ -7,7 +7,9 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("sale", "0011_saleorderline_price_subtotal_saleorderline_price_tax_and_more"),
+        ("sale",
+         "0011_saleorderline_price_subtotal_saleorderline_price_tax_and_more",
+         ),
     ]
 
     operations = [
@@ -29,7 +31,9 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text="Total de la orden, suma de líneas (Odoo amount_total).",
+                help_text=(
+                    "Total de la orden, suma de líneas (Odoo amount_total)."
+                ),
                 max_digits=10,
             ),
         ),
@@ -40,7 +44,9 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text="Subtotal sin IVA, suma de líneas (Odoo amount_untaxed).",
+                help_text=(
+                    "Subtotal sin IVA, suma de líneas (Odoo amount_untaxed)."
+                ),
                 max_digits=10,
             ),
         ),
@@ -51,7 +57,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text='Odoo price_reduce_taxexcl ("Price Reduce Tax excl", compute+store, precompute).',
+                help_text=(
+                    'Odoo price_reduce_taxexcl ("Price Reduce Tax excl",'
+                    ' compute+store, precompute).'
+                ),
                 max_digits=12,
                 verbose_name="Precio con descuento sin impuestos",
             ),
@@ -63,7 +72,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text='Odoo price_reduce_taxinc ("Price Reduce Tax incl", compute+store, precompute).',
+                help_text=(
+                    'Odoo price_reduce_taxinc ("Price Reduce Tax incl",'
+                    ' compute+store, precompute).'
+                ),
                 max_digits=12,
                 verbose_name="Precio con descuento con impuestos",
             ),
@@ -75,7 +87,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text='Odoo price_subtotal ("Subtotal", compute+store, precompute). El importe de la línea sin impuestos.',
+                help_text=(
+                    'Odoo price_subtotal ("Subtotal", compute+store,'
+                    ' precompute). El importe de la línea sin impuestos.'
+                ),
                 max_digits=12,
                 verbose_name="Subtotal",
             ),
@@ -87,7 +102,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text='Odoo price_tax ("Total Tax", compute+store, precompute). El impuesto de la línea.',
+                help_text=(
+                    'Odoo price_tax ("Total Tax", compute+store, precompute).'
+                    ' El impuesto de la línea.'
+                ),
                 max_digits=12,
                 verbose_name="Impuesto total",
             ),
@@ -99,7 +117,10 @@ class Migration(migrations.Migration):
                 decimal_places=2,
                 default=Decimal("0.00"),
                 editable=False,
-                help_text='Odoo price_total ("Total", compute+store, precompute). El importe de la línea con impuestos.',
+                help_text=(
+                    'Odoo price_total ("Total", compute+store, precompute). El'
+                    ' importe de la línea con impuestos.'
+                ),
                 max_digits=12,
                 verbose_name="Total",
             ),

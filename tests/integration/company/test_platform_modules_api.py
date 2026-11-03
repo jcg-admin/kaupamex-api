@@ -5,6 +5,7 @@ contratables con su metadata de catálogo (``is_application``/``tier``/
 ``category``/``depends``). Gateado con ``platform.view`` (data-driven vía
 ``HasCapability``, NO ``is_staff``).
 """
+
 from django.contrib.auth import get_user_model
 
 import pytest
@@ -20,9 +21,12 @@ def _user_with_caps(email, codes):
     caps = []
     for code in codes:
         domain = code.split('.', 1)[0]
-        module, _ = Module.objects.get_or_create(code=domain, defaults={'name': domain})
+        module, _ = Module.objects.get_or_create(
+            code=domain, defaults={'name': domain}
+        )
         cap, _ = Capability.objects.get_or_create(
-            code=code, defaults={'module': module, 'name': code},
+            code=code,
+            defaults={'module': module, 'name': code},
         )
         caps.append(cap)
     role, _ = Role.objects.get_or_create(
@@ -30,7 +34,9 @@ def _user_with_caps(email, codes):
         defaults={'name': 'Test platform role'},
     )
     role.capabilities.set(caps)
-    u = get_user_model().objects.create_user(login=email, password='TestPass123!')
+    u = get_user_model().objects.create_user(
+        login=email, password='TestPass123!'
+    )
     RoleAssignment.objects.create(user=u, role=role)
     return u
 
@@ -38,10 +44,16 @@ def _user_with_caps(email, codes):
 class TestPlatformModulesCatalog:
     def test_operator_lists_catalog_with_metadata(self, api_client, db):
         catalogue = Module.objects.create(
-            code='catalogue', name='Catálogo', is_application=True,
-            tier=Module.Tier.FREE, category='Order Management', version='1.0.0',
+            code='catalogue',
+            name='Catálogo',
+            is_application=True,
+            tier=Module.Tier.FREE,
+            category='Order Management',
+            version='1.0.0',
         )
-        inventory = Module.objects.create(code='inventory', name='Inventario', is_application=True)
+        inventory = Module.objects.create(
+            code='inventory', name='Inventario', is_application=True
+        )
         inventory.depends.set([catalogue])
         operator = _user_with_caps('l0_modules@kaupamex.mx', ['platform.view'])
         api_client.force_login(operator)
@@ -59,7 +71,9 @@ class TestPlatformModulesCatalog:
     def test_catalog_is_read_only(self, api_client, db):
         operator = _user_with_caps('l0_ro@kaupamex.mx', ['platform.view'])
         api_client.force_login(operator)
-        res = api_client.post(MODULES_URL, {'code': 'x', 'name': 'X'}, format='json')
+        res = api_client.post(
+            MODULES_URL, {'code': 'x', 'name': 'X'}, format='json'
+        )
         assert res.status_code == 405
 
     def test_without_platform_view_denied(self, api_client, db):

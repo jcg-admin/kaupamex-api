@@ -12,6 +12,7 @@ Cubre:
 - CloseView devuelve 409 si ticket ya cerrado.
 - CloseView cierra en atomic (Reply creado en misma transaccion).
 """
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -23,7 +24,9 @@ from django.utils import timezone
 from addons.mail.models import Notification, NotificationType
 from addons.mail.models.notification_service import notify_support_closed
 from addons.helpdesk.models import SupportTicket, SupportTicketReply
-from addons.helpdesk.management.commands.auto_close_support_tickets import AUTO_CLOSE_DAYS
+from addons.helpdesk.management.commands.auto_close_support_tickets import (
+    AUTO_CLOSE_DAYS,
+)
 
 User = get_user_model()
 
@@ -36,7 +39,10 @@ def _make_user(username='buyer', email='buyer@test.com', is_staff=False):
 
 def _make_ticket(user, status=SupportTicket.Status.AWAITING_USER):
     ticket = SupportTicket.objects.create(
-        user=user, subject='Test ticket', body='Help', status=status,
+        user=user,
+        subject='Test ticket',
+        body='Help',
+        status=status,
     )
     return ticket
 
@@ -67,7 +73,9 @@ class NotifySupportClosedTest(TestCase):
         self.assertEqual(Notification.objects.count(), 0)
 
 
-@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend'
+)
 class SignalCloseTest(TestCase):
     def setUp(self):
         self.user = _make_user()
@@ -80,7 +88,9 @@ class SignalCloseTest(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             ticket.save(update_fields=['status', 'updated_at'])
         self.assertEqual(
-            Notification.objects.filter(user=self.user, type=NotificationType.SUPPORT_UPDATE).count(),
+            Notification.objects.filter(
+                user=self.user, type=NotificationType.SUPPORT_UPDATE
+            ).count(),
             1,
         )
 
@@ -100,7 +110,9 @@ class AutoCloseCommandTest(TestCase):
     def _stale_ticket(self):
         ticket = _make_ticket(self.user)
         stale_time = timezone.now() - timedelta(days=AUTO_CLOSE_DAYS + 1)
-        SupportTicket.objects.filter(pk=ticket.pk).update(updated_at=stale_time)
+        SupportTicket.objects.filter(pk=ticket.pk).update(
+            updated_at=stale_time
+        )
         ticket.refresh_from_db()
         return ticket
 

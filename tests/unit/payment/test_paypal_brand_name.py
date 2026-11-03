@@ -10,6 +10,7 @@ Cubre ``addons.payment_paypal.gateway._resolve_brand_name``, la función
 pura (sin red) que ``create_preference`` usa para ``brand_name`` y para la
 ``description`` de cada ``purchase_unit``.
 """
+
 import pytest
 
 from addons.base.models import ResCompany
@@ -26,7 +27,9 @@ pytestmark = pytest.mark.unit
 class TestResolveBrandName:
 
     def test_reflects_the_owning_company_name(self, db):
-        acme = ResCompany.objects.create(code='acme-paypal-brand', name='Acme Corp')
+        acme = ResCompany.objects.create(
+            code='acme-paypal-brand', name='Acme Corp'
+        )
         order = make_order(status=STATUS_PENDING, company=acme)
 
         assert _resolve_brand_name(order) == 'Acme Corp'

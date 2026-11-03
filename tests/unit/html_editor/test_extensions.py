@@ -6,6 +6,7 @@ aterrizó en la clase ajena** y que hace lo que la fuente hace, que es lo que
 un puerto por extensión puede perder en silencio: ``chain_method`` no falla si
 nadie lo llama.
 """
+
 import pytest
 from addons.base.models import ir_field_converters as converters
 from addons.base.models.ir_http import IrHttp
@@ -34,8 +35,9 @@ class TestEveryApplyIsIdempotent:
     haber medido con ``_get_available_qr_methods``.
     """
 
-    @pytest.mark.parametrize('module', [
-        he_models, he_attachment, he_http, he_qweb, he_view, he_ws])
+    @pytest.mark.parametrize(
+        'module', [he_models, he_attachment, he_http, he_qweb, he_view, he_ws]
+    )
     def test_calling_it_again_changes_nothing_observable(self, module):
         before = Base._get_view_field_attributes(Base)
         directives = list(IrTemplateExpressions()._directives_eval_order())
@@ -75,8 +77,12 @@ class TestTheAttachmentSpeaksTheEditorLanguage:
     def test_image_src_accepts_a_mimetype_with_parameters(self):
         # `image/svg+xml; charset=utf-8` es soportado: la fuente parte por ';'
         A = apps.get_model('base', 'IrAttachment')
-        attachment = A(name='x.svg', mimetype='image/svg+xml; charset=utf-8',
-                       checksum='0123456789abcdef', type='binary')
+        attachment = A(
+            name='x.svg',
+            mimetype='image/svg+xml; charset=utf-8',
+            checksum='0123456789abcdef',
+            type='binary',
+        )
         assert attachment.image_src.startswith('/web/image/')
 
     def test_the_original_seam_returns_none_while_the_field_is_blocked(self):
@@ -108,7 +114,10 @@ class TestTheAttachmentSpeaksTheEditorLanguage:
 class TestTheEditorFlagsTravelInTheQueryString:
     def test_the_three_keys_are_the_ones_of_the_source(self):
         assert he_http.CONTEXT_KEYS == [
-            'editable', 'edit_translations', 'translatable']
+            'editable',
+            'edit_translations',
+            'translatable',
+        ]
 
     def test_the_context_is_empty_without_a_request(self):
         assert IrHttp._get_editor_context() == {}
@@ -129,7 +138,9 @@ class TestTheConvertersLearnedTheWayBack:
 
     def test_from_html_reads_the_text_content_of_the_node(self):
         node = html.fromstring('<span>  hola  </span>')
-        assert converters.IrFieldConverter.from_html(None, None, node) == 'hola'
+        assert (
+            converters.IrFieldConverter.from_html(None, None, node) == 'hola'
+        )
 
     def test_an_empty_node_gives_false_not_the_empty_string(self):
         # La fuente escribe `or False`: un campo sin valor se limpia.
@@ -138,13 +149,17 @@ class TestTheConvertersLearnedTheWayBack:
 
     def test_the_text_converter_collapses_block_tags_into_newlines(self):
         node = html.fromstring('<div><p>uno</p><p>dos</p></div>')
-        assert converters.IrFieldConverterText.from_html(
-            None, None, node) == 'uno\n\ndos'
+        assert (
+            converters.IrFieldConverterText.from_html(None, None, node)
+            == 'uno\n\ndos'
+        )
 
     def test_br_becomes_a_single_newline(self):
         node = html.fromstring('<div>uno<br/>dos</div>')
-        assert converters.IrFieldConverterText.from_html(
-            None, None, node) == 'uno\ndos'
+        assert (
+            converters.IrFieldConverterText.from_html(None, None, node)
+            == 'uno\ndos'
+        )
 
     def test_the_html_converter_keeps_the_children_serialized(self):
         node = html.fromstring('<div>texto<b>fuerte</b></div>')
@@ -155,8 +170,10 @@ class TestTheConvertersLearnedTheWayBack:
     def test_the_selection_converter_maps_the_label_back_to_its_key(self):
         field = type('F', (), {'choices': [('A', 'Alfa'), ('B', 'Beta')]})()
         node = html.fromstring('<span>Beta</span>')
-        assert converters.IrFieldConverterSelection.from_html(
-            None, field, node) == 'B'
+        assert (
+            converters.IrFieldConverterSelection.from_html(None, field, node)
+            == 'B'
+        )
 
     def test_an_unknown_label_raises_instead_of_writing_a_wrong_key(self):
         field = type('F', (), {'choices': [('A', 'Alfa')]})()
@@ -166,16 +183,22 @@ class TestTheConvertersLearnedTheWayBack:
 
     def test_the_duration_converter_reads_a_non_localised_float(self):
         node = html.fromstring('<span> 2.5 </span>')
-        assert converters.IrFieldConverterDuration.from_html(
-            None, None, node) == 2.5
+        assert (
+            converters.IrFieldConverterDuration.from_html(None, None, node)
+            == 2.5
+        )
 
     def test_the_image_converter_carries_the_two_class_attributes(self):
         assert converters.IrFieldConverterImage.local_url_re is not None
         assert converters.IrFieldConverterImage.redirect_url_re is not None
 
     def test_load_remote_url_refuses_a_data_uri(self):
-        assert converters.IrFieldConverterImage.load_remote_url(
-            'data:image/png;base64,AAAA') is None
+        assert (
+            converters.IrFieldConverterImage.load_remote_url(
+                'data:image/png;base64,AAAA'
+            )
+            is None
+        )
 
 
 class TestTheHtmlToTextHelpers:
@@ -184,7 +207,10 @@ class TestTheHtmlToTextHelpers:
 
     def test_padding_requests_fold_into_the_largest(self):
         assert list(he_qweb._realize_padding(['a', 1, 2, 'b'])) == [
-            'a', '\n\n', 'b']
+            'a',
+            '\n\n',
+            'b',
+        ]
 
     def test_the_two_block_sets_are_disjoint(self):
         assert not (he_qweb._PADDED_BLOCK & he_qweb._MISC_BLOCK)
@@ -221,11 +247,19 @@ class TestTheViewLearnedToSaveWhatWasEdited:
             assert attr in he_view.EDITING_ATTRIBUTES
         assert 'data-oe-type' in he_view.EDITING_ATTRIBUTES
 
-    def test_cleaning_drops_the_editing_attributes_and_the_editable_class(self):
+    def test_cleaning_drops_the_editing_attributes_and_the_editable_class(
+        self,
+    ):
         View = model_by_name('ir.ui.view')
         cleaned = View._get_cleaned_non_editing_attributes(
-            View(), [('data-oe-type', 'char'), ('class', 'a o_editable b'),
-                     ('contenteditable', 'true'), ('id', 'keep')])
+            View(),
+            [
+                ('data-oe-type', 'char'),
+                ('class', 'a o_editable b'),
+                ('contenteditable', 'true'),
+                ('id', 'keep'),
+            ],
+        )
         assert cleaned == {'class': 'a b', 'id': 'keep'}
 
     def test_two_archs_with_the_attributes_in_another_order_are_equal(self):
@@ -243,16 +277,23 @@ class TestTheViewLearnedToSaveWhatWasEdited:
     def test_the_available_name_grows_a_counter_only_when_taken(self):
         View = model_by_name('ir.ui.view')
         assert View._find_available_name(View(), 'Bloque', set()) == 'Bloque'
-        assert View._find_available_name(
-            View(), 'Bloque', {'Bloque'}) == 'Bloque (2)'
-        assert View._find_available_name(
-            View(), 'Bloque', {'Bloque', 'Bloque (2)'}) == 'Bloque (3)'
+        assert (
+            View._find_available_name(View(), 'Bloque', {'Bloque'})
+            == 'Bloque (2)'
+        )
+        assert (
+            View._find_available_name(
+                View(), 'Bloque', {'Bloque', 'Bloque (2)'}
+            )
+            == 'Bloque (3)'
+        )
 
     def test_to_field_ref_drops_the_branding_and_restores_the_t_field(self):
         View = model_by_name('ir.ui.view')
         el = html.fromstring(
             '<span data-oe-model="res.partner" data-oe-id="1" '
-            'data-oe-expression="o.name" class="k">Ana</span>')
+            'data-oe-expression="o.name" class="k">Ana</span>'
+        )
         out = View.to_field_ref(View(), el)
         assert out.get('t-field') == 'o.name'
         assert out.get('class') == 'k'
@@ -265,9 +306,11 @@ class TestTheViewLearnedToSaveWhatWasEdited:
         assert 'get_translation_dictionary' in str(excinfo.value)
 
     def test_the_xpath_hasclass_helper_compiles_the_reference_predicate(self):
-        assert he_view._hasclass('oe_structure') == (
-            "contains(concat(' ', normalize-space(@class), ' '), "
-            "' oe_structure ')")
+        assert (
+            he_view._hasclass('oe_structure')
+            == "contains(concat(' ', normalize-space(@class), ' '), "
+            "' oe_structure ')"
+        )
 
 
 class TestTheConverterChainCombinesInsteadOfReplacing:
@@ -291,14 +334,16 @@ class TestTheConverterChainCombinesInsteadOfReplacing:
         return Partner(name='cadena de conversores')
 
     def test_the_derived_converter_keeps_what_the_base_link_contributes(
-            self, partner):
+        self, partner
+    ):
         """El ``placeholder`` lo pone el eslabon base; el derivado no lo toca.
 
         Es lo que cae al retirar ``combine=``: el derivado empieza con
         ``attrs = {}`` y su diccionario vacio gana al del eslabon previo.
         """
         attrs = converters.IrFieldConverterMany2one.attributes(
-            partner, 'parent', {'placeholder': 'nombre del padre'}, None)
+            partner, 'parent', {'placeholder': 'nombre del padre'}, None
+        )
         assert attrs['placeholder'] == 'nombre del padre'
 
     def test_the_derived_converter_still_contributes_its_own(self, partner):
@@ -308,10 +353,15 @@ class TestTheConverterChainCombinesInsteadOfReplacing:
         el de arriba sin distinguirse.
         """
         attrs = converters.IrFieldConverterMany2one.attributes(
-            partner, 'parent',
-            {'placeholder': 'nombre del padre', 'inherit_branding': True,
-             'null_text': 'sin padre'},
-            None)
+            partner,
+            'parent',
+            {
+                'placeholder': 'nombre del padre',
+                'inherit_branding': True,
+                'null_text': 'sin padre',
+            },
+            None,
+        )
         assert attrs['placeholder'] == 'nombre del padre'
         assert attrs['data-oe-many2one-allowreset'] == 1
         assert 'data-oe-many2one-domain' in attrs
@@ -324,5 +374,6 @@ class TestTheConverterChainCombinesInsteadOfReplacing:
         fundir con nada. El caso fija que eso no lo rompe.
         """
         attrs = converters.IrFieldConverter.attributes(
-            partner, 'parent', {'placeholder': 'nombre del padre'}, None)
+            partner, 'parent', {'placeholder': 'nombre del padre'}, None
+        )
         assert attrs == {'placeholder': 'nombre del padre'}

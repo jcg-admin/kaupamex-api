@@ -1,0 +1,73 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFF.                                                                   [100%]
+=================================== FAILURES ===================================
+________________ test_refresh_does_not_install_importable_code _________________
+tests/integration/base/test_module_catalog_database.py:37: in test_refresh_does_not_install_importable_code
+    assert set(IrModule.objects.filter(name__in=manifests).values_list(
+E   AssertionError: assert {'installed'} == {'uninstalled'}
+E     Extra items in the left set:
+E     'installed'
+E     Extra items in the right set:
+E     'uninstalled'
+E     Use -v to get more diff
+---------------------------- Captured stderr setup -----------------------------
+Got an error creating the test database: database "orm_bootstrap_9487e2293fcc" already exists
+__________ test_refresh_preserves_existing_state_and_updates_metadata __________
+tests/integration/base/test_module_catalog_database.py:47: in test_refresh_preserves_existing_state_and_updates_metadata
+    assert IrModule.objects.get(name='catalog_root').state == IrModule.STATE_INSTALLED
+E   AssertionError: assert 'uninstalled' == 'installed'
+E     - installed
+E     + uninstalled
+E     ? ++
+______ test_manifest_change_cannot_silently_uninstall_an_installed_module ______
+tests/integration/base/test_module_catalog_database.py:60: in test_manifest_change_cannot_silently_uninstall_an_installed_module
+    assert IrModule.objects.get(name='catalog_leaf').state == IrModule.STATE_INSTALLED
+E   AssertionError: assert 'uninstallable' == 'installed'
+E     - installed
+E     + uninstallable
+_____________ test_catalog_refresh_is_atomic_on_dependency_failure _____________
+tests/integration/base/test_module_catalog_database.py:74: in test_catalog_refresh_is_atomic_on_dependency_failure
+    assert not IrModule.objects.filter(name__in=manifests).exists()
+E   AssertionError: assert not True
+E    +  where True = <bound method QuerySet.exists of <AccessQuerySet [<IrModule: Catalog Leaf>, <IrModule: Catalog Root>]>>()
+E    +    where <bound method QuerySet.exists of <AccessQuerySet [<IrModule: Catalog Leaf>, <IrModule: Catalog Root>]>> = <AccessQuerySet [<IrModule: Catalog Leaf>, <IrModule: Catalog Root>]>.exists
+E    +      where <AccessQuerySet [<IrModule: Catalog Leaf>, <IrModule: Catalog Root>]> = <bound method QuerySet.filter of <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f9a548fcfe0>>(name__in={'catalog_leaf': {'depends': ['catalog_root'], 'installable': True, 'license': 'LGPL-3', 'name': 'Catalog Leaf'}, 'catalog_root': {'depends': [], 'installable': True, 'license': 'LGPL-3', 'name': 'Catalog Root'}})
+E    +        where <bound method QuerySet.filter of <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f9a548fcfe0>> = <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f9a548fcfe0>.filter
+E    +          where <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f9a548fcfe0> = IrModule.objects
+___________ test_unknown_database_is_rejected_before_catalog_writes ____________
+tests/integration/base/test_module_catalog_database.py:79: in test_unknown_database_is_rejected_before_catalog_writes
+    refresh(database='not_registered')
+tests/integration/base/test_module_catalog_database.py:31: in refresh
+    call_command('update_module_list', stdout=io.StringIO(), **options)
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:181: in call_command
+    raise TypeError(
+E   TypeError: Unknown option(s) for update_module_list command: database. Valid options are: dry_run, force_color, help, no_color, pythonpath, settings, skip_checks, stderr, stdout, traceback, verbosity, version.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_module_catalog_database.py::test_refresh_does_not_install_importable_code
+FAILED tests/integration/base/test_module_catalog_database.py::test_refresh_preserves_existing_state_and_updates_metadata
+FAILED tests/integration/base/test_module_catalog_database.py::test_manifest_change_cannot_silently_uninstall_an_installed_module
+FAILED tests/integration/base/test_module_catalog_database.py::test_catalog_refresh_is_atomic_on_dependency_failure
+FAILED tests/integration/base/test_module_catalog_database.py::test_unknown_database_is_rejected_before_catalog_writes
+5 failed, 1 passed, 1 warning in 452.96s (0:07:32)
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

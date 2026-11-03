@@ -78,7 +78,8 @@ clase, así que ``Meta`` sólo lleva ``db_table`` y ``ordering``
      - verbatim + el check en ``save()``
 
 Más ``Procurement = Procurement`` (``:56``), que no es atributo de ORM sino el
-``NamedTuple`` del módulo colgado de la clase para que ``StockRule.Procurement``
+``NamedTuple`` del módulo colgado de la clase para que
+``StockRule.Procurement``
 resuelva como en la fuente. Es la misma mezcla que
 ``metrica-decide-la-conclusion.md`` describe: el AST devuelve 27 asignaciones y
 sólo 22 son campos.
@@ -91,8 +92,10 @@ El FK va sin el sufijo ``_id`` porque Django ya expone la columna como
 ``location_src_id=…`` sin cambiar una línea.
 
 ``name`` · ``active`` · ``action`` · ``sequence`` · ``company`` ·
-``location_dest`` · ``location_src`` · ``location_dest_from_rule`` · ``route`` ·
-``route_company`` · ``procure_method`` · ``route_sequence`` · ``picking_type`` ·
+``location_dest`` · ``location_src`` · ``location_dest_from_rule`` · ``route``
+·
+``route_company`` · ``procure_method`` · ``route_sequence`` · ``picking_type``
+·
 ``picking_type_code_domain`` · ``delay`` · ``partner_address`` ·
 ``propagate_cancel`` · ``propagate_carrier`` · ``warehouse`` · ``auto`` ·
 ``rule_message`` · ``push_domain``.
@@ -130,7 +133,8 @@ el mismo fallback que la referencia. Mismo criterio que ``stock_warehouse.py``.
 
 **D-2 — ``_read_group`` no existe; el agrupado se hace en Python.**
 ``_search_rule_for_warehouses`` (``:507-532``) pide al ORM un
-``_read_group(groupby=[...], aggregates=['id:recordset'], order='route_sequence:min, sequence:min')``
+``_read_group(groupby=[...], aggregates=['id:recordset'],
+order='route_sequence:min, sequence:min')``
 — un agrupado que devuelve **recordsets** por grupo, no agregados escalares. El
 ``values(...).annotate(...)`` de Django agrega escalares; no hay contraparte
 directa. Se porta con una sola consulta ordenada por ``(route_sequence,
@@ -143,7 +147,8 @@ de desempate. Es divergencia de mecanismo, no de conducta.
 ``location_final_id`` y deja ``location_dest_id`` al tipo de operación, salvo
 cuando ``location_dest_from_rule``. Este ``StockMove`` es todavía un esbozo (16
 símbolos contra 210 de la referencia) y no declara ``location_final_id``, así
-que ``_run_pull`` escribe el destino en ``location_dest_id``. El diccionario que
+que ``_run_pull`` escribe el destino en ``location_dest_id``. El diccionario
+que
 ``_get_stock_move_values`` devuelve **conserva las dos claves**: el contrato de
 la referencia se porta entero, y la proyección al modelo ocurre en un solo
 sitio, ``_move_values_for_model``.
@@ -176,32 +181,44 @@ tampoco existe en este árbol; el parámetro ``use_new_cursor`` se conserva en
 la firma y los puntos de commit quedan como ``debug``. Sucesor: la tarea
 **#124** para el contador de progreso.
 
-**D-6 — ``relativedelta`` → ``datetime.timedelta``.** La referencia desplaza las
-fechas con ``relativedelta(days=…)`` (``:331``, ``:335``), de ``python-dateutil``,
-que **no es dependencia de este proyecto** (medido: 0 hits en ``pyproject.toml``;
-``django`` lo declara opcional y no lo instala). Para un desplazamiento **sólo en
-días** ambos son idénticos —``relativedelta`` sólo se separa del ``timedelta`` en
+**D-6 — ``relativedelta`` → ``datetime.timedelta``.** La referencia desplaza
+las
+fechas con ``relativedelta(days=…)`` (``:331``, ``:335``), de
+``python-dateutil``,
+que **no es dependencia de este proyecto** (medido: 0 hits en
+``pyproject.toml``;
+``django`` lo declara opcional y no lo instala). Para un desplazamiento **sólo
+en
+días** ambos son idénticos —``relativedelta`` sólo se separa del ``timedelta``
+en
 ``months``/``years``, que aquí no se usan—, así que se sustituye por el stdlib.
-Mismo criterio y mismo precedente que ``account_payment_term.py`` y ``digest.py``.
+Mismo criterio y mismo precedente que ``account_payment_term.py`` y
+``digest.py``.
 
 **D-7 — ``Command`` aquí es ejecutivo, no declarativo.** La referencia coloca
 tuplas-comando **dentro** del diccionario de valores
 (``'reference_ids': [Command.set(ids)]``, ``:365``; ``'route_ids':
-[Command.clear()] + [Command.link(id) …]``, ``:370``) y el ORM las interpreta al
-crear. El ``Command`` de este árbol (``src/orm/commands.py:38-45``) **actúa sobre
-un related manager de Django en el momento de llamarlo** —``set(manager, objs)``,
+[Command.clear()] + [Command.link(id) …]``, ``:370``) y el ORM las interpreta
+al
+crear. El ``Command`` de este árbol (``src/orm/commands.py:38-45``) **actúa
+sobre
+un related manager de Django en el momento de llamarlo** —``set(manager,
+objs)``,
 ``clear(manager)``— así que la forma declarativa no existe: llamarlo dentro del
 literal levanta ``TypeError`` por el ``manager`` que falta, que es como se
 detectó.
 
 La conducta se conserva sin pérdida: ambas claves llevan la semántica «este
-conjunto y ningún otro», que en un diccionario de **creación** es exactamente una
+conjunto y ningún otro», que en un diccionario de **creación** es exactamente
+una
 lista de ids —no hay estado previo que limpiar—. Se emiten como lista de ``pk``
 y el cableado del m2m queda del lado del consumidor. Hoy ese consumidor no
-existe: este ``StockMove`` no declara ni ``reference_ids`` ni ``route_ids``, así
+existe: este ``StockMove`` no declara ni ``reference_ids`` ni ``route_ids``,
+así
 que ``_move_values_for_model`` los descarta registrándolo en ``DEBUG`` (D-4).
 Sucesor: la misma tarea **#330**, al portar ``stock_move.py``.
 """
+
 import datetime
 import logging
 from collections import OrderedDict, defaultdict
@@ -271,7 +288,8 @@ def _move_values_for_model(values):
 
     **No es un símbolo de la referencia**: es la divergencia D-3/D-4 hecha
     explícita en un solo sitio. ``_get_stock_move_values`` porta el diccionario
-    entero de la fuente; este ayudante decide qué parte de él este ``StockMove``
+    entero de la fuente; este ayudante decide qué parte de él este
+    ``StockMove``
     —todavía un esbozo— puede recibir, y **deja constancia en el log de lo que
     descarta**, con el nombre de cada clave.
 
@@ -283,16 +301,20 @@ def _move_values_for_model(values):
     campos = move_model._meta.get_fields()
     muchos_a_muchos = {f.name for f in campos if f.many_to_many}
     concrete = {f.name for f in campos} - muchos_a_muchos
-    concrete |= {f'{f.name}_id' for f in campos
-                 if f.is_relation and not f.many_to_many}
+    concrete |= {
+        f'{f.name}_id' for f in campos if f.is_relation and not f.many_to_many
+    }
 
     # Relaciones por nombre: la referencia entrega el **pk bajo el nombre del
-    # campo** (``'product_uom': product_uom.id``, ``odoo19c: stock_rule.py:359``)
+    # campo** (``'product_uom': product_uom.id``, ``odoo19c:
+    # stock_rule.py:359``)
     # porque su ORM lo admite; Django exige la instancia, o el pk bajo
     # ``<campo>_id``. Sin esta traducción el valor pasa el filtro por nombre y
-    # revienta al asignar (``Cannot assign "187": … must be a "Uom" instance``).
-    relacionales = {f.name for f in campos
-                    if f.is_relation and not f.many_to_many}
+    # revienta al asignar (``Cannot assign "187": … must be a "Uom"
+    # instance``).
+    relacionales = {
+        f.name for f in campos if f.is_relation and not f.many_to_many
+    }
 
     # ``False`` como vacío: la referencia lo usa para TODO campo sin valor
     # —``date_deadline = False`` (``odoo19c: stock_rule.py:334``),
@@ -300,9 +322,12 @@ def _move_values_for_model(values):
     # del nulo. Django sí: un ``DateTimeField`` que recibe ``False`` revienta
     # en ``fromisoformat: argument must be str``. Se traduce a ``None`` salvo
     # donde el campo de destino sea booleano de verdad.
-    booleanos = {f.name for f in campos
-                 if getattr(f, 'get_internal_type', None)
-                 and f.get_internal_type() == 'BooleanField'}
+    booleanos = {
+        f.name
+        for f in campos
+        if getattr(f, 'get_internal_type', None)
+        and f.get_internal_type() == 'BooleanField'
+    }
 
     projected, dropped = {}, []
     for key, value in values.items():
@@ -311,7 +336,8 @@ def _move_values_for_model(values):
         # Los Many2many NO viajan en ``create()`` — Django los rechaza en el
         # constructor (``Direct assignment to the reverse side … is
         # prohibited``). La referencia sí los entrega ahí, en forma de comando
-        # (``'move_dest_ids': [(4, x.id) …]``, ``odoo19c: stock_rule.py:340,364``)
+        # (``'move_dest_ids': [(4, x.id) …]``, ``odoo19c:
+        # stock_rule.py:340,364``)
         # porque su ``create`` los interpreta. Aquí los aplica ``_create_move``
         # después de tener la fila.
         if key in muchos_a_muchos:
@@ -325,14 +351,18 @@ def _move_values_for_model(values):
         else:
             dropped.append(key)
 
-    if not projected.get('location_dest_id') and values.get('location_final_id'):
+    if not projected.get('location_dest_id') and values.get(
+        'location_final_id'
+    ):
         projected['location_dest_id'] = values['location_final_id']
 
     if dropped:
         _logger.debug(
             'stock.rule: %s no declara %s; se descartan de los valores del '
             'movimiento (divergencia D-4, tarea #330)',
-            move_model.__name__, ', '.join(sorted(dropped)))
+            move_model.__name__,
+            ', '.join(sorted(dropped)),
+        )
     return projected
 
 
@@ -346,8 +376,9 @@ def _create_move(values):
     enlace vive aquí y no en ``_move_values_for_model``, que sólo proyecta.
     """
     move_model = apps.get_model('stock', 'StockMove')
-    muchos_a_muchos = {f.name for f in move_model._meta.get_fields()
-                       if f.many_to_many}
+    muchos_a_muchos = {
+        f.name for f in move_model._meta.get_fields() if f.many_to_many
+    }
     move = move_model.objects.create(**_move_values_for_model(values))
     for nombre in muchos_a_muchos & set(values):
         relacionados = values[nombre]
@@ -380,7 +411,10 @@ def _orderpoint_model():
 
 
 class StockRule(TimeStampedModel):
-    """``stock.rule`` — «A rule describe what a procurement should do; produce, buy, move, ...»"""
+    """
+    ``stock.rule`` — «A rule describe what a procurement should do; produce,
+    buy, move, ...»
+    """
 
     # Atributos de clase de modelo — los cuatro que la referencia declara
     # (``odoo19c: addons/stock/models/stock_rule.py:44-47``), verbatim.
@@ -394,8 +428,8 @@ class StockRule(TimeStampedModel):
     #: como en la fuente.
     Procurement = Procurement
 
-    ACTION_PULL      = 'pull'
-    ACTION_PUSH      = 'push'
+    ACTION_PULL = 'pull'
+    ACTION_PUSH = 'push'
     ACTION_PULL_PUSH = 'pull_push'
     ACTION_CHOICES = [
         (ACTION_PULL, 'Pull From'),
@@ -409,8 +443,10 @@ class StockRule(TimeStampedModel):
     PROCURE_CHOICES = [
         (PROCURE_MTS, 'Take From Stock'),
         (PROCURE_MTO, 'Trigger Another Rule'),
-        (PROCURE_MTS_ELSE_MTO,
-         'Take From Stock, if unavailable, Trigger Another Rule'),
+        (
+            PROCURE_MTS_ELSE_MTO,
+            'Take From Stock, if unavailable, Trigger Another Rule',
+        ),
     ]
 
     AUTO_MANUAL = 'manual'
@@ -420,101 +456,162 @@ class StockRule(TimeStampedModel):
         (AUTO_TRANSPARENT, 'Automatic No Step Added'),
     ]
 
-    name                     = fields.Char(
+    name = fields.Char(
         max_length=255,
-        help_text='Nombre de la regla; rellena el origen del albarán y el '
-                  'nombre de sus movimientos (Odoo name, translate=True).',
+        help_text=(
+            'Nombre de la regla; rellena el origen del albarán y el '
+            'nombre de sus movimientos (Odoo name, translate=True).'
+        ),
     )
-    active                   = fields.Boolean(
+    active = fields.Boolean(
         default=True,
-        help_text='Si se desmarca, la regla se oculta sin borrarla (Odoo active).',
+        help_text=(
+            'Si se desmarca, la regla se oculta sin borrarla (Odoo active).'
+        ),
     )
-    action                   = fields.Selection(
-        max_length=16, choices=ACTION_CHOICES, default=ACTION_PULL,
-        db_index=True, required=True,
+    action = fields.Selection(
+        max_length=16,
+        choices=ACTION_CHOICES,
+        default=ACTION_PULL,
+        db_index=True,
+        required=True,
         help_text='Dirección de la regla (Odoo action).',
     )
-    sequence                 = fields.Integer(
-        default=20, help_text='Secuencia dentro de la ruta (Odoo sequence).',
+    sequence = fields.Integer(
+        default=20,
+        help_text='Secuencia dentro de la ruta (Odoo sequence).',
     )
-    company                  = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
-        related_name='stock_rules', db_index=True,
-        help_text='Empresa (Odoo company_id; su dominio la ata a la empresa de '
-                  'la ruta — ver _check_company_consistency).',
-    )
-    location_dest            = fields.Many2one(
-        'stock.StockLocation', on_delete=models.CASCADE, related_name='rules_in',
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='stock_rules',
         db_index=True,
-        help_text='Ubicación destino (Odoo location_dest_id, required, '
-                  'check_company).',
+        help_text=(
+            'Empresa (Odoo company_id; su dominio la ata a la empresa de '
+            'la ruta — ver _check_company_consistency).'
+        ),
     )
-    location_src             = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='rules_out', db_index=True,
+    location_dest = fields.Many2one(
+        'stock.StockLocation',
+        null=False, on_delete=models.CASCADE,
+        related_name='rules_in',
+        db_index=True,
+        help_text=(
+            'Ubicación destino (Odoo location_dest_id, required, '
+            'check_company).'
+        ),
+    )
+    location_src = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='rules_out',
+        db_index=True,
         help_text='Ubicación origen (Odoo location_src_id, check_company).',
     )
-    location_dest_from_rule  = fields.Boolean(
+    location_dest_from_rule = fields.Boolean(
         default=False,
-        help_text='Si es verdadero, el destino del movimiento lo fija la regla; '
-                  'si no, lo toma del tipo de operación (Odoo '
-                  'location_dest_from_rule).',
+        help_text=(
+            'Si es verdadero, el destino del movimiento lo fija la regla; '
+            'si no, lo toma del tipo de operación (Odoo '
+            'location_dest_from_rule).'
+        ),
     )
-    route                    = fields.Many2one(
-        'stock.StockRoute', on_delete=models.CASCADE, related_name='rule_ids',
-        db_index=True, help_text='Ruta a la que pertenece (Odoo route_id, required).',
+    route = fields.Many2one(
+        'stock.StockRoute',
+        null=False, on_delete=models.CASCADE,
+        related_name='rule_ids',
+        db_index=True,
+        help_text='Ruta a la que pertenece (Odoo route_id, required).',
     )
-    procure_method           = fields.Selection(
-        max_length=16, choices=PROCURE_CHOICES, default=PROCURE_MTS,
+    procure_method = fields.Selection(
+        max_length=16,
+        choices=PROCURE_CHOICES,
+        default=PROCURE_MTS,
         help_text='Método de suministro (Odoo procure_method).',
     )
-    route_sequence           = fields.Integer(
-        default=0, db_index=True,
-        help_text='Secuencia de la ruta, replicada aquí para poder ordenar por '
-                  'ella (Odoo route_sequence, related+store=True).',
-    )
-    picking_type             = fields.Many2one(
-        'stock.StockPickingType', null=True, blank=True, on_delete=models.CASCADE,
-        related_name='rule_ids', db_index=True,
-        help_text='Tipo de operación que la regla usa al crear el movimiento '
-                  '(Odoo picking_type_id, required, check_company).',
-    )
-    delay                    = fields.Integer(
+    route_sequence = fields.Integer(
         default=0,
-        help_text='Plazo en días que se resta a la fecha prevista del '
-                  'movimiento creado (Odoo delay).',
+        db_index=True,
+        help_text=(
+            'Secuencia de la ruta, replicada aquí para poder ordenar por '
+            'ella (Odoo route_sequence, related+store=True).'
+        ),
     )
-    partner_address          = fields.Many2one(
-        'base.ResPartner', null=True, blank=True, on_delete=models.SET_NULL,
+    picking_type = fields.Many2one(
+        'stock.StockPickingType',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='rule_ids',
+        db_index=True,
+        help_text=(
+            'Tipo de operación que la regla usa al crear el movimiento '
+            '(Odoo picking_type_id, required, check_company).'
+        ),
+    )
+    delay = fields.Integer(
+        default=0,
+        help_text=(
+            'Plazo en días que se resta a la fecha prevista del '
+            'movimiento creado (Odoo delay).'
+        ),
+    )
+    partner_address = fields.Many2one(
+        'base.ResPartner',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='stock_rules',
         help_text='Dirección de entrega, opcional (Odoo partner_address_id).',
     )
-    propagate_cancel         = fields.Boolean(
+    propagate_cancel = fields.Boolean(
         default=False,
-        help_text='Si se cancela el movimiento que crea esta regla, se cancela '
-                  'también el siguiente (Odoo propagate_cancel).',
+        help_text=(
+            'Si se cancela el movimiento que crea esta regla, se cancela '
+            'también el siguiente (Odoo propagate_cancel).'
+        ),
     )
-    propagate_carrier        = fields.Boolean(
+    propagate_carrier = fields.Boolean(
         default=False,
-        help_text='Propaga el transportista al movimiento siguiente (Odoo '
-                  'propagate_carrier).',
+        help_text=(
+            'Propaga el transportista al movimiento siguiente (Odoo '
+            'propagate_carrier).'
+        ),
     )
-    warehouse                = fields.Many2one(
-        'stock.StockWarehouse', null=True, blank=True, on_delete=models.CASCADE,
-        related_name='rule_ids', db_index=True,
-        help_text='Almacén al que la regla queda acotada (Odoo warehouse_id, '
-                  'check_company).',
+    warehouse = fields.Many2one(
+        'stock.StockWarehouse',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='rule_ids',
+        db_index=True,
+        help_text=(
+            'Almacén al que la regla queda acotada (Odoo warehouse_id, '
+            'check_company).'
+        ),
     )
-    auto                     = fields.Selection(
-        max_length=16, choices=AUTO_CHOICES, default=AUTO_MANUAL,
-        help_text='«Manual Operation» crea un movimiento nuevo tras el actual; '
-                  '«Automatic No Step Added» sustituye la ubicación en el '
-                  'movimiento original (Odoo auto).',
+    auto = fields.Selection(
+        max_length=16,
+        choices=AUTO_CHOICES,
+        default=AUTO_MANUAL,
+        help_text=(
+            '«Manual Operation» crea un movimiento nuevo tras el actual; '
+            '«Automatic No Step Added» sustituye la ubicación en el '
+            'movimiento original (Odoo auto).'
+        ),
     )
-    push_domain              = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Dominio extra de aplicabilidad de la regla push (Odoo '
-                  'push_domain).',
+    push_domain = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Dominio extra de aplicabilidad de la regla push (Odoo '
+            'push_domain).'
+        ),
     )
 
     #: ≙ ``route_company_id`` (``:77``) — ``related='route_id.company_id'`` sin
@@ -527,14 +624,18 @@ class StockRule(TimeStampedModel):
     #: ``store``.
     picking_type_code_domain = fields.NonStored(
         default=lambda rule: rule._compute_picking_type_code_domain(),
-        help_text='Códigos de tipo de operación admisibles (Odoo '
-                  'picking_type_code_domain).',
+        help_text=(
+            'Códigos de tipo de operación admisibles (Odoo '
+            'picking_type_code_domain).'
+        ),
     )
     #: ≙ ``rule_message`` (``:110``) — ``fields.Html`` computado sin ``store``.
     rule_message = fields.NonStored(
         default=lambda rule: rule._compute_action_message(),
-        help_text='Descripción legible del propósito de la regla (Odoo '
-                  'rule_message).',
+        help_text=(
+            'Descripción legible del propósito de la regla (Odoo '
+            'rule_message).'
+        ),
     )
 
     class Meta:
@@ -569,7 +670,8 @@ class StockRule(TimeStampedModel):
         """≙ ``default_get`` (``odoo19c: :49-54``).
 
         Sin empresa explícita, la regla nace en la empresa del contexto — el
-        ``self.env.company`` de la fuente, que aquí es ``get_current_company()``.
+        ``self.env.company`` de la fuente, que aquí es
+        ``get_current_company()``.
         """
         res = dict(values or {})
         if 'company_id' in field_names and not res.get('company_id'):
@@ -624,13 +726,17 @@ class StockRule(TimeStampedModel):
             if route is None or not route.company_id:
                 continue
             if rule.company_id != route.company_id:
-                raise ValidationError(_(
-                    "Rule %(rule)s belongs to %(rule_company)s while the route "
-                    "belongs to %(route_company)s.",
-                    rule=str(rule),
-                    rule_company=str(rule.company) if rule.company_id else '',
-                    route_company=str(route.company),
-                ))
+                raise ValidationError(
+                    _(
+                        "Rule %(rule)s belongs to %(rule_company)s while the"
+                        " route belongs to %(route_company)s.",
+                        rule=str(rule),
+                        rule_company=(
+                            str(rule.company) if rule.company_id else ''
+                        ),
+                        route_company=str(route.company),
+                    )
+                )
 
     def _onchange_picking_type(self):
         """≙ ``_onchange_picking_type`` (``odoo19c: :132-139``).
@@ -669,15 +775,29 @@ class StockRule(TimeStampedModel):
         ``_get_message_dict`` —y sus extensiones en ``mrp`` y
         ``purchase_stock``— no repitan la misma resolución.
         """
-        source = str(self.location_src) if self.location_src_id else _('Source Location')
-        destination = (str(self.location_dest) if self.location_dest_id
-                       else _('Destination Location'))
+        source = (
+            str(self.location_src)
+            if self.location_src_id
+            else _('Source Location')
+        )
+        destination = (
+            str(self.location_dest)
+            if self.location_dest_id
+            else _('Destination Location')
+        )
         direct_destination = False
         if self.picking_type_id:
             default_dest = self.picking_type.default_location_dest
-            if default_dest is not None and default_dest.pk != self.location_dest_id:
+            if (
+                default_dest is not None
+                and default_dest.pk != self.location_dest_id
+            ):
                 direct_destination = str(default_dest)
-        operation = str(self.picking_type) if self.picking_type_id else _('Operation Type')
+        operation = (
+            str(self.picking_type)
+            if self.picking_type_id
+            else _('Operation Type')
+        )
         return source, destination, direct_destination, operation
 
     def _get_message_dict(self):
@@ -687,37 +807,63 @@ class StockRule(TimeStampedModel):
         in mrp and purchase_stock in order to complete the dictionary.»
         """
         message_dict = {}
-        source, destination, direct_destination, operation = self._get_message_values()
-        if self.action not in (self.ACTION_PUSH, self.ACTION_PULL, self.ACTION_PULL_PUSH):
+        source, destination, direct_destination, operation = (
+            self._get_message_values()
+        )
+        if self.action not in (
+            self.ACTION_PUSH,
+            self.ACTION_PULL,
+            self.ACTION_PULL_PUSH,
+        ):
             return message_dict
 
         suffix = ""
-        if (self.action in (self.ACTION_PULL, self.ACTION_PULL_PUSH)
-                and direct_destination and not self.location_dest_from_rule):
+        if (
+            self.action in (self.ACTION_PULL, self.ACTION_PULL_PUSH)
+            and direct_destination
+            and not self.location_dest_from_rule
+        ):
             suffix = _(
-                "<br>The products will be moved towards <b>%(destination)s</b>, "
-                "<br/> as specified from <b>%(operation)s</b> destination.",
-                destination=direct_destination, operation=operation)
+                "<br>The products will be moved towards"
+                " <b>%(destination)s</b>, <br/> as specified from"
+                " <b>%(operation)s</b> destination.",
+                destination=direct_destination,
+                operation=operation,
+            )
         if self.procure_method == self.PROCURE_MTO and self.location_src_id:
-            suffix += _("<br>A need is created in <b>%s</b> and a rule will be "
-                        "triggered to fulfill it.", source)
-        if self.procure_method == self.PROCURE_MTS_ELSE_MTO and self.location_src_id:
-            suffix += _("<br>If the products are not available in <b>%s</b>, a "
-                        "rule will be triggered to bring the missing quantity "
-                        "in this location.", source)
+            suffix += _(
+                "<br>A need is created in <b>%s</b> and a rule will be "
+                "triggered to fulfill it.",
+                source,
+            )
+        if (
+            self.procure_method == self.PROCURE_MTS_ELSE_MTO
+            and self.location_src_id
+        ):
+            suffix += _(
+                "<br>If the products are not available in <b>%s</b>, a "
+                "rule will be triggered to bring the missing quantity "
+                "in this location.",
+                source,
+            )
         return {
             'pull': _(
-                'When products are needed in <b>%(destination)s</b>, <br> '
-                '<b>%(operation)s</b> are created from <b>%(source_location)s</b> '
-                'to fulfill the need. %(suffix)s',
-                destination=destination, operation=operation,
-                source_location=source, suffix=suffix),
+                'When products are needed in <b>%(destination)s</b>, <br>'
+                ' <b>%(operation)s</b> are created from'
+                ' <b>%(source_location)s</b> to fulfill the need. %(suffix)s',
+                destination=destination,
+                operation=operation,
+                source_location=source,
+                suffix=suffix,
+            ),
             'push': _(
                 'When products arrive in <b>%(source_location)s</b>, <br> '
                 '<b>%(operation)s</b> are created to send them to '
                 '<b>%(destination)s</b>.',
-                source_location=source, operation=operation,
-                destination=destination),
+                source_location=source,
+                operation=operation,
+                destination=destination,
+            ),
         }
 
     def _compute_action_message(self):
@@ -731,7 +877,9 @@ class StockRule(TimeStampedModel):
         message_dict = self._get_message_dict()
         message = message_dict.get(self.action) or ""
         if self.action == self.ACTION_PULL_PUSH:
-            message = message_dict['pull'] + "<br/><br/>" + message_dict['push']
+            message = (
+                message_dict['pull'] + "<br/><br/>" + message_dict['push']
+            )
         return message
 
     def _compute_picking_type_code_domain(self):
@@ -769,13 +917,22 @@ class StockRule(TimeStampedModel):
             move.location_dest_id = self.location_dest_id
             move.save()
             # El destino de las líneas tiene que seguir al del movimiento.
-            for line in move.move_line_ids.all() if hasattr(move, 'move_line_ids') else []:
-                strategy = move.location_dest._get_putaway_strategy(move.product)
+            for line in (
+                move.move_line_ids.all()
+                if hasattr(move, 'move_line_ids')
+                else []
+            ):
+                strategy = move.location_dest._get_putaway_strategy(
+                    move.product
+                )
                 line.location_dest = strategy or move.location_dest
                 line.save()
             # Evita el bucle si la regla push está mal configurada; si el
             # destino cambió, se vuelve a aplicar por si hay otro salto.
-            if old_dest_location is None or old_dest_location.pk != self.location_dest_id:
+            if (
+                old_dest_location is None
+                or old_dest_location.pk != self.location_dest_id
+            ):
                 pushed = move._push_apply()
                 return pushed[0] if pushed else None
             return None
@@ -783,14 +940,23 @@ class StockRule(TimeStampedModel):
         new_move_vals = self._push_prepare_move_copy_values(move, new_date)
         new_move = _create_move(new_move_vals)
         if hasattr(new_move, '_skip_push') and new_move._skip_push():
-            new_move.location_dest_id = new_move_vals.get(
-                'location_final_id') or new_move.location_dest_id
+            new_move.location_dest_id = (
+                new_move_vals.get('location_final_id')
+                or new_move.location_dest_id
+            )
             new_move.save()
-        if hasattr(new_move, '_should_bypass_reservation') and new_move._should_bypass_reservation():
+        if (
+            hasattr(new_move, '_should_bypass_reservation')
+            and new_move._should_bypass_reservation()
+        ):
             new_move.procure_method = self.PROCURE_MTS
             new_move.save()
         if not new_move.location.should_bypass_reservation():
-            move.move_dest_ids.add(new_move) if hasattr(move, 'move_dest_ids') else None
+            (
+                move.move_dest_ids.add(new_move)
+                if hasattr(move, 'move_dest_ids')
+                else None
+            )
             new_move.move_orig_ids.add(move)
         return new_move
 
@@ -819,13 +985,26 @@ class StockRule(TimeStampedModel):
             warehouse = self.warehouse
             if warehouse is not None:
                 company_id = warehouse.company_id
-            elif self.picking_type_id and self.picking_type.warehouse is not None:
+            elif (
+                self.picking_type_id
+                and self.picking_type.warehouse is not None
+            ):
                 company_id = self.picking_type.warehouse.company_id
 
         return {
             'product_uom_qty': copied_quantity,
-            'origin': (move_to_copy.origin if hasattr(move_to_copy, 'origin') else None)
-                      or (str(move_to_copy.picking) if move_to_copy.picking_id else "/"),
+            'origin': (
+                (
+                    move_to_copy.origin
+                    if hasattr(move_to_copy, 'origin')
+                    else None
+                )
+                or (
+                    str(move_to_copy.picking)
+                    if move_to_copy.picking_id
+                    else "/"
+                )
+            ),
             'location_id': move_to_copy.location_dest_id,
             'location_dest_id': location_dest_id,
             'location_final_id': final_location_id,
@@ -836,8 +1015,9 @@ class StockRule(TimeStampedModel):
             'picking_id': False,
             'picking_type_id': self.picking_type_id,
             'propagate_cancel': self.propagate_cancel,
-            'warehouse_id': (self.warehouse_id
-                             or move_to_copy.location_dest.warehouse_id),
+            'warehouse_id': (
+                self.warehouse_id or move_to_copy.location_dest.warehouse_id
+            ),
             'procure_method': self.PROCURE_MTO,
         }
 
@@ -850,7 +1030,8 @@ class StockRule(TimeStampedModel):
         """≙ ``_run_pull`` (``odoo19c: :287-316``).
 
         Convierte cada par ``(procurement, rule)`` en un ``stock.move`` y lo
-        confirma. El bucle preliminar existe por ``mts_else_mto``: la referencia
+        confirma. El bucle preliminar existe por ``mts_else_mto``: la
+        referencia
         aísla ahí los productos cuya cantidad prevista habría que leer, y
         aprovecha para exigir que la regla tenga origen.
         """
@@ -858,14 +1039,20 @@ class StockRule(TimeStampedModel):
 
         for procurement, rule in procurements:
             if not rule.location_src_id:
-                msg = _('No source location defined on stock rule: %s!', rule.name)
+                msg = _(
+                    'No source location defined on stock rule: %s!', rule.name
+                )
                 raise ProcurementException([(procurement, msg)])
 
         # Las salidas (cantidad > 0) van al final: así una entrada del mismo
         # producto ya creó su movimiento cuando la salida busca existencia.
         procurements = sorted(
             procurements,
-            key=lambda proc: proc[0].product_uom.compare(proc[0].product_qty, 0.0) > 0)
+            key=lambda proc: proc[0].product_uom.compare(
+                proc[0].product_qty, 0.0
+            )
+            > 0,
+        )
 
         for procurement, rule in procurements:
             procure_method = rule.procure_method
@@ -880,7 +1067,8 @@ class StockRule(TimeStampedModel):
 
         for _company_id, moves_values in moves_values_by_company.items():
             moves = [_create_move(vals) for vals in moves_values]
-            # ``_action_confirm`` dispara a su vez el grupo de aprovisionamiento.
+            # ``_action_confirm`` dispara a su vez el grupo de
+            # aprovisionamiento.
             for move in moves:
                 move._action_confirm()
         return True
@@ -893,8 +1081,17 @@ class StockRule(TimeStampedModel):
         """
         return []
 
-    def _get_stock_move_values(self, product_id, product_qty, product_uom,
-                               location_dest_id, name, origin, company_id, values):
+    def _get_stock_move_values(
+        self,
+        product_id,
+        product_qty,
+        product_uom,
+        location_dest_id,
+        name,
+        origin,
+        company_id,
+        values,
+    ):
         """≙ ``_get_stock_move_values`` (``odoo19c: :324-384``).
 
         Los valores con los que se crea el ``stock.move`` que satisface una
@@ -909,7 +1106,9 @@ class StockRule(TimeStampedModel):
         date_planned = values['date_planned']
         if isinstance(date_planned, str):
             date_planned = datetime.datetime.fromisoformat(date_planned)
-        date_scheduled = date_planned - datetime.timedelta(days=self.delay or 0)
+        date_scheduled = date_planned - datetime.timedelta(
+            days=self.delay or 0
+        )
         date_deadline = False
         if values.get('date_deadline'):
             deadline = values['date_deadline']
@@ -918,25 +1117,42 @@ class StockRule(TimeStampedModel):
             date_deadline = deadline - datetime.timedelta(days=self.delay or 0)
 
         partner = self.partner_address_id or values.get('partner_id', False)
-        # Puede haber cantidad ya hecha; se crea el movimiento por lo que falta.
+        # Puede haber cantidad ya hecha; se crea el movimiento por lo
+        # que falta.
         qty_left = product_qty
 
         move_dest = values.get('move_dest_ids')
-        # ``(4, x.id)`` en la fuente (``:340``) — enlazar; aquí lista de pk (D-7).
+        # ``(4, x.id)`` en la fuente (``:340``) — enlazar; aquí lista de
+        # pk (D-7).
         move_dest_ids = [m.pk for m in move_dest] if move_dest else []
 
         # En traslados entre almacenes, los almacenes hacen de contacto.
         if move_dest_ids:
-            internal_transit = getattr(company_id, 'internal_transit_location', None)
-            if internal_transit is not None and location_dest_id.pk == internal_transit.pk:
+            internal_transit = getattr(
+                company_id, 'internal_transit_location', None
+            )
+            if (
+                internal_transit is not None
+                and location_dest_id.pk == internal_transit.pk
+            ):
                 if not partner:
-                    partners = {m.location_dest.warehouse_id for m in move_dest
-                                if m.location_dest.warehouse_id}
+                    partners = {
+                        m.location_dest.warehouse_id
+                        for m in move_dest
+                        if m.location_dest.warehouse_id
+                    }
                     if len(partners) == 1:
                         partner = partners.pop()
-                src_warehouse = self.location_src.warehouse if self.location_src_id else None
-                counterpart = (src_warehouse.partner_id if src_warehouse is not None
-                               else None) or getattr(self.company, 'partner_id', None)
+                src_warehouse = (
+                    self.location_src.warehouse
+                    if self.location_src_id
+                    else None
+                )
+                counterpart = (
+                    src_warehouse.partner_id
+                    if src_warehouse is not None
+                    else None
+                ) or getattr(self.company, 'partner_id', None)
                 for move in move_dest:
                     move.partner_id = counterpart
                     move.save()
@@ -946,10 +1162,20 @@ class StockRule(TimeStampedModel):
             values['to_refund'] = True
 
         move_values = {
-            'company_id': (self.company_id
-                           or (self.location_src.company_id if self.location_src_id else None)
-                           or (self.location_dest.company_id if self.location_dest_id else None)
-                           or getattr(company_id, 'pk', company_id)),
+            'company_id': (
+                self.company_id
+                or (
+                    self.location_src.company_id
+                    if self.location_src_id
+                    else None
+                )
+                or (
+                    self.location_dest.company_id
+                    if self.location_dest_id
+                    else None
+                )
+                or getattr(company_id, 'pk', company_id)
+            ),
             'product_id': product_id.pk,
             'product_uom': product_uom.pk,
             'product_uom_qty': qty_left,
@@ -965,15 +1191,19 @@ class StockRule(TimeStampedModel):
             'picking_type_id': self.picking_type_id,
             'procurement_values': self._serialize_procurement_values(values),
             'route_ids': [route.pk for route in values.get('route_ids', [])],
-            'never_product_template_attribute_value_ids':
-                values.get('never_product_template_attribute_value_ids'),
+            'never_product_template_attribute_value_ids': values.get(
+                'never_product_template_attribute_value_ids'
+            ),
             'warehouse_id': self.warehouse_id,
             'date': date_scheduled,
             'date_deadline': date_deadline,
             'propagate_cancel': self.propagate_cancel,
             'priority': values.get('priority', "0"),
-            'orderpoint_id': (values.get('orderpoint_id').pk
-                              if values.get('orderpoint_id') else None),
+            'orderpoint_id': (
+                values.get('orderpoint_id').pk
+                if values.get('orderpoint_id')
+                else None
+            ),
         }
         if self.location_dest_from_rule:
             move_values['location_dest_id'] = self.location_dest_id
@@ -993,8 +1223,11 @@ class StockRule(TimeStampedModel):
         for key, value in values.items():
             if isinstance(value, models.Model):
                 serialized[key] = [value.pk]
-            elif isinstance(value, (list, tuple)) and value and all(
-                    isinstance(v, models.Model) for v in value):
+            elif (
+                isinstance(value, (list, tuple))
+                and value
+                and all(isinstance(v, models.Model) for v in value)
+            ):
                 serialized[key] = [v.pk for v in value]
             elif isinstance(value, (datetime.datetime, datetime.date)):
                 serialized[key] = value.isoformat()
@@ -1023,8 +1256,11 @@ class StockRule(TimeStampedModel):
         delay_description = []
         bypass_delay_description = values.get('bypass_delay_description')
 
-        delaying_rules = [r for r in rules
-                          if r.action in (cls.ACTION_PULL, cls.ACTION_PULL_PUSH) and r.delay]
+        delaying_rules = [
+            r
+            for r in rules
+            if r.action in (cls.ACTION_PULL, cls.ACTION_PULL_PUSH) and r.delay
+        ]
         if delaying_rules:
             delays['total_delay'] += sum(r.delay for r in delaying_rules)
             if not bypass_delay_description:
@@ -1041,7 +1277,8 @@ class StockRule(TimeStampedModel):
             delays['horizon_time'] += global_horizon_days
             if not bypass_delay_description:
                 delay_description.append(
-                    (_('Time Horizon'), _('+ %d day(s)', global_horizon_days)))
+                    (_('Time Horizon'), _('+ %d day(s)', global_horizon_days))
+                )
         return delays, delay_description
 
     # ------------------------------------------------------------------ #
@@ -1058,7 +1295,8 @@ class StockRule(TimeStampedModel):
             return True
         return float_is_zero(
             float(procurement.product_qty),
-            precision_rounding=procurement.product_uom.rounding)
+            precision_rounding=procurement.product_uom.rounding,
+        )
 
     @classmethod
     def run(cls, procurements, raise_user_error=True):
@@ -1067,7 +1305,8 @@ class StockRule(TimeStampedModel):
         «Fulfil `procurements` with the help of stock rules.»
 
         Las necesidades son productos requeridos en una ubicación; para
-        satisfacerlas hay que crear documentos (``stock.move`` por defecto, pero
+        satisfacerlas hay que crear documentos (``stock.move`` por defecto,
+        pero
         las extensiones de ``_run_*`` permiten crear cualquier tipo).
 
         :param procurements: lista de ``Procurement``.
@@ -1077,6 +1316,7 @@ class StockRule(TimeStampedModel):
             satisfecha.
         :raises ProcurementException: con ``raise_user_error=False``.
         """
+
         def raise_exception(procurement_errors):
             if raise_user_error:
                 _dummy, errors = zip(*procurement_errors)
@@ -1087,25 +1327,35 @@ class StockRule(TimeStampedModel):
         procurement_errors = []
         for procurement in procurements:
             procurement.values.setdefault(
-                'company_id', procurement.location_id.company)
+                'company_id', procurement.location_id.company
+            )
             procurement.values.setdefault('priority', '0')
             procurement.values.setdefault(
                 'date_planned',
-                procurement.values.get('date_planned') or timezone.now())
+                procurement.values.get('date_planned') or timezone.now(),
+            )
             if cls._skip_procurement(procurement):
                 continue
             rule = cls._get_rule(
-                procurement.product_id, procurement.location_id, procurement.values)
+                procurement.product_id,
+                procurement.location_id,
+                procurement.values,
+            )
             if not rule:
                 error = _(
                     'No rule has been found to replenish "%(product)s" in '
                     '"%(location)s".\nVerify the routes configuration on the '
                     'product.',
                     product=str(procurement.product_id),
-                    location=str(procurement.location_id))
+                    location=str(procurement.location_id),
+                )
                 procurement_errors.append((procurement, error))
             else:
-                action = 'pull' if rule.action == cls.ACTION_PULL_PUSH else rule.action
+                action = (
+                    'pull'
+                    if rule.action == cls.ACTION_PULL_PUSH
+                    else rule.action
+                )
                 actions_to_run[action].append((procurement, rule))
 
         if procurement_errors:
@@ -1120,8 +1370,10 @@ class StockRule(TimeStampedModel):
                     procurement_errors += exc.procurement_exceptions
             else:
                 _logger.error(
-                    "The method _run_%s doesn't exist on the procurement rules",
-                    action)
+                    "The method _run_%s doesn't exist on the procurement"
+                    " rules",
+                    action,
+                )
 
         if procurement_errors:
             raise_exception(procurement_errors)
@@ -1132,26 +1384,31 @@ class StockRule(TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def _search_rule_for_warehouses(cls, route_ids, packaging_uom_id, product_id,
-                                    warehouse_ids, domain):
+    def _search_rule_for_warehouses(
+        cls, route_ids, packaging_uom_id, product_id, warehouse_ids, domain
+    ):
         """≙ ``_search_rule_for_warehouses`` (``odoo19c: :507-532``).
 
-        Devuelve ``{(location_dest, route): {warehouse: regla}}`` para todas las
+        Devuelve ``{(location_dest, route): {warehouse: regla}}`` para todas
+        las
         rutas candidatas de una vez, que es lo que evita una consulta por
         ubicación al subir el árbol.
 
         **Divergencia D-2:** la fuente lo resuelve con
-        ``_read_group(..., aggregates=['id:recordset'], order='route_sequence:min, sequence:min')``.
+        ``_read_group(..., aggregates=['id:recordset'],
+        order='route_sequence:min, sequence:min')``.
         Aquí se hace con una sola consulta ordenada por ``(route_sequence,
         sequence)`` y el agrupado en Python: la primera regla de cada grupo es
         la que gana, que es el mismo desempate.
         """
         domain = domain if domain is not None else Q()
         if warehouse_ids:
-            domain = expression.AND([
-                domain,
-                Q(warehouse__isnull=True) | Q(warehouse__in=warehouse_ids),
-            ])
+            domain = expression.AND(
+                [
+                    domain,
+                    Q(warehouse__isnull=True) | Q(warehouse__in=warehouse_ids),
+                ]
+            )
 
         valid_route_ids = set()
         if route_ids:
@@ -1163,14 +1420,23 @@ class StockRule(TimeStampedModel):
         if product_id.categ is not None:
             valid_route_ids |= {r.pk for r in product_id.categ.total_route_ids}
         if warehouse_ids:
-            filter_function = partial(cls._filter_warehouse_routes, product_id, warehouse_ids)
+            filter_function = partial(
+                cls._filter_warehouse_routes, product_id, warehouse_ids
+            )
             for warehouse in warehouse_ids:
-                valid_route_ids |= {r.pk for r in warehouse.route_ids.all()
-                                    if filter_function(r)}
+                valid_route_ids |= {
+                    r.pk
+                    for r in warehouse.route_ids.all()
+                    if filter_function(r)
+                }
         if valid_route_ids:
-            domain = expression.AND([domain, Q(route__in=list(valid_route_ids))])
+            domain = expression.AND(
+                [domain, Q(route__in=list(valid_route_ids))]
+            )
 
-        rules = cls.objects.filter(domain).order_by('route_sequence', 'sequence', 'id')
+        rules = cls.objects.filter(domain).order_by(
+            'route_sequence', 'sequence', 'id'
+        )
 
         rule_dict = defaultdict(OrderedDict)
         for rule in rules:
@@ -1190,28 +1456,38 @@ class StockRule(TimeStampedModel):
         return route
 
     @classmethod
-    def _search_rule(cls, route_ids, packaging_uom_id, product_id, warehouse_id, domain):
+    def _search_rule(
+        cls, route_ids, packaging_uom_id, product_id, warehouse_id, domain
+    ):
         """≙ ``_search_rule`` (``odoo19c: :537-563``).
 
-        «First find a rule among the ones defined on the procurement group, then
+        «First find a rule among the ones defined on the procurement group,
+        then
         try on the routes defined for the product, finally fallback on the
-        default behavior.» El orden de los cuatro intentos **es** la precedencia
+        default behavior.» El orden de los cuatro intentos **es** la
+        precedencia
         entre rutas y no se altera.
         """
         domain = domain if domain is not None else Q()
         if warehouse_id is not None and warehouse_id:
-            domain = expression.AND([
-                domain,
-                Q(warehouse__isnull=True) | Q(warehouse=warehouse_id),
-            ])
+            domain = expression.AND(
+                [
+                    domain,
+                    Q(warehouse__isnull=True) | Q(warehouse=warehouse_id),
+                ]
+            )
 
         def first_by_route(routes):
             route_pks = [r.pk for r in routes]
             if not route_pks:
                 return None
-            return cls.objects.filter(
-                expression.AND([Q(route__in=route_pks), domain])
-            ).order_by('route_sequence', 'sequence', 'id').first()
+            return (
+                cls.objects.filter(
+                    expression.AND([Q(route__in=route_pks), domain])
+                )
+                .order_by('route_sequence', 'sequence', 'id')
+                .first()
+            )
 
         res = None
         if route_ids:
@@ -1249,7 +1525,9 @@ class StockRule(TimeStampedModel):
         domain = cls._get_rule_domain(locations, values)
         warehouses = values.get('warehouse_id')
         if warehouses is None:
-            warehouses = [loc.warehouse for loc in locations if loc.warehouse_id]
+            warehouses = [
+                loc.warehouse for loc in locations if loc.warehouse_id
+            ]
         elif not isinstance(warehouses, (list, tuple, set)):
             warehouses = [warehouses] if warehouses else []
 
@@ -1265,8 +1543,10 @@ class StockRule(TimeStampedModel):
             """≙ la función local ``extract_rule`` (``:585-598``)."""
             rule = None
             product_route_pks = {r.pk for r in product_id.route_ids.all()}
-            for route in sorted(route_ids,
-                                key=lambda r: (r.pk not in product_route_pks, r.sequence)):
+            for route in sorted(
+                route_ids,
+                key=lambda r: (r.pk not in product_route_pks, r.sequence),
+            ):
                 sub_dict = rule_dict.get((location_dest_id.pk, route.pk))
                 if not sub_dict:
                     continue
@@ -1279,23 +1559,41 @@ class StockRule(TimeStampedModel):
                     break
             return rule
 
-        def get_rule_for_routes(rule_dict, route_ids, packaging_uom_id, product_id,
-                                warehouse_id, location_dest_id):
+        def get_rule_for_routes(
+            rule_dict,
+            route_ids,
+            packaging_uom_id,
+            product_id,
+            warehouse_id,
+            location_dest_id,
+        ):
             """≙ la función local ``get_rule_for_routes`` (``:600-610``)."""
             res = None
             if route_ids:
-                res = extract_rule(rule_dict, route_ids, warehouse_id, location_dest_id)
+                res = extract_rule(
+                    rule_dict, route_ids, warehouse_id, location_dest_id
+                )
             if not res and packaging_uom_id:
-                res = extract_rule(rule_dict, packaging_uom_id.package_type.route_ids.all(),
-                                   warehouse_id, location_dest_id)
+                res = extract_rule(
+                    rule_dict,
+                    packaging_uom_id.package_type.route_ids.all(),
+                    warehouse_id,
+                    location_dest_id,
+                )
             if not res:
                 routes = list(product_id.route_ids.all())
                 if product_id.categ is not None:
                     routes += list(product_id.categ.total_route_ids)
-                res = extract_rule(rule_dict, routes, warehouse_id, location_dest_id)
+                res = extract_rule(
+                    rule_dict, routes, warehouse_id, location_dest_id
+                )
             if not res and warehouse_id:
-                res = extract_rule(rule_dict, warehouse_id.route_ids.all(),
-                                   warehouse_id, location_dest_id)
+                res = extract_rule(
+                    rule_dict,
+                    warehouse_id.route_ids.all(),
+                    warehouse_id,
+                    location_dest_id,
+                )
             return res
 
         data_model = apps.get_model('base', 'IrModelData')
@@ -1304,11 +1602,15 @@ class StockRule(TimeStampedModel):
         inter_comp_location_checked = False
         while (not result) and location is not None:
             candidate_locations = [location]
-            if not inter_comp_location_checked and cls._check_intercomp_location([location]):
+            if (
+                not inter_comp_location_checked
+                and cls._check_intercomp_location([location])
+            ):
                 # El dominio ya incluyó la ubicación de clientes en
                 # ``_get_rule_domain``; aquí se añade como candidata.
                 inter_comp_location = data_model.ref(
-                    XMLID_CUSTOMERS, raise_if_not_found=False)
+                    XMLID_CUSTOMERS, raise_if_not_found=False
+                )
                 if inter_comp_location is not None:
                     candidate_locations.append(inter_comp_location)
                 inter_comp_location_checked = True
@@ -1331,15 +1633,18 @@ class StockRule(TimeStampedModel):
     def _check_intercomp_location(cls, locations):
         """≙ ``_check_intercomp_location`` (``odoo19c: :641-645``).
 
-        Verdadero si alguna de las ubicaciones es la de tránsito entre empresas.
+        Verdadero si alguna de las ubicaciones es la de tránsito entre
+        empresas.
         """
         if not any(loc.usage == 'transit' for loc in locations):
             return False
         data_model = apps.get_model('base', 'IrModelData')
         inter_comp_location = data_model.ref(
-            XMLID_INTER_COMPANY, raise_if_not_found=False)
-        return (inter_comp_location is not None
-                and inter_comp_location.pk in {loc.pk for loc in locations})
+            XMLID_INTER_COMPANY, raise_if_not_found=False
+        )
+        return inter_comp_location is not None and inter_comp_location.pk in {
+            loc.pk for loc in locations
+        }
 
     @classmethod
     def _get_rule_domain(cls, locations, values):
@@ -1347,31 +1652,41 @@ class StockRule(TimeStampedModel):
 
         El dominio con el que se buscan las reglas pull de una jerarquía.
 
-        Si la búsqueda va hacia la ubicación entre empresas, también entra la de
+        Si la búsqueda va hacia la ubicación entre empresas, también entra la
+        de
         clientes: así no hay que duplicar cada regla de entrega para cubrir la
         parte inter-empresa.
         """
         location_ids = [loc.pk for loc in locations]
         data_model = apps.get_model('base', 'IrModelData')
         if cls._check_intercomp_location(locations):
-            customers = data_model.ref(XMLID_CUSTOMERS, raise_if_not_found=False)
+            customers = data_model.ref(
+                XMLID_CUSTOMERS, raise_if_not_found=False
+            )
             if customers is not None:
                 location_ids.append(customers.pk)
 
-        domain = expression.AND([
-            Q(location_dest__in=location_ids),
-            ~Q(action=cls.ACTION_PUSH),
-        ])
-        # Elevado, no hay regla de registro que acote por empresa: se acota aquí.
+        domain = expression.AND(
+            [
+                Q(location_dest__in=location_ids),
+                ~Q(action=cls.ACTION_PUSH),
+            ]
+        )
+        # Elevado, no hay regla de registro que acote por empresa: se
+        # acota aquí.
         if is_su() and values.get('company_id'):
             company = values['company_id']
             company_ids = {getattr(company, 'pk', company)}
             if values.get('route_ids'):
-                company_ids |= {r.company_id for r in values['route_ids'] if r.company_id}
-            domain = expression.AND([
-                domain,
-                Q(company__isnull=True) | Q(company__in=list(company_ids)),
-            ])
+                company_ids |= {
+                    r.company_id for r in values['route_ids'] if r.company_id
+                }
+            domain = expression.AND(
+                [
+                    domain,
+                    Q(company__isnull=True) | Q(company__in=list(company_ids)),
+                ]
+            )
         return domain
 
     @classmethod
@@ -1384,15 +1699,21 @@ class StockRule(TimeStampedModel):
         found_rule = None
         location = location_dest_id
         while (not found_rule) and location is not None:
-            domain = expression.AND([
-                Q(location_src=location),
-                Q(action__in=(cls.ACTION_PUSH, cls.ACTION_PULL_PUSH)),
-            ])
+            domain = expression.AND(
+                [
+                    Q(location_src=location),
+                    Q(action__in=(cls.ACTION_PUSH, cls.ACTION_PULL_PUSH)),
+                ]
+            )
             if values.get('domain') is not None:
                 domain = expression.AND([domain, values['domain']])
             found_rule = cls._search_rule(
-                values.get('route_ids'), values.get('packaging_uom_id'),
-                product_id, values.get('warehouse_id'), domain)
+                values.get('route_ids'),
+                values.get('packaging_uom_id'),
+                product_id,
+                values.get('warehouse_id'),
+                domain,
+            )
             location = location.location
         return found_rule
 
@@ -1408,12 +1729,16 @@ class StockRule(TimeStampedModel):
         parcialmente disponibles, con cantidad, y cuya fecha de reserva ya
         llegó — o cuyo tipo de operación reserva al confirmar.
         """
-        domain = expression.AND([
-            Q(state__in=['confirmed', 'partially_available']),
-            ~Q(product_uom_qty=Decimal('0.00')),
-            (Q(reservation_date__lte=timezone.now().date())
-             | Q(picking_type__reservation_method='at_confirm')),
-        ])
+        domain = expression.AND(
+            [
+                Q(state__in=['confirmed', 'partially_available']),
+                ~Q(product_uom_qty=Decimal('0.00')),
+                (
+                    Q(reservation_date__lte=timezone.now().date())
+                    | Q(picking_type__reservation_method='at_confirm')
+                ),
+            ]
+        )
         if company_id:
             domain = expression.AND([domain, Q(company=company_id)])
         return domain
@@ -1422,8 +1747,10 @@ class StockRule(TimeStampedModel):
     def _run_scheduler_tasks(cls, use_new_cursor=False, company_id=False):
         """≙ ``_run_scheduler_tasks`` (``odoo19c: :691-724``).
 
-        Tres tareas, en este orden: recalcular los puntos de pedido y lanzar sus
-        aprovisionamientos, reservar los movimientos confirmados, y fusionar los
+        Tres tareas, en este orden: recalcular los puntos de pedido y lanzar
+        sus
+        aprovisionamientos, reservar los movimientos confirmados, y fusionar
+        los
         quants duplicados.
 
         **Divergencia D-5 — cerrada.** ``stock.warehouse.orderpoint`` está
@@ -1436,8 +1763,10 @@ class StockRule(TimeStampedModel):
         quant_model = apps.get_model('stock', 'StockQuant')
 
         if use_new_cursor:
-            _logger.debug('stock.rule: %s tareas de planificador por hacer',
-                          cls._get_scheduler_tasks_to_do())
+            _logger.debug(
+                'stock.rule: %s tareas de planificador por hacer',
+                cls._get_scheduler_tasks_to_do(),
+            )
 
         # 1. Puntos de pedido.
         orderpoint_model = _orderpoint_model()
@@ -1446,21 +1775,31 @@ class StockRule(TimeStampedModel):
         orderpoint_model._compute_qty_to_order_computed(orderpoints)
         orderpoint_model._compute_deadline_date(orderpoints)
         orderpoint_model._procure_orderpoint_confirm(
-            orderpoints, use_new_cursor=use_new_cursor,
-            company_id=company_id, raise_user_error=False)
+            orderpoints,
+            use_new_cursor=use_new_cursor,
+            company_id=company_id,
+            raise_user_error=False,
+        )
 
         # 2. Reservar lo confirmado, en lotes de 1000.
         domain = cls._get_moves_to_assign_domain(company_id)
-        moves_to_assign = move_model.objects.filter(domain).order_by(
-            'reservation_date', '-priority', 'date', 'id'
-        ) if _has_field(move_model, 'reservation_date') else move_model.objects.filter(
-            domain).order_by('id')
-        for moves_chunk in split_every(1000, list(moves_to_assign.values_list('pk', flat=True))):
+        moves_to_assign = (
+            move_model.objects.filter(domain).order_by(
+                'reservation_date', '-priority', 'date', 'id'
+            )
+            if _has_field(move_model, 'reservation_date')
+            else move_model.objects.filter(domain).order_by('id')
+        )
+        for moves_chunk in split_every(
+            1000, list(moves_to_assign.values_list('pk', flat=True))
+        ):
             for move in move_model.objects.filter(pk__in=moves_chunk):
                 move._action_assign()
             if use_new_cursor:
-                _logger.info("A batch of %d moves are assigned and committed",
-                             len(moves_chunk))
+                _logger.info(
+                    "A batch of %d moves are assigned and committed",
+                    len(moves_chunk),
+                )
 
         # 3. Fusionar quants duplicados.
         quant_model._quant_tasks()
@@ -1478,13 +1817,15 @@ class StockRule(TimeStampedModel):
     def run_scheduler(cls, use_new_cursor=False, company_id=False):
         """≙ ``run_scheduler`` (``odoo19c: :732-742``).
 
-        «Call the scheduler in order to check the running procurements, to check
+        «Call the scheduler in order to check the running procurements, to
+        check
         the minimum stock rules and the availability of moves.» Pensado para
         correr sobre todas las empresas a la vez, por eso la fuente lo eleva.
         """
         try:
-            cls._run_scheduler_tasks(use_new_cursor=use_new_cursor,
-                                     company_id=company_id)
+            cls._run_scheduler_tasks(
+                use_new_cursor=use_new_cursor, company_id=company_id
+            )
         except Exception:
             _logger.error("Error during stock scheduler", exc_info=True)
             raise

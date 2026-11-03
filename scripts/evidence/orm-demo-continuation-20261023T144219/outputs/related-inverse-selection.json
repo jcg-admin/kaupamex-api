@@ -1,0 +1,25 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "uv run --frozen --project /workspace/thyrox python, full actual ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.related_inverse_persistence",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Normalize actual scalar Django records in existing generic related inverse and verify persisted scalar target at explicit save/dispatch; existing historical bank trace and completed0412 predecessor retained",
+      "verify": "Actual PostgreSQL scalar/list shapes, assignment0SQL, target DB equality, both-real/new guard, alias/exception boundaries; no constructor or unowned0418/0419 implementation",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py",
+        "tests/integration/base/test_related_inverse_persistence.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 448,
+  "states": {},
+  "selected": [
+    "TASK-GEN-0633.related_inverse_persistence"
+  ],
+  "limits": "One demonstrated owned GEN633 candidate, not global discovery/acceptance or managed inference"
+}

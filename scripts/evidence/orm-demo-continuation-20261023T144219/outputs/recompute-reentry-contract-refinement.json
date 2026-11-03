@@ -1,0 +1,8 @@
+{
+  "initial_hypothesis": "Duplicate work assumed equivalent for both recursive and nonrecursive Django row adapters; initial2FAIL2PASS preserved",
+  "pinned_source_review": "Odoo Field.recompute recursive branch checks live to_compute_ids per record; nonrecursive branch invokes a batch, not the same row-callback API",
+  "decision": "Correct recursive queue coalescence only. Keep nonrecursive row callback behavior as compatibility control, not Odoo conformance",
+  "queue_dependency": "Consumer Environment.remove_to_compute discards IDs in the existing OrderedSet, matching captured membership semantics",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "task_scope_unchanged": true
+}

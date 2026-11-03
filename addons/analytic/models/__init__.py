@@ -21,13 +21,15 @@ Modelos portados (7 ``_name`` de la referencia, todos presentes aquí):
 - ``analytic.plan.fields.mixin`` → ``AnalyticPlanFieldsMixin`` (abstracto)
 - ``account.analytic.line`` → ``AccountAnalyticLine``
 - ``analytic.mixin`` → ``AnalyticMixin`` (abstracto)
-- ``account.analytic.distribution.model`` → ``AccountAnalyticDistributionModel``
+- ``account.analytic.distribution.model`` →
+  ``AccountAnalyticDistributionModel``
 
 Los 2 ``_inherit`` de la referencia (``ir_config_parameter.py``,
 ``res_config_settings.py``) NO se portan en este addon — ver el resumen de
 la tarea que generó este puerto para el detalle de a qué modelo apuntan y
 qué haría falta para colgarles los campos correspondientes.
 """
+
 from .analytic_plan import AccountAnalyticPlan, AccountAnalyticApplicability
 from .analytic_account import AccountAnalyticAccount
 from .analytic_mixin import AnalyticMixin

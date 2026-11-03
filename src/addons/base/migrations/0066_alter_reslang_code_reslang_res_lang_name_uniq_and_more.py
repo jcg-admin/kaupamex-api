@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
             model_name="reslang",
             name="code",
             field=models.CharField(
-                help_text="Locale code (Odoo code, p. ej. es_MX). Único.", max_length=16
+                help_text="Locale code (Odoo code, p. ej. es_MX). Único.",
+                max_length=16,
             ),
         ),
         migrations.AddConstraint(
@@ -22,7 +23,9 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("name",),
                 name="res_lang_name_uniq",
-                violation_error_message="The name of the language must be unique!",
+                violation_error_message=(
+                    "The name of the language must be unique!"
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -30,7 +33,9 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("code",),
                 name="res_lang_code_uniq",
-                violation_error_message="The code of the language must be unique!",
+                violation_error_message=(
+                    "The code of the language must be unique!"
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -38,7 +43,9 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("url_code",),
                 name="res_lang_url_code_uniq",
-                violation_error_message="The URL code of the language must be unique!",
+                violation_error_message=(
+                    "The URL code of the language must be unique!"
+                ),
             ),
         ),
     ]

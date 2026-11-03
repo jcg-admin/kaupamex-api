@@ -5,6 +5,7 @@ Un solo verbo (FBV) — ``path()`` directo, sin router (el router es sólo para
 ``uc-fin-09-imprimir-cheques-prenumerados`` (montada bajo ``api/v2/admin/
 finance/`` en ``config/urls.py``).
 """
+
 from django.urls import path
 
 from addons.account_check_printing.controllers.views import print_checks

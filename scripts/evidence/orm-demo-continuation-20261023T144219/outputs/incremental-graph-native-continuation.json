@@ -1,0 +1,68 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/.venv/bin/python - <existing4input rows, full actual claims ledger, states{}>",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.incremental_graph_snapshot",
+      "taskId": "TASK-API-0382",
+      "prompt": "Keep database-bound ModuleGraph extensions consistent with catalogue state, demo, versions, dependency pruning and update-phase ordering",
+      "verify": "Real PostgreSQL incremental load/update states, missing/uninstallable manifest pruning, snapshots preserved and wrong-alias negative; no automatic installation acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py",
+        "tests/unit/modules/test_module_graph.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.applied_schema_preflight",
+      "taskId": "TASK-API-0383",
+      "prompt": "Reject missing managed tables implied by known applied migrations before company migrations; preserve data/recorder and share target context with bulk migration",
+      "verify": "Real PostgreSQL negative table/M2M controls and healthy pending/router-excluded states; no automatic destructive repair; bulk continues after one failed database",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "tests/unit/service/test_provision_company.py",
+        "tests/unit/service/test_db_migrate_all.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.isolation_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Replace unqualified private TestCase bypass fixture using existing Django/pytest mechanisms and verify real two-company data before TASK acceptance",
+      "verify": "No private connection safety removal, owned fresh resources, all3legacy isolation cases discriminating, identity/session acceptance separately qualified",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_loader_acceptance",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify effective per-database model composition and loader caller integration under existing ownership",
+      "verify": "Schema alone is not loader/model/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.isolation_qualification"
+      ]
+    }
+  ],
+  "states": {},
+  "claims_count": 371,
+  "selected": [
+    "TASK-API-0382.incremental_graph_snapshot"
+  ],
+  "unit_verification": "16focusedPASS,65neighborPASS,6PGscopecontrolsPASS,12incremental pinned-body casesPASS;2negative injectionsFAIL expected; requiredCI BASELINE_FAILURE",
+  "coverage": "Four declared bounded candidates, not global discovery/eligibility or whole ORM population",
+  "acceptance": "not_verified",
+  "official_states_changed": false,
+  "managed_local_model_execution": false,
+  "objective_complete": false,
+  "consequence": "Selector proposes the implemented but officially-unaccepted incremental snapshot unit. Do not rerun valid tests, fabricate acceptance, claim global exhaustion or unblock full loader. Required CI and policy/identity/model composition/loader acceptance remain explicit separate contracts."
+}

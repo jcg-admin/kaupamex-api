@@ -15,7 +15,10 @@ Es el mismo camino por el que ``account/models/__init__.py`` importa los suyos.
 ``base.IrModule`` y lo aplica ``BaseInstallRequestConfig.ready()``; en tiempo
 de import del paquete el registro de modelos aún no está poblado.
 """
+
 from addons.base_install_request.wizard import (
-    BaseModuleInstallRequest, BaseModuleInstallReview)
+    BaseModuleInstallRequest,
+    BaseModuleInstallReview,
+)
 
 __all__ = ['BaseModuleInstallRequest', 'BaseModuleInstallReview']

@@ -1,0 +1,38 @@
+{
+  "command": [
+    "rg",
+    "-n",
+    "kaupamex-(docs|api|db|server|ui)|THYROX_CONSUMER_ROOT",
+    "src/agents/agent_store.py",
+    "src/session",
+    "src/task",
+    "src/agents/definitions"
+  ],
+  "cwd": "/workspace/thyrox",
+  "exit_code": 0,
+  "matches": 66,
+  "files": {
+    "src/agents/agent_store.py": 3,
+    "src/agents/definitions/workbench-instrumenter.md": 5,
+    "src/agents/definitions/prueba-palancas.md": 4,
+    "src/agents/definitions/packaging-porter-low.md": 9,
+    "src/agents/definitions/packaging-porter-high.md": 9,
+    "src/agents/definitions/migration-porter.md": 8,
+    "src/task/task_ids.py": 1,
+    "src/task/snapshot-tasks.sh": 1,
+    "src/task/refresh-board.sh": 1,
+    "src/task/layer_signals.tsv": 5,
+    "src/task/agrupar_tareas_por_familia.py": 2,
+    "src/session/user_wiring.py": 4,
+    "src/task/__init__.py": 1,
+    "src/session/task_pool.py": 1,
+    "src/task/census_open_tasks.py": 1,
+    "src/session/sync_local_settings.py": 6,
+    "src/session/clone_bootstrap.py": 1,
+    "src/session/bg.sh": 1,
+    "src/session/job_runs.py": 1,
+    "src/session/job_ledger.py": 2
+  },
+  "limit": "String occurrences are candidates, not proof every matched file is an executable dependency; read call sites before classifying",
+  "full_output": "provider-coupling-search.log"
+}

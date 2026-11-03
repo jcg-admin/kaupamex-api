@@ -1,0 +1,81 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Increment admission: PASS; global style, CI, integration and acceptance are NOT_EVALUATED
+Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.
+OK: sin lazy imports (1 archivos medidos).
+check_canon_language: OK — sin violaciones.
+OK: todo silencio de excepción está justificado (1 archivos medidos).
+OK: identificadores en inglés (1 archivos medidos, 3531 en deuda heredada).
+OK: ningun identificador lleva el nombre de la referencia (1 archivos medidos).
+OK: 0 marca(s) nueva(s) sin forma fija (alcance medido: 1 archivos, 0 marcas informes, 332 congeladas en baseline)
+OK: 0 marca(s) caducada(s) nueva(s) · 0 caducada(s) en 0 clave(s) · 0 viva(s) · 0 de forma no medible (alcance medido: 0 aristas bien formadas; 19 clave(s) en baseline)
+OK: sin secuencias de escape inválidas (alcance medido: 1 archivos pedidos por ruta).
+OK: ningún modelo concreto choca con el lookup (alcance medido: 1 archivos).
+OK: ningun chain_method nuevo sin combine donde la referencia combina (alcance medido: 0 llamada(s); 0 sin contraparte en la referencia, 0 con el metodo no declarado alli, 0 que la referencia no extiende; 8 en baseline)
+check_write_path: 0 hallazgo(s) nuevo(s) (0 en total; 17 en baseline) (alcance medido: 0 par(es) de metodo que escriben en ambos lados, sobre 0 archivo(s) con contraparte de 1 recorrido(s); 0 indeterminado(s) por granularidad de metodo)
+  TASK-API-0382 -> Mecanismo: la instalación se decide por base, no por proceso (H-API-78
+[feature/codex-workspace-bootstrap 19483d07] Qualify logical properties and registry flag evidence
+ Author: Nestor Monroy <46802445+NestorMonroy@users.noreply.github.com>
+ 63 files changed, 36614 insertions(+), 1 deletion(-)
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-attribute-related-tasks.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-attribute-related-tasks.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-attribute-runtime-check.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-attribute-runtime-result.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-property-behavior-controls.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-property-behavior-controls.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/field-property-behavior-controls.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-final-green.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-final-green.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-green.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-green.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-reconciliation.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-red.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-red.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-structural.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-structural.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-annulment.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-annulment.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-artifacts.SHA256SUMS
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-ci-classification.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-ci-failed.log.gz
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-claims-acquired.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-claims-released.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-commit-exact-index.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-commit-receipt.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-commit.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-contract-14.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-existing-findings.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-finding-registration.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-frontier.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-frontier.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-green.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-green.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-increment-final.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-increment-initial.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-native-preconditions.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-native-tasks.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-new-python-style.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-next-frontier.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-next-frontier.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-pr109-after.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-pr109-before.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-preserved-working-registry.py.txt
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-preserved-working-test_registry_invalidation_scope.py.txt
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-push.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-real-hook-pass.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-real-hook-rejection.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-red.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-red.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-reference.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-reference.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-related-findings.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-source-preimage.txt
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-staged-verification.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-staged-verification.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-staged-verification.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-summary.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-task-update.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-task-update.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/probes/compare_registry_invalidation_scope.py
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_registry_scope_candidate.py
+ create mode 100644 tests/unit/scripts/test_orm_property_view.py

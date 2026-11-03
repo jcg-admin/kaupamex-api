@@ -1,5 +1,6 @@
 """
-Tests — Inventory capability gate (positive + negative granular path): retirado.
+Tests — Inventory capability gate (positive + negative granular path):
+retirado.
 
 Probaba ``GET /api/v2/admin/inventory/`` bajo la capacidad
 ``inventory.manage``. El addon ``stock`` no tiene capa REST en absoluto —

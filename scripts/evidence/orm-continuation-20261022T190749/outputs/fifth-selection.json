@@ -1,0 +1,24 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "ModuleGraph._imported_modules",
+      "prompt": "Existing ModuleGraph contract ledger: verify imported metadata dependency without mutation",
+      "verify": "Read exact pinned body and consumers; compare actual Consumer schema and loader",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "mutates": false,
+      "owned": [
+        "src/modules/module.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims": "Complete current native ledger; no owner filtering",
+  "selected": [
+    "ModuleGraph._imported_modules"
+  ],
+  "objective_complete": false,
+  "scope": "One read-only subunit of existing owned0382; not global admission or local model dispatch"
+}

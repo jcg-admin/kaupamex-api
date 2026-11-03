@@ -9,6 +9,7 @@ plataforma (crédito). Puente **explícito e idempotente** por una FK
 la corrida (rompería flujos sin chart L0). Ver
 :ref:`diseno-motor-facturacion-recurrente-l0`.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -36,13 +37,20 @@ def l0_chart():
     """System company (Kaupamex) con su plan de cuentas L0 mínimo."""
     system = ResCompany.get_system()
     AccountJournal.objects.create(
-        name='Ventas plataforma', code='VEN', type='sale', company=system)
+        name='Ventas plataforma', code='VEN', type='sale', company=system
+    )
     AccountAccount.objects.create(
-        code='105', name='Clientes L0', account_type='asset_receivable',
-        company=system)
+        code='105',
+        name='Clientes L0',
+        account_type='asset_receivable',
+        company=system,
+    )
     AccountAccount.objects.create(
-        code='401', name='Ingreso plataforma', account_type='income',
-        company=system)
+        code='401',
+        name='Ingreso plataforma',
+        account_type='income',
+        company=system,
+    )
     return system
 
 
@@ -50,13 +58,21 @@ def l0_chart():
 def invoice(tenant):
     module = Module.objects.create(code='catalogue', name='catalogue')
     sub = CompanyModuleSubscription.objects.create(
-        company=tenant, module=module,
+        company=tenant,
+        module=module,
         status=CompanyModuleSubscription.Status.ACTIVE,
-        billing_cycle='monthly', price=Decimal('199.00'))
+        billing_cycle='monthly',
+        price=Decimal('199.00'),
+    )
     run = SubscriptionBillingRun.objects.create(period='2026-08')
     return SubscriptionInvoice.objects.create(
-        company=tenant, subscription=sub, run=run, period='2026-08',
-        amount=Decimal('199.00'), currency='MXN')
+        company=tenant,
+        subscription=sub,
+        run=run,
+        period='2026-08',
+        amount=Decimal('199.00'),
+        currency='MXN',
+    )
 
 
 class TestSubscriptionPostToLedger:
@@ -85,8 +101,12 @@ class TestSubscriptionPostToLedger:
 
     def test_double_entry_receivable_vs_income(self, l0_chart, invoice):
         move = invoice.post_to_ledger()
-        debit = sum((l.debit for l in move.line_ids.all()), Decimal('0.00'))
-        credit = sum((l.credit for l in move.line_ids.all()), Decimal('0.00'))
+        debit = sum(
+            (item.debit for item in move.line_ids.all()),
+            Decimal('0.00'))
+        credit = sum(
+            (item.credit for item in move.line_ids.all()),
+            Decimal('0.00'))
         assert debit == invoice.amount
         assert credit == invoice.amount
 

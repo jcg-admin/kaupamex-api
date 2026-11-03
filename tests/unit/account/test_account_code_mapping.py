@@ -7,6 +7,7 @@ código distinto por compañía) no existe en este árbol —
 que este test fija es exactamente esa premisa, para que la divergencia deje
 de ser válida el día que alguien la cambie sin darse cuenta.
 """
+
 import pytest
 from django.apps import apps
 from django.db.models import ForeignKey, ManyToManyField
@@ -34,7 +35,5 @@ class TestNoAccountCodeMappingModelExists:
     def test_no_app_registers_that_model_label(self):
         """``account.code.mapping`` no aparece en ninguna app instalada — se
         declaró la divergencia, no se fabricó el modelo virtual."""
-        model_labels = {
-            model._meta.model_name for model in apps.get_models()
-        }
+        model_labels = {model._meta.model_name for model in apps.get_models()}
         assert 'accountcodemapping' not in model_labels

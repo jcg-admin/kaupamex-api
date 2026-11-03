@@ -1,0 +1,4 @@
+TASK-API-0382 pending codex-module-lifecycle
+TASK-API-0264 completed null
+· nadie tiene reservas que solapen «src/orm/registry.py».
+· nadie tiene reservas que solapen «tests/unit/orm/test_registry_invalidation_scope.py».

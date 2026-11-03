@@ -1,0 +1,34 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet/TaskUpdate(description only)/TaskGet",
+  "before": {
+    "task_id": "520",
+    "citation_id": "TASK-API-0305",
+    "subject": "Retomar el bloque analytic de account con apps.py y analytic/migrations en alcance",
+    "description": "H-API-684: 21 de 25 def del bloque analítico quedaron BLOQUEADOS por el ALCANCE DE ESCRITURA del tramo, no por capacidad del ORM. Faltaban dos piezas en la lista de escribibles: addons/account/apps.py (para cablear las 4 funciones apply_*_extensions() ya escritas en AccountConfig._EXTENSIONES) y addons/analytic/migrations/ (para la columna move_line_id y account_prefix/product/product_categ, porque account.analytic.line vive en la app analytic). Retomar account_analytic_account.py y account_analytic_line.py con ambas en alcance. Depende además de AccountMove.get_sale_types/get_purchase_types y AccountMoveLine.analytic_distribution.",
+    "status": "in_progress",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "input": {
+    "task_id": "520",
+    "description": "H-API-684: 21 de 25 def del bloque analítico quedaron BLOQUEADOS por el ALCANCE DE ESCRITURA del tramo, no por capacidad del ORM. Faltaban dos piezas en la lista de escribibles: addons/account/apps.py (para cablear las 4 funciones apply_*_extensions() ya escritas en AccountConfig._EXTENSIONES) y addons/analytic/migrations/ (para la columna move_line_id y account_prefix/product/product_categ, porque account.analytic.line vive en la app analytic). Retomar account_analytic_account.py y account_analytic_line.py con ambas en alcance. Depende además de AccountMove.get_sale_types/get_purchase_types y AccountMoveLine.analytic_distribution.\n\nContinuación contractual: prefix_placeholder usa compute con asignación, commit60c9557cd82bd1d8616f7ed832aad8c43a103991 publicado en PR109. Candidato exacto7PASS; anulación7FAIL esperados; SQL prohibido y selección de cuentas mock explícito. Evidencia: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/prefix-compute-contract-14.json. No modifica búsqueda por compañía, dependencia analytic_precision ni aceptación global. Sin cambios de estado/dependencias/owner; integración y QA pendientes."
+  },
+  "result": {
+    "content": "{\"task_id\":\"520\",\"updated\":true}",
+    "isError": false
+  },
+  "after": {
+    "task_id": "520",
+    "citation_id": "TASK-API-0305",
+    "subject": "Retomar el bloque analytic de account con apps.py y analytic/migrations en alcance",
+    "description": "H-API-684: 21 de 25 def del bloque analítico quedaron BLOQUEADOS por el ALCANCE DE ESCRITURA del tramo, no por capacidad del ORM. Faltaban dos piezas en la lista de escribibles: addons/account/apps.py (para cablear las 4 funciones apply_*_extensions() ya escritas en AccountConfig._EXTENSIONES) y addons/analytic/migrations/ (para la columna move_line_id y account_prefix/product/product_categ, porque account.analytic.line vive en la app analytic). Retomar account_analytic_account.py y account_analytic_line.py con ambas en alcance. Depende además de AccountMove.get_sale_types/get_purchase_types y AccountMoveLine.analytic_distribution.\n\nContinuación contractual: prefix_placeholder usa compute con asignación, commit60c9557cd82bd1d8616f7ed832aad8c43a103991 publicado en PR109. Candidato exacto7PASS; anulación7FAIL esperados; SQL prohibido y selección de cuentas mock explícito. Evidencia: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/prefix-compute-contract-14.json. No modifica búsqueda por compañía, dependencia analytic_precision ni aceptación global. Sin cambios de estado/dependencias/owner; integración y QA pendientes.",
+    "status": "in_progress",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("pdf", "PDF")],
                 default="pdf",
-                help_text="Formato de salida. Sin el prefijo qweb- de la referencia: aquí no hay QWeb, el render es libharu (ADR-017).",
+                help_text=(
+                    "Formato de salida. Sin el prefijo qweb- de la referencia:"
+                    " aquí no hay QWeb, el render es libharu (ADR-017)."
+                ),
                 max_length=16,
                 verbose_name="Tipo de reporte",
             ),

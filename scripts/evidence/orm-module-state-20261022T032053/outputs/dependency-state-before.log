@@ -1,0 +1,60 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py", line 86, in <module>
+    observed_dependencies[using] = edge._compute_state()
+                                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_module.py", line 656, in _compute_state
+    depend = self._compute_depend()
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_module.py", line 615, in _compute_depend
+    return type(self)._compute_depend_batch([self])[self.pk]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_module.py", line 627, in _compute_depend_batch
+    for module in IrModule.objects.filter(name__in=names)}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 390, in __iter__
+    self._fetch_all()
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    db = queryset.db
+         ^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1887, in db
+    return self._db or router.db_for_read(self.model, **self._hints)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py", line 231, in _route_db
+    chosen_db = method(model, **hints)
+                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/routers.py", line 155, in db_for_read
+    return self._route(model)
+           ^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/routers.py", line 146, in _route
+    raise CompanyContextRequired(
+orm.routers.CompanyContextRequired: operacion de dominio base.irmodule sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

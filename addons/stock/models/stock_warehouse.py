@@ -318,7 +318,7 @@ class StockWarehouse(TimeStampedModel):
         default=True, help_text='Almacén activo (Odoo active).',
     )
     company              = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='warehouses',
+        'base.ResCompany', null=False, on_delete=models.CASCADE, related_name='warehouses',
         help_text='Empresa (Odoo company_id, readonly+required: se toma de las '
                   'preferencias del usuario y no se cambia después).',
     )
@@ -328,13 +328,13 @@ class StockWarehouse(TimeStampedModel):
         help_text='Dirección del almacén (Odoo partner_id).',
     )
     view_location        = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, db_index=True,
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, db_index=True,
         related_name='warehouses_as_view',
         help_text='Ubicación raíz de tipo vista que cuelga de este almacén '
                   '(Odoo view_location_id).',
     )
     lot_stock            = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT,
+        'stock.StockLocation', null=False, on_delete=models.PROTECT,
         related_name='warehouses_as_stock',
         help_text='La estantería: ubicación interna donde vive la existencia '
                   '(Odoo lot_stock_id).',
@@ -1874,11 +1874,11 @@ class StockWarehouseResupply(models.Model):
     """Tabla intermedia de ``resupply_wh_ids`` (≙ ``stock_wh_resupply_table``, ``:84-86``)."""
 
     supplied_wh = fields.Many2one(
-        'stock.StockWarehouse', on_delete=models.CASCADE, related_name='+',
+        'stock.StockWarehouse', null=False, on_delete=models.CASCADE, related_name='+',
         help_text='Almacén abastecido (Odoo supplied_wh_id).',
     )
     supplier_wh = fields.Many2one(
-        'stock.StockWarehouse', on_delete=models.CASCADE, related_name='+',
+        'stock.StockWarehouse', null=False, on_delete=models.CASCADE, related_name='+',
         help_text='Almacén que abastece (Odoo supplier_wh_id).',
     )
 

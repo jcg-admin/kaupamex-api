@@ -12,6 +12,7 @@ devuelve un objeto ``.sale_order_id`` distinto de la venta misma. Lo que
 sigue vigente es que el filtro selecciona **exactamente** la venta de su
 estado y descarta las demás; eso es lo que se prueba aquí.
 """
+
 import pytest
 
 from addons.sale.models import SaleOrder
@@ -55,13 +56,11 @@ def test_el_filtro_canonico_excluye_los_demas_estados(universo, estado):
     """Un estado no arrastra a los otros cuatro — descarta que el join roto
     devuelva todo o nada."""
     seleccionadas = set(
-        filter_orders_by_status(SaleOrder.objects.all(), estado)
-        .values_list('pk', flat=True)
+        filter_orders_by_status(SaleOrder.objects.all(), estado).values_list(
+            'pk', flat=True
+        )
     )
-    otras = {
-        orden.pk
-        for otro, orden in universo.items() if otro != estado
-    }
+    otras = {orden.pk for otro, orden in universo.items() if otro != estado}
 
     assert seleccionadas == {universo[estado].pk}
     assert not (seleccionadas & otras)

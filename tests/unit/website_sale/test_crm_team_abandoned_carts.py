@@ -40,6 +40,7 @@ Los casos cubren, en este orden:
    índice parcial y el ``default`` que hoy devuelve ``None`` por diseño.
 6. **La arista declarada** — que ``get_abandoned_carts`` NO está portado.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -59,6 +60,7 @@ from addons.website_sale.models.website import (
 )
 from orm.environments import company_scope
 from tests.factories.product_factory import make_product
+
 # Los dos ayudantes se **importan**, no se reescriben: ``make_buyer`` existe
 # porque ``sale_order_un_draft_por_partner`` es un índice único parcial (un
 # solo borrador por cliente), y ``make_cart`` alinea ``created_at`` con
@@ -81,6 +83,7 @@ PORTED_ON_CRM_TEAM = [
 
 # ── fixtures ────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def public_user(db):
     """El usuario público del sitio — ≙ ``website.user_id``."""
@@ -95,8 +98,9 @@ def company(db):
 @pytest.fixture
 def website(company, public_user):
     with company_scope(company.pk):
-        yield Website.objects.create(name='Tienda equipos', sequence=1,
-                                     user=public_user)
+        yield Website.objects.create(
+            name='Tienda equipos', sequence=1, user=public_user
+        )
 
 
 @pytest.fixture
@@ -124,8 +128,11 @@ def settings_row(website, team):
     encuentra por el ``related_name`` de ``salesteam``.
     """
     return WebsiteSaleSettings.objects.create(
-        website=website, cart_abandoned_delay=10.0,
-        send_abandoned_cart_email=True, salesteam_id=team)
+        website=website,
+        cart_abandoned_delay=10.0,
+        send_abandoned_cart_email=True,
+        salesteam_id=team,
+    )
 
 
 def assign(order, team):
@@ -137,6 +144,7 @@ def assign(order, team):
 
 # ── 1. la cabecera del porte ────────────────────────────────────────────────
 
+
 @pytest.mark.parametrize('symbol', PORTED_ON_CRM_TEAM)
 def test_ported_symbol_is_installed_on_crm_team(symbol):
     """Los tres símbolos que se cuelgan de ``crm.team`` están ahí.
@@ -147,8 +155,9 @@ def test_ported_symbol_is_installed_on_crm_team(symbol):
     assert hasattr(CrmTeam, symbol)
 
 
-@pytest.mark.parametrize('field', ['abandoned_carts_count',
-                                   'abandoned_carts_amount'])
+@pytest.mark.parametrize(
+    'field', ['abandoned_carts_count', 'abandoned_carts_amount']
+)
 def test_abandoned_carts_fields_have_no_column(field):
     """``compute`` sin ``store`` en la fuente (``odoo19c: :12-17``).
 
@@ -168,15 +177,19 @@ def test_website_ids_is_the_related_name(team, settings_row):
     """
     assert list(team.websites.all()) == [settings_row]
     # El salto que D-7 declara: de la política al sitio.
-    assert [row.website for row in team.websites.all()] == [settings_row.website]
+    assert [row.website for row in team.websites.all()] == [
+        settings_row.website
+    ]
     # Y no hay campo ``website_ids`` inventado sobre el equipo.
     assert 'website_ids' not in {f.name for f in CrmTeam._meta.get_fields()}
 
 
 # ── 2. el par del guard ─────────────────────────────────────────────────────
 
+
 def test_team_that_is_website_salesteam_counts_its_carts(
-        settings_row, website, team, product):
+    settings_row, website, team, product
+):
     """Un equipo que **es** salesteam de un sitio cuenta sus carritos.
 
     Mitad feliz del par. Por sí sola no prueba nada sobre el guard: un cómputo
@@ -191,7 +204,8 @@ def test_team_that_is_website_salesteam_counts_its_carts(
 
 
 def test_team_with_carts_but_no_website_reports_zero(
-        settings_row, website, other_team, product):
+    settings_row, website, other_team, product
+):
     """Un equipo con carritos abandonados que **no** es salesteam da ``0``.
 
     Ésta es la mitad que prueba el guard, y la que fallaría si alguien lo
@@ -213,8 +227,10 @@ def test_team_with_carts_but_no_website_reports_zero(
 
 # ── 3. el dominio del cómputo ───────────────────────────────────────────────
 
-def test_cart_already_mailed_is_not_counted(settings_row, website, team,
-                                            product):
+
+def test_cart_already_mailed_is_not_counted(
+    settings_row, website, team, product
+):
     """≙ ``('cart_recovery_email_sent', '=', False)`` (``odoo19c: :26``).
 
     Un carrito ya recuperado no vuelve a contarse: el contador mide lo que
@@ -237,8 +253,9 @@ def test_amount_sums_across_carts(settings_row, website, team, product):
     admite un solo borrador por cliente (ver ``make_buyer``).
     """
     for tag in ('team-d', 'team-e'):
-        assign(make_cart(website, make_buyer(tag), product, hours_ago=24.0),
-               team)
+        assign(
+            make_cart(website, make_buyer(tag), product, hours_ago=24.0), team
+        )
 
     assert team.abandoned_carts_count == 2
     assert team.abandoned_carts_amount == Decimal('500.00')
@@ -250,27 +267,30 @@ def test_young_cart_is_not_counted(settings_row, website, team, product):
     El contador hereda el predicado de ``_search_abandoned_cart``, así que la
     fecha de corte es la del **sitio**, no una constante de este archivo.
     """
-    assign(make_cart(website, make_buyer('team-f'), product, hours_ago=2.0),
-           team)
+    assign(
+        make_cart(website, make_buyer('team-f'), product, hours_ago=2.0), team
+    )
 
     assert team.abandoned_carts_count == 0
 
 
 # ── 4. D-3: un cómputo, dos campos, una consulta ────────────────────────────
 
-def test_reading_one_field_fills_the_other(settings_row, website, team,
-                                           product,
-                                           django_assert_num_queries):
+
+def test_reading_one_field_fills_the_other(
+    settings_row, website, team, product, django_assert_num_queries
+):
     """≙ ``:32-33``: la fuente asigna los dos campos en el mismo ``compute``.
 
     Aquí cada ``NonStored`` tiene su propio ``default``, así que la garantía
     hay que comprobarla: leer el primero deja el segundo puesto en la
     instancia, y leerlo no vuelve a consultar.
     """
-    assign(make_cart(website, make_buyer('team-g'), product, hours_ago=24.0),
-           team)
+    assign(
+        make_cart(website, make_buyer('team-g'), product, hours_ago=24.0), team
+    )
 
-    team.abandoned_carts_count            # dispara el cómputo
+    team.abandoned_carts_count  # dispara el cómputo
     assert 'abandoned_carts_amount' in team.__dict__
 
     with django_assert_num_queries(0):
@@ -278,6 +298,7 @@ def test_reading_one_field_fills_the_other(settings_row, website, team,
 
 
 # ── 5. el campo ``salesteam`` y sus atributos ───────────────────────────────
+
 
 def test_salesteam_field_attributes():
     """Los atributos de ``salesteam_id`` (``odoo19c: website.py:63-69``).
@@ -287,9 +308,9 @@ def test_salesteam_field_attributes():
     """
     field = WebsiteSaleSettings._meta.get_field('salesteam_id')
 
-    assert field.related_model is CrmTeam            # comodel_name='crm.team'
-    assert field.remote_field.on_delete.__name__ == 'SET_NULL'   # ondelete
-    assert field.remote_field.related_name == 'websites'         # website_ids
+    assert field.related_model is CrmTeam  # comodel_name='crm.team'
+    assert field.remote_field.on_delete.__name__ == 'SET_NULL'  # ondelete
+    assert field.remote_field.related_name == 'websites'  # website_ids
     assert field.null is True
     assert field.default is _default_salesteam_id
 
@@ -300,8 +321,11 @@ def test_salesteam_index_is_partial():
     Un ``db_index=True`` daría un btree **entero** — otro índice, no éste. La
     condición es lo que distingue los dos, y es lo que se comprueba.
     """
-    index = next(i for i in WebsiteSaleSettings._meta.indexes
-                 if i.name == 'website_sale_salesteam_nn')
+    index = next(
+        i
+        for i in WebsiteSaleSettings._meta.indexes
+        if i.name == 'website_sale_salesteam_nn'
+    )
 
     assert index.fields == ['salesteam_id']
     assert index.condition == Q(salesteam_id__isnull=False)
@@ -323,16 +347,21 @@ def test_salesteam_default_is_none_while_xmlid_is_unseeded():
 
 
 def test_archived_team_is_not_defaulted(company, monkeypatch):
-    """≙ ``if team and team.active`` (``:37``) — un equipo archivado no se asigna.
+    """
+    ≙ ``if team and team.active`` (``:37``) — un equipo archivado no se asigna.
 
     La condición se ejercita inyectando el equipo que el identificador externo
     devolvería, porque la siembra no existe todavía. Sin este caso, el
     ``and team.active`` podría perderse sin que nada lo notara.
     """
-    archived = CrmTeam.objects.create(name='Web (archivado)', company_id=company,
-                                      active=False)
-    monkeypatch.setattr(website_module.IrModelData, 'ref',
-                        classmethod(lambda cls, xmlid, **kw: archived))
+    archived = CrmTeam.objects.create(
+        name='Web (archivado)', company_id=company, active=False
+    )
+    monkeypatch.setattr(
+        website_module.IrModelData,
+        'ref',
+        classmethod(lambda cls, xmlid, **kw: archived),
+    )
     assert website_module._default_salesteam_id() is None
 
     archived.active = True
@@ -341,6 +370,7 @@ def test_archived_team_is_not_defaulted(company, monkeypatch):
 
 
 # ── 6. la arista declarada ──────────────────────────────────────────────────
+
 
 def test_get_abandoned_carts_is_not_ported():
     """``get_abandoned_carts`` (``odoo19c: :35-54``) NO está portado.

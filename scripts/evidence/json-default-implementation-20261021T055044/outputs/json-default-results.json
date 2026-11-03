@@ -1,0 +1,9 @@
+{
+  "task": "TASK-API-0420",
+  "tests_run": 7,
+  "failures": [],
+  "errors": [],
+  "exit_code": 0,
+  "classification": "PASS",
+  "limits": "Field-only; no Odoo runtime, DB or addon acceptance"
+}

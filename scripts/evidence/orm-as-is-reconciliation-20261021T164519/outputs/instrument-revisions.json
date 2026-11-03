@@ -1,0 +1,24 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_available": "Full19Community Git materialization at pin; not full semantic analysis or native execution",
+  "interfaces": {
+    "reference_roots.tree": "(alias='odoo19c')",
+    "reference_flow.index_roots": "(roots, names=None)",
+    "counterpart_body.pair_declarations": "(our_path, their_path)"
+  },
+  "used": "Root resolver used; existing AST inventories reused, no new extraction repeated",
+  "reference_hashes": {
+    "odoo/orm/fields.py": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e",
+    "odoo/orm/models.py": "4dc0f7ed1bfedf292b91d9603a67e83b740910601f418880e2ebf12902297c1e",
+    "odoo/addons/test_orm/__manifest__.py": "5573cfe7820bcae8bf6365a5d57b78a5675e065d6ee98c18e5b3e8941ddd6a5e"
+  },
+  "instrument_hashes": {
+    "scripts/reference_roots.py": "5539a913d52bc4ea8b9987100c41f59f1b7694ee9812067271e0251ec09cf62a",
+    "scripts/reference_flow.py": "865c13f200cd95207f2be22b143fa332260423426de4de580b422f4ac6f7110c",
+    "scripts/counterpart_body.py": "ef15887bdb7fddc8fd411b73297c1c7218213a4bd310458ad08835d5f1cdf095",
+    "scripts/evidence/orm-as-is-reconciliation-20261021T164519/probes/task_as_is.py": "aceb464dba8bcde24103d47249955374b93e2f88941f90b3caf3993b8683d015",
+    "scripts/evidence/orm-as-is-reconciliation-20261021T164519/probes/full_registry_check.py": "72c8ccf18f763d447c956182da9cdcc6073e16e82f5cef8b0df0e8ad611d2eca",
+    "scripts/evidence/orm-as-is-reconciliation-20261021T164519/probes/missing_recompute_postgresql.py": "17946598017bebb4f0293cf3dec268d571436eb8453eecb5bca66104ecbd76d7",
+    "scripts/evidence/orm-as-is-reconciliation-20261021T164519/probes/reconcile_existing.py": "2e00d4c9f83697f5de11cb2012a9eac86e614b1498261be226c330d5dc46b782"
+  }
+}

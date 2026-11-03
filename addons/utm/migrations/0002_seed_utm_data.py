@@ -1,4 +1,5 @@
-"""Siembra inicial del addon ``utm`` — la data-migration que su ``data`` declara.
+"""
+Siembra inicial del addon ``utm`` — la data-migration que su ``data`` declara.
 
 Escribe sobre el modelo **histórico** (``apps.get_model``), no sobre el vivo:
 una migración no ejecuta comportamiento de la app, que cambia bajo sus pies.
@@ -10,6 +11,7 @@ Idempotente y ``noupdate`` como el XML de la referencia: nunca pisa un valor
 que ya exista. La clave de idempotencia es el **identificador externo**
 (``module``, ``name`` de ``ir.model.data``), que es la que la fuente usa.
 """
+
 from django.db import migrations
 
 from addons.utm.data import UTM_MEDIUMS, UTM_SOURCES, UTM_STAGES, UTM_TAGS
@@ -23,15 +25,21 @@ def _seed(apps, alias, model_name, specs):
 
     for spec in specs:
         module, _, name = spec['xmlid'].partition('.')
-        already = ir_model_data.objects.using(alias).filter(
-            module=module, name=name).first()
+        already = (
+            ir_model_data.objects.using(alias)
+            .filter(module=module, name=name)
+            .first()
+        )
         if already is not None:
             continue
         values = {k: v for k, v in spec.items() if k != 'xmlid'}
         record = model.objects.using(alias).create(**values)
         ir_model_data.objects.using(alias).create(
-            module=module, name=name, model=label,
-            res_id=record.pk, noupdate=True,
+            module=module,
+            name=name,
+            model=label,
+            res_id=record.pk,
+            noupdate=True,
         )
 
 

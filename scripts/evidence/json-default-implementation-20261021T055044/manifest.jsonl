@@ -1,0 +1,3 @@
+{"kind": "launch", "instrument": "PYTHONPATH=src uv run --frozen python probes/json_default_contract.py", "started_at": "2026-10-21T05:50:44+00:00"}
+{"kind": "declaration", "question": "¿La corrección acotada de TASK-API-0420 conserva contenido, aislamiento y compatibilidad Django/PostgreSQL?", "instrument": "probes/json_default_contract.py", "metric": "Mismos siete controles heredados antes/después; modelos, migraciones y persistencia independientes", "blind_to": "No aceptación global ORM, suite addons completa ni inferencia local Thyrox", "destination": "/workspace/kaupamex-api/scripts/evidence/json-default-implementation-20261021T055044/outputs"}
+{"kind": "settle", "exit_code": 0, "finished_at": "2026-10-21T06:00:52+00:00", "duration_seconds": 608.060627}

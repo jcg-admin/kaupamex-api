@@ -10,6 +10,7 @@ Porte — 1 símbolo de la referencia: ``driver_employee_id``
 ``related`` no almacenado es property — mismo criterio que
 ``odometer_unit`` del propio ``fleet_vehicle_log_services.py`` local.
 """
+
 from orm.model_classes import extend_model
 
 
@@ -23,7 +24,8 @@ def apply_hr_fleet_fleet_vehicle_odometer_extensions():
     """Cuelga sobre ``fleet.vehicle.odometer`` lo que ``hr_fleet``
     necesita — ≙ ``_inherit``. Se invoca desde ``HrFleetConfig.ready()``."""
     extend_model(
-        'fleet', 'FleetVehicleOdometer',
+        'fleet',
+        'FleetVehicleOdometer',
         propiedades={
             'driver_employee': driver_employee,
         },

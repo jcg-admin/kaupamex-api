@@ -1,0 +1,23 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet",
+  "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "486"
+  },
+  "result": {
+    "content": "{\"task_id\":\"486\",\"citation_id\":\"TASK-API-0282\",\"subject\":\"El campo active existe en 35 modelos y ningún manager lo filtra\",\"description\":\"Cap. 12 del Cookbook, desenlace (a) — bug estructural. El campo `active` está declarado en 35 modelos del árbol, pero ningún manager lo filtra por defecto: 0 hits. En la referencia, `search()` excluye los registros archivados salvo que el contexto pida `active_test=False`; aquí un queryset normal los devuelve.\\n\\nConsecuencia: archivar un registro no lo saca de las listas ni de los agregados — el usuario lo archiva, sigue apareciendo, y quien lea el código creerá que la semántica de la referencia está portada porque el campo tiene el mismo nombre.\\n\\nEs la misma forma que H-API-658 (anotación sin lector) y que H-API-663 (afirmación sin mecanismo): el símbolo está, el comportamiento no. Antes de implementar, medir cuáles de los 35 esperan de verdad la semántica de archivado y cuáles usan `active` con otro sentido.\",\"status\":\"pending\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+    "isError": false
+  },
+  "task": {
+    "task_id": "486",
+    "citation_id": "TASK-API-0282",
+    "subject": "El campo active existe en 35 modelos y ningún manager lo filtra",
+    "description": "Cap. 12 del Cookbook, desenlace (a) — bug estructural. El campo `active` está declarado en 35 modelos del árbol, pero ningún manager lo filtra por defecto: 0 hits. En la referencia, `search()` excluye los registros archivados salvo que el contexto pida `active_test=False`; aquí un queryset normal los devuelve.\n\nConsecuencia: archivar un registro no lo saca de las listas ni de los agregados — el usuario lo archiva, sigue apareciendo, y quien lea el código creerá que la semántica de la referencia está portada porque el campo tiene el mismo nombre.\n\nEs la misma forma que H-API-658 (anotación sin lector) y que H-API-663 (afirmación sin mecanismo): el símbolo está, el comportamiento no. Antes de implementar, medir cuáles de los 35 esperan de verdad la semántica de archivado y cuáles usan `active` con otro sentido.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

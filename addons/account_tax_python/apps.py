@@ -35,6 +35,7 @@ COMPORTAMIENTO ya existente (ver ``models/account_tax.py`` y
    ``account: AccountTaxQuerySet._get_tax_details``/``compute_all`` — GAP
    documentado en el mismo docstring, con su sucesor exacto.
 """
+
 import importlib
 
 from django.apps import AppConfig

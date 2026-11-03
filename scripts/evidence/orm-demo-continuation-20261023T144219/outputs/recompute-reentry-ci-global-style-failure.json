@@ -1,0 +1,30 @@
+{
+  "run": 41408622546,
+  "job": 125156283834,
+  "revision": "e95659dd0b91b418daecc4677b42ff8a2620e96e",
+  "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/41408622546/job/125156283834",
+  "ci_verification": "FAIL",
+  "failed_stage": "make check-style",
+  "ci_exit_code": 2,
+  "admission": "PASS",
+  "contract_verification": "125PASS;negative controls retained",
+  "integration": "not_merged",
+  "acceptance": "not_verified",
+  "current_product_sources_equal_tested_revision": {
+    "src/orm/fields.py": "e83d72b52679bc6a7a413706fbd1655ffae89ce345b32376e6e366ce1cf1eb42",
+    "src/orm/models.py": "613032ef6b8cbbb579dad80d4be81f90768b398239d6c73b67db53461f9e84db",
+    "src/orm/environments.py": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "tests/unit/orm/test_recompute_reentry_contract.py": "3b908dcb1c857a159e10b0591c24f5213bbe6ec0b90ad5ef23a4171f70631542",
+    "tests/unit/orm/test_recompute_visibility_contract.py": "cfe7475e93a0fd351c102b26e0572be53016582f777c318082b2f01ed4512093"
+  },
+  "inherited_sample": {
+    "path": "tests/unit/website_sale/test_salesteam_migration.py",
+    "unchanged_from": "6836edb6",
+    "sha256": "9e0090563b192d43f20ab1652267e7a5e881a816e4c2d6334c2c0409a6c23aea"
+  },
+  "classification_limit": "Representative inherited style errors proven; no new global census or full diagnostic equivalence claimed. Increment admission remains distinct from global style compliance.",
+  "full_log": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-reentry-ci-global-style-failure.log.gz",
+  "uncompressed_log_sha256": "bcfe02a09447f979daf4edc1b42af6ed02790c999fbde65aea81a150d3ad1a07",
+  "compressed_log_sha256": "2a43647f5432a88c61bc06682a2422ea5478fd39367800d75bcfd050f4e58c4a",
+  "latest_revision_ci": "NOT_EVALUATED by this receipt"
+}

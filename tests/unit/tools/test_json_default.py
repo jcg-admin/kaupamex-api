@@ -1,4 +1,6 @@
-"""``tools.json.json_default`` — las siete ramas del ``default=`` de ``json.dumps``.
+"""
+``tools.json.json_default`` — las siete ramas del ``default=`` de
+``json.dumps``.
 
 Fiel a ``odoo19c: odoo/tools/json.py:62-76`` (LGPL-3).
 
@@ -8,6 +10,7 @@ de cómo representarlo. Hay un caso por rama, y luego un caso por el **orden**
 entre las dos primeras: ``datetime`` es subclase de ``date``, así que
 invertirlas convertiría todo instante en una fecha pelada sin que nada fallara.
 """
+
 import datetime as dt
 import json
 
@@ -23,9 +26,11 @@ pytestmark = pytest.mark.unit
 
 # -- Rama 1: ``datetime`` (``json.py:64-65``) --------------------------------
 
+
 def test_serializes_a_datetime_with_the_server_format():
-    assert (json_default(dt.datetime(2026, 9, 2, 4, 5, 6))
-            == '2026-09-02 04:05:06')
+    assert (
+        json_default(dt.datetime(2026, 9, 2, 4, 5, 6)) == '2026-09-02 04:05:06'
+    )
 
 
 def test_the_datetime_branch_comes_before_the_date_branch():
@@ -39,6 +44,7 @@ def test_the_datetime_branch_comes_before_the_date_branch():
 
 
 # -- Rama 2: ``date`` (``json.py:66-67``) ------------------------------------
+
 
 def test_serializes_a_date_with_the_server_format():
     assert json_default(dt.date(2026, 9, 2)) == '2026-09-02'
@@ -59,6 +65,7 @@ def test_the_date_branch_is_not_the_string_fallback():
 
 
 # -- Rama 3: ``lazy`` (``json.py:68-69``) ------------------------------------
+
 
 def test_serializes_a_lazy_proxy_as_its_evaluated_value():
     """Devuelve ``obj._value``, no ``str(obj)``: el valor sigue siendo un dato.
@@ -86,6 +93,7 @@ def test_the_lazy_branch_does_not_force_a_double_evaluation():
 
 # -- Rama 4: ``ReadonlyDict`` (``json.py:70-71``) ----------------------------
 
+
 def test_serializes_a_readonly_dict_as_a_plain_dict():
     result = json_default(ReadonlyDict({'foo': 'bar'}))
     assert result == {'foo': 'bar'}
@@ -93,6 +101,7 @@ def test_serializes_a_readonly_dict_as_a_plain_dict():
 
 
 # -- Rama 5: ``bytes`` (``json.py:72-73``) -----------------------------------
+
 
 def test_serializes_bytes_by_decoding_them():
     """``obj.decode()`` — UTF-8, y sin el prefijo ``b`` que daría ``str``."""
@@ -102,20 +111,26 @@ def test_serializes_bytes_by_decoding_them():
 
 # -- Rama 6: ``Domain`` (``json.py:74-75``) ----------------------------------
 
+
 def test_serializes_a_domain_as_its_polish_notation_list():
     """``list(obj)`` — la forma de entrada y salida que la fuente conserva."""
     assert json_default(Domain('name', '=', 'x')) == [('name', '=', 'x')]
 
 
 def test_serializes_a_compound_domain_keeping_its_operators():
-    assert (json_default(Domain('a', '=', 1) & Domain('b', '=', 2))
-            == ['&', ('a', '=', 1), ('b', '=', 2)])
+    assert json_default(Domain('a', '=', 1) & Domain('b', '=', 2)) == [
+        '&',
+        ('a', '=', 1),
+        ('b', '=', 2),
+    ]
 
 
 # -- Rama 7: el resto (``json.py:76``) ---------------------------------------
 
+
 def test_falls_back_to_the_string_representation():
     """Sin rama propia, ``str(obj)``: nunca lanza, siempre serializa algo."""
+
     class _Unknown:
         def __str__(self):
             return 'unknown-value'
@@ -129,6 +144,7 @@ def test_the_fallback_covers_a_type_json_would_reject():
 
 
 # -- Integración: es el ``default=`` de ``json.dumps`` -----------------------
+
 
 def test_works_as_the_default_hook_of_json_dumps():
     """El uso real: el codificador llama a la función por cada objeto opaco."""

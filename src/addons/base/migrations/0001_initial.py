@@ -36,14 +36,19 @@ class Migration(migrations.Migration):
                     "login",
                     models.CharField(
                         db_index=True,
-                        help_text="Identificador de acceso (Odoo login). Aquí es el email.",
+                        help_text=(
+                            "Identificador de acceso (Odoo login). Aquí es el"
+                            " email."
+                        ),
                         max_length=254,
                         unique=True,
                     ),
                 ),
                 (
                     "password",
-                    models.CharField(max_length=128, verbose_name="Contraseña"),
+                    models.CharField(
+                        max_length=128, verbose_name="Contraseña"
+                    ),
                 ),
                 (
                     "active",
@@ -63,12 +68,19 @@ class Migration(migrations.Migration):
                             ("suspended", "Suspendida por administrador"),
                             ("self_deleted", "Dada de baja por el usuario"),
                         ],
-                        help_text="Causa por la que active=False; NULL cuando la cuenta está activa. Distingue las reactivables por email de las que exigen UC-AUTH-14.",
+                        help_text=(
+                            "Causa por la que active=False; NULL cuando la"
+                            " cuenta está activa. Distingue las reactivables"
+                            " por email de las que exigen UC-AUTH-14."
+                        ),
                         max_length=20,
                         null=True,
                     ),
                 ),
-                ("deactivated_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "deactivated_at",
+                    models.DateTimeField(blank=True, null=True),
+                ),
             ],
             options={
                 "verbose_name": "Usuario",
@@ -95,7 +107,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text='Uso (Odoo name, p. ej. "Product Price"). Único.',
+                        help_text=(
+                            'Uso (Odoo name, p. ej. "Product Price"). Único.'
+                        ),
                         max_length=128,
                         unique=True,
                     ),
@@ -103,7 +117,8 @@ class Migration(migrations.Migration):
                 (
                     "digits",
                     models.IntegerField(
-                        default=2, help_text="Número de decimales (Odoo digits)."
+                        default=2,
+                        help_text="Número de decimales (Odoo digits).",
                     ),
                 ),
             ],
@@ -136,7 +151,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "type",
-                    models.CharField(max_length=64, verbose_name="Tipo de acción"),
+                    models.CharField(
+                        max_length=64, verbose_name="Tipo de acción"
+                    ),
                 ),
                 (
                     "path",
@@ -155,7 +172,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Texto de ayuda opcional que describe la vista destino.",
+                        help_text=(
+                            "Texto de ayuda opcional que describe la vista"
+                            " destino."
+                        ),
                         verbose_name="Descripción de la acción",
                     ),
                 ),
@@ -165,7 +185,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo binding_model_id. Con valor, la acción aparece en la barra lateral de ese modelo.",
+                        help_text=(
+                            "Odoo binding_model_id. Con valor, la acción"
+                            " aparece en la barra lateral de ese modelo."
+                        ),
                         max_length=120,
                         verbose_name="Modelo de anclaje",
                     ),
@@ -217,7 +240,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "type",
-                    models.CharField(max_length=64, verbose_name="Tipo de acción"),
+                    models.CharField(
+                        max_length=64, verbose_name="Tipo de acción"
+                    ),
                 ),
                 (
                     "path",
@@ -236,7 +261,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Texto de ayuda opcional que describe la vista destino.",
+                        help_text=(
+                            "Texto de ayuda opcional que describe la vista"
+                            " destino."
+                        ),
                         verbose_name="Descripción de la acción",
                     ),
                 ),
@@ -246,7 +274,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo binding_model_id. Con valor, la acción aparece en la barra lateral de ese modelo.",
+                        help_text=(
+                            "Odoo binding_model_id. Con valor, la acción"
+                            " aparece en la barra lateral de ese modelo."
+                        ),
                         max_length=120,
                         verbose_name="Modelo de anclaje",
                     ),
@@ -312,7 +343,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "type",
-                    models.CharField(max_length=64, verbose_name="Tipo de acción"),
+                    models.CharField(
+                        max_length=64, verbose_name="Tipo de acción"
+                    ),
                 ),
                 (
                     "path",
@@ -331,7 +364,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Texto de ayuda opcional que describe la vista destino.",
+                        help_text=(
+                            "Texto de ayuda opcional que describe la vista"
+                            " destino."
+                        ),
                         verbose_name="Descripción de la acción",
                     ),
                 ),
@@ -341,7 +377,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo binding_model_id. Con valor, la acción aparece en la barra lateral de ese modelo.",
+                        help_text=(
+                            "Odoo binding_model_id. Con valor, la acción"
+                            " aparece en la barra lateral de ese modelo."
+                        ),
                         max_length=120,
                         verbose_name="Modelo de anclaje",
                     ),
@@ -368,7 +407,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Filtrado opcional del destino, como expresión Python. Este archivo NO lo evalúa — ver el docstring del módulo.",
+                        help_text=(
+                            "Filtrado opcional del destino, como expresión"
+                            " Python. Este archivo NO lo evalúa — ver el"
+                            " docstring del módulo."
+                        ),
                         max_length=1024,
                         verbose_name="Dominio",
                     ),
@@ -377,7 +420,11 @@ class Migration(migrations.Migration):
                     "context",
                     models.JSONField(
                         default=dict,
-                        help_text="Odoo context. Allá es texto de una expresión Python; aquí es JSON, que es lo que de verdad se guarda.",
+                        help_text=(
+                            "Odoo context. Allá es texto de una expresión"
+                            " Python; aquí es JSON, que es lo que de verdad se"
+                            " guarda."
+                        ),
                         verbose_name="Contexto",
                     ),
                 ),
@@ -393,7 +440,9 @@ class Migration(migrations.Migration):
                 (
                     "res_model",
                     models.CharField(
-                        db_index=True, max_length=120, verbose_name="Modelo destino"
+                        db_index=True,
+                        max_length=120,
+                        verbose_name="Modelo destino",
                     ),
                 ),
                 (
@@ -414,7 +463,10 @@ class Migration(migrations.Migration):
                     "view_mode",
                     models.CharField(
                         default="list,form",
-                        help_text="Lista separada por comas: 'form', 'list', 'calendar'…",
+                        help_text=(
+                            "Lista separada por comas: 'form', 'list',"
+                            " 'calendar'…"
+                        ),
                         max_length=120,
                         verbose_name="Modos de vista",
                     ),
@@ -423,7 +475,11 @@ class Migration(migrations.Migration):
                     "mobile_view_mode",
                     models.CharField(
                         default="kanban",
-                        help_text="Primer modo en pantallas pequeñas. Si no está entre los disponibles, se usa el mismo que en pantalla ancha.",
+                        help_text=(
+                            "Primer modo en pantallas pequeñas. Si no está"
+                            " entre los disponibles, se usa el mismo que en"
+                            " pantalla ancha."
+                        ),
                         max_length=32,
                         verbose_name="Modo de vista móvil",
                     ),
@@ -431,23 +487,35 @@ class Migration(migrations.Migration):
                 (
                     "usage",
                     models.CharField(
-                        blank=True, default="", max_length=64, verbose_name="Uso"
+                        blank=True,
+                        default="",
+                        max_length=64,
+                        verbose_name="Uso",
                     ),
                 ),
                 (
                     "limit",
                     models.IntegerField(
                         default=80,
-                        help_text="Tamaño de página por defecto de la vista de lista.",
+                        help_text=(
+                            "Tamaño de página por defecto de la vista de"
+                            " lista."
+                        ),
                         verbose_name="Límite",
                     ),
                 ),
-                ("filter", models.BooleanField(default=False, verbose_name="Filtro")),
+                (
+                    "filter",
+                    models.BooleanField(default=False, verbose_name="Filtro"),
+                ),
                 (
                     "cache",
                     models.BooleanField(
                         default=True,
-                        help_text="Cachea los datos de lista, kanban y formulario para acelerar la carga.",
+                        help_text=(
+                            "Cachea los datos de lista, kanban y formulario"
+                            " para acelerar la carga."
+                        ),
                         verbose_name="Caché de datos",
                     ),
                 ),
@@ -481,7 +549,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "type",
-                    models.CharField(max_length=64, verbose_name="Tipo de acción"),
+                    models.CharField(
+                        max_length=64, verbose_name="Tipo de acción"
+                    ),
                 ),
                 (
                     "path",
@@ -500,7 +570,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Texto de ayuda opcional que describe la vista destino.",
+                        help_text=(
+                            "Texto de ayuda opcional que describe la vista"
+                            " destino."
+                        ),
                         verbose_name="Descripción de la acción",
                     ),
                 ),
@@ -510,7 +583,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo binding_model_id. Con valor, la acción aparece en la barra lateral de ese modelo.",
+                        help_text=(
+                            "Odoo binding_model_id. Con valor, la acción"
+                            " aparece en la barra lateral de ese modelo."
+                        ),
                         max_length=120,
                         verbose_name="Modelo de anclaje",
                     ),
@@ -535,7 +611,10 @@ class Migration(migrations.Migration):
                 (
                     "tag",
                     models.CharField(
-                        help_text="Identificador que el cliente resuelve a un componente.",
+                        help_text=(
+                            "Identificador que el cliente resuelve a un"
+                            " componente."
+                        ),
                         max_length=120,
                         verbose_name="Etiqueta de la acción de cliente",
                     ),
@@ -563,13 +642,20 @@ class Migration(migrations.Migration):
                         verbose_name="Modelo destino",
                     ),
                 ),
-                ("context", models.JSONField(default=dict, verbose_name="Contexto")),
+                (
+                    "context",
+                    models.JSONField(default=dict, verbose_name="Contexto"),
+                ),
                 (
                     "params_store",
                     models.JSONField(
                         blank=True,
                         default=dict,
-                        help_text="Odoo params_store. Allá es Binary con un compute/inverse que lo serializa; aquí es Json, que es lo que guarda.",
+                        help_text=(
+                            "Odoo params_store. Allá es Binary con un"
+                            " compute/inverse que lo serializa; aquí es Json,"
+                            " que es lo que guarda."
+                        ),
                         verbose_name="Parámetros",
                     ),
                 ),
@@ -603,7 +689,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "type",
-                    models.CharField(max_length=64, verbose_name="Tipo de acción"),
+                    models.CharField(
+                        max_length=64, verbose_name="Tipo de acción"
+                    ),
                 ),
                 (
                     "path",
@@ -622,7 +710,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Texto de ayuda opcional que describe la vista destino.",
+                        help_text=(
+                            "Texto de ayuda opcional que describe la vista"
+                            " destino."
+                        ),
                         verbose_name="Descripción de la acción",
                     ),
                 ),
@@ -632,7 +723,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo binding_model_id. Con valor, la acción aparece en la barra lateral de ese modelo.",
+                        help_text=(
+                            "Odoo binding_model_id. Con valor, la acción"
+                            " aparece en la barra lateral de ese modelo."
+                        ),
                         max_length=120,
                         verbose_name="Modelo de anclaje",
                     ),
@@ -673,7 +767,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=5,
-                        help_text='Orden de ejecución en una acción de tipo "varias".',
+                        help_text=(
+                            'Orden de ejecución en una acción de tipo'
+                            ' "varias".'
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -681,7 +778,10 @@ class Migration(migrations.Migration):
                     "model_name",
                     models.CharField(
                         db_index=True,
-                        help_text="Odoo model_id. Label del modelo; 0 clases IrModel en este árbol.",
+                        help_text=(
+                            "Odoo model_id. Label del modelo; 0 clases IrModel"
+                            " en este árbol."
+                        ),
                         max_length=120,
                         verbose_name="Modelo",
                     ),
@@ -691,7 +791,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text='Bloque Python del modo "code". Este archivo NO lo evalúa.',
+                        help_text=(
+                            'Bloque Python del modo "code". Este archivo NO lo'
+                            ' evalúa.'
+                        ),
                         verbose_name="Código",
                     ),
                 ),
@@ -700,7 +803,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Método a invocar sobre model_name. Alternativa segura al code Python del modo "code"; este archivo tampoco lo invoca.',
+                        help_text=(
+                            'Método a invocar sobre model_name. Alternativa'
+                            ' segura al code Python del modo "code"; este'
+                            ' archivo tampoco lo invoca.'
+                        ),
                         max_length=128,
                         verbose_name="Método",
                     ),
@@ -725,11 +832,16 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("name", models.CharField(max_length=255, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=255, verbose_name="Nombre"),
+                ),
                 (
                     "bundle",
                     models.CharField(
-                        db_index=True, max_length=255, verbose_name="Nombre del bundle"
+                        db_index=True,
+                        max_length=255,
+                        verbose_name="Nombre del bundle",
                     ),
                 ),
                 (
@@ -760,13 +872,22 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo target; sólo lo usan after, before y replace.",
+                        help_text=(
+                            "Odoo target; sólo lo usan after, before y"
+                            " replace."
+                        ),
                         max_length=512,
                         verbose_name="Objetivo",
                     ),
                 ),
-                ("active", models.BooleanField(default=True, verbose_name="Activo")),
-                ("sequence", models.IntegerField(default=16, verbose_name="Secuencia")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activo"),
+                ),
+                (
+                    "sequence",
+                    models.IntegerField(default=16, verbose_name="Secuencia"),
+                ),
             ],
             options={
                 "verbose_name": "Asset",
@@ -814,7 +935,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=200, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=200,
+                        verbose_name="Nombre",
                     ),
                 ),
                 (
@@ -823,7 +947,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo resource. Label del modelo, p.ej. 'sale.SaleOrder'.",
+                        help_text=(
+                            "Odoo resource. Label del modelo, p.ej."
+                            " 'sale.SaleOrder'."
+                        ),
                         max_length=120,
                         verbose_name="Modelo",
                     ),
@@ -873,7 +1000,10 @@ class Migration(migrations.Migration):
                     "order",
                     models.CharField(
                         default="id",
-                        help_text='Expresión de ordenamiento; p. ej. "x_sequence asc, id desc".',
+                        help_text=(
+                            'Expresión de ordenamiento; p. ej. "x_sequence'
+                            ' asc, id desc".'
+                        ),
                         max_length=255,
                         verbose_name="Orden",
                     ),
@@ -898,7 +1028,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "abstract",
-                    models.BooleanField(default=False, verbose_name="Modelo abstracto"),
+                    models.BooleanField(
+                        default=False, verbose_name="Modelo abstracto"
+                    ),
                 ),
                 (
                     "transient",
@@ -911,7 +1043,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="En una vista Kanban por columnas de este modelo, el campo booleano que decide qué columna se pliega por defecto.",
+                        help_text=(
+                            "En una vista Kanban por columnas de este modelo,"
+                            " el campo booleano que decide qué columna se"
+                            " pliega por defecto."
+                        ),
                         max_length=120,
                         verbose_name="Campo de plegado",
                     ),
@@ -942,7 +1078,10 @@ class Migration(migrations.Migration):
                     "name",
                     models.CharField(
                         db_index=True,
-                        help_text="Nombre técnico = carpeta del addon (Odoo ir.module.module.name).",
+                        help_text=(
+                            "Nombre técnico = carpeta del addon (Odoo"
+                            " ir.module.module.name)."
+                        ),
                         max_length=100,
                         unique=True,
                     ),
@@ -952,26 +1091,41 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre legible del manifest (Odoo shortdesc ← manifest name).",
+                        help_text=(
+                            "Nombre legible del manifest (Odoo shortdesc ←"
+                            " manifest name)."
+                        ),
                         max_length=200,
                     ),
                 ),
-                ("summary", models.CharField(blank=True, default="", max_length=255)),
+                (
+                    "summary",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
                 (
                     "category",
                     models.CharField(
                         blank=True, default="Uncategorized", max_length=100
                     ),
                 ),
-                ("version", models.CharField(blank=True, default="1.0", max_length=32)),
+                (
+                    "version",
+                    models.CharField(blank=True, default="1.0", max_length=32),
+                ),
                 (
                     "license",
                     models.CharField(
                         choices=[
                             ("GPL-2", "GPL Version 2"),
-                            ("GPL-2 or any later version", "GPL-2 o posterior"),
+                            (
+                                "GPL-2 or any later version",
+                                "GPL-2 o posterior",
+                            ),
                             ("GPL-3", "GPL Version 3"),
-                            ("GPL-3 or any later version", "GPL-3 o posterior"),
+                            (
+                                "GPL-3 or any later version",
+                                "GPL-3 o posterior",
+                            ),
                             ("AGPL-3", "Affero GPL-3"),
                             ("LGPL-3", "LGPL Version 3"),
                             (
@@ -984,7 +1138,10 @@ class Migration(migrations.Migration):
                             ("Confidential", "Propietaria de Kaupamex"),
                         ],
                         default="LGPL-3",
-                        help_text="Licencia declarada por el manifest. NO se re-etiqueta (DEC-KX-03).",
+                        help_text=(
+                            "Licencia declarada por el manifest. NO se"
+                            " re-etiqueta (DEC-KX-03)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -992,7 +1149,10 @@ class Migration(migrations.Migration):
                     "application",
                     models.BooleanField(
                         default=False,
-                        help_text="Addon vendible como aplicación, no técnico (Odoo application).",
+                        help_text=(
+                            "Addon vendible como aplicación, no técnico (Odoo"
+                            " application)."
+                        ),
                     ),
                 ),
                 ("auto_install", models.BooleanField(default=False)),
@@ -1006,7 +1166,10 @@ class Migration(migrations.Migration):
                         ],
                         db_index=True,
                         default="uninstalled",
-                        help_text="Derivado de INSTALLED_APPS; no hay instalador que lo escriba.",
+                        help_text=(
+                            "Derivado de INSTALLED_APPS; no hay instalador que"
+                            " lo escriba."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1075,20 +1238,31 @@ class Migration(migrations.Migration):
                 (
                     "init_stack_trace",
                     models.TextField(
-                        blank=True, default="", verbose_name="Traza de pila inicial"
+                        blank=True,
+                        default="",
+                        verbose_name="Traza de pila inicial",
                     ),
                 ),
-                ("sql", models.TextField(blank=True, default="", verbose_name="Sql")),
+                (
+                    "sql",
+                    models.TextField(
+                        blank=True, default="", verbose_name="Sql"
+                    ),
+                ),
                 (
                     "sql_count",
                     models.IntegerField(
-                        blank=True, null=True, verbose_name="Conteo de consultas"
+                        blank=True,
+                        null=True,
+                        verbose_name="Conteo de consultas",
                     ),
                 ),
                 (
                     "traces_async",
                     models.TextField(
-                        blank=True, default="", verbose_name="Trazas asíncronas"
+                        blank=True,
+                        default="",
+                        verbose_name="Trazas asíncronas",
                     ),
                 ),
                 (
@@ -1099,13 +1273,22 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "others",
-                    models.TextField(blank=True, default="", verbose_name="Otros"),
+                    models.TextField(
+                        blank=True, default="", verbose_name="Otros"
+                    ),
                 ),
-                ("qweb", models.TextField(blank=True, default="", verbose_name="Qweb")),
+                (
+                    "qweb",
+                    models.TextField(
+                        blank=True, default="", verbose_name="Qweb"
+                    ),
+                ),
                 (
                     "entry_count",
                     models.IntegerField(
-                        blank=True, null=True, verbose_name="Conteo de entradas"
+                        blank=True,
+                        null=True,
+                        verbose_name="Conteo de entradas",
                     ),
                 ),
             ],
@@ -1128,11 +1311,15 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("name", models.CharField(max_length=120, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=120, verbose_name="Nombre"),
+                ),
                 (
                     "default",
                     models.BooleanField(
-                        default=False, verbose_name="¿Formato de papel por defecto?"
+                        default=False,
+                        verbose_name="¿Formato de papel por defecto?",
                     ),
                 ),
                 (
@@ -1144,7 +1331,10 @@ class Migration(migrations.Migration):
                             ("A1", "A1  6   594 x 841 mm"),
                             ("A2", "A2  7   420 x 594 mm"),
                             ("A3", "A3  8   297 x 420 mm"),
-                            ("A4", "A4  0   210 x 297 mm, 8.26 x 11.69 inches"),
+                            (
+                                "A4",
+                                "A4  0   210 x 297 mm, 8.26 x 11.69 inches",
+                            ),
                             ("A5", "A5  9   148 x 210 mm"),
                             ("A6", "A6  10  105 x 148 mm"),
                             ("A7", "A7  11  74 x 105 mm"),
@@ -1164,17 +1354,32 @@ class Migration(migrations.Migration):
                             ("C5E", "C5E 24  163 x 229 mm"),
                             (
                                 "Comm10E",
-                                "Comm10E 25  105 x 241 mm, U.S. Common 10 Envelope",
+                                (
+                                    "Comm10E 25  105 x 241 mm, U.S. Common 10"
+                                    " Envelope"
+                                ),
                             ),
                             ("DLE", "DLE 26 110 x 220 mm"),
                             (
                                 "Executive",
-                                "Executive 4   7.5 x 10 inches, 190.5 x 254 mm",
+                                (
+                                    "Executive 4   7.5 x 10 inches, 190.5 x"
+                                    " 254 mm"
+                                ),
                             ),
                             ("Folio", "Folio 27  210 x 330 mm"),
                             ("Ledger", "Ledger  28  431.8 x 279.4 mm"),
-                            ("Legal", "Legal    3   8.5 x 14 inches, 215.9 x 355.6 mm"),
-                            ("Letter", "Letter 2 8.5 x 11 inches, 215.9 x 279.4 mm"),
+                            (
+                                "Legal",
+                                (
+                                    "Legal    3   8.5 x 14 inches, 215.9 x"
+                                    " 355.6 mm"
+                                ),
+                            ),
+                            (
+                                "Letter",
+                                "Letter 2 8.5 x 11 inches, 215.9 x 279.4 mm",
+                            ),
                             ("Tabloid", "Tabloid 29 279.4 x 431.8 mm"),
                             ("custom", "Custom"),
                         ],
@@ -1186,19 +1391,27 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "margin_top",
-                    models.FloatField(default=40, verbose_name="Margen superior (mm)"),
+                    models.FloatField(
+                        default=40, verbose_name="Margen superior (mm)"
+                    ),
                 ),
                 (
                     "margin_bottom",
-                    models.FloatField(default=20, verbose_name="Margen inferior (mm)"),
+                    models.FloatField(
+                        default=20, verbose_name="Margen inferior (mm)"
+                    ),
                 ),
                 (
                     "margin_left",
-                    models.FloatField(default=7, verbose_name="Margen izquierdo (mm)"),
+                    models.FloatField(
+                        default=7, verbose_name="Margen izquierdo (mm)"
+                    ),
                 ),
                 (
                     "margin_right",
-                    models.FloatField(default=7, verbose_name="Margen derecho (mm)"),
+                    models.FloatField(
+                        default=7, verbose_name="Margen derecho (mm)"
+                    ),
                 ),
                 (
                     "page_height",
@@ -1221,7 +1434,10 @@ class Migration(migrations.Migration):
                 (
                     "orientation",
                     models.CharField(
-                        choices=[("Landscape", "Horizontal"), ("Portrait", "Vertical")],
+                        choices=[
+                            ("Landscape", "Horizontal"),
+                            ("Portrait", "Vertical"),
+                        ],
                         default="Landscape",
                         max_length=16,
                         verbose_name="Orientación",
@@ -1230,7 +1446,8 @@ class Migration(migrations.Migration):
                 (
                     "header_line",
                     models.BooleanField(
-                        default=False, verbose_name="Mostrar línea de encabezado"
+                        default=False,
+                        verbose_name="Mostrar línea de encabezado",
                     ),
                 ),
                 (
@@ -1242,10 +1459,16 @@ class Migration(migrations.Migration):
                 (
                     "disable_shrinking",
                     models.BooleanField(
-                        default=False, verbose_name="Desactivar el ajuste inteligente"
+                        default=False,
+                        verbose_name="Desactivar el ajuste inteligente",
                     ),
                 ),
-                ("dpi", models.IntegerField(default=90, verbose_name="DPI de salida")),
+                (
+                    "dpi",
+                    models.IntegerField(
+                        default=90, verbose_name="DPI de salida"
+                    ),
+                ),
                 (
                     "css_margins",
                     models.BooleanField(
@@ -1293,7 +1516,9 @@ class Migration(migrations.Migration):
                     "phone_code",
                     models.IntegerField(
                         blank=True,
-                        help_text="Código telefónico del país (Odoo phone_code).",
+                        help_text=(
+                            "Código telefónico del país (Odoo phone_code)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -1320,7 +1545,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Código de moneda ISO 4217 (Odoo res.currency.name).",
+                        help_text=(
+                            "Código de moneda ISO 4217 (Odoo"
+                            " res.currency.name)."
+                        ),
                         max_length=3,
                         unique=True,
                     ),
@@ -1337,7 +1565,8 @@ class Migration(migrations.Migration):
                 (
                     "symbol",
                     models.CharField(
-                        help_text="Signo de la moneda (Odoo symbol).", max_length=8
+                        help_text="Signo de la moneda (Odoo symbol).",
+                        max_length=8,
                     ),
                 ),
                 (
@@ -1353,7 +1582,10 @@ class Migration(migrations.Migration):
                     "decimal_places",
                     models.IntegerField(
                         default=2,
-                        help_text="Decimales, computado de rounding (Odoo decimal_places).",
+                        help_text=(
+                            "Decimales, computado de rounding (Odoo"
+                            " decimal_places)."
+                        ),
                     ),
                 ),
                 (
@@ -1379,7 +1611,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Etiqueta de la unidad (Odoo currency_unit_label).",
+                        help_text=(
+                            "Etiqueta de la unidad (Odoo currency_unit_label)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -1406,13 +1640,16 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del idioma (Odoo name).", max_length=64
+                        help_text="Nombre del idioma (Odoo name).",
+                        max_length=64,
                     ),
                 ),
                 (
                     "code",
                     models.CharField(
-                        help_text="Locale code (Odoo code, p. ej. es_MX). Único.",
+                        help_text=(
+                            "Locale code (Odoo code, p. ej. es_MX). Único."
+                        ),
                         max_length=16,
                         unique=True,
                     ),
@@ -1422,24 +1659,33 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="ISO code — nombre del .po de traducción (Odoo iso_code).",
+                        help_text=(
+                            "ISO code — nombre del .po de traducción (Odoo"
+                            " iso_code)."
+                        ),
                         max_length=16,
                     ),
                 ),
                 (
                     "url_code",
                     models.CharField(
-                        help_text="Código en la URL (Odoo url_code).", max_length=16
+                        help_text="Código en la URL (Odoo url_code).",
+                        max_length=16,
                     ),
                 ),
                 (
                     "active",
-                    models.BooleanField(default=False, help_text="Odoo active."),
+                    models.BooleanField(
+                        default=False, help_text="Odoo active."
+                    ),
                 ),
                 (
                     "direction",
                     models.CharField(
-                        choices=[("ltr", "Left-to-Right"), ("rtl", "Right-to-Left")],
+                        choices=[
+                            ("ltr", "Left-to-Right"),
+                            ("rtl", "Right-to-Left"),
+                        ],
                         default="ltr",
                         help_text="Dirección de escritura (Odoo direction).",
                         max_length=3,
@@ -1490,7 +1736,9 @@ class Migration(migrations.Migration):
                             ("[3,2,0]", "Indian Grouping"),
                         ],
                         default="[3,0]",
-                        help_text="Formato de agrupamiento de miles (Odoo grouping).",
+                        help_text=(
+                            "Formato de agrupamiento de miles (Odoo grouping)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1568,7 +1816,10 @@ class Migration(migrations.Migration):
                         max_length=10,
                     ),
                 ),
-                ("file_path", models.CharField(blank=True, default="", max_length=500)),
+                (
+                    "file_path",
+                    models.CharField(blank=True, default="", max_length=500),
+                ),
                 ("params", models.JSONField(blank=True, default=dict)),
                 ("error_detail", models.TextField(blank=True, default="")),
                 ("expires_at", models.DateTimeField(blank=True, null=True)),
@@ -1614,7 +1865,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("sequence", models.IntegerField(default=10, verbose_name="Secuencia")),
+                (
+                    "sequence",
+                    models.IntegerField(default=10, verbose_name="Secuencia"),
+                ),
                 (
                     "state",
                     models.CharField(
@@ -1627,7 +1881,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Nombre",
                     ),
                 ),
                 (
@@ -1662,7 +1919,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=120, verbose_name="Campo"
+                        blank=True,
+                        default="",
+                        max_length=120,
+                        verbose_name="Campo",
                     ),
                 ),
                 (
@@ -1727,9 +1987,18 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("message", models.TextField(blank=True, default="")),
-                ("path", models.CharField(blank=True, default="", max_length=255)),
-                ("func", models.CharField(blank=True, default="", max_length=255)),
-                ("line", models.CharField(blank=True, default="", max_length=32)),
+                (
+                    "path",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
+                (
+                    "func",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
+                (
+                    "line",
+                    models.CharField(blank=True, default="", max_length=32),
+                ),
                 (
                     "correlation_id",
                     models.CharField(
@@ -1744,7 +2013,9 @@ class Migration(migrations.Migration):
                 "db_table": "ir_logging",
                 "ordering": ["-id"],
                 "indexes": [
-                    models.Index(fields=["-created_at"], name="ir_logging_created_idx")
+                    models.Index(
+                        fields=["-created_at"], name="ir_logging_created_idx"
+                    )
                 ],
             },
         ),
@@ -1773,7 +2044,12 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Lista separada por comas de direcciones o dominios para los que este servidor puede usarse; p. ej. "notificaciones@kaupamex.com" o "kaupamex.com". Vacío = sirve para cualquiera.',
+                        help_text=(
+                            'Lista separada por comas de direcciones o'
+                            ' dominios para los que este servidor puede'
+                            ' usarse; p. ej. "notificaciones@kaupamex.com" o'
+                            ' "kaupamex.com". Vacío = sirve para cualquiera.'
+                        ),
                         max_length=512,
                         verbose_name="Filtro de remitente",
                     ),
@@ -1792,7 +2068,10 @@ class Migration(migrations.Migration):
                     "smtp_port",
                     models.IntegerField(
                         default=25,
-                        help_text="Normalmente 465 para SSL, y 25 o 587 en el resto de casos.",
+                        help_text=(
+                            "Normalmente 465 para SSL, y 25 o 587 en el resto"
+                            " de casos."
+                        ),
                         verbose_name="Puerto SMTP",
                     ),
                 ),
@@ -1814,7 +2093,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='SECRETO. La referencia lo restringe a nivel de campo con groups="base.group_system"; aquí NO se expone en el Meta.fields de ningún serializer.',
+                        help_text=(
+                            'SECRETO. La referencia lo restringe a nivel de'
+                            ' campo con groups="base.group_system"; aquí NO se'
+                            ' expone en el Meta.fields de ningún serializer.'
+                        ),
                         max_length=255,
                         verbose_name="Usuario",
                     ),
@@ -1824,7 +2107,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="SECRETO. Mismo criterio que smtp_user: nunca en un serializer.",
+                        help_text=(
+                            "SECRETO. Mismo criterio que smtp_user: nunca en"
+                            " un serializer."
+                        ),
                         max_length=255,
                         verbose_name="Contraseña",
                     ),
@@ -1834,13 +2120,20 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("none", "Ninguno"),
-                            ("starttls_strict", "TLS (STARTTLS), cifrado y validación"),
+                            (
+                                "starttls_strict",
+                                "TLS (STARTTLS), cifrado y validación",
+                            ),
                             ("starttls", "TLS (STARTTLS), sólo cifrado"),
                             ("ssl_strict", "SSL/TLS, cifrado y validación"),
                             ("ssl", "SSL/TLS, sólo cifrado"),
                         ],
                         default="none",
-                        help_text='Las variantes "y validación" además autentican al servidor con su certificado; las de "sólo cifrado" no.',
+                        help_text=(
+                            'Las variantes "y validación" además autentican al'
+                            ' servidor con su certificado; las de "sólo'
+                            ' cifrado" no.'
+                        ),
                         max_length=32,
                         verbose_name="Cifrado de la conexión",
                     ),
@@ -1849,7 +2142,10 @@ class Migration(migrations.Migration):
                     "smtp_ssl_certificate",
                     models.BinaryField(
                         blank=True,
-                        help_text="SECRETO. Certificado usado para autenticar. Nunca en un serializer.",
+                        help_text=(
+                            "SECRETO. Certificado usado para autenticar. Nunca"
+                            " en un serializer."
+                        ),
                         null=True,
                         verbose_name="Certificado SSL",
                     ),
@@ -1858,7 +2154,10 @@ class Migration(migrations.Migration):
                     "smtp_ssl_private_key",
                     models.BinaryField(
                         blank=True,
-                        help_text="SECRETO. Llave privada usada para autenticar. Nunca en un serializer.",
+                        help_text=(
+                            "SECRETO. Llave privada usada para autenticar."
+                            " Nunca en un serializer."
+                        ),
                         null=True,
                         verbose_name="Llave privada SSL",
                     ),
@@ -1867,7 +2166,11 @@ class Migration(migrations.Migration):
                     "smtp_debug",
                     models.BooleanField(
                         default=False,
-                        help_text="Vuelca la sesión SMTP completa al log en nivel DEBUG. Muy verboso y puede incluir información confidencial.",
+                        help_text=(
+                            "Vuelca la sesión SMTP completa al log en nivel"
+                            " DEBUG. Muy verboso y puede incluir información"
+                            " confidencial."
+                        ),
                         verbose_name="Depuración",
                     ),
                 ),
@@ -1883,11 +2186,18 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Cuando un correo no pide un servidor concreto se usa el de mayor prioridad. Número menor = prioridad mayor.",
+                        help_text=(
+                            "Cuando un correo no pide un servidor concreto se"
+                            " usa el de mayor prioridad. Número menor ="
+                            " prioridad mayor."
+                        ),
                         verbose_name="Prioridad",
                     ),
                 ),
-                ("active", models.BooleanField(default=True, verbose_name="Activo")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activo"),
+                ),
             ],
             options={
                 "verbose_name": "Servidor de correo saliente",
@@ -1897,9 +2207,12 @@ class Migration(migrations.Migration):
                 "constraints": [
                     models.CheckConstraint(
                         condition=models.Q(
-                            models.Q(("smtp_encryption", "none"), _negated=True),
                             models.Q(
-                                ("smtp_authentication", "certificate"), _negated=True
+                                ("smtp_encryption", "none"), _negated=True
+                            ),
+                            models.Q(
+                                ("smtp_authentication", "certificate"),
+                                _negated=True,
                             ),
                             _connector="OR",
                         ),
@@ -1925,26 +2238,37 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Clave estable para integrar con sistemas de terceros.",
+                        help_text=(
+                            "Clave estable para integrar con sistemas de"
+                            " terceros."
+                        ),
                         max_length=255,
                         verbose_name="Identificador externo",
                     ),
                 ),
                 (
                     "model",
-                    models.CharField(max_length=255, verbose_name="Nombre del modelo"),
+                    models.CharField(
+                        max_length=255, verbose_name="Nombre del modelo"
+                    ),
                 ),
                 (
                     "module",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Módulo"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Módulo",
                     ),
                 ),
                 (
                     "res_id",
                     models.IntegerField(
                         blank=True,
-                        help_text="ID del registro destino. Ver el docstring de la clase sobre por qué no es un GenericForeignKey.",
+                        help_text=(
+                            "ID del registro destino. Ver el docstring de la"
+                            " clase sobre por qué no es un GenericForeignKey."
+                        ),
                         null=True,
                         verbose_name="ID del registro",
                     ),
@@ -1953,7 +2277,10 @@ class Migration(migrations.Migration):
                     "noupdate",
                     models.BooleanField(
                         default=False,
-                        help_text="Marcado, la actualización del módulo no lo sobreescribe.",
+                        help_text=(
+                            "Marcado, la actualización del módulo no lo"
+                            " sobreescribe."
+                        ),
                         verbose_name="No actualizable",
                     ),
                 ),
@@ -1965,16 +2292,20 @@ class Migration(migrations.Migration):
                 "ordering": ["module", "model", "name"],
                 "indexes": [
                     models.Index(
-                        fields=["model", "res_id"], name="ir_model_data_model_res"
+                        fields=["model", "res_id"],
+                        name="ir_model_data_model_res",
                     )
                 ],
                 "constraints": [
                     models.CheckConstraint(
-                        condition=models.Q(("name__contains", " "), _negated=True),
+                        condition=models.Q(
+                            ("name__contains", " "), _negated=True
+                        ),
                         name="ir_model_data_name_nospaces",
                     ),
                     models.UniqueConstraint(
-                        fields=("module", "name"), name="ir_model_data_module_name_uniq"
+                        fields=("module", "name"),
+                        name="ir_model_data_module_name_uniq",
                     ),
                 ],
             },
@@ -1997,7 +2328,9 @@ class Migration(migrations.Migration):
                     "name",
                     models.CharField(
                         db_index=True,
-                        help_text="Nombre de la tabla que implementa el Many2many.",
+                        help_text=(
+                            "Nombre de la tabla que implementa el Many2many."
+                        ),
                         max_length=255,
                         verbose_name="Nombre de la relación",
                     ),
@@ -2044,14 +2377,20 @@ class Migration(migrations.Migration):
                 (
                     "error",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Error"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Error",
                     ),
                 ),
                 (
                     "wizard",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo wizard_id; el related_name conserva el nombre del One2many.",
+                        help_text=(
+                            "Odoo wizard_id; el related_name conserva el"
+                            " nombre del One2many."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="failure_ids",
@@ -2062,7 +2401,10 @@ class Migration(migrations.Migration):
                 (
                     "module",
                     models.ForeignKey(
-                        help_text="Odoo module_id. El addon cuyo seed de demostración falló.",
+                        help_text=(
+                            "Odoo module_id. El addon cuyo seed de"
+                            " demostración falló."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="demo_failures",
                         to="base.irmodule",
@@ -2100,7 +2442,9 @@ class Migration(migrations.Migration):
                     "parent",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo parent_id. Null = aplicación de nivel 0.",
+                        help_text=(
+                            "Odoo parent_id. Null = aplicación de nivel 0."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="child",
@@ -2131,7 +2475,9 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "name",
-                    models.CharField(max_length=255, verbose_name="Nombre de la vista"),
+                    models.CharField(
+                        max_length=255, verbose_name="Nombre de la vista"
+                    ),
                 ),
                 (
                     "model",
@@ -2139,7 +2485,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Modelo técnico que la vista muestra. Char plano, mismo criterio que ir_rule.model_name.",
+                        help_text=(
+                            "Modelo técnico que la vista muestra. Char plano,"
+                            " mismo criterio que ir_rule.model_name."
+                        ),
                         max_length=255,
                         verbose_name="Modelo",
                     ),
@@ -2150,7 +2499,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Identificador estable de una vista QWeb. NO pasa por ir.model.data, por eso sí se porta.",
+                        help_text=(
+                            "Identificador estable de una vista QWeb. NO pasa"
+                            " por ir.model.data, por eso sí se porta."
+                        ),
                         max_length=255,
                         verbose_name="Clave",
                     ),
@@ -2159,7 +2511,11 @@ class Migration(migrations.Migration):
                     "priority",
                     models.IntegerField(
                         default=16,
-                        help_text="Orden de aplicación entre vistas hermanas. Menor = antes. Ver el docstring del módulo: el orden cambia el resultado.",
+                        help_text=(
+                            "Orden de aplicación entre vistas hermanas. Menor"
+                            " = antes. Ver el docstring del módulo: el orden"
+                            " cambia el resultado."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -2187,7 +2543,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="El XML de la vista. Este archivo NO lo interpreta.",
+                        help_text=(
+                            "El XML de la vista. Este archivo NO lo"
+                            " interpreta."
+                        ),
                         verbose_name="Arquitectura",
                     ),
                 ),
@@ -2196,7 +2555,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Archivo del que procede la vista; sirve para el reinicio duro.",
+                        help_text=(
+                            "Archivo del que procede la vista; sirve para el"
+                            " reinicio duro."
+                        ),
                         max_length=512,
                         verbose_name="Archivo de origen",
                     ),
@@ -2205,7 +2567,10 @@ class Migration(migrations.Migration):
                     "arch_updated",
                     models.BooleanField(
                         default=False,
-                        help_text="Marcado, la vista se editó tras cargarse del archivo.",
+                        help_text=(
+                            "Marcado, la vista se editó tras cargarse del"
+                            " archivo."
+                        ),
                         verbose_name="Arquitectura modificada",
                     ),
                 ),
@@ -2214,7 +2579,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Copia del arch_db antes de la última escritura; sirve para el reinicio suave.",
+                        help_text=(
+                            "Copia del arch_db antes de la última escritura;"
+                            " sirve para el reinicio suave."
+                        ),
                         verbose_name="Arquitectura anterior",
                     ),
                 ),
@@ -2226,7 +2594,14 @@ class Migration(migrations.Migration):
                             ("extension", "Vista de extensión"),
                         ],
                         default="primary",
-                        help_text="Sólo aplica si la vista hereda de otra. En extensión se busca la primaria más cercana y se le aplican todas las vistas que hereden de ella con el mismo modelo; en primaria se resuelve la primaria entera —aunque use otro modelo— y luego se aplican los parches de ésta.",
+                        help_text=(
+                            "Sólo aplica si la vista hereda de otra. En"
+                            " extensión se busca la primaria más cercana y se"
+                            " le aplican todas las vistas que hereden de ella"
+                            " con el mismo modelo; en primaria se resuelve la"
+                            " primaria entera —aunque use otro modelo— y luego"
+                            " se aplican los parches de ésta."
+                        ),
                         max_length=16,
                         verbose_name="Modo de herencia",
                     ),
@@ -2235,7 +2610,11 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Si la vista es heredada: activa extiende siempre a su padre; inactiva no lo extiende hoy pero puede reactivarse.",
+                        help_text=(
+                            "Si la vista es heredada: activa extiende siempre"
+                            " a su padre; inactiva no lo extiende hoy pero"
+                            " puede reactivarse."
+                        ),
                         verbose_name="Activa",
                     ),
                 ),
@@ -2243,7 +2622,10 @@ class Migration(migrations.Migration):
                     "inherit_id",
                     models.ForeignKey(
                         blank=True,
-                        help_text="ondelete restrict de la fuente: no se borra una vista de la que otras heredan.",
+                        help_text=(
+                            "ondelete restrict de la fuente: no se borra una"
+                            " vista de la que otras heredan."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="inherit_children_ids",
@@ -2276,7 +2658,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=120, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=120,
+                        verbose_name="Nombre",
                     ),
                 ),
                 (
@@ -2297,12 +2682,19 @@ class Migration(migrations.Migration):
                         verbose_name="PDF de previsualización",
                     ),
                 ),
-                ("sequence", models.IntegerField(default=50, verbose_name="Secuencia")),
+                (
+                    "sequence",
+                    models.IntegerField(default=50, verbose_name="Secuencia"),
+                ),
                 (
                     "view",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo view_id. Obligatorio en la referencia; aquí queda nullable hasta que ir.ui.view esté portado.",
+                        help_text=(
+                            "Odoo view_id. Obligatorio en la referencia; aquí"
+                            " queda nullable hasta que ir.ui.view esté"
+                            " portado."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="report_layouts",
@@ -2332,12 +2724,18 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("active", models.BooleanField(default=True, verbose_name="Activa")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activa"),
+                ),
                 (
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Ordena las compañías en el selector (Odoo sequence).",
+                        help_text=(
+                            "Ordena las compañías en el selector (Odoo"
+                            " sequence)."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -2345,7 +2743,10 @@ class Migration(migrations.Migration):
                     "code",
                     models.SlugField(
                         blank=True,
-                        help_text="Identificador estable del tenant L1 en la plataforma.",
+                        help_text=(
+                            "Identificador estable del tenant L1 en la"
+                            " plataforma."
+                        ),
                         null=True,
                         unique=True,
                         verbose_name="Código",
@@ -2361,7 +2762,10 @@ class Migration(migrations.Migration):
                             ("cancelled", "Cancelado"),
                         ],
                         default="trial",
-                        help_text="Ciclo de vida de la contratación. Distinto de ``active``, que es el archivado de Odoo.",
+                        help_text=(
+                            "Ciclo de vida de la contratación. Distinto de"
+                            " ``active``, que es el archivado de Odoo."
+                        ),
                         max_length=12,
                         verbose_name="Estado",
                     ),
@@ -2370,7 +2774,10 @@ class Migration(migrations.Migration):
                     "is_system",
                     models.BooleanField(
                         default=False,
-                        help_text="Compañía de datos compartidos de plataforma (L0), no un tenant.",
+                        help_text=(
+                            "Compañía de datos compartidos de plataforma (L0),"
+                            " no un tenant."
+                        ),
                         verbose_name="Compañía de sistema",
                     ),
                 ),
@@ -2379,7 +2786,16 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="DIVERGENCIA DECLARADA: la referencia no separa el correo de contacto del de facturación en ``res.company`` — su ``email`` es ``related`` al partner y la facturación sale del partner de la factura. Se conserva como columna propia porque el negocio sí los distingue; si se unifican, este campo desaparece a favor de la property ``email``.",
+                        help_text=(
+                            "DIVERGENCIA DECLARADA: la referencia no separa el"
+                            " correo de contacto del de facturación en"
+                            " ``res.company`` — su ``email`` es ``related`` al"
+                            " partner y la facturación sale del partner de la"
+                            " factura. Se conserva como columna propia porque"
+                            " el negocio sí los distingue; si se unifican,"
+                            " este campo desaparece a favor de la property"
+                            " ``email``."
+                        ),
                         max_length=254,
                         verbose_name="Correo de facturación",
                     ),
@@ -2390,7 +2806,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Ruta materializada '1/4/9/' — evita N consultas para obtener la cadena de matrices.",
+                        help_text=(
+                            "Ruta materializada '1/4/9/' — evita N consultas"
+                            " para obtener la cadena de matrices."
+                        ),
                         max_length=255,
                         verbose_name="Ruta de ancestros",
                     ),
@@ -2400,7 +2819,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Se incluye en la cabecera o el pie del documento impreso, según el diseño elegido.",
+                        help_text=(
+                            "Se incluye en la cabecera o el pie del documento"
+                            " impreso, según el diseño elegido."
+                        ),
                         verbose_name="Lema de la compañía",
                     ),
                 ),
@@ -2413,7 +2835,9 @@ class Migration(migrations.Migration):
                 (
                     "company_details",
                     models.TextField(
-                        blank=True, default="", verbose_name="Detalles de la compañía"
+                        blank=True,
+                        default="",
+                        verbose_name="Detalles de la compañía",
                     ),
                 ),
                 (
@@ -2538,7 +2962,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "name",
-                    models.CharField(help_text="Nombre (Odoo name).", max_length=128),
+                    models.CharField(
+                        help_text="Nombre (Odoo name).", max_length=128
+                    ),
                 ),
                 (
                     "code",
@@ -2552,19 +2978,29 @@ class Migration(migrations.Migration):
                 (
                     "implementation",
                     models.CharField(
-                        choices=[("standard", "Standard"), ("no_gap", "No gap")],
+                        choices=[
+                            ("standard", "Standard"),
+                            ("no_gap", "No gap"),
+                        ],
                         default="standard",
                         help_text="Standard o No gap (Odoo implementation).",
                         max_length=16,
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "prefix",
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Prefijo, interpolable por fecha (Odoo prefix).",
+                        help_text=(
+                            "Prefijo, interpolable por fecha (Odoo prefix)."
+                        ),
                         max_length=128,
                     ),
                 ),
@@ -2573,35 +3009,46 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Sufijo, interpolable por fecha (Odoo suffix).",
+                        help_text=(
+                            "Sufijo, interpolable por fecha (Odoo suffix)."
+                        ),
                         max_length=128,
                     ),
                 ),
                 (
                     "number_next",
                     models.IntegerField(
-                        default=1, help_text="Próximo número (Odoo number_next)."
+                        default=1,
+                        help_text="Próximo número (Odoo number_next).",
                     ),
                 ),
                 (
                     "number_increment",
                     models.IntegerField(
                         default=1,
-                        help_text="Paso de incremento (Odoo number_increment / Step).",
+                        help_text=(
+                            "Paso de incremento (Odoo number_increment /"
+                            " Step)."
+                        ),
                     ),
                 ),
                 (
                     "padding",
                     models.IntegerField(
                         default=0,
-                        help_text="Ancho con ceros a la izquierda (Odoo padding).",
+                        help_text=(
+                            "Ancho con ceros a la izquierda (Odoo padding)."
+                        ),
                     ),
                 ),
                 (
                     "use_date_range",
                     models.BooleanField(
                         default=False,
-                        help_text="Subsecuencias por rango de fecha (Odoo use_date_range).",
+                        help_text=(
+                            "Subsecuencias por rango de fecha (Odoo"
+                            " use_date_range)."
+                        ),
                     ),
                 ),
                 (
@@ -2628,7 +3075,11 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Company L1 del usuario (Odoo company_id). NULL = operador de plataforma L0 o sin asignar. Lo consume el resolver de company.",
+                help_text=(
+                    "Company L1 del usuario (Odoo company_id). NULL = operador"
+                    " de plataforma L0 o sin asignar. Lo consume el resolver"
+                    " de company."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="users",
@@ -2650,7 +3101,8 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del grupo (Odoo name).", max_length=128
+                        help_text="Nombre del grupo (Odoo name).",
+                        max_length=128,
                     ),
                 ),
                 (
@@ -2695,13 +3147,15 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del estado (Odoo name).", max_length=120
+                        help_text="Nombre del estado (Odoo name).",
+                        max_length=120,
                     ),
                 ),
                 (
                     "code",
                     models.CharField(
-                        help_text="Código del estado (Odoo code).", max_length=8
+                        help_text="Código del estado (Odoo code).",
+                        max_length=8,
                     ),
                 ),
                 (
@@ -2736,7 +3190,8 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del banco (Odoo name).", max_length=128
+                        help_text="Nombre del banco (Odoo name).",
+                        max_length=128,
                     ),
                 ),
                 (
@@ -2751,7 +3206,10 @@ class Migration(migrations.Migration):
                 (
                     "street",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo street.", max_length=128
+                        blank=True,
+                        default="",
+                        help_text="Odoo street.",
+                        max_length=128,
                     ),
                 ),
                 (
@@ -2766,28 +3224,45 @@ class Migration(migrations.Migration):
                 (
                     "zip",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo zip.", max_length=24
+                        blank=True,
+                        default="",
+                        help_text="Odoo zip.",
+                        max_length=24,
                     ),
                 ),
                 (
                     "city",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo city.", max_length=128
+                        blank=True,
+                        default="",
+                        help_text="Odoo city.",
+                        max_length=128,
                     ),
                 ),
                 (
                     "email",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo email.", max_length=254
+                        blank=True,
+                        default="",
+                        help_text="Odoo email.",
+                        max_length=254,
                     ),
                 ),
                 (
                     "phone",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo phone.", max_length=32
+                        blank=True,
+                        default="",
+                        help_text="Odoo phone.",
+                        max_length=32,
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "country",
                     models.ForeignKey(
@@ -2845,7 +3320,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.DateField(
-                        help_text="Fecha del tipo de cambio (Odoo name, requerido)."
+                        help_text=(
+                            "Fecha del tipo de cambio (Odoo name, requerido)."
+                        )
                     ),
                 ),
                 (
@@ -2853,7 +3330,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=12,
                         default=Decimal("1.0"),
-                        help_text="Tasa por unidad de la moneda de la empresa (Odoo rate).",
+                        help_text=(
+                            "Tasa por unidad de la moneda de la empresa (Odoo"
+                            " rate)."
+                        ),
                         max_digits=24,
                     ),
                 ),
@@ -2862,7 +3342,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=12,
                         default=Decimal("1.0"),
-                        help_text="Tasa vista desde la empresa (Odoo company_rate).",
+                        help_text=(
+                            "Tasa vista desde la empresa (Odoo company_rate)."
+                        ),
                         max_digits=24,
                     ),
                 ),
@@ -2912,12 +3394,21 @@ class Migration(migrations.Migration):
                     "session_identifier",
                     models.CharField(
                         db_index=True,
-                        help_text="Identificador de la sesión (Odoo session_identifier).",
+                        help_text=(
+                            "Identificador de la sesión (Odoo"
+                            " session_identifier)."
+                        ),
                         max_length=128,
                     ),
                 ),
-                ("platform", models.CharField(blank=True, default="", max_length=64)),
-                ("browser", models.CharField(blank=True, default="", max_length=64)),
+                (
+                    "platform",
+                    models.CharField(blank=True, default="", max_length=64),
+                ),
+                (
+                    "browser",
+                    models.CharField(blank=True, default="", max_length=64),
+                ),
                 (
                     "ip_address",
                     models.CharField(
@@ -2927,19 +3418,31 @@ class Migration(migrations.Migration):
                         max_length=45,
                     ),
                 ),
-                ("country", models.CharField(blank=True, default="", max_length=64)),
-                ("city", models.CharField(blank=True, default="", max_length=120)),
+                (
+                    "country",
+                    models.CharField(blank=True, default="", max_length=64),
+                ),
+                (
+                    "city",
+                    models.CharField(blank=True, default="", max_length=120),
+                ),
                 (
                     "device_type",
                     models.CharField(
                         blank=True,
-                        choices=[("computer", "Computadora"), ("mobile", "Móvil")],
+                        choices=[
+                            ("computer", "Computadora"),
+                            ("mobile", "Móvil"),
+                        ],
                         help_text="Tipo de dispositivo (Odoo device_type).",
                         max_length=16,
                         null=True,
                     ),
                 ),
-                ("first_activity", models.DateTimeField(blank=True, null=True)),
+                (
+                    "first_activity",
+                    models.DateTimeField(blank=True, null=True),
+                ),
                 (
                     "last_activity",
                     models.DateTimeField(blank=True, db_index=True, null=True),
@@ -2948,7 +3451,10 @@ class Migration(migrations.Migration):
                     "revoked",
                     models.BooleanField(
                         default=False,
-                        help_text="Sesión revocada desde el panel de dispositivos (Odoo revoked).",
+                        help_text=(
+                            "Sesión revocada desde el panel de dispositivos"
+                            " (Odoo revoked)."
+                        ),
                     ),
                 ),
                 (
@@ -2982,10 +3488,15 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(max_length=120, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=120, verbose_name="Nombre"),
+                ),
                 (
                     "comment",
-                    models.TextField(blank=True, default="", verbose_name="Comentario"),
+                    models.TextField(
+                        blank=True, default="", verbose_name="Comentario"
+                    ),
                 ),
                 (
                     "sequence",
@@ -2997,7 +3508,10 @@ class Migration(migrations.Migration):
                     "share",
                     models.BooleanField(
                         default=False,
-                        help_text="Odoo share. Grupo creado para dar acceso al compartir datos con algunos usuarios.",
+                        help_text=(
+                            "Odoo share. Grupo creado para dar acceso al"
+                            " compartir datos con algunos usuarios."
+                        ),
                         verbose_name="Grupo compartido",
                     ),
                 ),
@@ -3005,7 +3519,12 @@ class Migration(migrations.Migration):
                     "api_key_duration",
                     models.FloatField(
                         blank=True,
-                        help_text="Odoo api_key_duration. Se porta como dato del grupo; este árbol autentica por sesión de servidor (ADR-018) y no tiene API keys que lo consuman.",
+                        help_text=(
+                            "Odoo api_key_duration. Se porta como dato del"
+                            " grupo; este árbol autentica por sesión de"
+                            " servidor (ADR-018) y no tiene API keys que lo"
+                            " consuman."
+                        ),
                         null=True,
                         verbose_name="Duración máxima de las API keys (días)",
                     ),
@@ -3020,7 +3539,11 @@ class Migration(migrations.Migration):
                             ("public", "Público"),
                         ],
                         db_index=True,
-                        help_text="Dos grupos con tipo de usuario distinto son disjuntos: un usuario no puede pertenecer a ambos.",
+                        help_text=(
+                            "Dos grupos con tipo de usuario distinto son"
+                            " disjuntos: un usuario no puede pertenecer a"
+                            " ambos."
+                        ),
                         max_length=16,
                         null=True,
                         verbose_name="Tipo de usuario",
@@ -3031,7 +3554,11 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="res_groups_implied_rel",
-                        help_text="Los usuarios de este grupo pertenecen también, de forma implícita, a estos grupos (Odoo implied_ids).",
+                        help_text=(
+                            "Los usuarios de este grupo pertenecen también, de"
+                            " forma implícita, a estos grupos (Odoo"
+                            " implied_ids)."
+                        ),
                         related_name="implied_by_ids",
                         to="base.resgroups",
                         verbose_name="Grupos implicados",
@@ -3042,7 +3569,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="res_groups_users_rel",
-                        help_text="Usuarios explícitamente en este grupo (Odoo user_ids).",
+                        help_text=(
+                            "Usuarios explícitamente en este grupo (Odoo"
+                            " user_ids)."
+                        ),
                         related_name="group_ids",
                         to=settings.AUTH_USER_MODEL,
                         verbose_name="Usuarios",
@@ -3062,7 +3592,12 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="ir_ui_view_group_rel",
-                help_text="Vacío = la vista aplica a todos. Con valor, sólo a los usuarios de esos grupos. Este related_name es el view_access que res_groups.py dejó anotado como pendiente.",
+                help_text=(
+                    "Vacío = la vista aplica a todos. Con valor, sólo a los"
+                    " usuarios de esos grupos. Este related_name es el"
+                    " view_access que res_groups.py dejó anotado como"
+                    " pendiente."
+                ),
                 related_name="view_access",
                 to="base.resgroups",
                 verbose_name="Grupos",
@@ -3085,14 +3620,20 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Nombre",
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Desmarcar desactiva la regla sin borrarla (Odoo active).",
+                        help_text=(
+                            "Desmarcar desactiva la regla sin borrarla (Odoo"
+                            " active)."
+                        ),
                         verbose_name="Activa",
                     ),
                 ),
@@ -3100,7 +3641,10 @@ class Migration(migrations.Migration):
                     "model_name",
                     models.CharField(
                         db_index=True,
-                        help_text="Odoo model_id. Label del modelo, p.ej. 'sale.SaleOrder'.",
+                        help_text=(
+                            "Odoo model_id. Label del modelo, p.ej."
+                            " 'sale.SaleOrder'."
+                        ),
                         max_length=120,
                         verbose_name="Modelo",
                     ),
@@ -3110,11 +3654,18 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Expresión del dominio. Vacío equivale a verdadero: no restringe. Este archivo NO la evalúa — ver el docstring.",
+                        help_text=(
+                            "Expresión del dominio. Vacío equivale a"
+                            " verdadero: no restringe. Este archivo NO la"
+                            " evalúa — ver el docstring."
+                        ),
                         verbose_name="Dominio",
                     ),
                 ),
-                ("perm_read", models.BooleanField(default=True, verbose_name="Leer")),
+                (
+                    "perm_read",
+                    models.BooleanField(default=True, verbose_name="Leer"),
+                ),
                 (
                     "perm_write",
                     models.BooleanField(default=True, verbose_name="Escribir"),
@@ -3132,7 +3683,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="rule_group_rel",
-                        help_text="Sin grupos, la regla es global y restringe siempre.",
+                        help_text=(
+                            "Sin grupos, la regla es global y restringe"
+                            " siempre."
+                        ),
                         related_name="rule_groups",
                         to="base.resgroups",
                         verbose_name="Grupos",
@@ -3165,7 +3719,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         db_index=True,
                         default="x_",
-                        help_text="63 caracteres es el límite del identificador en el motor.",
+                        help_text=(
+                            "63 caracteres es el límite del identificador en"
+                            " el motor."
+                        ),
                         max_length=63,
                         verbose_name="Nombre del campo",
                     ),
@@ -3184,7 +3741,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="En un campo relacional, el nombre técnico del destino.",
+                        help_text=(
+                            "En un campo relacional, el nombre técnico del"
+                            " destino."
+                        ),
                         max_length=255,
                         verbose_name="Modelo relacionado",
                     ),
@@ -3194,7 +3754,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="En un One2many, el campo del destino que implementa el Many2one opuesto.",
+                        help_text=(
+                            "En un One2many, el campo del destino que"
+                            " implementa el Many2one opuesto."
+                        ),
                         max_length=63,
                         verbose_name="Campo de la relación inversa",
                     ),
@@ -3247,7 +3810,9 @@ class Migration(migrations.Migration):
                     "copied",
                     models.BooleanField(
                         default=True,
-                        help_text="Si el valor se copia al duplicar el registro.",
+                        help_text=(
+                            "Si el valor se copia al duplicar el registro."
+                        ),
                         verbose_name="Copiado",
                     ),
                 ),
@@ -3263,13 +3828,22 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "required",
-                    models.BooleanField(default=False, verbose_name="Requerido"),
+                    models.BooleanField(
+                        default=False, verbose_name="Requerido"
+                    ),
                 ),
                 (
                     "readonly",
-                    models.BooleanField(default=False, verbose_name="Sólo lectura"),
+                    models.BooleanField(
+                        default=False, verbose_name="Sólo lectura"
+                    ),
                 ),
-                ("index", models.BooleanField(default=False, verbose_name="Indexado")),
+                (
+                    "index",
+                    models.BooleanField(
+                        default=False, verbose_name="Indexado"
+                    ),
+                ),
                 (
                     "translate",
                     models.CharField(
@@ -3294,7 +3868,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "size",
-                    models.IntegerField(blank=True, null=True, verbose_name="Tamaño"),
+                    models.IntegerField(
+                        blank=True, null=True, verbose_name="Tamaño"
+                    ),
                 ),
                 (
                     "state",
@@ -3318,7 +3894,10 @@ class Migration(migrations.Migration):
                             ("restrict", "Restringir"),
                         ],
                         default="set null",
-                        help_text="Comportamiento al borrar el destino de un Many2one.",
+                        help_text=(
+                            "Comportamiento al borrar el destino de un"
+                            " Many2one."
+                        ),
                         max_length=16,
                         verbose_name="Al eliminar",
                     ),
@@ -3328,7 +3907,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="[]",
-                        help_text="Dominio opcional que acota los valores posibles. Este archivo NO lo evalúa — mismo criterio que ir_rule.",
+                        help_text=(
+                            "Dominio opcional que acota los valores posibles."
+                            " Este archivo NO lo evalúa — mismo criterio que"
+                            " ir_rule."
+                        ),
                         max_length=1024,
                         verbose_name="Dominio",
                     ),
@@ -3337,13 +3920,19 @@ class Migration(migrations.Migration):
                     "group_expand",
                     models.BooleanField(
                         default=False,
-                        help_text="Incluye todos los registros del modelo destino en un resultado agrupado. Caro si el destino tiene muchas filas.",
+                        help_text=(
+                            "Incluye todos los registros del modelo destino en"
+                            " un resultado agrupado. Caro si el destino tiene"
+                            " muchas filas."
+                        ),
                         verbose_name="Expandir grupos",
                     ),
                 ),
                 (
                     "selectable",
-                    models.BooleanField(default=True, verbose_name="Seleccionable"),
+                    models.BooleanField(
+                        default=True, verbose_name="Seleccionable"
+                    ),
                 ),
                 (
                     "relation_table",
@@ -3357,13 +3946,19 @@ class Migration(migrations.Migration):
                 (
                     "column1",
                     models.CharField(
-                        blank=True, default="", max_length=63, verbose_name="Columna 1"
+                        blank=True,
+                        default="",
+                        max_length=63,
+                        verbose_name="Columna 1",
                     ),
                 ),
                 (
                     "column2",
                     models.CharField(
-                        blank=True, default="", max_length=63, verbose_name="Columna 2"
+                        blank=True,
+                        default="",
+                        max_length=63,
+                        verbose_name="Columna 2",
                     ),
                 ),
                 (
@@ -3371,7 +3966,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Código que calcula el valor. Dato, no ejecutable aquí.",
+                        help_text=(
+                            "Código que calcula el valor. Dato, no ejecutable"
+                            " aquí."
+                        ),
                         verbose_name="Cómputo",
                     ),
                 ),
@@ -3384,7 +3982,12 @@ class Migration(migrations.Migration):
                         verbose_name="Dependencias",
                     ),
                 ),
-                ("store", models.BooleanField(default=True, verbose_name="Almacenado")),
+                (
+                    "store",
+                    models.BooleanField(
+                        default=True, verbose_name="Almacenado"
+                    ),
+                ),
                 (
                     "currency_field",
                     models.CharField(
@@ -3396,12 +3999,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "sanitize",
-                    models.BooleanField(default=True, verbose_name="Sanear HTML"),
+                    models.BooleanField(
+                        default=True, verbose_name="Sanear HTML"
+                    ),
                 ),
                 (
                     "sanitize_overridable",
                     models.BooleanField(
-                        default=False, verbose_name="Saneo de HTML sobreescribible"
+                        default=False,
+                        verbose_name="Saneo de HTML sobreescribible",
                     ),
                 ),
                 (
@@ -3443,7 +4049,11 @@ class Migration(migrations.Migration):
                 (
                     "model_id",
                     models.ForeignKey(
-                        help_text="Odoo lo llama field_id (One2many en singular, contra su propia convención _ids); se conserva ese nombre en el reverso.",
+                        help_text=(
+                            "Odoo lo llama field_id (One2many en singular,"
+                            " contra su propia convención _ids); se conserva"
+                            " ese nombre en el reverso."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="field_id",
                         to="base.irmodel",
@@ -3465,7 +4075,10 @@ class Migration(migrations.Migration):
                     "relation_field_id",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo lo computa con store=True; aquí es columna real igual, poblada por la reflexión.",
+                        help_text=(
+                            "Odoo lo computa con store=True; aquí es columna"
+                            " real igual, poblada por la reflexión."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="inverse_of",
@@ -3478,7 +4091,11 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="ir_model_fields_group_rel",
-                        help_text='La referencia lo marca "CLEANME unimplemented field (empty table)"; se porta con esa nota, no como funcionalidad viva.',
+                        help_text=(
+                            'La referencia lo marca "CLEANME unimplemented'
+                            ' field (empty table)"; se porta con esa nota, no'
+                            ' como funcionalidad viva.'
+                        ),
                         related_name="field_ids",
                         to="base.resgroups",
                         verbose_name="Grupos",
@@ -3516,7 +4133,10 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Desmarcar desactiva la ACL sin borrarla; una ACL nativa borrada se recrea al recargar el módulo.",
+                        help_text=(
+                            "Desmarcar desactiva la ACL sin borrarla; una ACL"
+                            " nativa borrada se recrea al recargar el módulo."
+                        ),
                         verbose_name="Activo",
                     ),
                 ),
@@ -3557,7 +4177,11 @@ class Migration(migrations.Migration):
                     "group_id",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Vacío = acceso global. ondelete restrict de la fuente: no se borra un grupo que aún concede permisos.",
+                        help_text=(
+                            "Vacío = acceso global. ondelete restrict de la"
+                            " fuente: no se borra un grupo que aún concede"
+                            " permisos."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="model_access",
@@ -3590,7 +4214,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Nombre",
                     ),
                 ),
                 (
@@ -3603,7 +4230,10 @@ class Migration(migrations.Migration):
                     "parent_res_id",
                     models.IntegerField(
                         blank=True,
-                        help_text="Vacío = la acción vale para todos los registros del modelo.",
+                        help_text=(
+                            "Vacío = la acción vale para todos los registros"
+                            " del modelo."
+                        ),
                         null=True,
                         verbose_name="ID del padre activo",
                     ),
@@ -3621,7 +4251,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Método del modelo padre que devuelve una acción. Exclusivo con action.",
+                        help_text=(
+                            "Método del modelo padre que devuelve una acción."
+                            " Exclusivo con action."
+                        ),
                         max_length=120,
                         verbose_name="Método Python",
                     ),
@@ -3631,7 +4264,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Si está vacío, se usa la vista por defecto de la acción.",
+                        help_text=(
+                            "Si está vacío, se usa la vista por defecto de la"
+                            " acción."
+                        ),
                         max_length=32,
                         verbose_name="Vista por defecto",
                     ),
@@ -3641,17 +4277,28 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="[]",
-                        help_text="Se aplica al id activo del modelo padre. Este archivo NO lo evalúa — ver el docstring del módulo.",
+                        help_text=(
+                            "Se aplica al id activo del modelo padre. Este"
+                            " archivo NO lo evalúa — ver el docstring del"
+                            " módulo."
+                        ),
                         max_length=1024,
                         verbose_name="Dominio",
                     ),
                 ),
-                ("context", models.JSONField(default=dict, verbose_name="Contexto")),
+                (
+                    "context",
+                    models.JSONField(default=dict, verbose_name="Contexto"),
+                ),
                 (
                     "system",
                     models.BooleanField(
                         default=False,
-                        help_text="Una acción de sistema no se borra. Sustituye al chequeo de xml_id de la referencia (no hay ir.model.data aquí).",
+                        help_text=(
+                            "Una acción de sistema no se borra. Sustituye al"
+                            " chequeo de xml_id de la referencia (no hay"
+                            " ir.model.data aquí)."
+                        ),
                         verbose_name="De sistema",
                     ),
                 ),
@@ -3659,7 +4306,10 @@ class Migration(migrations.Migration):
                     "action",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Exclusivo con python_method (constraint de la fuente).",
+                        help_text=(
+                            "Exclusivo con python_method (constraint de la"
+                            " fuente)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="embedded_in",
@@ -3670,7 +4320,9 @@ class Migration(migrations.Migration):
                 (
                     "parent_action",
                     models.ForeignKey(
-                        help_text="Odoo parent_action_id, con ondelete cascade.",
+                        help_text=(
+                            "Odoo parent_action_id, con ondelete cascade."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="embedded_action_ids",
                         to="base.iractionsactwindow",
@@ -3681,7 +4333,9 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Acción privada de un usuario. Vacío = compartida.",
+                        help_text=(
+                            "Acción privada de un usuario. Vacío = compartida."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="embedded_actions",
@@ -3693,7 +4347,9 @@ class Migration(migrations.Migration):
                     "groups",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Grupos que pueden ejecutarla. Vacío = todos.",
+                        help_text=(
+                            "Grupos que pueden ejecutarla. Vacío = todos."
+                        ),
                         related_name="embedded_action_ids",
                         to="base.resgroups",
                         verbose_name="Grupos",
@@ -3729,7 +4385,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "type",
-                    models.CharField(max_length=64, verbose_name="Tipo de acción"),
+                    models.CharField(
+                        max_length=64, verbose_name="Tipo de acción"
+                    ),
                 ),
                 (
                     "path",
@@ -3748,7 +4406,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Texto de ayuda opcional que describe la vista destino.",
+                        help_text=(
+                            "Texto de ayuda opcional que describe la vista"
+                            " destino."
+                        ),
                         verbose_name="Descripción de la acción",
                     ),
                 ),
@@ -3758,7 +4419,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Odoo binding_model_id. Con valor, la acción aparece en la barra lateral de ese modelo.",
+                        help_text=(
+                            "Odoo binding_model_id. Con valor, la acción"
+                            " aparece en la barra lateral de ese modelo."
+                        ),
                         max_length=120,
                         verbose_name="Modelo de anclaje",
                     ),
@@ -3784,7 +4448,11 @@ class Migration(migrations.Migration):
                     "model",
                     models.CharField(
                         db_index=True,
-                        help_text="Modelo técnico sobre el que imprime. Char plano, mismo criterio que ir_rule.model_name e ir_filters.model_id.",
+                        help_text=(
+                            "Modelo técnico sobre el que imprime. Char plano,"
+                            " mismo criterio que ir_rule.model_name e"
+                            " ir_filters.model_id."
+                        ),
                         max_length=255,
                         verbose_name="Nombre del modelo",
                     ),
@@ -3798,7 +4466,10 @@ class Migration(migrations.Migration):
                             ("qweb-text", "Texto"),
                         ],
                         default="qweb-pdf",
-                        help_text="Claves verbatim de la referencia; el renderizador de este árbol es otro (libharu, ADR-017).",
+                        help_text=(
+                            "Claves verbatim de la referencia; el renderizador"
+                            " de este árbol es otro (libharu, ADR-017)."
+                        ),
                         max_length=16,
                         verbose_name="Tipo de reporte",
                     ),
@@ -3814,7 +4485,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Ruta al archivo principal, o vacío si el contenido vive en otro campo.",
+                        help_text=(
+                            "Ruta al archivo principal, o vacío si el"
+                            " contenido vive en otro campo."
+                        ),
                         max_length=255,
                         verbose_name="Archivo del reporte",
                     ),
@@ -3823,7 +4497,10 @@ class Migration(migrations.Migration):
                     "multi",
                     models.BooleanField(
                         default=False,
-                        help_text="Marcado, la acción NO aparece en la barra lateral de un formulario — es de lote.",
+                        help_text=(
+                            "Marcado, la acción NO aparece en la barra lateral"
+                            " de un formulario — es de lote."
+                        ),
                         verbose_name="Sobre varios documentos",
                     ),
                 ),
@@ -3832,7 +4509,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre del archivo que se descarga. Vacío = no se cambia. En la referencia admite una expresión Python; aquí es dato, no se evalúa.",
+                        help_text=(
+                            "Nombre del archivo que se descarga. Vacío = no se"
+                            " cambia. En la referencia admite una expresión"
+                            " Python; aquí es dato, no se evalúa."
+                        ),
                         max_length=255,
                         verbose_name="Nombre del archivo impreso",
                     ),
@@ -3841,7 +4522,11 @@ class Migration(migrations.Migration):
                     "attachment_use",
                     models.BooleanField(
                         default=False,
-                        help_text="Marcado, imprimir dos veces con el mismo nombre de adjunto devuelve el reporte anterior en vez de regenerarlo.",
+                        help_text=(
+                            "Marcado, imprimir dos veces con el mismo nombre"
+                            " de adjunto devuelve el reporte anterior en vez"
+                            " de regenerarlo."
+                        ),
                         verbose_name="Recargar desde el adjunto",
                     ),
                 ),
@@ -3850,7 +4535,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre del adjunto donde se guarda el resultado. Vacío = no se guarda. Expresión Python en la referencia; aquí es dato.",
+                        help_text=(
+                            "Nombre del adjunto donde se guarda el resultado."
+                            " Vacío = no se guarda. Expresión Python en la"
+                            " referencia; aquí es dato."
+                        ),
                         max_length=255,
                         verbose_name="Prefijo del adjunto guardado",
                     ),
@@ -3860,7 +4549,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Con valor, la acción sólo aparece en los registros que lo cumplen. Este archivo NO lo evalúa.",
+                        help_text=(
+                            "Con valor, la acción sólo aparece en los"
+                            " registros que lo cumplen. Este archivo NO lo"
+                            " evalúa."
+                        ),
                         max_length=1024,
                         verbose_name="Dominio de filtrado",
                     ),
@@ -3869,7 +4562,11 @@ class Migration(migrations.Migration):
                     "paperformat",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo paperformat_id. Este related_name es el One2many que report_paperformat.py dejó anotado como pendiente.",
+                        help_text=(
+                            "Odoo paperformat_id. Este related_name es el"
+                            " One2many que report_paperformat.py dejó anotado"
+                            " como pendiente."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="report_ids",
@@ -3882,7 +4579,11 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="res_groups_report_rel",
-                        help_text="Odoo group_ids. Vacío = sin restricción por grupo. La autorización efectiva sigue siendo por capacidad (DEC-11).",
+                        help_text=(
+                            "Odoo group_ids. Vacío = sin restricción por"
+                            " grupo. La autorización efectiva sigue siendo por"
+                            " capacidad (DEC-11)."
+                        ),
                         related_name="report_ids",
                         to="base.resgroups",
                         verbose_name="Grupos",
@@ -3921,7 +4622,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(max_length=120, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=120, verbose_name="Nombre"),
+                ),
                 (
                     "description",
                     models.TextField(
@@ -3933,7 +4637,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="No",
-                        help_text="Texto de la opción vacía en el selector del formulario.",
+                        help_text=(
+                            "Texto de la opción vacía en el selector del"
+                            " formulario."
+                        ),
                         max_length=60,
                         verbose_name="Marcador",
                     ),
@@ -3992,7 +4699,10 @@ class Migration(migrations.Migration):
                     "image_1920",
                     models.ImageField(
                         blank=True,
-                        help_text="Odoo image_1920. Original; las derivadas salen de aquí.",
+                        help_text=(
+                            "Odoo image_1920. Original; las derivadas salen de"
+                            " aquí."
+                        ),
                         null=True,
                         upload_to="images/original/",
                         verbose_name="Imagen",
@@ -4042,7 +4752,10 @@ class Migration(migrations.Migration):
                     "name",
                     models.CharField(
                         db_index=True,
-                        help_text="Nombre de la persona o empresa (Odoo res.partner.name).",
+                        help_text=(
+                            "Nombre de la persona o empresa (Odoo"
+                            " res.partner.name)."
+                        ),
                         max_length=200,
                     ),
                 ),
@@ -4064,7 +4777,10 @@ class Migration(migrations.Migration):
                     "is_company",
                     models.BooleanField(
                         default=False,
-                        help_text="True = empresa; False = persona física (Odoo is_company).",
+                        help_text=(
+                            "True = empresa; False = persona física (Odoo"
+                            " is_company)."
+                        ),
                     ),
                 ),
                 (
@@ -4075,16 +4791,27 @@ class Migration(migrations.Migration):
                         help_text="Archivado sin borrar (Odoo active).",
                     ),
                 ),
-                ("email", models.CharField(blank=True, default="", max_length=254)),
-                ("phone", models.CharField(blank=True, default="", max_length=32)),
-                ("website", models.CharField(blank=True, default="", max_length=255)),
+                (
+                    "email",
+                    models.CharField(blank=True, default="", max_length=254),
+                ),
+                (
+                    "phone",
+                    models.CharField(blank=True, default="", max_length=32),
+                ),
+                (
+                    "website",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
                 (
                     "vat",
                     models.CharField(
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="RFC / Tax ID (Odoo vat). Lo valida ``base_vat``.",
+                        help_text=(
+                            "RFC / Tax ID (Odoo vat). Lo valida ``base_vat``."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -4102,7 +4829,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Razón social escrita a mano cuando el contacto NO cuelga de una empresa (Odoo ``company_name``, ``odoo19c: res_partner.py:308``).",
+                        help_text=(
+                            "Razón social escrita a mano cuando el contacto NO"
+                            " cuelga de una empresa (Odoo ``company_name``,"
+                            " ``odoo19c: res_partner.py:308``)."
+                        ),
                         max_length=150,
                     ),
                 ),
@@ -4110,18 +4841,29 @@ class Migration(migrations.Migration):
                     "employee",
                     models.BooleanField(
                         default=False,
-                        help_text="Marca de contacto empleado (Odoo employee).",
+                        help_text=(
+                            "Marca de contacto empleado (Odoo employee)."
+                        ),
                     ),
                 ),
-                ("street", models.CharField(blank=True, default="", max_length=255)),
-                ("street2", models.CharField(blank=True, default="", max_length=255)),
+                (
+                    "street",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
+                (
+                    "street2",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
                 (
                     "zip",
                     models.CharField(
                         blank=True, db_index=True, default="", max_length=16
                     ),
                 ),
-                ("city", models.CharField(blank=True, default="", max_length=120)),
+                (
+                    "city",
+                    models.CharField(blank=True, default="", max_length=120),
+                ),
                 (
                     "color",
                     models.IntegerField(
@@ -4164,7 +4906,11 @@ class Migration(migrations.Migration):
                     "parent",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Titular del que este partner es contacto o dirección (Odoo parent_id). Su reverso ``children`` es Odoo child_ids.",
+                        help_text=(
+                            "Titular del que este partner es contacto o"
+                            " dirección (Odoo parent_id). Su reverso"
+                            " ``children`` es Odoo child_ids."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="children",
@@ -4194,7 +4940,9 @@ class Migration(migrations.Migration):
             model_name="rescompany",
             name="partner",
             field=models.ForeignKey(
-                help_text="Odoo partner_id. La identidad de la compañía vive aquí.",
+                help_text=(
+                    "Odoo partner_id. La identidad de la compañía vive aquí."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="companies",
                 to="base.respartner",
@@ -4205,7 +4953,10 @@ class Migration(migrations.Migration):
             model_name="resusers",
             name="partner",
             field=models.ForeignKey(
-                help_text="Party al que pertenece esta credencial (Odoo partner_id). Requerido: en la referencia no hay usuario sin partner.",
+                help_text=(
+                    "Party al que pertenece esta credencial (Odoo partner_id)."
+                    " Requerido: en la referencia no hay usuario sin partner."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="users",
                 to="base.respartner",
@@ -4229,7 +4980,11 @@ class Migration(migrations.Migration):
                     "user_int",
                     models.IntegerField(
                         db_index=True,
-                        help_text="Copia del id del usuario (Odoo user_id_int). Sobrevive al borrado de la fila de usuario: sin ella la solicitud ejecutada quedaría sin sujeto.",
+                        help_text=(
+                            "Copia del id del usuario (Odoo user_id_int)."
+                            " Sobrevive al borrado de la fila de usuario: sin"
+                            " ella la solicitud ejecutada quedaría sin sujeto."
+                        ),
                     ),
                 ),
                 (
@@ -4250,7 +5005,10 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Usuario a dar de baja (Odoo user_id, ondelete=set null).",
+                        help_text=(
+                            "Usuario a dar de baja (Odoo user_id, ondelete=set"
+                            " null)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="deletion_requests",
@@ -4313,7 +5071,10 @@ class Migration(migrations.Migration):
                 (
                     "user",
                     models.ForeignKey(
-                        help_text="Usuario dueño de las preferencias (Odoo user_id, requerido, ondelete=cascade).",
+                        help_text=(
+                            "Usuario dueño de las preferencias (Odoo user_id,"
+                            " requerido, ondelete=cascade)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="settings",
                         to=settings.AUTH_USER_MODEL,
@@ -4385,7 +5146,10 @@ class Migration(migrations.Migration):
                     "view_id",
                     models.IntegerField(
                         blank=True,
-                        help_text="Odoo view_id (Many2one a ir.ui.view). Entero mientras ir_ui_view.py no esté portado.",
+                        help_text=(
+                            "Odoo view_id (Many2one a ir.ui.view). Entero"
+                            " mientras ir_ui_view.py no esté portado."
+                        ),
                         null=True,
                         verbose_name="Vista",
                     ),
@@ -4409,7 +5173,10 @@ class Migration(migrations.Migration):
                     "multi",
                     models.BooleanField(
                         default=False,
-                        help_text="Si está activo, la acción no aparece en la barra derecha de un formulario.",
+                        help_text=(
+                            "Si está activo, la acción no aparece en la barra"
+                            " derecha de un formulario."
+                        ),
                         verbose_name="En varios documentos",
                     ),
                 ),
@@ -4451,7 +5218,8 @@ class Migration(migrations.Migration):
                 (
                     "interval_number",
                     models.IntegerField(
-                        default=1, help_text="Repetir cada x (Odoo interval_number)."
+                        default=1,
+                        help_text="Repetir cada x (Odoo interval_number).",
                     ),
                 ),
                 (
@@ -4473,7 +5241,10 @@ class Migration(migrations.Migration):
                     "nextcall",
                     models.DateTimeField(
                         default=django.utils.timezone.now,
-                        help_text="Próxima fecha de ejecución planeada (Odoo nextcall).",
+                        help_text=(
+                            "Próxima fecha de ejecución planeada (Odoo"
+                            " nextcall)."
+                        ),
                     ),
                 ),
                 (
@@ -4488,14 +5259,29 @@ class Migration(migrations.Migration):
                     "priority",
                     models.IntegerField(
                         default=5,
-                        help_text="Prioridad: 0 = más alta, 10 = más baja (Odoo priority, consumida por el runner diferido para ordenar el polling).",
+                        help_text=(
+                            "Prioridad: 0 = más alta, 10 = más baja (Odoo"
+                            " priority, consumida por el runner diferido para"
+                            " ordenar el polling)."
+                        ),
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "ir_actions_server",
                     models.ForeignKey(
-                        help_text='Acción que este cron ejecuta (Odoo ir_actions_server_id, _inherits). El "qué ejecutar" —name, model_name, method_name— vive ahí y se delega; ir.cron sólo aporta la periodicidad.',
+                        help_text=(
+                            'Acción que este cron ejecuta (Odoo'
+                            ' ir_actions_server_id, _inherits). El "qué'
+                            ' ejecutar" —name, model_name, method_name— vive'
+                            ' ahí y se delega; ir.cron sólo aporta la'
+                            ' periodicidad.'
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="crons",
                         to="base.iractionsserver",
@@ -4505,7 +5291,12 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Usuario de ejecución (Odoo user_id — ahí required con default=env.user; aquí nullable porque no hay contexto de request implícito al registrar la tarea, ver docstring del módulo).",
+                        help_text=(
+                            "Usuario de ejecución (Odoo user_id — ahí required"
+                            " con default=env.user; aquí nullable porque no"
+                            " hay contexto de request implícito al registrar"
+                            " la tarea, ver docstring del módulo)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="ir_crons",
@@ -4541,13 +5332,20 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del filtro (Odoo name).", max_length=256
+                        help_text="Nombre del filtro (Odoo name).",
+                        max_length=256,
                     ),
                 ),
                 (
                     "model_id",
                     models.CharField(
-                        help_text='Modelo técnico referenciado, p. ej. "product.ProductProduct" (Odoo model_id — Selection dinámico en Odoo, aquí Char plano porque no es una FK real, igual criterio que res_model en ir_attachment).',
+                        help_text=(
+                            'Modelo técnico referenciado, p. ej.'
+                            ' "product.ProductProduct" (Odoo model_id —'
+                            ' Selection dinámico en Odoo, aquí Char plano'
+                            ' porque no es una FK real, igual criterio que'
+                            ' res_model en ir_attachment).'
+                        ),
                         max_length=128,
                     ),
                 ),
@@ -4555,20 +5353,26 @@ class Migration(migrations.Migration):
                     "domain",
                     models.TextField(
                         default="[]",
-                        help_text="Dominio de búsqueda serializado (Odoo domain).",
+                        help_text=(
+                            "Dominio de búsqueda serializado (Odoo domain)."
+                        ),
                     ),
                 ),
                 (
                     "context",
                     models.TextField(
-                        default="{}", help_text="Contexto serializado (Odoo context)."
+                        default="{}",
+                        help_text="Contexto serializado (Odoo context).",
                     ),
                 ),
                 (
                     "sort",
                     models.CharField(
                         default="[]",
-                        help_text="Orden serializado (Odoo sort — Char en la fuente, no Text).",
+                        help_text=(
+                            "Orden serializado (Odoo sort — Char en la fuente,"
+                            " no Text)."
+                        ),
                         max_length=512,
                     ),
                 ),
@@ -4576,14 +5380,25 @@ class Migration(migrations.Migration):
                     "is_default",
                     models.BooleanField(
                         default=False,
-                        help_text="Filtro por defecto para el alcance modelo+usuario (Odoo is_default).",
+                        help_text=(
+                            "Filtro por defecto para el alcance modelo+usuario"
+                            " (Odoo is_default)."
+                        ),
                     ),
                 ),
                 (
                     "action_id",
                     models.IntegerField(
                         blank=True,
-                        help_text="ID de la acción/menú al que aplica el filtro (Odoo action_id — Many2one a ir.actions.actions). NULL = aplica a todos los menús del modelo. Sigue siendo Integer plano: ir.actions.actions ya está portado, así que el FK real cabe, pero cambiarlo migra esta tabla y va en su propio pase.",
+                        help_text=(
+                            "ID de la acción/menú al que aplica el filtro"
+                            " (Odoo action_id — Many2one a"
+                            " ir.actions.actions). NULL = aplica a todos los"
+                            " menús del modelo. Sigue siendo Integer plano:"
+                            " ir.actions.actions ya está portado, así que el"
+                            " FK real cabe, pero cambiarlo migra esta tabla y"
+                            " va en su propio pase."
+                        ),
                         null=True,
                     ),
                 ),
@@ -4596,12 +5411,20 @@ class Migration(migrations.Migration):
                         verbose_name="ID del padre de la embebida",
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "embedded_action",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo embedded_action_id. Filtro por defecto de una acción embebida.",
+                        help_text=(
+                            "Odoo embedded_action_id. Filtro por defecto de"
+                            " una acción embebida."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="filter_ids",
@@ -4613,7 +5436,11 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Dueño del filtro (Odoo user_id). NULL = filtro compartido/global (visible para todos); set = filtro privado de ese usuario.",
+                        help_text=(
+                            "Dueño del filtro (Odoo user_id). NULL = filtro"
+                            " compartido/global (visible para todos); set ="
+                            " filtro privado de ese usuario."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="ir_filters",
@@ -4648,11 +5475,19 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("value", models.CharField(max_length=255, verbose_name="Valor")),
-                ("name", models.CharField(max_length=255, verbose_name="Etiqueta")),
+                (
+                    "value",
+                    models.CharField(max_length=255, verbose_name="Valor"),
+                ),
+                (
+                    "name",
+                    models.CharField(max_length=255, verbose_name="Etiqueta"),
+                ),
                 (
                     "sequence",
-                    models.IntegerField(default=1000, verbose_name="Secuencia"),
+                    models.IntegerField(
+                        default=1000, verbose_name="Secuencia"
+                    ),
                 ),
                 (
                     "field",
@@ -4702,7 +5537,9 @@ class Migration(migrations.Migration):
                     "parent_field_id",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Sólo en herencia por delegación (Odoo _inherits).",
+                        help_text=(
+                            "Sólo en herencia por delegación (Odoo _inherits)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="inherit_ids",
@@ -4726,7 +5563,8 @@ class Migration(migrations.Migration):
                 "db_table": "ir_model_inherit",
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("model_id", "parent_id"), name="ir_model_inherit_uniq"
+                        fields=("model_id", "parent_id"),
+                        name="ir_model_inherit_uniq",
                     )
                 ],
             },
@@ -4749,7 +5587,10 @@ class Migration(migrations.Migration):
                     "name",
                     models.CharField(
                         db_index=True,
-                        help_text="Nombre de la restricción o clave foránea en el motor.",
+                        help_text=(
+                            "Nombre de la restricción o clave foránea en el"
+                            " motor."
+                        ),
                         max_length=255,
                         verbose_name="Restricción",
                     ),
@@ -4768,7 +5609,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Error devuelto cuando se viola la restricción.",
+                        help_text=(
+                            "Error devuelto cuando se viola la restricción."
+                        ),
                         max_length=512,
                         verbose_name="Mensaje",
                     ),
@@ -4867,17 +5710,25 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(max_length=80, verbose_name="Menú")),
-                ("active", models.BooleanField(default=True, verbose_name="Activa")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activa"),
+                ),
                 (
                     "sequence",
-                    models.PositiveIntegerField(default=10, verbose_name="Secuencia"),
+                    models.PositiveIntegerField(
+                        default=10, verbose_name="Secuencia"
+                    ),
                 ),
                 (
                     "route",
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo action. Ruta del router React (p.ej. '/admin/products'); vacío en secciones.",
+                        help_text=(
+                            "Odoo action. Ruta del router React (p.ej."
+                            " '/admin/products'); vacío en secciones."
+                        ),
                         max_length=160,
                         verbose_name="Ruta SPA",
                     ),
@@ -4887,7 +5738,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo web_icon. Nombre que el SPA resuelve con su librería.",
+                        help_text=(
+                            "Odoo web_icon. Nombre que el SPA resuelve con su"
+                            " librería."
+                        ),
                         max_length=40,
                         verbose_name="Icono",
                     ),
@@ -4895,7 +5749,10 @@ class Migration(migrations.Migration):
                 (
                     "key",
                     models.CharField(
-                        help_text="Odoo xmlid. Slug estable del item, para seed idempotente.",
+                        help_text=(
+                            "Odoo xmlid. Slug estable del item, para seed"
+                            " idempotente."
+                        ),
                         max_length=80,
                         unique=True,
                         verbose_name="Clave",
@@ -4905,7 +5762,12 @@ class Migration(migrations.Migration):
                     "group",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo group_ids. Lleva la capacidad que enforce el endpoint del destino, no la del ítem: sin ella el menú mostraría una entrada que al pulsarla da 403. Null en secciones.",
+                        help_text=(
+                            "Odoo group_ids. Lleva la capacidad que enforce el"
+                            " endpoint del destino, no la del ítem: sin ella"
+                            " el menú mostraría una entrada que al pulsarla da"
+                            " 403. Null en secciones."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="menu_items",
@@ -4953,7 +5815,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("arch", models.TextField(verbose_name="Arquitectura de la vista")),
+                (
+                    "arch",
+                    models.TextField(verbose_name="Arquitectura de la vista"),
+                ),
                 (
                     "ref_id",
                     models.ForeignKey(
@@ -4980,7 +5845,8 @@ class Migration(migrations.Migration):
                 "ordering": ["-created_at", "-id"],
                 "indexes": [
                     models.Index(
-                        fields=["user", "ref_id"], name="ir_ui_view_custom_user_ref"
+                        fields=["user", "ref_id"],
+                        name="ir_ui_view_custom_user_ref",
                     )
                 ],
             },
@@ -5004,14 +5870,20 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=list,
-                        help_text="El esquema: qué propiedades existen, de qué tipo y con qué valores posibles.",
+                        help_text=(
+                            "El esquema: qué propiedades existen, de qué tipo"
+                            " y con qué valores posibles."
+                        ),
                         verbose_name="Definición de las propiedades",
                     ),
                 ),
                 (
                     "properties_field",
                     models.ForeignKey(
-                        help_text="FK real: ir.model.fields está portado. Único — un campo, una definición.",
+                        help_text=(
+                            "FK real: ir.model.fields está portado. Único — un"
+                            " campo, una definición."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="properties_definition_ids",
                         to="base.irmodelfields",
@@ -5047,14 +5919,24 @@ class Migration(migrations.Migration):
                 (
                     "model",
                     models.CharField(
-                        help_text='Modelo técnico objetivo, p. ej. "sale.SaleOrder" (adaptación del field_id.model_id delegado de Odoo — aquí Char plano, mismo criterio que ir_filters.model_id / ir_cron.model_name: no es FK real, ver docstring del módulo).',
+                        help_text=(
+                            'Modelo técnico objetivo, p. ej. "sale.SaleOrder"'
+                            ' (adaptación del field_id.model_id delegado de'
+                            ' Odoo — aquí Char plano, mismo criterio que'
+                            ' ir_filters.model_id / ir_cron.model_name: no es'
+                            ' FK real, ver docstring del módulo).'
+                        ),
                         max_length=128,
                     ),
                 ),
                 (
                     "field",
                     models.CharField(
-                        help_text="Nombre del campo del modelo objetivo (adaptación del field_id.name delegado de Odoo — Char plano, no FK real, ver docstring del módulo).",
+                        help_text=(
+                            "Nombre del campo del modelo objetivo (adaptación"
+                            " del field_id.name delegado de Odoo — Char plano,"
+                            " no FK real, ver docstring del módulo)."
+                        ),
                         max_length=128,
                     ),
                 ),
@@ -5063,21 +5945,33 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Condición opcional que acota la aplicabilidad del default (Odoo condition — string opaco para este modelo de control).",
+                        help_text=(
+                            "Condición opcional que acota la aplicabilidad del"
+                            " default (Odoo condition — string opaco para este"
+                            " modelo de control)."
+                        ),
                         max_length=256,
                     ),
                 ),
                 (
                     "json_value",
                     models.TextField(
-                        help_text="Valor por defecto serializado en JSON (Odoo json_value — Text en vez de Char porque Odoo lo declara sin límite de tamaño, ver docstring del módulo)."
+                        help_text=(
+                            "Valor por defecto serializado en JSON (Odoo"
+                            " json_value — Text en vez de Char porque Odoo lo"
+                            " declara sin límite de tamaño, ver docstring del"
+                            " módulo)."
+                        )
                     ),
                 ),
                 (
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Usuario al que aplica el default (Odoo user_id). NULL = default para todos los usuarios.",
+                        help_text=(
+                            "Usuario al que aplica el default (Odoo user_id)."
+                            " NULL = default para todos los usuarios."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="ir_defaults",
@@ -5088,7 +5982,11 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa a la que aplica el default (Odoo company_id). NULL = default para todas las empresas.",
+                        help_text=(
+                            "Empresa a la que aplica el default (Odoo"
+                            " company_id). NULL = default para todas las"
+                            " empresas."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="ir_defaults",
@@ -5103,8 +6001,16 @@ class Migration(migrations.Migration):
                 "ordering": ["model", "field", "-id"],
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("model", "field", "user", "company", "condition"),
-                        name="uq_ir_default_model_field_user_company_condition",
+                        fields=(
+                            "model",
+                            "field",
+                            "user",
+                            "company",
+                            "condition",
+                        ),
+                        name=(
+                            "uq_ir_default_model_field_user_company_condition"
+                        ),
                     )
                 ],
             },
@@ -5124,7 +6030,8 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del adjunto (Odoo name).", max_length=256
+                        help_text="Nombre del adjunto (Odoo name).",
+                        max_length=256,
                     ),
                 ),
                 (
@@ -5138,7 +6045,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Modelo polimórfico referenciado, p. ej. "product.ProductProduct" (Odoo res_model). NO es una FK — vínculo plano igual que Odoo.',
+                        help_text=(
+                            'Modelo polimórfico referenciado, p. ej.'
+                            ' "product.ProductProduct" (Odoo res_model). NO es'
+                            ' una FK — vínculo plano igual que Odoo.'
+                        ),
                         max_length=128,
                     ),
                 ),
@@ -5147,7 +6058,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Campo binary del modelo referenciado, si aplica (Odoo res_field).",
+                        help_text=(
+                            "Campo binary del modelo referenciado, si aplica"
+                            " (Odoo res_field)."
+                        ),
                         max_length=128,
                     ),
                 ),
@@ -5155,7 +6069,13 @@ class Migration(migrations.Migration):
                     "res_id",
                     models.IntegerField(
                         blank=True,
-                        help_text="ID del registro referenciado (Odoo res_id / Many2oneReference simplificado a Integer plano — el ORM shim del proyecto no tiene un tipo Many2oneReference fiel; Odoo tampoco lo trata como FK real).",
+                        help_text=(
+                            "ID del registro referenciado (Odoo res_id /"
+                            " Many2oneReference simplificado a Integer plano —"
+                            " el ORM shim del proyecto no tiene un tipo"
+                            " Many2oneReference fiel; Odoo tampoco lo trata"
+                            " como FK real)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -5164,20 +6084,27 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[("binary", "File"), ("url", "URL")],
                         default="binary",
-                        help_text="Odoo type: binary (archivo) o url (enlace externo).",
+                        help_text=(
+                            "Odoo type: binary (archivo) o url (enlace"
+                            " externo)."
+                        ),
                         max_length=8,
                     ),
                 ),
                 (
                     "url",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo url.", max_length=1024
+                        blank=True,
+                        default="",
+                        help_text="Odoo url.",
+                        max_length=1024,
                     ),
                 ),
                 (
                     "public",
                     models.BooleanField(
-                        default=False, help_text="Odoo public — accesible sin auth."
+                        default=False,
+                        help_text="Odoo public — accesible sin auth.",
                     ),
                 ),
                 (
@@ -5185,7 +6112,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Token de acceso externo (Odoo access_token).",
+                        help_text=(
+                            "Token de acceso externo (Odoo access_token)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -5201,7 +6130,8 @@ class Migration(migrations.Migration):
                 (
                     "file_size",
                     models.IntegerField(
-                        default=0, help_text="Tamaño en bytes (Odoo file_size)."
+                        default=0,
+                        help_text="Tamaño en bytes (Odoo file_size).",
                     ),
                 ),
                 (
@@ -5209,7 +6139,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="SHA1 del contenido (Odoo checksum, calculado en save()).",
+                        help_text=(
+                            "SHA1 del contenido (Odoo checksum, calculado en"
+                            " save())."
+                        ),
                         max_length=40,
                     ),
                 ),
@@ -5218,7 +6151,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre asignado por el storage backend de Django (Odoo store_fname — aquí no es una ruta sha1-sharded propia, ver docstring del módulo).",
+                        help_text=(
+                            "Nombre asignado por el storage backend de Django"
+                            " (Odoo store_fname — aquí no es una ruta"
+                            " sha1-sharded propia, ver docstring del módulo)."
+                        ),
                         max_length=256,
                     ),
                 ),
@@ -5226,7 +6163,11 @@ class Migration(migrations.Migration):
                     "datas",
                     models.FileField(
                         blank=True,
-                        help_text="Contenido binario (Odoo datas/raw) — FileField de Django, no el filestore propio de Odoo (ver docstring del módulo).",
+                        help_text=(
+                            "Contenido binario (Odoo datas/raw) — FileField de"
+                            " Django, no el filestore propio de Odoo (ver"
+                            " docstring del módulo)."
+                        ),
                         null=True,
                         upload_to="attachments/%Y/%m/",
                     ),
@@ -5250,7 +6191,8 @@ class Migration(migrations.Migration):
                 "ordering": ["-id"],
                 "indexes": [
                     models.Index(
-                        fields=["res_model", "res_id"], name="ir_attachment_res_idx"
+                        fields=["res_model", "res_id"],
+                        name="ir_attachment_res_idx",
                     )
                 ],
             },
@@ -5269,7 +6211,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("key", models.CharField(max_length=255, verbose_name="Clave")),
+                (
+                    "key",
+                    models.CharField(max_length=255, verbose_name="Clave"),
+                ),
                 ("value", models.TextField(verbose_name="Valor")),
                 (
                     "company",

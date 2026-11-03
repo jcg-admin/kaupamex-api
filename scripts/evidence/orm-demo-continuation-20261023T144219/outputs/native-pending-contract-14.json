@@ -1,0 +1,48 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/fields.py Field.recompute",
+  "behavior": "Native pending compute batches obey PREFETCH_MAX, queued-ID expansion, recursive singleton order, bounded missing-row retry and AccessError singleton fallback",
+  "execution_flow": "Existing recompute selects native _ids records -> canonical records.env scope -> helper reads pending set -> browse/expand_ids/islice -> compute_value; missing uses exists/subtraction and clears all computed fields; singleton denial propagates",
+  "inputs_outputs": "Multi/single seed, queued IDs outside input, batch cap preserves pending, recursive order/skips, no work, missing subset/all group, one retry, batch AccessError fallback/singleton denial, unrelated error and attached ambient restoration",
+  "side_effects": "Existing pending queue, cache and protection only; no schema/migration/new cache or Provider state changes",
+  "dependencies": [
+    "TASK-GEN-0558 native306/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/pending/VM-b501",
+    "Native cache fix6038b50e and direct batch dispatch qualificationc904f188 published",
+    "Existing browse/iteration/exists/subtraction, expand_ids, PREFETCH_MAX, field_computed and Environment queue/scopes"
+  ],
+  "consumers": "Actual native BaseModel stored Char recordsets and two-field compute group; existing Django cache/recompute controls",
+  "installed_mechanism": "Existing recompute entry plus Consumer helper. Native Thyrox node_frontier/claims/TaskGet used for admission; no second scheduler or TaskStore",
+  "existing_adaptation": "Native identity uses _ids[0]; missing queue removal uses record_ids; ambient helpers scoped via records.env(). Django executable body AST preserved Native storage ObjectDoesNotExist follows the same bounded retry as MissingError; AccessError and unrelated errors still propagate.",
+  "verification": {
+    "before": "9FAIL1PASS initial10cases",
+    "final": "104PASS exact final source/index/test hashes in native-pending-django-final.json",
+    "annulment": "11expectedFAIL1PASS, native branch only removed; native-pending-annulled.json",
+    "negative_security": "Singleton AccessError propagates with work preserved; unrelated errors not swallowed",
+    "negative_retry": "Persistent MissingError one retry; all missing IDs cleared for each computed field",
+    "legacy": "native-pending-legacy-path-proof.json",
+    "style": "native-pending-final-style.json PASS; formatting/doc changes preserve executable AST",
+    "storage_IO": "Original unit tests simulate exists with SQL prohibited; bounded real SQL get/exists and retries now qualified separately on owned PostgreSQL TEMP fixture.",
+    "intermediate": "102PASS before adding two Django absence cases",
+    "Django_absence": "2FAIL12PASS before adaptation; annulment2expectedFAIL12PASS matches92a84833 source hash",
+    "actual_postgresql": {
+      "receipt": "native-pending-postgresql.json",
+      "container": "native-pending-postgresql-container.json",
+      "source_revision": "adf2cd6a60c02a3dcc1331b666a82db5e50081bb",
+      "result": "PASS PostgreSQL16.15 actual get/exists, subset retry and all-missing cleanup; old helper raises DoesNotExist and preserves pending",
+      "storage": "TEMP fixture only; database rows unchanged; public tables0; owned container removed",
+      "limits": "No actual flush, broad production fixtures or prefetch IO acceptance"
+    }
+  },
+  "equivalence": "Bounded native Field.recompute control-flow contract, not all recompute/prefetch IO, validation or ORM acceptance",
+  "limitations": "Complete production retry scenarios, relation flush, prefetch IO cost, new-ID/precompute variants, database routing, full permissions and independent QA/acceptance remain not_verified. Bounded actual SQL absence/retry fixture qualified; no global denominator.",
+  "integration": {
+    "functional_commit": "92a84833f01d5d4c54aaf5df3a9ba74cdd0c4773",
+    "publication": "Normal feature push recorded separately",
+    "merge": "not performed",
+    "acceptance": "not_verified",
+    "functional_commits": [
+      "92a84833f01d5d4c54aaf5df3a9ba74cdd0c4773",
+      "c143190d8688b321cf4b9130038b1f79c9e572c8"
+    ]
+  }
+}

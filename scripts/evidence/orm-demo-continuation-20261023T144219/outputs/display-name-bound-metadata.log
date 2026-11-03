@@ -1,0 +1,3 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+unbound CharField compute _compute_display_name search None store False concrete NOT_BOUND
+bound CharField compute _compute_display_name search _search_display_name store False concrete False

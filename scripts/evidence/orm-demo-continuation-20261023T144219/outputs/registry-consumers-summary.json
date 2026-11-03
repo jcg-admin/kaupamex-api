@@ -1,0 +1,28 @@
+{
+  "task": "TASK-API-0382",
+  "owner": "codex-module-lifecycle",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "Native TaskGet737; claimsCommand --who-has/--claim; existing exact-index verifier with pytest consumer filter",
+  "claim": "c-a8d3f582-9b6b-408e-8393-7dacb955f869",
+  "candidate_head": "a8952d778b3416b80f2fb1bb12811b6785a819d9",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "test_sha256": "4f0e0b2aa5c7eb8dc05f3d3813b4d91e28f81c10522bdefd837a371734b9baf2",
+  "command": "UV_CACHE_DIR=<sibling-cache>/uv ODOO_TOOLS=<pinned-reference-cache> PYTHONPATH=src:scripts uv run --offline --frozen python scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-consumers-reproduction.py.txt <red|green>",
+  "red": {
+    "failed": 3,
+    "exit_code": 1,
+    "variant": "Old registry_invalidated property restored in process memory only"
+  },
+  "green": {
+    "passed": 3,
+    "exit_code": 0,
+    "variant": "Unmodified exact staged Registry source"
+  },
+  "previous_tests_deselected": 44,
+  "scope": "Unflagged second registry must not acquire SQL cursor or clear first flag through signal_changes/reset_changes; reset first clears only first and invokes its setup/close hooks",
+  "sql": "Actual Django connection acquisition prohibited; flagged reset uses cursor and setup doubles, not real SQL qualification",
+  "acceptance": "not_verified",
+  "integration": "pending",
+  "production_changes": false,
+  "whole_objective_complete": false
+}

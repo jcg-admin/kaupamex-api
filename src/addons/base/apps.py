@@ -20,13 +20,17 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 ``MULTIDB_CONTROL_PLANE_APPS`` (SOL-091) para que el router lo enrute siempre a
 ``default`` bajo N>1.
 """
+
 from django.apps import AppConfig, apps
 
 from orm.inherits import ensure_inherits
-from orm.model_classes import (ensure_access_managers, ensure_base_urls,
-                               ensure_display_names,
-                               ensure_model_class_attributes,
-                               ensure_rec_names)
+from orm.model_classes import (
+    ensure_access_managers,
+    ensure_base_urls,
+    ensure_display_names,
+    ensure_model_class_attributes,
+    ensure_rec_names,
+)
 
 
 class BaseConfig(AppConfig):
@@ -50,7 +54,8 @@ class BaseConfig(AppConfig):
         no-lazy-imports da exit 0 (misma resolución que la excepción #4 de
         ``no-lazy-imports.md``).
 
-        **El par delegado→FK sale del atributo, no de aquí** (tarea #385). Antes
+        **El par delegado→FK sale del atributo, no de aquí** (tarea #385).
+        Antes
         estaba escrito a mano en esta llamada; ahora se lee de
         ``ResUsers._inherits``, que es donde la referencia lo declara. Así el
         cableado no puede divergir de la cabecera: cambiar el atributo cambia

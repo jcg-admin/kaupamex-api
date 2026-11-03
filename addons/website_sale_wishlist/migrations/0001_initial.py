@@ -34,17 +34,24 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True si la fila fue borrada via soft delete.",
+                        help_text=(
+                            "True si la fila fue borrada via soft delete."
+                        ),
                         verbose_name="Eliminado (logico)",
                     ),
                 ),
                 (
                     "deleted_at",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name="Fecha de borrado logico"
+                        blank=True,
+                        null=True,
+                        verbose_name="Fecha de borrado logico",
                     ),
                 ),
-                ("price_at_add", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "price_at_add",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
                 (
                     "product",
                     models.ForeignKey(
@@ -68,7 +75,8 @@ class Migration(migrations.Migration):
                 "ordering": ["-created_at"],
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("user", "product"), name="unique_wishlist_user_product"
+                        fields=("user", "product"),
+                        name="unique_wishlist_user_product",
                     )
                 ],
             },

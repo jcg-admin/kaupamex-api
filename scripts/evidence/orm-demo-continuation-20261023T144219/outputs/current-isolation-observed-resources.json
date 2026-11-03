@@ -1,0 +1,13 @@
+{
+  "owner_role": "orm_bootstrap_06fb8623f987",
+  "databases": [
+    "company_238680943072498_db",
+    "company_238680943072499_db",
+    "orm_bootstrap_06fb8623f987"
+  ],
+  "source": "Existing read-only observer; exact names from running owned harness, no destructive cleanup added",
+  "observation": "outputs/current-isolation-schema-observations.jsonl",
+  "execution_session": 67825,
+  "status": "running",
+  "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5"
+}

@@ -51,6 +51,7 @@ Qué haría fallar a cada control
     CONTROL del inverso: sin él ``company_type`` sería de sólo lectura y el
     formulario que lo ofrece no cambiaría nada.
 """
+
 import pytest
 
 from addons.base.models.res_company import ResCompany
@@ -72,8 +73,9 @@ class TestCompleteName:
     def test_a_child_is_prefixed_with_its_company(self, db):
         """El eje — una lista de contactos de varias empresas es ilegible sin
         esto."""
-        company = ResPartner.objects.create(name='Kaupamex SA',
-                                            is_company=True)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
         who = ResPartner.objects.create(name='Ana Ruiz', parent=company)
         assert who._get_complete_name() == 'Kaupamex SA, Ana Ruiz'
 
@@ -98,17 +100,20 @@ class TestCompleteName:
            ``metrica-decide-la-conclusion.md``).
         """
         matriz = ResPartner.objects.create(name='Matriz SA', is_company=True)
-        filial = ResPartner.objects.create(name='Filial SA', is_company=True,
-                                           parent=matriz)
+        filial = ResPartner.objects.create(
+            name='Filial SA', is_company=True, parent=matriz
+        )
         assert filial._get_complete_name() == 'Filial SA'
 
     def test_a_nameless_address_takes_its_type_as_name(self, db):
         """La fuente usa la etiqueta del tipo cuando no hay nombre — una
         dirección sin nombre saldría vacía en la lista."""
-        company = ResPartner.objects.create(name='Kaupamex SA',
-                                            is_company=True)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
         bodega = ResPartner.objects.create(
-            name='', parent=company, type=ResPartner.TYPE_DELIVERY)
+            name='', parent=company, type=ResPartner.TYPE_DELIVERY
+        )
         assert 'Kaupamex SA' in bodega._get_complete_name()
         assert bodega._get_complete_name() != 'Kaupamex SA, '
 
@@ -120,8 +125,9 @@ class TestCompleteName:
     def test_it_lands_in_the_column_on_save(self, db):
         """``complete_name`` es ``store=True``: se escribe, no se calcula al
         leer. Qué lo haría fallar: no recalcularlo en ``save``."""
-        company = ResPartner.objects.create(name='Kaupamex SA',
-                                            is_company=True)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
         who = ResPartner.objects.create(name='Ana Ruiz', parent=company)
         who.refresh_from_db()
         assert who.complete_name == 'Kaupamex SA, Ana Ruiz'
@@ -131,18 +137,21 @@ class TestTypeAddressLabel:
     """≙ ``_compute_type_address_label`` — cómo se llama esta dirección."""
 
     def test_an_invoice_address(self, db):
-        who = ResPartner.objects.create(name='Fact',
-                                        type=ResPartner.TYPE_INVOICE)
+        who = ResPartner.objects.create(
+            name='Fact', type=ResPartner.TYPE_INVOICE
+        )
         assert who.type_address_label == 'Invoice Address'
 
     def test_a_delivery_address(self, db):
-        who = ResPartner.objects.create(name='Bod',
-                                        type=ResPartner.TYPE_DELIVERY)
+        who = ResPartner.objects.create(
+            name='Bod', type=ResPartner.TYPE_DELIVERY
+        )
         assert who.type_address_label == 'Delivery Address'
 
     def test_a_contact_with_a_parent_is_the_company_address(self, db):
-        company = ResPartner.objects.create(name='Kaupamex SA',
-                                            is_company=True)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
         who = ResPartner.objects.create(name='Ana', parent=company)
         assert who.type_address_label == 'Company Address'
 
@@ -156,8 +165,9 @@ class TestEmailFormatted:
     """≙ ``_compute_email_formatted`` — lo que va en la cabecera ``To:``."""
 
     def test_it_joins_the_name_and_the_address(self, db):
-        who = ResPartner.objects.create(name='Ana Ruiz',
-                                        email='ana@kaupamex.mx')
+        who = ResPartner.objects.create(
+            name='Ana Ruiz', email='ana@kaupamex.mx'
+        )
         assert who.email_formatted == '"Ana Ruiz" <ana@kaupamex.mx>'
 
     def test_without_email_it_is_false(self, db):
@@ -167,13 +177,15 @@ class TestEmailFormatted:
         """El primer defensivo del docstring de la fuente: sin él saldría
         ``"Ana" <"Ana" <ana@x.mx>>``, que ningún servidor acepta."""
         who = ResPartner.objects.create(
-            name='Ana Ruiz', email='Otra <ana@kaupamex.mx>')
+            name='Ana Ruiz', email='Otra <ana@kaupamex.mx>'
+        )
         assert who.email_formatted == '"Ana Ruiz" <ana@kaupamex.mx>'
 
     def test_a_multi_email_keeps_both(self, db):
         """El segundo defensivo: el campo se usa a veces con dos buzones."""
         who = ResPartner.objects.create(
-            name='Ana', email='a@kaupamex.mx, b@kaupamex.mx')
+            name='Ana', email='a@kaupamex.mx, b@kaupamex.mx'
+        )
         assert 'a@kaupamex.mx,b@kaupamex.mx' in who.email_formatted
 
     def test_an_invalid_email_is_kept_as_is(self, db):
@@ -274,8 +286,9 @@ class TestCompanyRegistry:
     """≙ el bloque de ``company_registry`` — columna + dos etiquetas."""
 
     def test_it_is_a_writable_column(self, db):
-        who = ResPartner.objects.create(name='Kaupamex SA', is_company=True,
-                                        company_registry='RPC-12345')
+        who = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True, company_registry='RPC-12345'
+        )
         who.refresh_from_db()
         assert who.company_registry == 'RPC-12345'
 
@@ -290,8 +303,10 @@ class TestCompanyRegistry:
         assert ResPartner._get_company_registry_labels() == {}
 
     def test_the_placeholder_is_false_by_design(self, db):
-        assert ResPartner.objects.create(
-            name='Ana').company_registry_placeholder is False
+        assert (
+            ResPartner.objects.create(name='Ana').company_registry_placeholder
+            is False
+        )
 
 
 class TestTzOffset:
@@ -301,8 +316,7 @@ class TestTzOffset:
         assert ResPartner.objects.create(name='Ana').tz_offset == '+0000'
 
     def test_with_one_it_is_its_offset(self, db):
-        who = ResPartner.objects.create(name='Ana',
-                                        tz='America/Mexico_City')
+        who = ResPartner.objects.create(name='Ana', tz='America/Mexico_City')
         assert who.tz_offset.startswith('-'), 'Mexico esta al oeste de GMT'
         assert len(who.tz_offset) == 5
 
@@ -355,8 +369,9 @@ class TestActiveLangCount:
         ``get_installed`` devuelve los ``active``, así que el número es el
         conteo directo. ``get_installed`` en sí es la tarea #104."""
         esperado = ResLang.objects.filter(active=True).count()
-        assert ResPartner.objects.create(
-            name='Ana').active_lang_count == esperado
+        assert (
+            ResPartner.objects.create(name='Ana').active_lang_count == esperado
+        )
 
 
 class TestBlockedByDesign:
@@ -368,7 +383,9 @@ class TestBlockedByDesign:
     """
 
     def test_the_vat_duplicate_is_blocked(self, db):
-        assert ResPartner.objects.create(name='Ana').same_vat_partner_id is None
+        assert (
+            ResPartner.objects.create(name='Ana').same_vat_partner_id is None
+        )
 
     def test_the_registry_duplicate_is_blocked(self, db):
         who = ResPartner.objects.create(name='Ana')

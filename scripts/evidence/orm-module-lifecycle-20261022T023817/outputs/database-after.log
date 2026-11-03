@@ -1,0 +1,104 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+{
+  "fixture_scope": "Only IrModule tables and manifest-derived state fixtures; NOT a completed module installation.",
+  "manifest_closures": {
+    "a": [
+      "base"
+    ],
+    "b": [
+      "base",
+      "uom",
+      "product"
+    ]
+  },
+  "independent_state_rows": {
+    "a": [
+      "base"
+    ],
+    "b": [
+      "base",
+      "product",
+      "uom"
+    ]
+  },
+  "routing": {
+    "97001": {
+      "read_alias": "company_97001_db",
+      "write_alias": "company_97001_db",
+      "expected": "company_97001_db",
+      "names": [
+        "base"
+      ],
+      "written_label_on_expected_database": "97001"
+    },
+    "97002": {
+      "read_alias": "company_97002_db",
+      "write_alias": "company_97002_db",
+      "expected": "company_97002_db",
+      "names": [
+        "base",
+        "product",
+        "uom"
+      ],
+      "written_label_on_expected_database": "97002"
+    }
+  },
+  "cross_database_relation_allowed": false,
+  "rollback_preserved": true,
+  "ddl_rollback_preserved": true,
+  "postgresql_version": "16.15 (Debian 16.15-1.pgdg12+2)",
+  "async_contexts": [
+    97001,
+    97002
+  ],
+  "concurrent_rows": [
+    [
+      "base"
+    ],
+    [
+      "base",
+      "product",
+      "uom"
+    ]
+  ],
+  "main_context_restored": true,
+  "registry": {
+    "distinct_instances": true,
+    "separate_maps": true,
+    "same_model_names": true,
+    "product_models_in_a": [
+      "product.attribute.custom.value"
+    ],
+    "product_models_in_b": [
+      "product.attribute.custom.value"
+    ],
+    "process_model_classes_shared": true
+  },
+  "second_database_removed": true
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

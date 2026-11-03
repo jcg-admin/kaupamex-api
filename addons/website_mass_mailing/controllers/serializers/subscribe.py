@@ -1,4 +1,5 @@
 """``SubscribeSerializer`` — request body de la suscripción (UC-NEW-01)."""
+
 from rest_framework import serializers
 
 

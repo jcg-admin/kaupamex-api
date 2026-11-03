@@ -19,7 +19,8 @@
     # `models/res_partner.py` bloquea cuatro símbolos contra
     # `account.res.partner._check_vat`.
     #
-    # No introduce ciclo, medido: `grep -c base_vat addons/account/__manifest__.py`
+    # No introduce ciclo, medido: `grep -c base_vat
+    # addons/account/__manifest__.py`
     # da 0, y ningún manifiesto del árbol declara `base_vat` como dependencia.
     'depends': [
         'account',  # AccountFiscalPosition; y el hogar de los hooks de `vat`

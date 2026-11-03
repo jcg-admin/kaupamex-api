@@ -27,7 +27,8 @@ Divergencias de mecanismo declaradas
   (``res_users_settings_embedded_action.py``). No hay nada que colgar aquí
   con ``chain_method`` — no es un método a sobrescribir, es una relación que
   el modelo hijo ya declaró.
-- ``_format_settings`` en la referencia extiende ``super()._format_settings()``,
+- ``_format_settings`` en la referencia extiende
+  ``super()._format_settings()``,
   y aquí ese ``super()`` lo aporta ``combine=merge_dict``: el eslabón devuelve
   **sólo su clave** y :func:`orm.method_chain.merge_dict` la funde sobre lo que
   entregó base. **Corregido 2026-08-27**: este párrafo declaraba que
@@ -42,6 +43,7 @@ Divergencias de mecanismo declaradas
   porta como aserción — mismo razonamiento que ``res_users.py`` en este
   directorio: una instancia Django es siempre una sola fila.
 """
+
 from orm.method_chain import chain_method, merge_dict
 
 from addons.base.models.res_users_settings import ResUsersSettings
@@ -72,7 +74,8 @@ def get_embedded_actions_settings(self):
     """≙ ``get_embedded_actions_settings`` (odoo19c:
     web/models/res_users_settings.py:16-18)."""
     return ResUsersSettingsEmbeddedAction._embedded_action_settings_format(
-        self.embedded_actions_config_ids.all())
+        self.embedded_actions_config_ids.all()
+    )
 
 
 def set_embedded_actions_setting(self, action_id, res_id, vals):
@@ -90,7 +93,8 @@ def set_embedded_actions_setting(self, action_id, res_id, vals):
     exige el registro completo.
     """
     embedded_actions_config = self.embedded_actions_config_ids.filter(
-        action_id_id=action_id, res_id=res_id).first()
+        action_id_id=action_id, res_id=res_id
+    ).first()
     new_vals = {}
     for field, value in vals.items():
         if field in ('embedded_actions_order', 'embedded_actions_visibility'):
@@ -117,7 +121,8 @@ def apply_web_extensions():
     """Cuelga las preferencias de acciones embebidas sobre
     ``base.ResUsersSettings``.
 
-    Se invoca desde ``WebConfig.ready()`` — ``'addons.web.models.res_users_settings'``
+    Se invoca desde ``WebConfig.ready()`` —
+    ``'addons.web.models.res_users_settings'``
     está en ``WebConfig._EXTENSIONES``, mismo patrón que
     ``ir_http.py``/``res_partner.py``/``res_users.py``. (Este párrafo decía
     "pendiente de sumar"; se cableó y la nota quedó atrás.)
@@ -127,11 +132,18 @@ def apply_web_extensions():
     métodos propios de este addon: no hay previa que encadenar.
     """
     chain_method(
-        ResUsersSettings, '_format_settings', _format_settings,
-        combine=merge_dict)
+        ResUsersSettings,
+        '_format_settings',
+        _format_settings,
+        combine=merge_dict,
+    )
     chain_method(
-        ResUsersSettings, 'get_embedded_actions_settings',
-        get_embedded_actions_settings)
+        ResUsersSettings,
+        'get_embedded_actions_settings',
+        get_embedded_actions_settings,
+    )
     chain_method(
-        ResUsersSettings, 'set_embedded_actions_setting',
-        set_embedded_actions_setting)
+        ResUsersSettings,
+        'set_embedded_actions_setting',
+        set_embedded_actions_setting,
+    )

@@ -63,8 +63,11 @@ El material sí existe (``ResPartnerBank`` con ``acc_number`` /
 "cuenta de la empresa"; aquí la cuenta se crea siempre del partner del
 wizard, que es el caso que este flujo ejerce.
 """
+
 from addons.base.models import ResPartnerBank
-from addons.web.models.base_document_layout import BaseDocumentLayout as WebBaseDocumentLayout
+from addons.web.models.base_document_layout import (
+    BaseDocumentLayout as WebBaseDocumentLayout,
+)
 
 
 class BaseDocumentLayout(WebBaseDocumentLayout):

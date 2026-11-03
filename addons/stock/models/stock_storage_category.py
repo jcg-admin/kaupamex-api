@@ -214,7 +214,7 @@ class StockStorageCategoryCapacity(TimeStampedModel):
     _order = "storage_category_id"
 
     storage_category = fields.Many2one(
-        'stock.StockStorageCategory', on_delete=models.CASCADE,
+        'stock.StockStorageCategory', null=False, on_delete=models.CASCADE,
         related_name='capacity_ids', db_index=True,
         help_text='Categoría a la que pertenece la regla '
                   '(Odoo storage_category_id, requerido).',

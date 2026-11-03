@@ -7,7 +7,8 @@ ajenos, así que su superficie completa es este archivo (DEC-AF-03).
 Jerarquía relativa, no categorías
 =================================
 
-La referencia 19 ya **no** tiene ``uom.category``: una unidad cuelga de otra por
+La referencia 19 ya **no** tiene ``uom.category``: una unidad cuelga de otra
+por
 ``relative_uom_id`` (``:41``) y su ``factor`` absoluto es el producto de la
 cadena (``:69-75``). Dos unidades son convertibles si comparten raíz — lo
 resuelve ``has_common_reference`` leyendo ``parent_path``.
@@ -50,6 +51,7 @@ usa —``model=cls._meta.label``— es la que fijó la convención del resolutor
 Lo que sigue faltando es el **sembrado** de las unidades maestras: la guarda
 funciona, y protegerá lo que se siembre con identificador del módulo ``uom``.
 """
+
 import datetime
 
 import fields
@@ -104,36 +106,53 @@ def _as_float(value):
 class Uom(TimeStampedModel):
     """``uom.uom`` — unidad de medida de producto."""
 
-    name            = fields.Char(
+    name = fields.Char(
         max_length=100,
         help_text='Nombre de la unidad (Odoo uom.uom.name).',
     )
-    sequence        = models.PositiveIntegerField(
+    sequence = models.PositiveIntegerField(
         default=0,
-        help_text='Orden de presentación (Odoo sequence). Se deriva del factor.',
+        help_text=(
+            'Orden de presentación (Odoo sequence). Se deriva del factor.'
+        ),
     )
     relative_factor = fields.Float(
         default=1.0,
-        help_text='Cuánto mayor o menor es esta unidad respecto a su unidad de '
-                  'referencia (Odoo relative_factor).',
+        help_text=(
+            'Cuánto mayor o menor es esta unidad respecto a su unidad de '
+            'referencia (Odoo relative_factor).'
+        ),
     )
-    active          = fields.Boolean(
+    active = fields.Boolean(
         default=True,
-        help_text='Desmarcar para deshabilitar la unidad sin borrarla (Odoo active).',
+        help_text=(
+            'Desmarcar para deshabilitar la unidad sin borrarla (Odoo active).'
+        ),
     )
     relative_uom_id = fields.Many2one(
-        'self', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='related_uoms', db_index=True,
-        help_text='Unidad de referencia de la que cuelga (Odoo relative_uom_id).',
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='related_uoms',
+        db_index=True,
+        help_text=(
+            'Unidad de referencia de la que cuelga (Odoo relative_uom_id).'
+        ),
         db_column='relative_uom_id',
     )
-    factor          = fields.Float(
+    factor = fields.Float(
         default=1.0,
-        help_text='Cantidad absoluta: producto de la cadena de factores '
-                  'relativos (Odoo factor, compute recursivo almacenado).',
+        help_text=(
+            'Cantidad absoluta: producto de la cadena de factores '
+            'relativos (Odoo factor, compute recursivo almacenado).'
+        ),
     )
-    parent_path     = fields.Char(
-        max_length=255, db_index=True, blank=True, default='',
+    parent_path = fields.Char(
+        max_length=255,
+        db_index=True,
+        blank=True,
+        default='',
         help_text='Ruta materializada de la jerarquía (Odoo _parent_store).',
     )
 
@@ -160,7 +179,8 @@ class Uom(TimeStampedModel):
 
     @property
     def rounding(self) -> float:
-        """Precisión mínima de redondeo (Odoo ``_compute_rounding``, ``:60-66``).
+        """
+        Precisión mínima de redondeo (Odoo ``_compute_rounding``, ``:60-66``).
 
         Todas las unidades comparten la precisión declarada en "Product Unit";
         la referencia lo resuelve igual, con un ``compute`` no almacenado.
@@ -186,7 +206,8 @@ class Uom(TimeStampedModel):
         """
         if self.relative_factor == 0:
             raise UserError(
-                'El factor de conversión de una unidad de medida no puede ser 0.'
+                'El factor de conversión de una unidad de medida no puede'
+                ' ser 0.'
             )
         if not self.relative_uom_id and self.relative_factor != 1.0:
             raise UserError('Falta la unidad de medida de referencia.')
@@ -194,23 +215,27 @@ class Uom(TimeStampedModel):
     def save(self, *args, **kwargs):
         self.clean_business()
         if not self.sequence:
-            # Odoo `_compute_sequence` (:54-58): sólo antes de existir el registro.
+            # Odoo `_compute_sequence` (:54-58): sólo antes de existir
+            # el registro.
             self.sequence = min(int(self.relative_factor * 100.0), 1000)
         self.factor = (
             self.relative_factor * self.relative_uom_id.factor
-            if self.relative_uom_id else self.relative_factor
+            if self.relative_uom_id
+            else self.relative_factor
         )
         super().save(*args, **kwargs)
 
         parent_path = (
             f'{self.relative_uom_id.parent_path}{self.pk}/'
-            if self.relative_uom_id else f'{self.pk}/'
+            if self.relative_uom_id
+            else f'{self.pk}/'
         )
         if self.parent_path != parent_path:
             self.parent_path = parent_path
             super().save(update_fields=['parent_path'])
 
-        # El `factor` de la referencia es un compute recursivo: al cambiar el de
+        # El `factor` de la referencia es un compute recursivo: al
+        # cambiar el de
         # un padre, los hijos quedarían obsoletos si no se repropaga.
         for child in self.related_uoms.all():
             child.save()
@@ -233,11 +258,14 @@ class Uom(TimeStampedModel):
             return []
         protected_ids = set(
             IrModelData.objects.filter(
-                model=cls._meta.label, res_id__in=ids,
+                model=cls._meta.label,
+                res_id__in=ids,
                 module=UOM_MASTER_MODULE,
-            ).exclude(
+            )
+            .exclude(
                 name__in=UNPROTECTED_UOM_XML_IDS,
-            ).values_list('res_id', flat=True)
+            )
+            .values_list('res_id', flat=True)
         )
         return [uom for uom in uoms if uom.pk in protected_ids]
 
@@ -259,7 +287,8 @@ class Uom(TimeStampedModel):
         )
 
     def critical_change_warning(self):
-        """``_onchange_critical_fields`` — aviso al tocar una unidad del sistema.
+        """
+        ``_onchange_critical_fields`` — aviso al tocar una unidad del sistema.
 
         Devuelve el texto del aviso, o ``None`` si no aplica. **No** levanta:
         en la referencia es un ``warning`` de formulario, no un error — cambiar
@@ -281,7 +310,8 @@ class Uom(TimeStampedModel):
             'Los datos existentes NO se actualizarán con este cambio.\n\n'
             'Como las unidades de medida afectan a todo el sistema, esto '
             'puede causar problemas graves. Cambiar unidades de medida '
-            'básicas en una base en marcha no es recomendable.' % self.name
+            'básicas en una base en marcha no es recomendable.'
+            % self.name
         )
 
     # === MÉTODOS DE NEGOCIO ================================================
@@ -292,21 +322,27 @@ class Uom(TimeStampedModel):
         ``value`` admite ``Decimal`` además de ``float`` — ver ``_as_float``.
         """
         return float_round(
-            _as_float(value), precision_digits=self._precision_digits(),
+            _as_float(value),
+            precision_digits=self._precision_digits(),
             rounding_method=rounding_method,
         )
 
     def compare(self, value1: float, value2: float) -> int:
         """Compara dos medidas tras redondearlas (Odoo ``:124-133``)."""
         return float_compare(
-            _as_float(value1), _as_float(value2),
+            _as_float(value1),
+            _as_float(value2),
             precision_digits=self._precision_digits(),
         )
 
     def is_zero(self, value: float) -> bool:
-        """``True`` si el valor es cero a la precisión declarada (Odoo ``:135-139``)."""
+        """
+        ``True`` si el valor es cero a la precisión declarada (Odoo
+        ``:135-139``).
+        """
         return float_is_zero(
-            _as_float(value), precision_digits=self._precision_digits())
+            _as_float(value), precision_digits=self._precision_digits()
+        )
 
     def compute_quantity(
         self,
@@ -330,7 +366,8 @@ class Uom(TimeStampedModel):
                 amount = amount / to_unit.factor
         if to_unit and round:
             amount = float_round(
-                amount, precision_rounding=to_unit.rounding,
+                amount,
+                precision_rounding=to_unit.rounding,
                 rounding_method=rounding_method,
             )
         return amount
@@ -360,10 +397,14 @@ class Uom(TimeStampedModel):
         if self == uom:
             return product_qty
         if product_qty and packaging_qty:
-            product_qty = float_round(
-                product_qty / packaging_qty, precision_rounding=1.0,
-                rounding_method=rounding_method,
-            ) * packaging_qty
+            product_qty = (
+                float_round(
+                    product_qty / packaging_qty,
+                    precision_rounding=1.0,
+                    rounding_method=rounding_method,
+                )
+                * packaging_qty
+            )
         return product_qty
 
     def has_common_reference(self, other_uom: 'Uom') -> bool:
@@ -374,4 +415,7 @@ class Uom(TimeStampedModel):
         """
         if not self.parent_path or not other_uom.parent_path:
             return False
-        return self.parent_path.split('/')[0] == other_uom.parent_path.split('/')[0]
+        return (
+            self.parent_path.split('/')[0]
+            == other_uom.parent_path.split('/')[0]
+        )

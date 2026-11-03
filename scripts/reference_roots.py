@@ -22,13 +22,17 @@ vive en ``odoo/addons/`` y no en ``addons/``.
 
 Sobreescribible por entorno: ``ODOO19C=/otra/ruta python3 scripts/<gate>.py``.
 """
+
 import os
 import pathlib
+import sys
 
 #: La raíz del repo de referencia. Sólo-lectura por regla — ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: ni ``checkout``, ni
 #: ``add``, ni edición de archivo.
-TOOLS_ROOT = pathlib.Path(os.environ.get('ODOO_TOOLS', '/home/user/odoo-tools'))
+TOOLS_ROOT = pathlib.Path(
+    os.environ.get('ODOO_TOOLS', '/home/user/odoo-tools')
+)
 _TOOLS = TOOLS_ROOT
 
 #: alias → raíz del árbol. La forma la fija la convención de cita, no este
@@ -36,8 +40,13 @@ _TOOLS = TOOLS_ROOT
 #: otro sitio.
 TREE_ROOTS = {
     'odoo19c': _TOOLS / '19.x' / 'odoo-19.0' / 'odoo-19.0' / 'odoo-19.0',
-    'odoo19e': _TOOLS / '19.x' / 'odoo19-enterprise-main'
-    / 'odoo19-enterprise-main' / 'odoo19-enterprise-main',
+    'odoo19e': (
+        _TOOLS
+        / '19.x'
+        / 'odoo19-enterprise-main'
+        / 'odoo19-enterprise-main'
+        / 'odoo19-enterprise-main'
+    ),
     'odoo18c': _TOOLS / '18.x' / 'odoo-18',
     'odoo18e': _TOOLS / '18.x' / 'odoo.enterprise',
 }
@@ -91,14 +100,16 @@ def addons_de(alias='odoo19c'):
 
 
 #: Addons cuyo nombre AQUI no es el de la referencia. Sin este mapa un gate no
-#: encuentra la contraparte y publica ``0 pares``, que se lee igual que un porte
+#: encuentra la contraparte y publica ``0 pares``, que se lee igual que
+#: un porte
 #: completo — el sub-patron D de ``metrica-decide-la-conclusion.md``.
 #:
 #: Cada entrada se verifico por SOLAPE DE ARCHIVOS, no por parecido de nombre:
 #: un homonimo no es una contraparte. Comunes medidos: ldap 5 · oauth 6 ·
 #: passkey 7 · password_policy 2 · signup 7 · timeout 9 · totp 7 · totp_mail 5.
 #:
-#: NO estan aqui, y no por olvido: ``authz``, ``authz_audit`` y ``authz_reauth``
+#: NO estan aqui, y no por olvido: ``authz``, ``authz_audit`` y
+#: ``authz_reauth``
 #: no tienen contraparte de ningun nombre; ``helpdesk`` y ``sale_subscription``
 #: viven en Enterprise 19 (otra raiz, otra licencia); ``auto_backup`` adapta
 #: ``odoo18c: app_auto_backup``, que es otra version. Ninguno es un renombre:
@@ -163,8 +174,6 @@ def _env_exports():
 
 
 if __name__ == '__main__':
-    import sys
-
     if '--env' in sys.argv:
         # eval "$(python3 scripts/reference_roots.py --env)"
         print('\n'.join(_env_exports()))

@@ -11,7 +11,8 @@ Odoo envuelve cada request en un loop que reintenta la
 transacción ante un *serialization failure* / deadlock, con rollback + backoff
 exponencial aleatorio (``random.uniform(0.0, 2**tryno)``,
 ``MAX_TRIES_ON_CONCURRENCY_FAILURE = 5``). Aquí se extrae **solo el patrón**
-—loop + detección de error de concurrencia + backoff con jitter— desacoplado del
+—loop + detección de error de concurrencia + backoff con jitter— desacoplado
+del
 cursor/env/registry propios de Odoo, contra el ``OperationalError`` de Django y
 los códigos de MariaDB.
 
@@ -37,6 +38,7 @@ Es un decorador (Tell-Don't-Ask: el llamador "ejecuta" la operación y el
 decorador gobierna el reintento; el llamador no inspecciona códigos de error).
 ``sleep``/``rng`` son inyectables para pruebas deterministas.
 """
+
 import functools
 import logging
 import random
@@ -46,9 +48,11 @@ from django.db.utils import OperationalError
 
 logger = logging.getLogger(__name__)
 
-#: Códigos de error de MariaDB que indican concurrencia transitoria (reintentables).
-DEADLOCK = 1213            # ER_LOCK_DEADLOCK — deadlock found, transaction rolled back.
-LOCK_WAIT_TIMEOUT = 1205   # ER_LOCK_WAIT_TIMEOUT — lock wait timeout exceeded.
+#: Códigos de error de MariaDB que indican concurrencia transitoria
+#: (reintentables).
+# ER_LOCK_DEADLOCK — deadlock found, transaction rolled back.
+DEADLOCK = 1213
+LOCK_WAIT_TIMEOUT = 1205  # ER_LOCK_WAIT_TIMEOUT — lock wait timeout exceeded.
 _RETRYABLE_CODES = frozenset({DEADLOCK, LOCK_WAIT_TIMEOUT})
 
 #: Igual que ``MAX_TRIES_ON_CONCURRENCY_FAILURE`` de Odoo.
@@ -65,8 +69,9 @@ def _is_concurrency_error(exc):
     return code in _RETRYABLE_CODES
 
 
-def retry_on_db_concurrency_error(func=None, *, max_tries=DEFAULT_MAX_TRIES,
-                                  sleep=time.sleep, rng=random):
+def retry_on_db_concurrency_error(
+    func=None, *, max_tries=DEFAULT_MAX_TRIES, sleep=time.sleep, rng=random
+):
     """Reintenta la función decorada ante deadlock/lock-timeout de MariaDB.
 
     Backoff exponencial con jitter (``rng.uniform(0.0, 2**tryno)``), hasta
@@ -89,6 +94,7 @@ def retry_on_db_concurrency_error(func=None, *, max_tries=DEFAULT_MAX_TRIES,
             with transaction.atomic():
                 ...
     """
+
     def decorator(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
@@ -99,18 +105,26 @@ def retry_on_db_concurrency_error(func=None, *, max_tries=DEFAULT_MAX_TRIES,
                     if not _is_concurrency_error(exc) or tryno == max_tries:
                         if _is_concurrency_error(exc):
                             logger.warning(
-                                'Concurrencia BD (%s) en %s: agotados %d intentos.',
-                                exc.args[0] if exc.args else '?', fn.__name__, max_tries,
+                                'Concurrencia BD (%s) en %s: agotados %d'
+                                ' intentos.',
+                                exc.args[0] if exc.args else '?',
+                                fn.__name__,
+                                max_tries,
                             )
                         raise
-                    wait = rng.uniform(0.0, 2 ** tryno)
+                    wait = rng.uniform(0.0, 2**tryno)
                     logger.warning(
-                        'Concurrencia BD (%s) en %s: reintento %d/%d en %.3fs.',
-                        exc.args[0] if exc.args else '?', fn.__name__,
-                        tryno, max_tries, wait,
+                        'Concurrencia BD (%s) en %s: reintento %d/%d en'
+                        ' %.3fs.',
+                        exc.args[0] if exc.args else '?',
+                        fn.__name__,
+                        tryno,
+                        max_tries,
+                        wait,
                     )
                     sleep(wait)
             raise RuntimeError('unreachable')  # pragma: no cover
+
         return wrapper
 
     # Permite ``@retry_on_db_concurrency_error`` (sin paréntesis) y

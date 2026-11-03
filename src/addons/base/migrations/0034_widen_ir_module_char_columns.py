@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="name",
             field=models.CharField(
                 db_index=True,
-                help_text="Nombre técnico = carpeta del addon (Odoo ir.module.module.name).",
+                help_text=(
+                    "Nombre técnico = carpeta del addon (Odoo"
+                    " ir.module.module.name)."
+                ),
                 unique=True,
             ),
         ),
@@ -25,7 +28,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Nombre legible del manifest (Odoo shortdesc ← manifest name).",
+                help_text=(
+                    "Nombre legible del manifest (Odoo shortdesc ← manifest"
+                    " name)."
+                ),
             ),
         ),
         migrations.AlterField(
@@ -47,7 +53,8 @@ class Migration(migrations.Migration):
             model_name="irmoduledependency",
             name="name",
             field=models.CharField(
-                db_index=True, help_text="Nombre técnico del addon del que depende."
+                db_index=True,
+                help_text="Nombre técnico del addon del que depende.",
             ),
         ),
     ]

@@ -4,6 +4,7 @@ Reubicados desde ``mail/models/notification_signals.py`` (T-035): el receptor
 del reembolso vive con ``Refund``, no dentro del addon de correo. Ver la nota
 de dirección en ``addons/orders/handlers.py``.
 """
+
 import logging
 
 from django.db.models.signals import post_save
@@ -31,5 +32,6 @@ def _refund_created(sender, instance, created, **kwargs):
     except Exception:
         logger.warning(
             '_refund_created: notificacion fallida para Refund %s',
-            instance.pk, exc_info=True,
+            instance.pk,
+            exc_info=True,
         )

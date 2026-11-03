@@ -1,4 +1,5 @@
-"""``res.device`` — la vista SQL que proyecta la última actividad por dispositivo.
+"""
+``res.device`` — la vista SQL que proyecta la última actividad por dispositivo.
 
 Porta el ``init()`` de la referencia (``odoo19c:
 odoo/addons/base/models/res_device.py:250-256``), que crea la vista con
@@ -26,6 +27,7 @@ con ``platform`` nulo nunca se compararía consigo misma, el ``NOT EXISTS`` no
 encontraría a su sucesora, y la vista devolvería **todo** el log en vez de la
 última actividad por dispositivo.
 """
+
 from django.db import migrations, models
 
 _SELECT = 'SELECT D.*'
@@ -55,7 +57,10 @@ WHERE
 """
 
 CREAR_VISTA = 'CREATE OR REPLACE VIEW res_device AS (%s %s %s)' % (
-    _SELECT, _FROM, _WHERE)
+    _SELECT,
+    _FROM,
+    _WHERE,
+)
 BORRAR_VISTA = 'DROP VIEW IF EXISTS res_device'
 
 

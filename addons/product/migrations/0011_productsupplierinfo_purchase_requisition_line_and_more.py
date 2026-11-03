@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
             name="purchase_requisition_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Línea del acuerdo de compra que creó esta tarifa (Odoo purchase_requisition_line_id). El inverso es ``line.supplier_info_ids``.",
+                help_text=(
+                    "Línea del acuerdo de compra que creó esta tarifa (Odoo"
+                    " purchase_requisition_line_id). El inverso es"
+                    " ``line.supplier_info_ids``."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="supplier_info_ids",
@@ -30,7 +34,12 @@ class Migration(migrations.Migration):
             name="service_upsell_threshold",
             field=models.FloatField(
                 default=1.0,
-                help_text='Odoo service_upsell_threshold ("Threshold", default=1). Fracción del tiempo vendido que hay que entregar para que se proponga la venta adicional. Quién lo lee está bloqueado — ver el docstring del módulo.',
+                help_text=(
+                    'Odoo service_upsell_threshold ("Threshold", default=1).'
+                    ' Fracción del tiempo vendido que hay que entregar para'
+                    ' que se proponga la venta adicional. Quién lo lee está'
+                    ' bloqueado — ver el docstring del módulo.'
+                ),
                 verbose_name="Umbral de venta adicional",
             ),
         ),

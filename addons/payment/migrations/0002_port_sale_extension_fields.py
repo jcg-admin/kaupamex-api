@@ -19,7 +19,11 @@ class Migration(migrations.Migration):
                     ("partner", "Según el identificador del cliente"),
                 ],
                 default="so_name",
-                help_text='Odoo so_reference_type ("Communication"). Fija el tipo de comunicación que aparecerá en los pedidos de venta; se le entrega al cliente al elegir el método de pago.',
+                help_text=(
+                    'Odoo so_reference_type ("Communication"). Fija el tipo de'
+                    ' comunicación que aparecerá en los pedidos de venta; se'
+                    ' le entrega al cliente al elegir el método de pago.'
+                ),
                 max_length=16,
                 verbose_name="Comunicación",
             ),

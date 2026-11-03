@@ -17,9 +17,12 @@
     #   web         es el bundle de assets del formulario. Este monolito
     #               expone el alta como endpoint DRF; la pantalla es de `ui`.
     'depends': [
-        'base',                   # ResUsers, ResPartner, SystemParameter (models/*.py)
-        'mail',                   # MailTemplate + envío del correo (res_users.py:37-38)
-        'authz_password_policy',  # valida la contraseña elegida (controllers/main.py:28)
+        # ResUsers, ResPartner, SystemParameter (models/*.py)
+        'base',
+        # MailTemplate + envío del correo (res_users.py:37-38)
+        'mail',
+        # valida la contraseña elegida (controllers/main.py:28)
+        'authz_password_policy',
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

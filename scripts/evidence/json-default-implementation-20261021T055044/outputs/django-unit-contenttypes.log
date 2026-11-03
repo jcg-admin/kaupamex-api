@@ -1,0 +1,12 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_callable_none_missing_and_scalars (test_json_defaults.JsonDefaultTests.test_callable_none_missing_and_scalars) ... ok
+test_deconstruct_and_clone_preserve_content (test_json_defaults.JsonDefaultTests.test_deconstruct_and_clone_preserve_content) ... ok
+test_default_checks_and_model_checks (test_json_defaults.JsonDefaultTests.test_default_checks_and_model_checks) ... ok
+test_migration_serialization_recreates_isolated_default (test_json_defaults.JsonDefaultTests.test_migration_serialization_recreates_isolated_default) ... ok
+test_models_have_independent_nested_defaults (test_json_defaults.JsonDefaultTests.test_models_have_independent_nested_defaults) ... ok
+test_raw_django_negative_control (test_json_defaults.JsonDefaultTests.test_raw_django_negative_control) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.001s
+
+OK

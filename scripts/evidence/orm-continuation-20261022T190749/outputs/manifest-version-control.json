@@ -1,0 +1,22 @@
+{
+  "interface": "addons.authz.declaration.values_from_manifest",
+  "inputs": [
+    {
+      "name": "Probe",
+      "version": "1.0"
+    },
+    {
+      "name": "Probe",
+      "version": "2.0"
+    }
+  ],
+  "outputs": [
+    "1.0",
+    "2.0"
+  ],
+  "reference_contract": "ModuleGraph reads database latest_version as previously installed version, not current manifest version",
+  "consumer_flow": "update_module_list._refresh -> values_from_manifest -> changed values -> row.save(using,target,update_fields), including for installed modules",
+  "result": "Manifest mapping verified; version field alone is not proof of persisted installed version",
+  "db_writes": false,
+  "next_dependency": "Reconcile version persistence and historical compatibility under existing0382 before full version-faithful graph binding; no guessed migration or new TASK"
+}

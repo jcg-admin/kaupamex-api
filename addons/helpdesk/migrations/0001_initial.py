@@ -33,14 +33,18 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True si la fila fue borrada via soft delete.",
+                        help_text=(
+                            "True si la fila fue borrada via soft delete."
+                        ),
                         verbose_name="Eliminado (logico)",
                     ),
                 ),
                 (
                     "deleted_at",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name="Fecha de borrado logico"
+                        blank=True,
+                        null=True,
+                        verbose_name="Fecha de borrado logico",
                     ),
                 ),
                 ("subject", models.CharField(max_length=150)),
@@ -85,7 +89,10 @@ class Migration(migrations.Migration):
                         max_length=8,
                     ),
                 ),
-                ("order_id", models.PositiveIntegerField(blank=True, null=True)),
+                (
+                    "order_id",
+                    models.PositiveIntegerField(blank=True, null=True),
+                ),
                 (
                     "user",
                     models.ForeignKey(
@@ -146,13 +153,15 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="supportticket",
             index=models.Index(
-                fields=["user", "status"], name="support_tic_user_id_bbc719_idx"
+                fields=["user", "status"],
+                name="support_tic_user_id_bbc719_idx",
             ),
         ),
         migrations.AddIndex(
             model_name="supportticket",
             index=models.Index(
-                fields=["status", "priority"], name="support_tic_status_a0fe0d_idx"
+                fields=["status", "priority"],
+                name="support_tic_status_a0fe0d_idx",
             ),
         ),
     ]

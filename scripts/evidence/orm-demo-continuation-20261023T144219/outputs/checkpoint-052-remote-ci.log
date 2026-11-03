@@ -1,0 +1,275 @@
+test	Verify API (same contract locally)	﻿2026-10-25T20:25:32.3130361Z ##[group]Run make ci-verify
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3130704Z [36;1mmake ci-verify[0m
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3195431Z shell: /usr/bin/bash -e {0}
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3195728Z env:
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3196017Z   DJANGO_SETTINGS_MODULE: config.settings.testing
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3196405Z   PYTHONPATH: src
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3196713Z   SECRET_KEY: ci-insecure-key-not-for-production
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3197114Z   DB_QA_NAME: kaupamex_ci_40230644369_1
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3197477Z   CI_DATABASE_DISPOSABLE: kaupamex_ci_40230644369_1
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3198174Z   DB_QA_SOCKET: 
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3198407Z   DB_SOCKET: 
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3198649Z   DB_QA_USER: django_user
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3198934Z   DB_QA_PASSWORD: django_pass
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3199221Z   DB_QA_HOST: 127.0.0.1
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3199488Z   DB_QA_PORT: 5432
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3199730Z   DB_QA_SSL_MODE: disable
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3200002Z   DB_NAME: kaupamex_ci_40230644369_1
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3200303Z   DB_USER: django_user
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3200606Z   DB_PASSWORD: django_pass
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3200872Z   DB_HOST: 127.0.0.1
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3201111Z   DB_PORT: 5432
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3201403Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3201770Z ##[endgroup]
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3309278Z uv sync --frozen
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3359583Z warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3790807Z Using CPython 3.12.3 interpreter at: /usr/bin/python3.12
+test	Verify API (same contract locally)	2026-10-25T20:25:32.3791448Z Creating virtual environment at: .venv
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4913125Z Downloading lxml (5.0MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4930586Z Downloading babel (9.7MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4935643Z Downloading pynacl (1.3MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4940788Z Downloading django (8.0MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4942435Z Downloading python-stdnum (1.1MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4944221Z Downloading cryptography (4.5MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4945964Z Downloading psycopg-binary (4.9MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.4961589Z Downloading pillow (6.8MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.5022093Z Downloading djangorestframework (1.0MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.5024525Z Downloading faker (1.9MiB)
+test	Verify API (same contract locally)	2026-10-25T20:25:32.8132623Z  Downloaded djangorestframework
+test	Verify API (same contract locally)	2026-10-25T20:25:32.8160360Z  Downloaded python-stdnum
+test	Verify API (same contract locally)	2026-10-25T20:25:32.8288138Z  Downloaded pynacl
+test	Verify API (same contract locally)	2026-10-25T20:25:32.8826653Z  Downloaded faker
+test	Verify API (same contract locally)	2026-10-25T20:25:32.9146102Z  Downloaded psycopg-binary
+test	Verify API (same contract locally)	2026-10-25T20:25:32.9178760Z  Downloaded cryptography
+test	Verify API (same contract locally)	2026-10-25T20:25:32.9322424Z  Downloaded lxml
+test	Verify API (same contract locally)	2026-10-25T20:25:32.9348863Z  Downloaded pillow
+test	Verify API (same contract locally)	2026-10-25T20:25:33.0001885Z  Downloaded babel
+test	Verify API (same contract locally)	2026-10-25T20:25:33.1161936Z  Downloaded django
+test	Verify API (same contract locally)	2026-10-25T20:25:33.1164284Z Prepared 67 packages in 730ms
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3082419Z Installed 67 packages in 191ms
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3083296Z  + asgiref==3.11.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3083653Z  + attrs==26.1.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3083976Z  + babel==2.18.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3084490Z  + bcrypt==5.0.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3084869Z  + cbor2==5.9.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3085360Z  + certifi==2026.5.20
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3085707Z  + cffi==2.0.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3086316Z  + charset-normalizer==3.4.7
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3086896Z  + cryptography==48.0.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3087812Z  + django==6.0.5
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3088843Z  + django-cors-headers==4.9.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3095165Z  + django-extensions==3.2.3
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3095597Z  + djangorestframework==3.16.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3096046Z  + djangorestframework-simplejwt==5.5.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3096515Z  + drf-spectacular==0.29.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3096892Z  + execnet==2.1.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3097217Z  + factory-boy==3.3.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3097740Z  + faker==40.20.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3098069Z  + gunicorn==26.0.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3098656Z  + idna==3.17
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3098969Z  + inflection==0.5.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3099305Z  + iniconfig==2.3.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3099627Z  + invoke==3.0.3
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3099941Z  + isodate==0.7.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3100483Z  + jsonschema==4.26.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3100875Z  + jsonschema-specifications==2025.9.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3101315Z  + lxml==6.1.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3101629Z  + markupsafe==3.0.3
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3101971Z  + mercadopago==3.2.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3102310Z  + packaging==26.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3102639Z  + paramiko==5.0.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3102959Z  + passlib==1.7.4
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3103272Z  + pillow==12.2.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3103599Z  + platformdirs==4.11.5
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3103949Z  + pluggy==1.6.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3104283Z  + psutil==7.2.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3104598Z  + psycopg==3.3.4
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3104939Z  + psycopg-binary==3.3.4
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3105303Z  + pyasn1==0.6.4
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3105631Z  + pyasn1-modules==0.4.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3106005Z  + pycparser==3.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3106321Z  + pyjwt==2.13.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3106634Z  + pynacl==1.6.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3106951Z  + pyopenssl==26.2.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3107288Z  + pytest==7.4.4
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3107795Z  + pytest-django==4.7.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3108160Z  + pytest-xdist==3.6.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3108517Z  + python-barcode==0.16.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3108899Z  + python-dateutil==2.9.0.post0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3109310Z  + python-decouple==3.8
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3109675Z  + python-stdnum==2.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3110019Z  + pytz==2026.3.post1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3110346Z  + pyyaml==6.0.3
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3110654Z  + qrcode==8.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3110969Z  + referencing==0.37.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3111311Z  + requests==2.34.2
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3111641Z  + requests-file==3.0.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3112004Z  + requests-toolbelt==1.0.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3112381Z  + rpds-py==2026.5.1
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3112710Z  + six==1.17.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3113028Z  + sqlparse==0.5.5
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3113321Z  + typing-extensions==4.15.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3113557Z  + uritemplate==4.2.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3113754Z  + urllib3==2.7.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3114031Z  + webauthn==2.8.0
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3114238Z  + xlsxwriter==3.2.9
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3114429Z  + zeep==4.3.3
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3176593Z uv run --frozen python scripts/check_ci_database.py
+test	Verify API (same contract locally)	2026-10-25T20:25:33.3229438Z warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test	Verify API (same contract locally)	2026-10-25T20:25:34.1219152Z PASS: destino PostgreSQL desechable autorizado; QA compartida excluida.
+test	Verify API (same contract locally)	2026-10-25T20:25:34.1608188Z make pdf
+test	Verify API (same contract locally)	2026-10-25T20:25:34.1622748Z make[1]: Entering directory '/home/runner/work/kaupamex-api/kaupamex-api'
+test	Verify API (same contract locally)	2026-10-25T20:25:34.1623535Z make -C src/tools/pdf build
+test	Verify API (same contract locally)	2026-10-25T20:25:34.1638349Z make[2]: Entering directory '/home/runner/work/kaupamex-api/kaupamex-api/src/tools/pdf'
+test	Verify API (same contract locally)	2026-10-25T20:25:34.1651369Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_3dmeasure.c -o build/obj/hpdf_3dmeasure.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.3191980Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_annotation.c -o build/obj/hpdf_annotation.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.4988915Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_array.c -o build/obj/hpdf_array.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.5760229Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_binary.c -o build/obj/hpdf_binary.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.6166215Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_boolean.c -o build/obj/hpdf_boolean.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.6386596Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_catalog.c -o build/obj/hpdf_catalog.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.7052995Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_destination.c -o build/obj/hpdf_destination.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.7715014Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_dict.c -o build/obj/hpdf_dict.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.8631863Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_direct.c -o build/obj/hpdf_direct.o
+test	Verify API (same contract locally)	2026-10-25T20:25:34.9008785Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_doc.c -o build/obj/hpdf_doc.o
+test	Verify API (same contract locally)	2026-10-25T20:25:35.2628681Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_doc_png.c -o build/obj/hpdf_doc_png.o
+test	Verify API (same contract locally)	2026-10-25T20:25:35.3079596Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder.c -o build/obj/hpdf_encoder.o
+test	Verify API (same contract locally)	2026-10-25T20:25:35.4615145Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_cns.c -o build/obj/hpdf_encoder_cns.o
+test	Verify API (same contract locally)	2026-10-25T20:25:35.6483981Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_cnt.c -o build/obj/hpdf_encoder_cnt.o
+test	Verify API (same contract locally)	2026-10-25T20:25:35.7458003Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_jp.c -o build/obj/hpdf_encoder_jp.o
+test	Verify API (same contract locally)	2026-10-25T20:25:35.8652814Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_kr.c -o build/obj/hpdf_encoder_kr.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.0226539Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_utf.c -o build/obj/hpdf_encoder_utf.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.0770506Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encrypt.c -o build/obj/hpdf_encrypt.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.2293896Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encryptdict.c -o build/obj/hpdf_encryptdict.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.2838992Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_error.c -o build/obj/hpdf_error.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.3222999Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_exdata.c -o build/obj/hpdf_exdata.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.3549735Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_ext_gstate.c -o build/obj/hpdf_ext_gstate.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.4036349Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font.c -o build/obj/hpdf_font.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.4624983Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_cid.c -o build/obj/hpdf_font_cid.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.6422110Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_tt.c -o build/obj/hpdf_font_tt.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.7225557Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_type1.c -o build/obj/hpdf_font_type1.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.8027193Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef.c -o build/obj/hpdf_fontdef.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.8353477Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_base14.c -o build/obj/hpdf_fontdef_base14.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.8918740Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cid.c -o build/obj/hpdf_fontdef_cid.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.9399574Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cns.c -o build/obj/hpdf_fontdef_cns.o
+test	Verify API (same contract locally)	2026-10-25T20:25:36.9962441Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cnt.c -o build/obj/hpdf_fontdef_cnt.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.0412487Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_jp.c -o build/obj/hpdf_fontdef_jp.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.1221860Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_kr.c -o build/obj/hpdf_fontdef_kr.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.2021226Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_tt.c -o build/obj/hpdf_fontdef_tt.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.2355110Z vendor/libharu/src/hpdf_fontdef_tt.c: In function ‘HPDF_TTFontDef_SaveFontData’:
+test	Verify API (same contract locally)	2026-10-25T20:25:37.2362621Z vendor/libharu/src/hpdf_fontdef_tt.c:2099:54: warning: comparison of integer expressions of different signedness: ‘HPDF_UINT’ {aka ‘unsigned int’} and ‘int’ [-Wsign-compare]
+test	Verify API (same contract locally)	2026-10-25T20:25:37.2364184Z  2099 |                 if (attr->glyph_tbl.flgs[j] == 1 || j==attr->num_h_metric-1) {
+test	Verify API (same contract locally)	2026-10-25T20:25:37.2364931Z       |                                                      ^~
+test	Verify API (same contract locally)	2026-10-25T20:25:37.6296719Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_type1.c -o build/obj/hpdf_fontdef_type1.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.7266644Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_gstate.c -o build/obj/hpdf_gstate.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.7672159Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image.c -o build/obj/hpdf_image.o
+test	Verify API (same contract locally)	2026-10-25T20:25:37.8805270Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image_ccitt.c -o build/obj/hpdf_image_ccitt.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.0308114Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image_png.c -o build/obj/hpdf_image_png.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.0663546Z vendor/libharu/src/hpdf_image_png.c: In function ‘LoadPngData’:
+test	Verify API (same contract locally)	2026-10-25T20:25:38.0666932Z vendor/libharu/src/hpdf_image_png.c:463:53: warning: cast between incompatible function types from ‘void (*)(png_struct *, png_byte *, png_uint_32)’ {aka ‘void (*)(struct png_struct_def *, unsigned char *, unsigned int)’} to ‘void (*)(png_struct *, png_byte *, size_t)’ {aka ‘void (*)(struct png_struct_def *, unsigned char *, long unsigned int)’} [-Wcast-function-type]
+test	Verify API (same contract locally)	2026-10-25T20:25:38.0669967Z   463 |         png_set_read_fn (png_ptr, (void *)png_data, (png_rw_ptr)&PngReadFunc);
+test	Verify API (same contract locally)	2026-10-25T20:25:38.0670742Z       |                                                     ^
+test	Verify API (same contract locally)	2026-10-25T20:25:38.1859982Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_info.c -o build/obj/hpdf_info.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.2338757Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_list.c -o build/obj/hpdf_list.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.2973258Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_mmgr.c -o build/obj/hpdf_mmgr.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.3399365Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_name.c -o build/obj/hpdf_name.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.3745915Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_namedict.c -o build/obj/hpdf_namedict.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.4480602Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_null.c -o build/obj/hpdf_null.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.4686161Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_number.c -o build/obj/hpdf_number.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.4903944Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_objects.c -o build/obj/hpdf_objects.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.5322249Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_outline.c -o build/obj/hpdf_outline.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.5950800Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_page_label.c -o build/obj/hpdf_page_label.o
+test	Verify API (same contract locally)	2026-10-25T20:25:38.6311675Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_page_operator.c -o build/obj/hpdf_page_operator.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.0402675Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_pages.c -o build/obj/hpdf_pages.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.3534308Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_pdfa.c -o build/obj/hpdf_pdfa.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.3712333Z vendor/libharu/src/hpdf_pdfa.c: In function ‘HPDF_PDFA_AddXmpMetadata’:
+test	Verify API (same contract locally)	2026-10-25T20:25:39.3714419Z vendor/libharu/src/hpdf_pdfa.c:298:28: warning: implicit conversion from ‘enum _HPDF_PDFA_TYPE’ to ‘HPDF_PDFVer’ {aka ‘enum _HPDF_PdfVer’} [-Wenum-conversion]
+test	Verify API (same contract locally)	2026-10-25T20:25:39.3726394Z   298 |         conformanceVersion = HPDF_PDFA_NON_PDFA;
+test	Verify API (same contract locally)	2026-10-25T20:25:39.3726998Z       |                            ^
+test	Verify API (same contract locally)	2026-10-25T20:25:39.4439976Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_real.c -o build/obj/hpdf_real.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.4784039Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_shading.c -o build/obj/hpdf_shading.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.5285945Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_streams.c -o build/obj/hpdf_streams.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.7622169Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_string.c -o build/obj/hpdf_string.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.8172421Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_u3d.c -o build/obj/hpdf_u3d.o
+test	Verify API (same contract locally)	2026-10-25T20:25:39.9720051Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_utils.c -o build/obj/hpdf_utils.o
+test	Verify API (same contract locally)	2026-10-25T20:25:40.0754879Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_xref.c -o build/obj/hpdf_xref.o
+test	Verify API (same contract locally)	2026-10-25T20:25:40.1432776Z ar rcs build/libhpdf.a build/obj/hpdf_3dmeasure.o build/obj/hpdf_annotation.o build/obj/hpdf_array.o build/obj/hpdf_binary.o build/obj/hpdf_boolean.o build/obj/hpdf_catalog.o build/obj/hpdf_destination.o build/obj/hpdf_dict.o build/obj/hpdf_direct.o build/obj/hpdf_doc.o build/obj/hpdf_doc_png.o build/obj/hpdf_encoder.o build/obj/hpdf_encoder_cns.o build/obj/hpdf_encoder_cnt.o build/obj/hpdf_encoder_jp.o build/obj/hpdf_encoder_kr.o build/obj/hpdf_encoder_utf.o build/obj/hpdf_encrypt.o build/obj/hpdf_encryptdict.o build/obj/hpdf_error.o build/obj/hpdf_exdata.o build/obj/hpdf_ext_gstate.o build/obj/hpdf_font.o build/obj/hpdf_font_cid.o build/obj/hpdf_font_tt.o build/obj/hpdf_font_type1.o build/obj/hpdf_fontdef.o build/obj/hpdf_fontdef_base14.o build/obj/hpdf_fontdef_cid.o build/obj/hpdf_fontdef_cns.o build/obj/hpdf_fontdef_cnt.o build/obj/hpdf_fontdef_jp.o build/obj/hpdf_fontdef_kr.o build/obj/hpdf_fontdef_tt.o build/obj/hpdf_fontdef_type1.o build/obj/hpdf_gstate.o build/obj/hpdf_image.o build/obj/hpdf_image_ccitt.o build/obj/hpdf_image_png.o build/obj/hpdf_info.o build/obj/hpdf_list.o build/obj/hpdf_mmgr.o build/obj/hpdf_name.o build/obj/hpdf_namedict.o build/obj/hpdf_null.o build/obj/hpdf_number.o build/obj/hpdf_objects.o build/obj/hpdf_outline.o build/obj/hpdf_page_label.o build/obj/hpdf_page_operator.o build/obj/hpdf_pages.o build/obj/hpdf_pdfa.o build/obj/hpdf_real.o build/obj/hpdf_shading.o build/obj/hpdf_streams.o build/obj/hpdf_string.o build/obj/hpdf_u3d.o build/obj/hpdf_utils.o build/obj/hpdf_xref.o
+test	Verify API (same contract locally)	2026-10-25T20:25:40.8600295Z python3 gen_font_c.py build/pdf_fonts.c \
+test	Verify API (same contract locally)	2026-10-25T20:25:40.8600885Z     liberation_sans_regular=vendor/fonts/liberation-sans/LiberationSans-Regular.ttf \
+test	Verify API (same contract locally)	2026-10-25T20:25:40.8601487Z     liberation_sans_bold=vendor/fonts/liberation-sans/LiberationSans-Bold.ttf
+test	Verify API (same contract locally)	2026-10-25T20:25:41.1365381Z cc -O2 -Wall -Wextra -c build/pdf_fonts.c -o build/pdf_fonts.o
+test	Verify API (same contract locally)	2026-10-25T20:25:41.7530417Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild pdf_receipt.c build/pdf_fonts.o build/libhpdf.a -o pdf_receipt -lpng -lz -lm
+test	Verify API (same contract locally)	2026-10-25T20:25:42.0066729Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild pdf_report.c build/pdf_fonts.o build/libhpdf.a -o pdf_report -lpng -lz -lm
+test	Verify API (same contract locally)	2026-10-25T20:25:42.2050959Z make[2]: Leaving directory '/home/runner/work/kaupamex-api/kaupamex-api/src/tools/pdf'
+test	Verify API (same contract locally)	2026-10-25T20:25:42.2053312Z make[1]: Leaving directory '/home/runner/work/kaupamex-api/kaupamex-api'
+test	Verify API (same contract locally)	2026-10-25T20:25:42.2055394Z uv run --frozen pytest --create-db --maxfail=1 -q --junitxml=test-results/pytest.xml
+test	Verify API (same contract locally)	2026-10-25T20:25:42.2104559Z warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test	Verify API (same contract locally)	2026-10-25T20:33:42.1583684Z ........................................................................ [  0%]
+test	Verify API (same contract locally)	2026-10-25T20:34:11.9583455Z ........................................................................ [  1%]
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4270670Z ..F
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4271703Z =================================== FAILURES ===================================
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4272746Z ___ TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422 ___
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4273926Z .venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4274804Z     rel_obj = self.field.get_cached_value(instance)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4275601Z .venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4276449Z     return instance._state.fields_cache[self.cache_name]
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4276991Z E   KeyError: 'country'
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4277243Z 
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4277978Z During handling of the above exception, another exception occurred:
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4279088Z tests/integration/account/test_recalculate_tax_tags_endpoint.py:61: in test_child_tax_shared_by_two_parents_is_422
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4280097Z     parent1 = AccountTax.objects.create(name='P1', company=company)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4280910Z .venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4281693Z     return getattr(self.get_queryset(), name)(*args, **kwargs)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4282429Z .venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4283065Z     obj.save(force_insert=True, using=self.db)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4283648Z .venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4284210Z     self.save_base(
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4284700Z .venv/lib/python3.12/site-packages/django/db/models/base.py:946: in save_base
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4285272Z     pre_save.send(
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4285753Z .venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py:209: in send
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4286445Z     response = receiver(signal=self, sender=sender, **named)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4287084Z addons/l10n_mx/models/account_tax.py:98: in _apply_l10n_mx_tax_type
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4287827Z     _compute_l10n_mx_tax_type(instance)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4288369Z addons/l10n_mx/models/account_tax.py:87: in _compute_l10n_mx_tax_type
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4289052Z     'iva' if company is not None and company.country_code == 'MX' else ''
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4289611Z src/orm/fields.py:1625: in __get__
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4290002Z     field.compute_value(instance)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4290401Z src/orm/fields.py:4863: in compute_value
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4290824Z     _invoke_compute_method(self, records)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4291265Z src/orm/fields.py:4783: in _invoke_compute_method
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4291720Z     determine(field.compute, record)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4292114Z src/orm/fields.py:2190: in determine
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4292812Z     return needle(records, *args)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4293362Z src/orm/fields.py:3696: in _field_compute_related
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4294034Z     values = [_first_record(element[name]) for element in values]
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4295110Z src/orm/models.py:3579: in _model_getitem
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4295644Z     return getattr(self, key)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4296471Z .venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4297952Z     rel_obj = self.get_object(instance)
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4298811Z .venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4299866Z     return qs.get(self.field.get_reverse_related_filter(instance))
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4300756Z .venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4301497Z     raise self.model.DoesNotExist(
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4302434Z E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4303419Z =============================== warnings summary ===============================
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4304328Z .venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4320064Z   /home/runner/work/kaupamex-api/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4321479Z     from crypt import crypt as _crypt
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4321770Z 
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4322447Z tests/integration/test_herencia_modelos.py::TestTimeStampedModelHerencia::test_todos_los_modelos_heredan_de_timestampedmodel
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4323736Z tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_empty_cart_returns_400
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4326722Z   /home/runner/work/kaupamex-api/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4329427Z     warnings.warn(
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4329618Z 
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4330257Z tests/integration/test_herencia_modelos.py::TestTimeStampedModelHerencia::test_todos_los_modelos_heredan_de_timestampedmodel
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4331533Z tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_empty_cart_returns_400
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4334482Z   /home/runner/work/kaupamex-api/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4337054Z     warnings.warn(
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4337241Z 
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4337744Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4338623Z - generated xml file: /home/runner/work/kaupamex-api/kaupamex-api/test-results/pytest.xml -
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4339433Z =========================== short test summary info ============================
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4341134Z FAILED tests/integration/account/test_recalculate_tax_tags_endpoint.py::TestRecalculateTaxTagsErrors::test_child_tax_shared_by_two_parents_is_422 - addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4342826Z !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+test	Verify API (same contract locally)	2026-10-25T20:34:13.4343455Z 1 failed, 146 passed, 1 skipped, 5 warnings in 505.87s (0:08:25)
+test	Verify API (same contract locally)	2026-10-25T20:34:17.7462898Z make: *** [Makefile:147: ci-verify] Error 1
+test	Verify API (same contract locally)	2026-10-25T20:34:17.7480049Z ##[error]Process completed with exit code 2.

@@ -18,12 +18,15 @@ factura, no desaparece.
 
 **Divergencia deliberada con el espejo — la base gravable del IVA.**
 ``confirm_draft_order`` calculaba ``tax`` sobre ``net = subtotal - discount``
-(``sale/services.py:377``), es decir **excluyendo el envío**. El canónico extrae
+(``sale/services.py:377``), es decir **excluyendo el envío**. El canónico
+extrae
 el IVA por línea, así que la línea de envío **también** tributa. El **total no
 cambia** — sólo se reparte distinto entre base e impuesto. La forma canónica es
-la correcta: el flete es un concepto con su propio IVA, que es justamente lo que
+la correcta: el flete es un concepto con su propio IVA, que es justamente lo
+que
 H-API-35 exige para que el CFDI cuadre. Ver H-API-41.
 """
+
 from decimal import Decimal
 
 from addons.delivery.models.sale_order import amount_delivery
@@ -43,16 +46,21 @@ def order_amounts(sale_order) -> dict:
     """
     if sale_order is None:
         zero = Decimal('0.00')
-        return {'subtotal': zero, 'tax': zero, 'shipping_cost': zero,
-                'discount': zero, 'total': zero}
+        return {
+            'subtotal': zero,
+            'tax': zero,
+            'shipping_cost': zero,
+            'discount': zero,
+            'total': zero,
+        }
 
     shipping = amount_delivery(sale_order)
     discount = amount_reward(sale_order)
-    total    = sale_order.amount_total
+    total = sale_order.amount_total
     return {
-        'subtotal':      total - shipping + discount,
-        'tax':           sale_order.amount_tax,
+        'subtotal': total - shipping + discount,
+        'tax': sale_order.amount_tax,
         'shipping_cost': shipping,
-        'discount':      discount,
-        'total':         total,
+        'discount': discount,
+        'total': total,
     }

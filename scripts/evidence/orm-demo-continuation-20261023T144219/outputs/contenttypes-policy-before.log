@@ -1,0 +1,37 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+....FFFF..                                                               [100%]
+=================================== FAILURES ===================================
+___________ test_sessions_stay_central_and_metadata_follows_company ____________
+tests/unit/orm/test_multidb_router.py:99: in test_sessions_stay_central_and_metadata_follows_company
+    assert router.db_for_read(CONTENTTYPE) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+_________ test_allow_migrate_keeps_sessions_central_and_metadata_local _________
+tests/unit/orm/test_multidb_router.py:108: in test_allow_migrate_keeps_sessions_central_and_metadata_local
+    assert router.allow_migrate('company_5_db', 'contenttypes', 'contenttype') is True
+E   AssertionError: assert False is True
+E    +  where False = <bound method CompanyDatabaseRouter.allow_migrate of <orm.routers.CompanyDatabaseRouter object at 0x7fc6188077a0>>('company_5_db', 'contenttypes', 'contenttype')
+E    +    where <bound method CompanyDatabaseRouter.allow_migrate of <orm.routers.CompanyDatabaseRouter object at 0x7fc6188077a0>> = <orm.routers.CompanyDatabaseRouter object at 0x7fc6188077a0>.allow_migrate
+_____ test_metadata_without_company_fails_closed_under_multiple_databases ______
+tests/unit/orm/test_multidb_router.py:114: in test_metadata_without_company_fails_closed_under_multiple_databases
+    with company_scope(None), pytest.raises(CompanyContextRequired):
+E   Failed: DID NOT RAISE <class 'orm.routers.CompanyContextRequired'>
+________ test_metadata_falls_back_to_default_without_company_databases _________
+tests/unit/orm/test_multidb_router.py:120: in test_metadata_falls_back_to_default_without_company_databases
+    assert router.db_for_read(CONTENTTYPE) is None
+E   AssertionError: assert 'default' is None
+E    +  where 'default' = <bound method CompanyDatabaseRouter.db_for_read of <orm.routers.CompanyDatabaseRouter object at 0x7fc6188077a0>>(<tests.unit.orm.test_multidb_router._Model object at 0x7fc618807650>)
+E    +    where <bound method CompanyDatabaseRouter.db_for_read of <orm.routers.CompanyDatabaseRouter object at 0x7fc6188077a0>> = <orm.routers.CompanyDatabaseRouter object at 0x7fc6188077a0>.db_for_read
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_multidb_router.py::test_sessions_stay_central_and_metadata_follows_company
+FAILED tests/unit/orm/test_multidb_router.py::test_allow_migrate_keeps_sessions_central_and_metadata_local
+FAILED tests/unit/orm/test_multidb_router.py::test_metadata_without_company_fails_closed_under_multiple_databases
+FAILED tests/unit/orm/test_multidb_router.py::test_metadata_falls_back_to_default_without_company_databases
+4 failed, 6 passed, 1 warning in 0.12s

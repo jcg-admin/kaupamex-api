@@ -180,7 +180,7 @@ class StockScrap(MailThread, TimeStampedModel):
         help_text='Referencia, de la secuencia stock.scrap (Odoo name).',
     )
     company          = fields.Many2one(
-        'base.ResCompany', on_delete=models.PROTECT, related_name='stock_scraps',
+        'base.ResCompany', null=False, on_delete=models.PROTECT, related_name='stock_scraps',
         db_index=True, help_text='Empresa (Odoo company_id, requerido).',
     )
     origin           = fields.Char(
@@ -188,11 +188,11 @@ class StockScrap(MailThread, TimeStampedModel):
         help_text='Documento de origen (Odoo origin).',
     )
     product          = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT, related_name='scraps',
+        'product.ProductProduct', null=False, on_delete=models.PROTECT, related_name='scraps',
         db_index=True, help_text='Producto a desechar (Odoo product_id, requerido).',
     )
     product_uom      = fields.Many2one(
-        'uom.Uom', on_delete=models.PROTECT, related_name='scraps',
+        'uom.Uom', null=False, on_delete=models.PROTECT, related_name='scraps',
         help_text='Unidad (Odoo product_uom_id, computado y almacenado).',
     )
     lot              = fields.Many2one(
@@ -212,12 +212,12 @@ class StockScrap(MailThread, TimeStampedModel):
         related_name='scraps', help_text='Albarán de origen (Odoo picking_id).',
     )
     location         = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, related_name='scraps_out',
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='scraps_out',
         help_text='Ubicación origen, interna '
                   '(Odoo location_id, computado y almacenado).',
     )
     scrap_location   = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, related_name='scraps_in',
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='scraps_in',
         help_text='Ubicación de desecho, de tipo inventory '
                   '(Odoo scrap_location_id, computado y almacenado).',
     )

@@ -1,4 +1,6 @@
-"""Siembra el cron de recuperación de carrito — equivalente de ``ir_cron_data.xml``.
+"""
+Siembra el cron de recuperación de carrito — equivalente de
+``ir_cron_data.xml``.
 
 La referencia declara ``ir_cron_send_availability_email`` en el ``data/`` del
 addon (``odoo19c: website_sale/data/ir_cron_data.xml:3-9``,
@@ -18,6 +20,7 @@ como un porte incompleto.
 Idempotente: un segundo pase no duplica ni pisa el intervalo que el operador
 haya ajustado, que es lo que ``noupdate="1"`` garantiza en el XML original.
 """
+
 from django.db import migrations
 
 from addons.base.data import sembrar_cron
@@ -25,8 +28,9 @@ from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 
 
 def sembrar(apps, schema_editor):
-    sembrar_cron(apps, schema_editor.connection.alias,
-                 CRON_SEND_ABANDONED_CART_EMAIL)
+    sembrar_cron(
+        apps, schema_editor.connection.alias, CRON_SEND_ABANDONED_CART_EMAIL
+    )
 
 
 class Migration(migrations.Migration):

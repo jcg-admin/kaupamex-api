@@ -8,7 +8,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account", "0014_accounttaxalternative_accounttax_original_tax_ids_and_more"),
+        (
+            "account",
+            "0014_accounttaxalternative_accounttax_original_tax_ids_and_more",
+        ),
         ("base", "0013_company_utility_accounts"),
     ]
 
@@ -20,7 +23,9 @@ class Migration(migrations.Migration):
                     django.db.models.functions.text.Length(
                         models.F("code_prefix_start")
                     ),
-                    django.db.models.functions.text.Length(models.F("code_prefix_end")),
+                    django.db.models.functions.text.Length(
+                        models.F("code_prefix_end")
+                    ),
                 ),
                 name="account_group_prefix_length_eq",
                 violation_error_code="ACCOUNT_GROUP_PREFIX_LENGTH_MISMATCH",

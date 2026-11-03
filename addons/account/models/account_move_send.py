@@ -1,4 +1,6 @@
-r"""``account.move.send`` — la clase compartida por los asistentes de envío de facturas.
+r"""
+``account.move.send`` — la clase compartida por los asistentes de envío de
+facturas.
 
 Adaptación de ``addons/account/models/account_move_send.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, 863 líneas, LGPL-3 — atribución y
@@ -49,6 +51,7 @@ suena a "reporte PDF" está bloqueado) y
 correo, condicionado a que el consumidor tenga ``message_post`` — GAP
 declarado igual que en ``account_document_import_mixin.py``).
 """
+
 import logging
 import sys
 
@@ -68,7 +71,8 @@ class SendActionBlocked(NotImplementedError):
 def _blocked(method_name, missing):
     raise SendActionBlocked(
         f'{method_name}: bloqueado — {missing} (ver el docstring de '
-        f'account_move_send.py).')
+        'account_move_send.py).'
+    )
 
 
 class AccountMoveSend:
@@ -94,7 +98,11 @@ class AccountMoveSend:
         árbol, se usa el socio directo del asiento.
         """
         partner = getattr(move, 'partner', None)
-        method = getattr(partner, 'invoice_sending_method', None) if partner else None
+        method = (
+            getattr(partner, 'invoice_sending_method', None)
+            if partner
+            else None
+        )
         return {method or 'email'}
 
     @classmethod
@@ -109,13 +117,19 @@ class AccountMoveSend:
         """≙ ``_get_default_extra_edis`` (``odoo19c: :36-39``). Portado —
         no depende de ninguna pieza bloqueada."""
         extra_edis = cls._get_all_extra_edis()
-        return {key for key, vals in extra_edis.items() if vals['is_applicable'](move)}
+        return {
+            key
+            for key, vals in extra_edis.items()
+            if vals['is_applicable'](move)
+        }
 
     @classmethod
     def _get_default_invoice_edi_format(cls, move, **kwargs):
         """≙ ``_get_default_invoice_edi_format`` (``odoo19c: :41-43``)."""
         partner = getattr(move, 'partner', None)
-        return getattr(partner, 'invoice_edi_format', None) if partner else None
+        return (
+            getattr(partner, 'invoice_edi_format', None) if partner else None
+        )
 
     @classmethod
     def _get_default_pdf_report_id(cls, move):
@@ -128,35 +142,51 @@ class AccountMoveSend:
         equivalente.
         """
         partner = getattr(move, 'partner', None)
-        partner_default = getattr(partner, 'invoice_template_pdf_report_id', None) if partner else None
+        partner_default = (
+            getattr(partner, 'invoice_template_pdf_report_id', None)
+            if partner
+            else None
+        )
         if partner_default:
             return partner_default
         journal = getattr(move, 'journal', None)
-        journal_default = getattr(journal, 'invoice_template_pdf_report_id', None) if journal else None
+        journal_default = (
+            getattr(journal, 'invoice_template_pdf_report_id', None)
+            if journal
+            else None
+        )
         if journal_default:
             return journal_default
         report = IrActionsReport.get_report_from_name('account.report_invoice')
         if report is not None:
             return report
-        raise UserError(_('No hay ninguna plantilla que aplique a este tipo de asiento.'))
+        raise UserError(
+            _('No hay ninguna plantilla que aplique a este tipo de asiento.')
+        )
 
     @classmethod
     def _get_default_mail_template_id(cls, move):
         """≙ ``_get_default_mail_template_id`` (``odoo19c: :64-65``) —
         **bloqueado**: delega en ``move._get_mail_template()``, que
         ``AccountMove`` de este árbol no declara."""
-        _blocked('_get_default_mail_template_id',
-                 "AccountMove._get_mail_template() no está portado")
+        _blocked(
+            '_get_default_mail_template_id',
+            "AccountMove._get_mail_template() no está portado",
+        )
 
     @classmethod
-    def _get_default_sending_settings(cls, move, from_cron=False, **custom_settings):
+    def _get_default_sending_settings(
+        cls, move, from_cron=False, **custom_settings
+    ):
         """≙ ``_get_default_sending_settings`` (``odoo19c: :68-109``) —
         **bloqueado como orquestador**: compone los seis métodos
         ``_get_default_mail_*``/``_get_default_mail_attachments_widget``,
         todos bloqueados (ver el docstring del módulo, puntos 2-3)."""
-        _blocked('_get_default_sending_settings',
-                 "orquesta _get_default_mail_* y el widget de adjuntos, "
-                 "ambos bloqueados")
+        _blocked(
+            '_get_default_sending_settings',
+            "orquesta _get_default_mail_* y el widget de adjuntos, "
+            "ambos bloqueados",
+        )
 
     # -------------------------------------------------------------------------
     # ALERTAS
@@ -183,12 +213,16 @@ class AccountMoveSend:
     # -------------------------------------------------------------------------
 
     @classmethod
-    def _get_mail_default_field_value_from_template(cls, mail_template, lang, move, field, **kwargs):
+    def _get_mail_default_field_value_from_template(
+        cls, mail_template, lang, move, field, **kwargs
+    ):
         """≙ ``odoo19c: :162-169`` — **bloqueado**: sin motor de
         renderizado de plantillas (``mail_template.py`` de este pase no
         porta un motor de expresión Jinja/QWeb, sólo el modelo)."""
-        _blocked('_get_mail_default_field_value_from_template',
-                 'motor de renderizado de mail.template ausente')
+        _blocked(
+            '_get_mail_default_field_value_from_template',
+            'motor de renderizado de mail.template ausente',
+        )
 
     @classmethod
     def _get_default_mail_lang(cls, move, mail_template):
@@ -198,11 +232,17 @@ class AccountMoveSend:
 
     @classmethod
     def _get_default_mail_body(cls, move, mail_template, mail_lang):
-        _blocked('_get_default_mail_body', 'motor de renderizado de mail.template ausente')
+        _blocked(
+            '_get_default_mail_body',
+            'motor de renderizado de mail.template ausente',
+        )
 
     @classmethod
     def _get_default_mail_subject(cls, move, mail_template, mail_lang):
-        _blocked('_get_default_mail_subject', 'motor de renderizado de mail.template ausente')
+        _blocked(
+            '_get_default_mail_subject',
+            'motor de renderizado de mail.template ausente',
+        )
 
     @classmethod
     def _get_default_mail_partner_ids(cls, move, mail_template, mail_lang):
@@ -212,31 +252,59 @@ class AccountMoveSend:
         return [partner] if partner is not None else []
 
     @classmethod
-    def _get_default_mail_attachments_widget(cls, move, mail_template, invoice_edi_format=None, extra_edis=None, pdf_report=None):
-        _blocked('_get_default_mail_attachments_widget', 'widget OWL de adjuntos ausente')
+    def _get_default_mail_attachments_widget(
+        cls,
+        move,
+        mail_template,
+        invoice_edi_format=None,
+        extra_edis=None,
+        pdf_report=None,
+    ):
+        _blocked(
+            '_get_default_mail_attachments_widget',
+            'widget OWL de adjuntos ausente',
+        )
 
     @classmethod
-    def _get_placeholder_mail_attachments_data(cls, move, invoice_edi_format=None, extra_edis=None, pdf_report=None):
-        _blocked('_get_placeholder_mail_attachments_data', 'widget OWL de adjuntos ausente')
+    def _get_placeholder_mail_attachments_data(
+        cls, move, invoice_edi_format=None, extra_edis=None, pdf_report=None
+    ):
+        _blocked(
+            '_get_placeholder_mail_attachments_data',
+            'widget OWL de adjuntos ausente',
+        )
 
     @classmethod
-    def _get_placeholder_mail_template_dynamic_attachments_data(cls, move, mail_template, pdf_report=None):
-        _blocked('_get_placeholder_mail_template_dynamic_attachments_data', 'widget OWL de adjuntos ausente')
+    def _get_placeholder_mail_template_dynamic_attachments_data(
+        cls, move, mail_template, pdf_report=None
+    ):
+        _blocked(
+            '_get_placeholder_mail_template_dynamic_attachments_data',
+            'widget OWL de adjuntos ausente',
+        )
 
     @classmethod
     def _get_invoice_extra_attachments(cls, move):
         """≙ ``odoo19c: :289-292``. Portable: los adjuntos ya vinculados al
         asiento, vía ``ir.attachment`` genérico."""
         model_label = type(move).__module__ + '.' + type(move).__name__
-        return list(IrAttachment.objects.filter(res_model=model_label, res_id=move.pk))
+        return list(
+            IrAttachment.objects.filter(res_model=model_label, res_id=move.pk)
+        )
 
     @classmethod
     def _get_invoice_extra_attachments_data(cls, move):
-        _blocked('_get_invoice_extra_attachments_data', 'widget OWL de adjuntos ausente')
+        _blocked(
+            '_get_invoice_extra_attachments_data',
+            'widget OWL de adjuntos ausente',
+        )
 
     @classmethod
     def _get_mail_template_attachments_data(cls, mail_template):
-        _blocked('_get_mail_template_attachments_data', 'widget OWL de adjuntos ausente')
+        _blocked(
+            '_get_mail_template_attachments_data',
+            'widget OWL de adjuntos ausente',
+        )
 
     @classmethod
     def _display_attachments_widget(cls, edi_format, sending_methods):
@@ -266,12 +334,18 @@ class AccountMoveSend:
         portable sin EDI/reportes concretos."""
         errors = []
         if getattr(move, 'state', None) != 'posted':
-            errors.append(_('El asiento %s no está publicado.') % getattr(move, 'name', move.pk))
+            errors.append(
+                _('El asiento %s no está publicado.')
+                % getattr(move, 'name', move.pk)
+            )
         return errors
 
     @classmethod
     def _check_invoice_report(cls, moves, **custom_settings):
-        _blocked('_check_invoice_report', 'IrActionsReport.render() requiere plantilla QWeb portada')
+        _blocked(
+            '_check_invoice_report',
+            'IrActionsReport.render() requiere plantilla QWeb portada',
+        )
 
     # -------------------------------------------------------------------------
     # FORMATEO DE ERRORES
@@ -280,8 +354,10 @@ class AccountMoveSend:
     @classmethod
     def _format_error_text(cls, error):
         """≙ ``_format_error_text`` (``odoo19c: :356-364``). Portable."""
-        return '%s\n%s' % (error.get('error_title', ''),
-                            '\n'.join(error.get('errors', [])))
+        return '%s\n%s' % (
+            error.get('error_title', ''),
+            '\n'.join(error.get('errors', [])),
+        )
 
     @classmethod
     def _format_error_html(cls, error):
@@ -310,27 +386,40 @@ class AccountMoveSend:
     # -------------------------------------------------------------------------
 
     @classmethod
-    def _hook_invoice_document_before_pdf_report_render(cls, invoice, invoice_data):
+    def _hook_invoice_document_before_pdf_report_render(
+        cls, invoice, invoice_data
+    ):
         """≙ ``odoo19c: :398-406``, terminal — sobreescribir (no-op en la
         referencia)."""
         return None
 
     @classmethod
     def _prepare_invoice_pdf_report(cls, invoices_data):
-        _blocked('_prepare_invoice_pdf_report', 'IrActionsReport.render() requiere plantilla QWeb de factura')
+        _blocked(
+            '_prepare_invoice_pdf_report',
+            'IrActionsReport.render() requiere plantilla QWeb de factura',
+        )
 
     @classmethod
     def _prepare_invoice_proforma_pdf_report(cls, invoice, invoice_data):
-        _blocked('_prepare_invoice_proforma_pdf_report', 'IrActionsReport.render() requiere plantilla QWeb de proforma')
+        _blocked(
+            '_prepare_invoice_proforma_pdf_report',
+            'IrActionsReport.render() requiere plantilla QWeb de proforma',
+        )
 
     @classmethod
-    def _hook_invoice_document_after_pdf_report_render(cls, invoice, invoice_data):
+    def _hook_invoice_document_after_pdf_report_render(
+        cls, invoice, invoice_data
+    ):
         """≙ ``odoo19c: :455-463``, terminal — sobreescribir (no-op)."""
         return None
 
     @classmethod
     def _link_invoice_documents(cls, invoices_data):
-        _blocked('_link_invoice_documents', 'requiere el resultado de _prepare_invoice_pdf_report')
+        _blocked(
+            '_link_invoice_documents',
+            'requiere el resultado de _prepare_invoice_pdf_report',
+        )
 
     # -------------------------------------------------------------------------
     # ÉXITO / ERROR
@@ -340,11 +429,22 @@ class AccountMoveSend:
     def _hook_if_errors(cls, moves_data, allow_raising=True):
         """≙ ``odoo19c: :485-496``. Portable: recolecta y opcionalmente
         levanta los errores acumulados por asiento."""
-        errors = {move: data['error'] for move, data in moves_data.items() if data.get('error')}
+        errors = {
+            move: data['error']
+            for move, data in moves_data.items()
+            if data.get('error')
+        }
         if errors and allow_raising:
-            raise UserError('\n'.join(
-                cls._format_error_text(err) if isinstance(err, dict) else str(err)
-                for err in errors.values()))
+            raise UserError(
+                '\n'.join(
+                    (
+                        cls._format_error_text(err)
+                        if isinstance(err, dict)
+                        else str(err)
+                    )
+                    for err in errors.values()
+                )
+            )
         return errors
 
     @classmethod
@@ -358,8 +458,13 @@ class AccountMoveSend:
                 move.save()
 
     @classmethod
-    def _send_notifications_to_partners(cls, moves_grouped_by_author_partner_id, is_success=True):
-        _blocked('_send_notifications_to_partners', 'canal de notificación (bus) al autor no cableado para este flujo')
+    def _send_notifications_to_partners(
+        cls, moves_grouped_by_author_partner_id, is_success=True
+    ):
+        _blocked(
+            '_send_notifications_to_partners',
+            'canal de notificación (bus) al autor no cableado para este flujo',
+        )
 
     # -------------------------------------------------------------------------
     # ENVÍO DE CORREO
@@ -379,10 +484,13 @@ class AccountMoveSend:
         if post is None or partner is None:
             _logger.info(
                 'account.move.send._send_mail: sin message_post/partner '
-                'en %s, no se envía (GAP declarado).', move)
+                'en %s, no se envía (GAP declarado).',
+                move,
+            )
             return None
         return send_thread_email(
-            move, partner,
+            move,
+            partner,
             subject=kwargs.get('mail_subject', ''),
             body=kwargs.get('mail_body', ''),
         )
@@ -394,11 +502,18 @@ class AccountMoveSend:
 
     @classmethod
     def _get_mail_params(cls, move, move_data):
-        _blocked('_get_mail_params', 'orquesta _get_default_mail_* y el widget de adjuntos, ambos bloqueados')
+        _blocked(
+            '_get_mail_params',
+            'orquesta _get_default_mail_* y el widget de adjuntos, ambos'
+            ' bloqueados',
+        )
 
     @classmethod
     def _generate_dynamic_reports(cls, moves_data):
-        _blocked('_generate_dynamic_reports', 'IrActionsReport.render() requiere plantilla QWeb')
+        _blocked(
+            '_generate_dynamic_reports',
+            'IrActionsReport.render() requiere plantilla QWeb',
+        )
 
     @classmethod
     def _send_mails(cls, moves_data):
@@ -430,16 +545,25 @@ class AccountMoveSend:
         return None
 
     # -------------------------------------------------------------------------
-    # ORQUESTADORES DE ALTO NIVEL — bloqueados (dependen de lo bloqueado arriba)
+    # ORQUESTADORES DE ALTO NIVEL — bloqueados (dependen de lo bloqueado
+    # arriba)
     # -------------------------------------------------------------------------
 
     @classmethod
-    def _generate_invoice_documents(cls, invoices_data, allow_fallback_pdf=False):
-        _blocked('_generate_invoice_documents', 'orquesta _prepare_invoice_pdf_report + EDI, ambos bloqueados')
+    def _generate_invoice_documents(
+        cls, invoices_data, allow_fallback_pdf=False
+    ):
+        _blocked(
+            '_generate_invoice_documents',
+            'orquesta _prepare_invoice_pdf_report + EDI, ambos bloqueados',
+        )
 
     @classmethod
     def _generate_invoice_fallback_documents(cls, invoices_data):
-        _blocked('_generate_invoice_fallback_documents', 'IrActionsReport.render() requiere plantilla QWeb')
+        _blocked(
+            '_generate_invoice_fallback_documents',
+            'IrActionsReport.render() requiere plantilla QWeb',
+        )
 
     @classmethod
     def _check_sending_data(cls, moves, **custom_settings):
@@ -448,9 +572,18 @@ class AccountMoveSend:
         cls._check_move_constraints(moves)
 
     @classmethod
-    def _generate_and_send_invoices(cls, moves, from_cron=False, allow_raising=True, allow_fallback_pdf=False, **custom_settings):
-        _blocked('_generate_and_send_invoices',
-                 'orquesta _generate_invoice_documents (bloqueado) + _send_mails')
+    def _generate_and_send_invoices(
+        cls,
+        moves,
+        from_cron=False,
+        allow_raising=True,
+        allow_fallback_pdf=False,
+        **custom_settings,
+    ):
+        _blocked(
+            '_generate_and_send_invoices',
+            'orquesta _generate_invoice_documents (bloqueado) + _send_mails',
+        )
 
 
 def apply_account_extensions():

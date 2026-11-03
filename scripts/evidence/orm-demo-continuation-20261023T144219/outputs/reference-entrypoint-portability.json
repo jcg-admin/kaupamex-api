@@ -1,0 +1,16 @@
+[
+  {
+    "path": ".claude/scripts/convert_broken_references.py",
+    "exit": 0,
+    "stdout": "No broken references found. Nothing to convert.\n",
+    "ast_equivalent_except_redundant_path_mutation": true,
+    "cwd": "independent temporary directory"
+  },
+  {
+    "path": ".claude/scripts/validate_broken_references.py",
+    "exit": 0,
+    "stdout": "PASS: No references found\n",
+    "ast_equivalent_except_redundant_path_mutation": true,
+    "cwd": "independent temporary directory"
+  }
+]

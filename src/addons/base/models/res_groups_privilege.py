@@ -20,27 +20,39 @@ la referencia.
 predicción sobre un archivo aún sin portar es especulación, no diseño — el
 nombre se lee de la referencia cuando llega, no se anticipa.
 """
+
 from django.db import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
 class ResGroupsPrivilege(TimeStampedModel):
-    """Etiqueta que agrupa grupos en el formulario (``res.groups.privilege``)."""
+    """
+    Etiqueta que agrupa grupos en el formulario (``res.groups.privilege``).
+    """
 
     name = models.CharField(max_length=120, verbose_name='Nombre')
     description = models.TextField(
-        blank=True, default='', verbose_name='Descripción',
+        blank=True,
+        default='',
+        verbose_name='Descripción',
     )
     placeholder = models.CharField(
-        max_length=60, blank=True, default='No', verbose_name='Marcador',
+        max_length=60,
+        blank=True,
+        default='No',
+        verbose_name='Marcador',
         help_text='Texto de la opción vacía en el selector del formulario.',
     )
     sequence = models.IntegerField(default=100, verbose_name='Secuencia')
     category = models.ForeignKey(
-        'base.IrModuleCategory', on_delete=models.PROTECT,
-        null=True, blank=True, db_index=True,
-        related_name='privileges', verbose_name='Categoría',
+        'base.IrModuleCategory',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='privileges',
+        verbose_name='Categoría',
     )
 
     class Meta:

@@ -122,6 +122,7 @@ Divergencias declaradas
 3. **``company_dependent=True`` cae** en ``peppol_verification_state`` — ver la
    fila del campo.
 """
+
 import logging
 from hashlib import md5
 from urllib import parse
@@ -138,7 +139,8 @@ from addons.base.models.res_partner import ResPartner
 from orm.method_chain import chain_method
 from orm.model_classes import add_field_if_absent
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 _logger = logging.getLogger(__name__)
@@ -160,12 +162,16 @@ def _campos():
     """El campo que este addon cuelga sobre ``base.ResPartner``."""
     return {
         'peppol_verification_state': fields.Selection(
-            max_length=20, choices=PEPPOL_VERIFICATION_STATES,
-            blank=True, default='not_verified',
+            max_length=20,
+            choices=PEPPOL_VERIFICATION_STATES,
+            blank=True,
+            default='not_verified',
             verbose_name='Estado Peppol',
-            help_text='Si el contacto existe en la red Peppol y puede recibir el '
-                      'formato elegido (Odoo peppol_verification_state; su '
-                      'company_dependent=True no tiene contraparte aquí).',
+            help_text=(
+                'Si el contacto existe en la red Peppol y puede recibir el '
+                'formato elegido (Odoo peppol_verification_state; su '
+                'company_dependent=True no tiene contraparte aquí).'
+            ),
         ),
     }
 
@@ -184,11 +190,15 @@ def _get_participant_info(cls, edi_identification, company):
     :return: el árbol XML de la respuesta, o ``None`` si no hubo respuesta.
     """
     hash_participant = md5(edi_identification.lower().encode()).hexdigest()
-    endpoint_participant = parse.quote_plus(f'iso6523-actorid-upis::{edi_identification}')
+    endpoint_participant = parse.quote_plus(
+        f'iso6523-actorid-upis::{edi_identification}'
+    )
     edi_mode = company._get_peppol_edi_mode()
     sml_zone = 'acc.edelivery' if edi_mode == 'test' else 'edelivery'
-    smp_url = (f'http://B-{hash_participant}.iso6523-actorid-upis.{sml_zone}'
-               f'.tech.ec.europa.eu/{endpoint_participant}')
+    smp_url = (
+        f'http://B-{hash_participant}.iso6523-actorid-upis.{sml_zone}'
+        f'.tech.ec.europa.eu/{endpoint_participant}'
+    )
 
     try:
         response = requests.get(smp_url, timeout=TIMEOUT)
@@ -199,7 +209,9 @@ def _get_participant_info(cls, edi_identification, company):
     return etree.fromstring(response.content)
 
 
-def _check_peppol_participant_exists(cls, participant_info, edi_identification):
+def _check_peppol_participant_exists(
+    cls, participant_info, edi_identification
+):
     """≙ ``_check_peppol_participant_exists`` (``odoo19c: :126-147``).
 
     Acepta las dos formas de respuesta: el JSON del proxy de Odoo y el XML del
@@ -218,13 +230,19 @@ def _check_peppol_participant_exists(cls, participant_info, edi_identification):
         if services := participant_info.get('services', []):
             service_href = services[0].get('href', '')
     else:
-        participant_identifier = participant_info.findtext('{*}ParticipantIdentifier') or ''
-        service_metadata = participant_info.find('.//{*}ServiceMetadataReference')
+        participant_identifier = (
+            participant_info.findtext('{*}ParticipantIdentifier') or ''
+        )
+        service_metadata = participant_info.find(
+            './/{*}ServiceMetadataReference'
+        )
         if service_metadata is not None:
             service_href = service_metadata.attrib.get('href', '')
 
-    return (edi_identification.lower() == participant_identifier.lower()
-            and 'hermes-belgium' not in service_href)
+    return (
+        edi_identification.lower() == participant_identifier.lower()
+        and 'hermes-belgium' not in service_href
+    )
 
 
 def _peppol_lookup_participant(cls, edi_identification, company):
@@ -245,22 +263,29 @@ def _peppol_lookup_participant(cls, edi_identification, company):
     origin = AccountEdiProxyUser()._get_proxy_urls()[proxy_type][edi_mode]
     query = parse.urlencode({'peppol_identifier': edi_identification.lower()})
     api_endpoint = AccountEdiProxyUser()._get_peppol_proxy_endpoint(
-        '1/lookup', proxy_type=proxy_type,
+        '1/lookup',
+        proxy_type=proxy_type,
     )
     endpoint = f'{origin}{api_endpoint}?{query}'
 
     try:
         response = requests.get(endpoint, timeout=TIMEOUT)
     except requests.exceptions.RequestException as e:
-        _logger.debug('falló la consulta del participante peppol %s: %s', edi_identification, e)
+        _logger.debug(
+            'falló la consulta del participante peppol %s: %s',
+            edi_identification,
+            e,
+        )
         return None
 
     try:
         decoded_response = response.json()
     except ValueError:
         _logger.error(
-            'respuesta JSON inválida %s al consultar el participante peppol %s',
-            response.status_code, edi_identification,
+            'respuesta JSON inválida %s al consultar el participante'
+            ' peppol %s',
+            response.status_code,
+            edi_identification,
         )
         return None
 
@@ -268,14 +293,16 @@ def _peppol_lookup_participant(cls, edi_identification, company):
         if error.get('code') != 'NOT_FOUND':
             _logger.error(
                 'error al consultar el participante peppol %s: %s',
-                edi_identification, error.get('message', 'error desconocido'),
+                edi_identification,
+                error.get('message', 'error desconocido'),
             )
         return None
 
     if not response.ok:
         _logger.error(
             'respuesta no exitosa %s al consultar el participante peppol %s',
-            response.status_code, edi_identification,
+            response.status_code,
+            edi_identification,
         )
         return None
 
@@ -299,7 +326,9 @@ def _get_partners_to_skip_peppol_computation(cls):
     recalcula."""
     company_ids = ResCompany.objects.filter(
         account_peppol_proxy_state__in=AccountEdiProxyUser._get_can_send_domain(),
-    ).values_list('partner_id', flat=True)
+    ).values_list(
+        'partner_id',
+        flat=True)
     return ResPartner.objects.filter(pk__in=[pk for pk in company_ids if pk])
 
 
@@ -325,18 +354,30 @@ def apply_account_peppol_res_partner_extensions():
         add_field_if_absent(ResPartner, name, field)
 
     chain_method(
-        ResPartner, '_get_frontend_writable_fields',
-        _get_frontend_writable_fields, combine=_merge_sets,
+        ResPartner,
+        '_get_frontend_writable_fields',
+        _get_frontend_writable_fields,
+        combine=_merge_sets,
     )
 
     for name, function in (
         ('_get_participant_info', classmethod(_get_participant_info)),
-        ('_check_peppol_participant_exists', classmethod(_check_peppol_participant_exists)),
-        ('_peppol_lookup_participant', classmethod(_peppol_lookup_participant)),
-        ('_get_peppol_proxy_identification_info',
-         classmethod(_get_peppol_proxy_identification_info)),
-        ('_get_partners_to_skip_peppol_computation',
-         classmethod(_get_partners_to_skip_peppol_computation)),
+        (
+            '_check_peppol_participant_exists',
+            classmethod(_check_peppol_participant_exists),
+        ),
+        (
+            '_peppol_lookup_participant',
+            classmethod(_peppol_lookup_participant),
+        ),
+        (
+            '_get_peppol_proxy_identification_info',
+            classmethod(_get_peppol_proxy_identification_info),
+        ),
+        (
+            '_get_partners_to_skip_peppol_computation',
+            classmethod(_get_partners_to_skip_peppol_computation),
+        ),
     ):
         chain_method(ResPartner, name, function)
 

@@ -1,0 +1,10 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.F.F                                                                     [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:188: assert False is True
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:216: assert [False] == [True]
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/record-env-compute-sudo-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_compute_sudo_receives_an_elevated_record_and_restores_the_caller[True]
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_compute_sudo_assignment_keeps_the_elevated_channel[True]
+2 failed, 2 passed in 0.12s

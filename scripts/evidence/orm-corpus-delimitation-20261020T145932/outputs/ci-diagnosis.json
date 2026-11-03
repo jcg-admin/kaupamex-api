@@ -1,0 +1,21 @@
+{
+  "head": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+  "run": "39374373036",
+  "state": "FAILURE",
+  "cause": "django_db_setup -> migrate.sync_apps -> schema editor creates FOREIGN KEY test_orm_testormdiscussion.moderator_id REFERENCES res_users(id); target table missing",
+  "secondary": "17 teardown InternalError transaction aborted during tests/conftest.py:428 seed -> ir_config_parameter init/exists",
+  "summary_lines": [
+    "2026-10-20T05:46:33.7747050Z 26 skipped, 1 xfailed, 18 warnings, 10617 errors in 1479.94s (0:24:39)"
+  ],
+  "summary_error_counts": {
+    "ProgrammingError": 10600,
+    "InternalError": 17
+  },
+  "classification": "BASELINE_FAILURE",
+  "authority": "H-API-1120",
+  "support": "actual current REST log and unchanged product/tests/deps/workflow compared to prior head",
+  "diff_exit_code": 0,
+  "diff_stdout": "",
+  "scope": "No suite rerun, no repair, no PR acceptance or merge",
+  "count_method": "pytest short summary ERROR tests/... entries only; excludes setup headings whose test class happens to contain ProgrammingErrors"
+}

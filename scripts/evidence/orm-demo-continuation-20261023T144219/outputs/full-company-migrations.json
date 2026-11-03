@@ -1,0 +1,46 @@
+{
+  "task": "TASK-API-0383",
+  "scope": "Full Django migration verification only, not module installer execution or Task acceptance",
+  "databases": {
+    "default": {
+      "backbone_tables": [
+        "res_users",
+        "res_company",
+        "ir_module_module"
+      ],
+      "foreign_keys_to_local_res_users": 107,
+      "applied_migrations": 380,
+      "installed_version_nullable": true,
+      "catalogue_rows": 0,
+      "rows_with_installed_version": 0
+    },
+    "company": {
+      "backbone_tables": [
+        "res_users",
+        "res_company",
+        "ir_module_module"
+      ],
+      "foreign_keys_to_local_res_users": 107,
+      "applied_migrations": 380,
+      "installed_version_nullable": true,
+      "catalogue_rows": 0,
+      "rows_with_installed_version": 0
+    }
+  },
+  "instrument_sha256": "8554e854de94989e497b67438db9e92c4a90690f50ebe8ef4d96d69bca379322",
+  "default_schema_reused_from_current_ci": true,
+  "default_migration_seconds": 0.028,
+  "company_migration_seconds": 491.347,
+  "separate_physical_databases": true,
+  "metadata_session_probe": {
+    "status": "pass",
+    "local_metadata_not_in_default": true,
+    "content_type_cache_bound_to_alias": true,
+    "session_create_rotate_read_flush": true,
+    "session_storage_default_only": true,
+    "session_keys_removed": true,
+    "limit": "Storage backend under one company context and separate default DB. Not login, cross-company user identity, authorization or productive policy acceptance."
+  },
+  "limits": "Migration/schema acceptance only. No module graph execution, data/demo/hooks lifecycle, ORM compute conformance or PR integration.",
+  "company_database_removed": true
+}

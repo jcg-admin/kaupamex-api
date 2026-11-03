@@ -26,6 +26,7 @@ Qué NO se porta, con su medición
   compuesto —``código para: variante``— sí se porta como propiedad; lo que no
   se porta es que dependa del contexto de la petición.
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -40,16 +41,30 @@ class ProductUom(TimeStampedModel):
     """``product.uom`` — variante + unidad adicional, con su código propio."""
 
     uom = fields.Many2one(
-        Uom, on_delete=models.CASCADE, db_index=True,
-        related_name='product_uom_ids', verbose_name='Unidad')
+        Uom,
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='product_uom_ids',
+        verbose_name='Unidad',
+    )
     product = fields.Many2one(
-        ProductProduct, on_delete=models.CASCADE, db_index=True,
-        related_name='product_uom_ids', verbose_name='Producto')
+        ProductProduct,
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='product_uom_ids',
+        verbose_name='Producto',
+    )
     barcode = fields.Char(
-        max_length=64, db_index=True, verbose_name='Código de barras')
+        max_length=64, db_index=True, verbose_name='Código de barras'
+    )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='product_uom_ids', verbose_name='Compañía')
+        ResCompany,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='product_uom_ids',
+        verbose_name='Compañía',
+    )
 
     class Meta:
         db_table = 'product_uom'
@@ -60,7 +75,8 @@ class ProductUom(TimeStampedModel):
             # empaquetado. La otra mitad —que tampoco lo use una variante— no
             # cabe en una constraint de tabla; va en ``clean()``.
             models.UniqueConstraint(
-                fields=['barcode'], name='product_uom_barcode_uniq'),
+                fields=['barcode'], name='product_uom_barcode_uniq'
+            ),
         ]
 
     def __str__(self):
@@ -79,4 +95,5 @@ class ProductUom(TimeStampedModel):
             return
         if ProductProduct.objects.filter(barcode=self.barcode).exists():
             raise ValidationError(
-                'Una variante de producto ya usa ese código de barras.')
+                'Una variante de producto ya usa ese código de barras.'
+            )

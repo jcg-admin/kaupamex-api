@@ -37,8 +37,9 @@ def topological_levels(nodes, edges):
     :returns: ``(niveles, atrapados_en_ciclo)``.
     """
     nodes = list(nodes)
-    pending = {n: len({d for d in edges.get(n, ()) if d in set(nodes)})
-               for n in nodes}
+    pending = {
+        n: len({d for d in edges.get(n, ()) if d in set(nodes)}) for n in nodes
+    }
     dependents = {n: set() for n in nodes}
     for node in nodes:
         for dependency in edges.get(node, ()):
@@ -47,8 +48,7 @@ def topological_levels(nodes, edges):
 
     levels, placed = [], set()
     while True:
-        level = sorted(n for n in nodes
-                       if n not in placed and pending[n] == 0)
+        level = sorted(n for n in nodes if n not in placed and pending[n] == 0)
         if not level:
             break
         levels.append(level)
@@ -57,5 +57,3 @@ def topological_levels(nodes, edges):
             for dependent in dependents[node]:
                 pending[dependent] -= 1
     return levels, sorted(set(nodes) - placed)
-
-

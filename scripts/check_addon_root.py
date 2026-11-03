@@ -46,8 +46,12 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))), 'src'))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'
+    ),
+)
 
 from modules.module import ADDONS_PATHS
 
@@ -86,22 +90,30 @@ def main() -> int:
         return 1 if (strict and partidos) else 0
 
     if not partidos:
-        print(f'OK: ningún addon partido entre raíces '
-              f'(alcance medido: {total} addons en {len(ADDONS_PATHS)} raíces)')
+        print(
+            'OK: ningún addon partido entre raíces '
+            f'(alcance medido: {total} addons en {len(ADDONS_PATHS)} raíces)'
+        )
         return 0
 
-    print(f'FALLA: {len(partidos)} addon(s) existen bajo más de una raíz '
-          f'(alcance medido: {total} addons en {len(ADDONS_PATHS)} raíces).')
-    print('Python resuelve el import contra la PRIMERA raíz; la otra copia '
-          'queda muerta sin avisar.\n')
+    print(
+        f'FALLA: {len(partidos)} addon(s) existen bajo más de una raíz '
+        f'(alcance medido: {total} addons en {len(ADDONS_PATHS)} raíces).'
+    )
+    print(
+        'Python resuelve el import contra la PRIMERA raíz; la otra copia '
+        'queda muerta sin avisar.\n'
+    )
     for nombre in sorted(partidos):
         print(f'  {nombre}')
         for root in partidos[nombre]:
             ruta = Path(root) / nombre
             archivos = sum(1 for _ in ruta.rglob('*.py'))
             print(f'      {ruta}  ({archivos} .py)')
-    print('\nArreglo: consolidar el addon en la raíz que le corresponde '
-          '(git mv), no duplicar.')
+    print(
+        '\nArreglo: consolidar el addon en la raíz que le corresponde '
+        '(git mv), no duplicar.'
+    )
     return 1 if strict else 0
 
 

@@ -4,6 +4,7 @@ Soft-delete contract tests for addons.loyalty.Voucher (P-01).
 DEC-DOC-007: Voucher inherits from SoftDeleteModel. Cohabita con
 la semantica de NEGOCIO (is_active + deactivated_at).
 """
+
 from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
@@ -22,11 +23,13 @@ def _past(**kw):
 @pytest.fixture
 def voucher(db, admin_user):
     return Voucher.objects.create(
-        code='SOFTDEL1', voucher_type='FIXED',
+        code='SOFTDEL1',
+        voucher_type='FIXED',
         discount_value=Decimal('25.00'),
         min_order_amount=Decimal('0.00'),
         valid_from=_past(days=1),
-        is_active=True, created_by=admin_user,
+        is_active=True,
+        created_by=admin_user,
     )
 
 

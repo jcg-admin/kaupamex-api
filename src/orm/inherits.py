@@ -49,7 +49,10 @@ Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
 ==========================================================================
 
 Medido contra ``odoo19c: odoo/orm/`` — ``find`` por nombre y ``grep`` por
-símbolo, los dos a **0**. La referencia declara ``_inherits`` dentro de ``odoo/orm/models.py``, no en un archivo propio. Aquí vive aparte porque el mecanismo se construye sobre descriptores de Django en vez de sobre su registro.
+símbolo, los dos a **0**. La referencia declara ``_inherits`` dentro de
+``odoo/orm/models.py``, no en un archivo propio. Aquí vive aparte porque el
+mecanismo se construye sobre descriptores de Django en vez de sobre su
+registro.
 
 Eso lo hace legítimo como **mecanismo construido**
 (``porte-completo-no-parcial.md``: *si el stack no trae el mecanismo, se
@@ -66,6 +69,7 @@ y hasta este pase sólo ``checks`` lo declaraba.
 El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudarse
 a una raíz propia como ``src/core``— es la tarea **#121**.
 """
+
 from django.db import transaction
 
 from orm.fields_relational import bypass_search_access
@@ -91,7 +95,8 @@ def _delegable_field_names(delegate_model, delegant_cls):
     for klass in delegant_cls.__mro__:
         own |= set(vars(klass))
     return tuple(
-        f.name for f in delegate_model._meta.get_fields()
+        f.name
+        for f in delegate_model._meta.get_fields()
         if getattr(f, 'concrete', False)
         and f.name not in own
         and not f.name.startswith('_')
@@ -109,7 +114,8 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     hoy esta función lo sobreescribía con la etiqueta de Django —
     ``{'base.ResPartner': 'partner'}`` — pisando el ``{'res.partner': …}`` que
     la clase declara verbatim de la fuente. Con eso, el atributo de clase que
-    ``atributos-de-clase-de-modelo.md`` manda portar dejaba de existir en cuanto
+    ``atributos-de-clase-de-modelo.md`` manda portar dejaba de existir en
+    cuanto
     ``ready()`` corría: quien lo leyera vería la traducción, no el contrato.
     El estado interno vive en ``_inherits_fields``, que es de este mecanismo.
     """
@@ -150,7 +156,9 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
 
     def __setattr__(self, name, value):
         if name in delegated and not name.startswith('_'):
-            delegate = self.__dict__.get(fk_name) or getattr(self, fk_name, None)
+            delegate = self.__dict__.get(fk_name) or getattr(
+                self, fk_name, None
+            )
             if delegate is not None:
                 setattr(delegate, name, value)
                 self.__dict__.setdefault('_inherits_dirty', set()).add(fk_name)
@@ -183,7 +191,9 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
 
 
 def ensure_inherits():
-    """Cablea la delegación de **todo** modelo registrado que declare ``_inherits``.
+    """
+    Cablea la delegación de **todo** modelo registrado que declare
+    ``_inherits``.
 
     Hermana de ``ensure_rec_names`` / ``ensure_access_managers`` /
     ``ensure_display_names`` / ``ensure_base_urls`` de

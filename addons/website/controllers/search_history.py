@@ -17,6 +17,7 @@ fija para colección + detalle. No se expone ``create``: una entrada de
 historial la produce el acto de buscar, no un POST del cliente; permitirlo
 dejaría inventar historial ajeno a cualquier búsqueda real.
 """
+
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.pagination import PageNumberPagination
@@ -32,11 +33,13 @@ class SearchHistoryPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class SearchHistoryViewSet(CapabilityRequiredMixin,
-                           mixins.ListModelMixin,
-                           mixins.RetrieveModelMixin,
-                           mixins.DestroyModelMixin,
-                           viewsets.GenericViewSet):
+class SearchHistoryViewSet(
+    CapabilityRequiredMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     """Historial propio: listar, ver y borrar.
 
     Gateado por ``account.overview`` —la capacidad de "resumen de cuenta" que
@@ -58,8 +61,9 @@ class SearchHistoryViewSet(CapabilityRequiredMixin,
     http_method_names = ['get', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return SearchEntry.objects.filter(
-            user=self.request.user).order_by('-created_at')
+        return SearchEntry.objects.filter(user=self.request.user).order_by(
+            '-created_at'
+        )
 
     @extend_schema(
         tags=['website'],
@@ -72,8 +76,10 @@ class SearchHistoryViewSet(CapabilityRequiredMixin,
     @extend_schema(
         tags=['website'],
         summary='Una entrada del historial',
-        responses={200: SearchEntrySerializer,
-                   404: OpenApiResponse(description='No es tuya o no existe')},
+        responses={
+            200: SearchEntrySerializer,
+            404: OpenApiResponse(description='No es tuya o no existe'),
+        },
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)

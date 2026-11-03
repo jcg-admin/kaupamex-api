@@ -119,10 +119,13 @@ Divergencias declaradas
    ``pool_applicant`` — igual orden que la fuente (``:163-165``, dentro
    del mismo ``if``).
 """
+
 import fields
 from django.apps import apps as django_apps
 
-from addons.hr_recruitment_skills.models.hr_applicant_skill import HrApplicantSkill
+from addons.hr_recruitment_skills.models.hr_applicant_skill import (
+    HrApplicantSkill,
+)
 from addons.hr_skills.models.hr_skill import HrSkill
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
@@ -165,31 +168,41 @@ def _compute_matching_skill_ids(self, matching_job=None):
     """
     job = matching_job if matching_job is not None else self.job
     empty = HrSkill.objects.none()
-    if job is None or not (job.job_skill_ids.exists() or job.expected_degree_id):
+    if job is None or not (
+        job.job_skill_ids.exists() or job.expected_degree_id
+    ):
         return (empty, empty, 0)
     job_skills = list(job.job_skill_ids.all())
-    job_degree = (job.expected_degree.score * 100) if job.expected_degree_id else 0
+    job_degree = (
+        (job.expected_degree.score * 100) if job.expected_degree_id else 0
+    )
     job_total = sum(j_s.level_progress for j_s in job_skills) + job_degree
     job_skill_map = {j_s.skill_id: j_s.level_progress for j_s in job_skills}
 
     matching_applicant_skills = [
-        a_s for a_s in self._compute_current_applicant_skill_ids()
+        a_s
+        for a_s in self._compute_current_applicant_skill_ids()
         if a_s.skill_id in job_skill_map
     ]
-    applicant_degree = (self.type.score * 100
-                        if job_degree > 1 and self.type_id else 0)
-    applicant_total = sum(
-        min(a_s.level_progress, job_skill_map[a_s.skill_id] * 2)
-        for a_s in matching_applicant_skills
-    ) + applicant_degree
+    applicant_degree = (
+        self.type.score * 100 if job_degree > 1 and self.type_id else 0
+    )
+    applicant_total = (
+        sum(
+            min(a_s.level_progress, job_skill_map[a_s.skill_id] * 2)
+            for a_s in matching_applicant_skills
+        )
+        + applicant_degree
+    )
 
     matching_pks = {a_s.skill_id for a_s in matching_applicant_skills}
     matching_skills = HrSkill.objects.filter(pk__in=matching_pks)
     missing_skills = HrSkill.objects.filter(
         pk__in=set(job_skill_map) - matching_pks,
     )
-    matching_score = (round(applicant_total / job_total * 100)
-                      if job_total else 0)
+    matching_score = (
+        round(applicant_total / job_total * 100) if job_total else 0
+    )
     return (matching_skills, missing_skills, matching_score)
 
 
@@ -237,12 +250,16 @@ def action_add_to_job(self, job):
     puesto y lo reingresa en la primera etapa. DIVERGENCIA 3 del docstring
     del módulo (argumento, etapa por secuencia, sin acción de ventana)."""
     HrRecruitmentStage = django_apps.get_model(
-        'hr_recruitment', 'HrRecruitmentStage',
+        'hr_recruitment',
+        'HrRecruitmentStage',
     )
     self.job = job
-    self.stage = (HrRecruitmentStage.objects
-                  .filter(Q(jobs__isnull=True) | Q(jobs=job))
-                  .exclude(fold=True).order_by('sequence').first())
+    self.stage = (
+        HrRecruitmentStage.objects.filter(Q(jobs__isnull=True) | Q(jobs=job))
+        .exclude(fold=True)
+        .order_by('sequence')
+        .first()
+    )
     self.save(update_fields=['job', 'stage'])
     return self
 
@@ -269,8 +286,9 @@ def _reconcile_applicant_skills(applicant, skill_specs):
 
     Devuelve el queryset resultante de ``applicant.applicant_skill_ids``.
     """
-    existing_by_skill = {a_s.skill_id: a_s
-                          for a_s in applicant.applicant_skill_ids.all()}
+    existing_by_skill = {
+        a_s.skill_id: a_s for a_s in applicant.applicant_skill_ids.all()
+    }
     seen = set()
     for spec in skill_specs:
         skill_pk = _fk_pk(spec['skill'])
@@ -285,7 +303,8 @@ def _reconcile_applicant_skills(applicant, skill_specs):
             existing.save(update_fields=['skill_level', 'skill_type'])
         else:
             create_kwargs = {
-                'applicant_id': applicant, 'skill_id': skill_pk,
+                'applicant_id': applicant,
+                'skill_id': skill_pk,
                 'skill_level_id': skill_level_pk,
             }
             # ``skill_type`` tiene ``default=`` en el mixin: se OMITE, no se
@@ -341,8 +360,9 @@ def create(cls, vals_list):
     created = []
     for vals in vals_list:
         vals = dict(vals)
-        skills = vals.pop('current_applicant_skill_ids', []) \
-            + vals.pop('applicant_skill_ids', [])
+        skills = vals.pop('current_applicant_skill_ids', []) + vals.pop(
+            'applicant_skill_ids', []
+        )
         applicant = cls.objects.create(**vals)
         if skills:
             _reconcile_applicant_skills(applicant, skills)
@@ -367,17 +387,23 @@ def write(self, vals):
     Devuelve ``self``.
     """
     vals = dict(vals)
-    touched_skills = ('current_applicant_skill_ids' in vals
-                       or 'applicant_skill_ids' in vals)
+    touched_skills = (
+        'current_applicant_skill_ids' in vals or 'applicant_skill_ids' in vals
+    )
     if touched_skills:
-        skills = vals.pop('current_applicant_skill_ids', []) \
-            + vals.pop('applicant_skill_ids', [])
+        skills = vals.pop('current_applicant_skill_ids', []) + vals.pop(
+            'applicant_skill_ids', []
+        )
         _reconcile_applicant_skills(self, skills)
     for field_name, value in vals.items():
         setattr(self, field_name, value)
     if vals:
         self.save()
-    if touched_skills and self.pool_applicant_id and not self.is_pool_applicant():
+    if (
+        touched_skills
+        and self.pool_applicant_id
+        and not self.is_pool_applicant()
+    ):
         self._map_applicant_skill_ids_to_talent_skill_ids()
     return self
 
@@ -387,23 +413,29 @@ def apply_hr_recruitment_skills_hr_applicant_extensions():
     añade — ≙ ``_inherit``. Se invoca desde
     ``HrRecruitmentSkillsConfig.ready()``."""
     extend_model(
-        'hr_recruitment', 'HrApplicant',
+        'hr_recruitment',
+        'HrApplicant',
         campos={
             'skill_ids': fields.Many2many(
-                'hr_skills.HrSkill', blank=True,
+                'hr_skills.HrSkill',
+                blank=True,
                 related_name='applicants_with_skill',
-                help_text='Odoo skill_ids (compute+store) — sincronizar '
-                          'con _compute_skill_ids().',
+                help_text=(
+                    'Odoo skill_ids (compute+store) — sincronizar '
+                    'con _compute_skill_ids().'
+                ),
             ),
         },
         metodos={
-            '_compute_current_applicant_skill_ids':
-                _compute_current_applicant_skill_ids,
+            '_compute_current_applicant_skill_ids': (
+                _compute_current_applicant_skill_ids
+            ),
             '_compute_skill_ids': _compute_skill_ids,
             '_compute_matching_skill_ids': _compute_matching_skill_ids,
             'action_add_to_job': action_add_to_job,
-            '_map_applicant_skill_ids_to_talent_skill_ids':
-                _map_applicant_skill_ids_to_talent_skill_ids,
+            '_map_applicant_skill_ids_to_talent_skill_ids': (
+                _map_applicant_skill_ids_to_talent_skill_ids
+            ),
             # ``create`` no tiene previa que relevar (verificado: 0 hits de
             # "def create" en hr_recruitment/models/hr_applicant.py) — se
             # instala como classmethod nuevo, no como wrap_method.
@@ -417,7 +449,9 @@ def apply_hr_recruitment_skills_hr_applicant_extensions():
             'matching_score': matching_score,
         },
         luego=lambda model: chain_method(
-            model, 'get_employee_create_vals',
-            _employee_create_vals_skills, combine=_merge_vals,
+            model,
+            'get_employee_create_vals',
+            _employee_create_vals_skills,
+            combine=_merge_vals,
         ),
     )

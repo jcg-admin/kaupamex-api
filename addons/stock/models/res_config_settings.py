@@ -1,7 +1,9 @@
-r"""``res.config.settings`` — el formulario de ajustes de ``stock``: NO PORTADO.
+r"""
+``res.config.settings`` — el formulario de ajustes de ``stock``: NO PORTADO.
 
 Adaptación de Odoo ``stock/models/res_config_settings.py``
-(``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 139 líneas) — atribución y aviso
+(``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 139 líneas) — atribución y
+aviso
 de licencia preservados (DEC-KX-03).
 
 Es el archivo más grande de los seis que faltaban en ``stock``, y **ninguna de
@@ -37,9 +39,11 @@ Los 41 campos, por lo que hacen (no por su nombre)
      - el XML ID ``stock.route_warehouse0_mto`` no está sembrado
 
 *Métrica:* asignaciones del cuerpo de ``class ResConfigSettings`` en el archivo
-de la referencia, clasificadas por el argumento que las distingue (``related=``,
+de la referencia, clasificadas por el argumento que las distingue
+(``related=``,
 ``implied_group=``, prefijo ``module_``, ``config_parameter=``, ``compute=``).
-*Ciega a:* si algún ``group_*`` o ``module_*`` tuviera además lógica propia — no
+*Ciega a:* si algún ``group_*`` o ``module_*`` tuviera además lógica propia —
+no
 la tienen: los 34 son declaraciones de una línea.
 
 Los 6 campos ``related``: el dato SÍ está completo
@@ -61,7 +65,8 @@ Por qué NO se porta la clase — el precedente ya medido
 
 ``base/models/res_config.py:196`` declara ``ResConfigSettings`` con
 ``Meta: abstract = True``: es una **base para que cada addon cree su propia
-subclase concreta**, no un modelo único donde varios addons cuelguen campos como
+subclase concreta**, no un modelo único donde varios addons cuelguen campos
+como
 sí se hace con ``ResCompany``. Medido en este pase:
 
 .. code-block:: text

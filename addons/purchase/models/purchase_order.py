@@ -1,7 +1,9 @@
 """Modelo ``PurchaseOrder`` — addon ``purchase``.
 
-Adaptación fiel de Odoo ``purchase.order`` (``purchase/models/purchase_order.py``,
-idéntico en 18 y 19): orden de compra a un proveedor. Núcleo verificado en ambas
+Adaptación fiel de Odoo ``purchase.order``
+(``purchase/models/purchase_order.py``,
+idéntico en 18 y 19): orden de compra a un proveedor. Núcleo verificado en
+ambas
 versiones — ``name``/``partner_id`` (proveedor)/``date_order``/``state``
 (``draft``/``sent``/``purchase``/``cancel``)/``order_line``/``note`` +
 ``amount_untaxed``/``amount_tax``/``amount_total``. Espeja al addon ``sale``
@@ -58,6 +60,7 @@ no existía aquí (``grep -c currency_rate`` daba **0**). El mecanismo —
        (``src/addons/base/models/res_currency.py:827``, que porta el
        ``fields.Float`` de la fuente como ``Monetary`` por la misma razón).
 """
+
 import uuid
 from decimal import Decimal
 
@@ -79,10 +82,10 @@ _SIN_CARGAR = object()
 class PurchaseOrder(TimeStampedModel):
     """``purchase.order`` — orden de compra a un proveedor."""
 
-    STATE_DRAFT    = 'draft'
-    STATE_SENT     = 'sent'
+    STATE_DRAFT = 'draft'
+    STATE_SENT = 'sent'
     STATE_PURCHASE = 'purchase'
-    STATE_CANCEL   = 'cancel'
+    STATE_CANCEL = 'cancel'
     STATE_CHOICES = [
         (STATE_DRAFT, 'Solicitud de cotización'),
         (STATE_SENT, 'Cotización enviada'),
@@ -91,53 +94,85 @@ class PurchaseOrder(TimeStampedModel):
     ]
 
     # Odoo purchase.order.name (default 'New' → aquí se asigna al confirmar).
-    name       = fields.Char(
-        max_length=32, blank=True, default='',
+    name = fields.Char(
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Referencia de la orden (Odoo purchase.order.name).',
     )
     # Odoo purchase.order.partner_id — proveedor (res.partner). Aquí AUTH_USER.
     partner_id = fields.Many2one(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='purchase_orders', help_text='Proveedor (Odoo partner_id).',
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='purchase_orders',
+        help_text='Proveedor (Odoo partner_id).',
         db_column='partner_id',
     )
     # Odoo purchase.order.date_order.
     date_order = fields.Datetime(
-        null=True, blank=True, help_text='Fecha de la orden (Odoo date_order).',
+        null=True,
+        blank=True,
+        help_text='Fecha de la orden (Odoo date_order).',
     )
     # Odoo purchase.order.state.
-    state      = fields.Selection(
-        max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
+    state = fields.Selection(
+        max_length=16,
+        choices=STATE_CHOICES,
+        default=STATE_DRAFT,
         help_text='Estado (Odoo purchase.order.state).',
     )
     # Odoo purchase.order.note.
-    note       = fields.Text(
-        blank=True, default='', help_text='Términos y condiciones (Odoo note).',
+    note = fields.Text(
+        blank=True,
+        default='',
+        help_text='Términos y condiciones (Odoo note).',
     )
     # Odoo purchase.order.company_id — ver docstring del módulo (tarea #266).
     company_id = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
-        related_name='purchase_orders', db_index=True, db_column='company_id',
-        help_text='Empresa dueña de la orden (Odoo company_id, required, '
-                  'default=env.company). NULL pre-backfill — mismo patrón '
-                  'que sale.order.company_id.',
+        'base.ResCompany',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='purchase_orders',
+        db_index=True,
+        db_column='company_id',
+        help_text=(
+            'Empresa dueña de la orden (Odoo company_id, required, '
+            'default=env.company). NULL pre-backfill — mismo patrón '
+            'que sale.order.company_id.'
+        ),
     )
-    # Odoo purchase.order.currency_id — compute+store+precompute (ver docstring).
+    # Odoo purchase.order.currency_id — compute+store+precompute (ver
+    # docstring).
     currency_id = fields.Many2one(
-        'base.ResCurrency', null=True, blank=True, on_delete=models.PROTECT,
-        related_name='+', db_column='currency_id',
-        help_text='Odoo currency_id (compute, store=True, precompute, '
-                  "readonly=False, ondelete='restrict' ≙ PROTECT). Sale de "
-                  'la empresa — la rama del proveedor está degradada, ver '
-                  'docstring del módulo.',
+        'base.ResCurrency',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='+',
+        db_column='currency_id',
+        help_text=(
+            'Odoo currency_id (compute, store=True, precompute, '
+            'readonly=False, ondelete=\'restrict\' ≙ PROTECT). Sale de '
+            'la empresa — la rama del proveedor está degradada, ver '
+            'docstring del módulo.'
+        ),
     )
-    # Odoo purchase.order.currency_rate — compute+store+precompute (ver docstring).
+    # Odoo purchase.order.currency_rate — compute+store+precompute (ver
+    # docstring).
     currency_rate = fields.Monetary(
-        null=True, blank=True, max_digits=24, decimal_places=12,
-        help_text='Odoo currency_rate ("Currency Rate", compute, store=True, '
-                  'precompute, digits=0 en la fuente = precisión plena). '
-                  'Monetary/Decimal en vez de Float — ver docstring del '
-                  'módulo.',
+        null=True,
+        blank=True,
+        max_digits=24,
+        decimal_places=12,
+        help_text=(
+            'Odoo currency_rate ("Currency Rate", compute, store=True, '
+            'precompute, digits=0 en la fuente = precisión plena). '
+            'Monetary/Decimal en vez de Float — ver docstring del '
+            'módulo.'
+        ),
     )
 
     #: Ver ``_SIN_CARGAR`` — mismo patrón que ``SaleOrder``.
@@ -179,7 +214,9 @@ class PurchaseOrder(TimeStampedModel):
         Degradación declarada en el docstring del módulo: aquí sale siempre
         de la empresa.
         """
-        self.currency_id = self.company_id.currency if self.company_id_id else None
+        self.currency_id = (
+            self.company_id.currency if self.company_id_id else None
+        )
 
     def _compute_currency_rate(self):
         """≙ ``_compute_currency_rate`` (``odoo19c: purchase_order.py:
@@ -187,13 +224,19 @@ class PurchaseOrder(TimeStampedModel):
         (``src/addons/base/models/res_currency.py:462``)."""
         company = self.company_id
         currency = self.currency_id
-        if not self.company_id_id or not self.currency_id_id or company.currency is None:
+        if (
+            not self.company_id_id
+            or not self.currency_id_id
+            or company.currency is None
+        ):
             self.currency_rate = Decimal('1.0')
             return
         rate_date = (self.date_order or timezone.now()).date()
         self.currency_rate = ResCurrency._get_conversion_rate(
-            from_currency=company.currency, to_currency=currency,
-            company=company, date=rate_date,
+            from_currency=company.currency,
+            to_currency=currency,
+            company=company,
+            date=rate_date,
         )
 
     def save(self, *args, **kwargs):
@@ -214,8 +257,8 @@ class PurchaseOrder(TimeStampedModel):
         # currency_id explícito en la creación sobrevive, no lo pisa el
         # cómputo (mismo criterio que SaleOrder.validity_date).
         recompute_currency = (
-            (creating and self.currency_id_id is None) or company_changed
-        )
+            creating and self.currency_id_id is None
+        ) or company_changed
         if recompute_currency:
             self._compute_currency_id()
 
@@ -229,14 +272,21 @@ class PurchaseOrder(TimeStampedModel):
         )
         recompute_rate = (
             (creating and self.currency_rate is None)
-            or company_changed or currency_changed or date_changed
+            or company_changed
+            or currency_changed
+            or date_changed
         )
         if recompute_rate:
             self._compute_currency_rate()
 
-        if update_fields is not None and (recompute_currency or recompute_rate):
-            extra = [f for f in ('currency_id', 'currency_rate')
-                     if f not in update_fields]
+        if update_fields is not None and (
+            recompute_currency or recompute_rate
+        ):
+            extra = [
+                f
+                for f in ('currency_id', 'currency_rate')
+                if f not in update_fields
+            ]
             if extra:
                 kwargs['update_fields'] = [*update_fields, *extra]
 
@@ -262,15 +312,22 @@ class PurchaseOrder(TimeStampedModel):
         return self._sum_lines('price_total')
 
     def _generate_purchase_name(self) -> str:
-        # Odoo asigna la secuencia 'purchase.order' al confirmar; aquí P-<uuid>.
+        # Odoo asigna la secuencia 'purchase.order' al confirmar; aquí
+        # P-<uuid>.
         return f'P-{uuid.uuid4().hex[:8].upper()}'
 
     def button_confirm(self):
-        """Confirma la RFQ → orden de compra (Odoo purchase.order.button_confirm)."""
+        """
+        Confirma la RFQ → orden de compra (Odoo purchase.order.button_confirm).
+        """
         if self.state not in (self.STATE_DRAFT, self.STATE_SENT):
-            raise ValidationError('Solo una RFQ (draft/sent) puede confirmarse.')
+            raise ValidationError(
+                'Solo una RFQ (draft/sent) puede confirmarse.'
+            )
         if not self.order_line.exists():
-            raise ValidationError('No se puede confirmar una orden sin líneas.')
+            raise ValidationError(
+                'No se puede confirmar una orden sin líneas.'
+            )
         if not self.name:
             self.name = self._generate_purchase_name()
         self.state = self.STATE_PURCHASE

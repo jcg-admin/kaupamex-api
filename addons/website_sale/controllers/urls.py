@@ -14,6 +14,7 @@ un ``.as_view({...})`` manual sobre un ViewSet se salta las
 ``permission_classes`` declaradas por acción, que es un hueco de seguridad,
 no una preferencia de estilo.
 """
+
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 

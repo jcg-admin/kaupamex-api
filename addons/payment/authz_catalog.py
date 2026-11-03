@@ -13,6 +13,7 @@ Por qué este código es de este addon:
 Sensible: cobrar es una acción de dinero, así que la capacidad conserva su
 ``is_sensitive=True`` original (DEC-12 exige sesión elevada fresca).
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

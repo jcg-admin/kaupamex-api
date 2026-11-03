@@ -110,16 +110,23 @@ class Migration(migrations.Migration):
                 (
                     "title",
                     models.CharField(
-                        blank=True, default="", max_length=200, verbose_name="Título"
+                        blank=True,
+                        default="",
+                        max_length=200,
+                        verbose_name="Título",
                     ),
                 ),
                 (
                     "alt_text",
-                    models.CharField(max_length=200, verbose_name="Texto alternativo"),
+                    models.CharField(
+                        max_length=200, verbose_name="Texto alternativo"
+                    ),
                 ),
                 (
                     "link_url",
-                    models.URLField(blank=True, default="", verbose_name="Enlace"),
+                    models.URLField(
+                        blank=True, default="", verbose_name="Enlace"
+                    ),
                 ),
                 (
                     "is_active",
@@ -129,7 +136,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "order",
-                    models.PositiveSmallIntegerField(default=0, verbose_name="Orden"),
+                    models.PositiveSmallIntegerField(
+                        default=0, verbose_name="Orden"
+                    ),
                 ),
             ],
             options={
@@ -160,7 +169,10 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("query", models.CharField(max_length=200)),
-                ("normalized_query", models.CharField(db_index=True, max_length=200)),
+                (
+                    "normalized_query",
+                    models.CharField(db_index=True, max_length=200),
+                ),
                 ("results_count", models.PositiveIntegerField(default=0)),
                 (
                     "user",
@@ -280,7 +292,8 @@ class Migration(migrations.Migration):
                 "ordering": ["-version"],
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("page", "version"), name="unique_static_page_version"
+                        fields=("page", "version"),
+                        name="unique_static_page_version",
                     )
                 ],
             },
@@ -300,17 +313,25 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(max_length=80, verbose_name="Menú")),
-                ("active", models.BooleanField(default=True, verbose_name="Activa")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activa"),
+                ),
                 (
                     "sequence",
-                    models.PositiveIntegerField(default=10, verbose_name="Secuencia"),
+                    models.PositiveIntegerField(
+                        default=10, verbose_name="Secuencia"
+                    ),
                 ),
                 (
                     "route",
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo url. Ruta del router React (p.ej. '/account/orders').",
+                        help_text=(
+                            "Odoo url. Ruta del router React (p.ej."
+                            " '/account/orders')."
+                        ),
                         max_length=160,
                         verbose_name="Ruta SPA",
                     ),
@@ -318,13 +339,18 @@ class Migration(migrations.Migration):
                 (
                     "web_icon",
                     models.CharField(
-                        blank=True, default="", max_length=40, verbose_name="Icono"
+                        blank=True,
+                        default="",
+                        max_length=40,
+                        verbose_name="Icono",
                     ),
                 ),
                 (
                     "key",
                     models.CharField(
-                        help_text="Slug estable del item, para seed idempotente.",
+                        help_text=(
+                            "Slug estable del item, para seed idempotente."
+                        ),
                         max_length=80,
                         unique=True,
                         verbose_name="Clave",
@@ -334,7 +360,11 @@ class Migration(migrations.Migration):
                     "group",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo group_ids. Lleva la capacidad que enforce el endpoint del destino, no la del ítem. Null en secciones.",
+                        help_text=(
+                            "Odoo group_ids. Lleva la capacidad que enforce el"
+                            " endpoint del destino, no la del ítem. Null en"
+                            " secciones."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="website_menu_items",

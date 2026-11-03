@@ -1,0 +1,21 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Increment admission: PASS; global style, CI, integration and acceptance are NOT_EVALUATED
+Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.
+OK: sin lazy imports (2 archivos medidos).
+check_canon_language: OK — sin violaciones.
+OK: todo silencio de excepción está justificado (2 archivos medidos).
+OK: identificadores en inglés (2 archivos medidos, 3531 en deuda heredada).
+OK: ningun identificador lleva el nombre de la referencia (2 archivos medidos).
+OK: 0 marca(s) nueva(s) sin forma fija (alcance medido: 2 archivos, 0 marcas informes, 332 congeladas en baseline)
+OK: 0 marca(s) caducada(s) nueva(s) · 0 caducada(s) en 0 clave(s) · 0 viva(s) · 0 de forma no medible (alcance medido: 0 aristas bien formadas; 19 clave(s) en baseline)
+OK: sin secuencias de escape inválidas (alcance medido: 2 archivos pedidos por ruta).
+OK: ningún modelo concreto choca con el lookup (alcance medido: 2 archivos).
+OK: ningun chain_method nuevo sin combine donde la referencia combina (alcance medido: 0 llamada(s); 0 sin contraparte en la referencia, 0 con el metodo no declarado alli, 0 que la referencia no extiende; 8 en baseline)
+check_write_path: 0 hallazgo(s) nuevo(s) (0 en total; 17 en baseline) (alcance medido: 7 par(es) de metodo que escriben en ambos lados, sobre 1 archivo(s) con contraparte de 2 recorrido(s); 0 indeterminado(s) por granularidad de metodo)
+  TASK-API-0382 -> Mecanismo: la instalación se decide por base, no por proceso (H-API-78
+[feature/codex-workspace-bootstrap 8630713f] Isolate registry invalidation flags by instance
+ Author: Nestor Monroy <46802445+NestorMonroy@users.noreply.github.com>
+ 2 files changed, 106 insertions(+), 14 deletions(-)
+ create mode 100644 tests/unit/orm/test_registry_invalidation_scope.py
+Original working bytes restored for both exclusively claimed paths.

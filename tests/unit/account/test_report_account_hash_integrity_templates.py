@@ -13,6 +13,7 @@ un ``confirmation_mail_template`` cuyo default consulta
 construye un ``ResCompany()`` lleva ``django_db``: el guard de tipo, que
 sólo recibe un ``object()``, no lo necesita.
 """
+
 import pytest
 
 from addons.account.report.account_hash_integrity_templates import (
@@ -34,7 +35,8 @@ class TestGetReportValuesTypeGuard:
     def test_rejects_a_non_res_company_argument(self):
         with pytest.raises(TypeError):
             ReportAccountReportHashIntegrity._get_report_values(
-                company=object(), docids=[1])
+                company=object(), docids=[1]
+            )
 
 
 @pytest.mark.django_db
@@ -50,7 +52,8 @@ class TestGetReportValuesBlocked:
         company = ResCompany()  # sin persistir: no toca la base
         with pytest.raises(NotImplementedError) as excinfo:
             ReportAccountReportHashIntegrity._get_report_values(
-                company=company, docids=[1])
+                company=company, docids=[1]
+            )
         assert '_check_hash_integrity' in str(excinfo.value)
 
     def test_does_not_have_the_hash_integrity_method_today(self):

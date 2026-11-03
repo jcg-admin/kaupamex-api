@@ -11,7 +11,8 @@ escribir. No depende de la memoria del agente.
 Alcance (directiva ejecutor 2026-07-24): no solo ``src/addons/**`` — todo lo
 que vive en ``src/`` (monolito modular), y todo lo que involucre Django REST
 Framework / Python / drf-spectacular. Los tests de integracion tambien, porque
-ejercen el contrato DRF (``force_login`` + ``format='json'`` contra PostgreSQL).
+ejercen el contrato DRF (``force_login`` + ``format='json'`` contra
+PostgreSQL).
 
 Surfacing NO bloqueante: sale 0 SIEMPRE (nunca rompe el flujo). Es un gate por
 ser automatico y disparado en el momento de la accion, no por bloquear —
@@ -21,8 +22,13 @@ import json
 import os
 import sys
 
-DRF_LAYER = {"views.py", "serializers.py", "urls.py", "permissions.py",
-             "schema.py"}
+DRF_LAYER = {
+    "views.py",
+    "serializers.py",
+    "urls.py",
+    "permissions.py",
+    "schema.py",
+}
 
 
 def _read_stdin():
@@ -59,8 +65,12 @@ def _huella_de_agente(data):
             "hook_event_name": data.get("hook_event_name"),
             "session_id": data.get("session_id"),
         }
-        destino = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "..", "agent-results", "huella-payload-hook.jsonl")
+        destino = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+            "agent-results",
+            "huella-payload-hook.jsonl",
+        )
         os.makedirs(os.path.dirname(destino), exist_ok=True)
         with open(destino, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(registro, ensure_ascii=False) + "\n")
@@ -76,8 +86,12 @@ def _target_path(data):
 def _in_app_python(p):
     if not p.endswith(".py"):
         return False
-    return ("/src/" in p or p.startswith("src/")
-            or "/tests/" in p or p.startswith("tests/"))
+    return (
+        "/src/" in p
+        or p.startswith("src/")
+        or "/tests/" in p
+        or p.startswith("tests/")
+    )
 
 
 def _is_drf_layer(p):
@@ -115,7 +129,7 @@ def _message(p):
 
 def main():
     data = _read_stdin()
-    _huella_de_agente(data)   # instrumento de #177; nunca altera el flujo
+    _huella_de_agente(data)  # instrumento de #177; nunca altera el flujo
     p = _target_path(data)
     if not _in_app_python(p):
         print("{}")

@@ -28,6 +28,7 @@ fallar la operación, no dejar la configuración fiscal en silencio con un
 ``NULL``. Mismo razonamiento que ``_default_tax`` en
 ``account/models/res_company.py``.
 """
+
 from django.db import models as dj_models
 
 import fields
@@ -54,15 +55,33 @@ def apply_l10n_mx_extensions():
     Se llama desde ``L10nMxConfig.ready()``, no al importar: en tiempo de
     import el registro de modelos aún no está poblado.
     """
-    _add_if_absent(ResCompany, 'l10n_mx_income_return_discount_account', fields.Many2one(
-        'account.AccountAccount',
-        null=True, blank=True, on_delete=dj_models.PROTECT, related_name='+',
-        help_text='Cuenta de ingresos para devoluciones y descuentos (Odoo '
-                  'l10n_mx_income_return_discount_account_id).',
-    ))
-    _add_if_absent(ResCompany, 'l10n_mx_income_re_invoicing_account', fields.Many2one(
-        'account.AccountAccount',
-        null=True, blank=True, on_delete=dj_models.PROTECT, related_name='+',
-        help_text='Cuenta de ingresos para re-facturación (Odoo '
-                  'l10n_mx_income_re_invoicing_account_id).',
-    ))
+    _add_if_absent(
+        ResCompany,
+        'l10n_mx_income_return_discount_account',
+        fields.Many2one(
+            'account.AccountAccount',
+            null=True,
+            blank=True,
+            on_delete=dj_models.PROTECT,
+            related_name='+',
+            help_text=(
+                'Cuenta de ingresos para devoluciones y descuentos (Odoo '
+                'l10n_mx_income_return_discount_account_id).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResCompany,
+        'l10n_mx_income_re_invoicing_account',
+        fields.Many2one(
+            'account.AccountAccount',
+            null=True,
+            blank=True,
+            on_delete=dj_models.PROTECT,
+            related_name='+',
+            help_text=(
+                'Cuenta de ingresos para re-facturación (Odoo '
+                'l10n_mx_income_re_invoicing_account_id).'
+            ),
+        ),
+    )

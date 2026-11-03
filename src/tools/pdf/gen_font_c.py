@@ -29,7 +29,7 @@ def emitir(simbolo: str, datos: bytes) -> str:
     """Un arreglo C `const` con los bytes de la fuente, más su tamaño."""
     lineas = []
     for inicio in range(0, len(datos), POR_LINEA):
-        trozo = datos[inicio:inicio + POR_LINEA]
+        trozo = datos[inicio: inicio + POR_LINEA]
         lineas.append('    ' + ' '.join(f'0x{b:02x},' for b in trozo))
     cuerpo = '\n'.join(lineas)
     return (
@@ -45,14 +45,17 @@ def main(argv: list[str]) -> int:
 
     salida = pathlib.Path(argv[1])
     partes = [
-        '/* GENERADO por gen_font_c.py — no editar; editar el .ttf del vendor. */\n'
+        '/* GENERADO por gen_font_c.py — no editar; editar el .ttf del vendor.'
+        ' */\n'
     ]
     declarations = []
 
     for spec in argv[2:]:
         simbolo, _, ruta = spec.partition('=')
         if not simbolo or not ruta:
-            sys.stderr.write(f'spec inválida: {spec!r} (esperado nombre=ruta)\n')
+            sys.stderr.write(
+                f'spec inválida: {spec!r} (esperado nombre=ruta)\n'
+            )
             return 2
         datos = pathlib.Path(ruta).read_bytes()
         if not datos:

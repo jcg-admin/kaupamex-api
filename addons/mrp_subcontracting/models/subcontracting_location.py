@@ -11,8 +11,10 @@ modelos RELATED (DEC-SALE-01) — Django no inyecta columnas cross-app.
 - ``Subcontractor`` — ``res.partner.property_stock_subcontractor`` +
   ``is_subcontractor`` (``res_partner.py:6-13``): la ubicación de stock usada
   como origen/destino al enviar mercancía a ese subcontratista. El proveedor/
-  partner de este proyecto es ``AUTH_USER`` (igual que ``purchase.order.partner``).
+  partner de este proyecto es ``AUTH_USER`` (igual que
+  ``purchase.order.partner``).
 """
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 import fields
@@ -23,17 +25,22 @@ from addons.base.models import TimeStampedModel
 
 
 class SubcontractingLocation(TimeStampedModel):
-    """``stock.location`` marcada como ubicación de subcontratación (Odoo flag)."""
+    """
+    ``stock.location`` marcada como ubicación de subcontratación (Odoo flag).
+    """
 
     location = models.OneToOneField(
-        'stock.StockLocation', on_delete=models.CASCADE,
+        'stock.StockLocation',
+        on_delete=models.CASCADE,
         related_name='subcontracting_flag',
         help_text='Ubicación base (Odoo stock.location).',
     )
     is_subcontracting_location = fields.Boolean(
         default=True,
-        help_text='La ubicación es de subcontratación (Odoo '
-                  'is_subcontracting_location).',
+        help_text=(
+            'La ubicación es de subcontratación (Odoo '
+            'is_subcontracting_location).'
+        ),
     )
 
     class Meta:
@@ -45,15 +52,20 @@ class SubcontractingLocation(TimeStampedModel):
         return f'subcontracting({self.location})'
 
     def clean(self):
-        """Constraint de Odoo: la ubicación de subcontratación debe ser interna.
+        """
+        Constraint de Odoo: la ubicación de subcontratación debe ser interna.
 
-        Réplica de ``_check_subcontracting_location`` (o18:17-24): para valuar el
+        Réplica de ``_check_subcontracting_location`` (o18:17-24): para valuar
+        el
         stock con exactitud, la ubicación debe ser de tipo ``internal``.
         """
-        if (self.is_subcontracting_location
-                and self.location.usage != StockLocation.USAGE_INTERNAL):
+        if (
+            self.is_subcontracting_location
+            and self.location.usage != StockLocation.USAGE_INTERNAL
+        ):
             raise ValidationError(
-                'Las ubicaciones de subcontratación deben ser de tipo Interna.')
+                'Las ubicaciones de subcontratación deben ser de tipo Interna.'
+            )
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -61,18 +73,24 @@ class SubcontractingLocation(TimeStampedModel):
 
 
 class Subcontractor(TimeStampedModel):
-    """``res.partner`` subcontratista — su ubicación de stock (Odoo property_*)."""
+    """
+    ``res.partner`` subcontratista — su ubicación de stock (Odoo property_*).
+    """
 
-    partner  = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    partner = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='subcontractor_profile',
         help_text='Subcontratista (Odoo res.partner).',
     )
     location = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT,
+        'stock.StockLocation',
+        null=False, on_delete=models.PROTECT,
         related_name='subcontractors',
-        help_text='Ubicación de stock del subcontratista (Odoo '
-                  'property_stock_subcontractor).',
+        help_text=(
+            'Ubicación de stock del subcontratista (Odoo '
+            'property_stock_subcontractor).'
+        ),
     )
 
     class Meta:

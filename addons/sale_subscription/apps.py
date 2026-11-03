@@ -6,6 +6,7 @@ modelos del núcleo (aquí ``base.ResCompany`` vía el análogo de ``_inherit``)
 y aporta los modelos propios del eje de suscripción de módulos por compañía
 (DEC-KX-05). Ver ``__manifest__.py`` y ``analisis-disolucion-platform``.
 """
+
 from django.apps import AppConfig
 
 

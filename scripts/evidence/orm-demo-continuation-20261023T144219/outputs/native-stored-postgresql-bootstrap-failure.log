@@ -1,0 +1,87 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/tmp/native-pending-pg-source-sbxqk5c3/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/tmp/native-pending-pg-source-sbxqk5c3/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.UndefinedTable: relation "ir_model_data" does not exist
+LINE 1: ...l_data"."res_id", "ir_model_data"."noupdate" FROM "ir_model_...
+                                                             ^
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_native_pending_postgresql.py", line 356, in <module>
+    main()
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_native_pending_postgresql.py", line 208, in main
+    result = verify_stored_m2m(revision, sources, directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_native_pending_postgresql.py", line 89, in verify_stored_m2m
+    field.compute_value(records)
+  File "/tmp/native-pending-pg-source-sbxqk5c3/fields.py", line 4936, in compute_value
+  File "/tmp/native-pending-pg-source-sbxqk5c3/fields.py", line 4852, in _invoke_compute_method
+  File "/tmp/native-pending-pg-source-sbxqk5c3/fields.py", line 2240, in determine
+  File "/tmp/native-pending-pg-source-sbxqk5c3/stored_fixture.py", line 53, in _compute_members
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py", line 1304, in set
+    with transaction.atomic(using=db, savepoint=False):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/transaction.py", line 263, in __exit__
+    connection.commit()
+  File "/tmp/native-pending-pg-source-sbxqk5c3/environments.py", line 712, in cut
+  File "/tmp/native-pending-pg-source-sbxqk5c3/environments.py", line 526, in flush
+  File "/tmp/native-pending-pg-source-sbxqk5c3/environments.py", line 1483, in ref
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_model.py", line 3584, in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_model.py", line 3551, in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/tools/cache.py", line 147, in lookup
+    return self.lookup(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/tools/cache.py", line 222, in lookup
+    value = self.method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_model.py", line 3536, in _xmlid_lookup
+    row = cls.objects.using(using).filter(module=module, name=name).first()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1145, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 390, in __iter__
+    self._fetch_all()
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+django.db.utils.ProgrammingError: relation "ir_model_data" does not exist
+LINE 1: ...l_data"."res_id", "ir_model_data"."noupdate" FROM "ir_model_...
+                                                             ^

@@ -1,12 +1,15 @@
 import pytest
+import pytest
+
 
 pytest.skip(
-    "E5 — los serializers de direccion del checkout (OrderAddressInputSerializer/UpdateAddressSerializer) no tienen hogar canonico todavia. Se retiro con el addon ``orders``; su "
-    "redomiciliacion esta pendiente (ver el mapa de rotura de la demolicion). "
-    "El caso NO se borra: queda visible como trabajo abierto.",
+    "E5 — los serializers de direccion del checkout"
+    " (OrderAddressInputSerializer/UpdateAddressSerializer) no tienen hogar"
+    " canonico todavia. Se retiro con el addon ``orders``; su redomiciliacion"
+    " esta pendiente (ver el mapa de rotura de la demolicion). El caso NO se"
+    " borra: queda visible como trabajo abierto.",
     allow_module_level=True,
 )
-
 """Validación MX de dirección de checkout (Teléfono 10 / C.P. 5).
 
 Regla del proyecto (México): el teléfono, si se envía, debe tener
@@ -14,7 +17,6 @@ EXACTAMENTE 10 dígitos, y el código postal EXACTAMENTE 5 — sin espacios,
 guiones ni prefijo +52. Defensa en profundidad junto a la validación del
 front (ver iniciativa hardening-checkout-envio-mexico).
 """
-import pytest
 
 BASE = dict(
     recipient_name='Ala Yoruba',
@@ -35,14 +37,17 @@ def test_valid_address_passes(serializer_cls):
 
 
 @pytest.mark.parametrize('serializer_cls', SERIALIZERS)
-@pytest.mark.parametrize('phone', [
-    '551234567',       # 9 dígitos
-    '55123456789',     # 11 dígitos
-    '55-1234-5678',    # con guiones
-    '55 1234 5678',    # con espacios
-    '+525512345678',   # con +52
-    'abcdefghij',      # no numérico
-])
+@pytest.mark.parametrize(
+    'phone',
+    [
+        '551234567',  # 9 dígitos
+        '55123456789',  # 11 dígitos
+        '55-1234-5678',  # con guiones
+        '55 1234 5678',  # con espacios
+        '+525512345678',  # con +52
+        'abcdefghij',  # no numérico
+    ],
+)
 def test_phone_must_be_exactly_10_digits(serializer_cls, phone):
     s = serializer_cls(data={**BASE, 'phone': phone})
     assert not s.is_valid()
@@ -50,13 +55,16 @@ def test_phone_must_be_exactly_10_digits(serializer_cls, phone):
 
 
 @pytest.mark.parametrize('serializer_cls', SERIALIZERS)
-@pytest.mark.parametrize('zip_code', [
-    '1234',    # 4 dígitos
-    '123456',  # 6 dígitos
-    'abcde',   # no numérico
-    '06 60',   # con espacio
-    '0660-',   # con guion
-])
+@pytest.mark.parametrize(
+    'zip_code',
+    [
+        '1234',  # 4 dígitos
+        '123456',  # 6 dígitos
+        'abcde',  # no numérico
+        '06 60',  # con espacio
+        '0660-',  # con guion
+    ],
+)
 def test_zip_must_be_exactly_5_digits(serializer_cls, zip_code):
     s = serializer_cls(data={**BASE, 'zip_code': zip_code})
     assert not s.is_valid()

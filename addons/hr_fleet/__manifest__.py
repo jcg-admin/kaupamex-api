@@ -16,7 +16,7 @@
     # FleetVehicleOdometer). `base` (IrAttachment, ResPartner) llega
     # transitivo por ambos.
     'depends': [
-        'hr',     # HrEmployee, HrEmployeePublic, HrDepartureWizard
+        'hr',  # HrEmployee, HrEmployeePublic, HrDepartureWizard
         'fleet',  # FleetVehicle y sus bitácoras
     ],
     # `data`/`demo`/`assets` de la referencia (security, vistas XML, JS) son

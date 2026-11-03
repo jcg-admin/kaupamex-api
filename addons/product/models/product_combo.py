@@ -24,7 +24,8 @@ No es la suma ni el promedio: es ``min()`` sobre el precio de los items. El
 ``help`` de la referencia explica para qué, y conviene leerlo entero porque es
 la razón de que el campo exista:
 
-    *"El precio mínimo entre los productos de este combo. Se usa para prorratear
+    *"El precio mínimo entre los productos de este combo. Se usa para
+    prorratear
     el precio de este combo respecto a los otros combos de un producto combo.
     Esta heurística asegura que, elija lo que elija el usuario, siempre costará
     lo mismo."*
@@ -82,6 +83,7 @@ invoca **después** de adjuntar los items. La invariante es la misma; lo que
 cambia es quién dispara la comprobación, y cambia por una diferencia real de
 los dos ORM, no por comodidad.
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -96,21 +98,34 @@ class ProductCombo(TimeStampedModel):
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la elección')
     sequence = fields.Integer(
-        default=10, verbose_name='Secuencia',
-        help_text='Orden de la elección dentro del menú. En la referencia es '
-                  'copy=False: al duplicar, el orden NO se hereda.',
+        default=10,
+        verbose_name='Secuencia',
+        help_text=(
+            'Orden de la elección dentro del menú. En la referencia es '
+            'copy=False: al duplicar, el orden NO se hereda.'
+        ),
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='combo_ids', verbose_name='Compañía',
-        help_text='Vacío = la elección sirve a todas las compañías.')
+        ResCompany,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='combo_ids',
+        verbose_name='Compañía',
+        help_text='Vacío = la elección sirve a todas las compañías.',
+    )
     product_tmpls = fields.Many2many(
-        ProductTemplate, blank=True, related_name='combo_ids',
+        ProductTemplate,
+        blank=True,
+        related_name='combo_ids',
         verbose_name='Productos combo que la usan',
-        help_text='Odoo declara este M2M en product.template como combo_ids; '
-                  'aquí se declara del lado del combo con ese related_name, '
-                  'así template.combo_ids es el mismo nombre de la fuente. La '
-                  'referencia no nombra el lado inverso.',
+        help_text=(
+            'Odoo declara este M2M en product.template como combo_ids; '
+            'aquí se declara del lado del combo con ese related_name, '
+            'así template.combo_ids es el mismo nombre de la fuente. La '
+            'referencia no nombra el lado inverso.'
+        ),
     )
 
     class Meta:
@@ -167,7 +182,8 @@ class ProductCombo(TimeStampedModel):
     def clean(self):
         """Las dos invariantes que sí caben en la validación del registro.
 
-        - **Sin productos duplicados** (``_check_combo_item_ids_no_duplicates``):
+        - **Sin productos duplicados**
+          (``_check_combo_item_ids_no_duplicates``):
           ofrecer dos veces el mismo refresco en la misma elección no es una
           opción, es un error de captura.
         - **Coherencia de compañía** (``_check_company_id``): la elección, los
@@ -186,13 +202,16 @@ class ProductCombo(TimeStampedModel):
         if len(set(product_ids)) < len(product_ids):
             raise ValidationError(
                 'Una elección de combo no puede ofrecer el mismo producto '
-                'dos veces.')
+                'dos veces.'
+            )
         if self.company_id and any(
             getattr(item, 'company_id', None)
-            and item.company_id != self.company_id for item in items.all()
+            and item.company_id != self.company_id
+            for item in items.all()
         ):
             raise ValidationError(
-                'Las opciones y la elección son de compañías distintas.')
+                'Las opciones y la elección son de compañías distintas.'
+            )
 
     def check_has_items(self):
         """``_check_combo_item_ids_not_empty`` — al menos una opción.
@@ -205,4 +224,5 @@ class ProductCombo(TimeStampedModel):
         items = getattr(self, 'combo_item_ids', None)
         if items is None or not items.exists():
             raise ValidationError(
-                'Una elección de combo debe ofrecer al menos un producto.')
+                'Una elección de combo debe ofrecer al menos un producto.'
+            )

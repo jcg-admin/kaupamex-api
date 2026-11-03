@@ -1,0 +1,12 @@
+{
+  "store_sha256": "0f290d162a5907ba8476484c6986100a97d663f9d103a04c63fb5507cab20f6f",
+  "unchanged": true,
+  "postgresql": "Temporary-role count checked zero; each probe finally removes its scoped HBA and role",
+  "no_product_schema_or_env_changes": true,
+  "hba_no_temporary_rules": true,
+  "tooling_failures": [
+    "container rg absent; grep fallback confirmed no temporary rules",
+    "first checkWorkbench invocation used incorrect module path; corrected native src/packages/workbench/manifest.ts",
+    "checksum initial invocation used outputs cwd with repo-relative paths; no artifacts changed, corrected cwd"
+  ]
+}

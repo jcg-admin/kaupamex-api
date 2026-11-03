@@ -33,6 +33,7 @@ implementacion que actualizara la cache sin filtrar por ``_filter_not_equal``
 pasaria todos los demas casos y marcaria como sucia una fila que no cambio,
 que es justo lo que el filtro existe para evitar.
 """
+
 import pytest
 from django.db import models
 
@@ -56,10 +57,17 @@ class TestTheSixAreInstalledOnTheFieldClass:
     """El contrato existe antes que su comportamiento: sin esto, un
     consumidor que los llame recibe ``AttributeError`` y no un resultado."""
 
-    @pytest.mark.parametrize('name', [
-        'get_company_dependent_fallback', 'read', 'create', 'write',
-        '_to_prefetch', 'determine_group_expand',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            'get_company_dependent_fallback',
+            'read',
+            'create',
+            'write',
+            '_to_prefetch',
+            'determine_group_expand',
+        ],
+    )
     def test_the_field_class_answers_to_it(self, name):
         assert callable(getattr(models.Field, name, None))
 
@@ -84,7 +92,9 @@ class TestRead:
         with pytest.raises(NotImplementedError):
             field.read(partner_model.objects.none())
 
-    def test_a_field_with_a_column_does_not_refuse(self, name_field, partner_model):
+    def test_a_field_with_a_column_does_not_refuse(
+        self, name_field, partner_model
+    ):
         name_field.read(partner_model.objects.none())
 
 
@@ -96,7 +106,8 @@ class TestWrite:
         assert name_field._get_cache(get_environment())[record.pk] == 'Despues'
 
     def test_write_does_not_touch_a_row_whose_value_already_matches(
-            self, name_field, partner_model):
+        self, name_field, partner_model
+    ):
         """EL CONTROL: sin ``_filter_not_equal`` la fila entraria igual.
 
         El observable NO es la cache —escribir el mismo valor la deja igual
@@ -116,7 +127,8 @@ class TestWrite:
         assert record.pk not in env.transaction.field_dirty.get(name_field, ())
 
     def test_write_marks_dirty_a_row_whose_value_changes(
-            self, name_field, partner_model):
+        self, name_field, partner_model
+    ):
         """La otra mitad del control: cuando el valor SI cambia, entra."""
         record = partner_model.objects.create(name='Antes')
         env = get_environment()
@@ -153,7 +165,8 @@ class TestToPrefetch:
         assert record.pk in [r.pk for r in name_field._to_prefetch(record)]
 
     def test_it_leaves_out_what_the_cache_already_has(
-            self, name_field, partner_model):
+        self, name_field, partner_model
+    ):
         one = partner_model.objects.create(name='Uno')
         two = partner_model.objects.create(name='Dos')
         one._prefetch_ids = [one.pk, two.pk]
@@ -162,7 +175,8 @@ class TestToPrefetch:
         assert two.pk not in [r.pk for r in name_field._to_prefetch(one)]
 
     def test_the_window_never_exceeds_the_declared_maximum(
-            self, name_field, partner_model):
+        self, name_field, partner_model
+    ):
         record = partner_model.objects.create(name='Cabeza')
         record._prefetch_ids = range(record.pk, record.pk + PREFETCH_MAX + 50)
 
@@ -170,24 +184,32 @@ class TestToPrefetch:
 
 
 class TestDetermineGroupExpand:
-    """``:1930-1932`` — el cuerpo entero es ``determine(self.group_expand, …)``."""
+    """
+    ``:1930-1932`` — el cuerpo entero es ``determine(self.group_expand, …)``.
+    """
 
     def test_it_dispatches_to_the_declared_callable(
-            self, name_field, partner_model, monkeypatch):
+        self, name_field, partner_model, monkeypatch
+    ):
         seen = {}
 
         def group_expand(records, values, domain):
             seen['args'] = (values, domain)
             return ['expandido']
 
-        monkeypatch.setattr(name_field, 'group_expand', group_expand,
-                            raising=False)
+        monkeypatch.setattr(
+            name_field, 'group_expand', group_expand, raising=False
+        )
         record = partner_model.objects.create(name='Grupo')
 
-        assert name_field.determine_group_expand(record, ['a'], []) == ['expandido']
+        assert name_field.determine_group_expand(record, ['a'], []) == [
+            'expandido'
+        ]
         assert seen['args'] == (['a'], [])
 
-    def test_a_field_without_group_expand_raises(self, name_field, partner_model):
+    def test_a_field_without_group_expand_raises(
+        self, name_field, partner_model
+    ):
         """La fuente no pone guarda: sus llamadas agrupan antes por
         ``field.group_expand``, asi que solo llega aqui quien lo declara. Un
         ``TypeError`` distingue «no lo declara» de «lo declara y no corrio»."""
@@ -197,21 +219,27 @@ class TestDetermineGroupExpand:
 
 
 class TestCompanyDependentFallback:
-    """``:794-801`` — el respaldo de ``ir.default`` para un campo de empresa."""
+    """
+    ``:794-801`` — el respaldo de ``ir.default`` para un campo de empresa.
+    """
 
     def test_it_refuses_on_a_field_that_is_not_company_dependent(
-            self, name_field, partner_model):
+        self, name_field, partner_model
+    ):
         record = partner_model.objects.create(name='Llano')
         with pytest.raises(AssertionError):
             name_field.get_company_dependent_fallback(record)
 
     def test_it_returns_the_default_that_ir_default_holds(
-            self, partner_model, monkeypatch):
+        self, partner_model, monkeypatch
+    ):
         barcode = model_field_registry(partner_model)['barcode']
         monkeypatch.setattr(
-            MODELS_BY_NAME['ir.default'], '_get_model_defaults',
+            MODELS_BY_NAME['ir.default'],
+            '_get_model_defaults',
             classmethod(lambda cls, *a, **k: {'barcode': 'MX-RESPALDO'}),
-            raising=False)
+            raising=False,
+        )
         record = partner_model.objects.create(name='Con respaldo')
 
         assert barcode.get_company_dependent_fallback(record) == 'MX-RESPALDO'

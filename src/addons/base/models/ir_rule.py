@@ -16,7 +16,8 @@ paralelo ``authz.record_rules`` se retiraron en este pase — eran dos
 expresiones redundantes de la misma idea.
 
 ``RuleScopedManager`` (abajo) es el punto de integración con el queryset — el
-rol de ``_check_access`` en la referencia (``odoo19c: odoo/orm/models.py:4114``:
+rol de ``_check_access`` en la referencia (``odoo19c:
+odoo/orm/models.py:4114``:
 ``if not self.env.su and (result := self._check_access(operation))`` — bajo
 ``su`` las reglas NO se evalúan). La autorización por capacidad (DEC-11) no
 cambia: capa distinta.
@@ -47,8 +48,10 @@ El guion bajo, que es el contrato
 =================================
 
 Cuatro métodos se declaraban aquí sin él —``get_rules``, ``eval_context``,
-``compute_domain``, ``get_failing``— y la referencia los declara ``_get_rules``,
-``_eval_context``, ``_compute_domain`` y ``_get_failing``. Quitarlo no renombra:
+``compute_domain``, ``get_failing``— y la referencia los declara
+``_get_rules``,
+``_eval_context``, ``_compute_domain`` y ``_get_failing``. Quitarlo no
+renombra:
 **promueve el símbolo a API pública** (``porte-completo-no-parcial.md``,
 :ref:`h-api-581`), y compromete a este puerto a sostener una firma que la
 fuente nunca expuso. Se devuelve. ``_build_domain`` es **nuestro** —la fuente
@@ -82,6 +85,7 @@ Qué NO se porta, con su medición
   reservada de Python — la fuente tiene el mismo problema y lo resuelve
   declarando el campo **fuera** de la clase (``ir_rule.py:276``).
 """
+
 import logging
 
 from django.apps import apps
@@ -94,8 +98,12 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessError, ValidationError
 from orm import domains, registry
 from orm.models import AccessQuerySet
-from orm.environments import (get_current_companies, get_current_company,
-                              get_current_user, is_su)
+from orm.environments import (
+    get_current_companies,
+    get_current_company,
+    get_current_user,
+    is_su,
+)
 from tools.cache import ormcache
 from tools.safe_eval import safe_eval
 
@@ -117,24 +125,30 @@ RULE_ERROR_OPERATIONS = {
 #: records"*— y aquí no se replica el chiste, sólo su función: decir que el
 #: rechazo es por **fila** y no por modelo, que es la distinción que el
 #: usuario necesita para saber a qué pedir acceso.
-RULE_ERROR_HEADER = ('Estos registros existen, pero las reglas de registro no '
-                     'se los muestran.\n\n%(user)s no tiene permiso de '
-                     '«%(operation)s» sobre:')
+RULE_ERROR_HEADER = (
+    'Estos registros existen, pero las reglas de registro no '
+    'se los muestran.\n\n%(user)s no tiene permiso de '
+    '«%(operation)s» sobre:'
+)
 RULE_ERROR_MODEL = '- %(description)s (%(model)s)'
-RULE_ERROR_RESOLUTION = ('Contacte a su administrador para solicitar el '
-                         'acceso si lo necesita.')
+RULE_ERROR_RESOLUTION = (
+    'Contacte a su administrador para solicitar el acceso si lo necesita.'
+)
 RULE_ERROR_BLAME = 'Lo impiden estas reglas:\n%(rules)s'
 
 #: Las tres salidas del ramal multi-company (``odoo19c: ir_rule.py:247-251``).
 RULE_ERROR_MULTICOMPANY_AMBIGUOUS = (
     '\n\nEsto puede ser un problema multi-empresa: cambiar de empresa activa '
-    'quizá lo resuelva.')
+    'quizá lo resuelva.'
+)
 RULE_ERROR_MULTICOMPANY_SUGGESTED = (
     '\n\nEsto parece un problema multi-empresa: quizá pueda ver el registro '
-    'cambiando a la empresa %s.')
+    'cambiando a la empresa %s.'
+)
 RULE_ERROR_MULTICOMPANY_FORBIDDEN = (
     '\n\nEsto parece un problema multi-empresa, pero no tiene acceso a la '
-    'empresa que haría falta para ver el registro.')
+    'empresa que haría falta para ver el registro.'
+)
 
 
 def _company_of(record):
@@ -163,24 +177,34 @@ class IrRule(TimeStampedModel):
     _allow_sudo_commands = False
 
     name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Nombre')
+        max_length=255, blank=True, default='', verbose_name='Nombre'
+    )
     active = fields.Boolean(
-        default=True, verbose_name='Activa',
+        default=True,
+        verbose_name='Activa',
         help_text='Desmarcar desactiva la regla sin borrarla (Odoo active).',
     )
     model_name = fields.Char(
-        max_length=120, db_index=True, verbose_name='Modelo',
+        max_length=120,
+        db_index=True,
+        verbose_name='Modelo',
         help_text="Odoo model_id. Label del modelo, p.ej. 'sale.SaleOrder'.",
     )
     groups = fields.Many2many(
-        ResGroups, blank=True, related_name='rule_groups',
-        db_table='rule_group_rel', verbose_name='Grupos',
+        ResGroups,
+        blank=True,
+        related_name='rule_groups',
+        db_table='rule_group_rel',
+        verbose_name='Grupos',
         help_text='Sin grupos, la regla es global y restringe siempre.',
     )
     domain_force = fields.Text(
-        blank=True, default='', verbose_name='Dominio',
-        help_text='Expresión del dominio. Vacío equivale a verdadero: no '
-                  'restringe.',
+        blank=True,
+        default='',
+        verbose_name='Dominio',
+        help_text=(
+            'Expresión del dominio. Vacío equivale a verdadero: no restringe.'
+        ),
     )
     perm_read = fields.Boolean(default=True, verbose_name='Leer')
     perm_write = fields.Boolean(default=True, verbose_name='Escribir')
@@ -200,12 +224,16 @@ class IrRule(TimeStampedModel):
             # conserva, prefijado por la tabla como exige el namespace global
             # de constraints de PostgreSQL.
             models.CheckConstraint(
-                condition=(models.Q(perm_read=True) | models.Q(perm_write=True)
-                           | models.Q(perm_create=True)
-                           | models.Q(perm_unlink=True)),
+                condition=(
+                    models.Q(perm_read=True)
+                    | models.Q(perm_write=True)
+                    | models.Q(perm_create=True)
+                    | models.Q(perm_unlink=True)
+                ),
                 name='ir_rule_no_access_rights',
-                violation_error_message='La regla debe conceder al menos un '
-                                        'permiso.',
+                violation_error_message=(
+                    'La regla debe conceder al menos un permiso.'
+                ),
             ),
         ]
 
@@ -233,10 +261,12 @@ class IrRule(TimeStampedModel):
         """
         if self.model_name == self._name:
             raise ValidationError(
-                'No se pueden aplicar reglas sobre el modelo de reglas.')
+                'No se pueden aplicar reglas sobre el modelo de reglas.'
+            )
 
     def _check_domain(self):
-        """``@api.constrains('active', 'domain_force', 'model_id')`` — ``:64-73``.
+        """
+        ``@api.constrains('active', 'domain_force', 'model_id')`` — ``:64-73``.
 
         Valida que el dominio **parsee y se traduzca**, no que devuelva filas.
         La fuente hace ``Domain(domain).validate(model)``; aquí el equivalente
@@ -255,7 +285,8 @@ class IrRule(TimeStampedModel):
             # ``domains.to_q`` traduce SIN mirar el modelo: medido, un campo
             # inexistente sale como ``('no_existe__in', [1])`` sin quejarse. La
             # validación contra el modelo es la segunda mitad, y es la que la
-            # fuente pide explícitamente: ``model = self.env[rule.model_id.model]
+            # fuente pide explícitamente: ``model =
+            # self.env[rule.model_id.model]
             # .sudo(); Domain(domain).validate(model)`` (``:70-71``). Aquí el
             # equivalente es armar la consulta: ``filter`` resuelve los lookups
             # al construirse y levanta ``FieldError`` sin tocar la base.
@@ -369,10 +400,16 @@ class IrRule(TimeStampedModel):
         if is_su():
             return cls.objects.none()
         qs = cls.objects.filter(
-            model_name=model_name, active=True, **{f'perm_{mode}': True})
-        return qs.filter(
-            models.Q(groups__isnull=True) | models.Q(groups__in=list(group_ids))
-        ).distinct().order_by('id')
+            model_name=model_name, active=True, **{f'perm_{mode}': True}
+        )
+        return (
+            qs.filter(
+                models.Q(groups__isnull=True)
+                | models.Q(groups__in=list(group_ids))
+            )
+            .distinct()
+            .order_by('id')
+        )
 
     def _build_domain(self, eval_context=None):
         """Evalúa ``domain_force`` y lo traduce a un filtro ``Q``.
@@ -389,11 +426,16 @@ class IrRule(TimeStampedModel):
         return domains.to_q(domain)
 
     @classmethod
-    @ormcache('model_name', 'mode', 'tuple(group_ids)',
-              'user.pk if user is not None else None',
-              'tuple(cls._compute_domain_context_values())')
+    @ormcache(
+        'model_name',
+        'mode',
+        'tuple(group_ids)',
+        'user.pk if user is not None else None',
+        'tuple(cls._compute_domain_context_values())',
+    )
     def _compute_domain(cls, model_name, mode='read', group_ids=(), user=None):
-        """Combina las reglas aplicables en un solo filtro — ``_compute_domain``.
+        """
+        Combina las reglas aplicables en un solo filtro — ``_compute_domain``.
 
         Globales con AND; de grupo con OR entre sí; y el OR resultante, AND
         contra las globales. Invertir cualquiera de los dos operadores rompe
@@ -457,7 +499,8 @@ class IrRule(TimeStampedModel):
         """
         model_name = queryset.model._meta.label
         domain = cls._compute_domain(
-            model_name, mode=mode, group_ids=group_ids, user=user)
+            model_name, mode=mode, group_ids=group_ids, user=user
+        )
         allowed = queryset.filter(domain).values_list('pk', flat=True)
         return queryset.exclude(pk__in=list(allowed))
 
@@ -483,32 +526,37 @@ class IrRule(TimeStampedModel):
         model = queryset.model
         pks = list(queryset.values_list('pk', flat=True))
         total = len(pks)
-        rules = list(cls._get_rules(
-            model._meta.label, mode=mode, group_ids=group_ids))
+        rules = list(
+            cls._get_rules(model._meta.label, mode=mode, group_ids=group_ids)
+        )
         user_groups = set(group_ids)
 
         group_rules = [
-            r for r in rules
-            if set(r.groups.values_list('pk', flat=True)) & user_groups]
+            r
+            for r in rules
+            if set(r.groups.values_list('pk', flat=True)) & user_groups
+        ]
         if group_rules:
             combined = models.Q()
             for rule in group_rules:
                 combined |= rule._build_domain(eval_context)
             passing = model._base_manager.filter(
-                combined, pk__in=pks).values_list('pk', flat=True)
+                combined, pk__in=pks
+            ).values_list('pk', flat=True)
             if len(set(passing)) == total:
                 # El OR de las de grupo devuelve todas: en bloque no fallan.
                 group_rules = []
 
         def is_failing(rule):
             passing = model._base_manager.filter(
-                rule._build_domain(eval_context),
-                pk__in=pks).values_list('pk', flat=True)
+                rule._build_domain(eval_context), pk__in=pks
+            ).values_list('pk', flat=True)
             return len(set(passing)) < total
 
         failing = list(group_rules)
-        failing += [r for r in rules
-                    if not r.groups.exists() and is_failing(r)]
+        failing += [
+            r for r in rules if not r.groups.exists() and is_failing(r)
+        ]
         return failing
 
     @classmethod
@@ -542,27 +590,41 @@ class IrRule(TimeStampedModel):
         _logger.info(
             'Acceso denegado por reglas de registro — operación: %s, ids: %r, '
             'usuario: %s, modelo: %s',
-            operation, list(records.values_list('pk', flat=True)[:6]),
-            getattr(actor, 'pk', None), model)
+            operation,
+            list(records.values_list('pk', flat=True)[:6]),
+            getattr(actor, 'pk', None),
+            model,
+        )
 
         IrModel = apps.get_model('base', 'IrModel')
-        description = IrModel.objects.filter(model=model).values_list(
-            'name', flat=True).first() or model
-        user_description = (f'{actor} (id={actor.pk})' if actor is not None
-                            else 'El usuario anónimo')
+        description = (
+            IrModel.objects.filter(model=model)
+            .values_list('name', flat=True)
+            .first()
+            or model
+        )
+        user_description = (
+            f'{actor} (id={actor.pk})'
+            if actor is not None
+            else 'El usuario anónimo'
+        )
         operation_error = RULE_ERROR_HEADER % {
             'user': user_description,
             'operation': RULE_ERROR_OPERATIONS[operation],
         }
         failing_model = RULE_ERROR_MODEL % {
-            'description': description, 'model': model}
+            'description': description,
+            'model': model,
+        }
         resolution_info = RULE_ERROR_RESOLUTION
 
         rules = cls._failing_rules(
-            records, mode=operation, group_ids=group_ids, user=user)
+            records, mode=operation, group_ids=group_ids, user=user
+        )
         display_records = list(records[:6])
         company_related = any(
-            'company_id' in (rule.domain_force or '') for rule in rules)
+            'company_id' in (rule.domain_force or '') for rule in rules
+        )
 
         context = None
         if company_related:
@@ -570,10 +632,15 @@ class IrRule(TimeStampedModel):
             if len(suggested) > 1:
                 resolution_info += RULE_ERROR_MULTICOMPANY_AMBIGUOUS
             elif len(suggested) == 1 and cls._user_has_company(
-                    actor, suggested[0]):
+                actor, suggested[0]
+            ):
                 company = suggested[0]
-                context = {'suggested_company': {
-                    'id': company.pk, 'display_name': str(company)}}
+                context = {
+                    'suggested_company': {
+                        'id': company.pk,
+                        'display_name': str(company),
+                    }
+                }
                 resolution_info += RULE_ERROR_MULTICOMPANY_SUGGESTED % company
             elif suggested:
                 resolution_info += RULE_ERROR_MULTICOMPANY_FORBIDDEN
@@ -581,14 +648,19 @@ class IrRule(TimeStampedModel):
         if cls._may_see_the_detail(actor):
             failing_records = '\n'.join(
                 f'- {cls._describe_record(rec, description, model, company_related, actor)}'
-                for rec in display_records)
+                for rec in display_records
+            )
             blame = RULE_ERROR_BLAME % {
-                'rules': '\n'.join(f'- {rule}' for rule in rules)}
-            message = (f'{operation_error}\n{failing_records}\n\n{blame}\n\n'
-                       f'{resolution_info}')
+                'rules': '\n'.join(f'- {rule}' for rule in rules)
+            }
+            message = (
+                f'{operation_error}\n{failing_records}\n\n{blame}\n\n'
+                f'{resolution_info}'
+            )
         else:
-            message = (f'{operation_error}\n{failing_model}\n\n'
-                       f'{resolution_info}')
+            message = (
+                f'{operation_error}\n{failing_model}\n\n{resolution_info}'
+            )
 
         error = AccessError(message)
         if context:
@@ -614,12 +686,16 @@ class IrRule(TimeStampedModel):
         """
         if user is None:
             return False
-        return bool(user.has_group('base.group_no_one')
-                    and user._is_internal())
+        return bool(
+            user.has_group('base.group_no_one') and user._is_internal()
+        )
 
     @staticmethod
     def _user_has_company(user, company):
-        """¿Está la empresa entre las del usuario? — ``in self.env.user.company_ids``."""
+        """
+        ¿Está la empresa entre las del usuario? — ``in
+        self.env.user.company_ids``.
+        """
         if user is None or company is None:
             return False
         return user.company_ids.filter(pk=company.pk).exists()
@@ -634,10 +710,15 @@ class IrRule(TimeStampedModel):
         tiene el nombre de la empresa también es información que no le toca.
         """
         company = _company_of(record)
-        if (company_related and company is not None
-                and IrRule._user_has_company(user, company)):
-            return (f'{description}, {record} ({model}: {record.pk}, '
-                    f'empresa={company})')
+        if (
+            company_related
+            and company is not None
+            and IrRule._user_has_company(user, company)
+        ):
+            return (
+                f'{description}, {record} ({model}: {record.pk}, '
+                f'empresa={company})'
+            )
         return f'{description}, {record} ({model}: {record.pk})'
 
     @staticmethod
@@ -648,20 +729,25 @@ class IrRule(TimeStampedModel):
         (``odoo19c: odoo/orm/models.py:5825-5839``) y aquí en
         ``orm.models.AccessQuerySet``, que es lo que en este árbol hace de
         recordset. Esta función sólo lo llama sobre las hasta seis filas que el
-        error muestra: allá sale gratis porque ``display_records.company_id`` ya
+        error muestra: allá sale gratis porque ``display_records.company_id``
+        ya
         devuelve la unión sobre el recordset entero.
         """
         if not records:
             return []
         model = type(records[0])
         pks = [record.pk for record in records]
-        # ``AccessQuerySet`` directo y no ``_default_manager``: es el ``sudo()``
+        # ``AccessQuerySet`` directo y no ``_default_manager``: es el
+        # ``sudo()``
         # que la fuente pone sobre ``display_records`` —una fila prohibida o
         # borrada tiene que poder describirse— y a la vez la clase que declara
         # el método. ``_base_manager`` daría lo primero y no lo segundo: es un
         # ``Manager`` pelado (medido).
-        return AccessQuerySet(model).filter(
-            pk__in=pks)._get_redirect_suggested_company(user=user)
+        return (
+            AccessQuerySet(model)
+            .filter(pk__in=pks)
+            ._get_redirect_suggested_company(user=user)
+        )
 
 
 class RuleScopedManager(models.AccessManager):
@@ -694,7 +780,8 @@ class RuleScopedManager(models.AccessManager):
     modelos que ya lo declaran tienen también las cuatro formas de la fuente
     (``check_access`` / ``has_access`` / ``_filtered_access`` / el
     ``_check_access`` que las compone). La diferencia entre las dos superficies
-    es real y conviene tenerla clara: ``for_current_company`` aplica **sólo** la
+    es real y conviene tenerla clara: ``for_current_company`` aplica **sólo**
+    la
     mitad de reglas; ``_filtered_access`` aplica **las dos**, ACL primero. Un
     llamador que quiera la resolución completa de la referencia usa la segunda.
     """
@@ -703,6 +790,9 @@ class RuleScopedManager(models.AccessManager):
         if is_su():
             return self.get_queryset()
         domain = IrRule._compute_domain(
-            self.model._meta.label, mode=mode, group_ids=tuple(group_ids),
-            user=user)
+            self.model._meta.label,
+            mode=mode,
+            group_ids=tuple(group_ids),
+            user=user,
+        )
         return self.get_queryset().filter(domain)

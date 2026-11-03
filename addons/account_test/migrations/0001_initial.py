@@ -25,8 +25,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la prueba (Odoo name, required, "
-                        "translate).",
+                        help_text=(
+                            "Nombre de la prueba (Odoo name, required, "
+                            "translate)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -35,21 +37,25 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Descripción de la prueba (Odoo desc, "
-                        "translate).",
+                        help_text=(
+                            "Descripción de la prueba (Odoo desc, translate)."
+                        ),
                     ),
                 ),
                 (
                     "code_exec",
                     models.TextField(
-                        default="res = []\n"
-                        "cr.execute(\"select id, code from account_journal\")\n"
-                        "for record in cr.dictfetchall():\n"
-                        "    res.append(record['code'])\n"
-                        "result = res\n",
-                        help_text="Código Python/SQL a ejecutar — DEBE fijar "
-                        "la variable `result` (lista/dict) y opcionalmente "
-                        "`column_order` (Odoo code_exec, required).",
+                        default=(
+                            "res = []\ncr.execute(\"select id, code from"
+                            " account_journal\")\nfor record in"
+                            " cr.dictfetchall():\n   "
+                            " res.append(record['code'])\nresult = res\n"
+                        ),
+                        help_text=(
+                            "Código Python/SQL a ejecutar — DEBE fijar la"
+                            " variable `result` (lista/dict) y opcionalmente"
+                            " `column_order` (Odoo code_exec, required)."
+                        ),
                     ),
                 ),
                 (

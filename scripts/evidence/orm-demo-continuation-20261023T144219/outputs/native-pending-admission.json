@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-GEN-0558.native_pending_batch_recompute",
+      "taskId": "TASK-GEN-0558",
+      "prompt": "Qualify and implement native pending recompute batching from pinned Field.recompute, preserving recursive order, bounded batch, missing-row retry and AccessError fallback",
+      "verify": "Actual stored native recordsets, queue/cache state, bounded/singleton/security/missing/error controls plus existing Django regressions; SQL prohibited, exists storage lookup explicitly simulated",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py",
+        "tests/unit/orm/test_native_pending_recompute.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-GEN-0558.native_pending_batch_recompute"
+  ],
+  "claims_count": 633,
+  "native_identity": "native-stored-task-update.json before/after native306/session29a5e555-e34f-5a20-8c39-ad6cf2f19961, pending VM-b501",
+  "dependencies": "Native BaseModel.browse, iteration, exists/set difference; Environment queue/protection; direct native dispatch and stored cache correction6038b50e published; pinned source Field.recompute read. Existing storage IO isolated explicitly, no acceptance prerequisite fabricated",
+  "managed_inference": false,
+  "global_population_exhausted": false
+}

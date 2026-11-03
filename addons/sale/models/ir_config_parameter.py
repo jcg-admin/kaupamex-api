@@ -29,6 +29,7 @@ de la fuente recorre un **recordset**, y aquí ``create`` recibe la lista de
 instancias recién creadas mientras ``write``/``unlink`` operan sobre **una**.
 :func:`_sale_sync_linked_crons` acepta las dos formas por eso.
 """
+
 from addons.base.models.ir_model import IrModelData
 from addons.sale import const
 from orm.model_classes import extend_model
@@ -48,8 +49,11 @@ def create(cls, previous, vals_list, using=None):
     ``using`` viaja tal cual: el ``create`` de ``SystemParameter`` lo declara y
     la sincronización tiene que leer la misma base.
     """
-    configs = (previous(vals_list) if using is None
-               else previous(vals_list, using=using))
+    configs = (
+        previous(vals_list)
+        if using is None
+        else previous(vals_list, using=using)
+    )
     _sale_sync_linked_crons(configs)
     return configs
 
@@ -144,7 +148,8 @@ def apply_sale_config_parameter_extensions():
     nuevos y van por ``metodos=``.
     """
     extend_model(
-        'base', 'SystemParameter',
+        'base',
+        'SystemParameter',
         metodos={
             '_sale_sync_linked_crons': staticmethod(_sale_sync_linked_crons),
             '_get_param_cron_mapping': staticmethod(_get_param_cron_mapping),

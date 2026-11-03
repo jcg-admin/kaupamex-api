@@ -1,0 +1,29 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFF.FFFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/tests/unit/orm/test_native_pending_recompute.py:57: assert [(31,)] == [(31, 32)]
+/workspace/kaupamex-api/tests/unit/orm/test_native_pending_recompute.py:65: assert [(31,)] == [(31, 32)]
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32, 33)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+/workspace/kaupamex-api/src/orm/models.py:5950: ValueError: Expected singleton: ids=(31, 32)
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-pending-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_nonrecursive_pending_records_compute_as_one_batch
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_batch_expands_to_queued_ids_outside_the_initial_record
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_batch_cap_keeps_unselected_work_pending
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_recursive_computes_pending_singletons_in_input_order
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_missing_batch_retries_existing_and_clears_missing
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_persistent_missing_error_has_only_one_retry
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_access_error_falls_back_to_singletons_without_hiding_it
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_unrelated_error_propagates_and_restores_pending
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_attached_context_is_active_only_during_recompute
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_singleton_access_denial_propagates_and_keeps_work
+FAILED tests/unit/orm/test_native_pending_recompute.py::test_all_missing_ids_are_removed_from_each_computed_field
+11 failed, 1 passed in 0.08s
+{"head": "2f42c4cf10a5ed4246cfa3f920c0e2d592360144", "index_tree": "a1265096c6de345cc8acd8bb24fa3ac8a6154517", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "b78ca61576380111642a646863a4ba266db1d5c8430428e9b6c8694c3bbfc209"}, "test_sha256": {"tests/unit/orm/test_native_pending_recompute.py": "7646fc76706d76441befc560f7c2ff7321778e2023c9857fdf288db24cf7c282"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": false, "annul_record_sudo": false, "keyword_only": false, "batch_only": false, "stored_only": false, "pending_only": true, "annul_native_pending": true, "annul_stored_guard": false, "annul_m2m_readback": false, "annul_native_batch": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}

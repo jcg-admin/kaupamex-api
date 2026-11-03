@@ -5,6 +5,7 @@ Cierre parcial (11 de 14 ``_name`` de la referencia) — ver
 (wizard de correo, reportes SQL-view, extensiones de ``mail.activity.type``/
 ``res.config.settings``).
 """
+
 from .fleet_service_type import FleetServiceType
 from .fleet_vehicle_model_category import FleetVehicleModelCategory
 from .fleet_vehicle_model_brand import FleetVehicleModelBrand

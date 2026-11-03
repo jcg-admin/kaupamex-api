@@ -24,23 +24,41 @@ lines = text.splitlines()
 
 print(f'archivo: {path}  ({len(lines)} lineas)')
 for target in targets:
-    klass = next((n for n in ast.walk(tree)
-                  if isinstance(n, ast.ClassDef) and n.name == target), None)
+    klass = next(
+        (
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.ClassDef) and n.name == target
+        ),
+        None,
+    )
     if klass is None:
         print(f'AUSENTE: {target}')
         continue
     bases = ','.join(ast.unparse(b) for b in klass.bases) or '-'
-    methods = [n for n in klass.body
-               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-    attrs = [(t.id, n.lineno) for n in klass.body if isinstance(n, ast.Assign)
-             for t in n.targets if isinstance(t, ast.Name)]
+    methods = [
+        n
+        for n in klass.body
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    attrs = [
+        (t.id, n.lineno)
+        for n in klass.body
+        if isinstance(n, ast.Assign)
+        for t in n.targets
+        if isinstance(t, ast.Name)
+    ]
     print()
-    print(f'=== {target}({bases})  :{klass.lineno}-{klass.end_lineno}  '
-          f'metodos={len(methods)} atributos={len(attrs)}')
+    print(
+        f'=== {target}({bases})  :{klass.lineno}-{klass.end_lineno}  '
+        f'metodos={len(methods)} atributos={len(attrs)}'
+    )
     for name, line in attrs:
         print(f'  ATTR\t{name}\t{line}\t{lines[line - 1].strip()[:100]}')
     for m in methods:
         deco = ','.join(ast.unparse(d) for d in m.decorator_list) or '-'
         doc = (ast.get_docstring(m) or '').strip().splitlines()
-        print(f'  DEF \t{m.name}\t{m.lineno}-{m.end_lineno}\t{deco}\t'
-              f'({ast.unparse(m.args)})\t{doc[0][:80] if doc else ""}')
+        print(
+            f'  DEF \t{m.name}\t{m.lineno}-{m.end_lineno}\t{deco}\t'
+            f'({ast.unparse(m.args)})\t{doc[0][:80] if doc else ""}'
+        )

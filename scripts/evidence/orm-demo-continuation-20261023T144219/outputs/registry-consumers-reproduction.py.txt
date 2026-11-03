@@ -1,0 +1,43 @@
+import ast
+import importlib.util
+from pathlib import Path
+import sys
+
+import django
+import pytest
+
+job = Path('scripts/evidence/orm-demo-continuation-20261023T144219')
+spec = importlib.util.spec_from_file_location(
+    'candidate', job / 'probes/verify_registry_scope_candidate.py'
+)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+original_pytest = pytest.main
+pytest.main = lambda args: original_pytest(args + ['-k', 'consumer'])
+if sys.argv[1] == 'red':
+    original_setup = django.setup
+
+    def annul():
+        original_setup()
+        registry = sys.modules['orm.registry']
+        source = ast.parse(
+            (job / 'outputs/registry-scope-source-preimage.txt').read_bytes()
+        )
+        cls = next(n for n in source.body
+                   if isinstance(n, ast.ClassDef) and n.name == 'Registry')
+        accessors = [n for n in cls.body
+                     if isinstance(n, ast.FunctionDef)
+                     and n.name == 'registry_invalidated']
+        namespace = {'_invalidation': registry._invalidation}
+        exec(compile(ast.Module(body=accessors, type_ignores=[]),
+                     'annulled-property', 'exec'), namespace)
+        registry.Registry.registry_invalidated = namespace[
+            'registry_invalidated'
+        ]
+
+    django.setup = annul
+mode = sys.argv[1]
+sys.argv = ['candidate', '--result', str(
+    job / 'outputs' / ('registry-consumers-' + mode + '.json')
+)]
+raise SystemExit(module.main())

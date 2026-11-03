@@ -1,0 +1,20 @@
+{
+  "consumer": "/workspace/kaupamex-api",
+  "summary": {
+    "passed": 1,
+    "failed": 0,
+    "missing": 0,
+    "unmeasured": 0,
+    "total": 1,
+    "ok": true
+  },
+  "results": [
+    {
+      "id": "provider-evidence",
+      "status": "pass",
+      "exit": 0,
+      "ms": 44,
+      "doc": "workbench/paths.py — un banco vive en el árbol del CONSUMIDOR"
+    }
+  ]
+}

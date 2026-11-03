@@ -1,0 +1,27 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F.F.                                                                     [100%]
+=================================== FAILURES ===================================
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:960: AssertionError: Expected 'mock' to be called once. Called 0 times.
+/workspace/kaupamex-api/tests/unit/orm/test_flush_manager_contract.py:80: Failed: DID NOT RAISE <class 'RuntimeError'>
+=============================== warnings summary ===============================
+tests/unit/orm/test_flush_manager_contract.py::test_hidden_existing_dirty_row_is_written
+tests/unit/orm/test_flush_manager_contract.py::test_physically_missing_row_is_not_recreated
+tests/unit/orm/test_flush_manager_contract.py::test_physical_lookup_error_is_not_reported_as_success
+tests/unit/orm/test_flush_manager_contract.py::test_existing_write_denial_still_propagates
+  /tmp/record-env-candidate-ty6vr85t/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_flush_manager_contract.py::test_hidden_existing_dirty_row_is_written
+tests/unit/orm/test_flush_manager_contract.py::test_physically_missing_row_is_not_recreated
+tests/unit/orm/test_flush_manager_contract.py::test_physical_lookup_error_is_not_reported_as_success
+tests/unit/orm/test_flush_manager_contract.py::test_existing_write_denial_still_propagates
+  /tmp/record-env-candidate-ty6vr85t/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/flush-visibility-before.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_flush_manager_contract.py::test_hidden_existing_dirty_row_is_written
+FAILED tests/unit/orm/test_flush_manager_contract.py::test_physical_lookup_error_is_not_reported_as_success
+2 failed, 2 passed, 8 warnings in 0.20s
+{"head": "29f97e53163defd208585ea00faad3eb66e34500", "index_tree": "d4eea5c1a15922635fc89f1917335ee9b02e05f5", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py", "orm.models": ":src/orm/models.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9", "orm.models": "05201fc9a4842ffeb0a04701af681efe6b4f2d464009adfd754f60be372a866f"}, "test_sha256": {"tests/unit/orm/test_flush_manager_contract.py": "2e67889873d181aea3fc831920cd62c6ac2fe2bd518a27830caf0d80c7bc2d7e"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": false, "annul_record_sudo": false, "keyword_only": false, "batch_only": false, "stored_only": false, "pending_only": false, "flush_only": true, "annul_native_pending": false, "annul_django_absence": false, "annul_stored_guard": false, "annul_m2m_readback": false, "annul_native_batch": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}

@@ -47,6 +47,7 @@ sola clase abstracta que todos los addons amplían, así que este archivo no
 declara clase — cuelga el campo sobre la que hay. Mismo criterio que
 ``base_geolocalize/models/res_partner.py``.
 """
+
 import fields
 
 from addons.base_setup.models.res_config_settings import ResConfigSettings
@@ -55,8 +56,16 @@ from orm.model_classes import add_field_if_absent
 
 def apply_base_vat_res_config_settings_extensions():
     """Cuelga ``vat_check_vies`` sobre el formulario de ajustes."""
-    add_field_if_absent(ResConfigSettings, 'vat_check_vies', fields.Boolean(
-        related='company_id.vat_check_vies', readonly=False,
-        verbose_name='Verify VAT Numbers',
-        help_text='Odoo vat_check_vies — refleja la casilla de la empresa que '
-                  'enciende la comprobación VIES.'))
+    add_field_if_absent(
+        ResConfigSettings,
+        'vat_check_vies',
+        fields.Boolean(
+            related='company_id.vat_check_vies',
+            readonly=False,
+            verbose_name='Verify VAT Numbers',
+            help_text=(
+                'Odoo vat_check_vies — refleja la casilla de la empresa que '
+                'enciende la comprobación VIES.'
+            ),
+        ),
+    )

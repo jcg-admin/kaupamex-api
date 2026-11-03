@@ -1,0 +1,90 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF.FFFFFFF                                                              [100%]
+=================================== FAILURES ===================================
+________ test_display_name_carries_the_expiration_and_relays_without_it ________
+tests/integration/sale/test_product_expiry.py:175: in test_display_name_carries_the_expiration_and_relays_without_it
+    assert caduca.display_name == 'L9\t--Expired--'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(11,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[False-True--1-None-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(12,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-False--1-None-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(13,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True--1-None-expired] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(15,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-0-None-expired] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(16,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60--1-alert] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(17,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-0-alert] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(18,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-30-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(19,).display_name
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-None-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(20,).display_name
+________ test_expiry_display_keeps_contexts_and_field_changes_separate _________
+tests/integration/sale/test_product_expiry.py:221: in test_expiry_display_keeps_contexts_and_field_changes_separate
+    assert lot.display_name == 'CONTEXT'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(21,).display_name
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/stock-lot-display-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[False-True--1-None-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-False--1-None-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True--1-None-expired]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-0-None-expired]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60--1-alert]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-0-alert]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-30-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-None-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_keeps_contexts_and_field_changes_separate
+10 failed, 1 passed, 17 deselected, 3 warnings in 5.53s

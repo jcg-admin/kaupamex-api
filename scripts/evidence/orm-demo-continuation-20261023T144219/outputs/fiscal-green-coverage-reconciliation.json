@@ -1,0 +1,186 @@
+{
+  "result": "PASS",
+  "source_revision": "4b29e40e242b55ae49443609f6364331fce9bed0",
+  "green_junit": "fiscal-runtime-green.junit.xml",
+  "green_cases": 114,
+  "comparisons": [
+    {
+      "junit": "fiscal-field-red-qualified.junit.xml",
+      "original_cases": 39,
+      "missing_cases": 0,
+      "previous_nonpass_cases_now_passing": [
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_session_field_retains_a_zero_argument_default[ResCurrency]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_session_field_retains_a_zero_argument_default[ResBank]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_session_field_retains_a_zero_argument_default[ResPartnerBank]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_record_field_is_computed_without_a_default_or_column[Uom]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_record_field_is_computed_without_a_default_or_column[ProductTemplate]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_record_field_is_computed_without_a_default_or_column[AccountPaymentTerm]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_record_field_is_computed_without_a_default_or_column[ResPartner]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_fiscal_compute_separates_active_company_sets",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryGroupCodes",
+          "name": "test_returns_the_groups_of_its_fiscal_country",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes",
+          "name": "test_the_session_shape_is_hung_on_its_three_models[ResBank]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes",
+          "name": "test_the_session_shape_is_hung_on_its_three_models[ResPartnerBank]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes",
+          "name": "test_the_session_shape_is_hung_on_its_three_models[ResCurrency]",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes",
+          "name": "test_the_record_shape_prefers_the_company_of_the_record",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes",
+          "name": "test_the_partner_shape_appends_its_own_country",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.integration.company.test_base_vat",
+          "name": "test_partner_full_clean_rejects_bad_rfc",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.integration.company.test_base_vat",
+          "name": "test_partner_full_clean_accepts_good_rfc",
+          "before": "FAIL",
+          "after": "PASS"
+        }
+      ]
+    },
+    {
+      "junit": "fiscal-field-declarations.junit.xml",
+      "original_cases": 39,
+      "missing_cases": 0,
+      "previous_nonpass_cases_now_passing": [
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country",
+          "name": "test_fiscal_compute_separates_active_company_sets",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryGroupCodes",
+          "name": "test_returns_the_groups_of_its_fiscal_country",
+          "before": "FAIL",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes",
+          "name": "test_the_session_shape_is_hung_on_its_three_models[ResBank]",
+          "before": "FAIL",
+          "after": "PASS"
+        }
+      ]
+    },
+    {
+      "junit": "fiscal-runtime-cache-regression.junit.xml",
+      "original_cases": 47,
+      "missing_cases": 0,
+      "previous_nonpass_cases_now_passing": [
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheMethodsThatReturnRows",
+          "name": "test_get_records_returns_the_rows_with_a_value",
+          "before": "ERROR",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheMethodsThatReturnRows",
+          "name": "test_filtered_dirty_records_keeps_only_the_marked",
+          "before": "ERROR",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheMethodsThatReturnRows",
+          "name": "test_get_records_different_from_names_the_others",
+          "before": "ERROR",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheFieldWithoutAColumnAlsoLivesInTheCache",
+          "name": "test_the_cache_holds_a_value_for_a_field_without_a_column",
+          "before": "ERROR",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheFieldWithoutAColumnAlsoLivesInTheCache",
+          "name": "test_contains_sees_the_field_without_a_column",
+          "before": "ERROR",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheFieldWithoutAColumnAlsoLivesInTheCache",
+          "name": "test_get_fields_enumerates_it_alongside_the_stored_one",
+          "before": "ERROR",
+          "after": "PASS"
+        },
+        {
+          "classname": "tests.unit.orm.test_environments_cache.TestTheFieldWithoutAColumnAlsoLivesInTheCache",
+          "name": "test_it_never_becomes_dirty_even_when_asked",
+          "before": "ERROR",
+          "after": "PASS"
+        }
+      ]
+    }
+  ],
+  "scope": "Exact classname/name coverage and pytest outcomes; not whole CI or Task acceptance"
+}

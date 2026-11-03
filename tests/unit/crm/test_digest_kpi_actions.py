@@ -10,12 +10,16 @@ completa instalada sobre ``DigestDigest`` — eso lo cubre
 doble de prueba: aísla la lógica propia de ``crm`` de lo que la base o
 ``hr_recruitment`` aporten.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from addons.crm.models.digest import (
-    ACTION_ALL_LEADS, ACTION_PIPELINE, GROUP_USE_LEAD, _compute_kpis_actions,
+    ACTION_ALL_LEADS,
+    ACTION_PIPELINE,
+    GROUP_USE_LEAD,
+    _compute_kpis_actions,
 )
 from tests.factories.user_factory import UserFactory
 
@@ -29,8 +33,10 @@ def _previous(seed=None):
     ``seed``, para que un test no contamine al siguiente reutilizando el
     mismo objeto mutable.
     """
+
     def previous(company, user):
         return dict(seed or {})
+
     return previous
 
 
@@ -39,7 +45,10 @@ class TestChainsWithThePrevious:
 
     def test_keeps_whatever_the_previous_link_already_set(self):
         res = _compute_kpis_actions(
-            None, _previous({'kpi_other_addon': 'other.action'}), None, None,
+            None,
+            _previous({'kpi_other_addon': 'other.action'}),
+            None,
+            None,
         )
         assert res['kpi_other_addon'] == 'other.action'
 
@@ -50,7 +59,8 @@ class TestChainsWithThePrevious:
         test caería (``res is seed`` sería falso)."""
         seed = {}
         res = _compute_kpis_actions(
-            None, lambda company, user: seed, None, None)
+            None, lambda company, user: seed, None, None
+        )
         assert res is seed
         assert 'kpi_crm_lead_created' in seed
 

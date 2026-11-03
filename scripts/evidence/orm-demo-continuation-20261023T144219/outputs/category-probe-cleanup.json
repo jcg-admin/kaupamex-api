@@ -1,0 +1,19 @@
+{
+  "database": "orm_bootstrap_7ad4b1796561",
+  "command": [
+    "docker",
+    "exec",
+    "-u",
+    "postgres",
+    "kaupamex-postgres-cloud",
+    "psql",
+    "-X",
+    "-d",
+    "postgres",
+    "-Atc",
+    "SELECT (SELECT count(*) FROM pg_database WHERE datname='orm_bootstrap_7ad4b1796561') + (SELECT count(*) FROM pg_roles WHERE rolname='orm_bootstrap_7ad4b1796561')"
+  ],
+  "exit_code": 0,
+  "remaining_owned_objects": 0,
+  "stderr": ""
+}

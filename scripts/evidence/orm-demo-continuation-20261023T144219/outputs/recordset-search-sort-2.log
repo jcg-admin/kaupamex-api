@@ -1,0 +1,243 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FF.FFFFFFF.............                                                 [100%]
+=================================== FAILURES ===================================
+_________________________________ test_stable __________________________________
+tests/integration/test_orm/test_sort.py:47: in test_stable
+    assert (cities.sorted('name', reverse=True).sorted('country_id.id')
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'id'
+________________________________ test_basic_m2o ________________________________
+tests/integration/test_orm/test_sort.py:53: in test_basic_m2o
+    assert db_result.ids == cities.sorted().ids
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+_______________________________ test_custom_m2o ________________________________
+tests/integration/test_orm/test_sort.py:71: in test_custom_m2o
+    assert db_result.ids == cities.sorted(order).ids
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+________________________ test_nulls[country_id ASC, id] ________________________
+tests/integration/test_orm/test_sort.py:100: in test_nulls
+    assert (env['test_orm.city'].search(
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+_______________________ test_nulls[country_id DESC, id] ________________________
+tests/integration/test_orm/test_sort.py:100: in test_nulls
+    assert (env['test_orm.city'].search(
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+__________________ test_nulls[country_id ASC NULLS FIRST, id] __________________
+tests/integration/test_orm/test_sort.py:100: in test_nulls
+    assert (env['test_orm.city'].search(
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+_________________ test_nulls[country_id DESC NULLS FIRST, id] __________________
+tests/integration/test_orm/test_sort.py:100: in test_nulls
+    assert (env['test_orm.city'].search(
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+__________________ test_nulls[country_id ASC NULLS LAST, id] ___________________
+tests/integration/test_orm/test_sort.py:100: in test_nulls
+    assert (env['test_orm.city'].search(
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+__________________ test_nulls[country_id DESC NULLS LAST, id] __________________
+tests/integration/test_orm/test_sort.py:100: in test_nulls
+    assert (env['test_orm.city'].search(
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5603: in getter
+    return func_comodel(value)
+src/orm/models.py:5627: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5627: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5621: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5613: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_sort.py::test_basic
+tests/integration/test_orm/test_sort.py::test_stable
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_sort.py::test_basic
+tests/integration/test_orm/test_sort.py::test_stable
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_sort.py::test_stable - AttributeError:...
+FAILED tests/integration/test_orm/test_sort.py::test_basic_m2o - AttributeErr...
+FAILED tests/integration/test_orm/test_sort.py::test_custom_m2o - AttributeEr...
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC NULLS LAST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC NULLS LAST, id]
+9 failed, 15 passed, 4 warnings in 9.03s

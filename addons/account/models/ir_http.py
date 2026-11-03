@@ -1,4 +1,6 @@
-r"""``ir.http`` extendido por ``account`` — la señal de recibos en la sesión: NO PORTADO.
+r"""
+``ir.http`` extendido por ``account`` — la señal de recibos en la sesión: NO
+PORTADO.
 
 Adaptación de Odoo ``account/models/ir_http.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 11 líneas) — atribución y

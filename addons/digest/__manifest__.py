@@ -16,9 +16,9 @@
     # referencia también depende de `portal`/`resource` — ninguno de los dos
     # es consumido por este porte (ver "Consumidores medidos" del análisis).
     'depends': [
-        'base',      # TimeStampedModel, ResCompany, ResUsers, ResUsersLog,
-                     # SystemParameter
-        'mail',      # MailMessage (KPI kpi_mail_message_total)
+        'base',  # TimeStampedModel, ResCompany, ResUsers, ResUsersLog,
+        # SystemParameter
+        'mail',  # MailMessage (KPI kpi_mail_message_total)
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `digest` en Odoo Community es

@@ -1,0 +1,77 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+uv sync --frozen
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Checked 67 packages in 0.54ms
+uv run --frozen python scripts/check_ci_database.py
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS: destino PostgreSQL desechable autorizado; QA compartida excluida.
+make pdf
+make[1]: Entering directory '/workspace/kaupamex-api'
+make -C src/tools/pdf build
+make[2]: Entering directory '/workspace/kaupamex-api/src/tools/pdf'
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_3dmeasure.c -o build/obj/hpdf_3dmeasure.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_annotation.c -o build/obj/hpdf_annotation.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_array.c -o build/obj/hpdf_array.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_binary.c -o build/obj/hpdf_binary.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_boolean.c -o build/obj/hpdf_boolean.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_catalog.c -o build/obj/hpdf_catalog.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_destination.c -o build/obj/hpdf_destination.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_dict.c -o build/obj/hpdf_dict.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_direct.c -o build/obj/hpdf_direct.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_doc.c -o build/obj/hpdf_doc.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_doc_png.c -o build/obj/hpdf_doc_png.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder.c -o build/obj/hpdf_encoder.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_cns.c -o build/obj/hpdf_encoder_cns.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_cnt.c -o build/obj/hpdf_encoder_cnt.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_jp.c -o build/obj/hpdf_encoder_jp.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_kr.c -o build/obj/hpdf_encoder_kr.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_utf.c -o build/obj/hpdf_encoder_utf.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encrypt.c -o build/obj/hpdf_encrypt.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encryptdict.c -o build/obj/hpdf_encryptdict.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_error.c -o build/obj/hpdf_error.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_exdata.c -o build/obj/hpdf_exdata.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_ext_gstate.c -o build/obj/hpdf_ext_gstate.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font.c -o build/obj/hpdf_font.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_cid.c -o build/obj/hpdf_font_cid.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_tt.c -o build/obj/hpdf_font_tt.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_type1.c -o build/obj/hpdf_font_type1.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef.c -o build/obj/hpdf_fontdef.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_base14.c -o build/obj/hpdf_fontdef_base14.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cid.c -o build/obj/hpdf_fontdef_cid.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cns.c -o build/obj/hpdf_fontdef_cns.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cnt.c -o build/obj/hpdf_fontdef_cnt.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_jp.c -o build/obj/hpdf_fontdef_jp.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_kr.c -o build/obj/hpdf_fontdef_kr.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_tt.c -o build/obj/hpdf_fontdef_tt.o
+vendor/libharu/src/hpdf_fontdef_tt.c: In function ‘HPDF_TTFontDef_SaveFontData’:
+vendor/libharu/src/hpdf_fontdef_tt.c:2099:54: warning: comparison of integer expressions of different signedness: ‘HPDF_UINT’ {aka ‘unsigned int’} and ‘int’ [-Wsign-compare]
+ 2099 |                 if (attr->glyph_tbl.flgs[j] == 1 || j==attr->num_h_metric-1) {
+      |                                                      ^~
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_type1.c -o build/obj/hpdf_fontdef_type1.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_gstate.c -o build/obj/hpdf_gstate.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image.c -o build/obj/hpdf_image.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image_ccitt.c -o build/obj/hpdf_image_ccitt.o
+cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image_png.c -o build/obj/hpdf_image_png.o
+vendor/libharu/src/hpdf_image_png.c:23:10: fatal error: png.h: No such file or directory
+   23 | #include <png.h>
+      |          ^~~~~~~
+compilation terminated.
+make[2]: *** [Makefile:94: build/obj/hpdf_image_png.o] Error 1
+make[2]: Leaving directory '/workspace/kaupamex-api/src/tools/pdf'
+make[1]: *** [Makefile:186: pdf] Error 2
+make[1]: Leaving directory '/workspace/kaupamex-api'
+make: *** [Makefile:144: ci-verify] Error 2
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

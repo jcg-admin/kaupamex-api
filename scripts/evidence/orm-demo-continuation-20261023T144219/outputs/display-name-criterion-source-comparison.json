@@ -1,0 +1,24 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "interfaces": "reference_roots.tree;counterpart_body.declarations_of",
+  "reference_field_bases": [
+    "typing.Generic[T]"
+  ],
+  "reference_field_protocol": {
+    "__get__": 1642,
+    "__set__": 1807
+  },
+  "reference_field_delete_declared": false,
+  "native_display_name": "display_name = Char(string='Display Name', compute='_compute_display_name', search='_search_display_name')",
+  "consumer_display_name": "display_name = Char('Display Name', compute='_compute_display_name', search='_search_display_name')",
+  "checker_current_representation_test": "def not_a_field():\n    \"\"\"Los modelos cuyo ``display_name`` no es el descriptor, como l\u00edneas.\n\n    El segundo eje, y el que discrimina de verdad: el primero mide *\"existe\"*,\n    y una ``property`` propia existe. La fuente declara ``display_name`` como\n    **campo**, as\u00ed que admite asignaci\u00f3n (``lot.display_name = name``, en\n    ``odoo19c: product_expiry/models/production_lot.py:35``); una ``property``\n    de s\u00f3lo lectura la rechaza, y el override que la asigna revienta.\n    \"\"\"\n    from orm.fields_nonstored import NonStored\n    fuera = []\n    for model in _ours():\n        for base in model.mro():\n            if 'display_name' in vars(base):\n                if not isinstance(vars(base)['display_name'], NonStored):\n                    fuera.append(f\"{model._meta.label}.display_name es {type(vars(base)['display_name']).__name__} declarado en {base.__name__}, no el campo NonStored del mixin \u2014 el c\u00f3mputo va en _compute_display_name\")\n                break\n    return fuera",
+  "hashes": {
+    "odoo/orm/fields.py": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e",
+    "odoo/orm/models.py": "4dc0f7ed1bfedf292b91d9603a67e83b740910601f418880e2ebf12902297c1e",
+    "src/orm/models.py": "c30a619826a4202544919ecac06bb0fad18e0f2fecf7948cc076914a7750e34b",
+    "scripts/check_display_name.py": "c64c27ae14fd3c8a3fa3df17b2b3b5b6e556c9854c4d04686f2915cd993459d6"
+  },
+  "conclusion": "Existing checker still insists on historical NonStored class despite current typed computed Char. Preserve rejection of properties, wrong/nonassignable descriptors and missing metadata; any correction requires native criterion reconciliation and negative controls. Native Field declares no deletion protocol; no del-recompute acceptance inferred.",
+  "native_runtime": "NOT_EVALUATED",
+  "criterion_change_applied": false
+}

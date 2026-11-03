@@ -1,0 +1,29 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS pinned differential load installed
+PASS pinned differential load to upgrade
+PASS pinned differential load to remove
+PASS pinned differential load to install
+PASS pinned differential load uninstalled
+PASS pinned differential load uninstallable
+PASS pinned differential update installed
+PASS pinned differential update to upgrade
+PASS pinned differential update to remove
+PASS pinned differential update to install
+PASS pinned differential update uninstalled
+PASS pinned differential update uninstallable
+12 pinned differential cases PASS; unchanged reference body with recorded DB rows, no Odoo native cursor/runtime acceptance
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

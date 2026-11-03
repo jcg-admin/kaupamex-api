@@ -1,0 +1,223 @@
+{
+  "symbols": [
+    {
+      "instrument": "real_field_classifier",
+      "name": "field_inverses",
+      "installed": [
+        "django.db.models.options.Options.get_fields",
+        "django.db.models.fields.reverse_related.ForeignObjectRel"
+      ],
+      "primitives": [
+        "tools.misc.Collector.add"
+      ],
+      "classification": "READY",
+      "both_lists_empty": false,
+      "installed_resolved": [
+        true,
+        true
+      ],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "field_computed",
+      "installed": [],
+      "primitives": [
+        "collections.defaultdict",
+        "warnings.warn",
+        "django.db.models.options.Options.get_fields"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "get_trigger_tree",
+      "installed": [],
+      "primitives": [
+        "orm.registry.TriggerTree.merge"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "get_dependent_fields",
+      "installed": [],
+      "primitives": [
+        "orm.registry.TriggerTree.depth_first"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "_discard_fields",
+      "installed": [],
+      "primitives": [
+        "tools.misc.Collector.discard_keys_and_values",
+        "orm.registry.field_depends"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "get_field_trigger_tree",
+      "installed": [],
+      "primitives": [
+        "orm.registry.TriggerTree.increase",
+        "tools.misc.OrderedSet"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "_field_triggers",
+      "installed": [],
+      "primitives": [
+        "collections.defaultdict",
+        "tools.misc.OrderedSet",
+        "orm.fields.Field.resolve_depends"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_field_classifier",
+      "name": "is_modifying_relations",
+      "installed": [
+        "django.db.models.fields.Field.is_relation"
+      ],
+      "primitives": [],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [
+        false
+      ],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "setup_signaling",
+      "installed": [],
+      "primitives": [
+        "django.db.connections",
+        "tools.sql.SQL",
+        "orm.registry._CACHES_BY_KEY"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "get_sequences",
+      "installed": [],
+      "primitives": [
+        "tools.sql.SQL",
+        "orm.registry._CACHES_BY_KEY"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "check_signaling",
+      "installed": [],
+      "primitives": [
+        "contextlib.closing",
+        "contextlib.nullcontext",
+        "orm.registry.Registry.new",
+        "orm.registry._CACHES_BY_KEY"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "signal_changes",
+      "installed": [],
+      "primitives": [
+        "django.db.connections",
+        "tools.sql.SQL"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "reset_changes",
+      "installed": [],
+      "primitives": [
+        "contextlib.closing",
+        "orm.registry._CACHES_BY_KEY"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "manage_changes",
+      "installed": [],
+      "primitives": [
+        "contextlib.contextmanager",
+        "warnings.warn"
+      ],
+      "classification": "BUILDABLE",
+      "both_lists_empty": false,
+      "installed_resolved": [],
+      "implementation_in_current_registry": true
+    },
+    {
+      "instrument": "real_signal_classifier",
+      "name": "cursor",
+      "installed": [
+        "django.db.connections"
+      ],
+      "primitives": [
+        "django.db.connections"
+      ],
+      "classification": "READY",
+      "both_lists_empty": false,
+      "installed_resolved": [
+        true
+      ],
+      "implementation_in_current_registry": true
+    }
+  ],
+  "catalog_rows_both_declarations_empty": false,
+  "real_fk_counterexample": {
+    "django_is_relation": true,
+    "consumer_is_modifying_relations": false,
+    "reference_empty_dependency_branch": false,
+    "historical_classification": "BUILDABLE"
+  },
+  "field_inventory_entries": 13,
+  "signal_inventory_entries": 14,
+  "raw_shared_keys": 8,
+  "connection_attempts": [],
+  "reference_scope": "exact method body, empty dependency branch; not full Odoo runtime"
+}

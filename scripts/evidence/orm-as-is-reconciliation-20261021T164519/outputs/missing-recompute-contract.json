@@ -1,0 +1,28 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/fields.py::Field.recompute.apply_except_missing:1859-1874; odoo/orm/models.py::_recompute_field:6948-6959",
+  "behavior": "After successful compute, missing persisted records must not remain queued forever; remove their IDs from all fields sharing the compute method, retain requested scope and unpersisted identifiers.",
+  "execution_flow": "Environment.tocompute -> _recompute_field selected IDs -> Django queryset filters missing rows -> Field.recompute existing rows -> successful compute/flush -> remove missing IDs through native Environment.remove_to_compute/grouping.",
+  "inputs_outputs": "Persisted live/deleted/missing ids, subset, virtual NewId/None; expected empty missing group queues, retained unrelated/subset/virtual work, actual doubled/tripled columns and rollback. Compute exception preserves pending work.",
+  "side_effects": "Removes only selected absent persisted IDs from in-memory pending compute groups. Existing rows compute and flush via existing engine; no migrations or product table changes.",
+  "dependencies": [
+    "Existing _recompute_field query and field.recompute engine, GEN0525 partial mechanism present",
+    "Environment.remove_to_compute and Registry.field_computed existing qualified for selected cases",
+    "PostgreSQL16 QA TEMP/least privilege verified",
+    "GEN0558 batching unnecessary for this missing-after-query scope; no conclusion all0559 dependencies resolved"
+  ],
+  "consumers": "_recompute_model/_recompute_recordset/flush callers using _recompute_field; exact installed-addon/whole-system flow not_verified",
+  "installed_mechanism": "Django queryset excludes missing rows without Odoo MissingError; existing native Consumer Environment/Registry group mechanisms reused.",
+  "existing_adaptation": "Compute remains per row; delta only in _recompute_field. No new MissingError type or catch-all swallowing of exceptions. No TaskStore/runner/selector added.",
+  "verification": {
+    "postgresql_before": "7tests:3PASS/4FAIL exit1",
+    "postgresql_after": "7PASS exit0; actual compute/flush and transaction rollback",
+    "negative_control": "baseline35501644 exact helper restored in memory:3PASS/4FAIL exit1",
+    "regression": "existing focused Consumer verifier55PASS/3BASELINE_FAILURE exit1",
+    "full_registry": "Django check exit0 after current change",
+    "native_odoo_runtime": "NOT_EVALUATED"
+  },
+  "equivalence": "Adapted bounded behavior verified for rows absent when queried. Not full Field.recompute/apply_except_missing runtime equivalence.",
+  "limitations": "Deletion after rows materialize or MissingError during compute/retry, concurrent transactions, batch prefetch, all installed consumers and complete GEN0559 acceptance remain not_verified. Exceptions propagate; no retry mechanism claimed.",
+  "integration": "New code prepared for API109; no merge or official task status/ownership changes. Publication commit recorded in PR/dossier after hooks."
+}

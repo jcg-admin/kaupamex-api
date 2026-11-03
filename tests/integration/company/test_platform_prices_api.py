@@ -7,6 +7,7 @@ suscripciones). Es la contraparte del price-copy: sin tarifas sembradas, una
 suscripción se contrata sin precio (free); con tarifa vigente, la copia la
 congela.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -29,9 +30,12 @@ def _user_with_caps(email, codes):
     caps = []
     for code in codes:
         domain = code.split('.', 1)[0]
-        module, _ = Module.objects.get_or_create(code=domain, defaults={'name': domain})
+        module, _ = Module.objects.get_or_create(
+            code=domain, defaults={'name': domain}
+        )
         cap, _ = Capability.objects.get_or_create(
-            code=code, defaults={'module': module, 'name': code},
+            code=code,
+            defaults={'module': module, 'name': code},
         )
         caps.append(cap)
     role, _ = Role.objects.get_or_create(
@@ -39,7 +43,9 @@ def _user_with_caps(email, codes):
         defaults={'name': 'Test platform role'},
     )
     role.capabilities.set(caps)
-    u = get_user_model().objects.create_user(login=email, password='TestPass123!')
+    u = get_user_model().objects.create_user(
+        login=email, password='TestPass123!'
+    )
     RoleAssignment.objects.create(user=u, role=role)
     return u
 
@@ -47,20 +53,34 @@ def _user_with_caps(email, codes):
 class TestModulePricesApi:
     def test_operator_seeds_a_tariff(self, api_client, db):
         m = Module.objects.create(code='catalogue', name='Catálogo')
-        operator = _user_with_caps('l0_pset@kaupamex.mx', ['platform.provision'])
+        operator = _user_with_caps(
+            'l0_pset@kaupamex.mx', ['platform.provision']
+        )
         api_client.force_login(operator)
-        res = api_client.post(PRICES_URL, {
-            'module': m.pk, 'billing_cycle': 'monthly', 'price': '199.00',
-            'effective_from': (timezone.now() - timedelta(days=1)).isoformat(),
-        }, format='json')
+        res = api_client.post(
+            PRICES_URL,
+            {
+                'module': m.pk,
+                'billing_cycle': 'monthly',
+                'price': '199.00',
+                'effective_from': (
+                    (timezone.now() - timedelta(days=1)).isoformat()
+                ),
+            },
+            format='json',
+        )
         assert res.status_code == 201, res.data
-        assert ModulePrice.objects.filter(module=m, price=Decimal('199.00')).exists()
+        assert ModulePrice.objects.filter(
+            module=m, price=Decimal('199.00')
+        ).exists()
 
     def test_reader_can_list_tariffs(self, api_client, db):
         m = Module.objects.create(code='catalogue', name='Catálogo')
         ModulePrice.objects.create(
-            module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
-            price=Decimal('199.00'), effective_from=timezone.now() - timedelta(days=1),
+            module=m,
+            billing_cycle=ModulePrice.BillingCycle.MONTHLY,
+            price=Decimal('199.00'),
+            effective_from=timezone.now() - timedelta(days=1),
         )
         reader = _user_with_caps('l0_pread@kaupamex.mx', ['platform.view'])
         api_client.force_login(reader)
@@ -75,10 +95,16 @@ class TestModulePricesApi:
         m = Module.objects.create(code='catalogue', name='Catálogo')
         reader = _user_with_caps('l0_prw@kaupamex.mx', ['platform.view'])
         api_client.force_login(reader)
-        res = api_client.post(PRICES_URL, {
-            'module': m.pk, 'billing_cycle': 'monthly', 'price': '9.00',
-            'effective_from': timezone.now().isoformat(),
-        }, format='json')
+        res = api_client.post(
+            PRICES_URL,
+            {
+                'module': m.pk,
+                'billing_cycle': 'monthly',
+                'price': '9.00',
+                'effective_from': timezone.now().isoformat(),
+            },
+            format='json',
+        )
         assert res.status_code == 403
 
     def test_anonymous_denied(self, api_client, db):

@@ -1,0 +1,12 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_file": "odoo/modules/module_graph.py",
+  "sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+  "matches_existing_pilot": true,
+  "consumer_base_revision": "fc2ff8c858bd515e860fc1c90b84635bf4fe7915",
+  "modified_sources": {
+    "src/modules/module_graph.py": "91706646dd50e8a39feee96bfa8b04fdd4e06a818d8d68f0cb1fb6acc76e8dd2",
+    "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py": "38ae5864291ebcbde059c4541312652114fc843ff1c226b1092fe84236f2dfde"
+  },
+  "no_reference_checkout_or_modification": true
+}

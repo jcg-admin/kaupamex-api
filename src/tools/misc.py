@@ -4,41 +4,58 @@ Regla de este archivo: cada símbolo llega aquí cuando un addon portado lo
 importa (``from tools.misc import X``, espejo de ``from odoo.tools.misc
 import X``), y **antes de portarlo se decide** si Django/DRF/stdlib ya lo
 resuelven (directiva ejecutor 2026-08-02). La decisión queda en el docstring
-del símbolo — no se porta por completitud.
+del símbolo.
+
+**Corregida 2026-11-03.** La cláusula «no se porta por completitud» la
+supera la directiva vigente de ``completar-raiz-orm``: un contrato aplicable
+no se excluye porque todavía no tenga consumidor portado. La decisión de si
+el stack ya lo trae se sigue tomando; la de esperar a un consumidor, no.
 
 Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+import base64
+import collections
 import enum
+import hashlib
 import hmac as hmac_lib
+import json
+import logging
 import os
 import re
 import sys
 import tempfile
+import threading
+import time
+import traceback
 import typing
 import unicodedata
+import warnings
+import zlib
 from collections import defaultdict
 from collections.abc import (Callable, Iterable, Iterator, Mapping,
-                             MutableMapping, MutableSet)
-from contextlib import contextmanager
+                             MutableMapping, MutableSet, Reversible)
+from contextlib import ContextDecorator, contextmanager
 from difflib import HtmlDiff
-from functools import reduce
+from functools import reduce, wraps
 from itertools import islice, repeat, starmap
+from operator import itemgetter
 
 import datetime
 
 import babel
 from django.apps import apps
-from django.db import connections
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.utils import formats as django_formats
 from django.utils import translation as django_translation
-from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
 
 from modules.module import ADDONS_PATHS
 from tools import config
 from tools.which import which
+
+_logger = logging.getLogger(__name__)
 
 # Formatos de fecha del servidor — verbatim de la referencia
 # (``odoo19c: odoo/tools/misc.py:535-542``). Son el formato en que la fuente
@@ -208,28 +225,32 @@ def str2bool(s, default=None):
     return bool(default)
 
 
-def hmac(scope, message, hash_function=None):
-    """HMAC con secreto del despliegue. ≙ ``odoo/tools/misc.py:1781-1793``.
+def hmac(env, scope, message, hash_function=hashlib.sha256):
+    """HMAC con el parámetro ``database.secret`` como clave — ≙ ``hmac``
+    (``odoo19c: odoo/tools/misc.py``).
 
-    La referencia firma con el config-param ``database.secret``; el mecanismo
-    nativo Django para "HMAC con el secreto del despliegue + salt por uso" es
-    ``django.utils.crypto.salted_hmac`` (``SECRET_KEY`` como clave,
-    ``key_salt`` = el ``scope`` de la referencia). Se adapta sobre él en vez
-    de duplicar la derivación de clave.
+    Docstring de la fuente: *"Compute HMAC with ``database.secret`` config
+    parameter as key"*. Se firma ``repr((scope, message))``: el ámbito entra
+    en lo firmado, así que el mismo mensaje en dos usos da dos firmas.
 
-    Divergencia declarada: la firma de la referencia recibe ``env`` (para
-    leer el parámetro con sudo); aquí el secreto es ``settings.SECRET_KEY``
-    vía ``salted_hmac``, así que ``env`` desaparece del contrato.
+    **Corregido 2026-11-03.** La versión anterior quitaba ``env`` de la firma
+    y firmaba con ``SECRET_KEY`` vía ``salted_hmac``. Con ello el llamador que
+    sigue la forma de la fuente —``addons/website/tools.py``,
+    ``hmac(env_sudo, 'website_form_signature', value)``— pasaba el correo como
+    ``hash_function`` y moría con ``InvalidAlgorithm``. Este árbol sí tiene el
+    parámetro: lo siembra ``ir_config_parameter`` con un UUID.
 
-    :param scope: ámbito de la firma (mismo mensaje, distinto uso → distinta
-        firma). Obligatorio y no vacío, igual que la referencia.
-    :param message: mensaje a autenticar (``str`` o ``bytes``).
-    :return: digest hexadecimal (``str``).
+    :param env: entorno desde el que se lee el parámetro.
+    :param scope: ámbito de la firma; obligatorio y no vacío.
+    :param message: lo que se autentica.
+    :param hash_function: función hash del HMAC (SHA-256 por defecto).
+    :return: el digest en hexadecimal.
     """
     if not scope:
         raise ValueError('Non-empty scope required')
-    kwargs = {'algorithm': hash_function} if hash_function else {}
-    return salted_hmac(scope, message, **kwargs).hexdigest()
+    secret = env['ir.config_parameter'].get_param('database.secret')
+    message = repr((scope, message))
+    return hmac_lib.new(secret.encode(), message.encode(), hash_function).hexdigest()
 
 
 # ``SKIPPED_ELEMENT_TYPES`` — nodos lxml que no son elementos "reales".
@@ -289,6 +310,74 @@ def find_pg_tool(name):
         return which(name, path=path)
     except OSError:
         raise Exception('Command `%s` not found.' % name)
+
+
+def _pg_environ_for(using):
+    """El entorno libpq de un alias concreto — el cuerpo de
+    :func:`exec_pg_environ`, parametrizado por alias.
+
+    La fuente tiene UNA configuración de servidor; este árbol enruta por
+    empresa entre varios alias (``orm.routers``), así que respaldar una base
+    concreta necesita las credenciales de SU alias. ``PGSSLMODE`` es un
+    añadido propio: el despliegue habla TCP con TLS, y el socket lo ignora.
+    """
+    sd = connections[using].settings_dict
+    env = os.environ.copy()
+    host = sd.get('HOST') or None
+    if host:
+        env['PGHOST'] = host
+    port = sd.get('PORT') or None
+    if port:
+        env['PGPORT'] = str(port)
+    if sd.get('USER'):
+        env['PGUSER'] = sd['USER']
+    password = sd.get('PASSWORD') or None
+    if password:
+        env['PGPASSWORD'] = password
+    options = sd.get('OPTIONS') or {}
+    app_name = options.get('application_name')
+    if app_name:
+        env['PGAPPNAME'] = app_name.replace('{pid}', f'env{os.getpid()}')[:63]
+    if not (host or '').startswith('/'):
+        sslmode = options.get('sslmode')
+        if sslmode:
+            env['PGSSLMODE'] = sslmode
+    return env
+
+
+def exec_pg_environ():
+    """≙ ``exec_pg_environ`` (``odoo19c: odoo/tools/misc.py:163-185``).
+
+    Fuerza las variables de entorno de PostgreSQL a la configuración de la
+    base, para un subproceso (``pg_dump``, ``pg_restore``, ``psql``).
+
+    La configuración de la fuente es ``config['db_*']``; aquí la misma
+    información vive en el alias por defecto de Django, y
+    ``config['db_app_name']`` es su ``OPTIONS['application_name']``.
+    """
+    return _pg_environ_for(DEFAULT_DB_ALIAS)
+
+
+def scan_languages() -> list[tuple[str, str]]:
+    """≙ ``scan_languages`` (``odoo19c: odoo/tools/misc.py:453-474``).
+
+    Todos los idiomas que la plataforma conoce, como pares
+    ``(code, name)`` ordenados por nombre.
+
+    Divergencia de mecanismo: la fuente lee ``base/data/res.lang.csv``; aquí
+    ese catálogo ya es un modelo sembrado con sus 93 filas
+    (``addons.base.data.res_lang_data``), activas o no, así que se consulta el
+    modelo. Si no se puede leer, el desenlace es el de la fuente: se registra
+    el error y queda ``en_US``.
+    """
+    try:
+        lang_model = apps.get_model('base', 'ResLang')
+        result = list(lang_model.objects.values_list('code', 'name'))
+    except Exception:
+        _logger.error("Could not read res.lang.csv")
+        result = []
+
+    return sorted(result or [('en_US', 'English')], key=itemgetter(1))
 
 
 def _addons_paths():
@@ -1240,3 +1329,505 @@ class DotDict(dict):
     def __getattr__(self, attrib):
         val = self.get(attrib)
         return DotDict(val) if isinstance(val, dict) else val
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Símbolos puros portados el 2026-11-03 — ``odoo19c: odoo/tools/misc.py``.
+#
+# La regla de la cabecera («sólo símbolos con consumidor») cede ante la
+# directiva vigente del ejecutor: un contrato aplicable no se excluye porque
+# aún no tenga consumidor portado. Ninguno de estos lo resuelve la biblioteca
+# estándar con la misma forma; cada uno cita su tramo de la fuente.
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def flatten(list):
+    """≙ ``flatten`` (``:319-349``), obsoleto desde 18.0 como en la fuente:
+    aplana una estructura anidada; cadenas y bytes cuentan como hojas."""
+    warnings.warn("deprecated since 18.0", category=DeprecationWarning, stacklevel=2)
+    result = []
+    for element in list:
+        if isinstance(element, (bytes, str)) or not isinstance(element, Iterable):
+            result.append(element)
+        else:
+            result.extend(flatten(element))
+    return result
+
+
+def reverse_enumerate(lst):
+    """≙ ``reverse_enumerate`` (``:352-370``): ``enumerate`` hacia atrás."""
+    return zip(range(len(lst) - 1, -1, -1), reversed(lst))
+
+
+def topological_sort(elems):
+    """≙ ``topological_sort`` (``:383-413``): las claves de ``elems`` con sus
+    dependencias antes que ellas. Una dependencia que no es clave no aparece
+    en el resultado."""
+    result = []
+    visited = set()
+
+    def visit(node):
+        if node not in visited:
+            visited.add(node)
+            if node in elems:
+                for dependency in elems[node]:
+                    visit(dependency)
+                result.append(node)
+
+    for element in elems:
+        visit(element)
+    return result
+
+
+def merge_sequences(*iterables):
+    """≙ ``merge_sequences`` (``:416-442``): la unión de las secuencias, en el
+    orden parcial que fijan, con sesgo hacia el final de la última."""
+    dependencies = defaultdict(list)
+    for iterable in iterables:
+        previous = _NO_PREVIOUS
+        for item in iterable:
+            if previous is _NO_PREVIOUS:
+                dependencies[item]
+            else:
+                dependencies[item].append(previous)
+            previous = item
+    return topological_sort(dependencies)
+
+
+#: El centinela de :func:`merge_sequences` (``SENTINEL`` en la fuente).
+_NO_PREVIOUS = object()
+
+
+def get_iso_codes(lang):
+    """≙ ``get_iso_codes`` (``:445-450``): ``fr_FR`` → ``fr``; ``es_MX`` queda."""
+    if lang.find('_') != -1:
+        lang_items = lang.split('_')
+        if lang_items[0] == lang_items[1].lower():
+            lang = lang_items[0]
+    return lang
+
+
+def mod10r(number):
+    """≙ ``mod10r`` (``:477-490``): el número con su dígito de control por
+    módulo 10 recursivo (referencias bancarias suizas)."""
+    codec = [0, 9, 4, 6, 8, 2, 7, 1, 3, 5]
+    report = 0
+    result = ""
+    for digit in number:
+        result += digit
+        if digit.isdigit():
+            report = codec[(int(digit) + report) % 10]
+    return result + str((10 - report) % 10)
+
+
+def human_size(sz):
+    """≙ ``human_size`` (``:519-532``): el tamaño legible; ``False`` si no hay.
+    Una cadena se mide por su longitud."""
+    if not sz:
+        return False
+    units = ('bytes', 'Kb', 'Mb', 'Gb', 'Tb')
+    if isinstance(sz, str):
+        sz = len(sz)
+    size, index = float(sz), 0
+    while size >= 1024 and index < len(units) - 1:
+        size /= 1024
+        index += 1
+    return "%0.2f %s" % (size, units[index])
+
+
+#: ≙ ``POSIX_TO_LDML`` (``:588-614``), verbatim: la letra de ``strftime`` por
+#: su patrón LDML. ``%c``, ``%z`` y ``%Z`` quedan fuera como en la fuente.
+POSIX_TO_LDML = {
+    'a': 'E',
+    'A': 'EEEE',
+    'b': 'MMM',
+    'B': 'MMMM',
+    'd': 'dd',
+    '-d': 'd',
+    'H': 'HH',
+    'I': 'hh',
+    'j': 'DDD',
+    'm': 'MM',
+    '-m': 'M',
+    'M': 'mm',
+    'p': 'a',
+    'S': 'ss',
+    'U': 'w',
+    'w': 'e',
+    'W': 'w',
+    'y': 'yy',
+    'Y': 'yyyy',
+}
+
+
+def posix_to_ldml(fmt, locale):
+    """≙ ``posix_to_ldml`` (``:616-666``): un patrón ``strftime`` como patrón
+    de fecha LDML. Las letras sueltas van entre comillas porque LDML usa
+    letras; ``%x``/``%X`` toman los formatos corto y medio del ``locale``."""
+    buf = []
+    pc = False
+    minus = False
+    quoted = []
+    for char in fmt:
+        if not pc and char.isalpha():
+            quoted.append(char if char != "'" else "''")
+            continue
+        if quoted:
+            buf.append("'")
+            buf.append(''.join(quoted))
+            buf.append("'")
+            quoted = []
+        if pc:
+            if char == '%':
+                buf.append('%')
+            elif char == 'x':
+                buf.append(locale.date_formats['short'].pattern)
+            elif char == 'X':
+                buf.append(locale.time_formats['medium'].pattern)
+            elif char == '-':
+                minus = True
+                continue
+            else:
+                if minus:
+                    char = '-' + char
+                    minus = False
+                buf.append(POSIX_TO_LDML[char])
+            pc = False
+        elif char == '%':
+            pc = True
+        else:
+            buf.append(char)
+    if quoted:
+        buf.append("'")
+        buf.append(''.join(quoted))
+        buf.append("'")
+    return ''.join(buf)
+
+
+class mute_logger(logging.Handler):
+    """≙ ``mute_logger`` (``:746-783``): silencia los loggers dados mientras
+    dura el bloque, como gestor de contexto o como decorador."""
+
+    def __init__(self, *loggers):
+        super().__init__()
+        self.loggers = loggers
+        self.old_params = {}
+
+    def __enter__(self):
+        for logger_name in self.loggers:
+            logger = logging.getLogger(logger_name)
+            self.old_params[logger_name] = (logger.handlers, logger.propagate)
+            logger.propagate = False
+            logger.handlers = [self]
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+        for logger_name in self.loggers:
+            logger = logging.getLogger(logger_name)
+            logger.handlers, logger.propagate = self.old_params[logger_name]
+
+    def __call__(self, func):
+        @wraps(func)
+        def deco(*args, **kwargs):
+            with self:
+                return func(*args, **kwargs)
+        return deco
+
+    def emit(self, record):
+        pass
+
+
+class MungedTracebackLogRecord(logging.LogRecord):
+    """≙ ``MungedTracebackLogRecord`` (``:826-831``): un registro cuyo
+    ``Traceback`` deja de parecer un error real a quien lea el log."""
+
+    def getMessage(self):
+        return super().getMessage().replace(
+            'Traceback (most recent call last):',
+            '_Traceback_ (most recent call last):',
+        )
+
+
+class lower_logging(logging.Handler):
+    """≙ ``lower_logging`` (``:786-823``): baja temporalmente el nivel máximo
+    del log raíz; lo que lo supera se reetiqueta y se anota en
+    ``had_error_log``."""
+
+    def __init__(self, max_level, to_level=None):
+        super().__init__()
+        self.old_handlers = None
+        self.old_propagate = None
+        self.had_error_log = False
+        self.max_level = max_level
+        self.to_level = to_level or max_level
+
+    def __enter__(self):
+        logger = logging.getLogger()
+        self.old_handlers = logger.handlers[:]
+        self.old_propagate = logger.propagate
+        logger.propagate = False
+        logger.handlers = [self]
+        self.had_error_log = False
+        return self
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+        logger = logging.getLogger()
+        logger.handlers = self.old_handlers
+        logger.propagate = self.old_propagate
+
+    def emit(self, record):
+        if record.levelno > self.max_level:
+            record.levelname = f'_{record.levelname}'
+            record.levelno = self.to_level
+            self.had_error_log = True
+            if MungedTracebackLogRecord.__base__ is logging.LogRecord:
+                MungedTracebackLogRecord.__bases__ = (record.__class__,)
+            record.__class__ = MungedTracebackLogRecord
+        if logging.getLogger(record.name).isEnabledFor(record.levelno):
+            for handler in self.old_handlers:
+                if handler.level <= record.levelno:
+                    handler.emit(record)
+
+
+class ConstantMapping(Mapping):
+    """≙ ``ConstantMapping`` (``:853-879``): un mapeo inmutable que devuelve
+    el mismo valor para toda clave, vacío al medirlo o recorrerlo."""
+    __slots__ = ['_value']
+
+    def __init__(self, val):
+        self._value = val
+
+    def __len__(self):
+        return 0
+
+    def __iter__(self):
+        return iter([])
+
+    def __getitem__(self, item):
+        return self._value
+
+
+class Callbacks:
+    """≙ ``Callbacks`` (``:1110-1184``): una cola de funciones que ``run``
+    llama en orden de alta, y después vacía junto con ``data``."""
+    __slots__ = ['_funcs', 'data']
+
+    def __init__(self):
+        self._funcs = collections.deque()
+        self.data = {}
+
+    def add(self, func):
+        """Añade la función dada."""
+        self._funcs.append(func)
+
+    def run(self):
+        """Llama a todas las funciones en orden y limpia los datos."""
+        while self._funcs:
+            func = self._funcs.popleft()
+            func()
+        self.clear()
+
+    def clear(self):
+        """Retira las funciones y los datos."""
+        self._funcs.clear()
+        self.data.clear()
+
+    def __len__(self):
+        return len(self._funcs)
+
+
+class ReversedIterable(Reversible):
+    """≙ ``ReversedIterable`` (``:1187-1198``): recorre otro iterable al revés."""
+    __slots__ = ['iterable']
+
+    def __init__(self, iterable):
+        self.iterable = iterable
+
+    def __iter__(self):
+        return reversed(self.iterable)
+
+    def __reversed__(self):
+        return iter(self.iterable)
+
+
+def submap(mapping, keys):
+    """≙ ``submap`` (``:1229-1238``): copia de ``mapping`` con sólo ``keys``."""
+    keys = frozenset(keys)
+    return {key: mapping[key] for key in mapping if key in keys}
+
+
+class Reverse(object):
+    """≙ ``Reverse`` (``:1241-1257``): envuelve un valor e invierte su orden,
+    para mezclar en una clave de orden tramos ascendentes y descendentes."""
+    __slots__ = ['val']
+
+    def __init__(self, val):
+        self.val = val
+
+    def __eq__(self, other): return self.val == other.val
+    def __ne__(self, other): return self.val != other.val
+    def __ge__(self, other): return self.val <= other.val
+    def __gt__(self, other): return self.val < other.val
+    def __le__(self, other): return self.val >= other.val
+    def __lt__(self, other): return self.val > other.val
+
+
+class replace_exceptions(ContextDecorator):
+    """≙ ``replace_exceptions`` (``:1259-1302``): esconde ciertas excepciones
+    tras otra, como decorador o gestor de contexto. Si ``by`` es una clase y
+    la original trae mensaje, el mensaje viaja."""
+
+    def __init__(self, *exceptions, by):
+        if not exceptions:
+            raise ValueError("Missing exceptions")
+        wrong_exc = next((exc for exc in exceptions if not issubclass(exc, Exception)), None)
+        if wrong_exc:
+            raise TypeError(f"{wrong_exc} is not an exception class.")
+        self.exceptions = exceptions
+        self.by = by
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None and issubclass(exc_type, self.exceptions):
+            if isinstance(self.by, type) and exc_value.args:
+                raise self.by(exc_value.args[0]) from exc_value
+            raise self.by from exc_value
+
+
+def get_flag(country_code):
+    """≙ ``get_flag`` (``:1946-1951``): el emoji de bandera del código de país,
+    compuesto por sus dos indicadores regionales."""
+    return "".join(chr(int(f"1f1{ord(c)+165:02x}", base=16)) for c in country_code)
+
+
+def hash_sign(env, scope, message_values, expiration=None, expiration_hours=None):
+    """Un token firmado y apto para URL — ≙ ``hash_sign`` (``odoo19c:
+    odoo/tools/misc.py:1802-1826``).
+
+    Parecido a un JWT y en la línea de :func:`hmac`: versión ``\\x01``, la
+    caducidad en 8 bytes, el HMAC SHA-256 y el mensaje en JSON, todo en
+    ``base64`` sin relleno. ``expiration`` es un ``datetime`` o un
+    ``timedelta``; ``expiration_hours``, horas desde ahora. No los dos.
+    """
+    assert not (expiration and expiration_hours)
+    assert message_values is not None
+    if expiration_hours:
+        expiration = datetime.datetime.now() + datetime.timedelta(hours=expiration_hours)
+    elif isinstance(expiration, datetime.timedelta):
+        expiration = datetime.datetime.now() + expiration
+    expiration_timestamp = 0 if not expiration else int(expiration.timestamp())
+    message_strings = json.dumps(message_values)
+    hash_value = hmac(env, scope, f'1:{message_strings}:{expiration_timestamp}',
+                      hash_function=hashlib.sha256)
+    token = (b"\x01" + expiration_timestamp.to_bytes(8, 'little')
+             + bytes.fromhex(hash_value) + message_strings.encode())
+    return base64.urlsafe_b64encode(token).decode().rstrip('=')
+
+
+def verify_hash_signed(env, scope, payload):
+    """Los valores de un token de :func:`hash_sign`, o ``None`` si no vale —
+    ≙ ``verify_hash_signed`` (``odoo19c: odoo/tools/misc.py:1829-1851``).
+
+    La comparación del HMAC es en tiempo constante; un token caducado o de
+    otro ámbito da ``None``, y una versión desconocida es ``ValueError``.
+    """
+    token = base64.urlsafe_b64decode(payload.encode() + b'===')
+    version = token[:1]
+    if version != b'\x01':
+        raise ValueError('Unknown token version')
+    expiration_value, hash_value, message = token[1:9], token[9:41].hex(), token[41:].decode()
+    expiration_value = int.from_bytes(expiration_value, byteorder='little')
+    hash_value_expected = hmac(env, scope, f'1:{message}:{expiration_value}',
+                               hash_function=hashlib.sha256)
+    if consteq(hash_value, hash_value_expected) and (
+            expiration_value == 0 or datetime.datetime.now().timestamp() < expiration_value):
+        return json.loads(message)
+    return None
+
+
+def limited_field_access_token(record, field_name, timestamp=None, *, scope):
+    """Un token que da acceso a un campo de un registro, con caducidad — ≙
+    ``limited_field_access_token`` (``odoo19c: odoo/tools/misc.py:1854-1887``).
+
+    Sin ``timestamp`` se deriva uno determinista dentro de un periodo de 14
+    días —para que el navegador pueda cachear— que caduca a lo sumo a los 42,
+    con una dispersión por registro y campo para que no venzan todos a la vez.
+    """
+    record.ensure_one()
+    if not timestamp:
+        unique_str = repr((record._name, record.id, field_name))
+        two_weeks = 1209600  # 2 * 7 * 24 * 60 * 60
+        start_of_period = int(time.time()) // two_weeks * two_weeks
+        adler32_max = 4294967295
+        jitter = two_weeks * zlib.adler32(unique_str.encode()) // adler32_max
+        timestamp = hex(start_of_period + 2 * two_weeks + jitter)
+    token = hmac(record.env(su=True), scope, (record._name, record.id, field_name, timestamp))
+    return f"{token}o{timestamp}"
+
+
+def verify_limited_field_access_token(record, field_name, access_token, *, scope):
+    """¿Da ``access_token`` acceso al campo del registro? — ≙
+    ``verify_limited_field_access_token`` (``odoo19c:
+    odoo/tools/misc.py:1890-1912``): el formato, el registro, el campo, el
+    ámbito y la caducidad tienen que casar."""
+    *_, timestamp = access_token.rsplit("o", 1)
+    return consteq(
+        access_token, limited_field_access_token(record, field_name, timestamp, scope=scope)
+    ) and datetime.datetime.now() < datetime.datetime.fromtimestamp(int(timestamp, 16))
+
+
+def format_frame(frame) -> str:
+    """≙ ``format_frame`` (``odoo19c: odoo/tools/misc.py:1954-1956``):
+    ``<función> <archivo>:<línea>`` de un marco, para nombrar a quien llama."""
+    code = frame.f_code
+    return f'{code.co_name} {code.co_filename}:{frame.f_lineno}'
+
+
+def dumpstacks(sig=None, frame=None, thread_idents=None, log_level=logging.INFO):
+    """≙ ``dumpstacks`` (``odoo19c: odoo/tools/misc.py:882-934``).
+
+    Manejador de señal: registra la pila de cada hilo vivo, o de los hilos de
+    ``thread_idents``, con los atributos que el servidor cuelga del hilo.
+
+    Divergencia declarada: el bloque de *greenlets* de la fuente depende de
+    ``odoo.evented`` (el servidor gevent). Este árbol no tiene modo
+    *evented*, así que no hay greenlets que volcar.
+    """
+    code = []
+
+    def extract_stack(stack):
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            yield 'File: "%s", line %d, in %s' % (filename, lineno, name)
+            if line:
+                yield "  %s" % (line.strip(),)
+
+    threads_info = {th.ident: {'repr': repr(th),
+                               'uid': getattr(th, 'uid', 'n/a'),
+                               'dbname': getattr(th, 'dbname', 'n/a'),
+                               'url': getattr(th, 'url', 'n/a'),
+                               'query_count': getattr(th, 'query_count', 'n/a'),
+                               'query_time': getattr(th, 'query_time', None),
+                               'perf_t0': getattr(th, 'perf_t0', None)}
+                    for th in threading.enumerate()}
+    for thread_id, stack in sys._current_frames().items():
+        if not thread_idents or thread_id in thread_idents:
+            thread_info = threads_info.get(thread_id, {})
+            query_time = thread_info.get('query_time')
+            perf_t0 = thread_info.get('perf_t0')
+            remaining_time = None
+            if query_time is not None and perf_t0:
+                remaining_time = '%.3f' % (time.time() - perf_t0 - query_time)
+                query_time = '%.3f' % query_time
+            code.append("\n# Thread: %s (db:%s) (uid:%s) (url:%s) (qc:%s qt:%s pt:%s)" %
+                        (thread_info.get('repr', thread_id),
+                         thread_info.get('dbname', 'n/a'),
+                         thread_info.get('uid', 'n/a'),
+                         thread_info.get('url', 'n/a'),
+                         thread_info.get('query_count', 'n/a'),
+                         query_time or 'n/a',
+                         remaining_time or 'n/a'))
+            for line in extract_stack(stack):
+                code.append(line)
+
+    _logger.log(log_level, "\n".join(code))

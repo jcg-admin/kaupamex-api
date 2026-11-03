@@ -1,0 +1,26 @@
+{
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input": [
+    {
+      "id": "TASK-GEN-0558.native_compute_batch_dispatch",
+      "taskId": "TASK-GEN-0558",
+      "prompt": "Preserve native recordset batch at direct compute dispatch; keep legacy Django row dispatch unchanged",
+      "verify": "Native named/callable batch, prefetch identity, singleton/empty behavior and Django row controls; no claim about queued recompute batching",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py",
+        "tests/unit/orm/test_native_compute_batch_dispatch.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-GEN-0558.native_compute_batch_dispatch"
+  ],
+  "claims_count": 625,
+  "native_task": "record-env-successor-native-task.json",
+  "dependencies": "Existing BaseModel._from_ids/iteration/prefetch, determine and compute dispatcher; direct dispatch only, no queue/migration/DB dependency claimed",
+  "managed_inference": false,
+  "scope": "One bounded refinement, not global population/exhaustion"
+}

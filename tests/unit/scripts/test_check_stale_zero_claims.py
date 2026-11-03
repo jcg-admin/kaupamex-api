@@ -1,4 +1,5 @@
-"""El gate mide el comando que la prosa cita, no el símbolo que uno supone (#228).
+"""
+El gate mide el comando que la prosa cita, no el símbolo que uno supone (#228).
 
 Mismo principio que ``test_check_fk_naming.py``: un gate se prueba contra un
 **positivo conocido del repo**, no contra un incumplidor fabricado por quien
@@ -31,6 +32,7 @@ El quinto es de la misma familia que el cuarto —el comando no basta para saber
 qué se midió— pero en el otro eje: aquél confunde la **unidad** de la salida,
 éste la **población** de la entrada.
 """
+
 import importlib.util
 import os
 import pathlib
@@ -41,14 +43,16 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'check_stale_zero_claims', REPO / 'scripts' / 'check_stale_zero_claims.py')
+    'check_stale_zero_claims', REPO / 'scripts' / 'check_stale_zero_claims.py'
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
 #: Los reclamos se re-ejecutan con el repo como directorio de trabajo: las
 #: rutas que citan (``src/``, ``addons/``) son relativas a él.
 BASE = pytest.fixture(autouse=True)(
-    lambda monkeypatch: monkeypatch.chdir(REPO))
+    lambda monkeypatch: monkeypatch.chdir(REPO)
+)
 
 
 class TestTheClaimIsReadWithItsCommand:
@@ -65,16 +69,19 @@ class TestTheClaimIsReadWithItsCommand:
         fabricado nunca caería, y tampoco probaría nada.
         """
         claims = gate.claims_in(
-            pathlib.Path('src/addons/base/models/ir_http.py'))
+            pathlib.Path('src/addons/base/models/ir_http.py')
+        )
         commands = [command for command, _, _ in claims]
         assert any('def slugify' in c for c in commands), commands
 
     def test_a_repeated_claim_gets_its_own_line(self):
         """Dos archivos repiten su cita; las dos merecen línea propia."""
         claims = gate.claims_in(
-            pathlib.Path('addons/account_peppol/models/res_company.py'))
-        phone = [line for command, line, _ in claims
-                 if 'phonenumbers' in command]
+            pathlib.Path('addons/account_peppol/models/res_company.py')
+        )
+        phone = [
+            line for command, line, _ in claims if 'phonenumbers' in command
+        ]
         assert len(phone) == 2, claims
         assert phone[0] != phone[1], phone
 
@@ -111,9 +118,12 @@ class TestTheClaimIsReadWithItsCommand:
         """
         path = pathlib.Path('src/addons/base/models/ir_http.py')
         command, _, _ = gate.claims_in(path)[0]
-        assert 'grep -v "^src/addons/base/models/ir_http.py:"' in command, command
-        salida = subprocess.run(command, shell=True, capture_output=True,
-                                text=True, cwd=REPO)
+        assert (
+            'grep -v "^src/addons/base/models/ir_http.py:"' in command
+        ), command
+        salida = subprocess.run(
+            command, shell=True, capture_output=True, text=True, cwd=REPO
+        )
         assert salida.stdout == '', salida.stdout
 
     def test_the_line_carries_the_grep_it_names(self):
@@ -183,7 +193,9 @@ class TestTheCitationIsNotItsOwnEvidence:
         assert not gate.is_its_own_citation(line, self.CLAIMING)
 
     def test_another_file_always_counts(self):
-        line = 'src/tools/barcode.py:32:La referencia rasteriza con ``reportlab``'
+        line = (
+            'src/tools/barcode.py:32:La referencia rasteriza con ``reportlab``'
+        )
         assert not gate.is_its_own_citation(line, self.CLAIMING)
 
 
@@ -250,7 +262,9 @@ class TestTheRerunReproducesWhatTheAuthorMeasured:
         claiming = pathlib.Path('addons/account_peppol/models/res_company.py')
         count, why = gate.rerun('grep -ic stdnum uv.lock', claiming)
         assert why is None, why
-        assert count > 1, 'la salida de -c ES el número, no el conteo de líneas'
+        assert (
+            count > 1
+        ), 'la salida de -c ES el número, no el conteo de líneas'
 
     def test_a_shell_glob_is_expanded(self):
         """El glob se expande sin shell: ``src/orm/*.py`` llega como archivos.
@@ -272,21 +286,24 @@ class TestTheRerunReproducesWhatTheAuthorMeasured:
         assert why is None, why
         assert count >= 1, 'el glob llego literal: grep no leyo ningun archivo'
 
-
     def test_a_grep_v_pipe_filters_in_python(self):
         """Dos autores ya excluían su archivo a mano; se sostiene el filtro."""
         claiming = pathlib.Path('src/addons/base/models/res_company.py')
         count, why = gate.rerun(
-            'grep -rn "zeep" src/ | grep -v res_company.py', claiming)
+            'grep -rn "zeep" src/ | grep -v res_company.py', claiming
+        )
         assert why is None, why
         assert count >= 0
 
     def test_a_missing_path_is_named_not_counted(self):
-        """Una ruta que ya no existe se declara; publicar 0 sería un verde falso."""
+        """
+        Una ruta que ya no existe se declara; publicar 0 sería un verde falso.
+        """
         claiming = pathlib.Path('addons/web/models/models.py')
         count, why = gate.rerun(
             'grep -n "_render" src/addons/*/models/template_expressions.py',
-            claiming)
+            claiming,
+        )
         assert count is None
         assert 'ya no existe' in why, why
 
@@ -298,8 +315,14 @@ class TestTheGateRefusesRatherThanPublishAFalseGreen:
         (tmp_path / 'src').mkdir()
         (tmp_path / 'addons').mkdir()
         done = subprocess.run(
-            [sys.executable, str(REPO / 'scripts' / 'check_stale_zero_claims.py')],
-            cwd=tmp_path, capture_output=True, text=True)
+            [
+                sys.executable,
+                str(REPO / 'scripts' / 'check_stale_zero_claims.py'),
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+        )
         assert done.returncode == 2, done.stdout
         assert 'caducado' not in done.stdout, done.stdout
         assert 'verde falso' in done.stderr, done.stderr
@@ -325,14 +348,22 @@ class TestTheGateRefusesRatherThanPublishAFalseGreen:
         (src / 'declared.py').write_text('class Declared:\n    pass\n')
         (src / 'claim.py').write_text(
             '"""Razón caducada a propósito.\n\n'
-            'Medido: ``grep -rn "^class Declared" src/`` → **0**.\n"""\n')
+            'Medido: ``grep -rn "^class Declared" src/`` → **0**.\n"""\n'
+        )
         empty = tmp_path / 'vacio.txt'
         empty.write_text('')
         env = dict(os.environ, STALE_ZERO_BASELINE=str(empty))
         done = subprocess.run(
-            [sys.executable,
-             str(REPO / 'scripts' / 'check_stale_zero_claims.py'), '--strict'],
-            cwd=tmp_path, capture_output=True, text=True, env=env)
+            [
+                sys.executable,
+                str(REPO / 'scripts' / 'check_stale_zero_claims.py'),
+                '--strict',
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
         assert done.returncode == 1, done.stdout + done.stderr
         assert 'fuera del baseline' in done.stdout, done.stdout
         assert 'claim.py' in done.stdout, done.stdout
@@ -367,6 +398,13 @@ class TestTheGateRefusesRatherThanPublishAFalseGreen:
         if baseline is not None:
             env['STALE_ZERO_BASELINE'] = str(baseline)
         return subprocess.run(
-            [sys.executable,
-             str(REPO / 'scripts' / 'check_stale_zero_claims.py'), *flags],
-            cwd=REPO, capture_output=True, text=True, env=env)
+            [
+                sys.executable,
+                str(REPO / 'scripts' / 'check_stale_zero_claims.py'),
+                *flags,
+            ],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+            env=env,
+        )

@@ -1,0 +1,141 @@
+{
+  "provider_revision": "c3c5d2f2868701b37644426e2266262613eb9c60",
+  "interface": "taskTools/TaskGet/storePath",
+  "rows": [
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "520",
+      "task": {
+        "task_id": "520",
+        "citation_id": "TASK-API-0305",
+        "subject": "Retomar el bloque analytic de account con apps.py y analytic/migrations en alcance",
+        "description": "H-API-684: 21 de 25 def del bloque analítico quedaron BLOQUEADOS por el ALCANCE DE ESCRITURA del tramo, no por capacidad del ORM. Faltaban dos piezas en la lista de escribibles: addons/account/apps.py (para cablear las 4 funciones apply_*_extensions() ya escritas en AccountConfig._EXTENSIONES) y addons/analytic/migrations/ (para la columna move_line_id y account_prefix/product/product_categ, porque account.analytic.line vive en la app analytic). Retomar account_analytic_account.py y account_analytic_line.py con ambas en alcance. Depende además de AccountMove.get_sale_types/get_purchase_types y AccountMoveLine.analytic_distribution.\n\nContinuación contractual: prefix_placeholder usa compute con asignación, commit60c9557cd82bd1d8616f7ed832aad8c43a103991 publicado en PR109. Candidato exacto7PASS; anulación7FAIL esperados; SQL prohibido y selección de cuentas mock explícito. Evidencia: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/prefix-compute-contract-14.json. No modifica búsqueda por compañía, dependencia analytic_precision ni aceptación global. Sin cambios de estado/dependencias/owner; integración y QA pendientes.",
+        "status": "in_progress",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1167",
+      "task": {
+        "task_id": "1167",
+        "citation_id": "TASK-API-0397",
+        "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+        "description": "La referencia declara BaseModel con 194 metodos y __slots__ = ['env','_ids','_prefetch_ids'] (odoo19c: odoo/orm/models.py:334-7004). Portarlo con el criterio de dos niveles: (1) el stack lo trae hecho — hay simbolo instalado y basta llamarlo; (2) el stack tiene con que construirlo — no hay simbolo, si primitivas, sin dependencia de fuera.\n\nMedido en el banco api scripts/workbench/basemodel-contract-20260911T030334:\n- nivel 1 por NOMBRE: 21 sobre Django pristino. NO es veredicto: create/exists/update/__eq__ existen con OTRA semantica (exists() da bool, la fuente da recordset — H-API-1084).\n- nuestro arbol YA colgo: 14 sobre models.Model.\n- por construir: 159.\n- el bloque raiz es el protocolo de recordset: ids, ensure_one, with_env/sudo/with_user/with_company/with_context/with_prefetch, mapped, filtered, grouped, sorted, exists, concat, _cache, _convert_to_record, _convert_to_write — AUSENTES; sus 'presentes' del localizador son homonimos en otros archivos.\n\nPrimitivas medidas en los binarios instalados (django 6.0.5):\n- ModelBase.__new__ :97-389 y add_to_class :391-395 — el gancho de clase.\n- Model.__init__ :482-595, from_db :598-608 — el portal de instancia.\n- QuerySet.__init__(model, query, using, hints) :286-300, _clone :1979-1996, _fetch_all :1998-2002, __iter__ :375-391, __getitem__ :407-442.\n\nTDD: la mitad roja primero. Sin declarar divergencia donde toca construir.\n\nIncremento acotado: BaseModel.exists consulta el manager base y conserva filas físicas ocultas por el manager público. Commitbf468b936338045fff846a09655b5d72d57c6691 en PR109;5pruebasPASS, anulación4FAIL/1PASS esperados y PostgreSQL16.15 realPASS con tablaTEMP. Recurso propio eliminado y verificado; carrera inicial de comprobación de limpieza registrada aparte. Evidencia: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/exists-manager-contract-14.json. No acepta todo BaseModel, seguridad ni enrutamiento multibase. CI/integración/aceptación separados; sin cambios de estados ni dependencias.\n\nVerified continuation 2026-11-01: Published bb72edcd attached-env descriptor/native recordset compute_sudo. Explicit self keyword NEW_REGRESSION corrected by c4917a8a; exact candidate54PASS. Descriptor/canonical-scope/compute-sudo negative controls retained. Existing job outputs/record-env-contract-14.json. Global CI bb72edcd FAIL; later revision independent; no merge/acceptance or full BaseModel claim.\n\nPhysical flush continuation52e29264: actual PostgreSQL cache-only commit with public manager hiding32 wrote only31 and cleared all dirty state although both parents existed. _flush now retrieves dirty IDs through _base_manager, preserving save/M2M writers and all other module AST. 113 focused casesPASS; selector annulment2expectedFAIL2PASS; exact index SQL candidate writes both links with unchanged tree99565c389fedd3cee63ff431cb448638b6af31e5. Actual no-op M2M writer control leaves links empty, so callback did not mask flush. Existing resolver does not auto-pair module _flush to Odoo class method; manual pinned source/flow proof recorded, no global equivalence. TASK-GEN-0348 completed and API0282 ownerNULL preserved. Full security/routing/independent acceptance not_verified; no merge or state closure.",
+        "status": "in_progress",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1192",
+      "task": {
+        "task_id": "1192",
+        "citation_id": "TASK-API-0417",
+        "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+        "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+        "status": "in_progress",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1193",
+      "task": {
+        "task_id": "1193",
+        "citation_id": "TASK-API-0418",
+        "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+        "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+        "status": "pending",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1194",
+      "task": {
+        "task_id": "1194",
+        "citation_id": "TASK-API-0419",
+        "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+        "description": "Cota declarada por TASK-API-0416 en el docstring de `_merge_field_definitions` (src/orm/fields.py). La fusión reconstruye el campo con `type(chain[-1])(**merged)`, y `merged` sale de `_args__`, que sólo guarda lo que pasó por `Field.__init__` (el parche `_field_init_with_copy`). Una relacional entrega `to` y `on_delete` a `ForeignKey.__init__`/`ManyToManyField.__init__` y nunca al de `Field`, así que su reconstrucción sale sin destino ni política de borrado. Hoy no se alcanza —la rama de fusión entera es inalcanzable hasta que cierre TASK-API-0418— pero al abrirse será el primer caso que rompa. Dos caminos a medir contra la referencia antes de elegir: capturar los kwargs en el `__init__` de cada relacional, o reconstruir desde `deconstruct()` en vez de desde `_args__`. Verificación: un caso con una cadena de dos declaraciones sobre un ForeignKey que conserve `to` y `on_delete`.",
+        "status": "pending",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1195",
+      "task": {
+        "task_id": "1195",
+        "citation_id": "TASK-API-0420",
+        "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+        "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL — `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perdería el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificación: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminación. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+        "status": "pending",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1199",
+      "task": {
+        "task_id": "1199",
+        "citation_id": "TASK-API-0424",
+        "subject": "El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas",
+        "description": "Medido al declarar ResCompany.country como Many2one(compute='_compute_address', inverse='_inverse_country') en proceso (scripts/evidence/direccion2-2026-09-12T07-52-24-001.log): la costura emite DOS UserWarning de src/orm/fields.py:4020 — «Field country in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified». Lo mismo para company_country_group_codes. La forma es la de la referencia (odoo19c: addons/base/models/res_company.py:69-78), asi que el aviso puede ser fiel y no un defecto; lo que falta es el veredicto: o el campo declara `search=`, o la dependencia se simplifica, o se declara la divergencia. Ademas, en la sonda el recolector de delete() sobre ResPartner reventó con TypeError: argument of type 'NoneType' is not iterable al consultar la columna None del campo — pendiente de re-medir con el campo declarado en el cuerpo de la clase (donde la costura lo contribuye con private_only), no por contribute_to_class manual.\n\nCualificación publicadaf17fca95: relación declarada en el cuerpo de clase,4controlesPASS sinSQL; borrado realPostgreSQL16.15PASS con fuente publicada exacta y señales activas, tablaTEMP de reglas vacía; anular DO_NOTHING a SET_NULL sólo en memoria produceFieldError y preserva el destino. Tres recursos propios eliminados; fallos iniciales de fixtures/import separados. Los dos avisos reales de SiteConfigSettings persisten: resolve_depends concuerda con la fuente, pero Consumer_form unmanaged no acredita _transient. Referencia histórica201 resuelta a TASK-GEN-0453/session29a5e555-e34f-5a20-8c39-ad6cf2f19961; el201 de la sesiónAPI esotraTASK completada y no se reabrió. TASK-API-0152/DOCS-0111 son antecedentes relacionados, no dependencias aceptadas ni reasignaciones. No se añade search ni marcador transient para ocultar avisos. Evidencia: nonstored-delete-contract-14.json en el job vigente. Sin cierre ni cambios de owner/dependencias; aceptación pendiente.",
+        "status": "pending",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task_id": "306",
+      "task": {
+        "task_id": "306",
+        "citation_id": "TASK-GEN-0558",
+        "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+        "description": "Verified continuation 2026-11-01: c904f188 characterizes direct native compute dispatch, 6PASS; temporary native recordset fragmentation yields4expectedFAIL2PASS. as_record_list preserves BaseModel because it inherits models.Model; initial direct-dispatch defect hypothesis refuted, no production change required. Existing job outputs/native-compute-batch-contract-14.json. Queued recompute still iterates rows; queue selection, recursion, missing-row retry, stored cache readback/persistence and actual prefetch IO remain not_verified. No full TASK completion/merge/acceptance.\n\nNative stored compute continuation: 4166b38d scalar guard had an M2M NEW_REGRESSION caught before push; 6038b50e preserves scalar cache and per-record M2M manager read-back. Exact final candidate90PASS. Original readback3expectedFAIL4PASS; broad guard2expectedFAIL5PASS, source hashes match declared revisions. Existing job outputs/native-stored-contract-14.json. Scalar SQL prohibited; M2M set/all storage boundary simulated, not persistence acceptance. Queued recompute batching, recursion, retries, actual IO and full TASK acceptance remain not_verified. Normal publication recorded separately; no merge or state closure.\n\nNative pending recompute continuation92a84833: initial9FAIL1PASS; exact final102PASS; native entry annulment11expectedFAIL1PASS. Native batching now follows pinned Field.recompute: queue expansion/PREFETCH_MAX, recursive order, one missing retry, all-group missing cleanup, AccessError singleton fallback with persistent denial propagated and attached environment restoration. Django executable body AST unchanged. Existing job outputs/native-pending-contract-14.json. SQL prohibited and exists IO explicitly simulated; real SQL integration, prefetch IO, full permissions, independent QA and acceptance remain not_verified. No TASK closure/merge; normal publication receipt separate.\n\nNative storage absence follow-upc143190d: native DoesNotExist requires the same bounded retry as MissingError. Two discriminating cases failed before; exact final104PASS; removing only Django absence adaptation restores2expectedFAIL12PASS and sourceSHA of92a84833. Legacy Django executable recompute path unchanged. Native-pending evidence retains both steps. Real SQL existence/retry, prefetch IO, full permissions and independent acceptance remain not_verified. No TASK state/dependency/owner change, merge or acceptance.\n\nPostgreSQL continuation on publishedadf2cd6a: native-pending-postgresql.json qualifies actual model get/exists against TEMP rows on PostgreSQL16.15. Missing32 caused real DoesNotExist; retry processed31/33; all-missing41/42 cleaned pending. Old92a84833 helper propagated DoesNotExist with all pending preserved. Three source snapshots and fixture hashes verified; database rows unchanged, public tables0, owned container removed. Scope closes bounded actual SQL absence/retry fixture, not flush/prefetch IO/full production scenarios/independent acceptance. CI ofadf2cd6a completedFAILURE; no merge/state closure. Task ownerVM-b501 preserved; probe claim uses existing workbench ownercodex-module-lifecycle, executionCodex engineering, not managed local inference.\n\nActual M2M SQL qualification: native-stored-postgresql.json verifies real set/all and join writes31->131,32->132 with matching cache/dirty IDs in normal outer atomic+rollback. Old4166b38d readback guard leaves cache/dirty empty while SQL links remain correct. Separate autocommit attempt failed at Transaction.flush resolving base.public_user because fixture lacks ir_model_data; failure source/log/container preserved in bootstrap-boundary receipt. No hooks disabled, no public users fabricated, no full commit/flush acceptance. Both owned containers removed. Engineering execution is Codex, not Thyrox local inference; owner/state/dependencies unchanged.\n\nDefault-environment M2M commit qualification: Environment(uid=7) uses existing constructor rule to set default_env. Cache seeded without compute callback, actual COMMIT flush writes both join rows and clears cache/dirty; no-op _flush_m2m leaves join empty. Logical UID fixture does not qualify authentication/user row. Filtered public parent manager exposed separate physical flush loss corrected under API0397 in52e29264; candidate SQL preserves both rows. Fallback without default_env remains blocked by missing bootstrap fixture, separately preserved. Source/SQL/resource receipts native-stored-flush-postgresql*. No whole TASK or ORM acceptance.",
+        "status": "pending",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task_id": "307",
+      "task": {
+        "task_id": "307",
+        "citation_id": "TASK-GEN-0559",
+        "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+        "description": null,
+        "status": "pending",
+        "owner": "VM-b501",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "interface": "TaskGet.run",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "observed_at": "2026-10-31T02:18:00.482Z",
+  "results": [
+    {
+      "input": {
+        "task_id": "548"
+      },
+      "task": {
+        "task_id": "548",
+        "citation_id": "TASK-API-0322",
+        "subject": "Gate: comparar los ATRIBUTOS del campo, no sólo su nombre (H-API-696/697)",
+        "description": "`check_porte_completo` compara nombres de símbolo. Es ciego por construcción a dos defectos que el episodio de website B1 produjo y que ningún conteo distingue de un porte correcto: (a) un campo declarado sin el `default=` que su fuente sí declara — 12 casos en un archivo (H-API-696); (b) un `NonStored` cuyo cómputo se pasó POSICIONAL, que su `*_args` traga en silencio dejando el campo en None (H-API-697). El gate debe comparar, por campo con contraparte, la presencia de `default=`/`compute=` y —para `NonStored`— que el cómputo llegue por `default=`. Hermano de #336 (cabecera) y #338 (visibilidad): la misma idea aplicada al campo.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "input": {
+        "task_id": "393"
+      },
+      "task": {
+        "task_id": "393",
+        "citation_id": "TASK-API-0225",
+        "subject": "Gate: cualquier atributo leído sobre un modelo que no lo declara (H-API-644)",
+        "description": "Generaliza #388 (método sobre un modelo que no lo declara) y #392 (attname sobre campo delegado) a CUALQUIER atributo: campo, attname o método. Los tres casos comparten mecanismo — resolver el modelo del receptor y consultar su _meta + su clase — y los tres fallan en EJECUCIÓN, no en importación, así que ningún gate estático de hoy los ve.\n\nEpisodios que lo motivan: H-API-608 (picking_type), H-API-624 (categ_id/uom_id delegados), H-API-625 (StockPicking.move_type leído por _get_relevant_state_among_moves, y los fantasmas scrapped/package_level en _prepare_merge_moves_distinct_fields).\n\nCondición de cierre: el gate ve los cuatro casos citados sobre el árbol a la fecha del episodio, con denominador publicado.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "input": {
+        "task_id": "1195"
+      },
+      "task": {
+        "task_id": "1195",
+        "citation_id": "TASK-API-0420",
+        "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+        "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL — `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perdería el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificación: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminación. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ],
+  "scope": "Read-only relationship investigation, not eligibility or execution of unowned TASK; instrumentation TASK does not automatically own each metadata discrepancy"
+}

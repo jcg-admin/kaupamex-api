@@ -5,6 +5,7 @@ Un concern por módulo (SOL-094 frente B): consulta del catálogo ``Capability``
 validar declaraciones y decidir frescura de sesión (DEC-12). Antes vivía
 mezclado en ``services.py``.
 """
+
 from django.core.cache import cache
 
 from addons.authz.models import Capability
@@ -21,35 +22,44 @@ _SENSITIVE_CACHE_KEY = 'authz:sensitive_codes'
 def sensitive_codes():
     """Set de ``Capability.code`` marcados ``is_sensitive`` (cacheado).
 
-    Incluye tanto los sustantivos graduados sensibles (``payments``, ``settings``,
+    Incluye tanto los sustantivos graduados sensibles (``payments``,
+    ``settings``,
     …) como las acciones nombradas sensibles (``platform.provision``, …). Se
     invalida con ``invalidate_sensitive_codes`` tras re-sembrar el catálogo."""
     cached = cache.get(_SENSITIVE_CACHE_KEY)
     if cached is not None:
         return cached
     codes = set(
-        Capability.objects
-        .filter(is_sensitive=True, is_active=True)
-        .values_list('code', flat=True)
+        Capability.objects.filter(
+            is_sensitive=True, is_active=True
+        ).values_list('code', flat=True)
     )
     cache.set(_SENSITIVE_CACHE_KEY, codes, _CACHE_TTL)
     return codes
 
 
 def invalidate_sensitive_codes():
-    """Purga la cache de códigos sensibles (llamar tras re-sembrar el catálogo)."""
+    """
+    Purga la cache de códigos sensibles (llamar tras re-sembrar el catálogo).
+    """
     cache.delete(_SENSITIVE_CACHE_KEY)
 
 
 def code_requires_fresh_session(code, unsafe_method):
-    """True si ejercer ``code`` con este método exige una sesión elevada (DEC-12).
+    """
+    True si ejercer ``code`` con este método exige una sesión elevada (DEC-12).
 
-    - Sustantivo graduado (``noun.verbo`` con verbo CRUD): exige frescura sii el
-      **sustantivo** es sensible **y** el método es **mutante** (``unsafe_method``).
-      Leer datos sensibles (``payments.view``) NO exige re-auth — la capacidad ya
+    - Sustantivo graduado (``noun.verbo`` con verbo CRUD): exige frescura sii
+      el
+      **sustantivo** es sensible **y** el método es **mutante**
+      (``unsafe_method``).
+      Leer datos sensibles (``payments.view``) NO exige re-auth — la capacidad
+      ya
       lo gatea; el re-auth protege la mutación peligrosa.
     - Acción nombrada (``platform.provision``, ``inventory.adjust``): exige
-      frescura sii el propio ``code`` es sensible (son intrínsecamente mutantes)."""
+      frescura sii el propio ``code`` es sensible (son intrínsecamente
+      mutantes).
+    """
     if not code:
         return False
     sset = sensitive_codes()
@@ -60,9 +70,13 @@ def code_requires_fresh_session(code, unsafe_method):
 
 
 def all_capability_codes():
-    """Set de ``Capability.code`` activos sembrados (para validar declaraciones)."""
+    """
+    Set de ``Capability.code`` activos sembrados (para validar declaraciones).
+    """
     return set(
-        Capability.objects.filter(is_active=True).values_list('code', flat=True)
+        Capability.objects.filter(is_active=True).values_list(
+            'code', flat=True
+        )
     )
 
 
@@ -70,7 +84,8 @@ def unknown_capability_codes(declared_codes):
     """Códigos declarados en vistas que NO mapean a un ``Capability`` sembrado.
 
     Adopta la idea de ``assert_valid_permission`` de pretix en data-driven
-    (analisis-mapeo-registro-permisos-pretix-vs-catalogo-db, azúcar #5): un typo
+    (analisis-mapeo-registro-permisos-pretix-vs-catalogo-db, azúcar #5): un
+    typo
     en ``required_capability``/``permission_map`` produce un *fail-closed*
     silencioso (403 perpetuo) que este check destapa ruidosamente.
 

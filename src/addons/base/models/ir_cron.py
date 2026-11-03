@@ -425,7 +425,7 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
     # Many2one required con ondelete='restrict' (≙ PROTECT). NO es herencia
     # multi-tabla — ver el docstring del módulo.
     ir_actions_server = fields.Many2one(
-        IrActionsServer, on_delete=models.PROTECT, db_index=True,
+        IrActionsServer, null=False, on_delete=models.PROTECT, db_index=True,
         related_name='crons',
         help_text=(
             'Acción que este cron ejecuta (Odoo ir_actions_server_id, '
@@ -1036,8 +1036,10 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         if not at_list:
             return IrCronTrigger.objects.none()
 
-        triggers = IrCronTrigger.objects.bulk_create(
-            [IrCronTrigger(cron=self, call_at=x) for x in at_list])
+        # ≙ ``ir.cron.trigger.sudo().create([...])`` (``:779-782``): por el
+        # ``create`` del ORM, con ``save()`` y su señal por disparo.
+        triggers = [IrCronTrigger.objects.create(cron=self, call_at=x)
+                    for x in at_list]
         if _logger.isEnabledFor(logging.DEBUG):
             _logger.debug('Job %r (%s) correra en %s', self.name, self.pk,
                           ', '.join(map(str, at_list)))
@@ -1231,7 +1233,11 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         """
         job = job if job is not None else self
         ahora = timezone.now().replace(microsecond=0)
-        IrCronTrigger.objects.create(cron_id=job.pk, call_at=ahora)
+        # La fuente inserta por SQL (``:665-668``), sin pasar por el ``create``
+        # del ORM: ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni
+        # señales.
+        IrCronTrigger.objects.bulk_create(
+            [IrCronTrigger(cron_id=job.pk, call_at=ahora)])
 
     def _update_failure_count(self, job, status):
         """≙ ``_update_failure_count`` (``odoo19c: ir_cron.py:570-620``).
@@ -1493,7 +1499,7 @@ class IrCronTrigger(models.Model):
     _allow_sudo_commands = False
 
     cron = fields.Many2one(
-        'base.IrCron', on_delete=models.CASCADE, db_index=True,
+        'base.IrCron', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='trigger_ids',
         help_text='Cron a disparar (Odoo cron_id).')
     call_at = fields.Datetime(
@@ -1551,7 +1557,7 @@ class IrCronProgress(TimeStampedModel):
     # (``_gc_cron_progress`` filtra por ``create_date``). Sin ellas el
     # recolector no tenia por donde barrer.
     cron = fields.Many2one(
-        'base.IrCron', on_delete=models.CASCADE, db_index=True,
+        'base.IrCron', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='progress_ids',
         help_text='Cron cuyo avance se registra (Odoo cron_id).')
     remaining = fields.Integer(default=0, help_text='Odoo remaining.')

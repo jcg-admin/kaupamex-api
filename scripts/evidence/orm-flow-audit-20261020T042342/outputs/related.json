@@ -1,0 +1,54 @@
+{
+  "reference_flow": [],
+  "sexta unidad": [],
+  "declarations_of": [],
+  "SQL_OPERATORS": [],
+  "TASK-API-0417": [
+    {
+      "task_id": "1192",
+      "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+      "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+      "status": "in_progress",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "task_ids ingerir-board",
+      "metadata_json": null,
+      "created_at": "2026-09-11T19:15:36",
+      "updated_at": "2026-09-12T09:36:13",
+      "submodule": "api",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-09-11T19:15:36",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-API-0417",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    }
+  ],
+  "GEN0060_blocks_task400": [
+    {
+      "task_id": "400",
+      "subject": "Construir el motor de traducción: import/export de .po",
+      "description": "Construir el motor de traducción: import/export de .po.\n\nRE-ENCUADRADA 2026-08-18 por el cap. 11 del Cookbook. La tarea declara como única dependencia la #333 (almacenamiento jsonb de los valores traducibles de registro), y con ese alcance cerraría PARCIAL bajo su propio criterio: la receta de importar del capítulo documenta un TERCER destino que no depende de #333 en absoluto — `ir_model_fields.field_description`, las etiquetas de campo. Medido: 0 de 1831 `verbose_name`/`help_text` envueltos en `gettext_lazy`, sin `locale/` ni `LOCALE_PATHS` declarados.\n\nLos tres destinos de un .po importado son distintos y sólo uno está cubierto por la dependencia declarada:\n1. valores de registro traducibles → jsonb en la propia columna (#333)\n2. etiquetas de campo → `ir_model_fields.field_description` (bloqueado además por #487, que le falta el `translate=`)\n3. arquitectura de vista → `ir_ui_view.arch_db`\n\nSub-piezas medidas que tampoco están en el tablero y son alcance natural de esta tarea: el despachador `translate=` no existe para `Text`/`Html` (prerrequisito de #333); el eje de idioma base `es.po`→`es_MX.po` (`get_base_langs`); y `i18n_extra/` como segunda capa de .po.",
+      "status": "pending",
+      "active_form": "Construyendo el motor de traducción",
+      "owner": null,
+      "blocks_json": "[]",
+      "blocked_by_json": "[\"333\"]",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "hook-stop",
+      "metadata_json": null,
+      "created_at": "2026-08-18T03:55:58",
+      "updated_at": "2026-08-21T10:03:52",
+      "submodule": null,
+      "submodule_source": null,
+      "opened_at": "2026-08-15T20:07:13",
+      "opened_at_source": "git-tablero",
+      "citation_id": "TASK-GEN-0062",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "head": "9ffbdbd91bf2701769f72633615f25150be4be3c",
+  "index_tree": "774b640a7c9d7d3a7fe41e443b0cfd4539017b49",
+  "source_sha256": "26304e8e6ae29bea4bf10d502dddf4ac176a952ef8f6a55e75dd37e1c3ed7d33",
+  "test_sha256": "84e66483ecfcb7e297b2379ee5a0b34072326e49fee632e8b3bd349842e9edd7",
+  "annulled_manager": false,
+  "pytest_exit_code": 0,
+  "provenance_unchanged": true,
+  "baseline": false,
+  "scope": "Declared model source, native manager metadata, mocked query transport; SQL prohibited; not acceptance"
+}

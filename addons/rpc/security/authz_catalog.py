@@ -10,6 +10,7 @@ se siembra en el rol comprador. La referencia no tiene análogo porque allá el
 endpoint es público (``auth='bearer'``) y el control vive en el ORM; aquí el
 control vive en la vista, y DEC-11 lo exige explícito.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

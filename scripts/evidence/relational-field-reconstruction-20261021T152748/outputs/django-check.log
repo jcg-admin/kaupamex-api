@@ -1,0 +1,10 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+System check identified some issues:
+
+WARNINGS:
+base.PropertiesBaseDefinition.properties_field: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+fleet.FleetVehicleLogServices.account_move_line: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+
+System check identified 2 issues (0 silenced).

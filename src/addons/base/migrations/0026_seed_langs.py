@@ -10,6 +10,7 @@ que necesita un idioma por defecto — empezando por ``Website.default_lang``,
 que es ``required`` y cuyo ``_default_language`` no tiene de dónde sacar valor
 sobre una tabla sin filas. Ver :ref:`h-api-696`.
 """
+
 from django.db import migrations
 
 from addons.base.data.res_lang_data import seed_langs

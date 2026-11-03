@@ -25,6 +25,7 @@ Qué se porta y qué NO (la referencia mezcla el token con la capa QWeb):
 La verificación del token contra el permiso (``_document_check_access``)
 vive en ``../services.py`` — es del controlador en la referencia.
 """
+
 import uuid
 from urllib.parse import urlencode
 
@@ -40,11 +41,16 @@ class PortalMixin(models.Model):
     """
 
     access_token = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Token de seguridad',
-        help_text='Token que permite el acceso al documento por link, '
-                  'saltando los permisos del destinatario (Odoo '
-                  'access_token).',
+        help_text=(
+            'Token que permite el acceso al documento por link, '
+            'saltando los permisos del destinatario (Odoo '
+            'access_token).'
+        ),
     )
 
     class Meta:

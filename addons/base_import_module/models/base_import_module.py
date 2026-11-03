@@ -1,6 +1,7 @@
 """``base.import.module`` — el asistente que sube el ``.zip`` de un módulo.
 
-Adaptación de ``odoo19c: addons/base_import_module/models/base_import_module.py``
+Adaptación de ``odoo19c:
+addons/base_import_module/models/base_import_module.py``
 (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de licencia preservados,
 DEC-KX-03).
 
@@ -66,13 +67,15 @@ Divergencias declaradas — de mecanismo, no de alcance
   ``base64.decodebytes`` de la fuente no hace falta porque el valor ya llega
   en bytes.
 - **``ensure_one()`` no se porta** — aquí ``self`` es una instancia por
-  construcción; mismo criterio que ``src/addons/base/models/res_company.py:744``.
+  construcción; mismo criterio que
+  ``src/addons/base/models/res_company.py:744``.
 
 Lo que este archivo no cierra
 ==============================
 
 Los dos símbolos bloqueados de arriba, ambos con sucesor declarado.
 """
+
 import fields
 import models
 
@@ -82,7 +85,8 @@ from orm.models_transient import TransientModel
 #: (``odoo19c: :13``), con sus dos valores verbatim.
 STATE_CHOICES = [('init', 'init'), ('done', 'done')]
 
-#: El modelo que ``action_module_open`` abre — la cadena de la fuente (``:42``).
+#: El modelo que ``action_module_open`` abre — la cadena de la fuente
+#: (``:42``).
 IR_MODULE_MODEL = 'ir.module.module'
 
 
@@ -97,18 +101,27 @@ class BaseImportModule(TransientModel):
 
     module_file = fields.Binary(
         verbose_name='Module .ZIP file',
-        help_text='El .zip del módulo (Odoo module_file, attachment=False).')
+        help_text='El .zip del módulo (Odoo module_file, attachment=False).',
+    )
     state = fields.Selection(
-        max_length=8, choices=STATE_CHOICES, default='init',
+        max_length=8,
+        choices=STATE_CHOICES,
+        default='init',
         verbose_name='Status',
-        help_text='Odoo state: init mientras no se haya importado.')
+        help_text='Odoo state: init mientras no se haya importado.',
+    )
     import_message = fields.Text(blank=True, default='')
     force = fields.Boolean(
-        default=False, verbose_name='Force init',
-        help_text='Force init mode even if installed. '
-                  "(will update `noupdate='1'` records)")
+        default=False,
+        verbose_name='Force init',
+        help_text=(
+            'Force init mode even if installed. '
+            '(will update `noupdate=\'1\'` records)'
+        ),
+    )
     with_demo = fields.Boolean(
-        default=False, verbose_name='Import demo data of module')
+        default=False, verbose_name='Import demo data of module'
+    )
     modules_dependencies = fields.Text(blank=True, default='')
 
     class Meta:
@@ -117,7 +130,9 @@ class BaseImportModule(TransientModel):
         verbose_name_plural = 'Importaciones de módulo'
 
     def __str__(self):
-        """La fuente no declara ``_rec_name``: el estado es lo que distingue."""
+        """
+        La fuente no declara ``_rec_name``: el estado es lo que distingue.
+        """
         return self.state
 
     def import_module(self):
@@ -127,8 +142,9 @@ class BaseImportModule(TransientModel):
         es aquí una operación de deploy. Sucesor: tarea **#452**.
         """
         raise NotImplementedError(
-            'import_module está bloqueado: ir.module.module._import_zipfile no '
-            'existe en este árbol (tarea #452).')
+            'import_module está bloqueado: ir.module.module._import_zipfile no'
+            ' existe en este árbol (tarea #452).'
+        )
 
     def get_dependencies_to_install_names(self):
         """BLOQUEADO por ``ir.module.module._get_missing_dependencies_modules``
@@ -138,7 +154,8 @@ class BaseImportModule(TransientModel):
         raise NotImplementedError(
             'get_dependencies_to_install_names está bloqueado: '
             'ir.module.module._get_missing_dependencies_modules no existe en '
-            'este árbol (tarea #452).')
+            'este árbol (tarea #452).'
+        )
 
     def action_module_open(self, module_name=None):
         """≙ ``action_module_open`` (``odoo19c: :36-45``) — abre la lista.

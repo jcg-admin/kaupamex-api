@@ -1,12 +1,16 @@
-r"""Sonda comparativa: los dos motores de expresión que el descriptor puede usar.
+r"""
+Sonda comparativa: los dos motores de expresión que el descriptor puede usar.
 
-Directiva del ejecutor 2026-08-29: *"vamos a crear analisis del como lo hariamos
+Directiva del ejecutor 2026-08-29: *"vamos a crear analisis del como lo
+hariamos
 con nuestro stack, uno por uno"* + *"vas a analizar los binarios y crear
 pruebas"*.
 
-El :doc:`Flujo B <docs: analisis-flujo-b-el-documento-sin-navegador-en-odoo-tools>`
+El :doc:`Flujo B <docs:
+analisis-flujo-b-el-documento-sin-navegador-en-odoo-tools>`
 midió que la referencia particiona su motor: el modo sin base de datos
-(``odoo19c: odoo/addons/base/models/ir_template_expressions.py:2975``) cierra las directivas de
+(``odoo19c: odoo/addons/base/models/ir_template_expressions.py:2975``) cierra
+las directivas de
 **formato** y deja en pie las de **estructura**. Ésa es la superficie que el
 descriptor de reportes necesita.
 
@@ -14,7 +18,8 @@ Con esa partición sobre la mesa quedan dos candidatos para evaluar el valor de
 un campo del descriptor, y la tarea **#181** es elegir:
 
 - **DTL** — ``django.template``, ya en uso en ``report_template._render_text``.
-- **El compilador de QWeb portado** — ``IrTemplateExpressions._compile_expr`` (``api@c77bc566``),
+- **El compilador de QWeb portado** — ``IrTemplateExpressions._compile_expr``
+  (``api@c77bc566``),
   con su allowlist de opcodes.
 
 Esta sonda no elige: **mide**, caso por caso, para que la decisión se tome
@@ -27,6 +32,7 @@ motores con la misma expresión.
 legibilidad de la plantilla resultante, que no es una propiedad medible por
 una prueba.
 """
+
 import pytest
 from django.template import Context, Engine, TemplateSyntaxError
 
@@ -48,18 +54,29 @@ def engine():
 
 
 class TestDtlRefusesWhatItCannotParse:
-    """DTL restringe por GRAMÁTICA: lo que no cabe en su sintaxis, no compila."""
+    """
+    DTL restringe por GRAMÁTICA: lo que no cabe en su sintaxis, no compila.
+    """
 
     def test_a_call_with_arguments_does_not_parse(self):
-        with pytest.raises(TemplateSyntaxError, match=r"Could not parse the remainder: '\(1\)'"):
+        with pytest.raises(
+            TemplateSyntaxError,
+            match=r"Could not parse the remainder: '\(1\)'",
+        ):
             render_with_dtl('{{ f(1) }}', {'f': lambda x: x})
 
     def test_arithmetic_does_not_parse(self):
-        with pytest.raises(TemplateSyntaxError, match=r"Could not parse the remainder: ' \+ 1'"):
+        with pytest.raises(
+            TemplateSyntaxError,
+            match=r"Could not parse the remainder: ' \+ 1'",
+        ):
             render_with_dtl('{{ a + 1 }}', {'a': 1})
 
     def test_what_it_does_allow_is_lookup_by_dot_and_by_index(self):
-        assert render_with_dtl('{{ b.c }}', {'b': type('X', (), {'c': 2})()}) == '2'
+        assert (
+            render_with_dtl('{{ b.c }}', {'b': type('X', (), {'c': 2})()})
+            == '2'
+        )
         # El índice de lista se escribe con punto, no con corchete.
         assert render_with_dtl('{{ xs.0 }}', {'xs': [10, 20]}) == '10'
 
@@ -67,13 +84,16 @@ class TestDtlRefusesWhatItCannotParse:
 class TestTheQwebCompilerAcceptsRealPython:
     """QWeb restringe por OPCODE: compila Python y valida el bytecode."""
 
-    @pytest.mark.parametrize('expression, compiled', [
-        ('a',               "((values.get('a')))"),
-        ('b.c',             "((values['b'].c))"),
-        ('f(1)',            "((values['f'](1)))"),
-        ('a + 1',           "((values.get('a') + 1))"),
-        ('xs[0]',           "((values['xs'][0]))"),
-    ])
+    @pytest.mark.parametrize(
+        'expression, compiled',
+        [
+            ('a', "((values.get('a')))"),
+            ('b.c', "((values['b'].c))"),
+            ('f(1)', "((values['f'](1)))"),
+            ('a + 1', "((values.get('a') + 1))"),
+            ('xs[0]', "((values['xs'][0]))"),
+        ],
+    )
     def test_it_compiles_what_dtl_refuses(self, engine, expression, compiled):
         assert engine._compile_expr(expression) == compiled
 
@@ -83,9 +103,13 @@ class TestTheQwebCompilerAcceptsRealPython:
         with pytest.raises(ValueError, match='forbidden opcode'):
             engine._compile_expr('lambda a: (lambda: a)')
 
-    def test_the_double_underscore_guard_is_a_second_and_distinct_barrier(self, engine):
+    def test_the_double_underscore_guard_is_a_second_and_distinct_barrier(
+        self, engine
+    ):
         # Cae ANTES del allowlist, en el recorrido de tokens.
-        with pytest.raises(SyntaxError, match="Using variable names with '__' is not allowed"):
+        with pytest.raises(
+            SyntaxError, match="Using variable names with '__' is not allowed"
+        ):
             engine._compile_expr('__import__')
 
 
@@ -95,7 +119,9 @@ class TestDtlCallsCallablesOnItsOwn:
     def test_dtl_invokes_a_callable_found_in_the_context(self):
         # `{{ f }}` NO imprime el objeto: lo llama. Es conducta de
         # `django/template/base.py:993` — `if callable(current): current()`.
-        assert render_with_dtl('{{ f }}', {'f': lambda: 'llamada'}) == 'llamada'
+        assert (
+            render_with_dtl('{{ f }}', {'f': lambda: 'llamada'}) == 'llamada'
+        )
 
     def test_its_guard_against_that_is_alters_data(self):
         class Risky:
@@ -104,20 +130,28 @@ class TestDtlCallsCallablesOnItsOwn:
 
             def safe(self):
                 return 'ok'
+
         Risky.wipe.alters_data = True
 
         # El marcado no se llama: DTL devuelve `string_if_invalid` (por
         # defecto, la cadena vacía). El otro sí.
-        assert render_with_dtl('{{ r.wipe }}|{{ r.safe }}', {'r': Risky()}) == '|ok'
+        assert (
+            render_with_dtl('{{ r.wipe }}|{{ r.safe }}', {'r': Risky()})
+            == '|ok'
+        )
 
-    def test_the_qweb_compiler_does_not_invoke_anything_by_itself(self, engine):
+    def test_the_qweb_compiler_does_not_invoke_anything_by_itself(
+        self, engine
+    ):
         # Compilar `f` produce un lookup, no una llamada: los paréntesis los
         # tiene que escribir el autor de la plantilla.
         assert engine._compile_expr('f') == "((values.get('f')))"
 
 
 class TestBothEnginesLeaveTheAmpersandAlone:
-    """La propiedad que el descriptor exige: el texto va a un dict, no a HTML."""
+    """
+    La propiedad que el descriptor exige: el texto va a un dict, no a HTML.
+    """
 
     def test_dtl_with_autoescape_off_emits_the_raw_ampersand(self):
         assert render_with_dtl('{{ s }}', {'s': 'a & b'}) == 'a & b'
@@ -127,5 +161,7 @@ class TestBothEnginesLeaveTheAmpersandAlone:
         # declara `autoescape=False`: con autoescape el dato llega al papel
         # como `&amp;`.
         escaping = Engine(autoescape=True)
-        rendered = escaping.from_string('{{ s }}').render(Context({'s': 'a & b'}))
+        rendered = escaping.from_string('{{ s }}').render(
+            Context({'s': 'a & b'})
+        )
         assert rendered == 'a &amp; b'

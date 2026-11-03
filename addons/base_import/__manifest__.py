@@ -5,8 +5,10 @@
     'name': 'Importación de archivos',
     'version': '2.0',
     'category': 'Hidden/Tools',
-    'summary': 'Lee un archivo de datos del usuario, propone el mapeo de '
-               'columnas a campos y carga los registros.',
+    'summary': (
+        'Lee un archivo de datos del usuario, propone el mapeo de '
+        'columnas a campos y carga los registros.'
+    ),
     # `depends` de la referencia: ['web']. Aquí se declara 'base' porque el
     # addon `web` de la referencia es su cliente JS, y la parte que este
     # porte cubre —heurísticas de inferencia y lectura de archivo— no lo

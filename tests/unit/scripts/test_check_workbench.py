@@ -16,18 +16,15 @@ Dos controles discriminan, y los dos apuntan a un verde que no distingue:
 import json
 import sys
 from pathlib import Path
-
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
-
-from check_workbench import (  # noqa: E402
+from check_workbench import (
     bench_root,
     main,
     offences_of,
     required_keys,
     work_dirs,
 )
+
 
 CONFORMING = {
     'question': 'que declara cada gate que suprime, y cuanto',
@@ -54,10 +51,16 @@ class TestRequiredKeys:
 
     def test_it_reads_the_five_from_the_schema(self):
         assert required_keys() == [
-            'question', 'instrument', 'metric', 'blind_to', 'destination']
+            'question',
+            'instrument',
+            'metric',
+            'blind_to',
+            'destination',
+        ]
 
     def test_without_the_schema_it_refuses_without_emitting_a_count(
-            self, tmp_path, capsys):
+        self, tmp_path, capsys
+    ):
         """EL CONTROL. Un 0 sin esquema no distingue «todo cumple» de «no pude
         medir» — el sub-patron D de ``metrica-decide-la-conclusion.md``."""
         with pytest.raises(SystemExit) as salida:
@@ -93,12 +96,14 @@ class TestOffences:
         hollow = dict(CONFORMING, blind_to=empty)
         work = make_work(tmp_path, f'vacia-{type(empty).__name__}', hollow)
         assert offences_of(work, list(CONFORMING)) == [
-            "la clave 'blind_to' esta vacia"]
+            "la clave 'blind_to' esta vacia"
+        ]
 
     def test_a_missing_manifest_is_named_not_skipped(self, tmp_path):
         work = make_work(tmp_path, 'sin-manifiesto')
         assert offences_of(work, list(CONFORMING)) == [
-            'no declara manifest.json']
+            'no declara manifest.json'
+        ]
 
     def test_broken_json_is_named_not_skipped(self, tmp_path):
         """Un JSON roto no se traga en silencio: silenciarlo lo convierte en
@@ -111,7 +116,8 @@ class TestOffences:
     def test_a_json_that_is_not_an_object_is_caught(self, tmp_path):
         work = make_work(tmp_path, 'lista', raw='["question"]')
         assert offences_of(work, list(CONFORMING)) == [
-            'manifest.json no declara un objeto']
+            'manifest.json no declara un objeto'
+        ]
 
 
 class TestWorkDirs:
@@ -122,7 +128,8 @@ class TestWorkDirs:
         (tmp_path / 'manifest_schema.json').write_text('{}')
         make_work(tmp_path, 'trabajo-20260830T193000', CONFORMING)
         assert [d.name for d in work_dirs(tmp_path)] == [
-            'trabajo-20260830T193000']
+            'trabajo-20260830T193000'
+        ]
 
     def test_hidden_and_cache_directories_are_not_work(self, tmp_path):
         (tmp_path / '__pycache__').mkdir()
@@ -148,7 +155,9 @@ class TestBenchRoot:
     esta. Estos dos controles miden que el gate lo CONSUMA.
     """
 
-    def test_the_root_comes_from_the_declared_constant(self, tmp_path, monkeypatch):
+    def test_the_root_comes_from_the_declared_constant(
+        self, tmp_path, monkeypatch
+    ):
         """Si la constante nombra otro hogar, el gate mide ESE hogar.
 
         Control de anulacion: si el mecanismo volviera a derivar la raiz por
@@ -162,7 +171,8 @@ class TestBenchRoot:
         assert bench_root() == declared
 
     def test_a_root_that_does_not_exist_refuses_instead_of_publishing_zero(
-            self, tmp_path, monkeypatch, capsys):
+        self, tmp_path, monkeypatch, capsys
+    ):
         """Raiz ausente: exit 2 y sin cifra, nunca ``0 incumplidores``.
 
         Un banco presente y VACIO es un cero legitimo — un clon recien hecho

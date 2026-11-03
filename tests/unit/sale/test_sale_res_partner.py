@@ -9,9 +9,11 @@ Cuatro ejes, y cada uno existe porque su ausencia produce un fallo distinto:
    casos del puente construyen la divergencia de PK en vez de confiar en que
    la secuencia la produzca — mismo criterio que la clave sobrecadena de
    :ref:`h-api-908`.
-2. **La cadena con ``portal``.** ``sale`` escribe ``super()._can_edit_country()``
+2. **La cadena con ``portal``.** ``sale`` escribe
+   ``super()._can_edit_country()``
    allá; aquí lo recibe por ``overrides=``. El caso que lo discrimina es un
-   partner **hijo y sin pedidos**: ``sale`` no tiene por qué negarle nada, y aun
+   partner **hijo y sin pedidos**: ``sale`` no tiene por qué negarle nada, y
+   aun
    así ``can_edit_vat()`` es falso porque el eslabón de ``portal`` lo niega. Un
    override que ignorara ``previous()`` devolvería verdadero y el caso caería.
 3. **La guarda de grupo.** ``group_sale_salesman`` no está sembrado en el árbol
@@ -26,6 +28,7 @@ partners, usuarios y pedidos sembrados por caso.
 *Ciega a:* ``_compute_credit_to_invoice``, que está BLOQUEADO por
 ``credit_to_invoice`` (sucesor #116) y no se ejercita aquí.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModelData
@@ -75,10 +78,13 @@ def buyer(db):
     darles el mismo número. Si coincidieran, una consulta escrita sin el
     puente pasaría igual y el caso no mediría nada.
     """
-    relleno = [ResPartner.objects.create(name=f'Relleno {i}') for i in range(3)]
+    relleno = [
+        ResPartner.objects.create(name=f'Relleno {i}') for i in range(3)
+    ]
     user = ResUsers.objects.create_user(login='cliente@kaupamex.test')
-    assert user.pk != user.partner.pk, (
-        'el caso exige PK distintas para discriminar el puente')
+    assert (
+        user.pk != user.partner.pk
+    ), 'el caso exige PK distintas para discriminar el puente'
     assert relleno  # el relleno existe para separar las secuencias
     return user
 
@@ -100,7 +106,9 @@ class TestTheUserPartnerBridge:
         assert list(buyer.partner.sale_order_ids) == []
 
     def test_lifetime_value_only_counts_confirmed(self, buyer):
-        """El carrito abandonado no es valor de vida — agregado propio del L0."""
+        """
+        El carrito abandonado no es valor de vida — agregado propio del L0.
+        """
         order_for(buyer, state=SaleOrder.STATE_SALE, amount_total='100.00')
         order_for(buyer, state=SaleOrder.STATE_DRAFT, amount_total='999.00')
         assert str(lifetime_value(buyer.partner)) == '100.00'
@@ -134,38 +142,50 @@ class TestTheDescendants:
         parent = ResPartner.objects.create(name='Matriz SA', is_company=True)
         child = ResPartner.objects.create(name='Sucursal', parent=parent)
         child_user = ResUsers.objects.create_user(
-            login='sucursal@kaupamex.test', partner=child)
+            login='sucursal@kaupamex.test', partner=child
+        )
         order_for(child_user)
         with user_scope(salesman.pk):
             assert parent.sale_order_count == 1
 
     def test_the_child_does_not_count_the_orders_of_its_parent(
-        self, salesman, db,
+        self,
+        salesman,
+        db,
     ):
         parent = ResPartner.objects.create(name='Matriz SA', is_company=True)
         child = ResPartner.objects.create(name='Sucursal', parent=parent)
         parent_user = ResUsers.objects.create_user(
-            login='matriz@kaupamex.test', partner=parent)
+            login='matriz@kaupamex.test', partner=parent
+        )
         order_for(parent_user)
         with user_scope(salesman.pk):
             assert child.sale_order_count == 0
 
     def test_the_domain_hook_is_the_empty_filter(self, buyer):
-        """≙ ``return []`` (``:19-21``): sin condiciones, ``filter`` lo ignora."""
+        """
+        ≙ ``return []`` (``:19-21``): sin condiciones, ``filter`` lo ignora.
+        """
         assert not _get_sale_order_domain_count(buyer.partner).children
 
 
 class TestHasOrder:
     """≙ ``_has_order`` (``:54-65``): sólo ``sent`` y ``sale`` cuentan."""
 
-    @pytest.mark.parametrize('state, expected', [
-        (SaleOrder.STATE_DRAFT, True),
-        (SaleOrder.STATE_SENT, False),
-        (SaleOrder.STATE_SALE, False),
-        (SaleOrder.STATE_CANCEL, True),
-    ])
+    @pytest.mark.parametrize(
+        'state, expected',
+        [
+            (SaleOrder.STATE_DRAFT, True),
+            (SaleOrder.STATE_SENT, False),
+            (SaleOrder.STATE_SALE, False),
+            (SaleOrder.STATE_CANCEL, True),
+        ],
+    )
     def test_only_an_issued_order_blocks_the_country(
-        self, buyer, state, expected,
+        self,
+        buyer,
+        state,
+        expected,
     ):
         order_for(buyer, state=state)
         assert buyer.partner._can_edit_country() is expected
@@ -194,7 +214,8 @@ class TestTheChainWithPortal:
         parent = ResPartner.objects.create(name='Matriz SA', is_company=True)
         child = ResPartner.objects.create(name='Sucursal', parent=parent)
         child_user = ResUsers.objects.create_user(
-            login='hija@kaupamex.test', partner=child)
+            login='hija@kaupamex.test', partner=child
+        )
         order_for(child_user)
         assert parent.can_edit_vat() is False
 
@@ -209,27 +230,35 @@ class TestTheStatisticsHook:
     """≙ ``_compute_application_statistics_hook`` (``:44-52``)."""
 
     def test_it_contributes_the_count_of_a_partner_with_orders(
-        self, buyer, salesman,
+        self,
+        buyer,
+        salesman,
     ):
         order_for(buyer)
         partner = buyer.partner
         with user_scope(salesman.pk):
             contributed = ResPartner._compute_application_statistics_hook(
-                [partner])
+                [partner]
+            )
         assert contributed[partner.pk][0]['value'] == 1
         assert contributed[partner.pk][0]['iconClass'] == 'fa-usd'
 
     def test_a_partner_without_orders_contributes_nothing(
-        self, buyer, salesman,
+        self,
+        buyer,
+        salesman,
     ):
         partner = buyer.partner
         with user_scope(salesman.pk):
             contributed = ResPartner._compute_application_statistics_hook(
-                [partner])
+                [partner]
+            )
         assert partner.pk not in contributed
 
     def test_the_merge_adds_to_the_previous_link_instead_of_replacing(self):
-        """``combine=``: la fuente hace ``append`` sobre lo que ``super`` trajo."""
+        """
+        ``combine=``: la fuente hace ``append`` sobre lo que ``super`` trajo.
+        """
         merged = _merge_application_statistics({1: ['nuevo']}, {1: ['previo']})
         assert merged == {1: ['previo', 'nuevo']}
 
@@ -239,6 +268,7 @@ class TestTheWarningColumn:
 
     def test_it_persists_across_a_reload(self, db):
         partner = ResPartner.objects.create(
-            name='Moroso SA', sale_warn_msg='Cobrar por adelantado')
+            name='Moroso SA', sale_warn_msg='Cobrar por adelantado'
+        )
         partner.refresh_from_db()
         assert partner.sale_warn_msg == 'Cobrar por adelantado'

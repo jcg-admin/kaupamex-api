@@ -16,7 +16,8 @@ Porte símbolo por símbolo — 2 de 8
 ====================================
 
 *Métrica:* entradas del cuerpo de
-``class PurchaseRequisitionCreateAlternative`` contadas por AST sobre la fuente,
+``class PurchaseRequisitionCreateAlternative`` contadas por AST sobre la
+fuente,
 descontando ``_name`` y ``_description``. Son **8**: 4 campos y 4 métodos.
 *Ciega a:* si el asistente se comporta igual en ejecución.
 
@@ -116,10 +117,12 @@ Su condición final se conserva verbatim en intención: el nombre de la línea
 tiene descripción propia del producto. Copiarlo siempre pisaría la descripción
 que ese proveedor usa para el mismo artículo.
 """
+
 from orm.models_transient import TransientModel
 
 #: ≙ los tres ``display_type`` que la fuente trata como texto libre
-#: (``odoo19c: :99``): en ellos el nombre de la línea SIEMPRE se copia porque no
+#: (``odoo19c: :99``): en ellos el nombre de la línea SIEMPRE se copia
+#: porque no
 #: hay producto del que derivarlo.
 TEXT_DISPLAY_TYPES = ('line_section', 'line_subsection', 'line_note')
 
@@ -138,8 +141,9 @@ class PurchaseRequisitionCreateAlternative(TransientModel):
         managed = False
 
     @classmethod
-    def _get_alternative_line_value(cls, order_line,
-                                    product_tmpl_ids_with_description=()):
+    def _get_alternative_line_value(
+        cls, order_line, product_tmpl_ids_with_description=()
+    ):
         """≙ ``_get_alternative_line_value`` (``odoo19c: :90-100``) — D-2.
 
         Los valores con los que se copia una línea a la orden alternativa.
@@ -151,9 +155,12 @@ class PurchaseRequisitionCreateAlternative(TransientModel):
         artículo, que es justo lo que ``product.supplierinfo`` guarda.
         """
         product = order_line.product
-        product_tmpl_id = product.product_tmpl_id if product is not None else None
+        product_tmpl_id = (
+            product.product_tmpl_id if product is not None else None
+        )
         has_product_description = product_tmpl_id in set(
-            product_tmpl_ids_with_description or ())
+            product_tmpl_ids_with_description or ()
+        )
         display_type = getattr(order_line, 'display_type', None)
 
         vals = {
@@ -162,7 +169,8 @@ class PurchaseRequisitionCreateAlternative(TransientModel):
             'product_uom_id': getattr(order_line, 'product_uom_id', None),
             'display_type': display_type,
             'analytic_distribution': getattr(
-                order_line, 'analytic_distribution', None),
+                order_line, 'analytic_distribution', None
+            ),
         }
         if display_type in TEXT_DISPLAY_TYPES or not has_product_description:
             vals['name'] = order_line.name

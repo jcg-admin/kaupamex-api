@@ -26,7 +26,8 @@ ya portado.
 Las cinco ramas de ``order_to_function``, medidas en la fuente
 ---------------------------------------------------------------
 
-1. ``regex_order`` no casa  -> ``ValueError(f"Invalid order {order!r} to sort")``
+1. ``regex_order`` no casa  -> ``ValueError(f"Invalid order {order!r} to
+   sort")``
 2. ``many2one`` sin propiedad, o con ``.id``  -> RECURRE al comodelo con su
    ``_order``, y se protege de un ciclo con ``__m2o_order_seen_sorted`` en el
    contexto: si el campo ya se vio, devuelve ``lambda _: None``.
@@ -51,6 +52,7 @@ la cache sembrada a mano.
 *Ciega a:* si el mismo orden sale de la base de datos — eso lo decide
 ``_order_to_sql``, que es otro simbolo y otra tarea.
 """
+
 import pytest
 
 import fields
@@ -85,10 +87,15 @@ class SortProbe(BaseModel):
     rank = fields.Integer('Rank')
     flag = fields.Boolean('Flag')
     parent_id = fields.Many2one(
-        'base.SortParentProbe', on_delete=django_models.PROTECT,
-        related_name='children', null=True, string='Parent')
-    tags = fields.Many2many('base.SortParentProbe', related_name='tagged',
-                            blank=True)
+        'base.SortParentProbe',
+        on_delete=django_models.PROTECT,
+        related_name='children',
+        null=True,
+        string='Parent',
+    )
+    tags = fields.Many2many(
+        'base.SortParentProbe', related_name='tagged', blank=True
+    )
 
     class Meta:
         app_label = 'base'
@@ -156,19 +163,27 @@ class TestTheNullRule:
 
     def test_without_nulls_the_null_goes_last_when_ascending(self, ambient):
         # ``nulls_first = reverse`` y ``reverse`` es False -> el nulo al final.
-        records = seed(SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label')
+        records = seed(
+            SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label'
+        )
         assert records.sorted('label').ids == [33, 7, 18]
 
     def test_without_nulls_the_null_goes_first_when_descending(self, ambient):
-        records = seed(SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label')
+        records = seed(
+            SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label'
+        )
         assert records.sorted('label DESC').ids == [18, 7, 33]
 
     def test_nulls_last_overrides_the_descending_default(self, ambient):
-        records = seed(SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label')
+        records = seed(
+            SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label'
+        )
         assert records.sorted('label DESC NULLS LAST').ids == [7, 33, 18]
 
     def test_nulls_first_overrides_the_ascending_default(self, ambient):
-        records = seed(SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label')
+        records = seed(
+            SortProbe, ambient, {7: 'b', 18: False, 33: 'a'}, 'label'
+        )
         assert records.sorted('label NULLS FIRST').ids == [18, 33, 7]
 
 
@@ -178,21 +193,18 @@ class TestTheBooleanBranchIsNotNormalised:
         # Rama 4: el booleano NO pasa por la normalizacion a ``None``. Si
         # pasara, ``False`` se volveria nulo y con orden ascendente iria al
         # FINAL — justo al reves. El caso DISCRIMINA esa rama.
-        records = seed(SortProbe, ambient, {7: True, 18: False, 33: True}, 'flag')
+        records = seed(
+            SortProbe, ambient, {7: True, 18: False, 33: True}, 'flag'
+        )
         assert records.sorted('flag').ids[0] == 18
 
 
 class TestTheRelationalBranches:
 
-    @pytest.mark.xfail(strict=True, reason=(
-        'TASK-API-0402 — ``parent_id`` sirve un ``ForeignKeyDeferredAttribute``, '
-        'y la guarda de instalacion de ``FieldDescriptor`` es exacta por tipo: '
-        'no lo sustituye. El acceso cae al camino de Django y pide base. La '
-        'recursion al comodelo esta portada y verificada por lectura; lo que '
-        'falta es que la fila que Django construye lleve la terna del '
-        'recordset, que es el alcance de esa tarea.'))
     def test_a_many2one_recurses_into_the_comodel_order(self, ambient):
-        parents = seed(SortParentProbe, ambient, {1: 'zeta', 2: 'alfa'}, 'name')
+        parents = seed(
+            SortParentProbe, ambient, {1: 'zeta', 2: 'alfa'}, 'name'
+        )
         assert parents.ids == [1, 2]
         records = seed(SortProbe, ambient, {7: 1, 18: 2}, 'parent_id')
         # El comodelo ordena por ``name``: alfa (2) antes que zeta (1), asi

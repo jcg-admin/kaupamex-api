@@ -53,12 +53,15 @@ Lo que NO se porta, con su razón
   (``res_groups_data.py``); replicar la plomería donde no hay quien la consulte
   sería carga sin lector.
 """
+
 from django.apps import apps as _live_apps
 from django.db import DEFAULT_DB_ALIAS
 
-from addons.base.models.ir_model import (IrModel as _IrModel,
-                                         IrModelAccess as _IrModelAccess,
-                                         IrModelData as _IrModelData)
+from addons.base.models.ir_model import (
+    IrModel as _IrModel,
+    IrModelAccess as _IrModelAccess,
+    IrModelData as _IrModelData,
+)
 from addons.base.models.res_groups import ResGroups as _ResGroups
 
 #: ``(nombre, label del modelo, identificador del grupo o None, permisos)``.
@@ -66,42 +69,98 @@ from addons.base.models.res_groups import ResGroups as _ResGroups
 #: referencia sin reinterpretar. ``None`` en el grupo = fila global.
 _ACCESS = (
     ('ir_cron group_cron', 'base.IrCron', 'group_system', (1, 1, 1, 1)),
-    ('ir_cron_progress group_cron', 'base.IrCronProgress', 'group_system',
-     (1, 1, 1, 1)),
-    ('ir_cron_trigger group_cron', 'base.IrCronTrigger', 'group_system',
-     (1, 1, 1, 1)),
-    ('ir_module_category', 'base.IrModuleCategory', 'group_erp_manager',
-     (1, 0, 0, 0)),
+    (
+        'ir_cron_progress group_cron',
+        'base.IrCronProgress',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_cron_trigger group_cron',
+        'base.IrCronTrigger',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_module_category',
+        'base.IrModuleCategory',
+        'group_erp_manager',
+        (1, 0, 0, 0),
+    ),
     ('ir_module_module', 'base.IrModule', 'group_system', (1, 1, 1, 1)),
-    ('ir_module_module_dependency', 'base.IrModuleDependency', 'group_system',
-     (1, 1, 1, 1)),
+    (
+        'ir_module_module_dependency',
+        'base.IrModuleDependency',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
     ('ir_sequence group_user', 'base.IrSequence', 'group_user', (1, 0, 0, 0)),
-    ('ir_sequence group_system', 'base.IrSequence', 'group_system',
-     (1, 1, 1, 1)),
+    (
+        'ir_sequence group_system',
+        'base.IrSequence',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
     ('ir_ui_view group_user', 'base.IrUiView', None, (0, 0, 0, 0)),
     ('ir_ui_view group_system', 'base.IrUiView', 'group_system', (1, 1, 1, 1)),
-    ('ir_ui_view_custom_group_user', 'base.IrUiViewCustom', 'group_system',
-     (1, 1, 1, 1)),
+    (
+        'ir_ui_view_custom_group_user',
+        'base.IrUiViewCustom',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
     ('res_partner group_user', 'base.ResPartner', 'group_user', (1, 0, 0, 0)),
-    ('res_partner group_portal', 'base.ResPartner', 'group_portal',
-     (1, 0, 0, 0)),
-    ('res_partner group_public', 'base.ResPartner', 'group_public',
-     (1, 0, 0, 0)),
-    ('res_partner group_partner_manager', 'base.ResPartner',
-     'group_partner_manager', (1, 1, 1, 1)),
-    ('res_partner_category group_user', 'base.ResPartnerCategory',
-     'group_user', (1, 0, 0, 0)),
-    ('res_partner_category group_partner_manager', 'base.ResPartnerCategory',
-     'group_partner_manager', (1, 1, 1, 1)),
+    (
+        'res_partner group_portal',
+        'base.ResPartner',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_partner group_public',
+        'base.ResPartner',
+        'group_public',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_partner group_partner_manager',
+        'base.ResPartner',
+        'group_partner_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_partner_category group_user',
+        'base.ResPartnerCategory',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_partner_category group_partner_manager',
+        'base.ResPartnerCategory',
+        'group_partner_manager',
+        (1, 1, 1, 1),
+    ),
     ('res_users group_user', 'base.ResUsers', 'group_user', (1, 0, 0, 0)),
     ('res_users group_portal', 'base.ResUsers', 'group_portal', (1, 0, 0, 0)),
     ('res_users group_public', 'base.ResUsers', 'group_public', (1, 0, 0, 0)),
-    ('res_users group_erp_manager', 'base.ResUsers', 'group_erp_manager',
-     (1, 1, 1, 1)),
-    ('res_users_apikeys group_user', 'base.ResUsersApikeys', 'group_user',
-     (1, 0, 0, 0)),
-    ('res_users_apikeys group_portal', 'base.ResUsersApikeys', 'group_portal',
-     (1, 0, 0, 0)),
+    (
+        'res_users group_erp_manager',
+        'base.ResUsers',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
+    (
+        'res_users_apikeys group_user',
+        'base.ResUsersApikeys',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_users_apikeys group_portal',
+        'base.ResUsersApikeys',
+        'group_portal',
+        (1, 0, 0, 0),
+    ),
 )
 
 
@@ -112,8 +171,11 @@ def _group_by_xmlid(xmlid, using, IrModelData, ResGroups):
     ACL cuyo grupo no existe queda sin sembrar, así que no concede nada. Lo
     contrario —sembrarla como global— la convertiría en un permiso para todos.
     """
-    data = IrModelData.objects.using(using).filter(
-        module='base', name=xmlid, model='base.ResGroups').first()
+    data = (
+        IrModelData.objects.using(using)
+        .filter(module='base', name=xmlid, model='base.ResGroups')
+        .first()
+    )
     if data is None:
         return None
     return ResGroups.objects.using(using).filter(pk=data.res_id).first()
@@ -135,8 +197,7 @@ def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
             continue
         group = None
         if group_xmlid is not None:
-            group = _group_by_xmlid(group_xmlid, using,
-                                    IrModelData, ResGroups)
+            group = _group_by_xmlid(group_xmlid, using, IrModelData, ResGroups)
             if group is None:
                 continue
         model_row, _ = IrModel.objects.using(using).get_or_create(
@@ -159,15 +220,18 @@ def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
 
 def seed(using=DEFAULT_DB_ALIAS):
     """Sobre los modelos vivos — entrada del catálogo de tests."""
-    return _seed(_live_apps, _IrModel, _IrModelAccess, _IrModelData,
-                 _ResGroups, using)
+    return _seed(
+        _live_apps, _IrModel, _IrModelAccess, _IrModelData, _ResGroups, using
+    )
 
 
 def seed_base_acl(apps, alias):
     """Sobre los modelos históricos — entrada de la migración."""
-    return _seed(apps,
-                 apps.get_model('base', 'IrModel'),
-                 apps.get_model('base', 'IrModelAccess'),
-                 apps.get_model('base', 'IrModelData'),
-                 apps.get_model('base', 'ResGroups'),
-                 alias)
+    return _seed(
+        apps,
+        apps.get_model('base', 'IrModel'),
+        apps.get_model('base', 'IrModelAccess'),
+        apps.get_model('base', 'IrModelData'),
+        apps.get_model('base', 'ResGroups'),
+        alias,
+    )

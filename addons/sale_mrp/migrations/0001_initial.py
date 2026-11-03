@@ -31,7 +31,9 @@ class Migration(migrations.Migration):
                 (
                     "line",
                     models.OneToOneField(
-                        help_text="Línea de venta origen (Odoo sale.order.line).",
+                        help_text=(
+                            "Línea de venta origen (Odoo sale.order.line)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="production_link",
                         to="sale.saleorderline",
@@ -41,7 +43,9 @@ class Migration(migrations.Migration):
                     "production",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Orden de fabricación (Odoo mrp.production).",
+                        help_text=(
+                            "Orden de fabricación (Odoo mrp.production)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_order_lines",
@@ -51,7 +55,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Fabricación de línea de orden de venta",
-                "verbose_name_plural": "Fabricaciones de líneas de orden de venta",
+                "verbose_name_plural": (
+                    "Fabricaciones de líneas de orden de venta"
+                ),
                 "db_table": "sale_order_line_production",
             },
         ),

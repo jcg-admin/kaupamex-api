@@ -1,0 +1,36 @@
+{
+  "artifact": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-contract-reconciliation.json",
+  "distinct_qualified_source_occurrences": 19,
+  "contract_dimensions": [
+    "reference_revision",
+    "reference_symbol",
+    "behavior",
+    "execution_flow",
+    "inputs_outputs",
+    "side_effects",
+    "dependencies",
+    "consumers",
+    "installed_mechanism",
+    "existing_adaptation",
+    "verification",
+    "equivalence",
+    "limitations",
+    "integration"
+  ],
+  "reference_reused_by_hash": true,
+  "acceptance": "All19remain not_verified; not a full-file or objective completion",
+  "consumer_source_reextracted": "Graph and IrModule changed; existing file_inventory algorithm only",
+  "remaining_named_ir_module_occurrences": 60,
+  "discriminators": {
+    "A": "Existing owner inventory tests preserve class-qualified homonyms; no changed extractor, reuse prior evidence",
+    "B": "Existing signature parity tests/headers retained; current records include signature and original annotations/header",
+    "C": "Existing rename resolver retained; installed_version explicitly maps stored reference latest_version, not its homonymous computed field",
+    "D": "Existing body classification retained; no stub acceptance, current producer/finalization remains pending",
+    "E": "Real Django one-query snapshot, actual PostgreSQL field migration and twoDB alias evidence, not generic handled-by-stack assertion",
+    "F": "Stored version model + actual migration + catalogue nonmutation + graph reader mapped as one distributed contract under0382",
+    "G": "All19reference records retain pending acceptance; imported metadata and cached lifecycle remain explicit",
+    "H": "Native0391/0392completed exports do not change19symbol acceptance or official0382pending",
+    "I": "Structural records19 and other60pending are distinct from verified controls and accepted contracts"
+  },
+  "limits": "Historical nested/conditional/dynamic extraction blind spots remain; no new generic acceptance engine; semantic file completeness not established"
+}

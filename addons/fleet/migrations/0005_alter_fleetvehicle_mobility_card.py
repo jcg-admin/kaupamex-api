@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo mobility_card (compute+store — lo refresca el receptor pre_save de hr_fleet).",
+                help_text=(
+                    "Odoo mobility_card (compute+store — lo refresca el"
+                    " receptor pre_save de hr_fleet)."
+                ),
                 verbose_name="Tarjeta de movilidad",
             ),
         ),

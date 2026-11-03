@@ -60,7 +60,8 @@ def measure():
         orm = package_root / 'orm'
         flat = {
             name: _lines(package_root / name)
-            for name in FLAT_ORM_18 if (package_root / name).is_file()
+            for name in FLAT_ORM_18
+            if (package_root / name).is_file()
         }
         result[alias] = {
             'root': str(root),
@@ -78,15 +79,22 @@ def main():
     destination = RUN_DIR / 'outputs' / 'orm-across-trees.json'
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
-        json.dumps(result, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
+        json.dumps(result, indent=1, ensure_ascii=False) + '\n',
+        encoding='utf-8',
+    )
     header = f"{'alias':9} {'odoo/':6} {'odoo/orm/':10} {'.py':>4}  ORM plano"
     print(header)
     print('-' * len(header))
     for alias, data in result.items():
-        flat = ' '.join(f'{k}={v}' for k, v in data['flat_orm_files'].items()) or '—'
-        print(f"{alias:9} {'si' if data['odoo_dir'] else 'NO':6} "
-              f"{'si' if data['orm_package'] else 'NO':10} "
-              f"{data['orm_files']:>4}  {flat}")
+        flat = (
+            ' '.join(f'{k}={v}' for k, v in data['flat_orm_files'].items())
+            or '—'
+        )
+        print(
+            f"{alias:9} {'si' if data['odoo_dir'] else 'NO':6} "
+            f"{'si' if data['orm_package'] else 'NO':10} "
+            f"{data['orm_files']:>4}  {flat}"
+        )
     print(f'\n{destination}')
     return 0
 

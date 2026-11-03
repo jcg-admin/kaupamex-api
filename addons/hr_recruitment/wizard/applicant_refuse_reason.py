@@ -32,6 +32,7 @@ Porte símbolo por símbolo — 8 de 10, 2 BLOQUEADOS
        mixin ausente — usa ``MailTemplate.render()`` cuando hay plantilla,
        literal si no; mismo criterio que ``applicant_send_mail.py``)
 """
+
 from datetime import datetime
 
 from django.apps import apps
@@ -54,14 +55,19 @@ class ApplicantGetRefuseReason(TransientModel):
     @classmethod
     def default_refuse_reason(cls):
         """≙ ``_default_refuse_reason_id`` (``odoo19c: :14-15``)."""
-        HrApplicantRefuseReason = apps.get_model('hr_recruitment', 'HrApplicantRefuseReason')
+        HrApplicantRefuseReason = apps.get_model(
+            'hr_recruitment', 'HrApplicantRefuseReason'
+        )
         return HrApplicantRefuseReason.objects.order_by('sequence').first()
 
     @classmethod
     def applicants_without_email(cls, applicants):
         """≙ ``_compute_applicant_without_email`` (``odoo19c: :51-61``)."""
-        return [a for a in applicants
-                if not a.email_from and not (a.partner_id and a.partner.email)]
+        return [
+            a
+            for a in applicants
+            if not a.email_from and not (a.partner_id and a.partner.email)
+        ]
 
     @classmethod
     def duplicate_applicants(cls, applicants):
@@ -89,7 +95,12 @@ class ApplicantGetRefuseReason(TransientModel):
         """≙ ``_get_related_original_applicants`` (``odoo19c: :145-160``) —
         para cada duplicado, el candidato "original" de ``applicants`` con
         el que comparte correo/teléfono/linkedin (o ``id``)."""
-        fields_to_check = ['pk', 'email_normalized', 'partner_phone_sanitized', 'linkedin_profile']
+        fields_to_check = [
+            'pk',
+            'email_normalized',
+            'partner_phone_sanitized',
+            'linkedin_profile',
+        ]
         by_field = {f: {} for f in fields_to_check}
         for original in applicants:
             for field in fields_to_check:
@@ -106,8 +117,15 @@ class ApplicantGetRefuseReason(TransientModel):
         return related
 
     @classmethod
-    def prepare_mail_values(cls, applicant, refuse_reason, template=None,
-                            subject='', body='', author=None):
+    def prepare_mail_values(
+        cls,
+        applicant,
+        refuse_reason,
+        template=None,
+        subject='',
+        body='',
+        author=None,
+    ):
         """≙ ``_prepare_mail_values`` (``odoo19c: :167-181``)."""
         if template is not None:
             rendered = template.render(applicant)
@@ -119,9 +137,17 @@ class ApplicantGetRefuseReason(TransientModel):
         return {'subject': subject, 'body': body, 'author': author}
 
     @classmethod
-    def action_refuse_reason_apply(cls, applicants, refuse_reason, send_mail=False,
-                                   duplicates=False, template=None, subject='',
-                                   body='', author=None):
+    def action_refuse_reason_apply(
+        cls,
+        applicants,
+        refuse_reason,
+        send_mail=False,
+        duplicates=False,
+        template=None,
+        subject='',
+        body='',
+        author=None,
+    ):
         """≙ ``action_refuse_reason_apply`` (``odoo19c: :115-143``).
 
         :param applicants: candidatos elegidos explícitamente.
@@ -133,36 +159,53 @@ class ApplicantGetRefuseReason(TransientModel):
         applicants = list(applicants)
         if send_mail:
             for applicant in applicants:
-                if not applicant.email_from and not (applicant.partner_id and applicant.partner.email):
-                    raise ValueError(_(
-                        'Al menos un candidato no tiene correo; no puedes '
-                        'usar la opción de enviar correo.',
-                    ))
+                if not applicant.email_from and not (
+                    applicant.partner_id and applicant.partner.email
+                ):
+                    raise ValueError(
+                        _(
+                            'Al menos un candidato no tiene correo; no puedes '
+                            'usar la opción de enviar correo.',
+                        )
+                    )
         refused = list(applicants)
-        duplicate_list = cls.duplicate_applicants(applicants) if duplicates else []
+        duplicate_list = (
+            cls.duplicate_applicants(applicants) if duplicates else []
+        )
         if duplicate_list:
             refused += duplicate_list
-            originals = cls.related_original_applicants(applicants, duplicate_list)
+            originals = cls.related_original_applicants(
+                applicants, duplicate_list
+            )
             for duplicate in duplicate_list:
                 original = originals.get(duplicate)
                 if original is not None:
-                    duplicate.message_post(body=_(
-                        'Rechazado automáticamente por ser un duplicado de %(name)s',
-                        name=original.partner_name or '',
-                    ))
+                    duplicate.message_post(
+                        body=_(
+                            'Rechazado automáticamente por ser un duplicado de'
+                            ' %(name)s',
+                            name=original.partner_name or '',
+                        )
+                    )
 
         now = datetime.now()
         for applicant in refused:
             applicant.refuse_reason = refuse_reason
             applicant.active = False
             applicant.refuse_date = now
-            applicant.save(update_fields=['refuse_reason', 'active', 'refuse_date'])
+            applicant.save(
+                update_fields=['refuse_reason', 'active', 'refuse_date']
+            )
 
         if send_mail:
             for applicant in applicants:
                 mail_values = cls.prepare_mail_values(
-                    applicant, refuse_reason, template=template,
-                    subject=subject, body=body, author=author,
+                    applicant,
+                    refuse_reason,
+                    template=template,
+                    subject=subject,
+                    body=body,
+                    author=author,
                 )
                 applicant.message_post(**mail_values)
 

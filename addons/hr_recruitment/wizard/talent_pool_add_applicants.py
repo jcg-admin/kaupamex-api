@@ -29,6 +29,7 @@ Django (``.add()``) y ``HrApplicant.objects.create()`` reconstruyendo los
 ``vals`` (mismo criterio que ``job_add_applicants.py`` de este addon —
 sin recordset ``copy()`` en este ORM).
 """
+
 from orm.models_transient import TransientModel
 
 
@@ -77,7 +78,9 @@ class TalentPoolAddApplicants(TransientModel):
         return talents
 
     @classmethod
-    def action_add_applicants_to_pool(cls, applicants, talent_pools, categories):
+    def action_add_applicants_to_pool(
+        cls, applicants, talent_pools, categories
+    ):
         """≙ ``action_add_applicants_to_pool`` (``odoo19c: :51-72``) —
         devuelve los talentos; sin acción de cliente (familia b)."""
         return cls.add_applicants_to_pool(applicants, talent_pools, categories)

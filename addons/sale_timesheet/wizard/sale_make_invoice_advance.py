@@ -13,7 +13,8 @@ Por qué este archivo no declara ningún asistente
 ==================================================
 
 El asistente base **no existe en este árbol**: ``sale.advance.payment.inv`` lo
-declara ``sale`` (``odoo19c: addons/sale/wizard/sale_make_invoice_advance.py``),
+declara ``sale`` (``odoo19c:
+addons/sale/wizard/sale_make_invoice_advance.py``),
 y el puerto de ``sale`` aquí **no tiene directorio ``wizard/``** — medido:
 ``ls addons/sale/`` da ``controllers/``, ``data/``, ``migrations/``,
 ``models/``, ``report/``, ``security/`` y ningún ``wizard/``; 0 hits de
@@ -46,7 +47,8 @@ Porte símbolo por símbolo — 0 de 5
        tiene tabla en este árbol.
    * - ``invoicing_timesheet_enabled`` (:15)
      - **BLOQUEADO** por el asistente base **y** por su compute (:20-28), que
-       filtra las líneas por ``invoice_status == 'to invoice'`` (``addons/sale``,
+       filtra las líneas por ``invoice_status == 'to invoice'``
+       (``addons/sale``,
        0 hits) y los productos por ``_is_delivered_timesheet``, bloqueado a su
        vez en ``models/product_product.py``.
    * - ``_compute_invoicing_timesheet_enabled`` (:20-28)

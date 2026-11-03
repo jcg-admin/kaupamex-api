@@ -14,19 +14,23 @@ La conducta que se mide no es «convierte una fecha»: es que devuelve
 no lleva zona ni microsegundos. Un consumidor que serialice el resultado
 depende de las tres cosas.
 """
+
 import datetime as dt
 from zoneinfo import ZoneInfo
 
 import pytest
 
 from orm.fields_temporal import Date, Datetime
-from tools.misc import (DEFAULT_SERVER_DATE_FORMAT,
-                        DEFAULT_SERVER_DATETIME_FORMAT)
+from tools.misc import (
+    DEFAULT_SERVER_DATE_FORMAT,
+    DEFAULT_SERVER_DATETIME_FORMAT,
+)
 
 pytestmark = pytest.mark.unit
 
 
 # -- ``Date.to_string`` (``fields_temporal.py:164-173``) ---------------------
+
 
 def test_date_to_string_uses_the_server_date_format():
     """El formato es el declarado, no uno escrito a mano en el porte."""
@@ -41,8 +45,9 @@ def test_date_to_string_truncates_the_time_part():
 
 def test_date_to_string_truncates_the_timezone():
     """Un instante con zona pierde la zona, no se convierte a otra."""
-    aware = dt.datetime(2026, 9, 2, 4, 5, 6,
-                        tzinfo=ZoneInfo('America/Mexico_City'))
+    aware = dt.datetime(
+        2026, 9, 2, 4, 5, 6, tzinfo=ZoneInfo('America/Mexico_City')
+    )
     assert Date.to_string(aware) == '2026-09-02'
 
 
@@ -58,10 +63,13 @@ def test_date_to_string_returns_false_for_a_falsy_value():
 
 # -- ``Datetime.to_string`` (``fields_temporal.py:255-264``) -----------------
 
+
 def test_datetime_to_string_uses_the_server_datetime_format():
     """Fecha y hora separadas por un espacio, sin la ``T`` de ISO 8601."""
-    assert (Datetime.to_string(dt.datetime(2026, 9, 2, 4, 5, 6))
-            == '2026-09-02 04:05:06')
+    assert (
+        Datetime.to_string(dt.datetime(2026, 9, 2, 4, 5, 6))
+        == '2026-09-02 04:05:06'
+    )
     assert DEFAULT_SERVER_DATETIME_FORMAT == '%Y-%m-%d %H:%M:%S'
 
 
@@ -83,8 +91,9 @@ def test_datetime_to_string_keeps_the_wall_clock_of_an_aware_value():
     que ``convert_to_display_name`` aplica **antes** de llamar aquí
     (``fields_temporal.py:290-293``). ``to_string`` sola no la hace.
     """
-    aware = dt.datetime(2026, 9, 2, 4, 5, 6,
-                        tzinfo=ZoneInfo('America/Mexico_City'))
+    aware = dt.datetime(
+        2026, 9, 2, 4, 5, 6, tzinfo=ZoneInfo('America/Mexico_City')
+    )
     assert Datetime.to_string(aware) == '2026-09-02 04:05:06'
 
 

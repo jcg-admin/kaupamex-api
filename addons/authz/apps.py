@@ -5,6 +5,7 @@ la autorización nativa de Django (is_staff/is_superuser/groups): Module,
 Capability, Role, RoleAssignment, DirectEntitlement, EntitlementRevocation y
 AuthzEvent. SOL-016, iniciativa crear-apps-authz.
 """
+
 from django.apps import AppConfig
 
 

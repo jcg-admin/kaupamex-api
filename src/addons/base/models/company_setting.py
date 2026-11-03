@@ -57,14 +57,16 @@ class CompanySetting(TimeStampedModel):
     """
 
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, related_name='settings',
+        ResCompany,
+        null=False, on_delete=models.CASCADE,
+        related_name='settings',
         verbose_name='Empresa',
     )
     key = fields.Char(max_length=255, verbose_name='Clave')
     value = fields.Text(verbose_name='Valor')
 
-    objects = models.AccessManager()         # cross-company (L0 admin)
-    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
+    objects = models.AccessManager()  # cross-company (L0 admin)
+    scoped = RuleScopedManager()  # L3: record rules (ir_rule)
 
     class Meta:
         db_table = 'company_setting'
@@ -108,10 +110,11 @@ class CompanySetting(TimeStampedModel):
         if company_id is None:
             return default
         with company_scope(company_id):
-            value = (cls.objects
-                     .filter(company_id=company_id, key=key)
-                     .values_list('value', flat=True)
-                     .first())
+            value = (
+                cls.objects.filter(company_id=company_id, key=key)
+                .values_list('value', flat=True)
+                .first()
+            )
         return value if value is not None else default
 
     @classmethod
@@ -128,7 +131,9 @@ class CompanySetting(TimeStampedModel):
             )
         with company_scope(company_id):
             obj, created = cls.objects.get_or_create(
-                company_id=company_id, key=key, defaults={'value': str(value)},
+                company_id=company_id,
+                key=key,
+                defaults={'value': str(value)},
             )
             if not created and obj.value != str(value):
                 obj.value = str(value)

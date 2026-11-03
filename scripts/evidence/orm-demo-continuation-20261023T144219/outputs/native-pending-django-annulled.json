@@ -1,0 +1,33 @@
+{
+  "head": "92a84833f01d5d4c54aaf5df3a9ba74cdd0c4773",
+  "index_tree": "175576ebad9eac6ab71c30f3b76bdace86d74802",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py"
+  },
+  "source_sha256": {
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.fields": "ea2e13b311a6c98704a15e1e245e554c85d756fc8725aeb56bfbabcfb7cbe828"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_native_pending_recompute.py": "dfc43324f097d1c73ac0ba1c4fca478720fb9fb0171dc08462ebe742b99640a4"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": false,
+  "annul_canonical_scope": false,
+  "annul_record_sudo": false,
+  "keyword_only": false,
+  "batch_only": false,
+  "stored_only": false,
+  "pending_only": true,
+  "annul_native_pending": false,
+  "annul_django_absence": true,
+  "annul_stored_guard": false,
+  "annul_m2m_readback": false,
+  "annul_native_batch": false,
+  "pytest_exit": 1,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}

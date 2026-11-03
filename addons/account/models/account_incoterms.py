@@ -1,10 +1,13 @@
-"""``account.incoterms`` — Adaptación de Odoo addons/account/models/account_incoterms.py
+"""
+``account.incoterms`` — Adaptación de Odoo
+addons/account/models/account_incoterms.py
 (odoo-tools@622ddc2a, odoo19c:).
 
 Catálogo de Incoterms (términos de comercio internacional): dividen costos y
 responsabilidades de transporte entre comprador y vendedor. Campos núcleo:
 ``name``, ``code`` (3 caracteres), ``active``.
 """
+
 import fields
 import models
 
@@ -18,8 +21,9 @@ class AccountIncoterms(models.Model):
     )
     code = fields.Char(
         max_length=3,
-        help_text='Código estándar del Incoterm, ej. "FOB" (Odoo code, '
-                  'requerido).',
+        help_text=(
+            'Código estándar del Incoterm, ej. "FOB" (Odoo code, requerido).'
+        ),
     )
     active = fields.Boolean(
         default=True,

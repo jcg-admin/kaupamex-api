@@ -1,4 +1,5 @@
 """AppConfig del addon ``mass_mailing`` (hogar Odoo de la newsletter)."""
+
 from django.apps import AppConfig
 
 

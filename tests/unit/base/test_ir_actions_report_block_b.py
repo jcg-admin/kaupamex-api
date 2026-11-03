@@ -11,6 +11,7 @@ construyó: el evaluador general (``tools.safe_eval``, tarea #140),
 ``_get_action_dict`` (``IrActionsBase``) y los dos de origen remoto de
 ``IrAttachment``. Declararlos como divergencia era el camino barato.
 """
+
 import inspect
 
 import pytest
@@ -39,12 +40,14 @@ class TestTheAttachmentIsResolvedByEvaluatingItsExpression:
     def test_the_stored_expression_names_the_attachment(self):
         report = _report(attachment="'INV_%s.pdf' % object.name")
         partner = IrAttachment.objects.create(
-            name='INV_ACME.pdf', res_model='res.partner', res_id=7)
+            name='INV_ACME.pdf', res_model='res.partner', res_id=7
+        )
         found = report.retrieve_attachment(_Record(pk=7, name='ACME'))
         assert found == partner
 
     def test_the_conditional_expression_of_the_reference_branches_both_ways(
-            self):
+        self,
+    ):
         """La forma canónica del campo, medida en sus DOS ramas.
 
         Con una sola rama el caso no discriminaba: anulando el evaluador, el
@@ -52,21 +55,34 @@ class TestTheAttachmentIsResolvedByEvaluatingItsExpression:
         rama que sí lo distingue es la que **encuentra** algo, porque exige
         que la expresión se haya evaluado de verdad.
         """
-        expression = ("(object.state in ('open', 'paid')) and "
-                      "((object.name or 'Invoice').replace('/', '') + '.pdf')")
+        expression = (
+            "(object.state in ('open', 'paid')) and "
+            "((object.name or 'Invoice').replace('/', '') + '.pdf')"
+        )
         report = _report(attachment=expression)
 
         paid = IrAttachment.objects.create(
-            name='INV2026001.pdf', res_model='res.partner', res_id=3)
-        assert report.retrieve_attachment(
-            _Record(pk=3, name='INV/2026/001', state='paid')) == paid
+            name='INV2026001.pdf', res_model='res.partner', res_id=3
+        )
+        assert (
+            report.retrieve_attachment(
+                _Record(pk=3, name='INV/2026/001', state='paid')
+            )
+            == paid
+        )
 
-        assert report.retrieve_attachment(
-            _Record(pk=1, name='INV/1', state='draft')) is None
+        assert (
+            report.retrieve_attachment(
+                _Record(pk=1, name='INV/1', state='draft')
+            )
+            is None
+        )
 
     def test_without_expression_there_is_nothing_to_look_for(self):
-        assert _report(attachment='').retrieve_attachment(
-            _Record(pk=1, name='x')) is None
+        assert (
+            _report(attachment='').retrieve_attachment(_Record(pk=1, name='x'))
+            is None
+        )
 
     def test_the_expression_runs_under_the_same_guards_as_anywhere_else(self):
         # Control de que el evaluador es el acotado y no un `eval` pelado.
@@ -77,7 +93,8 @@ class TestTheAttachmentIsResolvedByEvaluatingItsExpression:
     def test_it_does_not_find_an_attachment_of_another_record(self):
         report = _report(attachment="'FIJO.pdf'")
         IrAttachment.objects.create(
-            name='FIJO.pdf', res_model='res.partner', res_id=99)
+            name='FIJO.pdf', res_model='res.partner', res_id=99
+        )
         assert report.retrieve_attachment(_Record(pk=7, name='x')) is None
 
 
@@ -112,14 +129,16 @@ class TestTheLayoutAndTheUrl:
         assert _report()._get_layout() is None
 
     def test_the_parameter_wins_over_the_base_url(self):
-        SystemParameter.objects.create(key='report.url',
-                                       value='https://reports.example')
+        SystemParameter.objects.create(
+            key='report.url', value='https://reports.example'
+        )
         registry.clear_cache('stable')
         assert _report()._get_report_url() == 'https://reports.example'
 
     def test_without_the_parameter_it_falls_back_to_the_base_url(self):
-        SystemParameter.objects.create(key='web.base.url',
-                                       value='https://base.example')
+        SystemParameter.objects.create(
+            key='web.base.url', value='https://base.example'
+        )
         registry.clear_cache('stable')
         assert _report()._get_report_url() == 'https://base.example'
 
@@ -171,13 +190,17 @@ class TestTheReportsWhoseDomainAcceptsARecord:
     def test_a_report_without_a_domain_is_always_valid(self):
         report = _report(model='res.partner', domain='')
         assert report.pk in IrActionsReport.get_valid_action_reports(
-            'res.partner', [])
+            'res.partner', []
+        )
 
     def test_a_report_with_a_domain_no_record_satisfies_is_left_out(self):
-        report = _report(model='res.partner',
-                         domain="[('name', '=', 'no existe nadie asi')]")
+        report = _report(
+            model='res.partner',
+            domain="[('name', '=', 'no existe nadie asi')]",
+        )
         assert report.pk not in IrActionsReport.get_valid_action_reports(
-            'res.partner', [])
+            'res.partner', []
+        )
 
     def test_the_signature_is_the_one_of_the_reference(self):
         firma = inspect.signature(IrActionsReport.get_valid_action_reports)
@@ -186,8 +209,10 @@ class TestTheReportsWhoseDomainAcceptsARecord:
     def test_it_is_a_different_method_from_the_group_filter(self):
         # `valid_reports_for` filtra por `group_ids` y es NUESTRO; hasta este
         # pase su docstring lo presentaba como el porte de aquél.
-        assert IrActionsReport.get_valid_action_reports is not \
-            IrActionsReport.valid_reports_for
+        assert (
+            IrActionsReport.get_valid_action_reports
+            is not IrActionsReport.valid_reports_for
+        )
         assert '**Nuestro.**' in IrActionsReport.valid_reports_for.__doc__
 
 
@@ -198,26 +223,35 @@ class TestTheRemoteAttachmentsAreBroughtLocal:
         remoto = IrAttachment(url='https://x/y.png', file_size=0)
         assert remoto._is_remote_source()
 
-    @pytest.mark.parametrize('url,file_size', [
-        ('', 0),                       # sin url
-        ('https://x/y.png', 4096),     # ya bajado
-        ('data:image/png;base64,AA', 0),  # esquema que no se va a buscar
-    ])
+    @pytest.mark.parametrize(
+        'url,file_size',
+        [
+            ('', 0),  # sin url
+            ('https://x/y.png', 4096),  # ya bajado
+            ('data:image/png;base64,AA', 0),  # esquema que no se va a buscar
+        ],
+    )
     def test_each_of_the_three_marks_is_necessary(self, url, file_size):
-        assert not IrAttachment(url=url, file_size=file_size)._is_remote_source()
+        assert not IrAttachment(
+            url=url, file_size=file_size
+        )._is_remote_source()
 
     def test_migrating_a_binary_attachment_is_a_no_op(self):
         assert IrAttachment(type='binary')._migrate_remote_to_local() is None
 
     def test_migrating_a_url_attachment_is_refused(self):
         with pytest.raises(ValidationError, match='migrated to local'):
-            IrAttachment(url='https://x', type='url')._migrate_remote_to_local()
+            IrAttachment(
+                url='https://x', type='url'
+            )._migrate_remote_to_local()
 
     def test_it_keeps_the_local_ones_and_drops_the_remote_it_cannot_migrate(
-            self):
+        self,
+    ):
         local = IrAttachment.objects.create(name='local', file_size=10)
         remoto = IrAttachment.objects.create(
-            name='remoto', url='https://x/y', file_size=0, type='url')
+            name='remoto', url='https://x/y', file_size=0, type='url'
+        )
         quedan = IrActionsReport._prepare_local_attachments([local, remoto])
         assert quedan == [local]
 
@@ -225,10 +259,12 @@ class TestTheRemoteAttachmentsAreBroughtLocal:
         # El `except` de la fuente registra y sigue: un adjunto que no se
         # puede migrar no debe tumbar el dibujado de los demás.
         roto = IrAttachment.objects.create(
-            name='roto', url='https://x/y', file_size=0, type='url')
+            name='roto', url='https://x/y', file_size=0, type='url'
+        )
         local = IrAttachment.objects.create(name='ok', file_size=1)
         assert IrActionsReport._prepare_local_attachments(
-            [roto, local, roto]) == [local]
+            [roto, local, roto]
+        ) == [local]
 
 
 class TestTheActionForTheClient:
@@ -243,12 +279,16 @@ class TestTheActionForTheClient:
         assert action['report_file'] == report.report_file
         assert action['name'] == report.name
 
-    @pytest.mark.parametrize('docids,esperados', [
-        (7, [7]),
-        ([1, 2], [1, 2]),
-    ])
-    def test_the_records_to_print_land_in_the_active_ids(self, docids,
-                                                         esperados):
+    @pytest.mark.parametrize(
+        'docids,esperados',
+        [
+            (7, [7]),
+            ([1, 2], [1, 2]),
+        ],
+    )
+    def test_the_records_to_print_land_in_the_active_ids(
+        self, docids, esperados
+    ):
         action = _report().report_action(docids, config=False)
         assert action['context']['active_ids'] == esperados
 

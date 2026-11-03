@@ -14,10 +14,12 @@ derecho, asi que un caso comprueba que la primitiva sigue abierta. Si alguien
 mueve la guarda dentro de ``_generate``, ese caso cae. Medido: moviendola,
 el subconjunto pasa de 6 passed a 1 failed, 5 passed.
 """
+
 from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from addons.base.models.res_groups import ResGroups
@@ -30,8 +32,9 @@ User = get_user_model()
 
 def _user_of_type(login, user_type):
     account = User.objects.create_user(login=login, password='Clave123!')
-    group = ResGroups.objects.create(name=f'grupo-{user_type}',
-                                     user_type=user_type)
+    group = ResGroups.objects.create(
+        name=f'grupo-{user_type}', user_type=user_type
+    )
     account.group_ids.add(group)
     return account
 
@@ -59,8 +62,9 @@ def test_a_portal_user_is_refused(portal):
 
 def test_a_user_with_no_type_is_refused(db):
     """Sin grupo no hay tipo, y la guarda es fail-closed."""
-    account = User.objects.create_user(login='suelto@example.com',
-                                       password='Clave123!')
+    account = User.objects.create_user(
+        login='suelto@example.com', password='Clave123!'
+    )
     with user_scope(account.pk):
         with pytest.raises(AccessError):
             ResUsersApikeys.check_access_make_key()
@@ -96,3 +100,23 @@ def test_generate_stays_open_for_a_portal_user(portal):
     with user_scope(portal.pk):
         key = ResUsersApikeys._generate('browser', 'este navegador', caduca)
     assert key
+
+
+def test_generate_inserts_below_the_orm(portal):
+    """≙ ``INSERT INTO {table} ...`` (``odoo19c: res_users.py:1604-1609``):
+    la fuente no pasa por el ``create`` del ORM, así que tampoco aquí corre
+    ``save()`` ni su señal."""
+    saved = []
+
+    def receiver(sender, instance, **kwargs):
+        saved.append(instance.pk)
+
+    post_save.connect(receiver, sender=ResUsersApikeys)
+    try:
+        with user_scope(portal.pk):
+            key = ResUsersApikeys._generate(
+                'browser', 'sin save', timezone.now() + timedelta(hours=12))
+    finally:
+        post_save.disconnect(receiver, sender=ResUsersApikeys)
+    assert key and saved == []
+    assert ResUsersApikeys.objects.filter(name='sin save', index=key[:8]).count() == 1

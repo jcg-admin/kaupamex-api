@@ -20,7 +20,8 @@ Divergencias documentadas
   ~55 años que crece cada 1° de enero no puede vivir ahí. Se guarda el año
   como entero; el rango válido (1970..hoy) se valida en el serializer.
 - **``vehicle_properties_definition`` → ``JSONField``** (``fields.Properties*``
-  ya son alias de ``JSONField`` en este árbol — ver ``orm/fields_properties.py``).
+  ya son alias de ``JSONField`` en este árbol — ver
+  ``orm/fields_properties.py``).
   Sin el motor de validación dinámica de esquema de Odoo (deferido).
 - **NO se porta ``action_model_vehicle``** — devuelve un diccionario de acción
   de ventana; la navegación la resuelve la capa de vistas/rutas.
@@ -28,6 +29,7 @@ Divergencias documentadas
   traducen un filtro a dominio del ORM de Odoo; en Django el ``Q()``
   equivalente lo arma el llamador (mismo criterio que ``ProductTag``).
 """
+
 from datetime import date
 
 import fields
@@ -73,76 +75,124 @@ class FleetVehicleModel(MailThread, TimeStampedModel):
 
     name = fields.Char(max_length=150, help_text='Odoo name (required).')
     brand = fields.Many2one(
-        'fleet.FleetVehicleModelBrand', on_delete=models.PROTECT,
-        related_name='models', help_text='Fabricante (Odoo brand_id, required).',
+        'fleet.FleetVehicleModelBrand',
+        null=False, on_delete=models.PROTECT,
+        related_name='models',
+        help_text='Fabricante (Odoo brand_id, required).',
     )
     category = fields.Many2one(
-        'fleet.FleetVehicleModelCategory', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='models',
+        'fleet.FleetVehicleModelCategory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='models',
         help_text='Categoría (Odoo category_id).',
     )
     vendors = fields.Many2many(
-        'base.ResPartner', blank=True,
-        db_table='fleet_vehicle_model_vendors', related_name='fleet_vehicle_models',
+        'base.ResPartner',
+        blank=True,
+        db_table='fleet_vehicle_model_vendors',
+        related_name='fleet_vehicle_models',
         help_text='Proveedores del modelo (Odoo vendor_ids).',
     )
     active = fields.Boolean(default=True, help_text='Odoo active.')
     vehicle_type = fields.Selection(
-        max_length=4, choices=VEHICLE_TYPES, default=VEHICLE_TYPE_CAR,
+        max_length=4,
+        choices=VEHICLE_TYPES,
+        default=VEHICLE_TYPE_CAR,
         help_text='Odoo vehicle_type.',
     )
     transmission = fields.Selection(
-        max_length=9, choices=TRANSMISSIONS, null=True, blank=True,
+        max_length=9,
+        choices=TRANSMISSIONS,
+        null=True,
+        blank=True,
         help_text='Odoo transmission.',
     )
     model_year = fields.Integer(
-        null=True, blank=True,
-        help_text='Año del modelo (Odoo model_year, Selection dinámico '
-                   '1970..hoy → entero; ver docstring del módulo).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Año del modelo (Odoo model_year, Selection dinámico '
+            '1970..hoy → entero; ver docstring del módulo).'
+        ),
     )
-    color = fields.Char(max_length=50, blank=True, default='', help_text='Odoo color.')
+    color = fields.Char(
+        max_length=50, blank=True, default='', help_text='Odoo color.'
+    )
     seats = fields.Integer(null=True, blank=True, help_text='Odoo seats.')
     doors = fields.Integer(
-        null=True, blank=True,
-        help_text='Número de puertas, incluidas cajuela y portón trasero '
-                   'si aplica (Odoo doors).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Número de puertas, incluidas cajuela y portón trasero '
+            'si aplica (Odoo doors).'
+        ),
     )
     trailer_hook = fields.Boolean(
         default=False,
         help_text='Enganche de remolque (Odoo trailer_hook).',
     )
     default_co2 = fields.Float(
-        null=True, blank=True, help_text='Emisiones CO₂ por defecto (Odoo default_co2).',
+        null=True,
+        blank=True,
+        help_text='Emisiones CO₂ por defecto (Odoo default_co2).',
     )
     co2_standard = fields.Char(
-        max_length=150, blank=True, default='',
-        help_text='Norma de emisiones bajo la que se mide (Odoo co2_standard).',
+        max_length=150,
+        blank=True,
+        default='',
+        help_text=(
+            'Norma de emisiones bajo la que se mide (Odoo co2_standard).'
+        ),
     )
     default_fuel_type = fields.Selection(
-        max_length=23, choices=FUEL_TYPES, default='electric',
+        max_length=23,
+        choices=FUEL_TYPES,
+        default='electric',
         help_text='Odoo default_fuel_type.',
     )
-    power = fields.Float(null=True, blank=True, help_text='Potencia en kW (Odoo power).')
-    horsepower = fields.Float(null=True, blank=True, help_text='Odoo horsepower.')
-    horsepower_tax = fields.Float(null=True, blank=True, help_text='Odoo horsepower_tax.')
-    electric_assistance = fields.Boolean(default=False, help_text='Odoo electric_assistance.')
+    power = fields.Float(
+        null=True, blank=True, help_text='Potencia en kW (Odoo power).'
+    )
+    horsepower = fields.Float(
+        null=True, blank=True, help_text='Odoo horsepower.'
+    )
+    horsepower_tax = fields.Float(
+        null=True, blank=True, help_text='Odoo horsepower_tax.'
+    )
+    electric_assistance = fields.Boolean(
+        default=False, help_text='Odoo electric_assistance.'
+    )
     power_unit = fields.Selection(
-        max_length=10, choices=POWER_UNITS, default='power',
+        max_length=10,
+        choices=POWER_UNITS,
+        default='power',
         help_text='Odoo power_unit.',
     )
     vehicle_properties_definition = fields.PropertiesDefinition(
-        null=True, blank=True,
-        help_text='Esquema de propiedades dinámicas del modelo (Odoo '
-                   'vehicle_properties_definition). Sin motor de validación '
-                   'de esquema (deferido).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Esquema de propiedades dinámicas del modelo (Odoo '
+            'vehicle_properties_definition). Sin motor de validación '
+            'de esquema (deferido).'
+        ),
     )
-    vehicle_range = fields.Integer(null=True, blank=True, help_text='Odoo vehicle_range.')
+    vehicle_range = fields.Integer(
+        null=True, blank=True, help_text='Odoo vehicle_range.'
+    )
     range_unit = fields.Selection(
-        max_length=2, choices=RANGE_UNITS, default='km',
+        max_length=2,
+        choices=RANGE_UNITS,
+        default='km',
         help_text='Odoo range_unit.',
     )
     drive_type = fields.Selection(
-        max_length=4, choices=DRIVE_TYPES, null=True, blank=True,
+        max_length=4,
+        choices=DRIVE_TYPES,
+        null=True,
+        blank=True,
         help_text='Odoo drive_type.',
     )
 
@@ -175,7 +225,8 @@ class FleetVehicleModel(MailThread, TimeStampedModel):
 
     @staticmethod
     def year_choices():
-        """Rango válido de ``model_year`` — reemplaza el ``_get_year_selection``
+        """
+        Rango válido de ``model_year`` — reemplaza el ``_get_year_selection``
         dinámico de la referencia; lo consume el serializer, no el modelo."""
         current_year = date.today().year
         return list(range(1970, current_year + 1))

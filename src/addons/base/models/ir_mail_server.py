@@ -110,6 +110,7 @@ que lleva ``_name = 'ir.mail_server'``. Este árbol no deriva el nombre de
 clase del ``_name``, así que ese guion bajo no transporta información y sí
 rompe PEP 8. Se porta como ``IrMailServer``.
 """
+
 import logging
 import re
 from email.utils import formataddr
@@ -190,7 +191,9 @@ def extract_rfc2822_addresses(text):
     valid_addresses = []
     for candidate in _ADDRESS_PATTERN.findall(text):
         try:
-            valid_addresses.append(formataddr(('', candidate), charset='ascii'))
+            valid_addresses.append(
+                formataddr(('', candidate), charset='ascii')
+            )
         except (UnicodeEncodeError, UnicodeError):
             continue
     return valid_addresses
@@ -209,7 +212,8 @@ class IrMailServer(TimeStampedModel):
         'defecto de la plataforma.'
     )
     NO_FOUND_SMTP_FROM = (
-        'La cabecera Return-Path o From es obligatoria en todo correo saliente.'
+        'La cabecera Return-Path o From es obligatoria en todo correo'
+        ' saliente.'
     )
     NO_VALID_FROM = (
         'Dirección Return-Path o From malformada: debe contener un correo '
@@ -218,59 +222,101 @@ class IrMailServer(TimeStampedModel):
 
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     from_filter = fields.Char(
-        max_length=512, blank=True, default='', verbose_name='Filtro de remitente',
-        help_text='Lista separada por comas de direcciones o dominios para los '
-                  'que este servidor puede usarse; p. ej. '
-                  '"notificaciones@kaupamex.com" o "kaupamex.com". Vacío = '
-                  'sirve para cualquiera.',
+        max_length=512,
+        blank=True,
+        default='',
+        verbose_name='Filtro de remitente',
+        help_text=(
+            'Lista separada por comas de direcciones o dominios para los '
+            'que este servidor puede usarse; p. ej. '
+            '"notificaciones@kaupamex.com" o "kaupamex.com". Vacío = '
+            'sirve para cualquiera.'
+        ),
     )
     smtp_host = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Servidor SMTP',
-        help_text='Nombre de host o IP del servidor SMTP.')
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Servidor SMTP',
+        help_text='Nombre de host o IP del servidor SMTP.',
+    )
     smtp_port = fields.Integer(
-        default=25, verbose_name='Puerto SMTP',
-        help_text='Normalmente 465 para SSL, y 25 o 587 en el resto de casos.')
+        default=25,
+        verbose_name='Puerto SMTP',
+        help_text='Normalmente 465 para SSL, y 25 o 587 en el resto de casos.',
+    )
     smtp_authentication = fields.Selection(
-        max_length=16, choices=AUTHENTICATION_CHOICES, default=AUTH_LOGIN,
-        verbose_name='Autenticar con')
+        max_length=16,
+        choices=AUTHENTICATION_CHOICES,
+        default=AUTH_LOGIN,
+        verbose_name='Autenticar con',
+    )
     smtp_user = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Usuario',
-        help_text='SECRETO. La referencia lo restringe a nivel de campo con '
-                  'groups="base.group_system"; aquí NO se expone en el '
-                  'Meta.fields de ningún serializer.',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Usuario',
+        help_text=(
+            'SECRETO. La referencia lo restringe a nivel de campo con '
+            'groups="base.group_system"; aquí NO se expone en el '
+            'Meta.fields de ningún serializer.'
+        ),
     )
     smtp_pass = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Contraseña',
-        help_text='SECRETO. Mismo criterio que smtp_user: nunca en un '
-                  'serializer.',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Contraseña',
+        help_text=(
+            'SECRETO. Mismo criterio que smtp_user: nunca en un serializer.'
+        ),
     )
     smtp_encryption = fields.Selection(
-        max_length=32, choices=ENCRYPTION_CHOICES, default=ENCRYPTION_NONE,
+        max_length=32,
+        choices=ENCRYPTION_CHOICES,
+        default=ENCRYPTION_NONE,
         verbose_name='Cifrado de la conexión',
-        help_text='Las variantes "y validación" además autentican al servidor '
-                  'con su certificado; las de "sólo cifrado" no.',
+        help_text=(
+            'Las variantes "y validación" además autentican al servidor '
+            'con su certificado; las de "sólo cifrado" no.'
+        ),
     )
     smtp_ssl_certificate = fields.Binary(
-        null=True, blank=True, verbose_name='Certificado SSL',
-        help_text='SECRETO. Certificado usado para autenticar. Nunca en un '
-                  'serializer.',
+        null=True,
+        blank=True,
+        verbose_name='Certificado SSL',
+        help_text=(
+            'SECRETO. Certificado usado para autenticar. Nunca en un '
+            'serializer.'
+        ),
     )
     smtp_ssl_private_key = fields.Binary(
-        null=True, blank=True, verbose_name='Llave privada SSL',
-        help_text='SECRETO. Llave privada usada para autenticar. Nunca en un '
-                  'serializer.',
+        null=True,
+        blank=True,
+        verbose_name='Llave privada SSL',
+        help_text=(
+            'SECRETO. Llave privada usada para autenticar. Nunca en un '
+            'serializer.'
+        ),
     )
     smtp_debug = fields.Boolean(
-        default=False, verbose_name='Depuración',
-        help_text='Vuelca la sesión SMTP completa al log en nivel DEBUG. Muy '
-                  'verboso y puede incluir información confidencial.',
+        default=False,
+        verbose_name='Depuración',
+        help_text=(
+            'Vuelca la sesión SMTP completa al log en nivel DEBUG. Muy '
+            'verboso y puede incluir información confidencial.'
+        ),
     )
     max_email_size = fields.Float(
-        null=True, blank=True, verbose_name='Tamaño máximo del correo (MB)')
+        null=True, blank=True, verbose_name='Tamaño máximo del correo (MB)'
+    )
     sequence = fields.Integer(
-        default=10, verbose_name='Prioridad',
-        help_text='Cuando un correo no pide un servidor concreto se usa el de '
-                  'mayor prioridad. Número menor = prioridad mayor.',
+        default=10,
+        verbose_name='Prioridad',
+        help_text=(
+            'Cuando un correo no pide un servidor concreto se usa el de '
+            'mayor prioridad. Número menor = prioridad mayor.'
+        ),
     )
     active = fields.Boolean(default=True, verbose_name='Activo')
 
@@ -322,10 +368,10 @@ class IrMailServer(TimeStampedModel):
             return
         if not self.smtp_ssl_private_key:
             raise ValidationError(
-                f'Falta la llave privada SSL de {self.name}.')
+                f'Falta la llave privada SSL de {self.name}.'
+            )
         if not self.smtp_ssl_certificate:
-            raise ValidationError(
-                f'Falta el certificado SSL de {self.name}.')
+            raise ValidationError(f'Falta el certificado SSL de {self.name}.')
 
     def suggested_port(self):
         """``_onchange_encryption`` — puerto convencional según el cifrado.
@@ -360,7 +406,7 @@ class IrMailServer(TimeStampedModel):
             return
         lines = '\n'.join(f'- {item}' for item in detail)
         raise ValidationError(
-            f'No se puede archivar el servidor de correo saliente '
+            'No se puede archivar el servidor de correo saliente '
             f'({self.name}) porque sigue en uso en:\n{lines}'
         )
 
@@ -391,7 +437,7 @@ class IrMailServer(TimeStampedModel):
             + [f'- {item}' for item in blocked[server]]
         )
         raise ValidationError(
-            f'No se pueden archivar estos servidores de correo saliente '
+            'No se pueden archivar estos servidores de correo saliente '
             f'({names}) porque siguen en uso en:\n{lines}'
         )
 
@@ -401,8 +447,11 @@ class IrMailServer(TimeStampedModel):
         """``_get_max_email_size`` — el del servidor, o el parámetro global."""
         if self.max_email_size:
             return float(self.max_email_size)
-        return float(SystemParameter.get_param(
-            MAX_EMAIL_SIZE_PARAM, str(DEFAULT_MAX_EMAIL_SIZE)))
+        return float(
+            SystemParameter.get_param(
+                MAX_EMAIL_SIZE_PARAM, str(DEFAULT_MAX_EMAIL_SIZE)
+            )
+        )
 
     @staticmethod
     def get_default_from_address():
@@ -450,7 +499,8 @@ class IrMailServer(TimeStampedModel):
     def parse_from_filter(from_filter):
         """``_parse_from_filter`` — trocea el filtro y descarta lo vacío."""
         return [
-            part.strip() for part in (from_filter or '').split(',')
+            part.strip()
+            for part in (from_filter or '').split(',')
             if part.strip()
         ]
 
@@ -484,7 +534,9 @@ class IrMailServer(TimeStampedModel):
         return servers
 
     @classmethod
-    def find_mail_server(cls, email_from, servers=None, notifications_email=None):
+    def find_mail_server(
+        cls, email_from, servers=None, notifications_email=None
+    ):
         """``_find_mail_server`` — servidor **y** remitente a usar.
 
         Devuelve ``(servidor_o_None, email_from)``. Ver el docstring del
@@ -498,7 +550,9 @@ class IrMailServer(TimeStampedModel):
         normalized_from = email_normalize(email_from)
         from_domain = email_domain_extract(normalized_from)
         if notifications_email is None:
-            notifications_email = email_normalize(cls.get_default_from_address())
+            notifications_email = email_normalize(
+                cls.get_default_from_address()
+            )
         notifications_domain = email_domain_extract(notifications_email)
 
         if servers is None:
@@ -512,8 +566,10 @@ class IrMailServer(TimeStampedModel):
             for server in servers:
                 if not server.from_filter:
                     continue
-                if any(normalize(part) == target
-                       for part in cls.parse_from_filter(server.from_filter)):
+                if any(
+                    normalize(part) == target
+                    for part in cls.parse_from_filter(server.from_filter)
+                ):
                     return server
             return None
 
@@ -546,8 +602,10 @@ class IrMailServer(TimeStampedModel):
         # 5. Cualquier servidor, aunque esté configurado para otro dominio.
         if servers:
             _logger.warning(
-                'Ningún servidor de correo casa el filtro de remitente; se usa '
-                '%s como respaldo.', notifications_email or email_from)
+                'Ningún servidor de correo casa el filtro de remitente; se usa'
+                ' %s como respaldo.',
+                notifications_email or email_from,
+            )
             return servers[0], notifications_email or email_from
 
         # Sin filas: cae a la configuración global.
@@ -555,11 +613,14 @@ class IrMailServer(TimeStampedModel):
         if cls.match_from_filter(email_from, from_filter):
             return None, email_from
         if notifications_email and cls.match_from_filter(
-                notifications_email, from_filter):
+            notifications_email, from_filter
+        ):
             return None, notifications_email
 
         _logger.warning(
             'El filtro de remitente de la configuración global no casa el '
             'correo de notificaciones ni el del usuario; se usa %s como '
-            'respaldo.', notifications_email or email_from)
+            'respaldo.',
+            notifications_email or email_from,
+        )
         return None, notifications_email or email_from

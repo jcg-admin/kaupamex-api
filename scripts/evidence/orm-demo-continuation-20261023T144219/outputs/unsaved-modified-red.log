@@ -1,0 +1,23 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+
+==================================== ERRORS ====================================
+___________ ERROR collecting tests/unit/orm/test_unsaved_modified.py ___________
+ImportError while importing test module '/workspace/kaupamex-api/tests/unit/orm/test_unsaved_modified.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/unit/orm/test_unsaved_modified.py:9: in <module>
+    from addons.base.models import ResBank, ResPartner, ResPartnerBank, ResPartnerCategory
+E   ImportError: cannot import name 'ResPartnerCategory' from 'addons.base.models' (/workspace/kaupamex-api/src/addons/base/models/__init__.py)
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/unsaved-modified-red.junit.xml -
+=========================== short test summary info ============================
+ERROR tests/unit/orm/test_unsaved_modified.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 warning, 1 error in 0.13s

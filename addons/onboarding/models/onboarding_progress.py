@@ -20,6 +20,7 @@ compañía actual". Este monolito no tiene ``env`` — el equivalente es
 ``ResCompany`` | pk. Se centraliza aquí como ``_resolve_company_id()`` porque
 los 4 modelos del addon lo reutilizan.
 """
+
 from django.apps import apps
 from django.db import models
 from django.db.models.functions import Coalesce
@@ -63,29 +64,39 @@ class OnboardingProgress(TimeStampedModel):
     # cascade, index). FK por string: evita el import circular con
     # ``onboarding_onboarding.py``, que sí importa esta clase.
     onboarding = fields.Many2one(
-        'onboarding.OnboardingOnboarding', on_delete=models.CASCADE,
-        related_name='progress_records', db_index=True,
+        'onboarding.OnboardingOnboarding',
+        null=False, on_delete=models.CASCADE,
+        related_name='progress_records',
+        db_index=True,
         verbose_name='Onboarding',
-        help_text='Onboarding cuyo progreso trackea este registro '
-                  '(Odoo onboarding_id).',
+        help_text=(
+            'Onboarding cuyo progreso trackea este registro '
+            '(Odoo onboarding_id).'
+        ),
     )
     # Odoo company_id (onboarding_progress.py:22, ondelete cascade). ``None``
     # = progreso global (no per-company); ver ``is_per_company`` en
     # ``OnboardingOnboarding``.
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='onboarding_progress_records',
         verbose_name='Empresa (si es per-company)',
     )
     # Odoo progress_step_ids (onboarding_progress.py:25) — M2M sin through
     # explícito, igual que ``sales_team.CrmTeam.members`` sin through.
     progress_steps = fields.Many2many(
-        'onboarding.OnboardingProgressStep', related_name='progress_records',
-        blank=True, verbose_name='Trackers de progreso de los pasos',
+        'onboarding.OnboardingProgressStep',
+        related_name='progress_records',
+        blank=True,
+        verbose_name='Trackers de progreso de los pasos',
     )
     # Odoo is_onboarding_closed (onboarding_progress.py:21).
     is_onboarding_closed = fields.Boolean(
-        default=False, verbose_name='¿Panel cerrado?',
+        default=False,
+        verbose_name='¿Panel cerrado?',
     )
 
     # Soporte del UniqueIndex con COALESCE — MISMO patrón que
@@ -189,7 +200,8 @@ class OnboardingProgress(TimeStampedModel):
         # que el gate ``check_no_lazy_imports.py`` (que sólo inspecciona esos
         # dos tipos de nodo) lo acepta.
         OnboardingProgressStep = apps.get_model(
-            'onboarding', 'OnboardingProgressStep')
+            'onboarding', 'OnboardingProgressStep'
+        )
         progress_steps_to_consolidate = OnboardingProgressStep.objects.filter(
             step_id__in=just_done_step_ids,
         ).filter(

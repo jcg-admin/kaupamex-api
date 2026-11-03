@@ -41,12 +41,14 @@ el llamador, no el default) y
 sale del nombre). Los dos miden otra cosa, y está bien que la midan: lo que no
 valdría es no saberlo. El paso se restauró y ``git diff`` lo confirma.
 """
+
 import pytest
 
 
 from addons.base.models import IrDefault, ResPartner
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_cron import IrCron
+from addons.base.models.res_users import ResUsersLog
 from addons.base.models.ir_sequence import IrSequenceDateRange
 from addons.base.models.ir_ui_view import IrUiViewCustom
 from addons.base.models.res_users import ResUsers
@@ -77,8 +79,10 @@ class TestContextWins:
 
     def test_a_field_not_asked_for_is_not_returned(self):
         """*"Unrequested defaults won't be considered"* — nota de la fuente."""
-        with context_scope(default_comment='del contexto',
-                           default_website='https://ejemplo.mx'):
+        with context_scope(
+            default_comment='del contexto',
+            default_website='https://ejemplo.mx',
+        ):
             defaults = ResPartner.default_get(['comment'])
         assert 'website' not in defaults
 
@@ -120,7 +124,8 @@ class TestFieldDefault:
 
         La fuente pregunta ``if field.default:`` porque allá es un invocable, y
         un invocable siempre es cierto. Aquí ``field.default`` **es el valor**,
-        así que ese mismo ``if`` perdería un ``default=False``. El caso lo mide:
+        así que ese mismo ``if`` perdería un ``default=False``. El caso lo
+        mide:
         ``is_company`` lo declara ``False`` y tiene que salir.
         """
         assert ResPartner.default_get(['is_company'])['is_company'] is False
@@ -178,8 +183,9 @@ class TestSuperIsReachable:
         assert issubclass(ResPartner, DefaultGetMixin)
 
     def test_ir_cron_keeps_its_own_defaults(self):
-        defaults = IrCron.default_get(['interval_number', 'interval_type',
-                                       'priority', 'active'])
+        defaults = IrCron.default_get(
+            ['interval_number', 'interval_type', 'priority', 'active']
+        )
         assert defaults['interval_number'] == 1
         assert defaults['interval_type'] == 'months'
         assert defaults['priority'] == 5
@@ -206,13 +212,22 @@ class TestRecNameResolution:
     def test_a_model_without_name_gets_the_explicit_none(self):
         """El default de ``BaseModel``, puesto a mano porque la base es Django.
 
-        ``IrCron`` llama a su campo ``cron_name``, así que no hay ``name`` que
-        resolver. Sin este paso, ``cls._rec_name`` daba ``AttributeError``.
+        ``ResUsersLog`` no tiene ``name`` propio ni padre de ``_inherits`` que
+        lo declare. Sin este paso, ``cls._rec_name`` daba ``AttributeError``.
         """
-        assert IrCron._rec_name is None
+        assert ResUsersLog._rec_name is None
+
+    def test_an_inherited_name_is_the_rec_name(self):
+        """``IrCron`` llama a su campo ``cron_name``, pero hereda ``name`` de
+        ``ir.actions.server`` por ``_inherits`` (``odoo19c: ir_cron.py:104``)
+        y no declara ``_rec_name``: en la fuente ``'name' in _fields`` y su
+        ``_rec_name`` es ``'name'`` (``model_classes.py:438-439``)."""
+        assert IrCron._rec_name == 'name'
 
     def test_a_declared_rec_name_survives(self):
-        """``ir.config_parameter`` declara ``_rec_name = 'key'``, y se respeta."""
+        """
+        ``ir.config_parameter`` declara ``_rec_name = 'key'``, y se respeta.
+        """
         assert SystemParameter._rec_name == 'key'
 
     def test_the_attname_of_a_relation_counts_as_a_field(self):
@@ -232,6 +247,7 @@ class TestRecNameResolution:
         nombra un campo inexistente pasa callado y revienta en el primer
         ``name_create``, lejos de su causa.
         """
+
         class ModelWithBrokenRecName:
             _rec_name = 'campo_que_no_existe'
             _meta = ResPartner._meta
@@ -250,14 +266,16 @@ class TestCreateAppliesTheDefaults:
 
     def test_the_context_default_reaches_the_row(self):
         with sudo(), context_scope(default_comment='sembrado por el contexto'):
-            partner, = ResPartner.create([{'name': 'Alta con contexto'}])
+            (partner,) = ResPartner.create([{'name': 'Alta con contexto'}])
         partner.refresh_from_db()
         assert partner.comment == 'sembrado por el contexto'
 
     def test_the_given_value_always_beats_the_default(self):
         """*"never allow the other way around"* — comentario de la fuente."""
         with sudo(), context_scope(default_comment='del contexto'):
-            partner, = ResPartner.create([{'name': 'Alta', 'comment': 'explicito'}])
+            (partner,) = ResPartner.create(
+                [{'name': 'Alta', 'comment': 'explicito'}]
+            )
         partner.refresh_from_db()
         assert partner.comment == 'explicito'
 
@@ -265,7 +283,7 @@ class TestCreateAppliesTheDefaults:
         IrDefault.set('base.ResPartner', 'comment', 'del administrador')
         registry.clear_cache('default')
         with sudo():
-            partner, = ResPartner.create([{'name': 'Alta con ir.default'}])
+            (partner,) = ResPartner.create([{'name': 'Alta con ir.default'}])
         partner.refresh_from_db()
         assert partner.comment == 'del administrador'
 
@@ -296,7 +314,8 @@ class TestNameCreateGuardIsObservable:
         """
         with context_scope(default_email='del.contexto@ejemplo.mx'):
             partner_id, _ = ResPartner.name_create(
-                'Cliente <del.nombre@ejemplo.mx>')
+                'Cliente <del.nombre@ejemplo.mx>'
+            )
         partner = ResPartner.objects.get(pk=partner_id)
         assert partner.email == 'del.nombre@ejemplo.mx'
 
@@ -326,7 +345,7 @@ class TestDelegatedOrigin:
         """``_fields`` de la fuente ya trae los del padre; ``_meta`` no."""
         names = _field_names(ResUsers)
         assert 'login' in names
-        assert 'name' in names       # llega del partner por delegación
+        assert 'name' in names  # llega del partner por delegación
 
     def test_field_names_excludes_the_reverse_relations(self):
         names = _field_names(ResPartner)
@@ -355,7 +374,8 @@ class TestAddMissingDefaultValues:
         partner = ResPartner.objects.create(name='Padre puesto')
         with context_scope(default_name='no deberia usarse'):
             values = ResUsers._add_missing_default_values(
-                {'login': 'x@ejemplo.mx', 'partner_id': partner.pk})
+                {'login': 'x@ejemplo.mx', 'partner_id': partner.pk}
+            )
         assert values.get('name') != 'no deberia usarse'
 
 
@@ -384,7 +404,9 @@ class TestResPartnerOverride:
         assert defaults['type'] == ResPartner.TYPE_INVOICE
 
     def test_the_field_default_still_comes_through(self):
-        assert ResPartner.default_get(['type'])['type'] == ResPartner.TYPE_CONTACT
+        assert (
+            ResPartner.default_get(['type'])['type'] == ResPartner.TYPE_CONTACT
+        )
 
     def test_the_lang_fallback_asks_default_get_first(self):
         """``_compute_lang`` ya recorre el primer escalón de la cascada.

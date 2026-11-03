@@ -6,6 +6,7 @@ El disparo es ``base.models.signals.res_users_created``, emitida por
 ``_create_user`` **después** de aplicar los grupos — el mismo instante en que
 ``super().create()`` retorna en la referencia. Ver H-API-304.
 """
+
 import pytest
 
 from addons.base.models import ResCompany, ResGroups, ResUsers, SystemParameter
@@ -21,12 +22,16 @@ def company():
 
 @pytest.fixture
 def digest(company):
-    return DigestDigest.objects.create(name='Digest por defecto', company_id=company)
+    return DigestDigest.objects.create(
+        name='Digest por defecto', company_id=company
+    )
 
 
 @pytest.fixture
 def grupo_interno():
-    return ResGroups.objects.create(name='Empleado digest', user_type='internal')
+    return ResGroups.objects.create(
+        name='Empleado digest', user_type='internal'
+    )
 
 
 @pytest.fixture
@@ -54,13 +59,15 @@ def _configurar(digest):
 class TestAutoSubscribeNewUser:
     def test_noop_when_param_disabled(self, digest, grupo_interno):
         user = ResUsers.objects.create_user(
-            login='sin-digest@kaupamex.mx', group_ids=[grupo_interno])
+            login='sin-digest@kaupamex.mx', group_ids=[grupo_interno]
+        )
         assert not digest.user_ids.filter(pk=user.pk).exists()
 
     def test_noop_when_no_default_digest_configured(self, grupo_interno):
         SystemParameter.set_param('digest.default_digest_emails', '1')
         user = ResUsers.objects.create_user(
-            login='sin-default@kaupamex.mx', group_ids=[grupo_interno])
+            login='sin-default@kaupamex.mx', group_ids=[grupo_interno]
+        )
         # Sin excepción y sin efecto observable — no hay digest a suscribir.
         assert user.pk is not None
 
@@ -69,7 +76,8 @@ class TestAutoSubscribeNewUser:
         la suscripción ocurre **en la creación**, no en un paso posterior."""
         _configurar(digest)
         user = ResUsers.objects.create_user(
-            login='nueva@kaupamex.mx', group_ids=[grupo_interno])
+            login='nueva@kaupamex.mx', group_ids=[grupo_interno]
+        )
 
         assert user.share is False, 'con grupo interno el usuario NO es share'
         assert digest.user_ids.filter(pk=user.pk).exists()
@@ -77,7 +85,8 @@ class TestAutoSubscribeNewUser:
     def test_skips_portal_user(self, digest, grupo_portal):
         _configurar(digest)
         user = ResUsers.objects.create_user(
-            login='portal@kaupamex.mx', group_ids=[grupo_portal])
+            login='portal@kaupamex.mx', group_ids=[grupo_portal]
+        )
 
         assert user.share is True
         assert not digest.user_ids.filter(pk=user.pk).exists()
@@ -99,7 +108,8 @@ class TestCreateUserAppliesGroups:
 
     def test_groups_are_set_when_create_returns(self, grupo_interno):
         user = ResUsers.objects.create_user(
-            login='conmigrupo@kaupamex.mx', group_ids=[grupo_interno])
+            login='conmigrupo@kaupamex.mx', group_ids=[grupo_interno]
+        )
         assert list(user.group_ids.all()) == [grupo_interno]
         assert user._is_internal() is True
 

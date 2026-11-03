@@ -16,7 +16,12 @@ class Migration(migrations.Migration):
             field=models.IntegerField(
                 blank=True,
                 default=None,
-                help_text="Odoo totp_last_counter — el intervalo del último código aceptado. Un código sólo vale una vez: la comprobación exige que el contador del código presentado sea ESTRICTAMENTE mayor que éste.",
+                help_text=(
+                    "Odoo totp_last_counter — el intervalo del último código"
+                    " aceptado. Un código sólo vale una vez: la comprobación"
+                    " exige que el contador del código presentado sea"
+                    " ESTRICTAMENTE mayor que éste."
+                ),
                 null=True,
                 verbose_name="Último contador",
             ),

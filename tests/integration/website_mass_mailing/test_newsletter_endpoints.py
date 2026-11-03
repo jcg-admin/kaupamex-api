@@ -1,7 +1,8 @@
 """
 Tests — Newsletter endpoints (UC-NEW-01..04)
 
-La persistencia se movió a ``mass_mailing`` (disolución del addon ``newsletter``):
+La persistencia se movió a ``mass_mailing`` (disolución del addon
+``newsletter``):
 estos tests ejercen el MISMO contrato HTTP pero contra la lista canónica
 ``"Newsletter"`` de ``mass_mailing`` (``MailingSubscription``). El estado de
 negocio PENDING/CONFIRMED/UNSUBSCRIBED se deriva vía ``services.status_of``.
@@ -18,6 +19,7 @@ Admin:
 
 JSON keys + identifiers in English (DEC-DOC-005).
 """
+
 import time
 from unittest.mock import patch
 
@@ -39,9 +41,12 @@ def _admin_force_unsub_url(pk):
     return f'/api/v2/admin/newsletter/subscribers/{pk}/unsubscribe/'
 
 
-def _make_subscriber(email='sub@example.com', status='CONFIRMED',
-                     confirmation_token=None):
-    """Crea una MailingSubscription en la lista Newsletter en el estado dado."""
+def _make_subscriber(
+    email='sub@example.com', status='CONFIRMED', confirmation_token=None
+):
+    """
+    Crea una MailingSubscription en la lista Newsletter en el estado dado.
+    """
     sub = mm.create_pending(email, confirmation_token)
     if status == 'CONFIRMED':
         sub.confirm()
@@ -53,38 +58,41 @@ def _make_subscriber(email='sub@example.com', status='CONFIRMED',
 # ─── POST /newsletter/subscribe ──────────────────────────────────────────
 class TestSubscribe:
     def test_anonymous_can_subscribe(self, api_client, db):
-        res = api_client.post(SUBSCRIBE_URL,
-                              {'email': 'nuevo@example.com'},
-                              format='json')
+        res = api_client.post(
+            SUBSCRIBE_URL, {'email': 'nuevo@example.com'}, format='json'
+        )
         assert res.status_code == 201
         body = res.json()
         assert body['email'] == 'nuevo@example.com'
         assert body['status'] == 'PENDING'
 
-        assert MailingSubscription.objects.filter(
-            mailing_list=mm.newsletter_list(),
-            contact_id__email='nuevo@example.com',
-        ).count() == 1
+        assert (
+            MailingSubscription.objects.filter(
+                mailing_list=mm.newsletter_list(),
+                contact_id__email='nuevo@example.com',
+            ).count()
+            == 1
+        )
 
     def test_invalid_email_rejected(self, api_client, db):
-        res = api_client.post(SUBSCRIBE_URL,
-                              {'email': 'no-es-email'},
-                              format='json')
+        res = api_client.post(
+            SUBSCRIBE_URL, {'email': 'no-es-email'}, format='json'
+        )
         assert res.status_code == 400
 
     def test_duplicate_email_returns_200_idempotent(self, api_client, db):
         _make_subscriber('repe@example.com', status='CONFIRMED')
-        res = api_client.post(SUBSCRIBE_URL,
-                              {'email': 'repe@example.com'},
-                              format='json')
+        res = api_client.post(
+            SUBSCRIBE_URL, {'email': 'repe@example.com'}, format='json'
+        )
         assert res.status_code == 200
         assert res.json()['status'] == 'CONFIRMED'
 
     def test_reopt_in_from_unsubscribed_goes_to_pending(self, api_client, db):
         _make_subscriber('back@example.com', status='UNSUBSCRIBED')
-        res = api_client.post(SUBSCRIBE_URL,
-                              {'email': 'back@example.com'},
-                              format='json')
+        res = api_client.post(
+            SUBSCRIBE_URL, {'email': 'back@example.com'}, format='json'
+        )
         assert res.status_code == 200
         assert res.json()['status'] == 'PENDING'
 
@@ -94,7 +102,9 @@ class TestConfirmSubscription:
     def test_confirm_valid_token(self, api_client, db):
         email = 'pending@example.com'
         token = signing.dumps(email, salt='newsletter-confirm')
-        sub = _make_subscriber(email, status='PENDING', confirmation_token=token)
+        sub = _make_subscriber(
+            email, status='PENDING', confirmation_token=token
+        )
 
         res = api_client.post(CONFIRM_URL, {'token': token}, format='json')
         assert res.status_code == 200
@@ -108,7 +118,9 @@ class TestConfirmSubscription:
         assert sub.confirmation_token is None
 
     def test_confirm_invalid_token_returns_400(self, api_client, db):
-        res = api_client.post(CONFIRM_URL, {'token': 'not-a-valid-signed-token'}, format='json')
+        res = api_client.post(
+            CONFIRM_URL, {'token': 'not-a-valid-signed-token'}, format='json'
+        )
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'INVALID_TOKEN'
 
@@ -117,9 +129,13 @@ class TestConfirmSubscription:
         past = time.time() - 25 * 3600  # 25 hours ago — beyond 24h TTL
         with patch('time.time', return_value=past):
             expired_token = signing.dumps(email, salt='newsletter-confirm')
-        _make_subscriber(email, status='PENDING', confirmation_token=expired_token)
+        _make_subscriber(
+            email, status='PENDING', confirmation_token=expired_token
+        )
 
-        res = api_client.post(CONFIRM_URL, {'token': expired_token}, format='json')
+        res = api_client.post(
+            CONFIRM_URL, {'token': expired_token}, format='json'
+        )
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'TOKEN_EXPIRED'
 
@@ -133,7 +149,9 @@ class TestConfirmSubscription:
 
     def test_confirm_subscribe_sends_confirmation_email(self, api_client, db):
         mail.outbox.clear()
-        res = api_client.post(SUBSCRIBE_URL, {'email': 'newemail@example.com'}, format='json')
+        res = api_client.post(
+            SUBSCRIBE_URL, {'email': 'newemail@example.com'}, format='json'
+        )
         assert res.status_code == 201
         # Give thread pool a moment to deliver
         time.sleep(0.1)
@@ -144,9 +162,11 @@ class TestConfirmSubscription:
 # ─── DELETE /newsletter/subscriptions/ ───────────────────────────────────
 class TestUnsubscribe:
     def test_invalid_token_returns_404(self, api_client, db):
-        res = api_client.delete(UNSUB_URL,
-                                data={'token': 'no-existe-este-token-12345678'},
-                                format='json')
+        res = api_client.delete(
+            UNSUB_URL,
+            data={'token': 'no-existe-este-token-12345678'},
+            format='json',
+        )
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'INVALID_TOKEN'
 
@@ -158,15 +178,17 @@ class TestUnsubscribe:
         sub.unsubscribe_token = expired_token
         sub.save(update_fields=['unsubscribe_token'])
 
-        res = api_client.delete(UNSUB_URL, data={'token': expired_token}, format='json')
+        res = api_client.delete(
+            UNSUB_URL, data={'token': expired_token}, format='json'
+        )
         assert res.status_code == 400
         assert res.json()['codigo_error'] == 'TOKEN_EXPIRED'
 
     def test_valid_token_unsubscribes(self, api_client, db):
         sub = _make_subscriber('out@example.com', status='CONFIRMED')
-        res = api_client.delete(UNSUB_URL,
-                                data={'token': sub.unsubscribe_token},
-                                format='json')
+        res = api_client.delete(
+            UNSUB_URL, data={'token': sub.unsubscribe_token}, format='json'
+        )
         assert res.status_code == 200
         body = res.json()
         assert body['status'] == 'UNSUBSCRIBED'
@@ -267,10 +289,14 @@ class TestAdminForceUnsubscribe:
 # ─── POST /admin/newsletter/campaigns ────────────────────────────────────
 class TestAdminCreateCampaign:
     def test_requires_staff(self, auth_client, db):
-        res = auth_client.post(ADMIN_CAMPAIGN_URL, {
-            'subject': 'Promo de mayo',
-            'body': 'Hola, hay promo.',
-        }, format='json')
+        res = auth_client.post(
+            ADMIN_CAMPAIGN_URL,
+            {
+                'subject': 'Promo de mayo',
+                'body': 'Hola, hay promo.',
+            },
+            format='json',
+        )
         assert res.status_code == 403
 
     def test_admin_creates_and_sends_campaign(self, admin_client, db):
@@ -278,14 +304,23 @@ class TestAdminCreateCampaign:
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')
 
-        res = admin_client.post(ADMIN_CAMPAIGN_URL, {
-            'subject': 'Promo de mayo',
-            'body': 'Hola, hay promo!',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_CAMPAIGN_URL,
+            {
+                'subject': 'Promo de mayo',
+                'body': 'Hola, hay promo!',
+            },
+            format='json',
+        )
         assert res.status_code == 201
         body = res.json()
-        for key in ('id', 'subject', 'audience_filter',
-                    'recipients_count', 'sent_at'):
+        for key in (
+            'id',
+            'subject',
+            'audience_filter',
+            'recipients_count',
+            'sent_at',
+        ):
             assert key in body
         assert body['recipients_count'] == 2
         assert body['audience_filter'] == 'CONFIRMED'
@@ -299,7 +334,9 @@ class TestAdminCreateCampaign:
         assert 'dos@example.com' in targets
         assert 'pendiente@example.com' not in targets
 
-    def test_campaign_enqueues_via_dispatch_email_not_inline(self, admin_client, db):
+    def test_campaign_enqueues_via_dispatch_email_not_inline(
+        self, admin_client, db
+    ):
         """UC-NEW-04: el envío de campaña ENCOLA vía dispatch_email
         (cola async EmailTask + cron), NO un loop síncrono de
         mail.send_mail en el request. Se verifica que la view invoca
@@ -308,14 +345,21 @@ class TestAdminCreateCampaign:
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')
 
-        with patch('addons.mass_mailing.controllers.campaign.dispatch_email') as mock_dispatch:
-            res = admin_client.post(ADMIN_CAMPAIGN_URL, {
-                'subject': 'Campaña async',
-                'body': 'Hola, esto se encola.',
-            }, format='json')
+        with patch(
+            'addons.mass_mailing.controllers.campaign.dispatch_email'
+        ) as mock_dispatch:
+            res = admin_client.post(
+                ADMIN_CAMPAIGN_URL,
+                {
+                    'subject': 'Campaña async',
+                    'body': 'Hola, esto se encola.',
+                },
+                format='json',
+            )
 
         assert res.status_code == 201
-        # Un dispatch_email por destinatario CONFIRMED (2), ninguno para PENDING.
+        # Un dispatch_email por destinatario CONFIRMED (2), ninguno para
+        # PENDING.
         assert mock_dispatch.call_count == 2
         queued = []
         for call in mock_dispatch.call_args_list:
@@ -333,9 +377,13 @@ class TestAdminCreateCampaign:
     def test_empty_audience_rejected_no_recipients(self, admin_client, db):
         # UC-NEW-04 (D-4): un segmento sin destinatarios se rechaza con
         # 422 NO_RECIPIENTS en lugar de crear una campana no-op.
-        res = admin_client.post(ADMIN_CAMPAIGN_URL, {
-            'subject': 'Promo de junio',
-            'body': 'Sin destinatarios todavia.',
-        }, format='json')
+        res = admin_client.post(
+            ADMIN_CAMPAIGN_URL,
+            {
+                'subject': 'Promo de junio',
+                'body': 'Sin destinatarios todavia.',
+            },
+            format='json',
+        )
         assert res.status_code == 422
         assert res.json()['codigo_error'] == 'NO_RECIPIENTS'

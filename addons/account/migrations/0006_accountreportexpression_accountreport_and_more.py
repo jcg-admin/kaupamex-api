@@ -27,7 +27,10 @@ class Migration(migrations.Migration):
                 (
                     "label",
                     models.CharField(
-                        help_text="Etiqueta que empareja la expresión con una columna del reporte (Odoo label, requerido).",
+                        help_text=(
+                            "Etiqueta que empareja la expresión con una"
+                            " columna del reporte (Odoo label, requerido)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -42,14 +45,22 @@ class Migration(migrations.Migration):
                             ("external", "Valor externo"),
                             ("custom", "Función Python a medida"),
                         ],
-                        help_text="Motor que resuelve la fórmula. Se declaran los seis de la referencia aunque el evaluador aún no exista — recortar el enum haría que la declaración mintiera (Odoo engine).",
+                        help_text=(
+                            "Motor que resuelve la fórmula. Se declaran los"
+                            " seis de la referencia aunque el evaluador aún no"
+                            " exista — recortar el enum haría que la"
+                            " declaración mintiera (Odoo engine)."
+                        ),
                         max_length=16,
                     ),
                 ),
                 (
                     "formula",
                     models.CharField(
-                        help_text="Fórmula, interpretada según engine (Odoo formula, requerido).",
+                        help_text=(
+                            "Fórmula, interpretada según engine (Odoo formula,"
+                            " requerido)."
+                        ),
                         max_length=1024,
                     ),
                 ),
@@ -58,7 +69,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Modificador de la fórmula, p. ej. el signo o el ámbito (Odoo subformula).",
+                        help_text=(
+                            "Modificador de la fórmula, p. ej. el signo o el"
+                            " ámbito (Odoo subformula)."
+                        ),
                         max_length=1024,
                     ),
                 ),
@@ -67,20 +81,32 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("from_beginning", "Desde el inicio absoluto"),
-                            ("from_fiscalyear", "Desde el inicio del ejercicio fiscal"),
+                            (
+                                "from_fiscalyear",
+                                "Desde el inicio del ejercicio fiscal",
+                            ),
                             (
                                 "to_beginning_of_fiscalyear",
                                 "Al inicio del ejercicio fiscal",
                             ),
-                            ("to_beginning_of_period", "Al inicio del periodo"),
-                            ("strict_range", "Estrictamente en las fechas dadas"),
+                            (
+                                "to_beginning_of_period",
+                                "Al inicio del periodo",
+                            ),
+                            (
+                                "strict_range",
+                                "Estrictamente en las fechas dadas",
+                            ),
                             (
                                 "previous_return_period",
                                 "Del periodo de declaración anterior",
                             ),
                         ],
                         default="strict_range",
-                        help_text="Ventana temporal sobre la que se evalúa (Odoo date_scope).",
+                        help_text=(
+                            "Ventana temporal sobre la que se evalúa (Odoo"
+                            " date_scope)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -99,7 +125,9 @@ class Migration(migrations.Migration):
                             ("string", "Texto"),
                         ],
                         default="",
-                        help_text="Cómo se presenta el resultado (Odoo figure_type).",
+                        help_text=(
+                            "Cómo se presenta el resultado (Odoo figure_type)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -107,21 +135,31 @@ class Migration(migrations.Migration):
                     "green_on_positive",
                     models.BooleanField(
                         default=True,
-                        help_text="Un crecimiento positivo se pinta en verde; falso invierte el criterio, p. ej. en gastos (Odoo green_on_positive).",
+                        help_text=(
+                            "Un crecimiento positivo se pinta en verde; falso"
+                            " invierte el criterio, p. ej. en gastos (Odoo"
+                            " green_on_positive)."
+                        ),
                     ),
                 ),
                 (
                     "blank_if_zero",
                     models.BooleanField(
                         default=False,
-                        help_text="Deja la celda vacía en vez de mostrar 0 (Odoo blank_if_zero).",
+                        help_text=(
+                            "Deja la celda vacía en vez de mostrar 0 (Odoo"
+                            " blank_if_zero)."
+                        ),
                     ),
                 ),
                 (
                     "auditable",
                     models.BooleanField(
                         default=False,
-                        help_text="El valor se puede auditar hasta sus apuntes de origen (Odoo auditable).",
+                        help_text=(
+                            "El valor se puede auditar hasta sus apuntes de"
+                            " origen (Odoo auditable)."
+                        ),
                     ),
                 ),
                 (
@@ -129,7 +167,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Destino del arrastre entre periodos, en la forma codigo_linea.etiqueta (Odoo carryover_target).",
+                        help_text=(
+                            "Destino del arrastre entre periodos, en la forma"
+                            " codigo_linea.etiqueta (Odoo carryover_target)."
+                        ),
                         max_length=128,
                     ),
                 ),
@@ -154,28 +195,38 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del reporte (Odoo name, requerido, traducible).",
+                        help_text=(
+                            "Nombre del reporte (Odoo name, requerido,"
+                            " traducible)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=0, help_text="Orden de presentación (Odoo sequence)."
+                        default=0,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Reporte disponible; desactivar lo archiva sin borrarlo (Odoo active).",
+                        help_text=(
+                            "Reporte disponible; desactivar lo archiva sin"
+                            " borrarlo (Odoo active)."
+                        ),
                     ),
                 ),
                 (
                     "use_sections",
                     models.BooleanField(
                         default=False,
-                        help_text="Reporte compuesto por secciones navegables e imprimibles a la vez (Odoo use_sections).",
+                        help_text=(
+                            "Reporte compuesto por secciones navegables e"
+                            " imprimibles a la vez (Odoo use_sections)."
+                        ),
                     ),
                 ),
                 (
@@ -183,7 +234,12 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Plan de cuentas al que aplica. Texto libre, no enum: en la referencia el catálogo lo construye account.chart.template en tiempo de ejecución (Odoo chart_template; ver divergencia 2).",
+                        help_text=(
+                            "Plan de cuentas al que aplica. Texto libre, no"
+                            " enum: en la referencia el catálogo lo construye"
+                            " account.chart.template en tiempo de ejecución"
+                            " (Odoo chart_template; ver divergencia 2)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -191,7 +247,10 @@ class Migration(migrations.Migration):
                     "only_tax_exigible",
                     models.BooleanField(
                         default=False,
-                        help_text="Sólo considera apuntes con impuesto exigible (Odoo only_tax_exigible).",
+                        help_text=(
+                            "Sólo considera apuntes con impuesto exigible"
+                            " (Odoo only_tax_exigible)."
+                        ),
                     ),
                 ),
                 (
@@ -204,7 +263,10 @@ class Migration(migrations.Migration):
                             ("always", "Siempre"),
                         ],
                         default="",
-                        help_text="Cuándo se ofrece el reporte al usuario (Odoo availability_condition).",
+                        help_text=(
+                            "Cuándo se ofrece el reporte al usuario (Odoo"
+                            " availability_condition)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -212,21 +274,31 @@ class Migration(migrations.Migration):
                     "load_more_limit",
                     models.IntegerField(
                         default=0,
-                        help_text='Filas por página antes de "cargar más"; 0 = sin límite (Odoo load_more_limit).',
+                        help_text=(
+                            'Filas por página antes de "cargar más"; 0 = sin'
+                            ' límite (Odoo load_more_limit).'
+                        ),
                     ),
                 ),
                 (
                     "search_bar",
                     models.BooleanField(
                         default=False,
-                        help_text="Muestra barra de búsqueda sobre el reporte (Odoo search_bar).",
+                        help_text=(
+                            "Muestra barra de búsqueda sobre el reporte (Odoo"
+                            " search_bar)."
+                        ),
                     ),
                 ),
                 (
                     "prefix_groups_threshold",
                     models.IntegerField(
                         default=4000,
-                        help_text="Número de líneas a partir del cual se agrupa por prefijo de código de cuenta (Odoo prefix_groups_threshold).",
+                        help_text=(
+                            "Número de líneas a partir del cual se agrupa por"
+                            " prefijo de código de cuenta (Odoo"
+                            " prefix_groups_threshold)."
+                        ),
                     ),
                 ),
                 (
@@ -239,7 +311,10 @@ class Migration(migrations.Migration):
                             ("DOWN", "Hacia abajo"),
                         ],
                         default="",
-                        help_text="Redondeo a entero al presentar importes (Odoo integer_rounding).",
+                        help_text=(
+                            "Redondeo a entero al presentar importes (Odoo"
+                            " integer_rounding)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -247,7 +322,10 @@ class Migration(migrations.Migration):
                     "allow_foreign_vat",
                     models.BooleanField(
                         default=False,
-                        help_text="Admite posiciones fiscales con IVA extranjero (Odoo allow_foreign_vat).",
+                        help_text=(
+                            "Admite posiciones fiscales con IVA extranjero"
+                            " (Odoo allow_foreign_vat)."
+                        ),
                     ),
                 ),
                 (
@@ -261,14 +339,20 @@ class Migration(migrations.Migration):
                             ("previous_month", "Mes anterior"),
                             ("previous_quarter", "Trimestre anterior"),
                             ("previous_year", "Año anterior"),
-                            ("this_return_period", "Este periodo de declaración"),
+                            (
+                                "this_return_period",
+                                "Este periodo de declaración",
+                            ),
                             (
                                 "previous_return_period",
                                 "Periodo de declaración anterior",
                             ),
                         ],
                         default="previous_month",
-                        help_text="Periodo preseleccionado al abrir el reporte (Odoo default_opening_date_filter).",
+                        help_text=(
+                            "Periodo preseleccionado al abrir el reporte (Odoo"
+                            " default_opening_date_filter)."
+                        ),
                         max_length=24,
                     ),
                 ),
@@ -278,12 +362,18 @@ class Migration(migrations.Migration):
                         choices=[
                             (
                                 "current",
-                                "Tipo de cambio más reciente a la fecha del reporte",
+                                (
+                                    "Tipo de cambio más reciente a la fecha"
+                                    " del reporte"
+                                ),
                             ),
                             ("cta", "Usar CTA"),
                         ],
                         default="cta",
-                        help_text="Cómo se convierten importes en otra divisa (Odoo currency_translation).",
+                        help_text=(
+                            "Cómo se convierten importes en otra divisa (Odoo"
+                            " currency_translation)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -295,7 +385,10 @@ class Migration(migrations.Migration):
                             ("tax_units", "Unidades fiscales"),
                         ],
                         default="selector",
-                        help_text="Cómo se eligen las empresas incluidas (Odoo filter_multi_company).",
+                        help_text=(
+                            "Cómo se eligen las empresas incluidas (Odoo"
+                            " filter_multi_company)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -303,28 +396,39 @@ class Migration(migrations.Migration):
                     "filter_date_range",
                     models.BooleanField(
                         default=True,
-                        help_text="Ofrece rango de fechas (Odoo filter_date_range).",
+                        help_text=(
+                            "Ofrece rango de fechas (Odoo filter_date_range)."
+                        ),
                     ),
                 ),
                 (
                     "filter_show_draft",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece incluir asientos borrador (Odoo filter_show_draft).",
+                        help_text=(
+                            "Ofrece incluir asientos borrador (Odoo"
+                            " filter_show_draft)."
+                        ),
                     ),
                 ),
                 (
                     "filter_unreconciled",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece filtrar sólo apuntes no conciliados (Odoo filter_unreconciled).",
+                        help_text=(
+                            "Ofrece filtrar sólo apuntes no conciliados (Odoo"
+                            " filter_unreconciled)."
+                        ),
                     ),
                 ),
                 (
                     "filter_unfold_all",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece desplegar todas las líneas (Odoo filter_unfold_all).",
+                        help_text=(
+                            "Ofrece desplegar todas las líneas (Odoo"
+                            " filter_unfold_all)."
+                        ),
                     ),
                 ),
                 (
@@ -336,7 +440,10 @@ class Migration(migrations.Migration):
                             ("never", "Nunca"),
                         ],
                         default="optional",
-                        help_text="Ocultar líneas en cero (Odoo filter_hide_0_lines).",
+                        help_text=(
+                            "Ocultar líneas en cero (Odoo"
+                            " filter_hide_0_lines)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -344,28 +451,39 @@ class Migration(migrations.Migration):
                     "filter_period_comparison",
                     models.BooleanField(
                         default=True,
-                        help_text="Ofrece comparar contra otro periodo (Odoo filter_period_comparison).",
+                        help_text=(
+                            "Ofrece comparar contra otro periodo (Odoo"
+                            " filter_period_comparison)."
+                        ),
                     ),
                 ),
                 (
                     "filter_growth_comparison",
                     models.BooleanField(
                         default=True,
-                        help_text="Ofrece la columna de crecimiento (Odoo filter_growth_comparison).",
+                        help_text=(
+                            "Ofrece la columna de crecimiento (Odoo"
+                            " filter_growth_comparison)."
+                        ),
                     ),
                 ),
                 (
                     "filter_journals",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece filtrar por diario (Odoo filter_journals).",
+                        help_text=(
+                            "Ofrece filtrar por diario (Odoo filter_journals)."
+                        ),
                     ),
                 ),
                 (
                     "filter_analytic",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece filtrar por cuenta analítica (Odoo filter_analytic).",
+                        help_text=(
+                            "Ofrece filtrar por cuenta analítica (Odoo"
+                            " filter_analytic)."
+                        ),
                     ),
                 ),
                 (
@@ -377,7 +495,10 @@ class Migration(migrations.Migration):
                             ("never", "Nunca"),
                         ],
                         default="optional",
-                        help_text="Agrupar por grupos de cuentas (Odoo filter_hierarchy).",
+                        help_text=(
+                            "Agrupar por grupos de cuentas (Odoo"
+                            " filter_hierarchy)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -391,7 +512,10 @@ class Migration(migrations.Migration):
                             ("disabled", "Desactivado"),
                         ],
                         default="disabled",
-                        help_text="Filtro por tipo de cuenta (Odoo filter_account_type).",
+                        help_text=(
+                            "Filtro por tipo de cuenta (Odoo"
+                            " filter_account_type)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -399,28 +523,40 @@ class Migration(migrations.Migration):
                     "filter_partner",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece filtrar por contacto (Odoo filter_partner).",
+                        help_text=(
+                            "Ofrece filtrar por contacto (Odoo"
+                            " filter_partner)."
+                        ),
                     ),
                 ),
                 (
                     "filter_aml_ir_filters",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece los filtros favoritos del usuario sobre apuntes (Odoo filter_aml_ir_filters).",
+                        help_text=(
+                            "Ofrece los filtros favoritos del usuario sobre"
+                            " apuntes (Odoo filter_aml_ir_filters)."
+                        ),
                     ),
                 ),
                 (
                     "filter_budgets",
                     models.BooleanField(
                         default=False,
-                        help_text="Ofrece comparar contra presupuesto (Odoo filter_budgets).",
+                        help_text=(
+                            "Ofrece comparar contra presupuesto (Odoo"
+                            " filter_budgets)."
+                        ),
                     ),
                 ),
                 (
                     "country",
                     models.ForeignKey(
                         blank=True,
-                        help_text="País cuya normativa describe el reporte (Odoo country_id).",
+                        help_text=(
+                            "País cuya normativa describe el reporte (Odoo"
+                            " country_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="account_reports",
@@ -431,7 +567,11 @@ class Migration(migrations.Migration):
                     "root_report",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Reporte del que este es una variante — la variante hereda sus opciones (Odoo root_report_id).",
+                        help_text=(
+                            "Reporte del que este es una variante — la"
+                            " variante hereda sus opciones (Odoo"
+                            " root_report_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="variants",
@@ -443,7 +583,17 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="account_report_section_rel",
-                        help_text='Sub-reportes que componen este reporte compuesto (Odoo section_report_ids, relación account_report_section_rel). symmetrical=False porque la relación es dirigida: la referencia declara los dos sentidos como campos distintos con column1/column2 invertidos (odoo19c: account_report.py:58-59), y un M2M reflexivo de Django es simétrico por defecto — dejarlo así fundiría "contiene" con "está contenido en".',
+                        help_text=(
+                            'Sub-reportes que componen este reporte compuesto'
+                            ' (Odoo section_report_ids, relación'
+                            ' account_report_section_rel). symmetrical=False'
+                            ' porque la relación es dirigida: la referencia'
+                            ' declara los dos sentidos como campos distintos'
+                            ' con column1/column2 invertidos (odoo19c:'
+                            ' account_report.py:58-59), y un M2M reflexivo de'
+                            ' Django es simétrico por defecto — dejarlo así'
+                            ' fundiría "contiene" con "está contenido en".'
+                        ),
                         related_name="section_main_reports",
                         to="account.accountreport",
                     ),
@@ -469,28 +619,39 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Encabezado de la columna (Odoo name, requerido, traducible).",
+                        help_text=(
+                            "Encabezado de la columna (Odoo name, requerido,"
+                            " traducible)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "expression_label",
                     models.CharField(
-                        help_text="Etiqueta que empareja la columna con la expresión de cada línea (Odoo expression_label, requerido).",
+                        help_text=(
+                            "Etiqueta que empareja la columna con la expresión"
+                            " de cada línea (Odoo expression_label,"
+                            " requerido)."
+                        ),
                         max_length=64,
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=0, help_text="Orden de la columna (Odoo sequence)."
+                        default=0,
+                        help_text="Orden de la columna (Odoo sequence).",
                     ),
                 ),
                 (
                     "sortable",
                     models.BooleanField(
                         default=False,
-                        help_text="El usuario puede ordenar por esta columna (Odoo sortable).",
+                        help_text=(
+                            "El usuario puede ordenar por esta columna (Odoo"
+                            " sortable)."
+                        ),
                     ),
                 ),
                 (
@@ -507,7 +668,10 @@ class Migration(migrations.Migration):
                             ("string", "Texto"),
                         ],
                         default="monetary",
-                        help_text="Cómo se presentan los valores de la columna (Odoo figure_type).",
+                        help_text=(
+                            "Cómo se presentan los valores de la columna (Odoo"
+                            " figure_type)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -515,14 +679,20 @@ class Migration(migrations.Migration):
                     "blank_if_zero",
                     models.BooleanField(
                         default=False,
-                        help_text="Deja la celda vacía en vez de mostrar 0 (Odoo blank_if_zero).",
+                        help_text=(
+                            "Deja la celda vacía en vez de mostrar 0 (Odoo"
+                            " blank_if_zero)."
+                        ),
                     ),
                 ),
                 (
                     "custom_audit_action",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Acción de auditoría a medida al pulsar una celda (Odoo custom_audit_action_id).",
+                        help_text=(
+                            "Acción de auditoría a medida al pulsar una celda"
+                            " (Odoo custom_audit_action_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="account_report_columns",
@@ -532,7 +702,10 @@ class Migration(migrations.Migration):
                 (
                     "report",
                     models.ForeignKey(
-                        help_text="Reporte al que pertenece la columna (Odoo report_id).",
+                        help_text=(
+                            "Reporte al que pertenece la columna (Odoo"
+                            " report_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="columns",
                         to="account.accountreport",
@@ -559,7 +732,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Etiqueta de la línea (Odoo name, requerido, traducible).",
+                        help_text=(
+                            "Etiqueta de la línea (Odoo name, requerido,"
+                            " traducible)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -567,13 +743,17 @@ class Migration(migrations.Migration):
                     "hierarchy_level",
                     models.IntegerField(
                         default=0,
-                        help_text="Profundidad en la jerarquía; la referencia la deriva del padre (Odoo hierarchy_level).",
+                        help_text=(
+                            "Profundidad en la jerarquía; la referencia la"
+                            " deriva del padre (Odoo hierarchy_level)."
+                        ),
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=0, help_text="Orden dentro del reporte (Odoo sequence)."
+                        default=0,
+                        help_text="Orden dentro del reporte (Odoo sequence).",
                     ),
                 ),
                 (
@@ -581,7 +761,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Identificador único de la línea dentro del reporte; lo usan las fórmulas de agregación para referirse a ella (Odoo code).",
+                        help_text=(
+                            "Identificador único de la línea dentro del"
+                            " reporte; lo usan las fórmulas de agregación para"
+                            " referirse a ella (Odoo code)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -590,7 +774,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Campos de account.move.line, separados por coma, por los que se subdivide la línea (Odoo groupby).",
+                        help_text=(
+                            "Campos de account.move.line, separados por coma,"
+                            " por los que se subdivide la línea (Odoo"
+                            " groupby)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -599,7 +787,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Agrupación elegida por el usuario, que sustituye a groupby (Odoo user_groupby).",
+                        help_text=(
+                            "Agrupación elegida por el usuario, que sustituye"
+                            " a groupby (Odoo user_groupby)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -607,21 +798,30 @@ class Migration(migrations.Migration):
                     "foldable",
                     models.BooleanField(
                         default=False,
-                        help_text="La línea nace plegada y muestra botón de despliegue (Odoo foldable).",
+                        help_text=(
+                            "La línea nace plegada y muestra botón de"
+                            " despliegue (Odoo foldable)."
+                        ),
                     ),
                 ),
                 (
                     "print_on_new_page",
                     models.BooleanField(
                         default=False,
-                        help_text="Esta línea y las siguientes se imprimen en página nueva (Odoo print_on_new_page).",
+                        help_text=(
+                            "Esta línea y las siguientes se imprimen en página"
+                            " nueva (Odoo print_on_new_page)."
+                        ),
                     ),
                 ),
                 (
                     "hide_if_zero",
                     models.BooleanField(
                         default=False,
-                        help_text="Oculta la línea y sus hijas cuando todas sus columnas son cero (Odoo hide_if_zero).",
+                        help_text=(
+                            "Oculta la línea y sus hijas cuando todas sus"
+                            " columnas son cero (Odoo hide_if_zero)."
+                        ),
                     ),
                 ),
                 (
@@ -630,7 +830,11 @@ class Migration(migrations.Migration):
                         blank=True,
                         choices=[("left", "Izquierda"), ("right", "Derecha")],
                         default="",
-                        help_text="Lado en un reporte partido horizontalmente, p. ej. un balance activo/pasivo (Odoo horizontal_split_side).",
+                        help_text=(
+                            "Lado en un reporte partido horizontalmente, p."
+                            " ej. un balance activo/pasivo (Odoo"
+                            " horizontal_split_side)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -638,7 +842,10 @@ class Migration(migrations.Migration):
                     "action",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Acción a ejecutar al pulsar la línea; si está puesta, la línea es un enlace (Odoo action_id).",
+                        help_text=(
+                            "Acción a ejecutar al pulsar la línea; si está"
+                            " puesta, la línea es un enlace (Odoo action_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="account_report_lines",
@@ -649,7 +856,9 @@ class Migration(migrations.Migration):
                     "parent",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Línea padre en la jerarquía (Odoo parent_id).",
+                        help_text=(
+                            "Línea padre en la jerarquía (Odoo parent_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="children",
@@ -659,7 +868,10 @@ class Migration(migrations.Migration):
                 (
                     "report",
                     models.ForeignKey(
-                        help_text="Reporte al que pertenece la línea (Odoo report_id).",
+                        help_text=(
+                            "Reporte al que pertenece la línea (Odoo"
+                            " report_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="lines",
                         to="account.accountreport",
@@ -686,7 +898,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Descripción del valor (Odoo name, requerido).",
+                        help_text=(
+                            "Descripción del valor (Odoo name, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -694,7 +908,12 @@ class Migration(migrations.Migration):
                     "value",
                     models.FloatField(
                         default=0.0,
-                        help_text="Importe numérico. ``Float``, no ``Monetary``, fiel a la referencia (odoo19c: account_report.py:952): el valor no lleva divisa propia — la toma del reporte que lo consume.",
+                        help_text=(
+                            "Importe numérico. ``Float``, no ``Monetary``,"
+                            " fiel a la referencia (odoo19c:"
+                            " account_report.py:952): el valor no lleva divisa"
+                            " propia — la toma del reporte que lo consume."
+                        ),
                     ),
                 ),
                 (
@@ -702,14 +921,20 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Valor textual, cuando la expresión no es numérica (Odoo text_value).",
+                        help_text=(
+                            "Valor textual, cuando la expresión no es numérica"
+                            " (Odoo text_value)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "date",
                     models.DateField(
-                        help_text="Fecha a la que aplica el valor (Odoo date, requerido)."
+                        help_text=(
+                            "Fecha a la que aplica el valor (Odoo date,"
+                            " requerido)."
+                        )
                     ),
                 ),
                 (
@@ -717,14 +942,21 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Etiqueta de la expresión de la que proviene el arrastre (Odoo carryover_origin_expression_label).",
+                        help_text=(
+                            "Etiqueta de la expresión de la que proviene el"
+                            " arrastre (Odoo"
+                            " carryover_origin_expression_label)."
+                        ),
                         max_length=64,
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
-                        help_text="Empresa dueña del valor (Odoo company_id, requerido).",
+                        help_text=(
+                            "Empresa dueña del valor (Odoo company_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="account_report_external_values",
                         to="base.rescompany",
@@ -733,7 +965,10 @@ class Migration(migrations.Migration):
                 (
                     "target_report_expression",
                     models.ForeignKey(
-                        help_text="Expresión a la que se suma este valor (Odoo target_report_expression_id).",
+                        help_text=(
+                            "Expresión a la que se suma este valor (Odoo"
+                            " target_report_expression_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="external_values",
                         to="account.accountreportexpression",
@@ -743,7 +978,10 @@ class Migration(migrations.Migration):
                     "carryover_origin_report_line",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Línea de la que proviene el arrastre (Odoo carryover_origin_report_line_id).",
+                        help_text=(
+                            "Línea de la que proviene el arrastre (Odoo"
+                            " carryover_origin_report_line_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="carryover_external_values",
@@ -760,7 +998,10 @@ class Migration(migrations.Migration):
             model_name="accountreportexpression",
             name="report_line",
             field=models.ForeignKey(
-                help_text="Línea a la que pertenece la expresión (Odoo report_line_id).",
+                help_text=(
+                    "Línea a la que pertenece la expresión (Odoo"
+                    " report_line_id)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="expressions",
                 to="account.accountreportline",
@@ -769,7 +1010,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="accountreportline",
             constraint=models.UniqueConstraint(
-                fields=("report", "code"), name="unique_account_report_line_code"
+                fields=("report", "code"),
+                name="unique_account_report_line_code",
             ),
         ),
         migrations.AddConstraint(

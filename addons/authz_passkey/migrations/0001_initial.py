@@ -28,11 +28,17 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(max_length=255, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=255, verbose_name="Nombre"),
+                ),
                 (
                     "credential_identifier",
                     models.CharField(
-                        help_text="NO expuesto por la API (group_system en la referencia).",
+                        help_text=(
+                            "NO expuesto por la API (group_system en la"
+                            " referencia)."
+                        ),
                         max_length=1024,
                         unique=True,
                         verbose_name="Identificador de credencial",
@@ -43,19 +49,27 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="NO expuesta por la API (group_system en la referencia).",
+                        help_text=(
+                            "NO expuesta por la API (group_system en la"
+                            " referencia)."
+                        ),
                         max_length=2048,
                         verbose_name="Llave pública",
                     ),
                 ),
                 (
                     "sign_count",
-                    models.IntegerField(default=0, verbose_name="Contador de firmas"),
+                    models.IntegerField(
+                        default=0, verbose_name="Contador de firmas"
+                    ),
                 ),
                 (
                     "user",
                     models.ForeignKey(
-                        help_text="≙ create_uid; el o2m auth_passkey_key_ids de res_users es este reverso.",
+                        help_text=(
+                            "≙ create_uid; el o2m auth_passkey_key_ids de"
+                            " res_users es este reverso."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="passkeys",
                         to=settings.AUTH_USER_MODEL,

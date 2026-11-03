@@ -282,13 +282,13 @@ class StockMoveLine(TimeStampedModel):
         help_text='Movimiento de inventario al que pertenece (Odoo move_id).',
     )
     company          = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, db_index=True,
+        'base.ResCompany', null=False, on_delete=models.CASCADE, db_index=True,
         related_name='stock_move_lines',
         help_text='Empresa (Odoo company_id, readonly+required; se recalcula '
                   'en save() desde el movimiento o el albarán).',
     )
     product          = fields.Many2one(
-        'product.ProductProduct', on_delete=models.CASCADE, db_index=True,
+        'product.ProductProduct', on_delete=models.CASCADE, null=True, blank=True, db_index=True,
         related_name='stock_move_lines',
         help_text='Producto (Odoo product_id; el dominio excluye servicios).',
     )
@@ -354,12 +354,12 @@ class StockMoveLine(TimeStampedModel):
         help_text='Propietario de la mercancía en origen (Odoo owner_id).',
     )
     location         = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, db_index=True,
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, db_index=True,
         related_name='move_line_ids',
         help_text='Ubicación de origen (Odoo location_id, compute+store).',
     )
     location_dest    = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, db_index=True,
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, db_index=True,
         related_name='dest_move_line_ids',
         help_text='Ubicación de destino (Odoo location_dest_id, compute+store).',
     )
@@ -2288,11 +2288,11 @@ class StockMoveLineConsumeRel(models.Model):
     """
 
     consume_line = fields.Many2one(
-        'stock.StockMoveLine', on_delete=models.CASCADE,
+        'stock.StockMoveLine', null=False, on_delete=models.CASCADE,
         related_name='+', help_text='Línea consumida (Odoo consume_line_id).',
     )
     produce_line = fields.Many2one(
-        'stock.StockMoveLine', on_delete=models.CASCADE,
+        'stock.StockMoveLine', null=False, on_delete=models.CASCADE,
         related_name='+', help_text='Línea producida (Odoo produce_line_id).',
     )
 

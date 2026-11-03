@@ -7,6 +7,7 @@ el servicio externo está pendiente; cada operación falla explícito con
 NotImplementedError (provider registrado, sin credenciales ni flujo
 cableado) — nunca simula un resultado.
 """
+
 from decimal import Decimal
 
 from addons.payment.gateways.registry import register_gateway
@@ -19,19 +20,24 @@ from addons.payment.gateways.base import (
 )
 
 _PENDING = (
-    'Provider Pago personalizado (transferencia/wire) registrado en el framework payment; '
-    'integración pendiente (sin credenciales ni flujo cableado).'
+    'Provider Pago personalizado (transferencia/wire) registrado en el'
+    ' framework payment; integración pendiente (sin credenciales ni flujo'
+    ' cableado).'
 )
 
 
 class CustomGateway(BaseGateway):
-    """Provider Pago personalizado (transferencia/wire) — contrato registrado, integración pendiente."""
+    """
+    Provider Pago personalizado (transferencia/wire) — contrato registrado,
+    integración pendiente.
+    """
 
     def refund(self, gateway_payment_id: str, amount: Decimal) -> RefundResult:
         raise NotImplementedError(_PENDING)
 
-    def create_preference(self, order, back_urls: dict,
-                          installments: int = 1) -> PreferenceResult:
+    def create_preference(
+        self, order, back_urls: dict, installments: int = 1
+    ) -> PreferenceResult:
         raise NotImplementedError(_PENDING)
 
     def get_installment_plans(self, amount: Decimal) -> list[InstallmentPlan]:

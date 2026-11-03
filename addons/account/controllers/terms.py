@@ -27,6 +27,7 @@ Divergencias declaradas
   ``SystemParameter.get_param(...)`` — mismo parámetro
   ``account.use_invoice_terms``, mismo nombre.
 """
+
 from addons.base.models import SystemParameter
 from tools.misc import str2bool
 
@@ -51,9 +52,11 @@ class TermsController:
         términos por página no están activos (≙ el ``http_error`` de la
         referencia)."""
         use_invoice_terms = SystemParameter.get_param(
-            'account.use_invoice_terms')
+            'account.use_invoice_terms'
+        )
         active = bool(use_invoice_terms) and str2bool(
-            str(use_invoice_terms), default=False)
+            str(use_invoice_terms), default=False
+        )
         if not active:
             return None
         return {

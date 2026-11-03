@@ -29,7 +29,8 @@ resuelve un problema real y no son intercambiables:
   declaraba como parámetro explícito y era **inalcanzable**: ``_callback``
   invoca ``method()`` sin argumentos, así que el barrido levantaba
   ``PermissionError`` en toda corrida programada. Ver :ref:`h-api-752`.
-- ``self.env.values()`` (el registro de modelos de Odoo) → ``apps.get_models()``
+- ``self.env.values()`` (el registro de modelos de Odoo) →
+  ``apps.get_models()``
   de Django, que es el registro equivalente.
 - ``func(model)`` → ``func()``. La referencia obtiene la función **sin ligar**
   de ``model.__class__`` y por eso le pasa el modelo como primer argumento.
@@ -60,6 +61,7 @@ resuelve un problema real y no son intercambiables:
   de cero es una afirmación fechada y el gate la re-ejecuta, que es la única
   razón por la que este método no se quedó declinado tras construir sus tablas.
 """
+
 import collections
 import inspect
 import logging
@@ -73,11 +75,42 @@ from django.db import transaction
 
 from addons.base.models.ir_cron import IrCron
 from orm.decorators import autovacuum
-from orm.environments import get_context
+from orm.environments import env, get_context
+from orm.models import BaseModel
 from orm.registry import signaling_table_names
 from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
+
+
+def _call_vacuum_method(model, func):
+    """Invoca un método ``@autovacuum`` como lo hace la fuente.
+
+    La fuente llama ``func(self.env[model])``: el método recibe el recordset
+    vacío del modelo y busca sobre él (``test_orm.autovacuumed._gc_simple``
+    hace ``self.search(...).unlink()``). Un modelo de :class:`BaseModel`
+    recibe aquí ese mismo recordset vacío; los ``classmethod`` del resto del
+    árbol llegan ya ligados a su clase y se invocan sin argumento.
+
+    Un método de instancia de un modelo que no es de ``BaseModel`` recibe la
+    **clase**, que es lo que este árbol usa como «el modelo» (sus
+    ``classmethod`` la reciben igual). Antes se llamaba sin argumento y
+    levantaba ``TypeError``: ``IrActionsServerHistory._gc_histories`` nunca
+    corría desde el cron.
+    """
+    if inspect.ismethod(func) or not _takes_self(func):
+        return func()
+    if isinstance(model, type) and issubclass(model, BaseModel):
+        return func(model._from_ids(env(), (), ()))
+    return func(model)
+
+
+def _takes_self(func):
+    """``True`` si la función declara un primer parámetro posicional."""
+    parameters = list(inspect.signature(func).parameters.values())
+    return bool(parameters) and parameters[0].kind in (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD)
 
 
 def is_autovacuum(func):
@@ -94,9 +127,11 @@ class IrAutovacuum(django_models.Model):
     (``odoo19c: odoo/addons/base/data/ir_cron_data.xml:5``).
 
     Aquí eso se traduce a un modelo concreto con ``Meta.managed = False``, que
-    es el mapeo declarado de su ``_auto`` (``atributos-de-clase-de-modelo.md``):
+    es el mapeo declarado de su ``_auto``
+    (``atributos-de-clase-de-modelo.md``):
     Django lo registra —``apps.get_model('base', 'IrAutovacuum')`` resuelve— y
-    no le crea tabla. **Era una clase plana**, y esa forma lo hacía inalcanzable
+    no le crea tabla. **Era una clase plana**, y esa forma lo hacía
+    inalcanzable
     para el runner del cron, que resuelve su objetivo con ``apps.get_model``.
     Ver :ref:`h-api-752`.
     """
@@ -112,7 +147,9 @@ class IrAutovacuum(django_models.Model):
 
     @staticmethod
     def _collect_methods():
-        """Todos los ``(modelo, atributo, función)`` decorados con autovacuum."""
+        """
+        Todos los ``(modelo, atributo, función)`` decorados con autovacuum.
+        """
         return [
             (model, attr, func)
             for model in apps.get_models()
@@ -153,8 +190,7 @@ class IrAutovacuum(django_models.Model):
             _logger.debug('Llamando %s.%s()', model, attr)
             try:
                 start_time = time.monotonic()
-                # Ligado a su clase (classmethod) — sin argumento de modelo.
-                result = func()
+                result = _call_vacuum_method(model, func)
                 # ≙ ``self.env['ir.cron']._commit_progress()`` (``:50``).
                 # Va AQUI, entre la llamada y el reparto del resultado: un
                 # metodo que revienta salta al ``except`` sin pasar por aqui,
@@ -165,17 +201,23 @@ class IrAutovacuum(django_models.Model):
                     func_done, func_remaining = result
                     _logger.debug(
                         '%s.%s  barrió %r registros, restantes %r',
-                        model, attr, func_done, func_remaining,
+                        model,
+                        attr,
+                        func_done,
+                        func_remaining,
                     )
                     if func_remaining:
                         queue.appendleft((model, attr, func))
                 _logger.debug(
-                    '%s.%s  tomó %.2fs', model, attr, time.monotonic() - start_time)
+                    '%s.%s  tomó %.2fs',
+                    model,
+                    attr,
+                    time.monotonic() - start_time,
+                )
             except Exception:
                 # Un método roto no cancela el resto — se registra y se sigue.
                 _logger.exception('Falló %s.%s()', model, attr)
                 transaction.rollback()
-
 
     @classmethod
     @autovacuum
@@ -189,7 +231,8 @@ class IrAutovacuum(django_models.Model):
         increments"*. Las dos condiciones se conjugan con ``AND``: una fila
         sobrevive si está entre las diez últimas **o** si es de la última hora.
 
-        Las tablas son de sólo-inserción y cada invalidación añade una fila, así
+        Las tablas son de sólo-inserción y cada invalidación añade una fila,
+        así
         que sin este barrido crecen sin techo — y son las que
         ``Registry.get_sequences`` lee en **cada** petición con un ``max(id)``
         por tabla.
@@ -201,7 +244,8 @@ class IrAutovacuum(django_models.Model):
           ``['registry', *_CACHES_BY_KEY]`` aquí por tercera vez.
         - El cursor sale de ``connection`` y no de ``self.env.cr``: aquí el
           método es ``classmethod`` por el contrato del runner del cron (ver el
-          docstring de :meth:`_run_vacuum_cleaner`), así que no hay ``self`` del
+          docstring de :meth:`_run_vacuum_cleaner`), así que no hay ``self``
+          del
           que colgar un entorno.
         """
         with connection.cursor() as cr:
@@ -209,6 +253,7 @@ class IrAutovacuum(django_models.Model):
                 query = SQL(
                     "DELETE FROM %s WHERE id < (SELECT max(id)-9 FROM %s) "
                     "AND date < NOW() - interval '1 hours'",
-                    SQL.identifier(table), SQL.identifier(table),
+                    SQL.identifier(table),
+                    SQL.identifier(table),
                 )
                 cr.execute(query.code, query.params)

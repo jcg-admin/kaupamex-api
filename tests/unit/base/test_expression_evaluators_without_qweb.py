@@ -8,7 +8,8 @@ es propia del motor de plantillas:
 
 1. **contención de la expresión** — el allowlist de opcodes y el veto de
    ``__dunder__``. **No es de QWeb**: lo importa de ``tools.safe_eval``
-   (``odoo19c: ir_qweb.py:401``), que está portado entero y tiene 10 consumidores;
+   (``odoo19c: ir_qweb.py:401``), que está portado entero y tiene 10
+   consumidores;
 2. **resolución de nombres** — de dónde sale ``a`` al evaluar ``a + 1``;
 3. **compilación de la plantilla a código Python** — el ``_compile_node`` /
    ``_generate_code``. **Esto es lo que no se quiere**, y es justo lo que
@@ -22,6 +23,7 @@ sobre objetos de Python.
 *Ciega a:* el coste por evaluación de cada uno, que no se mide aquí; y a la
 ergonomía de escribir la expresión, que no es medible por una prueba.
 """
+
 import pytest
 from django.template import Context, TemplateSyntaxError, Variable
 from django.template.base import VariableDoesNotExist
@@ -31,6 +33,7 @@ from tools.safe_eval import expr_eval, safe_eval
 
 class Line:
     """Una hoja del contexto, con un atributo privado que sirve de sonda."""
+
     price = 10.5
     qty = 2
     _internal = 'no deberia salir en un documento'
@@ -41,22 +44,32 @@ def _no_args():
     return 'CALLED'
 
 
-CONTEXT = {'a': 1, 'line': Line(), 'rows': [10, 20],
-           'triple': lambda x: x * 3, 'no_args': _no_args}
+CONTEXT = {
+    'a': 1,
+    'line': Line(),
+    'rows': [10, 20],
+    'triple': lambda x: x * 3,
+    'no_args': _no_args,
+}
 
 
 class TestSafeEvalDoesWhatTheQwebCompilerDoes:
     """El poder expresivo, sin el compilador de plantillas."""
 
-    @pytest.mark.parametrize('expression, expected', [
-        ('a + 1',                    2),
-        ('line.price * line.qty',    21.0),
-        ('rows[0]',                  10),
-        ('triple(2)',                6),
-        ('[x * 2 for x in rows]',    [20, 40]),
-        ('sum(x for x in rows)',     30),
-    ])
-    def test_it_evaluates_real_python_over_python_objects(self, expression, expected):
+    @pytest.mark.parametrize(
+        'expression, expected',
+        [
+            ('a + 1', 2),
+            ('line.price * line.qty', 21.0),
+            ('rows[0]', 10),
+            ('triple(2)', 6),
+            ('[x * 2 for x in rows]', [20, 40]),
+            ('sum(x for x in rows)', 30),
+        ],
+    )
+    def test_it_evaluates_real_python_over_python_objects(
+        self, expression, expected
+    ):
         assert safe_eval(expression, CONTEXT) == expected
 
 
@@ -68,11 +81,15 @@ class TestItIsTheSameContainmentNotAWeakerOne:
             safe_eval('lambda a: (lambda: a)', CONTEXT)
 
     def test_the_dunder_guard_rejects_the_import_builtin(self):
-        with pytest.raises(NameError, match="Access to forbidden name '__import__'"):
+        with pytest.raises(
+            NameError, match="Access to forbidden name '__import__'"
+        ):
             safe_eval('__import__("os")', CONTEXT)
 
     def test_it_rejects_reaching_the_class_through_an_object(self):
-        with pytest.raises(NameError, match="Access to forbidden name '__class__'"):
+        with pytest.raises(
+            NameError, match="Access to forbidden name '__class__'"
+        ):
             safe_eval('line.__class__', CONTEXT)
 
     def test_the_builtins_are_an_allowlist_so_open_is_not_there(self):
@@ -90,7 +107,9 @@ class TestTheStricterMiddleGroundIsDjangoVariable:
     def test_it_refuses_every_underscore_not_only_dunders(self):
         # Más estricto que safe_eval: `_internal` es un atributo perfectamente
         # legal en Python y aquí no se alcanza.
-        with pytest.raises(TemplateSyntaxError, match='may not begin with underscores'):
+        with pytest.raises(
+            TemplateSyntaxError, match='may not begin with underscores'
+        ):
             Variable('line._internal')
 
     def test_only_plus_and_minus_are_rejected_when_building(self):

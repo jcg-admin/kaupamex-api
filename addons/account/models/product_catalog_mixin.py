@@ -1,4 +1,6 @@
-r"""``product.catalog.mixin`` colgado por ``account`` — gestión de secciones del catálogo.
+r"""
+``product.catalog.mixin`` colgado por ``account`` — gestión de secciones del
+catálogo.
 
 Adaptación de ``addons/account/models/product_catalog_mixin.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3 — atribución y aviso de
@@ -46,6 +48,7 @@ modelo de línea con secciones debe aportar. Se documenta como precondición,
 igual que hace el docstring de ``product/models/product_catalog_mixin.py``
 con ``_get_product_catalog_lines_data``.
 """
+
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 
 
@@ -62,17 +65,20 @@ def _create_section(self, child_field, name, position, **kwargs):
     sequence = 10
     if lines:
         sequence = (
-            lines[0].sequence - 1 if position == 'top'
+            lines[0].sequence - 1
+            if position == 'top'
             else lines[-1].sequence + 1
         )
 
-    section = line_model.objects.create(**{
-        parent_field: self.pk,
-        'name': name,
-        'display_type': 'line_section',
-        'sequence': sequence,
-        **self._get_default_create_section_values(),
-    })
+    section = line_model.objects.create(
+        **{
+            parent_field: self.pk,
+            'name': name,
+            'display_type': 'line_section',
+            'sequence': sequence,
+            **self._get_default_create_section_values(),
+        }
+    )
 
     return {'id': section.pk, 'sequence': section.sequence}
 
@@ -93,11 +99,12 @@ def _get_new_line_sequence(self, child_field, section_id):
             if line.pk == section_id:
                 section_found = True
     else:
-        section_lines = [l for l in lines if l.display_type == 'line_section']
+        section_lines = [
+            item for item in lines if item.display_type == 'line_section']
         if section_lines:
             sequence = section_lines[0].sequence
 
-    for line in [l for l in lines if l.sequence >= sequence]:
+    for line in [item for item in lines if item.sequence >= sequence]:
         line.sequence += 1
         line.save()
 
@@ -137,12 +144,18 @@ def _get_sections(self, child_field, **kwargs):
 
 
 def _get_default_create_section_values(self):
-    """≙ ``_get_default_create_section_values`` (``:73-76``, terminal — sobreescribir)."""
+    """
+    ≙ ``_get_default_create_section_values`` (``:73-76``, terminal —
+    sobreescribir).
+    """
     return {}
 
 
 def _get_parent_field_on_child_model(self):
-    """≙ ``_get_parent_field_on_child_model`` (``:78-81``, terminal — sobreescribir)."""
+    """
+    ≙ ``_get_parent_field_on_child_model`` (``:78-81``, terminal —
+    sobreescribir).
+    """
     return ''
 
 
@@ -171,12 +184,14 @@ def _resequence_sections(self, sections, child_field, **kwargs):
     move_section, target_section = sections
 
     move_block = [
-        line for line in lines
+        line
+        for line in lines
         if line.pk == move_section['id']
         or getattr(line, 'parent_id', None) == move_section['id']
     ]
     target_block = [
-        line for line in lines
+        line
+        for line in lines
         if line.pk == target_section['id']
         or getattr(line, 'parent_id', None) == target_section['id']
     ]
@@ -185,8 +200,9 @@ def _resequence_sections(self, sections, child_field, **kwargs):
     insert_after = move_section['sequence'] < target_section['sequence']
     insert_index = len(remaining_lines)
     for idx, line in enumerate(remaining_lines):
-        target_pk = (target_block[-1].pk if insert_after
-                     else target_section['id'])
+        target_pk = (
+            target_block[-1].pk if insert_after else target_section['id']
+        )
         if line.pk == target_pk:
             insert_index = idx + 1 if insert_after else idx
             break
@@ -208,7 +224,9 @@ def _resequence_sections(self, sections, child_field, **kwargs):
 
 
 def apply_account_extensions():
-    """Cuelga la gestión de secciones sobre ``ProductCatalogMixin`` — ≙ ``_inherit``.
+    """
+    Cuelga la gestión de secciones sobre ``ProductCatalogMixin`` — ≙
+    ``_inherit``.
 
     Setattr directo (no ``chain_method``): son símbolos nuevos que la clase
     base no declara, y ``ProductCatalogMixin`` no es un modelo Django con
@@ -218,9 +236,15 @@ def apply_account_extensions():
         ('_create_section', _create_section),
         ('_get_new_line_sequence', _get_new_line_sequence),
         ('_get_sections', _get_sections),
-        ('_get_default_create_section_values', _get_default_create_section_values),
+        (
+            '_get_default_create_section_values',
+            _get_default_create_section_values,
+        ),
         ('_get_parent_field_on_child_model', _get_parent_field_on_child_model),
-        ('_is_line_valid_for_section_line_count', _is_line_valid_for_section_line_count),
+        (
+            '_is_line_valid_for_section_line_count',
+            _is_line_valid_for_section_line_count,
+        ),
         ('_resequence_sections', _resequence_sections),
     ):
         if not hasattr(ProductCatalogMixin, name):

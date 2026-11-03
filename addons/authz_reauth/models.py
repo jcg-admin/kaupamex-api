@@ -1,11 +1,14 @@
 """Models — addons.authz_reauth (step-up / re-autenticación, DEC-12 shape A).
 
 App de feature opcional separada del core ``addons.authz`` (SOL-094 frente B,
-DEC-01), al estilo ``auth_totp`` de Odoo. La tabla física ``authz_reauth_session``
+DEC-01), al estilo ``auth_totp`` de Odoo. La tabla física
+``authz_reauth_session``
 NO cambia: la mudanza entre app labels se hace con ``SeparateDatabaseAndState``
-(migración ``authz.0011`` la borra del *state* de ``authz``; ``0001`` de esta app
+(migración ``authz.0011`` la borra del *state* de ``authz``; ``0001`` de esta
+app
 la re-declara en el *state*, sin tocar la tabla).
 """
+
 from api import autovacuum
 from django.conf import settings
 from django.db import models
@@ -46,18 +49,26 @@ class ReauthSession(TimeStampedModel):
     ``expires_at__gt=now`` **ignora** la fila vencida, no la borra. Filtrar no
     es barrer, y sin barrido la tabla sólo crecía.
     """
+
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='reauth_sessions', verbose_name='Usuario',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reauth_sessions',
+        verbose_name='Usuario',
     )
     session_key = models.CharField(
-        max_length=40, blank=True, default='', db_index=True,
+        max_length=40,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Clave de sesión',
         help_text='Sesión Django a la que se ata la reautenticación.',
     )
     started_at = models.DateTimeField(verbose_name='Iniciada')
     expires_at = models.DateTimeField(db_index=True, verbose_name='Expira')
-    ip_addr = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP')
+    ip_addr = models.GenericIPAddressField(
+        null=True, blank=True, verbose_name='IP'
+    )
 
     class Meta:
         db_table = 'authz_reauth_session'
@@ -66,7 +77,8 @@ class ReauthSession(TimeStampedModel):
         ordering = ['-started_at']
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'session_key'], name='uq_authz_reauth_session',
+                fields=['user', 'session_key'],
+                name='uq_authz_reauth_session',
             ),
         ]
         indexes = [
@@ -90,8 +102,12 @@ class ReauthSession(TimeStampedModel):
 
         Devuelve cuántas borró, que es lo que el colector reencola por lotes.
         """
-        deleted, _ = cls.objects.filter(expires_at__lte=timezone.now()).delete()
+        deleted, _ = cls.objects.filter(
+            expires_at__lte=timezone.now()
+        ).delete()
         return deleted
 
     def __str__(self):
-        return f'ReauthSession[{self.user_id}] → {self.expires_at:%Y-%m-%dT%H:%M}'
+        return (
+            f'ReauthSession[{self.user_id}] → {self.expires_at:%Y-%m-%dT%H:%M}'
+        )

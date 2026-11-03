@@ -1,4 +1,6 @@
-"""Las dos etiquetas de cuenta que el plan mexicano cita por identificador externo.
+"""
+Las dos etiquetas de cuenta que el plan mexicano cita por identificador
+externo.
 
 Adaptado de Odoo Community ``l10n_mx/data/account.account.tag.csv`` (LGPL-3,
 ``odoo-tools@622ddc2aa5``, ``odoo19c:``) — atribución preservada (DEC-KX-03).
@@ -80,7 +82,8 @@ MX_ACCOUNT_TAGS = (
     ('tag_credit_balance_account', 'Credit Balance Account'),
 )
 
-#: Los identificadores externos completos, que es como el CSV del plan las cita.
+#: Los identificadores externos completos, que es como el CSV del plan
+#: las cita.
 MX_ACCOUNT_TAG_XMLIDS = tuple(
     f'l10n_mx.{name}' for name, _label in MX_ACCOUNT_TAGS
 )
@@ -106,21 +109,35 @@ def seed_l10n_mx_account_tags(apps, alias):
     created = {}
     for name, tag_label in MX_ACCOUNT_TAGS:
         xmlid = f'l10n_mx.{name}'
-        row = IrModelData.objects.using(alias).filter(
-            module='l10n_mx', name=name).first()
+        row = (
+            IrModelData.objects.using(alias)
+            .filter(module='l10n_mx', name=name)
+            .first()
+        )
         existing = None
         if row is not None:
-            existing = AccountAccountTag.objects.using(alias).filter(
-                pk=row.res_id).first()
+            existing = (
+                AccountAccountTag.objects.using(alias)
+                .filter(pk=row.res_id)
+                .first()
+            )
         if existing is None:
-            existing = AccountAccountTag.objects.using(alias).filter(
-                name=tag_label, applicability='accounts',
-                country__isnull=True).first()
+            existing = (
+                AccountAccountTag.objects.using(alias)
+                .filter(
+                    name=tag_label,
+                    applicability='accounts',
+                    country__isnull=True,
+                )
+                .first()
+            )
         if existing is None:
             existing = AccountAccountTag.objects.using(alias).create(
-                name=tag_label, applicability='accounts')
+                name=tag_label, applicability='accounts'
+            )
         IrModelData.objects.using(alias).update_or_create(
-            module='l10n_mx', name=name,
+            module='l10n_mx',
+            name=name,
             defaults={'model': label, 'res_id': existing.pk, 'noupdate': True},
         )
         created[xmlid] = existing

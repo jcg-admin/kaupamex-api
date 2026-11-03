@@ -1,0 +1,1731 @@
+[
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/census-open-api-2026-09-12T11-13-43.log",
+    "matching_lines": [
+      23,
+      24,
+      25,
+      27,
+      43,
+      66,
+      74
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/census_open_api_tasks.json",
+    "matching_lines": [
+      319,
+      323,
+      338,
+      339,
+      347,
+      348,
+      349,
+      350,
+      359,
+      363,
+      373,
+      374,
+      375,
+      382,
+      398,
+      399,
+      427,
+      428,
+      429,
+      430,
+      431,
+      439,
+      452,
+      453,
+      474,
+      475,
+      496,
+      497,
+      518,
+      519,
+      520,
+      541,
+      542,
+      562,
+      563,
+      564,
+      586,
+      587,
+      650,
+      651,
+      652,
+      653,
+      654,
+      655,
+      656,
+      657,
+      658,
+      684,
+      685,
+      686,
+      687,
+      688,
+      711,
+      712,
+      713,
+      714,
+      715,
+      735,
+      736,
+      756,
+      757,
+      758,
+      759,
+      782,
+      783,
+      849,
+      862,
+      863,
+      886,
+      887,
+      1172,
+      1173,
+      1174,
+      1192,
+      1249,
+      1272,
+      1273,
+      1291,
+      1292,
+      1310,
+      1311,
+      2689
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/clasif-351-2026-09-11T22-36-13-001.log",
+    "matching_lines": [
+      3
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/control-0412-2026-09-12T09-01-37-001.log",
+    "matching_lines": [
+      634,
+      635,
+      636,
+      637,
+      721,
+      722,
+      723,
+      724,
+      1971,
+      2032,
+      2033,
+      2034,
+      2035,
+      2036,
+      2037,
+      2038,
+      2039,
+      2040,
+      2134,
+      2163
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/control-anulacion-comodel-name-2026-09-11T06-53-17.txt",
+    "matching_lines": [
+      33
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/control-mutacion-comparadores-2026-09-11T05-10-49.txt",
+    "matching_lines": [
+      5
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/derivado-351-2026-09-11T22-21-58-001.log",
+    "matching_lines": [
+      12,
+      19
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/derivado-compute-dispatch-2026-09-11T17-38-00.log",
+    "matching_lines": [
+      75,
+      82
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/diag2-353-2026-09-12T09-00-10-001.log",
+    "matching_lines": [
+      1397,
+      1399,
+      1401,
+      1403,
+      3897,
+      4223,
+      4281,
+      5045,
+      5046,
+      5047,
+      5048,
+      5132,
+      5133,
+      5134,
+      5135,
+      6382,
+      6443,
+      6444,
+      6445,
+      6446,
+      6447,
+      6448,
+      6449,
+      6450,
+      6451,
+      6545,
+      6574
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/diag3-353-2026-09-12T09-01-00-001.log",
+    "matching_lines": [
+      42,
+      43,
+      79,
+      80,
+      81,
+      107,
+      120,
+      180,
+      181,
+      182
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/green-basemodel-recordset-20260911T041354.log",
+    "matching_lines": [
+      233,
+      237,
+      238,
+      239,
+      289,
+      290,
+      312
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/green-basemodel-recordset-controles-20260911T041429.txt",
+    "matching_lines": [
+      1,
+      3,
+      75
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/mrp-351-2026-09-11T22-36-48-001.log",
+    "matching_lines": [
+      196,
+      199,
+      236,
+      243,
+      527,
+      530,
+      567,
+      574
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/msg-209-censo.txt",
+    "matching_lines": [
+      29
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/msg-352-reference-flow.txt",
+    "matching_lines": [
+      33
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/msg-registry-tramo1.txt",
+    "matching_lines": [
+      7
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/neutering-related-lectura-sin-cadena-20260831T065921.txt",
+    "matching_lines": [
+      5,
+      11,
+      12,
+      13
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/neutering-related-sin-cablear-la-busqueda-20260831T065942.txt",
+    "matching_lines": [
+      5,
+      11,
+      12
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/README.md",
+    "matching_lines": [
+      26
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/manifest.jsonl",
+    "matching_lines": [
+      1,
+      2,
+      3,
+      5
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/audit-results.json",
+    "matching_lines": [
+      208,
+      211,
+      213,
+      214,
+      215,
+      216,
+      217,
+      219,
+      228,
+      229,
+      230,
+      232,
+      238,
+      240,
+      252,
+      264,
+      267,
+      271,
+      275,
+      279,
+      283,
+      287,
+      291,
+      295,
+      299,
+      303,
+      307,
+      311,
+      315,
+      319,
+      323,
+      327,
+      331,
+      335,
+      339,
+      343,
+      347,
+      351,
+      355,
+      359,
+      363,
+      367,
+      371,
+      375,
+      381,
+      384,
+      386,
+      387,
+      388,
+      389,
+      400,
+      409,
+      416,
+      421,
+      427,
+      430,
+      434,
+      438,
+      442,
+      446,
+      450,
+      454,
+      458,
+      462,
+      466,
+      504,
+      508,
+      545,
+      550,
+      551,
+      560,
+      564,
+      572,
+      579,
+      583,
+      586,
+      590,
+      594,
+      598,
+      602,
+      606,
+      610,
+      614,
+      633,
+      695,
+      888,
+      891,
+      892,
+      900,
+      903,
+      904,
+      912,
+      916,
+      924,
+      928,
+      939,
+      940
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/basemodel-historical-instruments-revalidated-20261019.log",
+    "matching_lines": [
+      204
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/check_plain_field_assignment.json",
+    "matching_lines": [
+      32
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/id-and-declaring-owner.log",
+    "matching_lines": [
+      2,
+      4,
+      13,
+      16,
+      18
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/id-setter-and-owners.log",
+    "matching_lines": [
+      2
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/nominal-populations.json",
+    "matching_lines": [
+      14
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/orm-contract-additional-tasks-20261019.json",
+    "matching_lines": [
+      3,
+      6,
+      7,
+      15,
+      18,
+      19,
+      27,
+      31,
+      39,
+      43,
+      54,
+      55
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/plain-field-assignment.log",
+    "matching_lines": [
+      33
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/pristine-stack-instrument-audit-20261019.json",
+    "matching_lines": [
+      792
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-contract-history-audit-20261019T220449/outputs/two-caches-historical-revalidation-20261019.log",
+    "matching_lines": [
+      78
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-half-implemented-20260911T025438/logs/job-001.log",
+    "matching_lines": [
+      54
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm-half-implemented-20260911T025438/logs/job-003.log",
+    "matching_lines": [
+      31
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/orm0426-2026-09-12T08-25-01-002.log",
+    "matching_lines": [
+      4975,
+      4977,
+      4979,
+      4981,
+      7475,
+      7801,
+      7859,
+      9948,
+      9949,
+      9950,
+      9951,
+      11803,
+      11804,
+      11805,
+      11806,
+      13053,
+      13114,
+      13115,
+      13116,
+      13117,
+      13118,
+      13119,
+      13120,
+      13121,
+      13122,
+      13216,
+      13245
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/politica-2026-09-12T08-11-44-001.log",
+    "matching_lines": [
+      11,
+      12
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/pool-0417-2026-09-11T19-29-48/p0417-005.log",
+    "matching_lines": [
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/post-2026-09-12T07-39-47-001.log",
+    "matching_lines": [
+      8,
+      9
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/pytest-full-baseline-20260914T012243/outputs/salida.log",
+    "matching_lines": [
+      102485,
+      102489,
+      103092,
+      103103,
+      103166,
+      103172,
+      103178,
+      103465,
+      103478,
+      103786,
+      103787,
+      103788
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/pytest-html-editor-freshdb.log",
+    "matching_lines": [
+      746,
+      6980
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/pytest-html-editor-noserialize.log",
+    "matching_lines": [
+      744,
+      6978
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/ranuras2-2026-09-12T08-12-46-001.log",
+    "matching_lines": [
+      11,
+      12
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/red-basemodel-recordset-20260911T033634/red.txt",
+    "matching_lines": [
+      1,
+      14,
+      15
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-0412-2026-09-12T08-54-35-001.log",
+    "matching_lines": [
+      9402,
+      15436,
+      15438,
+      15440,
+      15442,
+      17936,
+      18262,
+      18320,
+      25992,
+      26815,
+      26816,
+      26817,
+      26818,
+      29005,
+      29006,
+      29007,
+      29008,
+      30255,
+      30316,
+      30317,
+      30318,
+      30319,
+      30320,
+      30321,
+      30322,
+      30323,
+      30324,
+      30418,
+      30447
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-353-2026-09-12T08-57-20-001.log",
+    "matching_lines": [
+      9402,
+      15436,
+      15438,
+      15440,
+      15442,
+      17936,
+      18262,
+      18320,
+      25992,
+      26815,
+      26816,
+      26817,
+      26818,
+      29005,
+      29006,
+      29007,
+      29008,
+      30255,
+      30316,
+      30317,
+      30318,
+      30319,
+      30320,
+      30321,
+      30322,
+      30323,
+      30324,
+      30418,
+      30447
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-completa-351-2026-09-11T22-27-44-001.log",
+    "matching_lines": [
+      1
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-completa-compute-dispatch-2026-09-11T17-39-44.log",
+    "matching_lines": [
+      169,
+      176
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-ondelete-20260911T101129/outputs/salida.log",
+    "matching_lines": [
+      137419,
+      302403,
+      302526,
+      302731,
+      302772,
+      360623,
+      365707,
+      370053,
+      433149,
+      433379,
+      433383,
+      433388,
+      433392,
+      437173,
+      437176,
+      437181,
+      437182,
+      438593,
+      438717,
+      438823,
+      439075,
+      439079,
+      439083,
+      439088,
+      439090,
+      439093,
+      439095,
+      439099,
+      439103
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-registry-20260903T051436.log",
+    "matching_lines": [
+      168,
+      169
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-transient-20260911T154409.log",
+    "matching_lines": [
+      169,
+      176
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-vocab.log",
+    "matching_lines": [
+      470,
+      477
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/suite-vocab2.log",
+    "matching_lines": [
+      169,
+      176
+    ]
+  },
+  {
+    "repo": "kaupamex-api",
+    "home": "jobs",
+    "path": "scripts/evidence/uno-353-2026-09-12T08-58-46-001.log",
+    "matching_lines": [
+      373,
+      381,
+      399,
+      567
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/alias-dos-raices-20260829T035558/metodologia-l3-2808262112.txt",
+    "matching_lines": [
+      1214,
+      1265,
+      1444,
+      1446,
+      1456,
+      1485,
+      1524,
+      1602,
+      1611,
+      1696,
+      1822,
+      1994,
+      2010,
+      2066,
+      2072,
+      2124,
+      2140,
+      2464,
+      2509,
+      2735,
+      2820,
+      2885,
+      4290,
+      5262,
+      5635
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/consolidacion-bootstrap-orm-20261018.json",
+    "matching_lines": [
+      122,
+      129,
+      130,
+      131,
+      134,
+      243,
+      370,
+      530,
+      703,
+      704,
+      723,
+      726,
+      827,
+      863,
+      866,
+      908,
+      911,
+      912,
+      922,
+      925,
+      926,
+      939,
+      940,
+      954,
+      964,
+      968,
+      982,
+      1008,
+      1015,
+      1056,
+      1412,
+      1624,
+      1627,
+      1629,
+      1630,
+      1631,
+      1632,
+      1633,
+      1635,
+      1644,
+      1645,
+      1646,
+      1648,
+      1654,
+      1656,
+      1668,
+      1680,
+      1683,
+      1687,
+      1691,
+      1695,
+      1699,
+      1703,
+      1707,
+      1711,
+      1715,
+      1719,
+      1723,
+      1727,
+      1731,
+      1735,
+      1739,
+      1743,
+      1747,
+      1751,
+      1755,
+      1759,
+      1763,
+      1767,
+      1771,
+      1775,
+      1779,
+      1783,
+      1787,
+      1791,
+      1797,
+      1800,
+      1802,
+      1803,
+      1804,
+      1805,
+      1816,
+      1825,
+      1832,
+      1837,
+      1843,
+      1846,
+      1850,
+      1854,
+      1858,
+      1862,
+      1866,
+      1870,
+      1874,
+      1878,
+      1882,
+      1920,
+      1924,
+      1961,
+      1966,
+      1967,
+      1976,
+      1980,
+      1988,
+      1995,
+      1999,
+      2002,
+      2006,
+      2010,
+      2014,
+      2018,
+      2022,
+      2026,
+      2030,
+      2049,
+      2111,
+      2304,
+      2307,
+      2308,
+      2316,
+      2319,
+      2320,
+      2328,
+      2332,
+      2340,
+      2344,
+      2355,
+      2356
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/frontera-orm-20261018.json",
+    "matching_lines": [
+      6
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/informe-consolidacion-ramas.md",
+    "matching_lines": [
+      442,
+      444,
+      488,
+      577,
+      912,
+      1144,
+      1157,
+      1163,
+      1169,
+      1174,
+      1175,
+      1193,
+      1251,
+      1310,
+      1320,
+      1322,
+      1325,
+      1329,
+      1377,
+      1389,
+      1390
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/informe.md",
+    "matching_lines": [
+      313,
+      371,
+      373,
+      385,
+      733
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/procedimiento-de-reanudacion.md",
+    "matching_lines": [
+      63,
+      112
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/store-tareas-clave.txt",
+    "matching_lines": [
+      3,
+      57
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/barrido-una-raiz-20260829T040354/porte-completo-hoy.txt",
+    "matching_lines": [
+      1532
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/censo-fk-sufijo-id-20260828T182359/indice-odoo18c.json",
+    "matching_lines": [
+      4246
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/censo-fk-sufijo-id-20260828T182359/indice-odoo18e.json",
+    "matching_lines": [
+      5979,
+      6008
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/close-open-docs-tasks-20260912T100232/outputs/census_open_docs_tasks.json",
+    "matching_lines": [
+      1202
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/discriminadores-de-despacho-de-agente-20260911T003342/outputs/payload-real-del-despacho.json",
+    "matching_lines": [
+      6
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/extraer-base-cognitiva-20260911T171505/README.md",
+    "matching_lines": [
+      5
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/id-segmentado-en-tareas-20260905T052559/preimagen/83.txt",
+    "matching_lines": [
+      7,
+      8,
+      9
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/id-segmentado-en-tareas-20260905T052559/preimagen/84.txt",
+    "matching_lines": [
+      3
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/niveles-del-backlog-20260906T235601/nivel0-decisiones.txt",
+    "matching_lines": [
+      88,
+      89,
+      90,
+      102
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/precondiciones-paquete-agent-20260902T044740/clon-lockfile/.claude/agents/agentic-validator.md",
+    "matching_lines": [
+      68
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/precondiciones-paquete-agent-20260902T044740/clon-lockfile/.claude/packages/agent/src/definitions/agenticValidator.prompt.md",
+    "matching_lines": [
+      57
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/precondiciones-paquete-agent-20260902T044740/clon/.claude/agents/agentic-validator.md",
+    "matching_lines": [
+      68
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/precondiciones-paquete-agent-20260902T044740/clon/.claude/packages/agent/src/definitions/agenticValidator.prompt.md",
+    "matching_lines": [
+      57
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/recibir-nestor-monroy-tools-20260827T191257/extraido/claude-code-nestor-monroy-tools/bun-demincer/data/vendor-fingerprints-1000.json",
+    "matching_lines": [
+      1,
+      27
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/censo-antes-pase-1.json",
+    "matching_lines": [
+      745,
+      752
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/censo-antes-pase-1.txt",
+    "matching_lines": [
+      28
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/censo-antes-pase-2.json",
+    "matching_lines": [
+      809,
+      816
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/censo.json",
+    "matching_lines": [
+      871,
+      878
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/censo.txt",
+    "matching_lines": [
+      31
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/hallazgos-antes-pase-1.json",
+    "matching_lines": [
+      4379,
+      4384,
+      4387,
+      4392,
+      4395,
+      4400,
+      4403,
+      4408,
+      4411,
+      4416,
+      4419,
+      4424,
+      4427,
+      4432,
+      4435,
+      4440,
+      4443,
+      4448,
+      4451,
+      4456,
+      4459,
+      4464,
+      4467,
+      4472,
+      4475,
+      4480,
+      4483,
+      4488,
+      4491,
+      4496,
+      4499,
+      4504,
+      4507,
+      4512,
+      4515,
+      4520,
+      4523,
+      4528,
+      4531,
+      4536,
+      4539,
+      4544,
+      4547,
+      4552,
+      4555,
+      4560,
+      4563,
+      4568,
+      4571,
+      4576,
+      4579,
+      4584,
+      4587,
+      4592
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/salidas/hallazgos.json",
+    "matching_lines": [
+      4371,
+      4376,
+      4379,
+      4384,
+      4387,
+      4392,
+      4395,
+      4400,
+      4403,
+      4408,
+      4411,
+      4416,
+      4419,
+      4424,
+      4427,
+      4432,
+      4435,
+      4440,
+      4443,
+      4448,
+      4451,
+      4456,
+      4459,
+      4464,
+      4467,
+      4472,
+      4475,
+      4480,
+      4483,
+      4488,
+      4491,
+      4496,
+      4499,
+      4504,
+      4507,
+      4512,
+      4515,
+      4520,
+      4523,
+      4528,
+      4531,
+      4536,
+      4539,
+      4544,
+      4547,
+      4552,
+      4555,
+      4560,
+      4563,
+      4568,
+      4571,
+      4576,
+      4579,
+      4584
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/tareas-pendientes-y-dependencias-20260907T210900/tablero/83.json",
+    "matching_lines": [
+      4
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/tareas-pendientes-y-dependencias-20260907T210900/tablero/84.json",
+    "matching_lines": [
+      4
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/terminar-cinco-addons-20260827T181414/salidas/porte-completo-crudo.txt",
+    "matching_lines": [
+      1596
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/triar-citas-doc-y-capa-de-hallazgos-20260916T194537/salidas/doc-rotas-particion-por-historial.json",
+    "matching_lines": [
+      291
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/triar-citas-doc-y-capa-de-hallazgos-20260916T194537/salidas/doc-rotas.json",
+    "matching_lines": [
+      269
+    ]
+  },
+  {
+    "repo": "kaupamex-docs",
+    "home": "workbench",
+    "path": ".claude/eventos/triar-doc-nunca-existio-20260916T223149/salidas/clasificacion.json",
+    "matching_lines": [
+      323
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/classify-unlabeled-task-layer-20260912T101557/outputs/classify_unlabeled_task_layer.json",
+    "matching_lines": [
+      1149,
+      1179,
+      2277
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/container-image-distribution-20261002T234933/outputs/search-existing/D-stores.txt",
+    "matching_lines": [
+      87,
+      88,
+      162
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/descripcion-converge-en-bloque-20260912T103835/outputs/aplicado-sobre-el-store-vivo.out",
+    "matching_lines": [
+      38,
+      39,
+      41
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/descripcion-converge-en-bloque-20260912T103835/outputs/seco-sobre-el-store-vivo.out",
+    "matching_lines": [
+      38,
+      39,
+      41
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/p1-grep-estado.txt",
+    "matching_lines": [
+      100,
+      101,
+      102,
+      103
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/p2-parallel-Xk.txt",
+    "matching_lines": [
+      434,
+      435,
+      436,
+      437,
+      438
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-gate-real.txt",
+    "matching_lines": [
+      100,
+      101,
+      102,
+      103,
+      876,
+      877,
+      878,
+      879,
+      880
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-parallel-X.txt",
+    "matching_lines": [
+      825,
+      826,
+      827,
+      828,
+      829
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-parallel-Xk.txt",
+    "matching_lines": [
+      434,
+      435,
+      436,
+      437,
+      438
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-parallel-j0X.txt",
+    "matching_lines": [
+      482,
+      483,
+      484,
+      485,
+      486
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-serie-honesta.txt",
+    "matching_lines": [
+      434,
+      435,
+      436,
+      437,
+      438
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-serie.txt",
+    "matching_lines": [
+      434,
+      435,
+      436,
+      437,
+      438
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-solo-estado.txt",
+    "matching_lines": [
+      100,
+      101,
+      102,
+      103
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/gnu-parallel-en-el-gate-20260910T230011/outputs/u-xargs-P4.txt",
+    "matching_lines": [
+      185,
+      188,
+      191,
+      194,
+      198
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/podman-recovery-and-local-workers-20261002T101711/outputs/embedding-findings-suite.json",
+    "matching_lines": [
+      505,
+      518,
+      531,
+      544,
+      557
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/postgres-corpus-disk-reclaim-20261002T023317/outputs/T002-verify.json",
+    "matching_lines": [
+      25
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/postgres-corpus-disk-reclaim-20261002T023317/outputs/T003-retrieval-after.json",
+    "matching_lines": [
+      25
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/postgres-corpus-disk-reclaim-20261002T023317/outputs/T003-retrieval-mid.json",
+    "matching_lines": [
+      25
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/semantic-dataset-search-existing-20261003T054914/outputs/kaupamex-docs-tree.txt",
+    "matching_lines": [
+      19215,
+      19216,
+      19217,
+      19218,
+      19219,
+      19220,
+      19221,
+      19222,
+      19223,
+      19224,
+      19225,
+      19226,
+      19227,
+      19228,
+      19229,
+      19230,
+      19231,
+      19232,
+      19233,
+      19234,
+      19235,
+      19236,
+      19237,
+      19238,
+      19239,
+      19240,
+      19241,
+      19242,
+      19243,
+      19244,
+      19245,
+      19246,
+      19247,
+      19248,
+      19249,
+      19250,
+      19251,
+      19252,
+      19253,
+      19254,
+      19255,
+      19256,
+      19257,
+      19258,
+      19259,
+      19260,
+      19261,
+      19262,
+      19263
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/semantic-dataset-search-existing-20261003T054914/outputs/task-hits.txt",
+    "matching_lines": [
+      25
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/session-task-dump-20260910T070654/outputs/board/83.json",
+    "matching_lines": [
+      4
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/session-task-dump-20260910T070654/outputs/board/84.json",
+    "matching_lines": [
+      4
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/tsc-zero-loop/run-20260924T175031/step-112/pipeline/batch-04/candidates.jsonl",
+    "matching_lines": [
+      2
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/vm-integration-and-workflow-audit-20261012T213400/inventories/continuity-citation-identities.json",
+    "matching_lines": [
+      867
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/vm-integration-and-workflow-audit-20261012T213400/inventories/continuity-tasks.jsonl",
+    "matching_lines": [
+      312,
+      1026,
+      1032,
+      1246,
+      1592,
+      1593,
+      1595,
+      1596,
+      1597,
+      1598,
+      1599,
+      1612,
+      1616,
+      1617,
+      1618,
+      1619,
+      1620,
+      1621,
+      1626,
+      1627,
+      1628,
+      1629
+    ]
+  },
+  {
+    "repo": "thyrox",
+    "home": "workbench",
+    "path": ".claude/workbench/vm-integration-and-workflow-audit-20261012T213400/inventories/log-analysis.jsonl",
+    "matching_lines": [
+      695,
+      6824,
+      22331,
+      22334,
+      34490,
+      38580
+    ]
+  }
+]

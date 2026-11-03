@@ -1,0 +1,15 @@
+{
+  "command": [
+    "gh",
+    "run",
+    "view",
+    "40154668195",
+    "--repo",
+    "jcg-admin/kaupamex-api",
+    "--log-failed"
+  ],
+  "exit_code": 0,
+  "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+  "run_id": 40154668195,
+  "classification": "remote failure; first-error details retained in full log"
+}

@@ -32,6 +32,7 @@ Qué haría fallar a cada control
     el ``utf-8`` por defecto el nombre pasa tal cual, y afirmar lo contrario
     describe una función que no existe.
 """
+
 import pytest
 
 from tools.mail import (
@@ -49,14 +50,18 @@ class TestNormalize:
     """≙ ``email_normalize`` — una dirección, o ``False``."""
 
     def test_it_extracts_the_address_from_a_formatted_one(self):
-        assert email_normalize('Ana Ruiz <ana@kaupamex.mx>') == 'ana@kaupamex.mx'
+        assert (
+            email_normalize('Ana Ruiz <ana@kaupamex.mx>') == 'ana@kaupamex.mx'
+        )
 
     def test_it_trims_and_lowercases_the_domain(self):
         assert email_normalize('  ana@KAUPAMEX.MX ') == 'ana@kaupamex.mx'
 
     def test_an_ascii_local_part_is_lowered(self):
         """La fuente la baja a propósito: los proveedores la tratan así."""
-        assert email_normalize('Ana.Ruiz@kaupamex.mx') == 'ana.ruiz@kaupamex.mx'
+        assert (
+            email_normalize('Ana.Ruiz@kaupamex.mx') == 'ana.ruiz@kaupamex.mx'
+        )
 
     def test_a_non_ascii_local_part_is_left_alone(self):
         """El eje — SMTP-UTF8 la admite tal cual; bajarla fusiona buzones."""
@@ -76,8 +81,10 @@ class TestNormalize:
 
     def test_without_strict_the_first_one_wins(self):
         """CONTROL del argumento — sin él ``strict`` sería decorativo."""
-        assert email_normalize('a@kaupamex.mx, b@kaupamex.mx',
-                               strict=False) == 'a@kaupamex.mx'
+        assert (
+            email_normalize('a@kaupamex.mx, b@kaupamex.mx', strict=False)
+            == 'a@kaupamex.mx'
+        )
 
 
 class TestNormalizeAll:
@@ -85,7 +92,9 @@ class TestNormalizeAll:
 
     def test_it_returns_every_address(self):
         assert email_normalize_all('a@kaupamex.mx, b@kaupamex.mx') == [
-            'a@kaupamex.mx', 'b@kaupamex.mx']
+            'a@kaupamex.mx',
+            'b@kaupamex.mx',
+        ]
 
     def test_one_address_is_a_list_of_one(self):
         assert email_normalize_all('ana@kaupamex.mx') == ['ana@kaupamex.mx']
@@ -102,8 +111,10 @@ class TestFormatAddr:
 
     def test_it_joins_name_and_address(self):
         """El nombre va **entre comillas** — RFC 2822 §3.4."""
-        assert formataddr(('Ana Ruiz', 'ana@kaupamex.mx')) == (
-            '"Ana Ruiz" <ana@kaupamex.mx>')
+        assert (
+            formataddr(('Ana Ruiz', 'ana@kaupamex.mx'))
+            == '"Ana Ruiz" <ana@kaupamex.mx>'
+        )
 
     def test_without_a_name_it_is_the_bare_address(self):
         assert formataddr(('', 'ana@kaupamex.mx')) == 'ana@kaupamex.mx'
@@ -118,13 +129,17 @@ class TestFormatAddr:
 
     def test_with_the_default_utf8_charset_it_passes_through(self):
         """CONTROL de la otra rama — el default es ``utf-8``, y ahí cabe."""
-        assert formataddr(('Ana Muñoz', 'ana@kaupamex.mx')) == (
-            '"Ana Muñoz" <ana@kaupamex.mx>')
+        assert (
+            formataddr(('Ana Muñoz', 'ana@kaupamex.mx'))
+            == '"Ana Muñoz" <ana@kaupamex.mx>'
+        )
 
     def test_a_quote_in_the_name_is_escaped(self):
         """CONTROL — una comilla sin escapar rompe la cabecera entera."""
-        assert formataddr(('Ana "La Jefa"', 'ana@kaupamex.mx')) == (
-            r'"Ana \"La Jefa\"" <ana@kaupamex.mx>')
+        assert (
+            formataddr(('Ana "La Jefa"', 'ana@kaupamex.mx'))
+            == r'"Ana \"La Jefa\"" <ana@kaupamex.mx>'
+        )
 
 
 class TestDomainExtract:
@@ -139,8 +154,9 @@ class TestDomainExtract:
         Lo haría fallar un ``split('@')[1]`` pelado — devolvería
         ``'KAUPAMEX.MX>'`` con el formato ``Nombre <buzon>`` y la mayúscula.
         """
-        assert email_domain_extract('Ana Ruiz <ana@KAUPAMEX.MX>') == (
-            'kaupamex.mx')
+        assert (
+            email_domain_extract('Ana Ruiz <ana@KAUPAMEX.MX>') == 'kaupamex.mx'
+        )
 
     def test_an_invalid_address_gives_false(self):
         assert email_domain_extract('no soy un correo') is False

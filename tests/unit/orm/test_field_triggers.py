@@ -24,6 +24,7 @@ construirlo                  dependencia declarada —no tiene el concepto—,
                              cierre transitivo es un recorrido.
 ===========================  ==============================================
 """
+
 import pytest
 from django.db import models as django_models
 
@@ -47,18 +48,27 @@ class TriggerOwner(django_models.Model):
 
 
 class TriggerProbe(django_models.Model):
-    """El lado muchos: dos calculados, uno local y uno a través de la relación."""
+    """
+    El lado muchos: dos calculados, uno local y uno a través de la relación.
+    """
 
     _name = 'orm.trigger.probe'
 
     source = fields.Integer('Source', default=0)
     owner = django_models.ForeignKey(
-        TriggerOwner, on_delete=django_models.CASCADE,
-        related_name='probes', null=True)
+        TriggerOwner,
+        on_delete=django_models.CASCADE,
+        related_name='probes',
+        null=True,
+    )
     doubled = fields.Integer('Doubled', compute='_compute_doubled', store=True)
-    owner_label = fields.Char('Owner Label', max_length=32,
-                              compute='_compute_owner_label', store=True,
-                              blank=True)
+    owner_label = fields.Char(
+        'Owner Label',
+        max_length=32,
+        compute='_compute_owner_label',
+        store=True,
+        blank=True,
+    )
 
     class Meta:
         app_label = 'base'
@@ -149,47 +159,68 @@ class TestTheTriggersInvertTheDependency:
         label = field_of(TriggerOwner, 'label')
         paths = triggers[label]
         assert (field_of(TriggerProbe, 'owner'),) in paths
-        assert field_of(TriggerProbe, 'owner_label') in paths[
-            (field_of(TriggerProbe, 'owner'),)]
+        assert (
+            field_of(TriggerProbe, 'owner_label')
+            in paths[(field_of(TriggerProbe, 'owner'),)]
+        )
 
     def test_a_field_nobody_depends_on_is_absent(self):
-        assert field_of(TriggerProbe, 'doubled') not in registry.field_triggers()
+        assert (
+            field_of(TriggerProbe, 'doubled') not in registry.field_triggers()
+        )
 
 
 class TestTheTreeAndItsReaders:
 
     def test_the_tree_of_a_local_dependency_has_it_at_the_root(self):
-        tree = registry.get_field_trigger_tree(field_of(TriggerProbe, 'source'))
+        tree = registry.get_field_trigger_tree(
+            field_of(TriggerProbe, 'source')
+        )
         assert field_of(TriggerProbe, 'doubled') in tree.root
 
-    def test_the_tree_of_a_far_dependency_hangs_from_the_field_to_inverse(self):
+    def test_the_tree_of_a_far_dependency_hangs_from_the_field_to_inverse(
+        self,
+    ):
         tree = registry.get_field_trigger_tree(field_of(TriggerOwner, 'label'))
         branch = tree[field_of(TriggerProbe, 'owner')]
         assert field_of(TriggerProbe, 'owner_label') in branch.root
 
     def test_a_field_without_triggers_gives_an_empty_tree(self):
-        tree = registry.get_field_trigger_tree(field_of(TriggerProbe, 'doubled'))
+        tree = registry.get_field_trigger_tree(
+            field_of(TriggerProbe, 'doubled')
+        )
         assert not tree
 
     def test_the_dependent_fields_are_listed(self):
         dependents = list(
-            registry.get_dependent_fields(field_of(TriggerProbe, 'source')))
+            registry.get_dependent_fields(field_of(TriggerProbe, 'source'))
+        )
         assert field_of(TriggerProbe, 'doubled') in dependents
 
     def test_a_field_without_triggers_lists_nothing(self):
-        assert list(registry.get_dependent_fields(
-            field_of(TriggerProbe, 'doubled'))) == []
+        assert (
+            list(
+                registry.get_dependent_fields(
+                    field_of(TriggerProbe, 'doubled')
+                )
+            )
+            == []
+        )
 
     def test_the_merged_tree_covers_every_given_field(self):
-        tree = registry.get_trigger_tree([
-            field_of(TriggerProbe, 'source'), field_of(TriggerOwner, 'label')])
+        tree = registry.get_trigger_tree(
+            [field_of(TriggerProbe, 'source'), field_of(TriggerOwner, 'label')]
+        )
         assert field_of(TriggerProbe, 'doubled') in tree.root
-        assert field_of(TriggerProbe, 'owner_label') in tree[
-            field_of(TriggerProbe, 'owner')].root
+        assert (
+            field_of(TriggerProbe, 'owner_label')
+            in tree[field_of(TriggerProbe, 'owner')].root
+        )
 
     def test_select_discards_what_it_rejects(self):
         tree = registry.get_trigger_tree(
-            [field_of(TriggerProbe, 'source')], select=lambda field: False)
+            [field_of(TriggerProbe, 'source')], select=lambda field: False
+        )
         assert not tree
 
 
@@ -201,7 +232,8 @@ class TestModifyingRelations:
 
     def test_a_field_without_dependents_does_not(self):
         assert not registry.is_modifying_relations(
-            field_of(TriggerProbe, 'doubled'))
+            field_of(TriggerProbe, 'doubled')
+        )
 
 
 class TestTheCachesFollowTheDeclaration:

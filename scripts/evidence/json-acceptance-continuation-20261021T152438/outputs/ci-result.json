@@ -1,0 +1,24 @@
+{
+  "run": 39554071093,
+  "job": 119069611117,
+  "head": "79bc956e15f83c19714585246ba41501234a51fe",
+  "conclusion": "FAILURE",
+  "failing_step": "Run tests",
+  "summary": [
+    "2026-10-21T06:30:55.8518128Z 26 skipped, 1 xfailed, 18 warnings, 10624 errors in 1005.88s (0:16:45)"
+  ],
+  "json_test_setup_errors": [
+    "2026-10-21T06:30:55.7892102Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_callable_none_missing_and_scalars - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T06:30:55.7892398Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_deconstruct_and_clone_preserve_content - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T06:30:55.7892719Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_default_checks_and_model_checks - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T06:30:55.7893038Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_migration_serialization_recreates_isolated_default - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T06:30:55.7893334Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_models_have_independent_nested_defaults - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T06:30:55.7893684Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_raw_django_negative_control - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T06:30:55.7893976Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_related_and_store_metadata_are_preserved - django.db.utils.ProgrammingError: relation \"res_users\" does not exist"
+  ],
+  "raw_sha256": "95535a6271b7a1e6a5f5358318d9521243480266c794648048ed8ffa4308da58",
+  "raw_bytes": 43764651,
+  "compressed_bytes": 3032552,
+  "full_log": "api-ci-39554071093.log.gz",
+  "scope": "Common fixture setup fails on missing res_users; no acceptance of JSON from CI"
+}

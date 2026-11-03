@@ -45,6 +45,7 @@ Divergencias declaradas
    la extensión REEMPLAZA la property por otra que compone: ``not
    work_entry_type.is_leave and <previa>`` — el ``super()`` de ``:22``.
 """
+
 import fields
 import models
 
@@ -62,7 +63,8 @@ def _default_work_entry_type_id():
     función nombrada de módulo (serializable en migraciones)."""
     return (
         HrWorkEntryType.objects.filter(code=ATTENDANCE_TYPE_CODE)
-        .values_list('pk', flat=True).first()
+        .values_list('pk', flat=True)
+        .first()
     )
 
 
@@ -107,15 +109,21 @@ def apply_hr_work_entry_resource_calendar_attendance_extensions():
     """Cuelga sobre ``resource.calendar.attendance`` lo que ``hr_work_entry``
     le añade — ≙ ``_inherit``."""
     extend_model(
-        'resource', 'ResourceCalendarAttendance',
+        'resource',
+        'ResourceCalendarAttendance',
         campos={
             'work_entry_type': fields.Many2one(
-                'hr_work_entry.HrWorkEntryType', on_delete=models.SET_NULL,
-                verbose_name='Work Entry Type', null=True, blank=True,
+                'hr_work_entry.HrWorkEntryType',
+                on_delete=models.SET_NULL,
+                verbose_name='Work Entry Type',
+                null=True,
+                blank=True,
                 related_name='calendar_attendances',
                 default=_default_work_entry_type_id,
-                help_text='Odoo work_entry_type_id (groups=hr.group_hr_user '
-                          '— ACL del cliente, no se porta).',
+                help_text=(
+                    'Odoo work_entry_type_id (groups=hr.group_hr_user '
+                    '— ACL del cliente, no se porta).'
+                ),
             ),
         },
         luego=_wire_copy_vals_and_is_work_period,

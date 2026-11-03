@@ -1,0 +1,19 @@
+{
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "input": {
+    "task_id": "1154"
+  },
+  "task": {
+    "task_id": "1154",
+    "citation_id": "TASK-API-0392",
+    "subject": "Inventory the reference ORM in odoo-tools",
+    "description": "Medir el lado de la REFERENCIA por si mismo: archivos, clases, funciones y firmas de funciones de $ODOO19C/odoo/orm. La unidad es la ocurrencia cruda con su clase duenia, no el nombre deduplicado del censo de presencia (TASK-API-0391) — este run NO extiende cobertura, cambia la unidad y el desglose. El eje de version se persiste como probe: odoo/orm solo existe en 19c; el ORM de 18c vive plano en odoo/{models,fields,api}.py; Enterprise no trae directorio odoo/.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

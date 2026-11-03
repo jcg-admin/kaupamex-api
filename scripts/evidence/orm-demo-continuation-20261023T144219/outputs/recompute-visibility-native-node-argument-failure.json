@@ -1,0 +1,22 @@
+{
+  "provider_revision": "c3c5d2f2868701b37644426e2266262613eb9c60",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-GEN-0559.recompute_physical_pending_rows",
+      "taskId": "TASK-GEN-0559",
+      "prompt": "Preserve physical pending records hidden by public manager visibility; only physically absent rows may clear pending compute group",
+      "verify": "Pinned Odoo browse/pending contract; discriminant visible/hidden/missing/subset/virtual/error controls; staged-source snapshot regression and negative selector restoration",
+      "route": "local",
+      "owned": [
+        "src/orm/models.py",
+        "tests/unit/orm/test_recompute_visibility_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [],
+  "native_task": "recompute-visibility-native-tasks.json",
+  "dependencies": "Existing native physical exists and flush selectors, pending grouping and Django field compute adapter are published and verified. Native edges empty is not the independence proof. No ACL or database-routing acceptance.",
+  "managed_inference": false
+}

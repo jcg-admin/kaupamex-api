@@ -25,12 +25,12 @@ nunca actualiza la línea in-place). El Mecanismo B de ``stock_delivery``
 estimado contra el peso real del fulfillment) **no se porta**: este proyecto
 no modela ese ciclo.
 """
+
 from decimal import Decimal
 
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.product.models.product_template import TYPE_SERVICE
 from addons.sale.models import SaleOrderLine
-
 
 # Producto de servicio **genérico** del envío. La semilla por método
 # (``ShippingMethod.ensure_service_product``) cubre el caso en que el comprador
@@ -56,16 +56,22 @@ def ensure_generic_service_product():
     fallaba silenciosamente en tests que mockeaban el gateway antes de
     llegar aquí.
     """
-    variant = (ProductProduct.objects
-              .filter(default_code=GENERIC_SERVICE_SKU).first())
+    variant = ProductProduct.objects.filter(
+        default_code=GENERIC_SERVICE_SKU
+    ).first()
     if variant is not None:
         return variant
     tmpl = ProductTemplate.objects.create(
-        name='Envío', type=TYPE_SERVICE,
-        list_price=Decimal('0.00'), sale_ok=False, active=True,
+        name='Envío',
+        type=TYPE_SERVICE,
+        list_price=Decimal('0.00'),
+        sale_ok=False,
+        active=True,
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code=GENERIC_SERVICE_SKU, active=True,
+        product_tmpl=tmpl,
+        default_code=GENERIC_SERVICE_SKU,
+        active=True,
     )
 
 
@@ -99,8 +105,11 @@ def set_delivery_line(order, shipping_cost):
     carrier = order.carrier if order.carrier_id else None
     return SaleOrderLine.objects.create(
         order=order,
-        product=(carrier.ensure_service_product() if carrier
-                 else ensure_generic_service_product()),
+        product=(
+            carrier.ensure_service_product()
+            if carrier
+            else ensure_generic_service_product()
+        ),
         name=(f'Envío — {carrier.name}' if carrier else 'Envío'),
         product_uom_qty=1,
         price_unit=shipping_cost,
@@ -117,6 +126,10 @@ def amount_delivery(order):
     filtrando ``order_line.filtered('is_delivery')`` — vive en el módulo que
     conoce el envío, no en ``sale``.
     """
-    return sum((line.price_total
-                for line in order.order_line.filter(is_delivery=True)),
-               Decimal('0.00'))
+    return sum(
+        (
+            line.price_total
+            for line in order.order_line.filter(is_delivery=True)
+        ),
+        Decimal('0.00'),
+    )

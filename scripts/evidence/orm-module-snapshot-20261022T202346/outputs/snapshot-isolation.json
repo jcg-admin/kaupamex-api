@@ -1,0 +1,21 @@
+{
+  "first_load_order": [
+    "base"
+  ],
+  "second_load_order": [
+    "base",
+    "uom",
+    "product"
+  ],
+  "first_update_order": [
+    "base",
+    "uom",
+    "product"
+  ],
+  "same_primary_keys_do_not_merge_databases": true,
+  "explicit_alias_wins_over_ambient_company": true,
+  "independent_demo_and_installed_version": true,
+  "in_memory_mutation_preserves_initial_load_snapshot_and_database": true,
+  "limits": "Only IrModule tables and real manifest graph; no loader/schema/data/hooks execution or effective registry acceptance",
+  "second_database_removed": true
+}

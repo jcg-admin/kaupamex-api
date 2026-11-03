@@ -8,7 +8,8 @@ exponencial (5 min x attempts) y marcando ``exception`` al agotar
 ``max_attempts``.
 
 El ciclo lo corre el **cron** ``ir_cron_mail_scheduler``; el management command
-es la entrada manual. Los tests siguen entrando por el comando porque ejercen el
+es la entrada manual. Los tests siguen entrando por el comando porque ejercen
+el
 mismo método —``MailMail.process_email_queue``— y de paso cubren que la
 envoltura de CLI no se desconecte.
 
@@ -21,6 +22,7 @@ Implementacion:
   src/addons/mail/models/mail_mail.py :: MailMail.process_email_queue
   src/addons/mail/management/commands/send_pending_emails.py (envoltura)
 """
+
 import pytest
 from datetime import timedelta
 
@@ -54,10 +56,14 @@ class TestSendPendingEmails:
         assert mail.outbox[0].to == ['dest@kaupamex.mx']
 
     def test_no_procesa_tarea_futura(self, db):
-        """scheduled_date en el futuro => no se toca (backoff aun pendiente)."""
+        """
+        scheduled_date en el futuro => no se toca (backoff aun pendiente).
+        """
         mail.outbox = []
         m = MailMail.enqueue(
-            to='futuro@kaupamex.mx', subject='S', body_html='B',
+            to='futuro@kaupamex.mx',
+            subject='S',
+            body_html='B',
             scheduled_date=timezone.now() + timedelta(hours=1),
         )
         _run()
@@ -67,16 +73,23 @@ class TestSendPendingEmails:
         assert len(mail.outbox) == 0
 
     def test_fallo_de_envio_marca_retrying_con_backoff(self, db, settings):
-        """Si send_mail lanza, el correo sigue outgoing y reprograma scheduled_date."""
+        """
+        Si send_mail lanza, el correo sigue outgoing y reprograma
+        scheduled_date.
+        """
         settings.EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
         m = MailMail.enqueue(
-            to='falla@kaupamex.mx', subject='S', body_html='B',
+            to='falla@kaupamex.mx',
+            subject='S',
+            body_html='B',
             max_attempts=3,
         )
         before = timezone.now()
         with pytest.MonkeyPatch.context() as mp:
+
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
+
             mp.setattr(
                 'addons.mail.models.mail_mail.send_mail',
                 _boom,
@@ -90,15 +103,22 @@ class TestSendPendingEmails:
         assert m.scheduled_date > before
 
     def test_agota_reintentos_marca_failed(self, db):
-        """Tras max_attempts fallos, el correo queda exception (no se reintenta mas)."""
+        """
+        Tras max_attempts fallos, el correo queda exception (no se reintenta
+        mas).
+        """
         m = MailMail.enqueue(
-            to='maxed@kaupamex.mx', subject='S', body_html='B',
+            to='maxed@kaupamex.mx',
+            subject='S',
+            body_html='B',
             max_attempts=2,
         )
         MailMail.objects.filter(pk=m.pk).update(attempts=1)
         with pytest.MonkeyPatch.context() as mp:
+
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
+
             mp.setattr(
                 'addons.mail.models.mail_mail.send_mail',
                 _boom,
@@ -112,7 +132,9 @@ class TestSendPendingEmails:
     def test_no_reintenta_tarea_ya_enviada(self, db):
         mail.outbox = []
         m = MailMail.enqueue(
-            to='ya@kaupamex.mx', subject='S', body_html='B',
+            to='ya@kaupamex.mx',
+            subject='S',
+            body_html='B',
         )
         m.mark_sent()
         _run()

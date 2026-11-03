@@ -9,14 +9,20 @@ Escribir el incumplidor a mano heredaría el encuadre de quien escribió el
 patrón y confirmaría el instrumento en vez de probarlo, que es el modo de fallo
 que ``hallazgo-abierto-genera-sucesor.md`` documenta para los gates.
 """
+
 import importlib.util
 import pathlib
 
 import pytest
 
-RUTA = (pathlib.Path(__file__).resolve().parents[3]
-        / 'scripts' / 'check_chain_method_depends.py')
-_spec = importlib.util.spec_from_file_location('check_chain_method_depends', RUTA)
+RUTA = (
+    pathlib.Path(__file__).resolve().parents[3]
+    / 'scripts'
+    / 'check_chain_method_depends.py'
+)
+_spec = importlib.util.spec_from_file_location(
+    'check_chain_method_depends', RUTA
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
@@ -40,9 +46,11 @@ def test_el_arbol_actual_pasa():
 def test_control_positivo_historico_falla():
     """Con el ``depends`` de antes del arreglo, el gate ve el defecto real."""
     fallas, _, _ = gate.violations(depends_of=historico)
-    culpables = {(addon, faltan_uno)
-                 for addon, _, _, _, _, faltan in fallas
-                 for faltan_uno in faltan}
+    culpables = {
+        (addon, faltan_uno)
+        for addon, _, _, _, _, faltan in fallas
+        for faltan_uno in faltan
+    }
     assert ('account_qr_code_emv', 'account') in culpables, fallas
 
 
@@ -55,10 +63,12 @@ def test_los_pares_no_se_señalan():
     """
     fallas, _, _ = gate.violations()
     pares = {'account_qr_code_emv', 'account_qr_code_sepa'}
-    señalados = {faltan_uno
-                 for addon, _, _, _, _, faltan in fallas
-                 for faltan_uno in faltan
-                 if addon in pares}
+    señalados = {
+        faltan_uno
+        for addon, _, _, _, _, faltan in fallas
+        for faltan_uno in faltan
+        if addon in pares
+    }
     assert señalados & pares == set(), señalados
 
 
@@ -74,7 +84,9 @@ def test_resuelve_el_nombre_ligado_por_un_for():
 
 
 def test_una_property_no_cuenta_como_metodo_del_cuerpo():
-    """El cuerpo aporta dueños sólo por ``def``; el gate no inventa símbolos."""
+    """
+    El cuerpo aporta dueños sólo por ``def``; el gate no inventa símbolos.
+    """
     _, cuerpo, _, _ = gate.scan()
     assert all(isinstance(k, tuple) and len(k) == 2 for k in cuerpo)
 

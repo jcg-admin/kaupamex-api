@@ -1,0 +1,2 @@
+reservado: {"id":"c-a9326d05-8501-4e6d-9e9e-495d045eb5ad","op":"claim","path":"src/orm/registry.py","owner":"codex-module-lifecycle","branch":"feature/codex-workspace-bootstrap","at":"2026-10-31T01:57:23.355Z","task":"TASK-API-0382"}
+reservado: {"id":"c-49306c18-f7f2-4f9c-9b20-07d7c03483ed","op":"claim","path":"tests/unit/orm/test_registry_invalidation_scope.py","owner":"codex-module-lifecycle","branch":"feature/codex-workspace-bootstrap","at":"2026-10-31T01:57:23.360Z","task":"TASK-API-0382"}

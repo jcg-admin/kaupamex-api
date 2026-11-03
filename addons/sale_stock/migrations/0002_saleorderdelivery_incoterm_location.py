@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Lugar del Incoterm (Odoo sale.order.incoterm_location, sale_stock).",
+                help_text=(
+                    "Lugar del Incoterm (Odoo sale.order.incoterm_location,"
+                    " sale_stock)."
+                ),
                 max_length=255,
             ),
         ),

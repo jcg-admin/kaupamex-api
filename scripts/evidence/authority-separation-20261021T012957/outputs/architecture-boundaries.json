@@ -1,0 +1,93 @@
+[
+  {
+    "project": "thyrox",
+    "responsibility": "Generic coordination/runtime/identity",
+    "authority": "src + local policy",
+    "current_storage": "agent-results/agent_store.sqlite3 + native claims/jobs",
+    "current_dependency": "document_root fallback docs; RST placement; migration-porter example",
+    "target_dependency": "Explicit Consumer/authority as configured contract; no required Kaupamex names",
+    "consumers": "all Consumers",
+    "evidence": "src/agents/agent_store.py:435;src/session/document_intent.py:112",
+    "required_change": "Qualify explicit targets; later generic correction only after existing TASK reconciliation",
+    "risk": "Loss of document/index identity if physical moves precede authority design",
+    "acceptance_test": "Fixture resolver/intent controls; full installation E2E still not_verified"
+  },
+  {
+    "project": "kaupamex-api",
+    "responsibility": "Functional ORM/Django/DRF contracts/code/tests",
+    "authority": "API code; current ORM governance in Docs per AGENTS",
+    "current_storage": "API docs + scripts/evidence; selected tasks in Provider store",
+    "current_dependency": "Makefile check-canon/check-canon-ci and pre-commit sibling Docs lookup",
+    "target_dependency": "Local technical authority and qualified generic gates, intranet versioned references",
+    "consumers": "API internal callers and HTTP views",
+    "evidence": "Makefile:119; .githooks/pre-commit:79",
+    "required_change": "Design qualified relocation/Provider interface for gate; do not remove it",
+    "risk": "Missing Docs silently skips pre-commit language gate; not runtime failure by itself",
+    "acceptance_test": "Bounded imports PASS; fresh install/startup/DB suite pending"
+  },
+  {
+    "project": "kaupamex-docs",
+    "responsibility": "Corporate architecture/standards/portfolio and project publication",
+    "authority": "Existing RST initiatives, corporate decisions",
+    "current_storage": "source/gestion/pm and existing dossier",
+    "current_dependency": "Currently owns API initiative authority and finding RSTs",
+    "target_dependency": "Aggregate versioned project artifacts/references; no automatic runtime dependency",
+    "consumers": "Cross-project governance",
+    "evidence": "AGENTS.md; completar-raiz-orm/tareas...rst",
+    "required_change": "Approve per-artifact authority/redirects before migration; keep old anchors",
+    "risk": "Duplicate truth or broken refs if copied without revision/ownership",
+    "acceptance_test": "Existing publisher rejects API docs layout; aggregation E2E not_verified"
+  },
+  {
+    "project": "kaupamex-db",
+    "responsibility": "PostgreSQL provisioning/backup/integration",
+    "authority": "Local runbooks and PostgreSQL scripts",
+    "current_storage": "docs + provisioners/scripts",
+    "current_dependency": "README MariaDB antecedent conflicts current policy",
+    "target_dependency": "Service contract for API, not checkout required by every DB test",
+    "consumers": "API persistence verification",
+    "evidence": "AGENTS.md; docs/operaciones.md",
+    "required_change": "Preserve historical examples; verify actual service requirements per unit",
+    "risk": "Confusing PostgreSQL requirement with DB repository requirement",
+    "acceptance_test": "Provisioned DB acceptance separately required, not executed"
+  },
+  {
+    "project": "kaupamex-server",
+    "responsibility": "Reverse proxy/deployment",
+    "authority": "Local operations and infrastructure policy",
+    "current_storage": "docs + provisioners",
+    "current_dependency": "Historical mod_wsgi/topology examples",
+    "target_dependency": "HTTP/deployment contract, no default requirement for pure ORM unit",
+    "consumers": "API deployment",
+    "evidence": "AGENTS.md",
+    "required_change": "No infrastructure edits in this batch",
+    "risk": "Unsafe provisioning if documentation example treated as command",
+    "acceptance_test": "Deployment acceptance not evaluated"
+  },
+  {
+    "project": "kaupamex-ui",
+    "responsibility": "Frontend and consumer HTTP contracts",
+    "authority": "Local docs, Node22 manifest",
+    "current_storage": "docs + React code/tests",
+    "current_dependency": "Historical README Node20",
+    "target_dependency": "Optional Consumer integration for REST/UI units; not all ORM verification",
+    "consumers": "API HTTP clients",
+    "evidence": "AGENTS.md;.nvmrc",
+    "required_change": "Keep API contract/version links and separately admit E2E",
+    "risk": "Confusing a REST verifier with full UI dependency",
+    "acceptance_test": "UI build/E2E not evaluated"
+  },
+  {
+    "project": "odoo-tools",
+    "responsibility": "Reference and experimental behavior",
+    "authority": "Pinned Odoo19c revision abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "current_storage": "Verified extract, not full Git checkout here",
+    "current_dependency": "Only explicit analysis tools should resolve reference roots",
+    "target_dependency": "No productive dependency or silent switch to main",
+    "consumers": "ORM contract comparison",
+    "evidence": "API scripts/reference_roots.py; previous full module ledger",
+    "required_change": "Reuse provenance and 14 elements; no re-audit",
+    "risk": "Alias18 bug not a valid measurement18",
+    "acceptance_test": "Six historical checksum manifests verified; no native Odoo run"
+  }
+]

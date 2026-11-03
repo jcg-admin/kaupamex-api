@@ -48,6 +48,7 @@ Divergencias de mecanismo declaradas
   aserción: una instancia Django **es siempre** una sola fila (no hay
   recordset de N), así que no hay nada que el guard pueda atrapar aquí.
 """
+
 from orm.method_chain import chain_method
 
 import models
@@ -60,8 +61,9 @@ from addons.base.models.res_users import ResUsers
 SKIP_CAPTCHA_LOGIN = object()
 
 
-def name_search(cls, name='', q=None, operator='ilike', limit=100,
-                 current_user_id=None):
+def name_search(
+    cls, name='', q=None, operator='ilike', limit=100, current_user_id=None
+):
     """≙ ``name_search`` (odoo19c: web/models/res_users.py:13-28).
 
     Busca por ``login`` o por el nombre del partner (equivalente a
@@ -88,8 +90,11 @@ def name_search(cls, name='', q=None, operator='ilike', limit=100,
         return user_list
 
     index = next(
-        (i for i, (user_id, _name) in enumerate(user_list)
-         if user_id == current_user_id),
+        (
+            i
+            for i, (user_id, _name) in enumerate(user_list)
+            if user_id == current_user_id
+        ),
         None,
     )
     if index is not None:
@@ -98,7 +103,8 @@ def name_search(cls, name='', q=None, operator='ilike', limit=100,
         user_list.insert(0, user_tuple)
     elif limit is not None and len(user_list) == limit:
         extra_qs = cls.objects.select_related('partner').filter(
-            pk=current_user_id)
+            pk=current_user_id
+        )
         if q is not None:
             extra_qs = extra_qs.filter(q)
         if name:

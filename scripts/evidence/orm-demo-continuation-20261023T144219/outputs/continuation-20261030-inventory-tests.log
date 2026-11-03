@@ -1,0 +1,27 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+
+==================================== ERRORS ====================================
+________________________ ERROR collecting test session _________________________
+ImportError while importing test module '/workspace/kaupamex-api/scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_inventory_reference_orm.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_inventory_reference_orm.py:34: in <module>
+    inventory_module = _load(
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_inventory_reference_orm.py:30: in _load
+    spec.loader.exec_module(module)
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/inventory_reference_orm.py:57: in <module>
+    _census = _load('_inv_census', REPO / CENSUS_RUN / 'census_symbol_presence.py')
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/inventory_reference_orm.py:52: in _load
+    spec.loader.exec_module(module)
+scripts/workbench/orm-symbol-presence-census-20260910T175850/census_symbol_presence.py:53: in <module>
+    _mirrored = _load('_census_mirrored', 'scripts/check_mirrored_roots.py')
+scripts/workbench/orm-symbol-presence-census-20260910T175850/census_symbol_presence.py:49: in _load
+    spec.loader.exec_module(module)
+scripts/check_mirrored_roots.py:111: in <module>
+    from reference_roots import addon_root as _addon_root, tree as _tree
+E   ModuleNotFoundError: No module named 'reference_roots'
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-inventory.junit.xml -
+=========================== short test summary info ============================
+ERROR ../../dev
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.07s

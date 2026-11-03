@@ -49,15 +49,22 @@ class TestMixinContract:
     """La cabecera y los campos son los de la fuente, sin pytest ni base."""
 
     def test_the_class_attributes_come_from_the_source(self):
-        assert (WebsitePageVisibilityOptionsMixin._name
-                == 'website.page_visibility_options.mixin')
-        assert (WebsitePageVisibilityOptionsMixin._description
-                == 'Website page/record specific visibility options')
+        assert (
+            WebsitePageVisibilityOptionsMixin._name
+            == 'website.page_visibility_options.mixin'
+        )
+        assert (
+            WebsitePageVisibilityOptionsMixin._description
+            == 'Website page/record specific visibility options'
+        )
         assert WebsitePageOptionsMixin._name == 'website.page_options.mixin'
         assert WebsitePageOptionsMixin._inherit == [
-            'website.page_visibility_options.mixin']
-        assert (WebsitePageOptionsMixin._description
-                == 'Website page/record specific options')
+            'website.page_visibility_options.mixin'
+        ]
+        assert (
+            WebsitePageOptionsMixin._description
+            == 'Website page/record specific options'
+        )
 
     def test_both_mixins_are_abstract(self):
         # Un mixin que creara tabla propia sería un modelo, no un mixin: la
@@ -72,8 +79,10 @@ class TestMixinContract:
     def test_the_visibility_mixin_does_not_carry_the_color_fields(self):
         # La separación es del diseño de la fuente, no un accidente: un
         # evento oculta la cabecera sin poder recolorearla.
-        declared = [f.name
-                    for f in WebsitePageVisibilityOptionsMixin._meta.get_fields()]
+        declared = [
+            f.name
+            for f in WebsitePageVisibilityOptionsMixin._meta.get_fields()
+        ]
         assert declared == VISIBILITY_FIELDS
 
 
@@ -106,18 +115,26 @@ class TestPageWiring:
 def _make_website():
     # ``company`` y ``user`` son NOT NULL (cabecera de B1 de website.py).
     company = ResCompany.objects.create(name='Kaupamex P561 QA')
-    user = (ResUsers.objects.filter(login='p561@kaupamex.test').first()
-            or ResUsers.objects.create_user(login='p561@kaupamex.test'))
-    website = Website(name='P561', domain='https://p561.example.test',
-                      company=company, user=user)
+    user = ResUsers.objects.filter(
+        login='p561@kaupamex.test'
+    ).first() or ResUsers.objects.create_user(login='p561@kaupamex.test')
+    website = Website(
+        name='P561',
+        domain='https://p561.example.test',
+        company=company,
+        user=user,
+    )
     website.save()
     return website
 
 
 def _make_page(website, **overrides):
     view = IrUiView.objects.create(
-        name='Página 561', type='template', key='website.pagina-561',
-        arch_db='<t><div id="wrap"/></t>')
+        name='Página 561',
+        type='template',
+        key='website.pagina-561',
+        arch_db='<t><div id="wrap"/></t>',
+    )
     values = {'url': '/pagina-561', 'view': view, 'website': website}
     values.update(overrides)
     return WebsitePage.objects.create(**values)

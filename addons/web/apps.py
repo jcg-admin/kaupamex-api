@@ -1,4 +1,5 @@
 """AppConfig — addons.web (familia ``web`` de la referencia)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -30,7 +31,8 @@ class WebConfig(AppConfig):
         ``importlib.import_module`` y no un ``import`` al top — excepción #4
         de ``no-lazy-imports.md``: es una llamada de función, no un
         statement ``import``, así que el gate AST la deja pasar. Mismo
-        patrón que ``AccountConfig.ready()``/``AccountQrCodeSepaConfig.ready()``.
+        patrón que
+        ``AccountConfig.ready()``/``AccountQrCodeSepaConfig.ready()``.
         """
         for ruta in self._EXTENSIONES:
             importlib.import_module(ruta).apply_web_extensions()

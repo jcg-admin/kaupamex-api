@@ -5,6 +5,7 @@ Adaptación fiel de Odoo ``utm/models/utm_tag.py`` (``odoo-tools@622ddc2a``,
 guion bajo: la fuente lo declara privado y ese guion es contrato, no adorno
 (``porte-completo-no-parcial.md``).
 """
+
 from random import randint
 
 import fields
@@ -32,13 +33,15 @@ class UtmTag(TimeStampedModel):
 
     # ≙ ``name`` (requerido, traducible en la referencia).
     name = fields.Char(
-        max_length=255, verbose_name='Nombre',
+        max_length=255,
+        verbose_name='Nombre',
         help_text='Nombre de la etiqueta.',
     )
     # ≙ ``color``. Sin color la etiqueta no se muestra en la vista kanban, que
     # es como se distinguen las internas de las de categorización pública.
     color = fields.Integer(
-        default=_default_color, verbose_name='Índice de color',
+        default=_default_color,
+        verbose_name='Índice de color',
         help_text='Color de la etiqueta.',
     )
 
@@ -53,7 +56,8 @@ class UtmTag(TimeStampedModel):
             # already exists!')`` (``odoo19c: :24-27``). El nombre de la
             # restricción se conserva para que el error sea rastreable.
             models.UniqueConstraint(
-                fields=['name'], name='utm_tag_name_uniq',
+                fields=['name'],
+                name='utm_tag_name_uniq',
                 violation_error_message='Tag name already exists!',
             ),
         ]

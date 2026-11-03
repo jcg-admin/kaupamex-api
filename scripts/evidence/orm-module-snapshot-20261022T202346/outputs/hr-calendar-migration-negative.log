@@ -1,0 +1,62 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control: historical/runtime default separation annulled only in memory
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/verify_hr_calendar_migration.py", line 18, in <module>
+    control['test_calendar_migration_preserves_rows_without_live_defaults']()
+  File "/workspace/kaupamex-api/tests/unit/hr/test_payroll_calendar_migration.py", line 41, in test_calendar_migration_preserves_rows_without_live_defaults
+    after = migration.apply(state.clone(), editor)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/migration.py", line 132, in apply
+    operation.database_forwards(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/operations/fields.py", line 118, in database_forwards
+    schema_editor.add_field(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 730, in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 391, in column_sql
+    " ".join(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 336, in _iter_column_sql
+    default_value = self.effective_default(field)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 491, in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 467, in _effective_default
+    default = field.get_default()
+              ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related.py", line 1170, in get_default
+    field_default = super().get_default()
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py", line 1023, in get_default
+    return self._get_default()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/addons/hr/models/hr_payroll_structure_type.py", line 66, in _default_resource_calendar
+    company = _current_company()
+              ^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/addons/hr/models/hr_payroll_structure_type.py", line 47, in _current_company
+    return ResCompany.objects.filter(pk=company_id).first()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+AssertionError: Historical DDL must not query live company schema
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

@@ -1,0 +1,105 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_file": "odoo/service/db.py",
+  "reference_sha256": "1447f08c76ef3e72a72a0a2cd8fe7776327b63c7f75f7e9adc4e1117e7cabc32",
+  "consumer_before_sha256": "9cd39073fe1bf1e7451f7fcf5b827daed7e988c6e2094adf81125c8bad39ed39",
+  "task": "TASK-API-0383",
+  "scope": "Consumer idempotent company migration adaptation; pinned creation refuses existing DBs, so preflight is not copied from an Odoo helper. Native Django applied-state graph and physical introspection provide the evidence. No full service file acceptance.",
+  "family_dispositions": {
+    "database_management": "Existing service create/drop/duplicate/rename/exist/list functions; selected exclusive creation and provision/migration consumers reviewed. Full lifecycle acceptance not_verified.",
+    "backup_restore_filestore": "Existing pg_dump/restore stream path; no changes or acceptance inferred.",
+    "database_selection": "Existing HTTP host filtering/monodb; request consumers pending TASK-API-0381 ownerNULL.",
+    "connection_and_transactions": "Native PostgreSQL maintenance autocommit and Django aliases/atomic/Savepoint; test resources only.",
+    "initialization_and_migration": "New selected unit checks known applied state before actual migration; new schema creation remains native migrate; bulk per-base error aggregation preserved.",
+    "reference_admin_security_and_demo": "Not automatic Consumer obligations; no new admin credentials, model registry, demo or productive policy acceptance in this unit."
+  },
+  "acceptance": "not_verified",
+  "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+  "behavior": "Fail closed before migrate when known applied migration state requires missing managed tables; bulk uses target company context and continues other bases",
+  "execution_flow": "Validate target -> install native alias -> company_scope(target text) -> MigrationLoader/check_consistent_history -> applied project state -> router-filtered tables/M2M -> introspection -> native migrate",
+  "inputs_outputs": "Existing or fresh company alias, applied known recorder entries and physical catalog -> migration result or DatabaseSchemaIncomplete; bulk preserves per-base status/error list",
+  "side_effects": "Preflight reads recorder/catalog only; no history rewrite, automatic repair, shared QA, new persisted identities or Provider changes. Later native migrate retains existing side effects.",
+  "dependencies": [
+    "Django MigrationLoader and graph/project_state",
+    "Historical StateApps/model can_migrate including swapped/managed/proxy",
+    "CompanyDatabaseRouter.allow_migrate_model",
+    "PostgreSQL table introspection",
+    "company_scope and install_company_aliases",
+    "Existing metadata proposal remains pending DEC-AISL-05 review"
+  ],
+  "consumers": [
+    "provision_company_database -> company_create and web database_create",
+    "migrate_all_company_databases -> existing bulk consumers; no absent DB creation"
+  ],
+  "installed_mechanism": "src/service/db.py::_check_applied_schema; _migrate_company_database; DatabaseSchemaIncomplete",
+  "existing_adaptation": "Native Django migration state/table introspection, not copied Odoo registry or second Provider mechanism",
+  "verification": {
+    "orchestration": "RED2failed11passed exit1; GREEN17passed exit0",
+    "postgres": "Partial known state admits pending tables; missing contenttypes table rejected; missing auto-created auth_group_permissions rejected; applied sessions excluded by native company router admitted; recorder and sentinel retained; each independent own resource cleaned",
+    "negative_control": "In-memory no-op detector causes expected assertion exit1",
+    "initial_instrument_failure": "Set nodes rejected by native graph TypeError exit1, fixed to sorted sequence; raw failure preserved",
+    "mandatory_ci": {
+      "result": "BASELINE_FAILURE",
+      "pytest_exit": 1,
+      "make_exit": 2,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 455.78,
+      "first_failure": "ProductProduct.display_name in TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+      "junit": "outputs/schema-preflight-ci.junit.xml",
+      "log": "outputs/schema-preflight-ci.log",
+      "remaining_tests": "NOT_EVALUATED after maxfail=1",
+      "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+      "comparison": "Same first failure in published a699454f remote run40034493718; no new regression demonstrated by evaluated tests",
+      "acceptance": "not_verified"
+    },
+    "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+    "supplementary_service_suite": "75PASS6setupERROR exit1: invalid non-database harness for6Savepoint DB cases; no product/regression or acceptance inference; ephemeral dummy literals sanitized in retained log",
+    "prior_remote_ci": "a699454f run40034493718:77PASS1SKIP1ERROR506.70s,Make2,ProductProduct.display_name",
+    "docs_checker": "6PASS, python -m unittest discover -s scripts -p test_check_canon_language.py -v, exit0",
+    "preserved_manifests": "Existing module-snapshot91 and continuation69 checksums PASS; no repeated functional experiments for unchanged code"
+  },
+  "equivalence": "Bounded adapted initialization/migration safety demonstrated; not full service/db.py or loading.py equivalence",
+  "limitations": "No column/constraint/data certification, unknown-only migration history certification, historical repair, concurrent administrator DDL guarantee, full Registry/model/version loader acceptance or metadata policy acceptance",
+  "integration": {
+    "PR": 109,
+    "merge": false,
+    "official_status": "pending",
+    "acceptance": "not_verified"
+  },
+  "consumer_after_sha256": "a6d61c410297b1f4a3bb69b828cc8df47966d0df2861a02bc6755ee9bc790fde",
+  "inventory_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json#company_migration_context.historical_schema_preflight",
+  "command_evidence": {
+    "postgres_harness": "ORM_QA_CONTAINER=kaupamex-postgres-cloud ORM_QA_HOST=172.17.0.2 ORM_QA_BRIDGE=172.17.0.1 UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py uv run --frozen python scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_schema_preflight.py",
+    "variants": {
+      "default": {
+        "exit": 0,
+        "log": "schema-preflight-postgres-corrected.log"
+      },
+      "--relations": {
+        "exit": 0,
+        "log": "schema-preflight-relations.log"
+      },
+      "--router-exclusion": {
+        "exit": 0,
+        "log": "schema-preflight-router.log"
+      },
+      "--annul": {
+        "exit": 1,
+        "expected_negative_control": true,
+        "log": "schema-preflight-annulment.log"
+      }
+    },
+    "focused": "uv run --frozen python <existing orm_batch_env.py.source.txt> uv run --frozen pytest tests/unit/service/test_db_migrate_all.py tests/unit/service/test_provision_company.py --confcutdir=tests/unit/service -q -o addopts=",
+    "focused_exit": 0,
+    "focused_log": "schema-preflight-final-focused.log",
+    "ci": "existing qa_context.py -> guarded ALTER ROLE of own orm_bootstrap role CREATEDB -> CI_DATABASE_DISPOSABLE=$DB_QA_NAME make ci-verify; pipefail | tee schema-preflight-ci.log",
+    "ci_start_state": "Base HEAD a699454f with source/test diff later committed as2807e5ba; no production source edits since CI launch",
+    "source_blob_sha256": {
+      "src/service/db.py": "a6d61c410297b1f4a3bb69b828cc8df47966d0df2861a02bc6755ee9bc790fde",
+      "tests/unit/service/test_provision_company.py": "d29d17103aa64fa682d1f8bbcd2cbaef5b47f24160e177f6fd6ad28e60332754",
+      "tests/unit/service/test_db_migrate_all.py": "2196759186221557b360e49ecb561740f702d2533f7a7619e294e6d4bf47a831"
+    }
+  }
+}

@@ -16,17 +16,18 @@ Uso:
 
 Cómo instanciar el proxy correcto desde una instancia base:
     voucher = Voucher.objects.get(code='...')
-    proxy   = voucher.as_typed()  # retorna FixedVoucher, PercentageVoucher, etc.
+    proxy   = voucher.as_typed()  # retorna FixedVoucher, PercentageVoucher,
+    etc.
 """
+
 from decimal import Decimal
 from django.db import models
 from .models import Voucher
 
-
-
 # =============================================================================
 # Managers
 # =============================================================================
+
 
 class FixedVoucherManager(models.Manager):
     def get_queryset(self):
@@ -35,27 +36,35 @@ class FixedVoucherManager(models.Manager):
 
 class PercentageVoucherManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(voucher_type=Voucher.TYPE_PERCENTAGE)
+        return (
+            super().get_queryset().filter(voucher_type=Voucher.TYPE_PERCENTAGE)
+        )
 
 
 class FreeShippingVoucherManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(voucher_type=Voucher.TYPE_FREE_SHIPPING)
+        return (
+            super()
+            .get_queryset()
+            .filter(voucher_type=Voucher.TYPE_FREE_SHIPPING)
+        )
 
 
 # =============================================================================
 # Proxy Models con calculate_discount() especializado
 # =============================================================================
 
+
 class FixedVoucher(Voucher):
     """
     Voucher de descuento fijo.
     calculate_discount() = min(discount_value, subtotal).
     """
+
     objects = FixedVoucherManager()
 
     class Meta:
-        proxy        = True
+        proxy = True
         verbose_name = 'Voucher de descuento fijo'
 
     def calculate_discount(self, subtotal: Decimal) -> Decimal:
@@ -71,10 +80,11 @@ class PercentageVoucher(Voucher):
     Voucher de descuento porcentual con tope opcional.
     calculate_discount() aplica el porcentaje con límite max_discount.
     """
+
     objects = PercentageVoucherManager()
 
     class Meta:
-        proxy        = True
+        proxy = True
         verbose_name = 'Voucher de porcentaje'
 
     def calculate_discount(self, subtotal: Decimal) -> Decimal:
@@ -93,15 +103,17 @@ class FreeShippingVoucher(Voucher):
     Voucher de envío gratis.
     calculate_discount() retorna 0 (el beneficio se aplica en shipping_cost).
     """
+
     objects = FreeShippingVoucherManager()
 
     class Meta:
-        proxy        = True
+        proxy = True
         verbose_name = 'Voucher de envío gratis'
 
     def calculate_discount(self, subtotal: Decimal) -> Decimal:
         # El descuento monetario en subtotal es 0.
-        # El beneficio se refleja en Cart.get_totals() → free_shipping_applied = True
+        # El beneficio se refleja en Cart.get_totals() →
+        # free_shipping_applied = True
         return Decimal('0.00')
 
     def save(self, *args, **kwargs):
@@ -113,7 +125,10 @@ class FreeShippingVoucher(Voucher):
 # Helper en el modelo base — factory method
 # =============================================================================
 
-def _as_typed(self) -> 'FixedVoucher | PercentageVoucher | FreeShippingVoucher':
+
+def _as_typed(
+    self,
+) -> 'FixedVoucher | PercentageVoucher | FreeShippingVoucher':
     """
     Retorna la instancia como el proxy correcto según voucher_type.
     Útil cuando tienes un Voucher genérico y necesitas el comportamiento
@@ -125,8 +140,8 @@ def _as_typed(self) -> 'FixedVoucher | PercentageVoucher | FreeShippingVoucher':
         descuento = typed.calculate_discount(subtotal)
     """
     TYPE_MAP = {
-        Voucher.TYPE_FIXED:         FixedVoucher,
-        Voucher.TYPE_PERCENTAGE:    PercentageVoucher,
+        Voucher.TYPE_FIXED: FixedVoucher,
+        Voucher.TYPE_PERCENTAGE: PercentageVoucher,
         Voucher.TYPE_FREE_SHIPPING: FreeShippingVoucher,
     }
     proxy_cls = TYPE_MAP.get(self.voucher_type, Voucher)

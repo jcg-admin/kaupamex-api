@@ -9,7 +9,10 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("hr", "0010_hremployee_friday_location_hremployee_hourly_cost_and_more"),
+        (
+            "hr",
+            "0010_hremployee_friday_location_hremployee_hourly_cost_and_more",
+        ),
     ]
 
     operations = [
@@ -27,11 +30,20 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("date", models.DateField(blank=True, null=True, verbose_name="Fecha")),
+                (
+                    "date",
+                    models.DateField(
+                        blank=True, null=True, verbose_name="Fecha"
+                    ),
+                ),
                 (
                     "employee",
                     models.ForeignKey(
-                        help_text="Odoo employee_id (required, ondelete=cascade; su default de usuario ambiente no se porta — divergencia 2).",
+                        help_text=(
+                            "Odoo employee_id (required, ondelete=cascade; su"
+                            " default de usuario ambiente no se porta —"
+                            " divergencia 2)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="homeworking_exceptions",
                         to="hr.hremployee",
@@ -41,7 +53,13 @@ class Migration(migrations.Migration):
                 (
                     "work_location",
                     models.ForeignKey(
-                        help_text="Sede de la excepción (Odoo work_location_id, required). PROTECT: el borrado de una sede pasa por _unlink_except_used_by_employee, que limpia estas filas antes (ver hr_work_location.py de este addon).",
+                        help_text=(
+                            "Sede de la excepción (Odoo work_location_id,"
+                            " required). PROTECT: el borrado de una sede pasa"
+                            " por _unlink_except_used_by_employee, que limpia"
+                            " estas filas antes (ver hr_work_location.py de"
+                            " este addon)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="homeworking_exceptions",
                         to="hr.hrworklocation",
@@ -57,7 +75,10 @@ class Migration(migrations.Migration):
                     models.UniqueConstraint(
                         fields=("employee", "date"),
                         name="_uniq_exceptional_per_day",
-                        violation_error_message="Only one default work location and one exceptional work location per day per employee.",
+                        violation_error_message=(
+                            "Only one default work location and one"
+                            " exceptional work location per day per employee."
+                        ),
                     )
                 ],
             },

@@ -17,6 +17,7 @@ directamente con ``APIRequestFactory`` — no dependen de
 ``controllers/urls.py`` estar incluido en ``config/urls.py`` (también fuera
 de este alcance): ejercen la lógica de permisos/acción, no el ruteo HTTP.
 """
+
 import pytest
 from django.apps import apps as django_apps
 from django.utils import timezone
@@ -44,6 +45,7 @@ pytestmark = pytest.mark.django_db
 
 # ─── Fixtures compartidas (mismo patrón que tests/unit/account_debit_note/) ─
 
+
 @pytest.fixture
 def company(db):
     return ResCompany.objects.create(code='acme', name='ACME')
@@ -52,13 +54,16 @@ def company(db):
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Ventas', code='VEN', type='sale', company=company)
+        name='Ventas', code='VEN', type='sale', company=company
+    )
 
 
 def _move(company, journal, **kwargs):
     defaults = {
-        'move_type': 'out_invoice', 'date': timezone.now().date(),
-        'journal': journal, 'company': company,
+        'move_type': 'out_invoice',
+        'date': timezone.now().date(),
+        'journal': journal,
+        'company': company,
     }
     defaults.update(kwargs)
     return AccountMove.objects.create(**defaults)
@@ -66,14 +71,17 @@ def _move(company, journal, **kwargs):
 
 def _account(company, **kwargs):
     defaults = {
-        'code': '1105', 'name': 'Clientes',
-        'account_type': 'asset_receivable', 'company': company,
+        'code': '1105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company': company,
     }
     defaults.update(kwargs)
     return AccountAccount.objects.create(**defaults)
 
 
 # ─── tools/safe_eval_exec.py — el motor de ejecución (sin DB) ─────────────
+
 
 class TestSafeEvalExec:
     def test_runs_control_flow_and_sets_result(self):
@@ -90,6 +98,7 @@ class TestSafeEvalExec:
     def test_calls_functions_from_context(self):
         def helper():
             return ['x', 'y']
+
         ctx = {'helper': helper}
         safe_eval('result = helper()', ctx)
         assert ctx['result'] == ['x', 'y']
@@ -132,6 +141,7 @@ class TestSafeEvalExec:
 
 # ─── models/accounting_assert_test.py — el modelo ─────────────────────────
 
+
 class TestAccountingAssertTestModel:
     def test_create_with_defaults(self):
         test = AccountingAssertTest.objects.create(name='Balance general')
@@ -153,20 +163,23 @@ class TestAccountingAssertTestModel:
         # ORDEN por `sequence`, que es lo que el test mide — no que estas dos
         # sean las únicas filas.
         names = list(
-            AccountingAssertTest.objects
-            .filter(name__in=['A', 'B'])
-            .values_list('name', flat=True))
+            AccountingAssertTest.objects.filter(
+                name__in=['A', 'B']
+            ).values_list('name', flat=True)
+        )
         assert names == ['A', 'B']
 
     def test_run_delegates_to_execute_code(self):
         test = AccountingAssertTest.objects.create(
-            name='Vacía', code_exec='result = []')
+            name='Vacía', code_exec='result = []'
+        )
         passed, lines = test.run()
         assert passed is True
         assert lines == [SUCCESS_MESSAGE]
 
 
 # ─── order_columns() — función pura ────────────────────────────────────────
+
 
 class TestOrderColumns:
     def test_default_order_is_dict_order(self):
@@ -183,6 +196,7 @@ class TestOrderColumns:
 
 
 # ─── execute_code() — el motor completo, contra PostgreSQL real ──────────
+
 
 class TestExecuteCode:
     def test_empty_result_reports_success(self):
@@ -207,16 +221,14 @@ class TestExecuteCode:
 
     def test_dict_rows_are_formatted_with_column_order(self):
         passed, lines = execute_code(
-            "column_order = ['b', 'a']\n"
-            "result = [{'a': 1, 'b': 2}]\n"
+            "column_order = ['b', 'a']\nresult = [{'a': 1, 'b': 2}]\n"
         )
         assert passed is False
         assert lines == ['b: 2, a: 1']
 
     def test_cr_execute_and_dictfetchall_hit_real_db(self):
         passed, lines = execute_code(
-            "cr.execute('SELECT 1 AS uno')\n"
-            "result = cr.dictfetchall()\n"
+            "cr.execute('SELECT 1 AS uno')\nresult = cr.dictfetchall()\n"
         )
         assert passed is False
         assert lines == ['uno: 1']
@@ -255,9 +267,13 @@ class TestExecuteCodeSeedRecords:
         passed, _lines = execute_code(entry['code_exec'])
         assert passed is True
 
-    @pytest.mark.parametrize('xmlid', [
-        'account_test_05', 'account_test_06',
-    ])
+    @pytest.mark.parametrize(
+        'xmlid',
+        [
+            'account_test_05',
+            'account_test_06',
+        ],
+    )
     def test_account_invoice_tests_fail_table_absent(self, xmlid):
         # Drift de la referencia preservado a propósito (docstring del
         # módulo de datos): `account_invoice` no existe.
@@ -283,6 +299,7 @@ class TestExecuteCodeSeedRecords:
 
 # ─── reconciled_inv() — divergencia declarada (full_reconcile) ────────────
 
+
 class TestReconciledInv:
     def test_empty_db_returns_empty(self):
         assert list(reconciled_inv()) == []
@@ -291,45 +308,59 @@ class TestReconciledInv:
         move = _move(company, journal)
         account = _account(company)
         AccountMoveLine.objects.create(
-            move=move, account=account, debit=100, credit=0)
+            move=move, account=account, debit=100, credit=0
+        )
         assert list(reconciled_inv()) == []
 
     def test_line_with_full_reconcile_on_receivable_is_included(
-            self, company, journal):
+        self, company, journal
+    ):
         move = _move(company, journal)
         account = _account(company, account_type='asset_receivable')
         full = AccountFullReconcile.objects.create()
         AccountMoveLine.objects.create(
-            move=move, account=account, debit=100, credit=0,
-            full_reconcile=full)
+            move=move,
+            account=account,
+            debit=100,
+            credit=0,
+            full_reconcile=full,
+        )
         assert list(reconciled_inv()) == [move.pk]
 
     def test_line_with_full_reconcile_on_non_receivable_is_excluded(
-            self, company, journal):
+        self, company, journal
+    ):
         move = _move(company, journal)
         account = _account(
-            company, code='6001', name='Gastos', account_type='expense')
+            company, code='6001', name='Gastos', account_type='expense'
+        )
         full = AccountFullReconcile.objects.create()
         AccountMoveLine.objects.create(
-            move=move, account=account, debit=100, credit=0,
-            full_reconcile=full)
+            move=move,
+            account=account,
+            debit=100,
+            credit=0,
+            full_reconcile=full,
+        )
         assert list(reconciled_inv()) == []
 
     def test_a_move_appears_once_even_with_two_reconciled_lines(
-            self, company, journal):
+        self, company, journal
+    ):
         move = _move(company, journal)
         account = _account(company, account_type='liability_payable')
         full = AccountFullReconcile.objects.create()
         AccountMoveLine.objects.create(
-            move=move, account=account, debit=50, credit=0,
-            full_reconcile=full)
+            move=move, account=account, debit=50, credit=0, full_reconcile=full
+        )
         AccountMoveLine.objects.create(
-            move=move, account=account, debit=0, credit=50,
-            full_reconcile=full)
+            move=move, account=account, debit=0, credit=50, full_reconcile=full
+        )
         assert list(reconciled_inv()) == [move.pk]
 
 
 # ─── data/accounting_assert_tests.py — la siembra ──────────────────────────
+
 
 class TestSeedAccountingAssertTests:
     def test_active_test_count_matches_reference_minus_commented(self):
@@ -350,8 +381,9 @@ class TestSeedAccountingAssertTests:
     def test_writes_the_ir_model_data_xmlids(self):
         seed_accounting_assert_tests(django_apps, 'default')
         xmlids = set(
-            IrModelData.objects.filter(module='account_test')
-            .values_list('name', flat=True)
+            IrModelData.objects.filter(module='account_test').values_list(
+                'name', flat=True
+            )
         )
         assert xmlids == {t['xmlid'] for t in TESTS}
 
@@ -362,6 +394,7 @@ class TestSeedAccountingAssertTests:
 
 
 # ─── controllers/views.py — el ViewSet (sin depender de config/urls.py) ───
+
 
 class TestAccountingAssertTestViewSet:
     def test_list_denied_without_capability(self, user):
@@ -398,7 +431,8 @@ class TestAccountingAssertTestViewSet:
 
     def test_run_executes_and_reports_pass(self, admin_user):
         test = AccountingAssertTest.objects.create(
-            name='Siempre pasa', code_exec='result = []')
+            name='Siempre pasa', code_exec='result = []'
+        )
         factory = APIRequestFactory()
         request = factory.post('/accounting-assert-tests/%d/run/' % test.pk)
         force_authenticate(request, user=admin_user)
@@ -411,7 +445,8 @@ class TestAccountingAssertTestViewSet:
 
     def test_run_reports_invalid_code_as_400(self, admin_user):
         test = AccountingAssertTest.objects.create(
-            name='Código roto', code_exec='result = (')
+            name='Código roto', code_exec='result = ('
+        )
         factory = APIRequestFactory()
         request = factory.post('/accounting-assert-tests/%d/run/' % test.pk)
         force_authenticate(request, user=admin_user)

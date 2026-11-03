@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"output": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/static-attributes-view.json", "files": 2, "observed_static_assignments": 32, "applicable_contract_denominator": null}

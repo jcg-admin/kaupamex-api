@@ -1,4 +1,6 @@
-"""Las tres restricciones de integridad de ``res.users`` — ``:535-556``, ``:647-660``.
+"""
+Las tres restricciones de integridad de ``res.users`` — ``:535-556``,
+``:647-660``.
 
 Porta ``odoo19c: odoo/addons/base/models/res_users.py`` (LGPL-3):
 ``_check_disjoint_groups``, ``_check_at_least_one_administrator`` y
@@ -46,17 +48,18 @@ guarda vive en un receptor de ``pre_delete``, que Django emite en los dos
 caminos. Los tres casos de lote estan al final del archivo.
 
 Consecuencia del mecanismo que los casos hacen visible: la senal se emite
-**dentro** de ``transaction.atomic`` (``django/db/models/deletion.py:459-466``),
+**dentro** de ``transaction.atomic``
+(``django/db/models/deletion.py:459-466``),
 asi que al lanzar deja la transaccion en estado de rollback. Por eso los dos
 casos de rechazo envuelven el borrado en su propio ``transaction.atomic()``:
 sin ese savepoint no se puede consultar despues para comprobar que nadie se
 borro. Es mas fuerte que lo que hacia ``delete()`` —el lote entero revierte,
 no solo la fila infractora— y es la razon por la que el test tiene esa forma.
 """
+
 import pytest
 
-from addons.base.models import (IrModelData, ResGroups, ResPartner,
-                                ResUsers)
+from addons.base.models import IrModelData, ResGroups, ResPartner, ResUsers
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from exceptions import UserError
@@ -77,6 +80,7 @@ def _make_group(name, user_type=None):
 # --------------------------------------------------------------------------
 # Clases disjuntas — ≙ :535-548
 # --------------------------------------------------------------------------
+
 
 def test_one_class_is_fine(db):
     """La rama negativa: un solo tipo no viola nada."""
@@ -118,6 +122,7 @@ def test_clean_runs_the_disjoint_check(db):
 # --------------------------------------------------------------------------
 # Al menos un administrador — ≙ :550-555
 # --------------------------------------------------------------------------
+
 
 @pytest.fixture
 def system_group(db):
@@ -162,6 +167,7 @@ def test_a_system_group_with_a_member_passes(system_group):
 # Datos maestros — ≙ :647-660
 # --------------------------------------------------------------------------
 
+
 def test_a_plain_user_can_be_deleted(db):
     """La rama negativa, y la que hace util a la guarda: sin ella no habria
     nada que distinguir."""
@@ -193,6 +199,7 @@ def test_the_system_logins_cannot_be_deleted(db, login):
 # --------------------------------------------------------------------------
 # Los dos ayudantes — ≙ :169-173 y :1098-1104
 # --------------------------------------------------------------------------
+
 
 def test_an_empty_company_set_filters_nothing(db):
     """≙ ``Domain.TRUE`` (``:170-171``) — sin empresas, no hay que exigir."""

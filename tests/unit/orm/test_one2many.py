@@ -1,4 +1,6 @@
-"""``One2many`` declarado en el padre — ≙ ``odoo19c: odoo/orm/fields_relational.py:843``.
+"""
+``One2many`` declarado en el padre — ≙ ``odoo19c:
+odoo/orm/fields_relational.py:843``.
 
 Hasta ``api@596cd2b`` ``fields.One2many`` valia ``None`` y estaba en el
 ``__all__`` publico: llamarlo daba ``TypeError: 'NoneType' object is not
@@ -19,6 +21,7 @@ forma cambiada — y el conteo, que es lo unico que el gate mide, no lo ve.
 Poblacion medida: **730** ``fields.One2many(`` en ``odoo19c``, de los cuales
 **37** en ``base``. El consumidor real no hay que esperarlo: ya existe.
 """
+
 import pytest
 from django.apps import apps
 
@@ -38,7 +41,8 @@ class TestTheFieldIsCallable:
     def test_the_public_facade_exposes_a_callable(self):
         assert fields.One2many is not None, (
             'fields.One2many valia None y estaba en __all__: la fachada '
-            'publicaba un simbolo que reventaba al llamarlo')
+            'publicaba un simbolo que reventaba al llamarlo'
+        )
         assert callable(fields.One2many)
 
     def test_it_is_the_class_of_the_relational_module(self):
@@ -64,11 +68,16 @@ class TestTheDeclaredContract:
         assert One2many('base.ResPartnerCategory', 'parent').copy is False
 
     def test_copy_can_be_turned_on(self):
-        assert One2many('base.ResPartnerCategory', 'parent', copy=True).copy is True
+        assert (
+            One2many('base.ResPartnerCategory', 'parent', copy=True).copy
+            is True
+        )
 
 
 class TestItResolvesToTheDjangoReverse:
-    """El valor sale del reverso que Django ya construyo — no de una consulta nueva.
+    """
+    El valor sale del reverso que Django ya construyo — no de una consulta
+    nueva.
 
     Es la mitad que el ``related_name`` SI da, y el porte no la reimplementa:
     la reusa. El control positivo compara las dos vias sobre los mismos datos.
@@ -87,8 +96,9 @@ class TestItResolvesToTheDjangoReverse:
         field = One2many('base.ResPartnerCategory', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_children')
         try:
-            assert set(root.o2m_test_children.values_list('pk', flat=True)) == \
-                {child_a.pk, child_b.pk}
+            assert set(
+                root.o2m_test_children.values_list('pk', flat=True)
+            ) == {child_a.pk, child_b.pk}
         finally:
             delattr(category_class, 'o2m_test_children')
 
@@ -101,8 +111,9 @@ class TestItResolvesToTheDjangoReverse:
         field = One2many('base.ResPartnerCategory', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_agree')
         try:
-            assert set(root.o2m_test_agree.values_list('pk', flat=True)) == \
-                set(root.child_ids.values_list('pk', flat=True))
+            assert set(
+                root.o2m_test_agree.values_list('pk', flat=True)
+            ) == set(root.child_ids.values_list('pk', flat=True))
         finally:
             delattr(category_class, 'o2m_test_agree')
 
@@ -116,7 +127,9 @@ class TestItResolvesToTheDjangoReverse:
 
 
 class TestItHasNoColumn:
-    """No persiste: es el reverso de una FK que ya existe, no una columna nueva."""
+    """
+    No persiste: es el reverso de una FK que ya existe, no una columna nueva.
+    """
 
     def test_it_does_not_enter_meta(self, category_class):
         field = One2many('base.ResPartnerCategory', 'parent')
@@ -125,13 +138,15 @@ class TestItHasNoColumn:
             names = {f.name for f in category_class._meta.get_fields()}
             assert 'o2m_test_meta' not in names, (
                 'el One2many entro en _meta: generaria migracion para una '
-                'columna que no existe')
+                'columna que no existe'
+            )
         finally:
             delattr(category_class, 'o2m_test_meta')
 
 
 class TestTheMissingInverseIsNamed:
-    """``update_db`` de la fuente rechaza un inverso inexistente — ≙ ``:903-911``.
+    """
+    ``update_db`` de la fuente rechaza un inverso inexistente — ≙ ``:903-911``.
 
     Su mensaje es *"No inverse field %(inverse_field)s found for %(comodel)s"*,
     y el porte lo conserva: un ``AttributeError`` pelado de Python no dice cual
@@ -162,28 +177,36 @@ class TestTheDeclaredParametersAreKept:
     """
 
     def test_the_client_side_domain_is_kept(self):
-        field = One2many('base.ResPartnerCategory', 'parent',
-                         domain=[('active', '=', True)])
+        field = One2many(
+            'base.ResPartnerCategory', 'parent', domain=[('active', '=', True)]
+        )
         assert field.domain == [('active', '=', True)]
 
     def test_the_client_side_context_is_kept(self):
-        field = One2many('base.ResPartnerCategory', 'parent',
-                         context={'active_test': False})
+        field = One2many(
+            'base.ResPartnerCategory', 'parent', context={'active_test': False}
+        )
         assert field.context == {'active_test': False}
 
     def test_bypass_search_access_is_false_by_default(self):
         """≙ *"whether access rights are bypassed on the comodel (default:
         ``False``)"* (``odoo19c: :859-860``). El default abierto seria un
         hueco de permiso."""
-        assert One2many('base.ResPartnerCategory', 'parent').bypass_search_access is False
+        assert (
+            One2many('base.ResPartnerCategory', 'parent').bypass_search_access
+            is False
+        )
 
     def test_bypass_search_access_can_be_turned_on(self):
-        field = One2many('base.ResPartnerCategory', 'parent',
-                         bypass_search_access=True)
+        field = One2many(
+            'base.ResPartnerCategory', 'parent', bypass_search_access=True
+        )
         assert field.bypass_search_access is True
 
     def test_the_relation_field_of_the_description_is_the_inverse(self):
-        """≙ ``_description_relation_field = property(attrgetter('inverse_name'))``
+        """
+        ≙ ``_description_relation_field =
+        property(attrgetter('inverse_name'))``
         (``odoo19c: :901``). Es lo que el cliente lee para saber por que
         columna del hijo cuelga el conjunto."""
         field = One2many('base.ResPartnerCategory', 'parent')
@@ -204,10 +227,12 @@ class TestTheComodelDomain:
         assert field.get_comodel_domain() == []
 
     def test_the_declared_domain_comes_through(self):
-        field = One2many('base.ResPartnerCategory', 'parent',
-                         domain=[('active', '=', True)])
-        assert field.get_comodel_domain() == [('active', '=', True)], (
-            'el dominio declarado se perdio en la composicion')
+        field = One2many(
+            'base.ResPartnerCategory', 'parent', domain=[('active', '=', True)]
+        )
+        assert field.get_comodel_domain() == [
+            ('active', '=', True)
+        ], 'el dominio declarado se perdio en la composicion'
 
 
 class TestAssignmentAppliesTheReferenceDecision:
@@ -238,11 +263,14 @@ class TestAssignmentAppliesTheReferenceDecision:
             b = category_class.objects.create(name='sale', parent=root)
             return root, a, b
 
-    def test_a_cascade_inverse_deletes_the_leftover(self, tree, category_class):
+    def test_a_cascade_inverse_deletes_the_leftover(
+        self, tree, category_class
+    ):
         root, kept, dropped = tree
         assert category_class._meta.get_field('parent').null is True, (
             'precondicion del caso: con la FK NOT NULL Django no ofrece set() '
-            'y el caso no distinguiria las dos politicas')
+            'y el caso no distinguiria las dos politicas'
+        )
         field = One2many('base.ResPartnerCategory', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_write')
         try:
@@ -250,7 +278,8 @@ class TestAssignmentAppliesTheReferenceDecision:
                 root.o2m_test_write = [kept]
             assert not category_class.objects.filter(pk=dropped.pk).exists(), (
                 'el huerfano sobrevivio: se aplico la politica de Django '
-                '(anular la columna) en vez del ondelete=cascade de la fuente')
+                '(anular la columna) en vez del ondelete=cascade de la fuente'
+            )
             assert category_class.objects.filter(pk=kept.pk).exists()
         finally:
             delattr(category_class, 'o2m_test_write')
@@ -270,15 +299,21 @@ class TestAssignmentAppliesTheReferenceDecision:
         try:
             with transaction_scope():
                 root = partner_class.objects.create(name='raiz-partner')
-                kept = partner_class.objects.create(name='queda-p', parent=root)
-                dropped = partner_class.objects.create(name='sale-p', parent=root)
+                kept = partner_class.objects.create(
+                    name='queda-p', parent=root
+                )
+                dropped = partner_class.objects.create(
+                    name='sale-p', parent=root
+                )
                 root.o2m_test_unlink = [kept]
             dropped.refresh_from_db()
             assert dropped.parent_id is None, (
                 'el inverso no se anulo: se aplico la rama de borrado sobre '
-                'un SET_NULL, que no es lo que la fuente decide')
+                'un SET_NULL, que no es lo que la fuente decide'
+            )
             assert partner_class.objects.filter(pk=dropped.pk).exists(), (
                 'el hijo se borro con un inverso SET_NULL: la fuente solo '
-                'borra cuando el ondelete es cascade')
+                'borra cuando el ondelete es cascade'
+            )
         finally:
             delattr(partner_class, 'o2m_test_unlink')

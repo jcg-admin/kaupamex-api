@@ -164,7 +164,8 @@ def signatures(path):
 
     El nombre es el bare name, sin la clase que lo contiene: es lo que hace
     comparable un metodo de la fuente con la funcion de modulo en que este
-    arbol lo declara (``BaseModel`` no existe aqui como clase).
+    arbol lo declara. No mide correspondencias calificadas por clase, aunque
+    el arbol actual tambien declare ``BaseModel``.
 
     Los stubs de ``@overload`` se saltan: no son la firma del simbolo, son su
     declaracion de tipo para el verificador.
@@ -307,9 +308,8 @@ def _report(rows, detail=False):
     ambiguous_names = sorted({n for f in rows.values() for n in f.ambiguous})
     lines.append(f'FUERA de la comparacion por nombre declarado mas de una vez: '
                   f'{len(ambiguous_names)} nombre(s) distinto(s). No se comparan: el par '
-                  f'seria arbitrario. Su cierre exige calificar por clase, que '
-                  f'este arbol no puede en models.py — BaseModel no existe aqui '
-                  f'como clase.')
+                  f'seria arbitrario. Su cierre exige calificar por clase; '
+                  f'este instrumento compara nombres sin esa calificacion.')
     if detail:
         for name, row in rows.items():
             if not row.divergences:

@@ -69,13 +69,17 @@ responsable del producto. Este árbol no tiene el chatter de la referencia
 notificación se reduce al flag idempotente. Sucesor registrado: tarea **#89**
 (integrar el envío a la familia ``mail``).
 """
+
 import datetime
 
+import api
 import fields
 from django.utils import timezone
 
 from addons.stock.models import StockLot, StockQuant
+from orm.environments import get_context
 from orm.method_chain import chain_method
+from tools.translate import _
 
 #: Los tres desplazamientos derivados de la caducidad, con el campo del
 #: producto que da los días. ≙ ``_fields`` de ``_compute_dates``
@@ -88,7 +92,9 @@ _DERIVED_DATES = (
 
 
 def _add_if_absent(model, name, field):
-    """Añade el campo sólo si el modelo no lo tiene ya — ver ``account_fleet``."""
+    """
+    Añade el campo sólo si el modelo no lo tiene ya — ver ``account_fleet``.
+    """
     if not any(f.name == name for f in model._meta.get_fields()):
         model.add_to_class(name, field)
 
@@ -103,7 +109,8 @@ def use_expiration_date(self):
 
 
 def product_expiry_alert(self):
-    """≙ ``_compute_product_expiry_alert`` (``odoo19c: production_lot.py:40-45``).
+    """
+    ≙ ``_compute_product_expiry_alert`` (``odoo19c: production_lot.py:40-45``).
 
     ``True`` cuando la caducidad ya se alcanzó. La referencia compara contra
     ``fields.Datetime.now()``; aquí, ``timezone.now()``.
@@ -113,31 +120,38 @@ def product_expiry_alert(self):
     return self.expiration_date <= timezone.now()
 
 
+@api.depends(
+    'name',
+    'expiration_date',
+    'alert_date',
+    'product.product_tmpl.use_expiration_date',
+)
+@api.depends_context('formatted_display_name')
 def _compute_display_name(self):
-    """≙ ``_compute_display_name`` (``odoo19c: production_lot.py:26-38``).
+    """Asigna el estado de caducidad solicitado por el contexto del cliente.
 
-    La referencia antepone la fecha de caducidad al nombre::
-
-        super()._compute_display_name()
-        for lot in self:
-            if ...formatted_display_name and lot.expiration_date:
-                lot.display_name = f"{lot.name}\\t--{lot.expiration_date.date()}--"
-
-    Devuelve ``None`` cuando el lote no caduca: ése es el **relevo** de
-    ``chain_method`` — el equivalente exacto del ``super()`` de la referencia,
-    que atiende el caso que este override no cubre. No se pisa el método
-    previo con una guarda ``if not hasattr``: es el defecto que
-    :ref:`h-api-364` registra.
-
-    El condicionante ``formatted_display_name`` de la referencia es una clave
-    del contexto de su cliente web; este árbol no tiene ese contexto (medido:
-    ``grep -rn formatted_display_name addons/ src/`` → 0), así que el formato
-    se aplica siempre que haya caducidad. Es la única lectura posible sin
-    inventar un contexto.
+    Reproduce el contrato fijado de product_expiry: sin formato, activación
+    o fecha, devuelve None para relevar al método previo. El camino atendido
+    asigna mediante el descriptor y devuelve la etiqueta como señal del
+    chain_method existente; no añade un segundo mecanismo de cómputo.
     """
-    if self.expiration_date:
-        return f'{self.name}\t--{self.expiration_date.date()}--'
-    return None
+    if not (
+        get_context().get('formatted_display_name')
+        and self.use_expiration_date
+        and self.expiration_date
+    ):
+        return None
+    label = self.name
+    now = timezone.now()
+    if now >= self.expiration_date:
+        label += _('\t--Expired--')
+    elif self.alert_date and now >= self.alert_date:
+        label += _(
+            '\t--Expire on %(date)s--',
+            date=fields.Datetime.to_string(self.expiration_date),
+        )
+    self.display_name = label
+    return label
 
 
 # -- el cálculo de las fechas (≙ los dos computes de escritura) --
@@ -193,7 +207,11 @@ def compute_dates(self, previous_expiration=None):
     for campo, dias_campo in _DERIVED_DATES:
         dias = getattr(producto, dias_campo, 0)
         if dias:
-            setattr(self, campo, self.expiration_date - datetime.timedelta(days=dias))
+            setattr(
+                self,
+                campo,
+                self.expiration_date - datetime.timedelta(days=dias),
+            )
 
 
 def alert_date_exceeded(cls):
@@ -211,10 +229,9 @@ def alert_date_exceeded(cls):
     # ≙ la intersección con `quant_ids` de ubicación interna y `quantity > 0`
     # (`production_lot.py:92-99`): un lote agotado no genera aviso.
     with_stock = set(
-        StockQuant.objects
-        .filter(lot__in=candidatos, quantity__gt=0,
-                location__usage='internal')
-        .values_list('lot_id', flat=True)
+        StockQuant.objects.filter(
+            lot__in=candidatos, quantity__gt=0, location__usage='internal'
+        ).values_list('lot_id', flat=True)
     )
     marcados = []
     for lote in candidatos:
@@ -227,32 +244,69 @@ def alert_date_exceeded(cls):
 
 
 def apply_product_expiry_extensions():
-    """Cuelga las cuatro fechas, el recordatorio y los métodos sobre ``stock.lot``."""
-    _add_if_absent(StockLot, 'expiration_date', fields.Datetime(
-        null=True, blank=True,
-        help_text='Fecha en que el lote deja de ser consumible '
-                  '(Odoo expiration_date).',
-    ))
-    _add_if_absent(StockLot, 'use_date', fields.Datetime(
-        null=True, blank=True,
-        help_text='Fecha desde la que el producto empieza a deteriorarse — '
-                  'consumo preferente (Odoo use_date).',
-    ))
-    _add_if_absent(StockLot, 'removal_date', fields.Datetime(
-        null=True, blank=True,
-        help_text='Fecha en que el lote debe retirarse del stock; clave del '
-                  'orden FEFO (Odoo removal_date).',
-    ))
-    _add_if_absent(StockLot, 'alert_date', fields.Datetime(
-        null=True, blank=True,
-        help_text='Fecha en que se levanta la alerta de caducidad '
-                  '(Odoo alert_date).',
-    ))
-    _add_if_absent(StockLot, 'product_expiry_reminded', fields.Boolean(
-        default=False,
-        help_text='La alerta de caducidad ya se notificó '
-                  '(Odoo product_expiry_reminded).',
-    ))
+    """
+    Cuelga las cuatro fechas, el recordatorio y los métodos sobre
+    ``stock.lot``.
+    """
+    _add_if_absent(
+        StockLot,
+        'expiration_date',
+        fields.Datetime(
+            null=True,
+            blank=True,
+            help_text=(
+                'Fecha en que el lote deja de ser consumible '
+                '(Odoo expiration_date).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        StockLot,
+        'use_date',
+        fields.Datetime(
+            null=True,
+            blank=True,
+            help_text=(
+                'Fecha desde la que el producto empieza a deteriorarse — '
+                'consumo preferente (Odoo use_date).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        StockLot,
+        'removal_date',
+        fields.Datetime(
+            null=True,
+            blank=True,
+            help_text=(
+                'Fecha en que el lote debe retirarse del stock; clave del '
+                'orden FEFO (Odoo removal_date).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        StockLot,
+        'alert_date',
+        fields.Datetime(
+            null=True,
+            blank=True,
+            help_text=(
+                'Fecha en que se levanta la alerta de caducidad '
+                '(Odoo alert_date).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        StockLot,
+        'product_expiry_reminded',
+        fields.Boolean(
+            default=False,
+            help_text=(
+                'La alerta de caducidad ya se notificó '
+                '(Odoo product_expiry_reminded).'
+            ),
+        ),
+    )
 
     if not hasattr(StockLot, 'use_expiration_date'):
         StockLot.use_expiration_date = property(use_expiration_date)

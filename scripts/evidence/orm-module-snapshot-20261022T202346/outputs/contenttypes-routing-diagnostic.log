@@ -1,0 +1,69 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Full default migration and backbone/FK checks PASS
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Begin existing company provisioner on owned disposable database
+{
+  "task": "TASK-API-0383",
+  "scope": "Full Django migration verification only, not module installer execution or Task acceptance",
+  "databases": {},
+  "default_migration_skipped_for_bounded_diagnostic": true,
+  "default_migration_seconds": 0.0,
+  "migration_plan": [
+    [
+      "contenttypes",
+      "0001_initial"
+    ],
+    [
+      "contenttypes",
+      "0002_remove_content_type_name"
+    ]
+  ],
+  "routing": {
+    "company_contenttypes": false,
+    "default_contenttypes": true,
+    "unknown_company_contenttypes": false,
+    "company_domain": true
+  },
+  "contenttypes_recorded_applied": true,
+  "actual_database_is_requested_company": true,
+  "contenttypes_table": null,
+  "failing_migration_dependencies": [
+    [
+      "base",
+      "0059_seed_base_security"
+    ],
+    [
+      "contenttypes",
+      "0002_remove_content_type_name"
+    ]
+  ],
+  "contenttypes_foreign_key_operations": [
+    "resource_ref_content_type"
+  ],
+  "classification": "Confirmed router exclusion, not absent dependency ordering; functional provisioning remains FAIL"
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

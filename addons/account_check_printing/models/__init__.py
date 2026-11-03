@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """``account_check_printing.models`` — mapa de archivo → clase/extensión.
 
-- ``res_currency.py``           → cuelga ``amount_to_text`` sobre ``base.ResCurrency``.
+- ``res_currency.py``           → cuelga ``amount_to_text`` sobre
+  ``base.ResCurrency``.
 - ``account_payment_method.py`` → extiende ``_get_payment_method_information``.
-- ``res_company.py``            → ``CheckPrintingCompanySettings`` (satélite ``res.company``).
-- ``account_journal.py``        → ``CheckPrintingJournalSettings`` (satélite ``account.journal``).
-- ``account_payment.py``        → ``CheckPrintingPaymentInfo`` (satélite ``account.payment``).
+- ``res_company.py``            → ``CheckPrintingCompanySettings`` (satélite
+  ``res.company``).
+- ``account_journal.py``        → ``CheckPrintingJournalSettings`` (satélite
+  ``account.journal``).
+- ``account_payment.py``        → ``CheckPrintingPaymentInfo`` (satélite
+  ``account.payment``).
 
 Los dos primeros SÓLO cuelgan funciones (``chain_method``, ver
 ``orm/method_chain.py``) — no declaran modelos propios, así que se aplican

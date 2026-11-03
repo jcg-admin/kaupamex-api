@@ -20,6 +20,7 @@ tarde.
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from django.contrib.auth import get_user_model
@@ -40,8 +41,9 @@ def _user(login, internal=True, active=True):
     """Una cuenta que apunta a su own partner, interna o compartida."""
     account = User.objects.create_user(login=login, password=PASSWORD)
     if internal:
-        group = ResGroups.objects.create(name=f'grupo-{login}',
-                                         user_type='internal')
+        group = ResGroups.objects.create(
+            name=f'grupo-{login}', user_type='internal'
+        )
         account.group_ids.add(group)
     if not active:
         account.active = False
@@ -59,8 +61,9 @@ class TestComputeLang:
 
     def test_a_child_takes_the_language_of_its_parent(self, db):
         """El eje. Qué lo haría fallar: no mirar al padre."""
-        parent = ResPartner.objects.create(name='Matriz', is_company=True,
-                                           lang='ja-jp')
+        parent = ResPartner.objects.create(
+            name='Matriz', is_company=True, lang='ja-jp'
+        )
         child = ResPartner.objects.create(name='Contacto', parent=parent)
         assert child.lang == 'ja-jp'
 
@@ -71,8 +74,9 @@ class TestComputeLang:
         Qué lo haría fallar: anteponer ``if not partner.lang``, que es la
         lectura cómoda y deja al hijo con el suyo.
         """
-        parent = ResPartner.objects.create(name='Matriz', is_company=True,
-                                           lang='ja-jp')
+        parent = ResPartner.objects.create(
+            name='Matriz', is_company=True, lang='ja-jp'
+        )
         child = ResPartner.objects.create(name='Contacto', lang='es-mx')
         child.parent = parent
         child.save()
@@ -110,8 +114,9 @@ class TestComputeUserId:
     def test_a_person_takes_the_salesperson_of_its_parent(self, db):
         """El eje."""
         seller = _user('vendedor.eje@kaupamex.mx')
-        parent = ResPartner.objects.create(name='Matriz', is_company=True,
-                                           user=seller)
+        parent = ResPartner.objects.create(
+            name='Matriz', is_company=True, user=seller
+        )
         who = ResPartner.objects.create(name='Persona', parent=parent)
         assert who.user_id == seller.pk
 
@@ -122,10 +127,12 @@ class TestComputeUserId:
         Qué lo haría fallar: quitar la comprobación del tipo.
         """
         seller = _user('vendedor.filial@kaupamex.mx')
-        parent = ResPartner.objects.create(name='Matriz', is_company=True,
-                                           user=seller)
-        who = ResPartner.objects.create(name='Filial', is_company=True,
-                                        parent=parent)
+        parent = ResPartner.objects.create(
+            name='Matriz', is_company=True, user=seller
+        )
+        who = ResPartner.objects.create(
+            name='Filial', is_company=True, parent=parent
+        )
         assert who.user_id is None
 
     def test_a_partner_that_already_has_one_keeps_it(self, db):
@@ -136,10 +143,12 @@ class TestComputeUserId:
         """
         from_parent = _user('vendedor.padre@kaupamex.mx')
         own = _user('vendedor.own@kaupamex.mx')
-        parent = ResPartner.objects.create(name='Matriz', is_company=True,
-                                           user=from_parent)
-        who = ResPartner.objects.create(name='Persona', parent=parent,
-                                        user=own)
+        parent = ResPartner.objects.create(
+            name='Matriz', is_company=True, user=from_parent
+        )
+        who = ResPartner.objects.create(
+            name='Persona', parent=parent, user=own
+        )
         assert who.user_id == own.pk
 
     def test_without_a_parent_nothing_is_assigned(self, db):
@@ -162,8 +171,7 @@ class TestComputeMainUser:
         Qué lo haría fallar: ordenar sólo por id. El compartido se creó
         primero, así que con el id solo ganaría él.
         """
-        shared = _user('principal.shared@kaupamex.mx',
-                           internal=False)
+        shared = _user('principal.shared@kaupamex.mx', internal=False)
         internal = _user('principal.internal@kaupamex.mx')
         who = shared.partner
         internal.partner = who
@@ -233,7 +241,8 @@ class TestComputeMainUser:
             # construye. Saltarlo dejaria la rama sin control ninguno, que es
             # justo lo que el sub-patron D prohibe.
             root = User.objects.create_user(
-                login='raiz@kaupamex.mx', password=PASSWORD)
+                login='raiz@kaupamex.mx', password=PASSWORD
+            )
             User.objects.filter(pk=root.pk).update(id=SUPERUSER_ID)
             root = User.objects.get(pk=SUPERUSER_ID)
         assert root.partner_id is not None, 'la cuenta raiz tiene partner'

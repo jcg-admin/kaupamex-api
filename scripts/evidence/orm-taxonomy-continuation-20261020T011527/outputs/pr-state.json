@@ -1,0 +1,127 @@
+[
+  {
+    "repository": "kaupamex-api",
+    "exit_code": 0,
+    "headRefOid": "4538cee5c81763fae0dfa0444f96c2a4fa19acd0",
+    "isDraft": false,
+    "mergeStateStatus": "UNSTABLE",
+    "number": 109,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-20T00:38:33Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39346338432/job/118379726762",
+        "name": "test",
+        "startedAt": "2026-10-20T00:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "api-tests"
+      }
+    ],
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+    "review_states": [
+      {
+        "state": "COMMENTED",
+        "submittedAt": "2026-10-18T09:44:56Z"
+      }
+    ]
+  },
+  {
+    "repository": "kaupamex-api",
+    "exit_code": 0,
+    "headRefOid": "e51f484faf39406fa3dd1d83bd3c8b4aaba646eb",
+    "isDraft": true,
+    "mergeStateStatus": "UNSTABLE",
+    "number": 110,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T19:16:13Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39306774872/job/118245767475",
+        "name": "test",
+        "startedAt": "2026-10-19T18:56:40Z",
+        "status": "COMPLETED",
+        "workflowName": "api-tests"
+      }
+    ],
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/110",
+    "review_states": []
+  },
+  {
+    "repository": "kaupamex-docs",
+    "exit_code": 0,
+    "headRefOid": "946156ceb812fe7d291f2c7366b3af8c4bded4db",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 154,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154",
+    "review_states": [
+      {
+        "state": "COMMENTED",
+        "submittedAt": "2026-10-18T09:45:08Z"
+      }
+    ]
+  },
+  {
+    "repository": "kaupamex-db",
+    "exit_code": 0,
+    "headRefOid": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 32,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-db/pull/32",
+    "review_states": [
+      {
+        "state": "COMMENTED",
+        "submittedAt": "2026-10-18T09:44:59Z"
+      }
+    ]
+  },
+  {
+    "repository": "kaupamex-server",
+    "exit_code": 0,
+    "headRefOid": "f5008aa5addd796aaf1cfe35694209668944fb2e",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 17,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-server/pull/17",
+    "review_states": [
+      {
+        "state": "COMMENTED",
+        "submittedAt": "2026-10-18T09:45:02Z"
+      }
+    ]
+  },
+  {
+    "repository": "kaupamex-ui",
+    "exit_code": 0,
+    "headRefOid": "945ea00b6944cd664f1e950c32b7284d753cb9eb",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 90,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-ui/pull/90",
+    "review_states": [
+      {
+        "state": "COMMENTED",
+        "submittedAt": "2026-10-18T09:45:05Z"
+      }
+    ]
+  }
+]

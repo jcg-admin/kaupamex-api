@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.324" timestamp="2026-10-26T17:11:04.412684" hostname="c8a29a030cff"><testcase classname="tests.integration.sale.test_product_expiry" name="test_display_name_carries_the_expiration_and_relays_without_it" time="4.174"><failure message="ValueError: Compute method failed to assign stock.StockLot(10,).display_name">tests/integration/sale/test_product_expiry.py:173: in test_display_name_carries_the_expiration_and_relays_without_it
+    assert caduca.display_name == f'L9\t--{fecha}--'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(10,).display_name</failure></testcase></testsuite></testsuites>

@@ -4,6 +4,7 @@ Adaptación fiel de Odoo fleet/models/fleet_vehicle.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3). Ver el docstring del modelo para
 las siete divergencias documentadas frente a la referencia.
 """
+
 from datetime import date, timedelta
 
 import pytest
@@ -30,9 +31,17 @@ def brand():
 @pytest.fixture
 def model(brand):
     return FleetVehicleModel.objects.create(
-        name='Corolla', brand=brand, color='Rojo', seats=5, doors=4,
-        transmission='automatic', default_fuel_type='gasoline',
-        default_co2=120.5, power=90.0, vehicle_range=600, range_unit='km',
+        name='Corolla',
+        brand=brand,
+        color='Rojo',
+        seats=5,
+        doors=4,
+        transmission='automatic',
+        default_fuel_type='gasoline',
+        default_co2=120.5,
+        power=90.0,
+        vehicle_range=600,
+        range_unit='km',
     )
 
 
@@ -43,7 +52,9 @@ def driver():
 
 class TestFleetVehicleName:
     def test_name_composes_brand_model_and_plate(self, model):
-        vehicle = FleetVehicle.objects.create(model=model, license_plate='ABC-123')
+        vehicle = FleetVehicle.objects.create(
+            model=model, license_plate='ABC-123'
+        )
         assert vehicle.name == 'Toyota/Corolla/ABC-123'
 
     def test_name_falls_back_when_no_plate(self, model):
@@ -63,7 +74,9 @@ class TestFleetVehicleName:
         assert encontrado.first().name == 'Toyota/Corolla/ABC-123'
 
     def test_name_is_recomputed_when_the_plate_changes(self, model):
-        vehicle = FleetVehicle.objects.create(model=model, license_plate='ABC-123')
+        vehicle = FleetVehicle.objects.create(
+            model=model, license_plate='ABC-123'
+        )
 
         vehicle.license_plate = 'XYZ-789'
         vehicle.save()
@@ -72,8 +85,12 @@ class TestFleetVehicleName:
         assert vehicle.name == 'Toyota/Corolla/XYZ-789'
 
     def test_name_survives_a_save_that_narrows_update_fields(self, model):
-        """``update_fields`` acotado no debe dejar el nombre viejo en la fila."""
-        vehicle = FleetVehicle.objects.create(model=model, license_plate='ABC-123')
+        """
+        ``update_fields`` acotado no debe dejar el nombre viejo en la fila.
+        """
+        vehicle = FleetVehicle.objects.create(
+            model=model, license_plate='ABC-123'
+        )
 
         vehicle.license_plate = 'XYZ-789'
         vehicle.save(update_fields=['license_plate'])
@@ -137,7 +154,9 @@ class TestFleetVehicleDriverHistory:
         vehicle.save()
         assert vehicle.assignation_logs.count() == 1
 
-    def test_resaving_same_driver_does_not_duplicate_history(self, model, driver):
+    def test_resaving_same_driver_does_not_duplicate_history(
+        self, model, driver
+    ):
         vehicle = FleetVehicle.objects.create(model=model, driver=driver)
         assert vehicle.assignation_logs.count() == 1
         vehicle.description = 'Actualización sin cambio de conductor'
@@ -149,11 +168,13 @@ class TestFleetVehicleDeactivation:
     def test_deactivating_closes_contracts_and_services(self, model):
         vehicle = FleetVehicle.objects.create(model=model)
         stype = FleetServiceType.objects.create(
-            name='Afinación', category=FleetServiceType.CATEGORY_SERVICE,
+            name='Afinación',
+            category=FleetServiceType.CATEGORY_SERVICE,
         )
         contract = FleetVehicleLogContract.objects.create(vehicle=vehicle)
         service = FleetVehicleLogServices.objects.create(
-            vehicle=vehicle, service_type=stype,
+            vehicle=vehicle,
+            service_type=stype,
         )
         assert contract.active is True
         assert service.active is True
@@ -193,7 +214,8 @@ class TestFleetVehicleContractCounters:
         assert vehicle.has_open_contract is False
 
         FleetVehicleLogContract.objects.create(
-            vehicle=vehicle, state=FleetVehicleLogContract.STATE_OPEN,
+            vehicle=vehicle,
+            state=FleetVehicleLogContract.STATE_OPEN,
             expiration_date=date.today() + timedelta(days=30),
         )
         assert vehicle.contract_count == 1
@@ -203,7 +225,9 @@ class TestFleetVehicleContractCounters:
 class TestFleetVehicleAcceptDriverChange:
     def test_accept_driver_change_moves_future_to_current(self, model, driver):
         vehicle = FleetVehicle.objects.create(
-            model=model, future_driver=driver, plan_to_change_car=True,
+            model=model,
+            future_driver=driver,
+            plan_to_change_car=True,
         )
         vehicle.accept_driver_change()
         vehicle.refresh_from_db()
@@ -212,10 +236,14 @@ class TestFleetVehicleAcceptDriverChange:
         assert vehicle.plan_to_change_car is False
 
     def test_accept_driver_change_releases_other_vehicle_of_same_driver(
-        self, model, driver,
+        self,
+        model,
+        driver,
     ):
         other_vehicle = FleetVehicle.objects.create(model=model, driver=driver)
-        vehicle = FleetVehicle.objects.create(model=model, future_driver=driver)
+        vehicle = FleetVehicle.objects.create(
+            model=model, future_driver=driver
+        )
 
         vehicle.accept_driver_change()
 

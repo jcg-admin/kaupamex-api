@@ -5,6 +5,7 @@ primitiva equivalente de Django (convertidor de ruta: ``regex`` +
 ``to_python`` + ``to_url``). Los casos miden el contrato de las dos
 direcciones, no que la clase exista.
 """
+
 import re
 
 import pytest
@@ -54,7 +55,9 @@ def converter(monkeypatch):
 class TestTheRegexAcceptsAReadableSlug:
     """Falla si el ``regex`` siguiera siendo el ``[0-9]+`` de ``base``."""
 
-    @pytest.mark.parametrize('value', ['silla-de-oficina-7', '7', 'ab-7', 'cosa--3'])
+    @pytest.mark.parametrize(
+        'value', ['silla-de-oficina-7', '7', 'ab-7', 'cosa--3']
+    )
     def test_it_matches_a_name_and_an_identifier(self, value):
         assert re.fullmatch(_UNSLUG_ROUTE_PATTERN, value)
 
@@ -78,8 +81,10 @@ class TestToPythonResolvesTheRecord:
 
     def test_the_raw_value_travels_on_the_instance(self, converter):
         # ≙ ``with_context(_converter_value=value)`` de la fuente.
-        assert converter.to_python('silla-de-oficina-7')._converter_value == \
-            'silla-de-oficina-7'
+        assert (
+            converter.to_python('silla-de-oficina-7')._converter_value
+            == 'silla-de-oficina-7'
+        )
 
     def test_an_unknown_identifier_gives_nothing(self, converter):
         assert converter.to_python('99') is None
@@ -92,7 +97,9 @@ class TestTheNegativeIdentifierFallback:
         # -3 no existe; 3 sí. La fuente asume el abs() por culpa del patrón.
         assert converter.to_python('mesa--3').pk == 3
 
-    def test_a_negative_identifier_with_no_absolute_gives_nothing(self, converter):
+    def test_a_negative_identifier_with_no_absolute_gives_nothing(
+        self, converter
+    ):
         assert converter.to_python('cosa--99') is None
 
     def test_a_positive_identifier_is_not_absolutized(self, converter):
@@ -104,7 +111,10 @@ class TestToUrlIsTheOtherDirection:
     """``to_url`` es ``_slug``: lo que ``reverse()`` pone en la URL."""
 
     def test_it_writes_the_readable_slug(self, converter):
-        assert converter.to_url(_Row(42, 'Silla de Oficina')) == 'silla-de-oficina-42'
+        assert (
+            converter.to_url(_Row(42, 'Silla de Oficina'))
+            == 'silla-de-oficina-42'
+        )
 
     def test_it_round_trips_with_to_python(self, converter):
         assert converter.to_python(converter.to_url(_Row(7))).pk == 7
@@ -114,9 +124,13 @@ class TestTheConstructorKeepsTheSourceSignature:
     """La firma es contrato — ``porte-completo-no-parcial.md``."""
 
     def test_model_and_domain_are_accepted_positionally(self):
-        conv = ModelConverter(None, 'product.template', "[('sale_ok','=',True)]")
+        conv = ModelConverter(
+            None, 'product.template', "[('sale_ok','=',True)]"
+        )
         assert (conv.model, conv.domain) == (
-            'product.template', "[('sale_ok','=',True)]")
+            'product.template',
+            "[('sale_ok','=',True)]",
+        )
 
     def test_the_default_domain_is_the_empty_one(self):
         assert ModelConverter().domain == '[]'

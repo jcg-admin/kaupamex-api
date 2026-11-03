@@ -1,7 +1,8 @@
 """
 Django settings TESTING (QA) — Kaupamex API.
 
-BD exclusiva para tests: ``kaupamex_core_qa`` (SOL-087), definido en ``src/.env``
+BD exclusiva para tests: ``kaupamex_core_qa`` (SOL-087), definido en
+``src/.env``
 (sin ``default=`` en el código — todo vive en el env). Separada de produccion.
 pytest apunta aqui via pytest.ini.
 
@@ -16,6 +17,7 @@ Arranque de PostgreSQL en entornos sin systemd: NO se replica el
 
 Ver el skill ``db: .claude/skills/db-postgres/SKILL.md`` §1.
 """
+
 import certifi
 import tempfile
 from .base import *
@@ -61,11 +63,11 @@ _DB_QA_SOCKET = opt('DB_QA_SOCKET')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME':     opt('DB_QA_NAME'),
-        'USER':     opt('DB_QA_USER'),
+        'NAME': opt('DB_QA_NAME'),
+        'USER': opt('DB_QA_USER'),
         'PASSWORD': opt('DB_QA_PASSWORD'),
-        'HOST':     _DB_QA_SOCKET or opt('DB_QA_HOST'),
-        'PORT':     opt('DB_QA_PORT'),
+        'HOST': _DB_QA_SOCKET or opt('DB_QA_HOST'),
+        'PORT': opt('DB_QA_PORT'),
         'OPTIONS': _DB_QA_OPTIONS,
         # ``CHARSET``/``COLLATION`` se retiran: en PostgreSQL el encoding y la
         # collation son de la DATABASE, fijados al crearla. Django los ignora
@@ -95,7 +97,9 @@ REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
 # JWT — clave de firma exclusiva para tests
 SIMPLE_JWT = {
     **SIMPLE_JWT,
-    'SIGNING_KEY': 'testing-signing-key-please-do-not-use-in-production-0123456789',
+    'SIGNING_KEY': (
+        'testing-signing-key-please-do-not-use-in-production-0123456789'
+    ),
 }
 
 # ALLOWED_HOSTS para pruebas
@@ -106,9 +110,11 @@ ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']
 # ``disable_existing_loggers: True`` no silencia: **apaga**. Un logger con
 # ``disabled = True`` descarta el registro dentro de ``Logger.handle()``, antes
 # de todo handler y antes de propagar, así que ``caplog`` no ve nada y su
-# silencio se lee como «no se emitió» — una aserción negativa pasa por vacuidad.
+# silencio se lee como «no se emitió» — una aserción negativa pasa por
+# vacuidad.
 # Medido con `disable_existing_loggers: True`: 15 loggers apagados —los de
-# Django (``django``, ``django.request``, ``django.db.backends``…), ``psycopg``,
+# Django (``django``, ``django.request``, ``django.db.backends``…),
+# ``psycopg``,
 # ``asyncio`` y ``service.db``—, que son los que ya existían cuando corre
 # ``dictConfig``. Los 76 de ``addons.*`` nacen después y quedan vivos: la
 # ceguera era asimétrica y por eso costaba verla.
@@ -120,7 +126,7 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {'null': {'class': 'logging.NullHandler'}},
-    'root':     {'handlers': ['null']},
+    'root': {'handlers': ['null']},
 }
 
 # Email — locmem para tests (django.core.mail.outbox)

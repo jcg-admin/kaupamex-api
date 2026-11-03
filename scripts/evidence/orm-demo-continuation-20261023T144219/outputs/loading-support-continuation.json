@@ -1,0 +1,86 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.reset_modules_state",
+      "taskId": "TASK-API-0382",
+      "prompt": "Restore transient module requests only after failed transaction has exited; selected catalogue only",
+      "verify": "Actual PG state mapping, committed persistence, missing table, nested transaction refusal and negative no-op",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading_reset.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.check_module_names",
+      "taskId": "TASK-API-0382",
+      "prompt": "Validate requested module names against selected database catalogue without changing state",
+      "verify": "Pinned source differential plus actual PostgreSQL selected-catalogue and read-only controls",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading_names.py"
+      ],
+      "route": "local",
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.company_schema_verification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Resolve existing productive company migration/metadata alias contract under legitimate ownership",
+      "verify": "Full own company provisioner and isolation, not in-memory policy override",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "src/orm/routers.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_module_graph_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Integrate per-company loader only after selected database schema and model-composition contracts are verified",
+      "verify": "Per-company real registry/schema/data/hooks/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.company_schema_verification"
+      ]
+    }
+  ],
+  "states": {
+    "TASK-API-0383.company_schema_verification": "failed",
+    "TASK-API-0382.check_module_names": "failed",
+    "TASK-API-0382.reset_modules_state": "failed"
+  },
+  "claims_count": 273,
+  "selected": [],
+  "eligibility": "Source-reviewed independent cursor/transaction recovery under existing737 ownership. Existing Django connections, introspection and transaction.atomic; no registry/handlers or company full migration needed. Names verification not task acceptance; no synthetic accepted status. Selection order prioritizes recovery correctness before outer loader.",
+  "scope": "Only four source-reviewed existing0382/0383 units; no global exhaustion verdict. Names/reset behavior verified but acceptance blocked; no manufactured accepted state.",
+  "names_observation": "Focused22PASS and16actualPGcases PASS, negative exit1 expected; full CI running, task acceptance not_verified",
+  "observation_state_provenance": {
+    "company": "Existing actual full productive company verifier exit1, unchanged router/service. Valid experiment not repeated.",
+    "names_and_reset": "Their acceptance gate make ci-verify on exact56c6 returns2. Bounded behavior checks PASS, this is not a claim of new functional failure nor official TASK state."
+  },
+  "remaining_not_auto_admitted": [
+    "force_demo: registry rebuild/invalidation integration not qualified",
+    "load_modules: effective composition/schema/data/hooks/state/version integration unaccepted",
+    "Broader60TASK with NULL owners; native reader1072 correction reserved elsewhere"
+  ],
+  "objective_complete": false,
+  "resumption": "Resolve legitimate contenttypes/session placement and effective Registry loader ownership/dependencies; reconcile compute triage GEN0633 ownership; do not repeat valid bounded tests solely to regenerate evidence.",
+  "subsequent_semantic_correction": {
+    "original_snapshot_retained": true,
+    "do_not_reuse_unit_failure_states": [
+      "TASK-API-0382.check_module_names",
+      "TASK-API-0382.reset_modules_state"
+    ],
+    "reason": "Their declared bounded verifiers passed. Global CI acceptance failure must not be projected as their functional failure or native TASK state.",
+    "current_interpretation": "Bounded support implementations verified; whole TASK/PR acceptance remains not_verified. Future implementation selection separates pending functionality from pending review/acceptance, without synthetic accepted states.",
+    "known_prior_frontier_coverage_gap": "The previously recorded website_sale migration default was independent and admissible under owned0383, now selected in salesteam-selection.json. Prior empty frontier was not global exhaustion."
+  }
+}

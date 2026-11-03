@@ -12,6 +12,7 @@ hace falta repetir el ``ModuleSpec``. Esto es exactamente el caso que el
 contrato documenta: *"capacidades... cuelgan de un módulo real"* sin exigir
 que el addon que las declara sea el mismo que declaró el módulo.
 """
+
 from addons.authz.declaration import CapabilitySpec
 
 CAPABILITIES = [

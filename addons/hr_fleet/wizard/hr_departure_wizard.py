@@ -45,6 +45,7 @@ Divergencias declaradas
    ``mobility_card``, igual que el recompute de ``@api.depends`` que el
    ``write`` de la referencia dispara.
 """
+
 import functools
 
 from addons.fleet.models import FleetVehicle, FleetVehicleAssignationLog
@@ -93,15 +94,22 @@ def apply_hr_fleet_hr_departure_wizard_extensions():
         return
 
     @functools.wraps(original)
-    def action_register_departure(cls, employees, departure_reason,
-                                  departure_date, *args,
-                                  release_campany_car=False, **kwargs):
+    def action_register_departure(
+        cls,
+        employees,
+        departure_reason,
+        departure_date,
+        *args,
+        release_campany_car=False,
+        **kwargs,
+    ):
         """≙ ``action_register_departure`` (``:11-15``) — registra la baja
         (implementación de ``hr``) y, si se pidió, libera el coche de
         empresa. Orden verbatim: primero el ``super()``, después la
         liberación."""
-        action = original(cls, employees, departure_reason, departure_date,
-                          *args, **kwargs)
+        action = original(
+            cls, employees, departure_reason, departure_date, *args, **kwargs
+        )
         if release_campany_car:
             cls._free_company_car(employees, departure_date)
         return action

@@ -6,6 +6,7 @@ de leer un campo del formulario en la referencia, sin acoplarse al almacén —
 y lo que permite mover una clave de ``SystemParameter`` a ``CompanySetting``
 cuando exista el resolutor (UC-PLT-06) sin tocar a quien la lee.
 """
+
 from addons.base_setup.models.res_config_settings import (
     CONFIG_CASTERS,
     SiteConfigSettings,
@@ -25,6 +26,8 @@ def get_setting(field_name):
             f'son {sorted(CONFIG_CASTERS)}.'
         )
     key, caster = CONFIG_CASTERS[field_name]
-    from_store = SiteConfigSettings.current_values([field_name]).get(field_name)
+    from_store = SiteConfigSettings.current_values([field_name]).get(
+        field_name
+    )
     default = SiteConfigSettings._meta.get_field(field_name).get_default()
     return _coerce(from_store, caster, default)

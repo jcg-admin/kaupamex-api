@@ -7,16 +7,18 @@ Retorna exit code 0 si todo está correcto, 1 si hay referencias rotas.
 Diseñado para CI/CD y validación automatizada.
 
 Uso:
-    python3 validate_broken_references.py              # Valida desde directorio actual
-    python3 validate_broken_references.py /path         # Valida desde ruta específica
-    python3 validate_broken_references.py --strict      # Falla también con documentales sin resolver
+    python3 validate_broken_references.py              # Valida desde
+    directorio actual
+    python3 validate_broken_references.py /path         # Valida desde ruta
+    específica
+    python3 validate_broken_references.py --strict      # Falla también con
+    documentales sin resolver
 """
 
 import sys
 from pathlib import Path
 
 # Importar la clase compartida
-sys.path.insert(0, str(Path(__file__).parent))
 from detect_broken_references import ReferenceValidator
 
 
@@ -29,7 +31,9 @@ def main():
             root_path = arg
             break
 
-    validator = ReferenceValidator(root_path=root_path, debug=False, ignore_examples=False)
+    validator = ReferenceValidator(
+        root_path=root_path, debug=False, ignore_examples=False
+    )
     validator.find_all_files()
     validator.validate_all_files()
 
@@ -49,7 +53,10 @@ def main():
         issues = total_broken
 
     if issues == 0:
-        print(f"PASS: All {total_valid} concrete references are valid ({total_documentary} documentary skipped)")
+        print(
+            f"PASS: All {total_valid} concrete references are valid"
+            f" ({total_documentary} documentary skipped)"
+        )
         sys.exit(0)
     else:
         print(f"FAIL: {total_broken} broken references found out of {total}")

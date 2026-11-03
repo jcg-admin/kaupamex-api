@@ -1,0 +1,167 @@
+{
+  "global": "FAIL",
+  "pytest_exit": 1,
+  "make_exit": 2,
+  "passed": 77,
+  "skipped": 1,
+  "error_count": 1,
+  "duration_seconds": 497.81,
+  "errors": [
+    {
+      "classname": "tests.integration.test_v2_cart_wishlist_notifications.TestCartSnapshotsV2",
+      "name": "test_saves_cart_and_returns_200",
+      "message": "failed on setup with \"ValueError: Compute method failed to assign product.ProductProduct(1,).display_name\"",
+      "trace": "tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item\n    add_item_to_draft(order, product_f2, quantity=1)\naddons/sale/services.py:125: in add_item_to_draft\n    'name': _line_snapshot_name(product),\naddons/sale/services.py:91: in _line_snapshot_name\n    return str(product)\naddons/product/models/product_product.py:178: in __str__\n    return f'[{self.default_code}] {self.display_name}' \\\nsrc/orm/fields.py:1657: in __get__\n    raise ValueError(\nE   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name"
+    }
+  ],
+  "classification": "BASELINE_FAILURE of first observed compute error; subsequent tests NOT_EVALUATED",
+  "baseline_evidence": "orm-continuation-20261022T190749/outputs/ci-pruning-final.junit.xml and earlier remote39796127793 JUnit",
+  "focused": {
+    "version_catalogue_controls": 3,
+    "snapshot_controls": 20,
+    "pinned_snapshot_differential_cases": 12,
+    "historical_pure_inventory_contract_tests": 30,
+    "static_graph_regressions": 12,
+    "migration": "Actual AddField forward/reverse preserves historical metadata and NULL",
+    "two_database": "Independent state/order/versions/demo; explicit alias and mutable node snapshots; resources removed",
+    "negative_snapshot_mutation": {
+      "passed": 11,
+      "failed": 5,
+      "exit": 1,
+      "expected": true
+    },
+    "post_global_independent_verification": "4additional preparation cases added and verified after CI failed; no additional production logic change, no full CI repeat justified"
+  },
+  "fixture_limit": "Reduced catalogue schema excludes automation collaborator; original missing-table error retained. Full hooks and actual installer not qualified.",
+  "during_ci_edits": "Final after-data CI used unchanged production sources committed2cc7758d; evidence/docs only updated while active.",
+  "cleanup": {
+    "databases_remaining": 0,
+    "roles_remaining": 0,
+    "observation_scope": "After global CI/snapshot controls; before currently running own company migration verification"
+  },
+  "official_task_state_changes": false,
+  "full_company_migration_verification": {
+    "before": "Default full migration PASS:379applied migrations,107local res_users FKs; company provisioning FAIL in base0005 implicit write without company scope",
+    "before_evidence": "outputs/full-company-migrations-before.json; outputs/full-company-migrations-before.log",
+    "bounded_fix": "Existing provisioner wraps migrate with native company_scope for target alias, restores caller scope; no historical migration edit or router fallback",
+    "tdd_before": {
+      "passed": 2,
+      "failed": 9,
+      "exit": 1
+    },
+    "tdd_after": {
+      "passed": 11,
+      "failed": 0,
+      "exit": 0
+    },
+    "negative_context_mutation": {
+      "passed": 3,
+      "failed": 8,
+      "exit": 1,
+      "expected": true
+    },
+    "replay": "Finished: company verifier exit1, missing django_content_type; combined wrapper preserves CI exit2. Current experimental replay is a separate observation."
+  },
+  "context_fix_commit": "110c81827cdfb5e8d5d3b2f0698ffd4a3a7c8ceb",
+  "ci_after_context": {
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "seconds": 542.65,
+    "make_exit": 2,
+    "classification": "BASELINE_FAILURE at display_name; subsequent NOT_EVALUATED",
+    "junit": "outputs/ci-after-context.junit.xml"
+  },
+  "contenttypes_diagnostic": {
+    "exit": 0,
+    "actual_company_alias": true,
+    "migration_plan_recorded_but_table_absent": true,
+    "cause": "Router excludes contenttypes from company schema; base0060 FK dependency declared and target table missing",
+    "evidence": "outputs/contenttypes-routing-diagnostic.json",
+    "acceptance": "not_verified"
+  },
+  "hr_migration": {
+    "initial_control_limit": "No company context did not exercise callable query; initial PASS retained separately, not evidence of discrimination",
+    "before_exit": 1,
+    "after_exit": 0,
+    "scope": "Real PostgreSQL historical AddField/application and reversal; no live-company query during DDL; runtime callable retained in state",
+    "source": "addons/hr/migrations/0004_hrpayrollstructuretype_default_resource_calendar.py",
+    "acceptance": "not_verified pending full integration and CI",
+    "commit": "8bf4369f",
+    "negative_exit": 1,
+    "negative_expected": true
+  },
+  "company_local_contenttypes_after_hr": {
+    "exit": 1,
+    "cause": "website_sale default -> IrModelData.ref without using -> DEFAULT_DB_ALIAS; central DB deliberately unmigrated in company-only experiment, missing ir_model_data",
+    "evidence": "outputs/company-local-contenttypes-experiment.log",
+    "limits": "Passed earlier HR failure, not full company provisioning; in-memory contenttypes placement still experimental",
+    "cleanup": "company_database_removed true in experiment JSON; harness dropped random default database and role"
+  },
+  "metadata_session_control": {
+    "exit": 1,
+    "cause": "Global base_automation._capture_old_values ignores explicit using and queries current model without company context",
+    "evidence": "outputs/contenttypes-local-metadata.log",
+    "following_checks": "NOT_EVALUATED cache/session acceptance after first failure",
+    "related_historical_task": "Native session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local485/TASK-GEN-0073 completed, owner null; not current defect ownership/admission"
+  },
+  "manifest_data_unit": {
+    "task": "TASK-API-0382",
+    "selection": "outputs/selection-manifest-data-stage.json",
+    "red_exit": 2,
+    "cause": "ModuleNotFoundError modules.loading",
+    "scope": "Source implementation pending until active validation finishes; six maintained cases, not six observed red test failures",
+    "commit": "2cc7758de0aa0b17497063100e0478b3ec88ef02",
+    "focused_passed": 6,
+    "differential_cases_passed": 5,
+    "postgresql_sql_import_and_rollback": "PASS",
+    "negative_exit": 1,
+    "negative_expected": true,
+    "negative_passed": 5,
+    "negative_failed": 1,
+    "initial_negative_limit": "Within-list dedup did not alter cross-key duplicate; initial sixPASS is not successful negative discrimination, preserved separately",
+    "ci": "Finished: make2, baseline first error; no whole-task acceptance"
+  },
+  "ci_after_hr": {
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "seconds": 461.12,
+    "make_exit": 2,
+    "classification": "BASELINE_FAILURE first error; later tests NOT_EVALUATED",
+    "junit": "outputs/ci-after-hr.junit.xml"
+  },
+  "ci_after_manifest_data": {
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "seconds": 497.81,
+    "make_exit": 2,
+    "classification": "BASELINE_FAILURE at first display_name error; later tests NOT_EVALUATED",
+    "junit": "outputs/ci-after-manifest-data.junit.xml"
+  },
+  "cleanup_final": {
+    "owned_databases_remaining": 0,
+    "owned_roles_remaining": 0,
+    "company_probes": "Each company JSON/finally confirms removal; no active verifier remains"
+  },
+  "first_global_before_context": {
+    "global": "FAIL",
+    "pytest_exit": 1,
+    "make_exit": 2,
+    "passed": 77,
+    "skipped": 1,
+    "error_count": 1,
+    "duration_seconds": 512.57,
+    "errors": [
+      {
+        "classname": "tests.integration.test_v2_cart_wishlist_notifications.TestCartSnapshotsV2",
+        "name": "test_saves_cart_and_returns_200",
+        "message": "failed on setup with \"ValueError: Compute method failed to assign product.ProductProduct(1,).display_name\"",
+        "trace": "tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item\n    add_item_to_draft(order, product_f2, quantity=1)\naddons/sale/services.py:125: in add_item_to_draft\n    'name': _line_snapshot_name(product),\naddons/sale/services.py:91: in _line_snapshot_name\n    return str(product)\naddons/product/models/product_product.py:178: in __str__\n    return f'[{self.default_code}] {self.display_name}' \\\nsrc/orm/fields.py:1657: in __get__\n    raise ValueError(\nE   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name"
+      }
+    ],
+    "classification": "BASELINE_FAILURE of first observed compute error; subsequent tests NOT_EVALUATED",
+    "baseline_evidence": "orm-continuation-20261022T190749/outputs/ci-pruning-final.junit.xml and earlier remote39796127793 JUnit"
+  }
+}

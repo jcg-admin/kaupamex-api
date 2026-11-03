@@ -13,11 +13,13 @@ un proceso aparte y restaura desde la copia — nunca ``git checkout`` (#177),
 cerrando con el sha256 del archivo.
 
 *Métrica:* keys que ``IrFieldConverterMany2one.attributes`` devuelve para un
-campo con ``placeholder`` en las opciones, que es lo que aporta el eslabón base.
+campo con ``placeholder`` en las opciones, que es lo que aporta el eslabón
+base.
 *Ciega a:* si el resto de los siete conversores combinan igual — sólo se mide
 el derivado de Many2one, que es el que la fuente documenta con ``super()`` en
 su primera línea.
 """
+
 import hashlib
 import os
 import pathlib
@@ -42,11 +44,17 @@ print('CLAVES', sorted(keys))
 
 def run_probe(label):
     output = subprocess.run(
-        [sys.executable, '-c', PROBE], capture_output=True, text=True,
-        env={**os.environ,
-             'DJANGO_SETTINGS_MODULE': 'config.settings.testing',
-             'PYTHONPATH': 'src'})
-    line = [l for l in output.stdout.splitlines() if l.startswith('CLAVES')]
+        [sys.executable, '-c', PROBE],
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            'DJANGO_SETTINGS_MODULE': 'config.settings.testing',
+            'PYTHONPATH': 'src',
+        },
+    )
+    line = [item for item in output.stdout.splitlines()
+            if item.startswith('CLAVES')]
     print(f'{label}: {line[0] if line else output.stderr.strip()[-400:]}')
 
 

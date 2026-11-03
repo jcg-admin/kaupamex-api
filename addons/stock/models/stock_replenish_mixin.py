@@ -1,4 +1,5 @@
-r"""``stock.replenish.mixin`` — la ruta preferida al reabastecer, addon ``stock``.
+r"""
+``stock.replenish.mixin`` — la ruta preferida al reabastecer, addon ``stock``.
 
 Adaptación de Odoo ``stock/models/stock_replenish_mixin.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 40 líneas) — atribución y aviso
@@ -53,17 +54,21 @@ porta con su nombre verbatim y la ``property`` lo invoca, que es la forma que
 ``H-API-611`` fija para este caso.
 
 **D-3 — el dominio se arma con la primitiva ``Domain`` portada, no con ``Q``.**
-``src/orm/domains.py`` es la adaptación de ``odoo/orm/domains.py`` (tarea #356),
+``src/orm/domains.py`` es la adaptación de ``odoo/orm/domains.py`` (tarea
+#356),
 así que las cuatro condiciones se escriben **con la misma forma que la fuente**
-—incluido ``Domain.AND``, el método de clase que ella usa— y se compilan a ``Q``
+—incluido ``Domain.AND``, el método de clase que ella usa— y se compilan a
+``Q``
 con ``to_q`` al construir el queryset. Usar ``Q`` directo aquí sería el defecto
 que ``H-API-582`` registra: rodear el espejo de la primitiva teniéndolo
 construido.
 
 Cuidado con el homónimo: ``orm.domains`` exporta **dos** ``AND``. El de módulo
-(``domains.py:871``) es el espejo de ``expression.AND`` y combina objetos ``Q``;
+(``domains.py:871``) es el espejo de ``expression.AND`` y combina objetos
+``Q``;
 el de la fuente de este archivo es ``Domain.AND`` (``:303``), que combina
-dominios. Pasarle dominios al primero levanta ``TypeError`` — medido al escribir
+dominios. Pasarle dominios al primero levanta ``TypeError`` — medido al
+escribir
 este archivo. Ver la tarea **#380**, que unifica ese hogar.
 
 Porte símbolo por símbolo — 4 de 4
@@ -107,6 +112,7 @@ Lo que este archivo NO cierra
   disponible y sin llamador, que es exactamente lo que ``H-API-410`` enseña a
   declarar en vez de callar. Sucesor: tarea **#330**.
 """
+
 import fields
 import models
 from django.apps import apps
@@ -121,6 +127,8 @@ from orm.domains import Domain, to_q
 #: cada consumidor concreto declara ``route = ROUTE_FIELD()`` en su propia
 #: clase. ``check_company=True`` de la fuente se expresa con
 #: ``_check_company_auto`` en el modelo que lo declara.
+
+
 def ROUTE_FIELD(**kwargs):
     kwargs.setdefault('null', True)
     kwargs.setdefault('blank', True)
@@ -129,7 +137,8 @@ def ROUTE_FIELD(**kwargs):
     kwargs.setdefault(
         'help_text',
         'Ruta específica para el reabastecimiento, en vez de las rutas por '
-        'defecto del producto (Odoo route_id).')
+        'defecto del producto (Odoo route_id).',
+    )
     return fields.Many2one('stock.StockRoute', **kwargs)
 
 
@@ -159,7 +168,8 @@ class StockReplenishMixin:
         """
         route_model = apps.get_model('stock', 'StockRoute')
         return route_model.objects.filter(
-            to_q(self._get_allowed_route_domain(), route_model))
+            to_q(self._get_allowed_route_domain(), route_model)
+        )
 
     def _get_allowed_route_domain(self):
         """≙ ``_get_allowed_route_domain`` (``odoo19c: :26-40``).
@@ -170,23 +180,29 @@ class StockReplenishMixin:
         ``product_selectable``.
         """
         inter_company = IrModelData.objects.filter(
-            module='stock', name='stock_location_inter_company').first()
-        inter_company_id = inter_company.res_id if inter_company is not None else None
+            module='stock', name='stock_location_inter_company'
+        ).first()
+        inter_company_id = (
+            inter_company.res_id if inter_company is not None else None
+        )
 
         base_domain = Domain('product_selectable', '=', True)
         warehouse = getattr(self, 'warehouse', None)
         if warehouse is not None:
             product = getattr(self, 'product', None)
             wh_route_ids = [
-                route.pk for route in warehouse.route_ids.all()
+                route.pk
+                for route in warehouse.route_ids.all()
                 if route._is_valid_resupply_route_for_product(product)
             ]
             if wh_route_ids:
                 base_domain |= Domain('id', 'in', wh_route_ids)
 
-        return Domain.AND([
-            base_domain,
-            Domain('rule_ids.location_src_id', '!=', inter_company_id),
-            Domain('rule_ids.location_dest_id', '!=', inter_company_id),
-            Domain('rule_ids.location_dest_id.warehouse_id', '!=', False),
-        ])
+        return Domain.AND(
+            [
+                base_domain,
+                Domain('rule_ids.location_src_id', '!=', inter_company_id),
+                Domain('rule_ids.location_dest_id', '!=', inter_company_id),
+                Domain('rule_ids.location_dest_id.warehouse_id', '!=', False),
+            ]
+        )

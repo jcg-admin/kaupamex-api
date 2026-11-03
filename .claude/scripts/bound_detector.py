@@ -12,40 +12,76 @@ import json
 import re
 import sys
 
-# ── Señales de instrucción sin bound ──────────────────────────────────────────
+# ── Señales de instrucción sin bound ────────
 UNBOUNDED_SIGNALS = [
-    r"\btodos los\b", r"\btodas las\b", r"\btodo el\b", r"\btoda la\b",
-    r"\bcada uno\b", r"\bcada archivo\b", r"\bcada script\b",
-    r"\bcualquier\b", r"\bexhaustivamente\b", r"\bcompletamente\b",
-    r"\bsin l[ií]mite\b", r"\bde forma exhaustiva\b",
-    r"\bread ALL\b", r"\bleer todos\b", r"\bleer todas\b",
-    r"\bprocesa todos\b", r"\brevisa todos\b", r"\banaliza todo\b",
+    r"\btodos los\b",
+    r"\btodas las\b",
+    r"\btodo el\b",
+    r"\btoda la\b",
+    r"\bcada uno\b",
+    r"\bcada archivo\b",
+    r"\bcada script\b",
+    r"\bcualquier\b",
+    r"\bexhaustivamente\b",
+    r"\bcompletamente\b",
+    r"\bsin l[ií]mite\b",
+    r"\bde forma exhaustiva\b",
+    r"\bread ALL\b",
+    r"\bleer todos\b",
+    r"\bleer todas\b",
+    r"\bprocesa todos\b",
+    r"\brevisa todos\b",
+    r"\banaliza todo\b",
     # English patterns
-    r"\bevery\b", r"\beach\b", r"\ball\b",
-    r"\bprocess all\b", r"\bread all\b", r"\banalyze all\b",
-    r"\bfor each\b", r"\bfor every\b",
+    r"\bevery\b",
+    r"\beach\b",
+    r"\ball\b",
+    r"\bprocess all\b",
+    r"\bread all\b",
+    r"\banalyze all\b",
+    r"\bfor each\b",
+    r"\bfor every\b",
 ]
 
-# ── Señales de bound presente ──────────────────────────────────────────────────
+# ── Señales de bound presente ────────
 BOUND_SIGNALS = [
-    r"\bmáximo\b", r"\bmaximo\b", r"\bm[áa]x\b",
-    r"\bsolo estos\b", r"\bsolamente\b", r"\b[úu]nicamente\b",
-    r"\bno m[áa]s de\b", r"\bprimeros \d+\b", r"\blos \d+ m[áa]s\b",
-    r"\bhasta \d+\b", r"\bl[íi]mite de \d+\b", r"\bm[áa]ximo \d+\b",
-    r"\bsolo: \[", r"\bsolo \[",
+    r"\bmáximo\b",
+    r"\bmaximo\b",
+    r"\bm[áa]x\b",
+    r"\bsolo estos\b",
+    r"\bsolamente\b",
+    r"\b[úu]nicamente\b",
+    r"\bno m[áa]s de\b",
+    r"\bprimeros \d+\b",
+    r"\blos \d+ m[áa]s\b",
+    r"\bhasta \d+\b",
+    r"\bl[íi]mite de \d+\b",
+    r"\bm[áa]ximo \d+\b",
+    r"\bsolo: \[",
+    r"\bsolo \[",
     # English patterns
-    r"\bmaximum\b", r"\bmax\b", r"\bonly these\b",
-    r"\bno more than\b", r"\bfirst \d+\b", r"\btop \d+\b", r"\bat most\b",
+    r"\bmaximum\b",
+    r"\bmax\b",
+    r"\bonly these\b",
+    r"\bno more than\b",
+    r"\bfirst \d+\b",
+    r"\btop \d+\b",
+    r"\bat most\b",
 ]
 
-# ── Señales de bound difuso (presente pero no accionable) ─────────────────────
+# ── Señales de bound difuso (presente pero no accionable) ────────
 DIFFUSE_SIGNALS = [
-    r"\brelevantes\b", r"\bimportantes\b", r"\bnecesarios\b",
-    r"\bapropiados\b", r"\bsignificativos\b", r"\brepresentativos\b",
-    r"\blos m[áa]s\b", r"\blos principales\b",
+    r"\brelevantes\b",
+    r"\bimportantes\b",
+    r"\bnecesarios\b",
+    r"\bapropiados\b",
+    r"\bsignificativos\b",
+    r"\brepresentativos\b",
+    r"\blos m[áa]s\b",
+    r"\blos principales\b",
 ]
 
-# ── Plantillas de opciones por tipo de instrucción ────────────────────────────
+# ── Plantillas de opciones por tipo de instrucción ────────
 OPTIONS_TEMPLATE = """⚠ INSTRUCCIÓN SIN BOUND DETECTADO
 
 Patrón detectado: {matched}
@@ -100,22 +136,30 @@ def extract_snippet(text: str, pattern: str, window: int = 60) -> str:
 
 
 def allow() -> None:
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "allow",
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "allow",
+                }
+            }
+        )
+    )
 
 
 def deny(reason: str) -> None:
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "reason": reason,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "reason": reason,
+                }
+            }
+        )
+    )
 
 
 def main() -> None:
@@ -135,7 +179,7 @@ def main() -> None:
         allow()
         return
 
-    # ── Paso 1: ¿hay señal de instrucción sin bound? ──────────────────────────
+    # ── Paso 1: ¿hay señal de instrucción sin bound? ────────
     has_unbounded, unbounded_match = detect_signals(task, UNBOUNDED_SIGNALS)
 
     if not has_unbounded:

@@ -1,0 +1,62 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "claimsCommand --release path --owner codex-module-lifecycle --branch feature/codex-workspace-bootstrap --task TASK-GEN-0633",
+  "exit": 0,
+  "events": [
+    {
+      "id": "c-b2928150-5477-4e55-bc50-29199eadd95f",
+      "op": "release",
+      "path": "src/orm/fields.py",
+      "owner": "codex-module-lifecycle",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-26T02:06:40.724Z",
+      "task": "TASK-GEN-0633"
+    },
+    {
+      "id": "c-458f3ac0-148b-4394-a9dd-c250d2ea0276",
+      "op": "release",
+      "path": "tests/integration/base/test_computed_many2one_absence.py",
+      "owner": "codex-module-lifecycle",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-26T02:06:40.728Z",
+      "task": "TASK-GEN-0633"
+    },
+    {
+      "id": "c-9cea0daf-ffa8-49a4-8a0d-11ca6027070c",
+      "op": "release",
+      "path": "scripts/check_display_name.py",
+      "owner": "codex-module-lifecycle",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-26T02:06:40.731Z",
+      "task": "TASK-GEN-0633"
+    },
+    {
+      "id": "c-d9efb765-0307-427d-b2a6-3683898ed6ae",
+      "op": "release",
+      "path": "tests/unit/orm/test_display_name.py",
+      "owner": "codex-module-lifecycle",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-26T02:06:40.732Z",
+      "task": "TASK-GEN-0633"
+    },
+    {
+      "id": "c-5e590268-35c8-444d-b089-04c41d5a998f",
+      "op": "release",
+      "path": "tests/unit/orm/test_field_conversion.py",
+      "owner": "codex-module-lifecycle",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-26T02:06:40.734Z",
+      "task": "TASK-GEN-0633"
+    },
+    {
+      "id": "c-dde43af2-858f-40ba-b972-3567cf5afbc9",
+      "op": "release",
+      "path": "tests/unit/orm/test_field_update_db.py",
+      "owner": "codex-module-lifecycle",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-26T02:06:40.736Z",
+      "task": "TASK-GEN-0633"
+    }
+  ],
+  "meaning": "Editing reservations released after source/evidence publication, not TASK acceptance or state mutation"
+}

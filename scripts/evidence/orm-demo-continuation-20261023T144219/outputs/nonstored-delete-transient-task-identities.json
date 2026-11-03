@@ -1,0 +1,68 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "rows": [
+    {
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task_id": "201",
+      "citation_id": "TASK-GEN-0453",
+      "result": {
+        "content": "{\"task_id\":\"201\",\"citation_id\":\"TASK-GEN-0453\",\"subject\":\"Dar veredicto a los tres transitorios que declaran managed=False\",\"description\":null,\"status\":\"pending\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+        "isError": false
+      },
+      "task": {
+        "task_id": "201",
+        "citation_id": "TASK-GEN-0453",
+        "subject": "Dar veredicto a los tres transitorios que declaran managed=False",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "278",
+      "citation_id": "TASK-API-0152",
+      "result": {
+        "content": "{\"task_id\":\"278\",\"citation_id\":\"TASK-API-0152\",\"subject\":\"ResConfigSettings abstracto sin subclase consumidora — tercera ocurrencia\",\"description\":\"H-API-532 abre, y señala que es la TERCERA vez que aparece el mismo patrón: `ResConfigSettings` es `abstract=True` y ningún addon declara subclase consumidora, así que los ajustes transitorios de la referencia no tienen dónde aterrizar. Ya ocurrió en `l10n_mx` y en `account_check_printing`; ahora en `stock` (7 métodos + ~35 campos bloqueados enteros).\\n\\nTres ocurrencias dejan de ser un bloqueo local y pasan a ser una decisión de arquitectura: o se declara la subclase concreta que la referencia asume, o se decide que los ajustes viven en `CompanySetting` (per-empresa, L1) y se retira `ResConfigSettings` del árbol con su razón escrita.\\n\\nDECISIÓN del ejecutor, no derivable. Cae cerca de DEC-KX-05 (clasificación de config infra→L0 / per-empresa→L1).\",\"status\":\"pending\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+        "isError": false
+      },
+      "task": {
+        "task_id": "278",
+        "citation_id": "TASK-API-0152",
+        "subject": "ResConfigSettings abstracto sin subclase consumidora — tercera ocurrencia",
+        "description": "H-API-532 abre, y señala que es la TERCERA vez que aparece el mismo patrón: `ResConfigSettings` es `abstract=True` y ningún addon declara subclase consumidora, así que los ajustes transitorios de la referencia no tienen dónde aterrizar. Ya ocurrió en `l10n_mx` y en `account_check_printing`; ahora en `stock` (7 métodos + ~35 campos bloqueados enteros).\n\nTres ocurrencias dejan de ser un bloqueo local y pasan a ser una decisión de arquitectura: o se declara la subclase concreta que la referencia asume, o se decide que los ajustes viven en `CompanySetting` (per-empresa, L1) y se retira `ResConfigSettings` del árbol con su razón escrita.\n\nDECISIÓN del ejecutor, no derivable. Cae cerca de DEC-KX-05 (clasificación de config infra→L0 / per-empresa→L1).",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "469",
+      "citation_id": "TASK-DOCS-0111",
+      "result": {
+        "content": "{\"task_id\":\"469\",\"citation_id\":\"TASK-DOCS-0111\",\"subject\":\"Corregir #278 y cerrar #99 — su propia evidencia las contradice (H-DOCS-188)\",\"description\":\"#278 dice \\\"ResConfigSettings sin subclase consumidora\\\": SiteConfigSettings existe en base_setup/models/res_config_settings.py:108, y los otros 4 hits son prosa que cita el propio grep. #99 pide decidir qué deben ser Query y SQL(): ya está escrito en src/tools/sql.py:37 y src/tools/query.py:15. Corregir el enunciado de una y cerrar la otra.\",\"status\":\"pending\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+        "isError": false
+      },
+      "task": {
+        "task_id": "469",
+        "citation_id": "TASK-DOCS-0111",
+        "subject": "Corregir #278 y cerrar #99 — su propia evidencia las contradice (H-DOCS-188)",
+        "description": "#278 dice \"ResConfigSettings sin subclase consumidora\": SiteConfigSettings existe en base_setup/models/res_config_settings.py:108, y los otros 4 hits son prosa que cita el propio grep. #99 pide decidir qué deben ser Query y SQL(): ya está escrito en src/tools/sql.py:37 y src/tools/query.py:15. Corregir el enunciado de una y cerrar la otra.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ],
+  "writes": false,
+  "old_201_not_reopened": true
+}

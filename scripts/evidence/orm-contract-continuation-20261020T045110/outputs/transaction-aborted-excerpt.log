@@ -1,0 +1,80 @@
+2026-10-20T04:53:00.6053353Z _ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+2026-10-20T04:53:00.6053557Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T04:53:00.6053651Z     return self.cursor.execute(sql)
+2026-10-20T04:53:00.6053820Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T04:53:00.6053905Z     raise ex.with_traceback(None)
+2026-10-20T04:53:00.6054136Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2026-10-20T04:53:00.6054144Z 
+2026-10-20T04:53:00.6054315Z The above exception was the direct cause of the following exception:
+2026-10-20T04:53:00.6054541Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+2026-10-20T04:53:00.6054642Z     db_cfg = setup_databases(
+2026-10-20T04:53:00.6054844Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T04:53:00.6054949Z     connection.creation.create_test_db(
+2026-10-20T04:53:00.6055195Z .venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+2026-10-20T04:53:00.6055275Z     call_command(
+2026-10-20T04:53:00.6055518Z .venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+2026-10-20T04:53:00.6055623Z     return command.execute(*args, **defaults)
+2026-10-20T04:53:00.6055961Z .venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+2026-10-20T04:53:00.6056131Z     output = self.handle(*args, **options)
+2026-10-20T04:53:00.6056348Z .venv/lib/python3.12/site-packages/django/core/management/base.py:111: in wrapper
+2026-10-20T04:53:00.6056436Z     res = handle_func(*args, **kwargs)
+2026-10-20T04:53:00.6056688Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T04:53:00.6056849Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T04:53:00.6057110Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T04:53:00.6057221Z     with connection.schema_editor() as editor:
+2026-10-20T04:53:00.6057439Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T04:53:00.6057533Z     self.execute(sql, None)
+2026-10-20T04:53:00.6057773Z .venv/lib/python3.12/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+2026-10-20T04:53:00.6057867Z     return super().execute(sql, params)
+2026-10-20T04:53:00.6058089Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:205: in execute
+2026-10-20T04:53:00.6058242Z     cursor.execute(sql, params)
+2026-10-20T04:53:00.6058440Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+2026-10-20T04:53:00.6058530Z     return self._execute_with_wrappers(
+2026-10-20T04:53:00.6058779Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+2026-10-20T04:53:00.6058892Z     return executor(sql, params, many, context)
+2026-10-20T04:53:00.6059089Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+2026-10-20T04:53:00.6059186Z     with self.db.wrap_database_errors:
+2026-10-20T04:53:00.6059353Z .venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+2026-10-20T04:53:00.6059502Z     raise dj_exc_value.with_traceback(traceback) from exc_value
+2026-10-20T04:53:00.6059756Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T04:53:00.6059860Z     return self.cursor.execute(sql)
+2026-10-20T04:53:00.6060033Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T04:53:00.6060121Z     raise ex.with_traceback(None)
+2026-10-20T04:53:00.6060316Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T04:53:00.6060651Z _ ERROR at teardown of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+2026-10-20T04:53:00.6060854Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T04:53:00.6060963Z     return self.cursor.execute(sql, params)
+2026-10-20T04:53:00.6061130Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T04:53:00.6061220Z     raise ex.with_traceback(None)
+2026-10-20T04:53:00.6061591Z E   psycopg.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T04:53:00.6061598Z 
+2026-10-20T04:53:00.6061830Z The above exception was the direct cause of the following exception:
+2026-10-20T04:53:00.6061967Z tests/conftest.py:428: in pytest_runtest_teardown
+2026-10-20T04:53:00.6062045Z     seed()
+2026-10-20T04:53:00.6062196Z src/addons/base/models/ir_config_parameter.py:252: in init
+2026-10-20T04:53:00.6062345Z     exists = cls.objects.using(using).filter(key=key).exists()
+2026-10-20T04:53:00.6062548Z .venv/lib/python3.12/site-packages/django/db/models/query.py:1337: in exists
+2026-10-20T04:53:00.6062660Z     return self.query.has_results(using=self.db)
+2026-10-20T04:53:00.6062884Z .venv/lib/python3.12/site-packages/django/db/models/sql/query.py:686: in has_results
+2026-10-20T04:53:00.6062977Z     return compiler.has_results()
+2026-10-20T04:53:00.6063208Z .venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1592: in has_results
+2026-10-20T04:53:00.6063309Z     return bool(self.execute_sql(SINGLE))
+2026-10-20T04:53:00.6063543Z .venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+2026-10-20T04:53:00.6063681Z     cursor.execute(sql, params)
+2026-10-20T04:53:00.6063876Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+2026-10-20T04:53:00.6063973Z     return self._execute_with_wrappers(
+2026-10-20T04:53:00.6064222Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+2026-10-20T04:53:00.6064327Z     return executor(sql, params, many, context)
+2026-10-20T04:53:00.6064530Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+2026-10-20T04:53:00.6064622Z     with self.db.wrap_database_errors:
+2026-10-20T04:53:00.6064793Z .venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+2026-10-20T04:53:00.6064938Z     raise dj_exc_value.with_traceback(traceback) from exc_value
+2026-10-20T04:53:00.6065141Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T04:53:00.6065251Z     return self.cursor.execute(sql, params)
+2026-10-20T04:53:00.6065421Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T04:53:00.6065557Z     raise ex.with_traceback(None)
+2026-10-20T04:53:00.6066007Z E   django.db.utils.InternalError: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T04:53:00.6066342Z _ ERROR at teardown of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+2026-10-20T04:53:00.6066545Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T04:53:00.6066644Z     return self.cursor.execute(sql, params)
+2026-10-20T04:53:00.6066814Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute

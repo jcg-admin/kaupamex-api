@@ -10,6 +10,7 @@ menos fixtures); los otros cuatro (``_search_location_dest_id``,
 ya lo cubre la suite de integración de ``stock`` vía ``move_line_ids`` /
 ``picking_ids``, que los invoca indirectamente.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -29,7 +30,8 @@ def location(db):
 @pytest.fixture
 def variant(db):
     template = ProductTemplate.objects.create(
-        name='Camisa', list_price=Decimal('100.00'))
+        name='Camisa', list_price=Decimal('100.00')
+    )
     return ProductProduct.objects.create(product_tmpl=template)
 
 
@@ -49,9 +51,13 @@ SEARCH_METHOD_NAMES = (
 )
 
 OLD_PUBLIC_NAMES = (
-    'search_all_children_package_ids', 'search_contained_quant_ids',
-    'search_location_dest', 'search_move_line_ids',
-    'search_outermost_package', 'search_owner', 'search_picking_ids',
+    'search_all_children_package_ids',
+    'search_contained_quant_ids',
+    'search_location_dest',
+    'search_move_line_ids',
+    'search_outermost_package',
+    'search_owner',
+    'search_picking_ids',
 )
 
 
@@ -72,13 +78,18 @@ class TestSearchOwner:
         # odoo19c stock_package.py:261-264
         package = StockPackage.objects.create(name='PACK-1')
         StockQuant.objects.create(
-            product=variant, location=location, package=package,
-            owner=partner, quantity=Decimal('5.00'))
+            product=variant,
+            location=location,
+            package=package,
+            owner=partner,
+            quantity=Decimal('5.00'),
+        )
         result = StockPackage._search_owner([partner])
         assert package in result
 
     def test_without_quants_of_the_owner_it_does_not_appear(
-            self, location, variant, partner):
+        self, location, variant, partner
+    ):
         StockPackage.objects.create(name='PACK-2')
         result = StockPackage._search_owner([partner])
         assert list(result) == []
@@ -89,9 +100,9 @@ class TestSearchAllChildrenPackageIds:
         # odoo19c stock_package.py:208-210 — ``parent_of`` sobre parent_path.
         grandparent = StockPackage.objects.create(name='ABUELO')
         parent = StockPackage.objects.create(
-            name='PADRE', parent_package=grandparent)
-        child = StockPackage.objects.create(
-            name='HIJO', parent_package=parent)
+            name='PADRE', parent_package=grandparent
+        )
+        child = StockPackage.objects.create(name='HIJO', parent_package=parent)
         result = StockPackage._search_all_children_package_ids([child])
         assert set(result) == {grandparent, parent, child}
 
@@ -101,17 +112,22 @@ class TestSearchAllChildrenPackageIds:
 
 class TestSearchContainedQuantIds:
     def test_finds_the_package_that_contains_the_quant(
-            self, location, variant):
+        self, location, variant
+    ):
         # odoo19c stock_package.py:212-217
         package = StockPackage.objects.create(name='PACK-3')
         quant = StockQuant.objects.create(
-            product=variant, location=location, package=package,
-            quantity=Decimal('2.00'))
+            product=variant,
+            location=location,
+            package=package,
+            quantity=Decimal('2.00'),
+        )
         result = StockPackage._search_contained_quant_ids([quant])
         assert package in result
 
     def test_without_direct_packages_returns_empty(self, location, variant):
         quant = StockQuant.objects.create(
-            product=variant, location=location, quantity=Decimal('1.00'))
+            product=variant, location=location, quantity=Decimal('1.00')
+        )
         result = StockPackage._search_contained_quant_ids([quant])
         assert list(result) == []

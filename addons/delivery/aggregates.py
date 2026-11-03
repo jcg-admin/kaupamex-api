@@ -6,11 +6,14 @@ envío la contribuye este addon, el **importe agregado** de esa línea también.
 Fiel al reparto de la referencia: ``sale`` provee el motor genérico
 (``sale/aggregates.py::line_sum_subquery``) y no sabe qué es una línea de
 envío; quien filtra ``is_delivery`` es el módulo que conoce el envío — en Odoo
-``website_sale._compute_amount_delivery`` (``website_sale/models/sale_order.py:62-69``),
-que también resuelve el agregado filtrando ``order_line.filtered('is_delivery')``.
+``website_sale._compute_amount_delivery``
+(``website_sale/models/sale_order.py:62-69``),
+que también resuelve el agregado filtrando
+``order_line.filtered('is_delivery')``.
 La dirección de dependencia se mantiene: ``delivery`` importa de ``sale``,
 nunca al revés.
 """
+
 from django.db.models import Q
 
 from addons.sale.aggregates import line_sum_subquery

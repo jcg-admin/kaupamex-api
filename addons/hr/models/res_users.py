@@ -121,6 +121,7 @@ columnas viven en este árbol). Detalle:
 ``_inherit`` lo expresa ``extend_model``; par de Django porque
 ``base.ResUsers`` no declara ``_name`` (:ref:`h-api-618`, tarea #385).
 """
+
 from django.db import models as dj_models
 
 from addons.base.models import ResPartnerBank
@@ -186,7 +187,8 @@ def employees(self):
     """≙ ``employee_ids`` (One2many por ``user_id``; aquí el camino real es
     ``resource__user``), acotado por ``_employee_ids_domain``."""
     return HrEmployee.objects.filter(
-        self._employee_ids_domain(), resource__user=self,
+        self._employee_ids_domain(),
+        resource__user=self,
     )
 
 
@@ -211,7 +213,9 @@ def _search_company_employee(cls, employee_ids):
     ``_search_company_employee`` (``:274-286``). DIVERGENCIA: queryset
     directo (ver docstring del módulo)."""
     return cls.objects.filter(
-        resource_resources__hr_hremployee_resource_mixin_set__pk__in=list(employee_ids),
+        resource_resources__hr_hremployee_resource_mixin_set__pk__in=list(
+            employee_ids
+        ),
     ).distinct()
 
 
@@ -290,11 +294,17 @@ def _get_personal_info_partner_ids_to_notify(self, employee_record):
     sombrear la propiedad ``employee`` instalada sobre la clase.
     """
     version = employee_record.version if employee_record.version_id else None
-    responsible = version.hr_responsible if version is not None and version.hr_responsible_id else None
+    responsible = (
+        version.hr_responsible
+        if version is not None and version.hr_responsible_id
+        else None
+    )
     if responsible is not None and responsible.partner_id:
         return (
-            _('Recibes este mensaje porque eres el responsable de RR.HH. '
-              'de este empleado.'),
+            _(
+                'Recibes este mensaje porque eres el responsable de RR.HH. '
+                'de este empleado.'
+            ),
             [responsible.partner_id],
         )
     return ('', [])
@@ -316,16 +326,22 @@ def write(self, vals):
     ``AvatarMixin`` y no se sincroniza desde el usuario en este árbol.
     """
     hr_field_names = [
-        field_name for field_name in vals
+        field_name
+        for field_name in vals
         if field_name in HR_WRITABLE_FIELDS or field_name in HR_READABLE_FIELDS
     ]
-    linked_employees = list(HrEmployee.objects.filter(
-        _employee_ids_domain(self), resource__user=self,
-    ))
+    linked_employees = list(
+        HrEmployee.objects.filter(
+            _employee_ids_domain(self),
+            resource__user=self,
+        )
+    )
     if hr_field_names:
         for employee_record in linked_employees:
-            reason_message, partners = self._get_personal_info_partner_ids_to_notify(
-                employee_record,
+            reason_message, partners = (
+                self._get_personal_info_partner_ids_to_notify(
+                    employee_record,
+                )
             )
             if partners:
                 employee_record.message_notify(
@@ -350,7 +366,9 @@ def write(self, vals):
         self.save(update_fields=changed)
 
     employee_values = {}
-    for field_name in [f for f in self._get_employee_fields_to_sync() if f in vals]:
+    for field_name in [
+        f for f in self._get_employee_fields_to_sync() if f in vals
+    ]:
         employee_values[field_name] = vals[field_name]
     if employee_values:
         if 'email' in employee_values:
@@ -377,8 +395,10 @@ def action_create_employee(self):
     permitted = self._get_company_ids()
     if company_id and permitted and company_id not in permitted:
         raise UserError(
-            _('No puedes crear un empleado: el usuario no tiene acceso a '
-              'la empresa activa.'),
+            _(
+                'No puedes crear un empleado: el usuario no tiene acceso a '
+                'la empresa activa.'
+            ),
         )
     new_employee = HrEmployee.objects.create(
         name=self.name,
@@ -389,6 +409,7 @@ def action_create_employee(self):
 
 
 # --- delegación al empleado de la empresa activa -------------------------
+
 
 def job_title(self):
     """≙ ``job_title`` (``related='employee_id.job_title'``)."""
@@ -418,13 +439,21 @@ def category(self):
     """≙ ``category_ids`` — el M2M de etiquetas del empleado (queryset
     vacío sin empleado)."""
     owner = self.employee
-    return owner.category.all() if owner is not None else HrEmployeeCategory.objects.none()
+    return (
+        owner.category.all()
+        if owner is not None
+        else HrEmployeeCategory.objects.none()
+    )
 
 
 def work_contact(self):
     """≙ ``work_contact_id``."""
     owner = self.employee
-    return owner.work_contact if owner is not None and owner.work_contact_id else None
+    return (
+        owner.work_contact
+        if owner is not None and owner.work_contact_id
+        else None
+    )
 
 
 def work_location(self):
@@ -475,7 +504,11 @@ def private_city(self):
 def private_state(self):
     """≙ ``private_state_id``."""
     version = _version_of_employee(self)
-    return version.private_state if version is not None and version.private_state_id else None
+    return (
+        version.private_state
+        if version is not None and version.private_state_id
+        else None
+    )
 
 
 def private_zip(self):
@@ -487,7 +520,11 @@ def private_zip(self):
 def private_country(self):
     """≙ ``private_country_id``."""
     version = _version_of_employee(self)
-    return version.private_country if version is not None and version.private_country_id else None
+    return (
+        version.private_country
+        if version is not None and version.private_country_id
+        else None
+    )
 
 
 def private_phone(self):
@@ -559,7 +596,11 @@ def employee_resource_calendar(self):
     """≙ ``employee_resource_calendar_id``
     (``related='employee_id.resource_calendar_id'``)."""
     owner = self.employee
-    return owner.resource_calendar if owner is not None and owner.resource_calendar_id else None
+    return (
+        owner.resource_calendar
+        if owner is not None and owner.resource_calendar_id
+        else None
+    )
 
 
 def _extend_self_field_lists(model):
@@ -571,7 +612,8 @@ def _extend_self_field_lists(model):
 def apply_hr_res_users_extensions():
     """Cuelga sobre ``res.users`` lo que ``hr`` le añade — ≙ ``_inherit``."""
     extend_model(
-        'base', 'ResUsers',
+        'base',
+        'ResUsers',
         metodos={
             '_employee_ids_domain': _employee_ids_domain,
             '_compute_company_employee': _compute_company_employee,
@@ -580,7 +622,9 @@ def apply_hr_res_users_extensions():
             '_compute_employee_count': _compute_employee_count,
             '_bind_employee': _bind_employee,
             '_get_employee_fields_to_sync': _get_employee_fields_to_sync,
-            '_get_personal_info_partner_ids_to_notify': _get_personal_info_partner_ids_to_notify,
+            '_get_personal_info_partner_ids_to_notify': (
+                _get_personal_info_partner_ids_to_notify
+            ),
             'write': write,
             'action_create_employee': action_create_employee,
         },

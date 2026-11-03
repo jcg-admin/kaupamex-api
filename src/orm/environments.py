@@ -521,11 +521,23 @@ class Transaction:
         if self.default_env is not None:
             self.default_env.flush_all()
             return
+        if not self._has_pending():
+            # Sin escrituras ni computos pendientes ``flush_all`` no hace nada:
+            # resolver un usuario para eso es un efecto que la fuente nunca
+            # ejerce, porque alli ``base.public_user`` siempre existe. Aqui un
+            # ``commit`` puede llegar justo despues del ``TRUNCATE`` del
+            # vaciado de una prueba, y el ``ref`` lanzaba (H-API-1134).
+            return
         for environment in _live_envs(self):
             _logger.warning("Missing default_env, flushing as public user")
             public_user = environment.ref('base.public_user')
             Environment(environment._using, public_user.pk, {}).flush_all()
             break
+
+    def _has_pending(self):
+        """¿Queda algo que volcar? Escrituras sucias o computos pendientes."""
+        return (any(self.field_dirty.values())
+                or any(self.tocompute.values()))
 
     def reset(self):
         """Reinicia la transacción tras recargar el registro.
@@ -645,7 +657,8 @@ def transaction_scope(using=None):
 #: La fuente los declara uno a uno en ``odoo19c: odoo/sql_db.py``:
 #:
 #: =================  =========================================================
-#: ``commit()``       ``self.flush()`` y **luego** ``self.clear()`` (``:560-564``)
+#: ``commit()``       ``self.flush()`` y **luego** ``self.clear()``
+#: (``:560-564``)
 #: ``rollback()``     el rollback del savepoint llama ``self._cr.clear()``
 #:                    (``:137-139``)
 #: ``close()``        ``self.cache.clear()`` (``:534``)
@@ -657,7 +670,8 @@ def transaction_scope(using=None):
 #: nada.
 #:
 #: Con el criterio de las dos categorías: el cursor **lo trae hecho** el stack
-#: (``django.db.connection`` es por hilo y expone los tres métodos); el corte en
+#: (``django.db.connection`` es por hilo y expone los tres métodos); el corte
+#: en
 #: esos puntos **hay con qué construirlo** —Django no emite señal de rollback,
 #: pero los métodos son públicos y se envuelven sin dependencia de fuera—.
 #:
@@ -707,7 +721,16 @@ def _wrap_cursor_cut(name, flush_first, discard):
         if flush_first:
             current = getattr(self, _TRANSACTION_ATTRIBUTE, None)
             if current is not None:
-                current.flush()
+                try:
+                    current.flush()
+                except Exception:
+                    # El volcado previo al ``COMMIT`` fallo: en la fuente el
+                    # llamador revierte el cursor. ``Atomic.__exit__`` de Django
+                    # solo revierte ante ``DatabaseError``; con otra excepcion la
+                    # conexion quedaba en ``INTRANS`` y el siguiente
+                    # ``set_autocommit`` fallaba (H-API-1134).
+                    self.rollback()
+                    raise
         try:
             return original(self, *args, **kwargs)
         finally:
@@ -841,6 +864,11 @@ class Environment:
             'cr nombra la conexión por su alias; %r no está declarado' % (cr,))
         if uid == SUPERUSER_ID:
             su = True
+        elif uid is not None and su is None:
+            # ≙ ``su: bool = False`` (``odoo19c: :64``): un usuario declarado
+            # no hereda la elevación del bloque exterior. Sin ``uid`` el
+            # entorno sigue heredando los tres ejes del canal.
+            su = False
 
         transaction = get_transaction()
 
@@ -1424,13 +1452,21 @@ class Environment:
         fuente trata aparte (``company`` y ``uid``).
         """
         keys = []
-        for name in (field._depends_context or ()):
+        for name in self.registry.field_depends_context[field]:
             if name == 'company':
                 keys.append(self.company_id)
             elif name == 'uid':
-                keys.append(self.uid)
+                keys.append(
+                    self.uid if field.compute_sudo else (self.uid, self.su)
+                )
             elif name == 'active_test':
                 keys.append(self.context.get('active_test', True))
+            elif name == 'allowed_company_ids':
+                # El canal validado de compañías activas es el equivalente
+                # ambiental de env.companies cuando no hay contexto explícito.
+                # La lista declarada se normaliza como en la referencia.
+                values = self.context.get(name)
+                keys.append(tuple(get_current_companies() if values is None else values))
             else:
                 keys.append(self.context.get(name))
         return tuple(keys)
@@ -1443,7 +1479,7 @@ class Environment:
         """≙ ``Environment.clear`` (``:350``)."""
         self.transaction.clear()
 
-    # --- consultas ------------------------------------------------------------
+    # --- consultas ---
 
     def execute_query(self, query):
         """≙ ``Environment.execute_query`` (``:527``)."""

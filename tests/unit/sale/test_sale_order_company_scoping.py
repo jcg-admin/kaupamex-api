@@ -10,6 +10,7 @@ durante el rollout + par de managers ``objects`` (cross-company, L0 admin) /
 ``[('company_id','in',company_ids)]`` verbatim de la fuente) aplicada por
 ``RuleScopedManager`` (``addons.base.models.ir_rule``).
 """
+
 import pytest
 
 from orm.environments import set_current_company

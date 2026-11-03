@@ -1,0 +1,71 @@
+{
+  "consumer_revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "method": "Bounded root/directory metadata and existing resolver interfaces; no global corpus census, no functional experiment repeat",
+  "source_provenance": {
+    "scripts/reference_roots.py": {
+      "sha256": "5539a913d52bc4ea8b9987100c41f59f1b7694ee9812067271e0251ec09cf62a",
+      "git_blob": "6d7063440e7b4de11941dc02422f2fbff6889996"
+    },
+    "scripts/reference_flow.py": {
+      "sha256": "865c13f200cd95207f2be22b143fa332260423426de4de580b422f4ac6f7110c",
+      "git_blob": "0cfa0b6b81160d339c8982ce434b7e231a3702b7"
+    },
+    "scripts/counterpart_body.py": {
+      "sha256": "ef15887bdb7fddc8fd411b73297c1c7218213a4bd310458ad08835d5f1cdf095",
+      "git_blob": "94d42adc40707930f0cce08e541d94a1742d57ca"
+    },
+    "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py": {
+      "sha256": "31ebea85ca9c3ed4af15eef14b951e0092d950c7cb30d30c0477499a569d4097",
+      "git_blob": "445ef4eab98db6614110d691624a00197bdc67af"
+    },
+    "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/inventory_reference_orm.py": {
+      "sha256": "720ffca78a67bd1611d0f978c565447794215725ffb6fe84afcf35f00593d0f6",
+      "git_blob": "436006941b459a59702286d6d287426b99715f82"
+    },
+    "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/probes/probe_orm_across_trees.py": {
+      "sha256": "4d37d1df2ff5324e3a6ec25216a3018272c80455860eaa2de236fda4860b7f61",
+      "git_blob": "45ef4fa679ca89d916e6e30b00b2f4ff2db0e392"
+    },
+    "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/manifest.json": {
+      "sha256": "b43a94aee79f1516dcc86739b9e5ef425605cc985b5f01055aa758f17c210f37",
+      "git_blob": "fbdc24aa4d8dcd0097644f5ed667876e690afbc2"
+    },
+    "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/orm-across-trees.json": {
+      "sha256": "40e5296d0aa8f2c2082c40b0c28443811e083dd99a3bd48c92c82bed4f66536d",
+      "git_blob": "3c199c9983e155a00f6ec346d673e57c3cf556b2"
+    }
+  },
+  "findings": [
+    "No ODOO_TOOLS/ODOO18C/E/ODOO19C/E exported; default roots absent. tree() returns configured path, require() guards directory existence, not revision provenance.",
+    "Only odoo19c has materialized extract:35files. All23files remotely present in coreodoo/orm at the pinned revision exist locally and match Gitblob hashes. Full repo/test/addon corpus remains partial.",
+    "All four root paths exist remotely at exact commit; Community18 has flat models.py/fields.py/api.py, Community19 core has23files; Enterprise roots lack odoo/ (404 expected), representing addon populations, not absent ORM functionality.",
+    "Historical configured second odoo19c addon path omits one odoo-19.0 nesting; do not copy it. Current resolver uses third nested root plus odoo/addons.",
+    "Historical authority permits named18 adaptation for exclusiveaddons but19governs sharedsemantics; Enterprise18 fused/Enterprise19overlay history is preserved, not recomputed. License posture per manifest, not rootLICENSE.",
+    "reference_flow --alias odoo18c actually scans default19 roots: real isolated CLI observation exit0 on existing19 while18absent. Existing default19 measurements remain correctly scoped; alternatealias path not qualified.",
+    "Historical probe_orm_across_trees measures structural form on four TREE_ROOTS, but was not rerun because current absentlocalroots would not reproduce previous corpus conditions. Inventory954occurrences/792uniquenames is historical structuralpopulation, not functionalcoverage."
+  ],
+  "commands": [
+    {
+      "command": "UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python (existing reference_roots.tree/addons_de; selected nonsecret path variables;35-file materialized extract inspection)",
+      "exit_code": 0
+    },
+    {
+      "command": "ODOO_TOOLS=/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389 UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python scripts/reference_flow.py --alias odoo18c --symbol invalidate_all --root odoo/orm",
+      "exit_code": 0,
+      "evidence": "reference-flow-alias-control.log",
+      "meaning": "Detects alias/root selection gap, not success of18analysis"
+    }
+  ],
+  "not_verified": [
+    "Contractual denominator",
+    "All35files read semantically",
+    "Complete addons/tests analyzed",
+    "RuntimeOdoo or Enterprise functionalcomparisons",
+    "License of every module",
+    "NewTASKidentity for aliasselectiongap"
+  ],
+  "no_product_changes": true,
+  "no_config_changes": true,
+  "no_reference_worktree_changes": true
+}

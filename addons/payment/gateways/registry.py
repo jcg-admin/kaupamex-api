@@ -19,6 +19,7 @@ importa. El núcleo conoce un **código** por defecto (dato, como
 Importar siempre como ``from addons.payment.gateways.registry import
 get_gateway``.
 """
+
 import logging
 
 from addons.payment.gateways.base import BaseGateway
@@ -43,7 +44,9 @@ class GatewayNotRegistered(LookupError):
     """
 
 
-def register_gateway(code: str, gateway_cls: type[BaseGateway]) -> type[BaseGateway]:
+def register_gateway(
+    code: str, gateway_cls: type[BaseGateway]
+) -> type[BaseGateway]:
     """Inscribe un provider bajo su código. Idempotente por código.
 
     La llama cada ``payment_<provider>/gateway.py`` a nivel de módulo. Se
@@ -56,7 +59,10 @@ def register_gateway(code: str, gateway_cls: type[BaseGateway]) -> type[BaseGate
     if previo is not None and previo is not gateway_cls:
         logger.warning(
             'register_gateway: el código %s ya estaba inscrito por %s; '
-            'lo reemplaza %s', code, previo.__name__, gateway_cls.__name__,
+            'lo reemplaza %s',
+            code,
+            previo.__name__,
+            gateway_cls.__name__,
         )
     GATEWAY_REGISTRY[code] = gateway_cls
     return gateway_cls
@@ -80,7 +86,7 @@ def get_gateway(gateway_type: str = DEFAULT_GATEWAY_CODE) -> BaseGateway:
         raise GatewayNotRegistered(
             f'No hay provider inscrito para {gateway_type!r} ni para el '
             f'primario {DEFAULT_GATEWAY_CODE!r}. ¿Falta el addon '
-            f'payment_<provider> en INSTALLED_APPS?'
+            'payment_<provider> en INSTALLED_APPS?'
         )
     return gateway_cls()
 

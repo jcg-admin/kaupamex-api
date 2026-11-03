@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``platform`` — ``company`` dueña las consolas L0 del operador Kaupamex.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

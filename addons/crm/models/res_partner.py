@@ -62,6 +62,7 @@ Divergencias declaradas
   poner la lista primero no tiene objeto sin esas vistas, y por eso no se
   transcribe: sería ordenar una lista vacía.
 """
+
 from django.db.models import Count
 
 import models
@@ -72,7 +73,8 @@ from tools.translate import _
 
 from addons.base.models.res_partner import ResPartner
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 #: El identificador externo que la fuente consulta, verbatim.
@@ -80,7 +82,9 @@ GROUP_SALE_SALESMAN = 'sales_team.group_sale_salesman'
 
 
 def _user_is_salesman():
-    """¿El usuario en contexto es vendedor? ``False`` sin usuario (fail-closed)."""
+    """
+    ¿El usuario en contexto es vendedor? ``False`` sin usuario (fail-closed).
+    """
     user = get_current_user()
     return bool(user is not None and user.has_group(GROUP_SALE_SALESMAN))
 
@@ -100,10 +104,11 @@ def _fetch_children_partners_for_hierarchy(self):
     seen = {self.pk}
     frontier = [self.pk]
     while frontier:
-        children = list(model.objects
-                        .filter(parent_id__in=frontier)
-                        .exclude(pk__in=seen)
-                        .values_list('pk', flat=True))
+        children = list(
+            model.objects.filter(parent_id__in=frontier)
+            .exclude(pk__in=seen)
+            .values_list('pk', flat=True)
+        )
         if not children:
             break
         seen.update(children)
@@ -113,8 +118,11 @@ def _fetch_children_partners_for_hierarchy(self):
 
 def _get_contact_opportunities_domain(self):
     """≙ ``_get_contact_opportunities_domain`` (``:22-23``)."""
-    ids = list(self._fetch_children_partners_for_hierarchy()
-               .values_list('pk', flat=True))
+    ids = list(
+        self._fetch_children_partners_for_hierarchy().values_list(
+            'pk', flat=True
+        )
+    )
     return [('partner_id', 'in', ids)]
 
 
@@ -129,9 +137,14 @@ def _compute_opportunity_count(self):
     if not _user_is_salesman():
         return 0
     CrmLead = models.apps.get_model('crm', 'CrmLead')
-    ids = list(self._fetch_children_partners_for_hierarchy()
-               .values_list('pk', flat=True))
-    grouped = CrmLead.objects.filter(partner_id__in=ids).aggregate(n=Count('pk'))
+    ids = list(
+        self._fetch_children_partners_for_hierarchy().values_list(
+            'pk', flat=True
+        )
+    )
+    grouped = CrmLead.objects.filter(partner_id__in=ids).aggregate(
+        n=Count('pk')
+    )
     return grouped['n'] or 0
 
 
@@ -154,12 +167,14 @@ def _compute_application_statistics_hook(cls, partners):
     for partner in partners:
         count = partner.opportunity_count
         if count:
-            aportado[partner.pk] = [{
-                'iconClass': 'fa-star',
-                'value': count,
-                'label': _('Oportunidades'),
-                'tagClass': 'o_tag_color_8',
-            }]
+            aportado[partner.pk] = [
+                {
+                    'iconClass': 'fa-star',
+                    'value': count,
+                    'label': _('Oportunidades'),
+                    'tagClass': 'o_tag_color_8',
+                }
+            ]
     return aportado
 
 
@@ -189,8 +204,10 @@ def action_view_opportunity(self):
             'search_default_filter_ongoing': 1,
             'search_default_filter_lost': 1,
         },
-        'domain': [('active', 'in', [True, False])]
-                  + self._get_contact_opportunities_domain(),
+        'domain': (
+            [('active', 'in', [True, False])]
+            + self._get_contact_opportunities_domain()
+        ),
     }
 
 
@@ -203,15 +220,22 @@ def apply_crm_extensions():
             'opportunity_count': _compute_opportunity_count,
         },
         metodos={
-            '_fetch_children_partners_for_hierarchy':
-                _fetch_children_partners_for_hierarchy,
-            '_get_contact_opportunities_domain': _get_contact_opportunities_domain,
+            '_fetch_children_partners_for_hierarchy': (
+                _fetch_children_partners_for_hierarchy
+            ),
+            '_get_contact_opportunities_domain': (
+                _get_contact_opportunities_domain
+            ),
             '_compute_opportunity_count': _compute_opportunity_count,
             'action_view_opportunity': action_view_opportunity,
         },
     )
-    # El enganche es ``@classmethod`` en ``base``: ``chain_method`` reinstala el
+    # El enganche es ``@classmethod`` en ``base``: ``chain_method``
+    # reinstala el
     # descriptor y ``func`` recibe ``cls``, como declara su tabla.
-    chain_method(ResPartner, '_compute_application_statistics_hook',
-                 classmethod(_compute_application_statistics_hook),
-                 combine=_merge_application_statistics)
+    chain_method(
+        ResPartner,
+        '_compute_application_statistics_hook',
+        classmethod(_compute_application_statistics_hook),
+        combine=_merge_application_statistics,
+    )

@@ -9,6 +9,7 @@ Los tres extienden modelos de ``base`` —``ir.http``, ``ir.qweb``,
 ``res.lang``— y por eso ninguno declara tabla: este addon no tiene
 migraciones.
 """
+
 from .ir_http import (
     FrontendLangMiddleware,
     ModelConverter,

@@ -1,0 +1,745 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+EEEEEEE........................................                          [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestTheMethodsThatReturnRows.test_get_records_returns_the_rows_with_a_value _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+_ ERROR at setup of TestTheMethodsThatReturnRows.test_filtered_dirty_records_keeps_only_the_marked _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+_ ERROR at setup of TestTheMethodsThatReturnRows.test_get_records_different_from_names_the_others _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+_ ERROR at setup of TestTheFieldWithoutAColumnAlsoLivesInTheCache.test_the_cache_holds_a_value_for_a_field_without_a_column _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+_ ERROR at setup of TestTheFieldWithoutAColumnAlsoLivesInTheCache.test_contains_sees_the_field_without_a_column _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+_ ERROR at setup of TestTheFieldWithoutAColumnAlsoLivesInTheCache.test_get_fields_enumerates_it_alongside_the_stored_one _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+_ ERROR at setup of TestTheFieldWithoutAColumnAlsoLivesInTheCache.test_it_never_becomes_dirty_even_when_asked _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection is bad: no error details available
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/plugin.py:527: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection is bad: no error details available
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_environments_cache.py::TestTheMethodsThatReturnRows::test_get_records_returns_the_rows_with_a_value
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:513: RuntimeWarning: Normally Django will use a connection to the 'postgres' database to avoid running initialization queries against the production database when it's not needed (for example, when running tests). Django was unable to create a connection to the 'postgres' database and will use the first PostgreSQL database instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/fiscal-runtime-cache-regression.junit.xml -
+=========================== short test summary info ============================
+ERROR tests/unit/orm/test_environments_cache.py::TestTheMethodsThatReturnRows::test_get_records_returns_the_rows_with_a_value
+ERROR tests/unit/orm/test_environments_cache.py::TestTheMethodsThatReturnRows::test_filtered_dirty_records_keeps_only_the_marked
+ERROR tests/unit/orm/test_environments_cache.py::TestTheMethodsThatReturnRows::test_get_records_different_from_names_the_others
+ERROR tests/unit/orm/test_environments_cache.py::TestTheFieldWithoutAColumnAlsoLivesInTheCache::test_the_cache_holds_a_value_for_a_field_without_a_column
+ERROR tests/unit/orm/test_environments_cache.py::TestTheFieldWithoutAColumnAlsoLivesInTheCache::test_contains_sees_the_field_without_a_column
+ERROR tests/unit/orm/test_environments_cache.py::TestTheFieldWithoutAColumnAlsoLivesInTheCache::test_get_fields_enumerates_it_alongside_the_stored_one
+ERROR tests/unit/orm/test_environments_cache.py::TestTheFieldWithoutAColumnAlsoLivesInTheCache::test_it_never_becomes_dirty_even_when_asked
+40 passed, 2 warnings, 7 errors in 1.04s

@@ -1,4 +1,7 @@
-"""Tests — addons ``purchase`` + ``sale_purchase`` (venta de servicio → compra)."""
+"""
+Tests — addons ``purchase`` + ``sale_purchase`` (venta de servicio → compra).
+"""
+
 from decimal import Decimal
 
 import pytest
@@ -20,7 +23,8 @@ _vendor_seq = [0]
 def _vendor():
     _vendor_seq[0] += 1
     return User.objects.create_user(
-        login=f'prov{_vendor_seq[0]}@kaupamex.mx', password='x')
+        login=f'prov{_vendor_seq[0]}@kaupamex.mx', password='x'
+    )
 
 
 def test_purchase_order_confirm_state_machine(db):
@@ -29,7 +33,9 @@ def test_purchase_order_confirm_state_machine(db):
     # No se puede confirmar sin líneas.
     with pytest.raises(ValidationError):
         po.button_confirm()
-    PurchaseOrderLine.objects.create(order_id=po, product_id=product, price_unit=Decimal('58.00'))
+    PurchaseOrderLine.objects.create(
+        order_id=po, product_id=product, price_unit=Decimal('58.00')
+    )
     po.button_confirm()
     assert po.state == PurchaseOrder.STATE_PURCHASE
     assert po.name.startswith('P-')
@@ -40,7 +46,10 @@ def test_purchase_line_tax_breakdown(db):
     product = make_product(name='Insumo', price=Decimal('116.00'))
     po = PurchaseOrder.objects.create(partner_id=_vendor())
     line = PurchaseOrderLine.objects.create(
-        order_id=po, product_id=product, price_unit=Decimal('116.00'), product_qty=2,
+        order_id=po,
+        product_id=product,
+        price_unit=Decimal('116.00'),
+        product_qty=2,
     )
     # IVA 16% incluido: total 232.00 → tax 32.00 → subtotal 200.00.
     assert line.price_total() == Decimal('232.00')
@@ -54,8 +63,11 @@ def test_generate_purchase_from_sale_line(db):
     product = make_product(name='Servicio a comprar', price=Decimal('300.00'))
     order = SaleOrder.objects.create()
     sale_line = SaleOrderLine.objects.create(
-        order=order, product=product, price_unit=Decimal('300.00'),
-        product_uom_qty=3, name='Servicio subcontratado',
+        order=order,
+        product=product,
+        price_unit=Decimal('300.00'),
+        product_uom_qty=3,
+        name='Servicio subcontratado',
     )
     vendor = _vendor()
     link = SaleLinePurchaseLink.generate_purchase(sale_line, vendor)
@@ -73,7 +85,10 @@ def test_generate_purchase_twice_counts_two(db):
     product = make_product(name='Servicio', price=Decimal('100.00'))
     order = SaleOrder.objects.create()
     sale_line = SaleOrderLine.objects.create(
-        order=order, product=product, price_unit=Decimal('100.00'), name='S',
+        order=order,
+        product=product,
+        price_unit=Decimal('100.00'),
+        name='S',
     )
     vendor = _vendor()
     SaleLinePurchaseLink.generate_purchase(sale_line, vendor)

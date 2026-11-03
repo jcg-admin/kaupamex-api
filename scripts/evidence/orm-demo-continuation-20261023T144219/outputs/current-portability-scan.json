@@ -1,0 +1,5 @@
+{
+  "files": 3215,
+  "findings": [],
+  "scope": "Tracked and new operational Python/shell/config, Makefile, hooks and launcher; historical evidence/workbench excluded, not a claim about all text in repository"
+}

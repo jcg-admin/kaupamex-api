@@ -1,4 +1,5 @@
-"""El gate de raíces espejadas ve un archivo entero sin contraparte (tarea #334).
+"""
+El gate de raíces espejadas ve un archivo entero sin contraparte (tarea #334).
 
 Estos tests son **puros**: no tocan Django ni la base. Miden el instrumento,
 no el árbol — mismo criterio que ``test_check_porte_completo.py`` y
@@ -11,6 +12,7 @@ El positivo conocido es el episodio ``H-API-569``/``H-API-578``: se inventó
 declara. Los tests de "control positivo" reproducen exactamente esa forma
 sobre el árbol real del repo — no un directorio de juguete.
 """
+
 import importlib.util
 import io
 import contextlib
@@ -21,7 +23,8 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'check_mirrored_roots', REPO / 'scripts' / 'check_mirrored_roots.py')
+    'check_mirrored_roots', REPO / 'scripts' / 'check_mirrored_roots.py'
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
@@ -46,14 +49,19 @@ def test_list_py_files_returns_relative_paths(tmp_path):
 
 def test_list_py_files_excludes_pycache_at_any_depth(tmp_path):
     root = make_py_tree(
-        tmp_path, 'a.py', '__pycache__/a.py', 'sub/__pycache__/b.py',
+        tmp_path,
+        'a.py',
+        '__pycache__/a.py',
+        'sub/__pycache__/b.py',
     )
 
     assert gate.list_py_files(root) == {'a.py'}
 
 
 def test_list_py_files_excludes_migrations_as_framework_mechanism(tmp_path):
-    """``migrations/`` es de Django, nunca tiene contraparte — no es defecto."""
+    """
+    ``migrations/`` es de Django, nunca tiene contraparte — no es defecto.
+    """
     root = make_py_tree(tmp_path, 'models.py', 'migrations/0001_initial.py')
 
     assert gate.list_py_files(root) == {'models.py'}
@@ -72,7 +80,9 @@ def test_healthy_tree_reports_neither_direction(tmp_path):
     ours = make_py_tree(tmp_path / 'ours', 'a.py', 'b.py')
     reference = make_py_tree(tmp_path / 'reference', 'a.py', 'b.py')
 
-    our_files, ref_files, gaps, without_counterpart = gate.compare_root(ours, reference)
+    our_files, ref_files, gaps, without_counterpart = gate.compare_root(
+        ours, reference
+    )
 
     assert gaps == []
     assert without_counterpart == []
@@ -134,9 +144,7 @@ def test_a_file_moved_to_another_subdir_is_not_matched_by_basename(tmp_path):
 def test_load_baseline_skips_comments_and_blank_lines(tmp_path, monkeypatch):
     baseline_file = tmp_path / 'baseline.txt'
     baseline_file.write_text(
-        '# a comment\n'
-        '\n'
-        'src/orm/routers.py::multi-DB routing\n'
+        '# a comment\n\nsrc/orm/routers.py::multi-DB routing\n'
     )
     monkeypatch.setattr(gate, 'BASELINE_PATH', baseline_file)
 
@@ -153,8 +161,10 @@ def test_load_baseline_missing_file_is_empty(tmp_path, monkeypatch):
 
 
 def test_no_arguments_sweeps_every_root(monkeypatch):
-    fake_roots = [('r1', pathlib.Path('/a'), pathlib.Path('/b')),
-                  ('r2', pathlib.Path('/c'), pathlib.Path('/d'))]
+    fake_roots = [
+        ('r1', pathlib.Path('/a'), pathlib.Path('/b')),
+        ('r2', pathlib.Path('/c'), pathlib.Path('/d')),
+    ]
     monkeypatch.setattr(gate, 'all_mirrored_roots', lambda: fake_roots)
 
     assert gate.select_roots([]) == fake_roots
@@ -173,7 +183,9 @@ def test_a_known_path_selects_only_that_root(tmp_path, monkeypatch):
     assert selected == [fake_roots[0]]
 
 
-def test_unknown_path_is_skipped_never_falls_back_to_sweep_all(tmp_path, monkeypatch):
+def test_unknown_path_is_skipped_never_falls_back_to_sweep_all(
+    tmp_path, monkeypatch
+):
     """Pedir una ruta que no es ninguna raíz espejada NUNCA cae de vuelta al
     barrido completo — eso sería exactamente el anti-patrón que la regla de
     diseño del gate prohíbe."""
@@ -214,8 +226,9 @@ def test_addon_roots_skips_an_l0_only_addon(tmp_path, monkeypatch):
     # 'l0_only' NO existe del lado de la referencia — a propósito.
 
     monkeypatch.setattr(gate, 'REPO', repo)
-    monkeypatch.setattr(gate, '_addon_root',
-                        lambda name, alias: reference / 'addons' / name)
+    monkeypatch.setattr(
+        gate, '_addon_root', lambda name, alias: reference / 'addons' / name
+    )
 
     labels = sorted(label for label, _, _ in gate.addon_roots())
 
@@ -228,41 +241,59 @@ _REFERENCE_TREE_PRESENT = gate.REFERENCE_ROOT.is_dir()
 _SRC_ORM_PRESENT = (REPO / 'src' / 'orm').is_dir()
 
 
-@pytest.mark.skipif(not (_REFERENCE_TREE_PRESENT and _SRC_ORM_PRESENT),
-                    reason='requiere el árbol de referencia clonado (ODOO19C) '
-                           'y src/orm del propio repo')
+@pytest.mark.skipif(
+    not (_REFERENCE_TREE_PRESENT and _SRC_ORM_PRESENT),
+    reason=(
+        'requiere el árbol de referencia clonado (ODOO19C) '
+        'y src/orm del propio repo'
+    ),
+)
 def test_src_orm_is_clean_against_the_real_baseline():
     """``src/orm`` contra la referencia REAL, con el baseline REAL del repo:
-    0 huecos y 0 invenciones nuevas — los cuatro conocidos quedan declarados."""
+    0 huecos y 0 invenciones nuevas — los cuatro conocidos quedan declarados.
+    """
     ours = REPO / 'src' / 'orm'
     reference = gate.REFERENCE_ROOT / 'odoo' / 'orm'
     baseline = gate.load_baseline()
 
     _, _, gaps, without_counterpart = gate.compare_root(ours, reference)
-    new = [rel for rel in without_counterpart
-          if gate.repo_relative_path(ours / rel) not in baseline]
+    new = [
+        rel
+        for rel in without_counterpart
+        if gate.repo_relative_path(ours / rel) not in baseline
+    ]
 
     assert gaps == []
     assert new == []
 
 
-@pytest.mark.skipif(not (_REFERENCE_TREE_PRESENT and _SRC_ORM_PRESENT),
-                    reason='requiere el árbol de referencia clonado (ODOO19C) '
-                           'y src/orm del propio repo')
+@pytest.mark.skipif(
+    not (_REFERENCE_TREE_PRESENT and _SRC_ORM_PRESENT),
+    reason=(
+        'requiere el árbol de referencia clonado (ODOO19C) '
+        'y src/orm del propio repo'
+    ),
+)
 def test_reproduces_h_api_569_on_the_real_tree(tmp_path):
     """Reproduce el episodio EXACTO —``model_naming.py`` inventado en
     ``src/orm``— pero copiando el árbol real a un ``tmp_path`` en vez de
     escribir en el repo: el gate lo marca como SIN CONTRAPARTE nueva."""
     ours = tmp_path / 'orm'
-    shutil.copytree(REPO / 'src' / 'orm', ours,
-                     ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copytree(
+        REPO / 'src' / 'orm',
+        ours,
+        ignore=shutil.ignore_patterns('__pycache__'),
+    )
     (ours / 'model_naming.py').write_text('# invented, H-API-569\n')
     reference = gate.REFERENCE_ROOT / 'odoo' / 'orm'
     baseline = gate.load_baseline()
 
     _, _, gaps, without_counterpart = gate.compare_root(ours, reference)
-    new = [rel for rel in without_counterpart
-          if gate.repo_relative_path(REPO / 'src' / 'orm' / rel) not in baseline]
+    new = [
+        rel
+        for rel in without_counterpart
+        if gate.repo_relative_path(REPO / 'src' / 'orm' / rel) not in baseline
+    ]
 
     assert gaps == []
     assert new == ['model_naming.py']

@@ -14,10 +14,17 @@ Los cinco símbolos y sus consumidores medidos en la referencia:
 * ``system_name`` y ``WINDOWS_RESERVED`` no tienen llamador propio: los
   consumen ``memory_info`` y ``clean_filename`` desde este mismo archivo.
 """
+
 import os
 import platform
 import re
 import zipfile
+from contextlib import contextmanager
+from release import nt_service_name
+
+if os.name == 'nt':
+    import win32service as ws
+    import win32serviceutil as wsu
 
 system_name = platform.system()
 
@@ -25,14 +32,17 @@ system_name = platform.system()
 #: Los nombres que Windows reserva. Un archivo llamado ``CON`` o ``LPT1`` no se
 #: puede crear ahí ni siquiera con extensión, así que ``clean_filename`` los
 #: sustituye enteros en vez de limpiarlos carácter a carácter.
-WINDOWS_RESERVED = re.compile(r'''
+WINDOWS_RESERVED = re.compile(
+    r'''
     ^
     # raíces prohibidas: palabras reservadas
     (:?CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])
     # incluso con extensión está desaconsejado
     (:?\..*)?
     $
-''', flags=re.IGNORECASE | re.VERBOSE)
+''',
+    flags=re.IGNORECASE | re.VERBOSE,
+)
 
 
 def clean_filename(name, replacement=''):
@@ -63,7 +73,10 @@ def clean_filename(name, replacement=''):
     """
     if WINDOWS_RESERVED.match(name):
         return "Untitled"
-    return re.sub(r'[^\w_.()\[\] -]+', replacement, name).lstrip('.-') or "Untitled"
+    return (
+        re.sub(r'[^\w_.()\[\] -]+', replacement, name).lstrip('.-')
+        or "Untitled"
+    )
 
 
 def zip_dir(path, stream, include_dir=True, fnct_sort=None):
@@ -79,8 +92,9 @@ def zip_dir(path, stream, include_dir=True, fnct_sort=None):
         len_prefix += 1
 
     dir_root_path = os.path.realpath(path)
-    with zipfile.ZipFile(stream, 'w', compression=zipfile.ZIP_DEFLATED,
-                         allowZip64=True) as zipf:
+    with zipfile.ZipFile(
+        stream, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True
+    ) as zipf:
         for dirpath, _dirnames, filenames in os.walk(path):
             filenames = sorted(filenames, key=fnct_sort)
             for fname in filenames:
@@ -92,9 +106,11 @@ def zip_dir(path, stream, include_dir=True, fnct_sort=None):
                     # El confinamiento: un enlace que apunte fuera del árbol no
                     # entra al ZIP. Sin este predicado un symlink a /etc se
                     # empaquetaría con el resto.
-                    if (os.path.isfile(real_fpath)
-                            and os.path.commonpath([dir_root_path, real_fpath])
-                            == dir_root_path):
+                    if (
+                        os.path.isfile(real_fpath)
+                        and os.path.commonpath([dir_root_path, real_fpath])
+                        == dir_root_path
+                    ):
                         zipf.write(real_fpath, fpath[len_prefix:])
 
 
@@ -111,31 +127,28 @@ def memory_info(process):
     return pmem.vms
 
 
-if os.name != 'nt':
-    is_running_as_nt_service = lambda: False  # noqa: E731
-else:
-    import win32service as ws
-    import win32serviceutil as wsu
+def is_running_as_nt_service():
+    """¿El proceso actual corre como servicio de Windows?"""
+    if os.name != 'nt':
+        return False
 
-    from contextlib import contextmanager
-
-    from release import nt_service_name
-
-    def is_running_as_nt_service():
-        """¿El proceso actual corre como servicio de Windows?"""
-        @contextmanager
-        def close_srv(srv):
-            try:
-                yield srv
-            finally:
-                ws.CloseServiceHandle(srv)
-
+    @contextmanager
+    def close_srv(srv):
         try:
-            with close_srv(ws.OpenSCManager(
-                    None, None, ws.SC_MANAGER_ALL_ACCESS)) as hscm:
-                with close_srv(wsu.SmartOpenService(
-                        hscm, nt_service_name, ws.SERVICE_ALL_ACCESS)) as hs:
-                    info = ws.QueryServiceStatusEx(hs)
-                    return info['ProcessId'] == os.getppid()
-        except Exception:
-            return False
+            yield srv
+        finally:
+            ws.CloseServiceHandle(srv)
+
+    try:
+        with close_srv(
+            ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
+        ) as hscm:
+            with close_srv(
+                wsu.SmartOpenService(
+                    hscm, nt_service_name, ws.SERVICE_ALL_ACCESS
+                )
+            ) as hs:
+                info = ws.QueryServiceStatusEx(hs)
+                return info['ProcessId'] == os.getppid()
+    except Exception:
+        return False

@@ -17,6 +17,7 @@ decorado con ``@locked`` y llama a ``delete``, que tambien lo esta. Con un
 cuelga; con el ``RLock`` de la fuente pasa. Sin ese caso, un cerrojo mal
 elegido no lo delataria ninguno de los otros.
 """
+
 import threading
 from collections.abc import Mapping
 
@@ -76,6 +77,53 @@ class TestLifecycle:
         assert second is not first
         assert Registry('alfa') is second
 
+    @pytest.mark.parametrize(
+        'options',
+        [
+            {'update_module': True},
+            {'install_modules': ('sale',)},
+            {'upgrade_modules': ('sale',)},
+            {'reinit_modules': ('sale',)},
+            {'new_db_demo': True},
+            {'new_db_demo': False},
+            {'models_to_check': ('res.partner',)},
+        ],
+    )
+    def test_unexecuted_request_is_rejected_before_replacing_registry(
+        self,
+        options,
+        monkeypatch,
+    ):
+        """
+        Una solicitud pendiente no equivale a haber ejecutado el cargador.
+        """
+        original = Registry('alfa')
+        original_models = original.models
+
+        def reject_initialization(self, db_name):
+            pytest.fail(
+                'La solicitud no soportada llegó a inicializar un registro'
+            )
+
+        monkeypatch.setattr(Registry, 'init', reject_initialization)
+        with pytest.raises(NotImplementedError):
+            Registry.new('alfa', **options)
+        assert Registry.registries['alfa'] is original
+        assert original.models is original_models
+        assert Registry('alfa') is original
+
+    def test_explicit_empty_requests_keep_metadata_only_behavior(self):
+        registry = Registry.new(
+            'alfa',
+            update_module=False,
+            install_modules=(),
+            upgrade_modules=(),
+            reinit_modules=(),
+            models_to_check=(),
+        )
+        assert registry.ready is True
+        assert registry.loaded is False
+
     def test_delete_drops_only_its_own_name(self):
         alfa, beta = Registry('alfa'), Registry('beta')
         Registry.delete('alfa')
@@ -94,7 +142,8 @@ class TestLifecycle:
         assert len(Registry.registries) == 0
 
     def test_the_instance_loses_the_three_class_entry_points(self):
-        """La fuente los anula en la instancia: ``new``, ``init``, ``registries``.
+        """
+        La fuente los anula en la instancia: ``new``, ``init``, ``registries``.
 
         No es limpieza — es que llamarlos desde la instancia ya construida es
         siempre un error, y quedan en ``None`` para que reviente ahi.
@@ -119,12 +168,16 @@ class TestLifecycle:
         assert registry.loaded is False
 
     def test_the_lock_is_reentrant(self):
-        """El control: ``new`` toma el cerrojo y llama a ``delete``, que lo toma otra vez.
+        """
+        El control: ``new`` toma el cerrojo y llama a ``delete``, que lo toma
+        otra vez.
 
         Con ``threading.Lock`` esto cuelga. Que pase mide el ``RLock`` de la
         fuente, no la existencia de los metodos.
         """
-        assert isinstance(Registry._lock, (threading.RLock().__class__, DummyRLock))
+        assert isinstance(
+            Registry._lock, (threading.RLock().__class__, DummyRLock)
+        )
         terminado = []
 
         def work():
@@ -134,7 +187,9 @@ class TestLifecycle:
         hilo = threading.Thread(target=work)
         hilo.start()
         hilo.join(timeout=5)
-        assert terminado == [True], 'new() se quedo esperando su propio cerrojo'
+        assert terminado == [
+            True
+        ], 'new() se quedo esperando su propio cerrojo'
 
 
 class TestMapping:
@@ -169,7 +224,9 @@ class TestMapping:
         assert registry['res.partner'] is second
 
     def test_the_mixin_gives_get_keys_items_and_values(self):
-        """No se declaran: los aporta ``Mapping`` sobre los cinco abstractos."""
+        """
+        No se declaran: los aporta ``Mapping`` sobre los cinco abstractos.
+        """
         registry = Registry('alfa')
         registry.models.clear()
         model = _Model('res.partner')
@@ -187,7 +244,9 @@ class TestMapping:
         assert 'x.custom' not in registry
 
     def test_delitem_also_forgets_the_child_in_its_parents(self):
-        """La fuente lo hace porque un modelo a medida puede heredar de mixins."""
+        """
+        La fuente lo hace porque un modelo a medida puede heredar de mixins.
+        """
         registry = Registry('alfa')
         registry.models.clear()
         parent = _Model('mail.thread', inherit_children={'x.custom'})
@@ -214,7 +273,9 @@ class TestDescendants:
         built['base.mixin'] = _Model('base.mixin', inherit_children={'medio'})
         built['medio'] = _Model('medio', inherit_children={'hoja'})
         built['hoja'] = _Model('hoja')
-        built['delegante'] = _Model('delegante', inherits_children={'delegado'})
+        built['delegante'] = _Model(
+            'delegante', inherits_children={'delegado'}
+        )
         built['delegado'] = _Model('delegado')
         return built
 
@@ -223,26 +284,38 @@ class TestDescendants:
 
     def test_it_walks_the_inherit_axis_transitively(self, registry):
         assert set(registry.descendants(['base.mixin'], '_inherit')) == {
-            'base.mixin', 'medio', 'hoja',
+            'base.mixin',
+            'medio',
+            'hoja',
         }
 
     def test_it_walks_the_inherits_axis(self, registry):
         assert set(registry.descendants(['delegante'], '_inherits')) == {
-            'delegante', 'delegado',
+            'delegante',
+            'delegado',
         }
 
     def test_one_axis_does_not_see_the_other(self, registry):
         """El control: pedir ``_inherit`` no arrastra a los delegados."""
-        assert set(registry.descendants(['delegante'], '_inherit')) == {'delegante'}
+        assert set(registry.descendants(['delegante'], '_inherit')) == {
+            'delegante'
+        }
 
     def test_both_axes_at_once(self, registry):
         registry['medio']._inherits_children.add('delegado')
-        assert set(registry.descendants(['base.mixin'], '_inherit', '_inherits')) == {
-            'base.mixin', 'medio', 'hoja', 'delegado',
+        assert set(
+            registry.descendants(['base.mixin'], '_inherit', '_inherits')
+        ) == {
+            'base.mixin',
+            'medio',
+            'hoja',
+            'delegado',
         }
 
     def test_an_unknown_name_is_skipped_not_an_error(self, registry):
-        assert set(registry.descendants(['no.existe', 'hoja'], '_inherit')) == {'hoja'}
+        assert set(
+            registry.descendants(['no.existe', 'hoja'], '_inherit')
+        ) == {'hoja'}
 
     def test_it_does_not_repeat_a_model_reachable_twice(self, registry):
         registry['medio']._inherit_children.add('hoja')

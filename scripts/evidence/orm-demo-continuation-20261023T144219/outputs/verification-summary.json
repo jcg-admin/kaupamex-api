@@ -1,0 +1,45 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "instruction_audit": "outputs/instruction-validation.json",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "native_task": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737/TASK-API-0382",
+  "official_task_state_changes": false,
+  "focused": "16PASS:6data+10demo",
+  "storage": "Two maintained PG storage/migration controls PASS; no generic Char descriptor change",
+  "negatives": {
+    "savepoint_annulment_exit": 1,
+    "length255_annulment_exit": 1,
+    "expected": true
+  },
+  "independent_full_stack": {
+    "real_migrated_postgresql": true,
+    "real_files_and_converter": true,
+    "real_todo_xmlid_and_failure_models": true,
+    "automation_signals_not_mocked": true,
+    "failed_demo_data_rolled_back": true,
+    "success_data_retained_by_caller_transaction": true,
+    "error_length": 19117,
+    "error_sha256": "09ad0c768378a8f9bd29a1083e992e44ce30f444067ac44368aae060bd171117",
+    "todo_open": true,
+    "context_restored": true,
+    "module_state_and_installed_version_not_finalized": true,
+    "limits": "N=1 existing default installation only; per-company full migration, XML/CSV/hooks/registry composition and whole TASK acceptance remain separate"
+  },
+  "ci": {
+    "exit": 2,
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "seconds": 519.64,
+    "classification": "BASELINE_FAILURE first display_name error; subsequent NOT_EVALUATED"
+  },
+  "evidence_limit": "N=1 scoped default installation, not native Odoo runtime or whole-task acceptance; no local model dispatch claimed",
+  "identifier_fix": "First demo commit rejected local todo names; renamed locals/test names only, preserving XMLIDs/models;16controls PASS again; full CI not repeated for non-material rename",
+  "cleanup": {
+    "owned_databases_remaining": 0,
+    "owned_roles_remaining": 0,
+    "active_verifiers": 0
+  }
+}

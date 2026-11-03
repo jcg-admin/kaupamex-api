@@ -1,6 +1,7 @@
 r"""``account.edi.xml.ubl_efff`` — E-FFF (Bélgica).
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_edi_xml_ubl_efff.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/models/account_edi_xml_ubl_efff.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 20 líneas, 1 método) — atribución y aviso de
 licencia preservados (DEC-KX-03).
 
@@ -16,6 +17,7 @@ convención, sus dos consecuencias y la tabla de piezas ausentes que bloquean el
 lado de registros están declaradas una sola vez en
 ``account_edi_common.py`` — no se repiten aquí.
 """
+
 import re
 
 from .account_edi_xml_ubl_20 import AccountEdiXmlUBL20
@@ -34,4 +36,8 @@ class AccountEdiXmlUbl_Efff(AccountEdiXmlUBL20):
     def _export_invoice_filename(cls, invoice):
         # official naming convention
         vat = invoice.company_id.partner_id.commercial_partner_id.vat
-        return 'efff_%s%s%s.xml' % (vat or '', '_' if vat else '', re.sub(r'[\W_]', '', invoice.name))
+        return 'efff_%s%s%s.xml' % (
+            vat or '',
+            '_' if vat else '',
+            re.sub(r'[\W_]', '', invoice.name),
+        )

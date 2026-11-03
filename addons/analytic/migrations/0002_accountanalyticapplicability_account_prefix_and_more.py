@@ -19,7 +19,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo account_prefix. Prefijos de cuenta contable sobre los que aplica esta regla de aplicabilidad.",
+                help_text=(
+                    "Odoo account_prefix. Prefijos de cuenta contable sobre"
+                    " los que aplica esta regla de aplicabilidad."
+                ),
             ),
         ),
         migrations.AddField(
@@ -27,7 +30,10 @@ class Migration(migrations.Migration):
             name="product_categ",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo product_categ_id. Categoría de producto sobre la que aplica esta regla.",
+                help_text=(
+                    "Odoo product_categ_id. Categoría de producto sobre la que"
+                    " aplica esta regla."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="analytic_applicabilities",
@@ -40,7 +46,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo account_prefix. Esta distribución analítica aplica a todas las cuentas contables que compartan el prefijo especificado.",
+                help_text=(
+                    "Odoo account_prefix. Esta distribución analítica aplica a"
+                    " todas las cuentas contables que compartan el prefijo"
+                    " especificado."
+                ),
             ),
         ),
         migrations.AddField(
@@ -48,7 +58,10 @@ class Migration(migrations.Migration):
             name="product",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo product_id (ondelete=cascade). Producto para el que se usa esta distribución.",
+                help_text=(
+                    "Odoo product_id (ondelete=cascade). Producto para el que"
+                    " se usa esta distribución."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="analytic_distribution_models",
@@ -60,7 +73,11 @@ class Migration(migrations.Migration):
             name="product_categ",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo product_categ_id (ondelete=cascade). Categoría de producto que usa la cuenta analítica en el default analítico.",
+                help_text=(
+                    "Odoo product_categ_id (ondelete=cascade). Categoría de"
+                    " producto que usa la cuenta analítica en el default"
+                    " analítico."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="analytic_distribution_models",
@@ -79,7 +96,12 @@ class Migration(migrations.Migration):
             name="general_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo general_account_id (ondelete=restrict, compute+store+readonly=False). Se deriva de move_line.account cuando no se fija a mano — ver docstring del módulo.",
+                help_text=(
+                    "Odoo general_account_id (ondelete=restrict,"
+                    " compute+store+readonly=False). Se deriva de"
+                    " move_line.account cuando no se fija a mano — ver"
+                    " docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="analytic_lines",
@@ -91,7 +113,10 @@ class Migration(migrations.Migration):
             name="move_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo move_line_id (ondelete=cascade). El apunte contable que generó esta línea analítica.",
+                help_text=(
+                    "Odoo move_line_id (ondelete=cascade). El apunte contable"
+                    " que generó esta línea analítica."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="analytic_lines",
@@ -126,7 +151,11 @@ class Migration(migrations.Migration):
                     ("invoice", "Factura de cliente"),
                     ("bill", "Factura de proveedor"),
                 ],
-                help_text="Odoo business_domain; único valor en la referencia base (otros addons de Odoo extienden la selección — no aplica aquí).",
+                help_text=(
+                    "Odoo business_domain; único valor en la referencia base"
+                    " (otros addons de Odoo extienden la selección — no aplica"
+                    " aquí)."
+                ),
                 max_length=32,
                 verbose_name="Dominio de negocio",
             ),

@@ -1,0 +1,10 @@
+{
+  "scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py": {
+    "sha256": "b781c0d02544ef6ceb0bf7d70a7bfbe12dcab1cf44e3bc33ec8d719b831c8c41",
+    "format_only_except_equivalent_cli_condition_local_name": true
+  },
+  "tests/unit/scripts/test_orm_property_view.py": {
+    "sha256": "7038bc2423da5a120ee86f31c7a581a69955b1292bc0338042fc221fd863ad90",
+    "format_only_except_equivalent_cli_condition_local_name": false
+  }
+}

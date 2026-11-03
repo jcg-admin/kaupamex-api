@@ -12,7 +12,8 @@ ambigüedad —``_auto = True``, *"automatically create database backend"*
 necesita tabla: su estado vive en la sesión/request"*, y dejaba escrito que la
 política de vacuum se anclaría *"cuando el wizard exista"*.
 
-Ese día llegó: ``ServerActionHistoryWizard`` (``addons/base/models/ir_actions.py``)
+Ese día llegó: ``ServerActionHistoryWizard``
+(``addons/base/models/ir_actions.py``)
 se crea y se consulta, y sin tabla su suite fallaba con
 ``relation "server_action_history_wizard" does not exist``. El razonamiento de
 la sesión no era una divergencia de mecanismo sino una apuesta sobre el futuro,
@@ -24,10 +25,13 @@ Los tres concretos que declaran ``managed = False`` en su **propio** ``Meta``
 uno trae su razón escrita y ninguna se midió en este pase. Su veredicto es la
 tarea **#201**.
 
-**El ``ir.autovacuum`` de este árbol ya recoge el método.** Su colector barre el
-registro buscando ``@api.autovacuum`` (``addons/base/models/ir_autovacuum.py``),
+**El ``ir.autovacuum`` de este árbol ya recoge el método.** Su colector barre
+el
+registro buscando ``@api.autovacuum``
+(``addons/base/models/ir_autovacuum.py``),
 así que ``_transient_vacuum`` entra en su pasada sin cablear nada más.
 """
+
 import datetime
 
 from django.utils import timezone
@@ -50,9 +54,11 @@ MINIMUM_IDLE_SECONDS = 300
 
 
 class TransientModel(Model):
-    """Modelo transitorio (wizard/asistente) — ≙ ``TransientModel`` (``:10-33``).
+    """
+    Modelo transitorio (wizard/asistente) — ≙ ``TransientModel`` (``:10-33``).
 
-    Docstring de la fuente, verbatim: *"Model super-class for transient records,
+    Docstring de la fuente, verbatim: *"Model super-class for transient
+    records,
     meant to be temporarily persistent, and regularly vacuum-cleaned."*
 
     La segunda mitad de ese docstring —*"A TransientModel has a simplified
@@ -76,24 +82,30 @@ class TransientModel(Model):
     @classmethod
     @autovacuum
     def _transient_vacuum(cls):
-        """Limpia los registros transitorios — ≙ ``_transient_vacuum`` (``:29-66``).
+        """
+        Limpia los registros transitorios — ≙ ``_transient_vacuum``
+        (``:29-66``).
 
         Desaloja filas viejas de la tabla cuando se alcanza alguna de las dos
         condiciones, ``_transient_max_count`` o ``_transient_max_hours``. Si
         ninguna está declarada, no borra nada: el cero significa *ilimitado*,
         no *todo*.
 
-        Devuelve ``(nombre, quedan_mas)`` como la fuente: el método lo comparten
-        todos los transitorios, así que el nombre es lo que permite al log decir
+        Devuelve ``(nombre, quedan_mas)`` como la fuente: el método lo
+        comparten
+        todos los transitorios, así que el nombre es lo que permite al log
+        decir
         cuál se barrió, y la bandera si hace falta otra pasada.
         """
         has_remaining = False
         if cls._transient_max_hours:
             has_remaining |= cls._transient_clean_rows_older_than(
-                cls._transient_max_hours * 60 * 60)
+                cls._transient_max_hours * 60 * 60
+            )
         if cls._transient_max_count:
             has_remaining |= cls._transient_clean_old_rows(
-                cls._transient_max_count)
+                cls._transient_max_count
+            )
         return getattr(cls, '_name', cls._meta.label), has_remaining
 
     @classmethod
@@ -101,7 +113,8 @@ class TransientModel(Model):
         """≙ ``_transient_clean_old_rows`` (``:67-73``) — desalojo por conteo.
 
         La fuente cuenta con ``SELECT count(*)`` crudo para saltarse el ORM;
-        aquí ``objects.count()`` emite ese mismo ``SELECT`` y no hay motivo para
+        aquí ``objects.count()`` emite ese mismo ``SELECT`` y no hay motivo
+        para
         escribirlo a mano.
 
         Cuando se pasa del tope se borra por **antigüedad** con el mínimo de
@@ -115,25 +128,33 @@ class TransientModel(Model):
 
     @classmethod
     def _transient_clean_rows_older_than(cls, seconds):
-        """≙ ``_transient_clean_rows_older_than`` (``:75-83``) — por antigüedad.
+        """
+        ≙ ``_transient_clean_rows_older_than`` (``:75-83``) — por antigüedad.
 
         El piso de cinco minutos es de la fuente y protege lo que se está
         usando: una fila recién escrita es el formulario que alguien tiene
         abierto.
 
-        ``write_date`` de allá es aquí ``updated_at`` (``TimeStampedModel``); el
+        ``write_date`` de allá es aquí ``updated_at`` (``TimeStampedModel``);
+        el
         transitorio que no lo declare cae a ``created_at``, y si tampoco lo
         tiene no se barre por antigüedad — su tope será el de conteo.
         """
         seconds = max(seconds, MINIMUM_IDLE_SECONDS)
         cutoff = timezone.now() - datetime.timedelta(seconds=seconds)
         names = {f.name for f in cls._meta.get_fields()}
-        stamp = ('updated_at' if 'updated_at' in names else
-                 'created_at' if 'created_at' in names else None)
+        stamp = (
+            'updated_at'
+            if 'updated_at' in names
+            else 'created_at' if 'created_at' in names else None
+        )
         if stamp is None:
             return False
-        ids = list(cls.objects.filter(**{f'{stamp}__lt': cutoff})
-                   .values_list('pk', flat=True)[:GC_UNLINK_LIMIT])
+        ids = list(
+            cls.objects.filter(**{f'{stamp}__lt': cutoff}).values_list(
+                'pk', flat=True
+            )[:GC_UNLINK_LIMIT]
+        )
         if ids:
             cls.objects.filter(pk__in=ids).delete()
         return len(ids) == GC_UNLINK_LIMIT

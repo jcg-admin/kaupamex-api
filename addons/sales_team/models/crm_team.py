@@ -1,7 +1,9 @@
 """Modelo ``CrmTeam`` — addon ``sales_team``.
 
-Adaptación fiel del módulo Odoo ``sales_team`` (``sales_team/models/crm_team.py``).
-En Odoo ``sale.order.team_id`` (Many2one a ``crm.team``) atribuye cada orden a un
+Adaptación fiel del módulo Odoo ``sales_team``
+(``sales_team/models/crm_team.py``).
+En Odoo ``sale.order.team_id`` (Many2one a ``crm.team``) atribuye cada orden a
+un
 equipo de venta; ``sale`` declara ``sales_team`` como dependencia. Este addon
 provee el modelo canónico ``crm.team`` para esa atribución.
 
@@ -11,6 +13,7 @@ membresías vía ``crm.team.member``). Los campos de dashboard/CRM-pipeline
 (``use_leads``, ``opportunities_count``, ``invoiced``) NO viven aquí — en Odoo
 los añaden ``crm`` y ``sale`` sobre el modelo base; se integran en esos addons.
 """
+
 from django.conf import settings
 import fields
 import models
@@ -28,42 +31,53 @@ class CrmTeam(TimeStampedModel):
     _order = "sequence ASC, create_date DESC, id DESC"
 
     # Odoo crm.team.name (crm_team.py:85, required, translate).
-    name        = fields.Char(
-        max_length=150, help_text='Nombre del equipo (Odoo crm.team.name).',
+    name = fields.Char(
+        max_length=150,
+        help_text='Nombre del equipo (Odoo crm.team.name).',
     )
     # Odoo sequence (crm_team.py:86, default 10) — orden de listado.
-    sequence    = fields.Integer(
-        default=10, help_text='Orden de listado (Odoo crm.team.sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de listado (Odoo crm.team.sequence).',
     )
     # Odoo active (crm_team.py:87) — archivar sin borrar.
-    active      = fields.Boolean(
+    active = fields.Boolean(
         default=True,
         help_text='Archivar el equipo sin borrarlo (Odoo crm.team.active).',
     )
     # Odoo company_id — equipo por ResCompany (L1 tenant). Multi-company.
-    company_id  = fields.Many2one(
-        'base.ResCompany', null=True, blank=True,
-        on_delete=models.CASCADE, related_name='sales_teams',
+    company_id = fields.Many2one(
+        'base.ResCompany',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='sales_teams',
         help_text='ResCompany propietaria (Odoo crm.team.company_id).',
         db_column='company_id',
     )
     # Odoo user_id (crm_team.py:93) — líder del equipo (Team Leader).
-    user_id     = fields.Many2one(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='led_sales_teams',
+    user_id = fields.Many2one(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='led_sales_teams',
         help_text='Líder del equipo (Odoo crm.team.user_id).',
         db_column='leader_id',
     )
     # Odoo member_ids (crm_team.py:98) — Many2many a res.users vía la
     # tabla intermedia crm.team.member (through model explícito, como Odoo).
-    member_ids  = fields.Many2many(
-        settings.AUTH_USER_MODEL, through='sales_team.CrmTeamMember',
-        related_name='sales_teams', blank=True,
+    member_ids = fields.Many2many(
+        settings.AUTH_USER_MODEL,
+        through='sales_team.CrmTeamMember',
+        related_name='sales_teams',
+        blank=True,
         help_text='Vendedores del equipo (Odoo crm.team.member_ids).',
     )
     # Odoo color (crm_team.py:115) — índice de color en el kanban.
-    color       = fields.Integer(
-        default=0, help_text='Índice de color (Odoo crm.team.color).',
+    color = fields.Integer(
+        default=0,
+        help_text='Índice de color (Odoo crm.team.color).',
     )
 
     class Meta:
@@ -74,7 +88,9 @@ class CrmTeam(TimeStampedModel):
         verbose_name_plural = 'Equipos de venta'
 
     @classmethod
-    def _get_default_team_id(cls, user_id=False, domain=None, default_team=None):
+    def _get_default_team_id(
+        cls, user_id=False, domain=None, default_team=None
+    ):
         """≙ ``_get_default_team_id`` (crm_team.py:17-79).
 
         Equipo por defecto de un documento de venta. La heurística es la de la
@@ -99,7 +115,9 @@ class CrmTeam(TimeStampedModel):
         user = ResUsers.objects.filter(pk=user_id).first() if user_id else None
         valid_company_ids = [None]
         if user is not None:
-            valid_company_ids += list(user.company_ids.values_list('pk', flat=True))
+            valid_company_ids += list(
+                user.company_ids.values_list('pk', flat=True)
+            )
 
         # 1- entre mis membresías. Si quien busca está en C1 y el vendedor en
         # C1/C2, sólo salen los de C1.
@@ -108,20 +126,28 @@ class CrmTeam(TimeStampedModel):
             | models.Q(company_id__isnull=True)
         )
         if user is not None:
-            mine = mine.filter(models.Q(user_id=user.pk) | models.Q(member_ids=user.pk))
+            mine = mine.filter(
+                models.Q(user_id=user.pk) | models.Q(member_ids=user.pk)
+            )
         mine = mine.distinct()
 
         team = None
         if domain:
             filtered = mine.filter(**domain)
-            if default_team is not None and filtered.filter(pk=default_team.pk).exists():
+            if (
+                default_team is not None
+                and filtered.filter(pk=default_team.pk).exists()
+            ):
                 team = default_team
             else:
                 team = filtered.first()
 
         # 2- cualquiera de mis equipos
         if team is None:
-            if default_team is not None and mine.filter(pk=default_team.pk).exists():
+            if (
+                default_team is not None
+                and mine.filter(pk=default_team.pk).exists()
+            ):
                 team = default_team
             else:
                 team = mine.first()

@@ -34,7 +34,9 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Sesión Django a la que se ata la reautenticación.",
+                        help_text=(
+                            "Sesión Django a la que se ata la reautenticación."
+                        ),
                         max_length=40,
                         verbose_name="Clave de sesión",
                     ),
@@ -73,7 +75,8 @@ class Migration(migrations.Migration):
                 ],
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("user", "session_key"), name="uq_authz_reauth_session"
+                        fields=("user", "session_key"),
+                        name="uq_authz_reauth_session",
                     )
                 ],
             },

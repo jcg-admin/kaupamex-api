@@ -1,0 +1,77 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FF......................................................                [100%]
+=================================== FAILURES ===================================
+_____________________________ test_api_autovacuum ______________________________
+src/addons/base/models/ir_autovacuum.py:193: in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+src/addons/base/models/ir_autovacuum.py:105: in _call_vacuum_method
+    return func()
+E   TypeError: IrActionsServerHistory._gc_histories() missing 1 required positional argument: 'self'
+
+During handling of the above exception, another exception occurred:
+tests/integration/test_orm/test_autovacuum.py:28: in test_api_autovacuum
+    IrAutovacuum._run_vacuum_cleaner()
+src/addons/base/models/ir_autovacuum.py:220: in _run_vacuum_cleaner
+    transaction.rollback()
+.venv/lib/python3.13/site-packages/django/db/transaction.py:45: in rollback
+    get_connection(using).rollback()
+src/orm/environments.py:714: in cut
+    return original(self, *args, **kwargs)
+.venv/lib/python3.13/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/backends/base/base.py:336: in rollback
+    self.validate_no_atomic_block()
+.venv/lib/python3.13/site-packages/django/db/backends/base/base.py:515: in validate_no_atomic_block
+    raise TransactionManagementError(
+E   django.db.transaction.TransactionManagementError: This is forbidden when an 'atomic' block is active.
+------------------------------ Captured log call -------------------------------
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:219 Falló <class 'addons.base.models.ir_actions.IrActionsServerHistory'>._gc_histories()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 193, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func()
+TypeError: IrActionsServerHistory._gc_histories() missing 1 required positional argument: 'self'
+_________ test_an_instance_method_of_a_plain_model_runs_from_the_sweep _________
+tests/integration/test_orm/test_autovacuum.py:39: in test_an_instance_method_of_a_plain_model_runs_from_the_sweep
+    _call_vacuum_method(
+src/addons/base/models/ir_autovacuum.py:105: in _call_vacuum_method
+    return func()
+E   TypeError: IrActionsServerHistory._gc_histories() missing 1 required positional argument: 'self'
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:48
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:134
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:134: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:134
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:134: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmAutovacuumed.expire_at received a naive datetime (2026-10-18 15:17:22.284784) while time zone support is active.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum - d...
+FAILED tests/integration/test_orm/test_autovacuum.py::test_an_instance_method_of_a_plain_model_runs_from_the_sweep
+2 failed, 55 passed, 9 warnings in 9.80s

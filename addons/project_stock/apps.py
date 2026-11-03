@@ -6,6 +6,7 @@ registro de modelos ya está poblado y ``add_field_if_absent``/``chain_method``
 sobre una clase ajena no rompe con ``AppRegistryNotReady`` — mismo criterio
 que ``product_expiry`` / ``hr_timesheet``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -13,16 +14,18 @@ from django.apps import AppConfig
 
 class ProjectStockConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.project_stock'
-    label              = 'project_stock'
-    verbose_name       = 'Proyecto ↔ inventario (project_stock)'
+    name = 'addons.project_stock'
+    label = 'project_stock'
+    verbose_name = 'Proyecto ↔ inventario (project_stock)'
 
     #: Módulo → función. Mismo patrón que ``HrTimesheetConfig._EXTENSIONES``.
     _EXTENSIONES = {
-        'addons.project_stock.models.project_project':
-            'apply_project_stock_project_project_extensions',
-        'addons.project_stock.models.stock_picking':
-            'apply_project_stock_stock_picking_extensions',
+        'addons.project_stock.models.project_project': (
+            'apply_project_stock_project_project_extensions'
+        ),
+        'addons.project_stock.models.stock_picking': (
+            'apply_project_stock_stock_picking_extensions'
+        ),
     }
 
     def ready(self):

@@ -1,0 +1,18 @@
+{
+  "direct": "FOB Veracruz",
+  "template_expression": "FOB Veracruz",
+  "template_conditional": "Incoterm: FOB Veracruz",
+  "extension_rows": [
+    {
+      "active": true,
+      "mode": "extension",
+      "inherit_id_id": 1
+    }
+  ],
+  "combined_incoterm_nodes": 1,
+  "rendered_notes": {
+    "incoterm": "Incoterm: FOB Veracruz"
+  },
+  "scope": "Owned PostgreSQL transaction; report failure localization, no ORM or business implementation acceptance",
+  "business_row_counts_unchanged": true
+}

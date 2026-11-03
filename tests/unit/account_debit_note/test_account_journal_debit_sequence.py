@@ -9,11 +9,14 @@ comportamiento del original o del vínculo que lo porta.
 Requiere ``addons.account_debit_note`` en ``INSTALLED_APPS`` (fuera del
 alcance de este porte — ver ``apps.py``) para que la migración cree su tabla.
 """
+
 import pytest
 from django.utils import timezone
 
 from addons.account.models import AccountJournal
-from addons.account_debit_note.models.account_journal import JournalDebitSequence
+from addons.account_debit_note.models.account_journal import (
+    JournalDebitSequence,
+)
 from addons.base.models import ResCompany
 
 pytestmark = pytest.mark.django_db
@@ -25,7 +28,12 @@ def company(db):
 
 
 def _journal(company, **kwargs):
-    defaults = {'name': 'Diario', 'code': 'DIA', 'type': 'sale', 'company': company}
+    defaults = {
+        'name': 'Diario',
+        'code': 'DIA',
+        'type': 'sale',
+        'company': company,
+    }
     defaults.update(kwargs)
     return AccountJournal.objects.create(**defaults)
 
@@ -58,7 +66,9 @@ class TestWantsDebitSequence:
 
     def test_with_override_row_saved_value_wins(self, company):
         journal = _journal(company, type='sale')
-        JournalDebitSequence.objects.create(journal=journal, debit_sequence=False)
+        JournalDebitSequence.objects.create(
+            journal=journal, debit_sequence=False
+        )
         assert JournalDebitSequence.wants_debit_sequence(journal) is False
 
     def test_bank_journal_without_override_is_false(self, company):
@@ -71,11 +81,15 @@ class TestSyncFromType:
         journal = _journal(company, type='sale')
         row = JournalDebitSequence.sync_from_type(journal)
         assert row.debit_sequence is True
-        assert JournalDebitSequence.objects.filter(journal=journal).count() == 1
+        assert (
+            JournalDebitSequence.objects.filter(journal=journal).count() == 1
+        )
 
     def test_recalculates_when_already_exists(self, company):
         journal = _journal(company, type='sale')
-        JournalDebitSequence.objects.create(journal=journal, debit_sequence=False)
+        JournalDebitSequence.objects.create(
+            journal=journal, debit_sequence=False
+        )
         row = JournalDebitSequence.sync_from_type(journal)
         row.refresh_from_db()
         assert row.debit_sequence is True
@@ -84,7 +98,9 @@ class TestSyncFromType:
 class TestRelatedModel:
     def test_one_to_one_reverse_on_journal(self, company):
         journal = _journal(company)
-        row = JournalDebitSequence.objects.create(journal=journal, debit_sequence=True)
+        row = JournalDebitSequence.objects.create(
+            journal=journal, debit_sequence=True
+        )
         assert journal.debit_sequence_setting == row
 
     def test_one_to_one_is_unique(self, company):
@@ -95,13 +111,17 @@ class TestRelatedModel:
 
     def test_delete_cascades_from_the_journal(self, company):
         journal = _journal(company)
-        JournalDebitSequence.objects.create(journal=journal, debit_sequence=True)
+        JournalDebitSequence.objects.create(
+            journal=journal, debit_sequence=True
+        )
         journal.delete()
         assert JournalDebitSequence.objects.count() == 0
 
     def test_str_includes_the_journal(self, company):
         journal = _journal(company, code='VEN')
-        row = JournalDebitSequence.objects.create(journal=journal, debit_sequence=True)
+        row = JournalDebitSequence.objects.create(
+            journal=journal, debit_sequence=True
+        )
         assert 'VEN' in str(row) or journal.code in str(row.journal)
 
     def test_timestamped(self, company):

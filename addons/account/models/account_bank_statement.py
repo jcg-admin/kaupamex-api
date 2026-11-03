@@ -1,4 +1,6 @@
-r"""``account.bank.statement`` — Adaptación de Odoo addons/account/models/account_bank_statement.py
+r"""
+``account.bank.statement`` — Adaptación de Odoo
+addons/account/models/account_bank_statement.py
 (odoo-tools@622ddc2a, odoo19c:).
 
 Estado de cuenta bancario: agrupa líneas (``account.bank.statement.line``,
@@ -57,6 +59,7 @@ fallback de creación, requiere sumar ``created_at`` (vía ``TimeStampedModel``
 u homólogo) a este modelo — fuera del alcance de #126, que sólo pide portar
 ``_compute_date``.
 """
+
 from decimal import Decimal
 
 from django.db import connection
@@ -69,66 +72,106 @@ class AccountBankStatement(models.Model):
     """``account.bank.statement`` — estado de cuenta bancario."""
 
     name = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Referencia del estado de cuenta (Odoo name, computado de '
-                  'diario+fecha si no se declara).',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Referencia del estado de cuenta (Odoo name, computado de '
+            'diario+fecha si no se declara).'
+        ),
     )
     reference = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Referencia externa: nombre del archivo importado o de la '
-                  'sincronización en línea (Odoo reference).',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Referencia externa: nombre del archivo importado o de la '
+            'sincronización en línea (Odoo reference).'
+        ),
     )
     date = fields.Date(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Fecha de la última línea posteada (Odoo date, computado).',
     )
     first_line_index = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='internal_index más chico entre las líneas del estado '
-                  '(Odoo first_line_index, computado — '
-                  '_compute_first_line_index, ver docstring del módulo).',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text=(
+            'internal_index más chico entre las líneas del estado '
+            '(Odoo first_line_index, computado — '
+            '_compute_first_line_index, ver docstring del módulo).'
+        ),
     )
     balance_start = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Saldo inicial (Odoo balance_start).',
     )
     balance_end = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
-        help_text='Saldo final calculado: balance_start + líneas posteadas '
-                  '(Odoo balance_end, computado).',
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=(
+            'Saldo final calculado: balance_start + líneas posteadas '
+            '(Odoo balance_end, computado).'
+        ),
     )
     balance_end_real = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
-        help_text='Saldo final declarado por el banco (Odoo balance_end_real).',
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=(
+            'Saldo final declarado por el banco (Odoo balance_end_real).'
+        ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='bank_statements',
-        help_text='Empresa (Odoo company_id, related de journal_id.company_id).',
+        'base.ResCompany',
+        on_delete=models.CASCADE, null=True, blank=True,
+        related_name='bank_statements',
+        help_text=(
+            'Empresa (Odoo company_id, related de journal_id.company_id).'
+        ),
     )
     currency = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='bank_statements',
         help_text='Moneda (Odoo currency_id, computado de journal/company).',
     )
     journal = fields.Many2one(
-        'account.AccountJournal', on_delete=models.CASCADE,
+        'account.AccountJournal',
+        on_delete=models.CASCADE, null=True, blank=True,
         related_name='bank_statements',
-        help_text='Diario bancario (Odoo journal_id, computado de las líneas).',
+        help_text=(
+            'Diario bancario (Odoo journal_id, computado de las líneas).'
+        ),
     )
     is_complete = fields.Boolean(
         default=False,
-        help_text='balance_end == balance_end_real, con líneas posteadas '
-                  '(Odoo is_complete, computado).',
+        help_text=(
+            'balance_end == balance_end_real, con líneas posteadas '
+            '(Odoo is_complete, computado).'
+        ),
     )
     is_valid = fields.Boolean(
         default=True,
-        help_text='balance_start coincide con el balance_end_real del estado '
-                  'anterior del mismo diario (Odoo is_valid, computado).',
+        help_text=(
+            'balance_start coincide con el balance_end_real del estado '
+            'anterior del mismo diario (Odoo is_valid, computado).'
+        ),
     )
     problem_description = fields.Text(
-        blank=True, default='',
-        help_text='Descripción del problema si no es completo o válido (Odoo '
-                  'problem_description, computado).',
+        blank=True,
+        default='',
+        help_text=(
+            'Descripción del problema si no es completo o válido (Odoo '
+            'problem_description, computado).'
+        ),
     )
 
     class Meta:
@@ -169,17 +212,21 @@ class AccountBankStatement(models.Model):
         self._compute_date()
         self._compute_name()
 
-        self.is_complete = bool(posted) and self.balance_end == self.balance_end_real
+        self.is_complete = (
+            bool(posted) and self.balance_end == self.balance_end_real
+        )
         self.is_valid = self._compute_is_valid()
 
         if not self.is_valid:
             self.problem_description = (
                 'El saldo inicial no coincide con el saldo final del estado '
-                'anterior, o falta un estado previo.')
+                'anterior, o falta un estado previo.'
+            )
         elif not self.is_complete:
             self.problem_description = (
                 f'El saldo calculado ({self.balance_end}) no coincide con el '
-                'saldo final declarado.')
+                'saldo final declarado.'
+            )
         else:
             self.problem_description = ''
 
@@ -188,12 +235,13 @@ class AccountBankStatement(models.Model):
         el ``balance_end_real`` del estado anterior del mismo diario."""
         if not self.journal_id:
             return True
-        previous = (AccountBankStatement.objects
-                    .filter(journal=self.journal)
-                    .exclude(pk=self.pk)
-                    .filter(first_line_index__lt=self.first_line_index or '')
-                    .order_by('-first_line_index')
-                    .first())
+        previous = (
+            AccountBankStatement.objects.filter(journal=self.journal)
+            .exclude(pk=self.pk)
+            .filter(first_line_index__lt=self.first_line_index or '')
+            .order_by('-first_line_index')
+            .first()
+        )
         if not previous:
             return True
         return self.balance_start == previous.balance_end_real
@@ -205,11 +253,12 @@ class AccountBankStatement(models.Model):
         tienen calculado — cualquier estado del asiento, no sólo posteadas,
         igual que la referencia (que sólo filtra por ``internal_index``
         truthy, no por ``state``)."""
-        first = (self.line_ids
-                 .exclude(internal_index='')
-                 .order_by('internal_index')
-                 .values_list('internal_index', flat=True)
-                 .first())
+        first = (
+            self.line_ids.exclude(internal_index='')
+            .order_by('internal_index')
+            .values_list('internal_index', flat=True)
+            .first()
+        )
         self.first_line_index = first or ''
 
     def _compute_date(self):
@@ -222,11 +271,12 @@ class AccountBankStatement(models.Model):
         está posteada, ``date`` queda en ``None``. ``readonly=False`` en la
         referencia: este compute sólo aporta el valor por defecto, el
         usuario puede sobreescribirlo después."""
-        last_posted = (self.line_ids
-                       .exclude(internal_index='')
-                       .filter(move__state='posted')
-                       .order_by('internal_index')
-                       .last())
+        last_posted = (
+            self.line_ids.exclude(internal_index='')
+            .filter(move__state='posted')
+            .order_by('internal_index')
+            .last()
+        )
         self.date = last_posted.date if last_posted is not None else None
 
     def _compute_name(self):
@@ -245,16 +295,20 @@ class AccountBankStatement(models.Model):
         if self.name:
             return
         prefix = f'{self.journal.code} ' if self.journal_id else ''
-        self.name = f'{prefix}Estado {self.date}' if self.date else \
-            f'{prefix}Estado #{self.pk or "?"}'
+        self.name = (
+            f'{prefix}Estado {self.date}'
+            if self.date
+            else f'{prefix}Estado #{self.pk or "?"}'
+        )
 
     # -------------------------------------------------------------------
     # BUSQUEDA/LOTE — SQL de ventana (Odoo _get_invalid_statement_ids)
     # -------------------------------------------------------------------
 
     @classmethod
-    def _get_invalid_statement_ids(cls, all_statements=None,
-                                   journal_ids=None, ids=None):
+    def _get_invalid_statement_ids(
+        cls, all_statements=None, journal_ids=None, ids=None
+    ):
         """Odoo ``_get_invalid_statement_ids``
         (``odoo19c: account_bank_statement.py:242-275``): identifica, con
         una sola query de ventana (``LAG`` sobre ``first_line_index``

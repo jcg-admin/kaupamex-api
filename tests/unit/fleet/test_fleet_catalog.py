@@ -1,8 +1,10 @@
 """Catálogo de flota: ``fleet.service.type`` / ``model.category`` / ``model.
-brand`` / ``vehicle.tag`` / ``vehicle.state`` (addon ``fleet``, cierre parcial).
+brand`` / ``vehicle.tag`` / ``vehicle.state`` (addon ``fleet``, cierre
+parcial).
 
 Adaptación fiel de Odoo ``fleet`` (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import pytest
 
 from addons.fleet.models import (
@@ -20,7 +22,8 @@ pytestmark = pytest.mark.django_db
 class TestFleetServiceType:
     def test_create_and_str(self):
         stype = FleetServiceType.objects.create(
-            name='Cambio de aceite', category=FleetServiceType.CATEGORY_SERVICE,
+            name='Cambio de aceite',
+            category=FleetServiceType.CATEGORY_SERVICE,
         )
         assert str(stype) == 'Cambio de aceite'
         assert stype.category == 'service'
@@ -55,8 +58,12 @@ class TestFleetVehicleModelBrand:
 
     def test_model_count_counts_only_active_models(self):
         brand = FleetVehicleModelBrand.objects.create(name='Nissan')
-        FleetVehicleModel.objects.create(name='Sentra', brand=brand, active=True)
-        FleetVehicleModel.objects.create(name='March', brand=brand, active=False)
+        FleetVehicleModel.objects.create(
+            name='Sentra', brand=brand, active=True
+        )
+        FleetVehicleModel.objects.create(
+            name='March', brand=brand, active=False
+        )
         assert brand.model_count == 1
 
 
@@ -70,6 +77,8 @@ class TestFleetVehicleTag:
 
 class TestFleetVehicleState:
     def test_create_and_str(self):
-        state = FleetVehicleState.objects.create(name='Nueva solicitud', sequence=1)
+        state = FleetVehicleState.objects.create(
+            name='Nueva solicitud', sequence=1
+        )
         assert str(state) == 'Nueva solicitud'
         assert state.fold is False

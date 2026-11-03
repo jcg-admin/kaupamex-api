@@ -1,0 +1,4 @@
+...                                                                      [100%]
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-consumers-green.junit.xml -
+3 passed, 44 deselected in 0.16s
+{"head": "a8952d778b3416b80f2fb1bb12811b6785a819d9", "index_tree": "a1b1b18d1148a2eaf48da79e992f6d19c85ed829", "staged_registry_sha256": "3a3243ba9911ac852158284cea06bf4f2050648b2de7a9a3c0cf3560ccdbaf4c", "pytest_exit_code": 0, "git_provenance_unchanged": true, "scope": "Exact staged Registry; other Consumer sources remain working-tree dependencies; SQL prohibited; no acceptance"}

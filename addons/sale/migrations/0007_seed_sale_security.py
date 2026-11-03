@@ -11,6 +11,7 @@ La definición vive en ``addons/sale/security/ir_rules.py`` y esta migración
 sólo la invoca sobre los modelos históricos; ver el docstring de
 ``base/0059_seed_base_security`` para por qué el dato no vive aquí.
 """
+
 from django.db import migrations
 
 from addons.sale.security.ir_rules import seed_sale_rules

@@ -10,6 +10,7 @@ Cinco bloques: los símbolos, los ayudantes puros, la validación contra el
 esquema RelaxNG, la carga end-to-end de un XML real, y el bloqueo medido del
 camino CSV.
 """
+
 import io
 import os.path
 import textwrap
@@ -20,9 +21,16 @@ from lxml import etree
 from addons.base.models import ResPartner
 from addons.base.models.ir_model import IrModelData
 from orm import registry
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 from tools import config, convert
-from tools.convert import (ParseError, XmlImport, convert_xml_import,
-                           nodeattr2bool, str2bool)
+from tools.convert import (
+    ParseError,
+    XmlImport,
+    convert_xml_import,
+    nodeattr2bool,
+    str2bool,
+)
 
 
 def _xml(body):
@@ -35,20 +43,45 @@ def _xml(body):
 class TestPortedSymbols:
     """Los 24 símbolos de la fuente, con su nombre."""
 
-    @pytest.mark.parametrize('name', [
-        'ParseError', '_get_eval_context', '_fix_multiple_roots', '_eval_xml',
-        'str2bool', 'nodeattr2bool', 'convert_file', 'convert_sql_import',
-        'convert_csv_import', 'convert_xml_import',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            'ParseError',
+            '_get_eval_context',
+            '_fix_multiple_roots',
+            '_eval_xml',
+            'str2bool',
+            'nodeattr2bool',
+            'convert_file',
+            'convert_sql_import',
+            'convert_csv_import',
+            'convert_xml_import',
+        ],
+    )
     def test_the_module_declares_the_reference_symbol(self, name):
         assert hasattr(convert, name)
 
-    @pytest.mark.parametrize('name', [
-        'get_env', 'make_xml_id', '_test_xml_id', '_tag_delete', '_tag_function',
-        '_tag_menuitem', '_tag_record', '_tag_template', '_tag_asset', 'id_get',
-        'model_id_get', '_tag_root', 'noupdate', 'next_sequence', '__init__',
-        'parse',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            'get_env',
+            'make_xml_id',
+            '_test_xml_id',
+            '_tag_delete',
+            '_tag_function',
+            '_tag_menuitem',
+            '_tag_record',
+            '_tag_template',
+            '_tag_asset',
+            'id_get',
+            'model_id_get',
+            '_tag_root',
+            'noupdate',
+            'next_sequence',
+            '__init__',
+            'parse',
+        ],
+    )
     def test_the_class_declares_the_reference_symbol(self, name):
         assert hasattr(XmlImport, name)
 
@@ -62,16 +95,23 @@ class TestPortedSymbols:
         # pila de entornos. Aquí el entorno es ambiente, así que la pila es de
         # ámbitos y no hay objeto que devolver.
         assert not hasattr(XmlImport, 'env')
-        assert hasattr(XmlImport, '_scopes') or True   # se crea en __init__
+        assert hasattr(XmlImport, '_scopes') or True  # se crea en __init__
 
 
 class TestPureHelpers:
     """Los ayudantes que no tocan la base."""
 
-    @pytest.mark.parametrize('value,expected', [
-        ('1', True), ('True', True), ('yes', True),
-        ('0', False), ('false', False), ('OFF', False),
-    ])
+    @pytest.mark.parametrize(
+        'value,expected',
+        [
+            ('1', True),
+            ('True', True),
+            ('yes', True),
+            ('0', False),
+            ('false', False),
+            ('OFF', False),
+        ],
+    )
     def test_str2bool(self, value, expected):
         assert str2bool(value) is expected
 
@@ -122,7 +162,8 @@ class TestSchemaValidation:
 
     def test_the_schema_ships_with_the_product(self):
         assert os.path.exists(
-            os.path.join(config.root_path(), 'import_xml.rng'))
+            os.path.join(config.root_path(), 'import_xml.rng')
+        )
 
     def test_an_unknown_root_tag_is_rejected(self):
         with pytest.raises(Exception):
@@ -132,8 +173,7 @@ class TestSchemaValidation:
         # CONTROL que puede fallar: si el esquema no se aplicara, esta etiqueta
         # llegaría al despachador, que la ignoraría en silencio.
         with pytest.raises(Exception):
-            convert_xml_import(
-                'probe', _xml('<odoo><invento id="x"/></odoo>'))
+            convert_xml_import('probe', _xml('<odoo><invento id="x"/></odoo>'))
 
 
 @pytest.mark.django_db
@@ -142,13 +182,18 @@ class TestLoadFromXml:
 
     def test_a_record_lands_with_its_xmlid(self):
         registry.clear_cache('default')
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo>
               <record id="cv_one" model="base.ResPartner">
                 <field name="name">Cargado</field>
               </record>
             </odoo>
-        '''))
+        '''
+            ),
+        )
         row = IrModelData.objects.get(module='base', name='cv_one')
         assert ResPartner.objects.get(pk=row.res_id).name == 'Cargado'
 
@@ -170,20 +215,28 @@ class TestLoadFromXml:
 
     def test_an_eval_field_is_evaluated(self):
         registry.clear_cache('default')
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo>
               <record id="cv_eval" model="base.ResPartner">
                 <field name="name">Con eval</field>
                 <field name="is_company" eval="True"/>
               </record>
             </odoo>
-        '''))
+        '''
+            ),
+        )
         row = IrModelData.objects.get(module='base', name='cv_eval')
         assert ResPartner.objects.get(pk=row.res_id).is_company is True
 
     def test_a_ref_field_resolves_a_previous_record(self):
         registry.clear_cache('default')
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo>
               <record id="cv_parent" model="base.ResPartner">
                 <field name="name">Madre</field>
@@ -194,58 +247,106 @@ class TestLoadFromXml:
                 <field name="parent" ref="cv_parent"/>
               </record>
             </odoo>
-        '''))
-        parent = IrModelData.objects.get(module='base', name='cv_parent').res_id
+        '''
+            ),
+        )
+        parent = IrModelData.objects.get(
+            module='base', name='cv_parent'
+        ).res_id
         child = IrModelData.objects.get(module='base', name='cv_child').res_id
         assert ResPartner.objects.get(pk=child).parent_id == parent
 
     def test_noupdate_protects_the_record_on_update(self):
         registry.clear_cache('default')
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo noupdate="1">
               <record id="cv_keep" model="base.ResPartner">
                 <field name="name">A mano</field>
               </record>
             </odoo>
-        '''), mode='init')
+        '''
+            ),
+            mode='init',
+        )
         pk = IrModelData.objects.get(module='base', name='cv_keep').res_id
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo noupdate="1">
               <record id="cv_keep" model="base.ResPartner">
                 <field name="name">Del modulo</field>
               </record>
             </odoo>
-        '''), mode='update')
+        '''
+            ),
+            mode='update',
+        )
         assert ResPartner.objects.get(pk=pk).name == 'A mano'
 
     def test_a_delete_tag_removes_the_record(self):
         registry.clear_cache('default')
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo>
               <record id="cv_gone" model="base.ResPartner">
                 <field name="name">Efimero</field>
               </record>
             </odoo>
-        '''))
+        '''
+            ),
+        )
         pk = IrModelData.objects.get(module='base', name='cv_gone').res_id
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo>
               <delete id="cv_gone" model="base.ResPartner"/>
             </odoo>
-        '''))
+        '''
+            ),
+        )
         assert not ResPartner.objects.filter(pk=pk).exists()
+
+    def test_delete_goes_through_the_orm_unlink(self):
+        """≙ ``records.unlink()`` (``odoo19c: odoo/tools/convert.py:265``):
+        el borrado de un ``<delete>`` pasa por el ``unlink`` del modelo, con
+        sus sobrescrituras. ``test_orm.order.line`` borra además la línea de
+        recompensa del mismo producto; un ``QuerySet.delete()`` la dejaría."""
+        with Environment(None, SUPERUSER_ID, {}) as env:
+            Line = env['test_orm.order.line']
+            order = env['test_orm.order'].create({})
+            Line.create([{'order_id': order.id, 'product': 'p', 'reward': False},
+                         {'order_id': order.id, 'product': 'p', 'reward': True}])
+            convert_xml_import('test_orm', _xml(f'''
+                <odoo>
+                  <delete model="test_orm.order.line"
+                          search="[('order_id', '=', {order.id}), ('reward', '=', False)]"/>
+                </odoo>'''))
+            assert not Line.search_count([('order_id', '=', order.id)])
 
     def test_a_broken_record_names_the_line(self):
         # El envoltorio ParseError de _tag_root: un fallo dentro de un nodo se
         # convierte en "esta linea de este archivo", no en un rastro opaco.
         with pytest.raises(ParseError) as excinfo:
-            convert_xml_import('base', _xml('''
+            convert_xml_import(
+                'base',
+                _xml(
+                    '''
                 <odoo>
                   <record id="cv_bad" model="base.ModeloQueNoExiste">
                     <field name="name">X</field>
                   </record>
                 </odoo>
-            '''))
+            '''
+                ),
+            )
         assert 'somewhere inside' in str(excinfo.value)
 
     def test_auto_sequence_restarts_at_each_sibling_record(self):
@@ -265,7 +366,10 @@ class TestLoadFromXml:
         anidadas.
         """
         registry.clear_cache('default')
-        convert_xml_import('base', _xml('''
+        convert_xml_import(
+            'base',
+            _xml(
+                '''
             <odoo auto_sequence="1">
               <record id="cv_s1" model="base.IrUiMenu">
                 <field name="name">Uno</field>
@@ -276,10 +380,16 @@ class TestLoadFromXml:
                 <field name="key">cv_seq_dos</field>
               </record>
             </odoo>
-        '''))
+        '''
+            ),
+        )
         IrUiMenu = registry.model_by_name('ir.ui.menu')
-        rows = {d.name: d.res_id for d in IrModelData.objects.filter(
-            module='base', name__in=['cv_s1', 'cv_s2'])}
+        rows = {
+            d.name: d.res_id
+            for d in IrModelData.objects.filter(
+                module='base', name__in=['cv_s1', 'cv_s2']
+            )
+        }
         assert IrUiMenu.objects.get(pk=rows['cv_s1']).sequence == 10
         assert IrUiMenu.objects.get(pk=rows['cv_s2']).sequence == 10
 
@@ -299,7 +409,9 @@ class TestCsvIsNoLongerBlocked:
             convert.convert_csv_import('base', 'no.existe.csv', b'name\nx\n')
 
     def test_it_no_longer_raises_not_implemented(self):
-        """El control que discrimina: antes esto era ``NotImplementedError``."""
+        """
+        El control que discrimina: antes esto era ``NotImplementedError``.
+        """
         with pytest.raises(Exception) as excinfo:
             convert.convert_csv_import('base', 'no.existe.csv', b'name\nx\n')
 

@@ -14,6 +14,7 @@ atributos. Un caso que sólo afirmara «no levanta ``NotImplementedError``»
 pasaría con un ``return ''`` (sub-patrón D de
 ``metrica-decide-la-conclusion.md``).
 """
+
 import base64
 import re
 
@@ -42,7 +43,7 @@ class TestTheEmptyAndTheNonAsciiTakeTheirOwnPaths:
     def test_a_non_ascii_value_is_not_drawn(self):
         out = IrFieldConverterBarcode.value_to_html('códigó')
         assert '<img' not in out
-        assert 'c&#x27;' not in out          # se escapa, no se rompe
+        assert 'c&#x27;' not in out  # se escapa, no se rompe
 
     def test_a_non_ascii_value_keeps_its_line_breaks(self):
         out = IrFieldConverterBarcode.value_to_html('cañón\nsegunda')
@@ -62,17 +63,29 @@ class TestThePngComesOutOfTheDrawer:
     def test_the_symbology_option_reaches_the_drawer(self):
         # Dos simbologías distintas sobre el mismo valor dan dibujos
         # distintos. Si la opción se ignorase, los dos PNG serían iguales.
-        code128 = src_of(IrFieldConverterBarcode.value_to_html(
-            '12345670', options={'symbology': 'Code128'}))
-        ean8 = src_of(IrFieldConverterBarcode.value_to_html(
-            '12345670', options={'symbology': 'EAN8'}))
+        code128 = src_of(
+            IrFieldConverterBarcode.value_to_html(
+                '12345670', options={'symbology': 'Code128'}
+            )
+        )
+        ean8 = src_of(
+            IrFieldConverterBarcode.value_to_html(
+                '12345670', options={'symbology': 'EAN8'}
+            )
+        )
         assert code128 != ean8
 
     def test_the_size_options_reach_the_drawer(self):
-        small = src_of(IrFieldConverterBarcode.value_to_html(
-            '123456789012', options={'width': 200, 'height': 50}))
-        big = src_of(IrFieldConverterBarcode.value_to_html(
-            '123456789012', options={'width': 600, 'height': 100}))
+        small = src_of(
+            IrFieldConverterBarcode.value_to_html(
+                '123456789012', options={'width': 200, 'height': 50}
+            )
+        )
+        big = src_of(
+            IrFieldConverterBarcode.value_to_html(
+                '123456789012', options={'width': 600, 'height': 100}
+            )
+        )
         assert small != big
 
 
@@ -85,23 +98,27 @@ class TestTheMarkupFollowsTheSourceRules:
 
     def test_an_img_prefixed_option_in_the_allowlist_reaches_the_tag(self):
         out = IrFieldConverterBarcode.value_to_html(
-            '123456789012', options={'img_class': 'barcode-print'})
+            '123456789012', options={'img_class': 'barcode-print'}
+        )
         assert 'class="barcode-print"' in out
 
     def test_an_img_prefixed_option_outside_the_allowlist_is_dropped(self):
         # ``onerror`` es el caso que la lista blanca existe para detener.
         out = IrFieldConverterBarcode.value_to_html(
-            '123456789012', options={'img_onerror': 'alert(1)'})
+            '123456789012', options={'img_onerror': 'alert(1)'}
+        )
         assert 'onerror' not in out
 
     def test_an_explicit_alt_wins_over_the_composed_one(self):
         out = IrFieldConverterBarcode.value_to_html(
-            '123456789012', options={'img_alt': 'etiqueta'})
+            '123456789012', options={'img_alt': 'etiqueta'}
+        )
         assert 'alt="etiqueta"' in out
         assert 'Barcode 123456789012' not in out
 
     def test_the_attribute_value_is_escaped(self):
         out = IrFieldConverterBarcode.value_to_html(
-            '123456789012', options={'img_title': 'a"b<c'})
+            '123456789012', options={'img_title': 'a"b<c'}
+        )
         assert 'a"b<c' not in out
         assert '&quot;' in out or '&#34;' in out

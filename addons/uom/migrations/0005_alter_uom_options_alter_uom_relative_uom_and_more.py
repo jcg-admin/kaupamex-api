@@ -25,7 +25,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="relative_uom_id",
-                help_text="Unidad de referencia de la que cuelga (Odoo relative_uom_id).",
+                help_text=(
+                    "Unidad de referencia de la que cuelga (Odoo"
+                    " relative_uom_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="related_uoms",

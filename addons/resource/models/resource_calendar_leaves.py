@@ -1,4 +1,5 @@
-"""``resource.calendar.leaves`` — una ausencia/tiempo libre (Odoo ``resource``).
+"""
+``resource.calendar.leaves`` — una ausencia/tiempo libre (Odoo ``resource``).
 
 Adaptación fiel de Odoo resource/models/resource_calendar_leaves.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
@@ -30,6 +31,7 @@ Divergencias declaradas
    familias de la misma ola no sostengan convenciones opuestas sobre el
    mismo ``USE_TZ``.
 """
+
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
@@ -52,24 +54,38 @@ class ResourceCalendarLeaves(TimeStampedModel):
     """``resource.calendar.leaves`` — una ausencia general de la compañía o
     de un recurso concreto."""
 
-    name = fields.Char(max_length=200, blank=True, default='', help_text='Odoo name.')
+    name = fields.Char(
+        max_length=200, blank=True, default='', help_text='Odoo name.'
+    )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='resource_leaves',
-        help_text='Odoo company_id (compute+store; aquí sincronizado en save()).',
+        help_text=(
+            'Odoo company_id (compute+store; aquí sincronizado en save()).'
+        ),
     )
     calendar = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.SET_NULL, null=True, blank=True,
+        'resource.ResourceCalendar',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='leaves',
         help_text='Odoo calendar_id (compute+store, readonly=False).',
     )
     date_from = fields.Datetime(help_text='Odoo date_from (required).')
     date_to = fields.Datetime(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Odoo date_to (compute+store, readonly=False).',
     )
     resource = fields.Many2one(
-        'resource.ResourceResource', on_delete=models.SET_NULL, null=True, blank=True,
+        'resource.ResourceResource',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='leaves',
         help_text=(
             'Odoo resource_id. Vacío = ausencia general de la compañía; '
@@ -77,7 +93,9 @@ class ResourceCalendarLeaves(TimeStampedModel):
         ),
     )
     time_type = fields.Selection(
-        max_length=10, choices=TIME_TYPES, default='leave',
+        max_length=10,
+        choices=TIME_TYPES,
+        default='leave',
         help_text='Odoo time_type (leave vs formación/otro).',
     )
 
@@ -102,12 +120,16 @@ class ResourceCalendarLeaves(TimeStampedModel):
         if self.date_from is None and self.date_to is None:
             self._set_default_full_day()
         # Odoo `_compute_date_to`: si sólo se dio date_from, cierra el día.
-        elif self.date_from and (self.date_to is None or self.date_to <= self.date_from):
+        elif self.date_from and (
+            self.date_to is None or self.date_to <= self.date_from
+        ):
             self._close_day_from_date_from()
         super().save(*args, **kwargs)
 
     def _set_default_full_day(self):
-        tz_name = (self.calendar.tz if self.calendar_id else None) or settings.TIME_ZONE
+        tz_name = (
+            self.calendar.tz if self.calendar_id else None
+        ) or settings.TIME_ZONE
         tzinfo = ZoneInfo(tz_name)
         today = django_tz.localdate()
         local_start = datetime.combine(today, time.min, tzinfo=tzinfo)
@@ -116,17 +138,22 @@ class ResourceCalendarLeaves(TimeStampedModel):
         self.date_to = local_end.astimezone(ZoneInfo('UTC'))
 
     def _close_day_from_date_from(self):
-        tz_name = (self.calendar.tz if self.calendar_id else None) or settings.TIME_ZONE
+        tz_name = (
+            self.calendar.tz if self.calendar_id else None
+        ) or settings.TIME_ZONE
         tzinfo = ZoneInfo(tz_name)
         local_from = django_tz.localtime(self.date_from, tzinfo)
-        local_end = datetime.combine(local_from.date(), time(23, 59, 59), tzinfo=tzinfo)
+        local_end = datetime.combine(
+            local_from.date(), time(23, 59, 59), tzinfo=tzinfo
+        )
         self.date_to = local_end.astimezone(ZoneInfo('UTC'))
 
     def clean(self):
         super().clean()
         if self.date_from and self.date_to and self.date_from > self.date_to:
             raise ValidationError(
-                'La fecha de inicio de la ausencia debe ser anterior a la de fin.'
+                'La fecha de inicio de la ausencia debe ser anterior a la de'
+                ' fin.'
             )
 
     def copy_vals(self):

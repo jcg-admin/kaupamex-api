@@ -36,7 +36,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Referencia de la orden (Odoo purchase.order.name).",
+                        help_text=(
+                            "Referencia de la orden (Odoo"
+                            " purchase.order.name)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -108,7 +111,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Descripción de la línea (Odoo purchase.order.line.name).",
+                        help_text=(
+                            "Descripción de la línea (Odoo"
+                            " purchase.order.line.name)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -117,7 +123,9 @@ class Migration(migrations.Migration):
                     models.PositiveIntegerField(
                         default=1,
                         help_text="Cantidad (Odoo product_qty).",
-                        validators=[django.core.validators.MinValueValidator(1)],
+                        validators=[
+                            django.core.validators.MinValueValidator(1)
+                        ],
                     ),
                 ),
                 (

@@ -10,6 +10,7 @@ recursivo (``:69-75``).
 
 Toca DB → django_db.
 """
+
 import pytest
 
 from addons.base.models import DecimalPrecision
@@ -21,9 +22,12 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 @pytest.fixture
 def precision_product_unit():
-    """``decimal.precision`` "Product Unit" — la que usa ``uom`` para redondear."""
+    """
+    ``decimal.precision`` "Product Unit" — la que usa ``uom`` para redondear.
+    """
     obj, _ = DecimalPrecision.objects.get_or_create(
-        name='Product Unit', defaults={'digits': 2},
+        name='Product Unit',
+        defaults={'digits': 2},
     )
     obj.digits = 2
     obj.save()
@@ -34,16 +38,27 @@ def precision_product_unit():
 def unidades(precision_product_unit):
     """Las unidades del seed de la referencia (``uom/data/uom_data.xml``)."""
     gram = Uom.objects.create(name='g', relative_factor=1.0)
-    kgm = Uom.objects.create(name='kg', relative_factor=1000, relative_uom_id=gram)
-    ton = Uom.objects.create(name='Ton', relative_factor=1000, relative_uom_id=kgm)
+    kgm = Uom.objects.create(
+        name='kg', relative_factor=1000, relative_uom_id=gram
+    )
+    ton = Uom.objects.create(
+        name='Ton', relative_factor=1000, relative_uom_id=kgm
+    )
     unit = Uom.objects.create(name='Units', relative_factor=1.0)
-    dozen = Uom.objects.create(name='Dozens', relative_factor=12, relative_uom_id=unit)
+    dozen = Uom.objects.create(
+        name='Dozens', relative_factor=12, relative_uom_id=unit
+    )
     return {
-        'gram': gram, 'kgm': kgm, 'ton': ton, 'unit': unit, 'dozen': dozen,
+        'gram': gram,
+        'kgm': kgm,
+        'ton': ton,
+        'unit': unit,
+        'dozen': dozen,
     }
 
 
 # --- Conversión (referencia: test_10_conversion) ---------------------------
+
 
 def test_conversion_gramo_a_tonelada(unidades):
     assert unidades['gram'].compute_quantity(1020000, unidades['ton']) == 1.02
@@ -68,9 +83,14 @@ def test_gramo_a_kilogramo_redondea_a_la_precision_del_destino(unidades):
 
 # --- Redondeo (referencia: test_20_rounding) -------------------------------
 
-def test_redondea_hacia_arriba_con_cero_decimales(unidades, precision_product_unit):
+
+def test_redondea_hacia_arriba_con_cero_decimales(
+    unidades, precision_product_unit
+):
     score = Uom.objects.create(
-        name='Score', relative_factor=20, relative_uom_id=unidades['unit'],
+        name='Score',
+        relative_factor=20,
+        relative_uom_id=unidades['unit'],
     )
     precision_product_unit.digits = 0
     precision_product_unit.save()
@@ -80,12 +100,14 @@ def test_redondea_hacia_arriba_con_cero_decimales(unidades, precision_product_un
 
 # --- check_qty (referencia: test_30_quantity) ------------------------------
 
+
 def test_check_qty_no_redondea_si_la_unidad_es_la_misma(unidades):
     """Misma unidad de empaque que de producto → la cantidad no se toca."""
     assert unidades['unit'].check_qty(22.43, unidades['unit'], 'DOWN') == 22.43
 
 
 # --- factor recursivo (uom_uom.py:69-75) -----------------------------------
+
 
 def test_factor_es_el_producto_de_la_cadena(unidades):
     """``ton`` cuelga de ``kg`` que cuelga de ``g``: 1000 × 1000."""
@@ -104,6 +126,7 @@ def test_cambiar_el_factor_del_padre_repropaga_a_los_hijos(unidades):
 
 # --- Restricciones ---------------------------------------------------------
 
+
 def test_factor_cero_es_rechazado(precision_product_unit):
     """``_factor_gt_zero`` (``uom_uom.py:47-50``)."""
     with pytest.raises(UserError):
@@ -118,6 +141,7 @@ def test_sin_unidad_de_referencia_el_factor_debe_ser_uno(unidades):
 
 # --- Métricas de comparación ------------------------------------------------
 
+
 def test_round_compare_is_zero_usan_la_precision_declarada(unidades):
     u = unidades['unit']
     # 1.005 se representa en IEEE-754 como 1.00499999999999989, así que un
@@ -125,7 +149,7 @@ def test_round_compare_is_zero_usan_la_precision_declarada(unidades):
     # inclina el empate hacia afuera de cero: 1.01. Verificado contra
     # odoo/tools/float_utils.py ejecutado sobre la referencia.
     assert u.round(1.005) == 1.01
-    assert u.compare(1.001, 1.002) == 0      # iguales a 2 decimales
+    assert u.compare(1.001, 1.002) == 0  # iguales a 2 decimales
     assert u.compare(1.02, 1.01) == 1
     assert u.is_zero(0.004) is True
     assert u.is_zero(0.02) is False

@@ -4,6 +4,7 @@
 el addon extiende. Aquí se ejercen los símbolos que el porte trajo, y la
 instalación misma: que ``ready()`` haya colgado lo que declara.
 """
+
 import pytest
 
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -22,7 +23,10 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def internal_user(admin_user):
-    """Un usuario con grupo de ``user_type='internal'`` — lo que mide ``_is_internal``."""
+    """
+    Un usuario con grupo de ``user_type='internal'`` — lo que mide
+    ``_is_internal``.
+    """
     group = ResGroups.objects.create(name='Internos QA', user_type='internal')
     admin_user.group_ids.add(group)
     return admin_user
@@ -63,7 +67,9 @@ class TestKpiProviderLoader:
 
 
 class TestIrHttpSessionInfo:
-    """≙ ``IrHttp.session_info`` (``odoo19c: base_setup/models/ir_http.py``)."""
+    """
+    ≙ ``IrHttp.session_info`` (``odoo19c: base_setup/models/ir_http.py``).
+    """
 
     def test_class_attributes_come_from_the_reference(self):
         assert IrHttp._inherit == 'ir.http'
@@ -73,7 +79,9 @@ class TestIrHttpSessionInfo:
         SystemParameter.set_param(SHOW_EFFECT_PARAM, '1')
         assert IrHttp.session_info(internal_user, {})['show_effect'] is True
 
-    def test_the_flag_is_false_when_the_parameter_is_absent(self, internal_user):
+    def test_the_flag_is_false_when_the_parameter_is_absent(
+        self, internal_user
+    ):
         assert IrHttp.session_info(internal_user, {})['show_effect'] is False
 
     def test_a_user_without_an_internal_group_gets_no_flag(self, admin_user):
@@ -97,7 +105,10 @@ class TestIrHttpSessionInfo:
 
 
 class TestWebCreateUsers:
-    """≙ ``res.users.web_create_users`` (``odoo19c: base_setup/models/res_users.py``)."""
+    """
+    ≙ ``res.users.web_create_users`` (``odoo19c:
+    base_setup/models/res_users.py``).
+    """
 
     def test_the_extension_is_installed_on_the_foreign_model(self):
         # ``ready()`` cuelga el método sobre ``base.ResUsers`` con

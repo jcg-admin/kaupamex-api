@@ -23,7 +23,9 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(("rounding__gt", 0)),
                 name="res_currency_rounding_gt_zero",
-                violation_error_message="El factor de redondeo debe ser mayor que 0.",
+                violation_error_message=(
+                    "El factor de redondeo debe ser mayor que 0."
+                ),
             ),
         ),
     ]

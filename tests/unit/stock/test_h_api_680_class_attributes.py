@@ -10,9 +10,14 @@ Verifica los tres modelos a los que este pase les completó la cabecera:
 - ``odoo19c: addons/stock/models/product_strategy.py:17-20`` —
   ``StockPutawayRule``.
 """
+
 import pytest
 
-from addons.stock.models import StockPackage, StockPackageType, StockPutawayRule
+from addons.stock.models import (
+    StockPackage,
+    StockPackageType,
+    StockPutawayRule,
+)
 
 pytestmark = [pytest.mark.unit]
 

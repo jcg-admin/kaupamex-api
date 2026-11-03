@@ -13,6 +13,7 @@ salen: la identidad es ``SaleOrder.name``, las partidas son
 proyecta de los tres ejes. Renombrar el contrato habría roto al consumidor sin
 ganar nada — el vocabulario canónico gobierna el código, no el payload.
 """
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -48,17 +49,25 @@ def product_lines(order):
     prefetched = getattr(order, '_product_lines_prefetched', None)
     if prefetched is not None:
         return prefetched
-    return list(order.order_line
-                .filter(is_delivery=False, is_reward=False)
-                .select_related('product')
-                .order_by('id'))
+    return list(
+        order.order_line.filter(is_delivery=False, is_reward=False)
+        .select_related('product')
+        .order_by('id')
+    )
 
 
 class DeliveryAddressSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = DeliveryAddress
-        fields = ['recipient_name', 'street', 'city', 'state', 'zip_code',
-                  'country', 'phone']
+        model = DeliveryAddress
+        fields = [
+            'recipient_name',
+            'street',
+            'city',
+            'state',
+            'zip_code',
+            'country',
+            'phone',
+        ]
 
 
 class OrderValueSerializer(serializers.Serializer):
@@ -69,11 +78,12 @@ class OrderValueSerializer(serializers.Serializer):
     **strings** con dos decimales. Devolver el ``Decimal`` degradaba el tipo a
     float en los consumidores que reserializan la respuesta.
     """
-    subtotal      = serializers.DecimalField(max_digits=12, decimal_places=2)
-    tax           = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    subtotal = serializers.DecimalField(max_digits=12, decimal_places=2)
+    tax = serializers.DecimalField(max_digits=12, decimal_places=2)
     shipping_cost = serializers.DecimalField(max_digits=12, decimal_places=2)
-    discount      = serializers.DecimalField(max_digits=12, decimal_places=2)
-    total         = serializers.DecimalField(max_digits=12, decimal_places=2)
+    discount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -83,20 +93,29 @@ class OrderItemSerializer(serializers.ModelSerializer):
     que el consumidor ya lee; en la canónica viven en ``name``/``price_unit``/
     ``product_uom_qty`` y en el campo ``price_total``.
     """
-    product_name  = serializers.CharField(source='name', read_only=True)
-    sku           = serializers.SerializerMethodField()
-    unit_price    = serializers.DecimalField(
-        source='price_unit', max_digits=12, decimal_places=2, read_only=True)
-    quantity      = serializers.IntegerField(
-        source='product_uom_qty', read_only=True)
-    subtotal      = serializers.SerializerMethodField()
-    image_url     = serializers.SerializerMethodField()
+
+    product_name = serializers.CharField(source='name', read_only=True)
+    sku = serializers.SerializerMethodField()
+    unit_price = serializers.DecimalField(
+        source='price_unit', max_digits=12, decimal_places=2, read_only=True
+    )
+    quantity = serializers.IntegerField(
+        source='product_uom_qty', read_only=True
+    )
+    subtotal = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
-        model  = SaleOrderLine
-        fields = ['id', 'product_name', 'sku',
-                  'unit_price', 'quantity', 'subtotal', 'image_url']
-
+        model = SaleOrderLine
+        fields = [
+            'id',
+            'product_name',
+            'sku',
+            'unit_price',
+            'quantity',
+            'subtotal',
+            'image_url',
+        ]
 
     def get_sku(self, obj) -> str:
         # H-API — ``product.sku`` no existe en ``product.ProductProduct``: el
@@ -127,38 +146,52 @@ class OrderItemSerializer(serializers.ModelSerializer):
         # es un rediseño de producto, fuera de alcance aquí.
         return None
         request = self.context.get('request')
-        return (request.build_absolute_uri(cover.image.url) if request
-                else cover.image.url)
+        return (
+            request.build_absolute_uri(cover.image.url)
+            if request
+            else cover.image.url
+        )
 
 
 class OrderSerializer(serializers.ModelSerializer):
     """Detalle completo de una orden — UC-ORD-02."""
-    order_number         = serializers.CharField(source='name', read_only=True)
-    user                 = serializers.PrimaryKeyRelatedField(
-        source='partner', read_only=True)
-    items                = serializers.SerializerMethodField()
-    value                = serializers.SerializerMethodField()
-    address              = DeliveryAddressSerializer(
-        source='delivery_address', read_only=True)
+
+    order_number = serializers.CharField(source='name', read_only=True)
+    user = serializers.PrimaryKeyRelatedField(source='partner', read_only=True)
+    items = serializers.SerializerMethodField()
+    value = serializers.SerializerMethodField()
+    address = DeliveryAddressSerializer(
+        source='delivery_address', read_only=True
+    )
     shipping_method_name = serializers.SerializerMethodField()
-    status               = serializers.SerializerMethodField()
-    status_display       = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
 
     class Meta:
-        model  = SaleOrder
+        model = SaleOrder
         # Sin ``id``: el PK entero es secuencial y permitiría enumerar las
         # órdenes del sistema. ``order_number`` es el identificador público.
         fields = [
-            'order_number', 'status', 'status_display',
-            'user', 'guest_email', 'shipping_method_name', 'notes',
-            'items', 'value', 'address',
-            'created_at', 'cancelled_at', 'cancellation_reason',
+            'order_number',
+            'status',
+            'status_display',
+            'user',
+            'guest_email',
+            'shipping_method_name',
+            'notes',
+            'items',
+            'value',
+            'address',
+            'created_at',
+            'cancelled_at',
+            'cancellation_reason',
         ]
 
     @extend_schema_field(OrderItemSerializer(many=True))
     def get_items(self, obj):
-        return OrderItemSerializer(product_lines(obj), many=True,
-                                   context=self.context).data
+        return OrderItemSerializer(
+            product_lines(obj), many=True, context=self.context
+        ).data
 
     @extend_schema_field(OrderValueSerializer)
     def get_value(self, obj) -> dict:
@@ -178,19 +211,28 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderListSerializer(serializers.ModelSerializer):
     """Resumen para el historial — UC-ORD-03."""
-    order_number   = serializers.CharField(source='name', read_only=True)
-    total          = serializers.DecimalField(
-        source='amount_total', max_digits=12, decimal_places=2, read_only=True)
-    items_count    = serializers.SerializerMethodField()
-    thumbnail_url  = serializers.SerializerMethodField()
-    status         = serializers.SerializerMethodField()
+
+    order_number = serializers.CharField(source='name', read_only=True)
+    total = serializers.DecimalField(
+        source='amount_total', max_digits=12, decimal_places=2, read_only=True
+    )
+    items_count = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
 
     class Meta:
-        model  = SaleOrder
-        fields = ['order_number', 'status', 'status_display',
-                  'created_at', 'updated_at', 'total', 'items_count',
-                  'thumbnail_url']
+        model = SaleOrder
+        fields = [
+            'order_number',
+            'status',
+            'status_display',
+            'created_at',
+            'updated_at',
+            'total',
+            'items_count',
+            'thumbnail_url',
+        ]
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_items_count(self, obj):
@@ -221,7 +263,11 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 class CancelOrderSerializer(serializers.Serializer):
     """Cuerpo de POST ``/api/v2/orders/<order_number>/cancellations/``."""
+
     reason = serializers.CharField(
-        required=False, default='', allow_blank=True, max_length=500,
+        required=False,
+        default='',
+        allow_blank=True,
+        max_length=500,
         help_text='Motivo de la cancelación (opcional, visible al comprador).',
     )

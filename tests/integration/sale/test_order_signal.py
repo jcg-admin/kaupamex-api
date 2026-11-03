@@ -1,4 +1,5 @@
-"""Tests — señal order_created en checkout (T-508): retirado, sin endpoint HTTP.
+"""
+Tests — señal order_created en checkout (T-508): retirado, sin endpoint HTTP.
 
 Verificaba que ``POST /api/v2/orders/`` disparara la señal ``order_created``
 exactamente una vez. El endpoint no existe — ver ``test_checkout.py`` para

@@ -1,0 +1,47 @@
+{
+  "unmigrated_apps": [
+    "account_edi_ubl_cii",
+    "account_peppol",
+    "account_peppol_advanced_fields",
+    "account_qr_code_emv",
+    "authz_timeout",
+    "base_import",
+    "corsheaders",
+    "crm_sms",
+    "drf_spectacular",
+    "hr_fleet",
+    "hr_hourly_cost",
+    "hr_recruitment_sms",
+    "html_builder",
+    "http_routing",
+    "messages",
+    "payment_aps",
+    "payment_authorize",
+    "payment_custom",
+    "payment_demo",
+    "payment_mercado_pago",
+    "payment_paypal",
+    "payment_stripe",
+    "portal",
+    "postgres",
+    "project_account",
+    "project_hr_skills",
+    "project_sms",
+    "project_stock",
+    "project_todo",
+    "purchase_stock",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "rpc",
+    "staticfiles",
+    "test_orm",
+    "website_mass_mailing"
+  ],
+  "relations_into_migrated_apps": [
+    {
+      "model": "test_orm.TestOrmDiscussion",
+      "field": "moderator",
+      "target": "base.ResUsers"
+    }
+  ]
+}

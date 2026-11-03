@@ -1,0 +1,24 @@
+[
+  {
+    "path": "src/orm/fields.py",
+    "symbol": "recompute",
+    "unchanged_ast": true
+  },
+  {
+    "path": "src/orm/models.py",
+    "symbol": "_recompute_field",
+    "unchanged_ast": true
+  },
+  {
+    "path": "src/orm/fields_misc.py",
+    "unchanged_bytes": true
+  },
+  {
+    "path": "src/orm/fields_relational.py",
+    "unchanged_bytes": true
+  },
+  {
+    "path": "src/addons/test_orm/migrations/0001_initial.py",
+    "unchanged_bytes": true
+  }
+]

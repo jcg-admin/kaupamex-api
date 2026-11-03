@@ -26,6 +26,7 @@ Porte símbolo por símbolo — 1 campo + 1 método
        models/resource_calendar_leaves.py``) con ``combine=`` que funde el
        dict previo con ``{'work_entry_type_id': …}``
 """
+
 import fields
 import models
 
@@ -57,14 +58,20 @@ def apply_hr_work_entry_resource_calendar_leaves_extensions():
     """Cuelga sobre ``resource.calendar.leaves`` lo que ``hr_work_entry`` le
     añade — ≙ ``_inherit``."""
     extend_model(
-        'resource', 'ResourceCalendarLeaves',
+        'resource',
+        'ResourceCalendarLeaves',
         campos={
             'work_entry_type': fields.Many2one(
-                'hr_work_entry.HrWorkEntryType', on_delete=models.SET_NULL,
-                verbose_name='Work Entry Type', null=True, blank=True,
+                'hr_work_entry.HrWorkEntryType',
+                on_delete=models.SET_NULL,
+                verbose_name='Work Entry Type',
+                null=True,
+                blank=True,
                 related_name='calendar_leaves',
-                help_text='Odoo work_entry_type_id (groups=hr.group_hr_user '
-                          '— ACL del cliente, no se porta).',
+                help_text=(
+                    'Odoo work_entry_type_id (groups=hr.group_hr_user '
+                    '— ACL del cliente, no se porta).'
+                ),
             ),
         },
         luego=_wire_copy_vals,

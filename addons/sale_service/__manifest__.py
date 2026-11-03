@@ -1,4 +1,5 @@
-# Adaptado de Odoo Community `sale_service/__manifest__.py` (LGPL-3, odoo19c:) —
+# Adaptado de Odoo Community `sale_service/__manifest__.py` (LGPL-3,
+# odoo19c:) —
 # atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Pedido de servicio',
@@ -14,7 +15,7 @@
     # de gestión. El porte es del Grupo A (tarea #64) y sub-declara.
     'depends': [
         'product',  # Product — de donde sale el tipo servicio
-        'sale',     # SaleOrder — donde la política se aplica
+        'sale',  # SaleOrder — donde la política se aplica
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

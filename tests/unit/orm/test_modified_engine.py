@@ -1,4 +1,5 @@
-"""Capa C de #273 — ``modified()``: quien recorre el grafo y marca el recalculo.
+"""
+Capa C de #273 — ``modified()``: quien recorre el grafo y marca el recalculo.
 
 Ejerce ``odoo19c: odoo/orm/models.py:6756-6959``: ``modified``, ``_modified``,
 ``_modified_triggers``, ``_recompute_model``, ``_recompute_recordset`` y
@@ -28,6 +29,7 @@ construirlo                  «campo pendiente de recalculo»: la
                              arbol que la capa B construye.
 ===========================  ==============================================
 """
+
 import pytest
 from django.db import connection
 from django.db import models as django_models
@@ -58,13 +60,22 @@ class EngineProbe(django_models.Model):
 
     source = fields.Integer('Source', default=0)
     owner = django_models.ForeignKey(
-        EngineOwner, on_delete=django_models.CASCADE,
-        related_name='probes', null=True)
-    doubled = fields.Integer('Doubled', compute='_compute_doubled',
-                             store=True, null=True)
-    owner_label = fields.Char('Owner Label', max_length=32,
-                              compute='_compute_owner_label', store=True,
-                              blank=True, null=True)
+        EngineOwner,
+        on_delete=django_models.CASCADE,
+        related_name='probes',
+        null=True,
+    )
+    doubled = fields.Integer(
+        'Doubled', compute='_compute_doubled', store=True, null=True
+    )
+    owner_label = fields.Char(
+        'Owner Label',
+        max_length=32,
+        compute='_compute_owner_label',
+        store=True,
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         app_label = 'base'
@@ -129,7 +140,9 @@ class TestTheLocalDependencyMarks:
     def test_touching_the_source_marks_the_computed_field(self, probe):
         with transaction_scope():
             probe.modified(['source'])
-            pending = env().records_to_compute(field_of(EngineProbe, 'doubled'))
+            pending = env().records_to_compute(
+                field_of(EngineProbe, 'doubled')
+            )
             assert probe.pk in pending
 
     def test_an_unrelated_field_marks_nothing(self, probe):
@@ -139,7 +152,8 @@ class TestTheLocalDependencyMarks:
         with transaction_scope():
             probe.modified(['doubled'])
             assert not env().records_to_compute(
-                field_of(EngineProbe, 'doubled'))
+                field_of(EngineProbe, 'doubled')
+            )
 
     def test_no_field_names_is_a_no_op(self, probe):
         with transaction_scope():
@@ -156,7 +170,8 @@ class TestTheFarDependencyWalksBackwards:
         with transaction_scope():
             owner.modified(['label'])
             pending = env().records_to_compute(
-                field_of(EngineProbe, 'owner_label'))
+                field_of(EngineProbe, 'owner_label')
+            )
             assert probe.pk in pending
 
     def test_an_owner_without_probes_marks_nothing(self, db, tables):
@@ -166,7 +181,8 @@ class TestTheFarDependencyWalksBackwards:
         with transaction_scope():
             lonely.modified(['label'])
             assert not env().records_to_compute(
-                field_of(EngineProbe, 'owner_label'))
+                field_of(EngineProbe, 'owner_label')
+            )
 
     def test_only_the_probes_of_that_owner_are_marked(self, db, tables):
         first = EngineOwner.objects.create(label='uno')
@@ -176,7 +192,8 @@ class TestTheFarDependencyWalksBackwards:
         with transaction_scope():
             first.modified(['label'])
             pending = env().records_to_compute(
-                field_of(EngineProbe, 'owner_label'))
+                field_of(EngineProbe, 'owner_label')
+            )
             assert mine.pk in pending
             assert other.pk not in pending
 
@@ -190,7 +207,8 @@ class TestCreateSkipsTheManyToOneReturn:
         with transaction_scope():
             owner.modified(['label'], create=True)
             assert not env().records_to_compute(
-                field_of(EngineProbe, 'owner_label'))
+                field_of(EngineProbe, 'owner_label')
+            )
 
     def test_without_create_the_same_call_does_mark(self, db, tables):
         """El control positivo del anterior: es el flag quien corta, no la
@@ -200,7 +218,8 @@ class TestCreateSkipsTheManyToOneReturn:
         with transaction_scope():
             owner.modified(['label'], create=False)
             assert probe.pk in env().records_to_compute(
-                field_of(EngineProbe, 'owner_label'))
+                field_of(EngineProbe, 'owner_label')
+            )
 
 
 class TestTheProtectedAreNotMarked:
@@ -282,7 +301,9 @@ class TestTheEngineClosesTheCircle:
         row.refresh_from_db()
         assert row.doubled == 14
 
-    def test_without_the_flush_the_column_keeps_the_old_value(self, db, tables):
+    def test_without_the_flush_the_column_keeps_the_old_value(
+        self, db, tables
+    ):
         """El control positivo del anterior: el recalculo solo NO escribe. Es
         el reparto de la fuente —``_recompute_*`` calcula, ``_flush``
         escribe— y aqui queda medido en vez de supuesto.
@@ -314,5 +335,6 @@ class TestTheEngineClosesTheCircle:
             row._recompute_recordset(['doubled'])
         with connection.cursor() as cursor:
             cursor.execute(
-                'SELECT doubled FROM orm_engine_probe WHERE id = %s', [row.pk])
+                'SELECT doubled FROM orm_engine_probe WHERE id = %s', [row.pk]
+            )
             assert cursor.fetchone()[0] == 0

@@ -1,0 +1,66 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+
+=== EXISTING INSTRUMENT costura-de-fusion-de-campo-20260911T172315/probe_merge_seam.py
+fields.Char(...)             -> CharField
+fields.Char(store=False, ...)-> CharField
+isinstance(conColumna, type(sinColumna)) = True
+isinstance(sinColumna, type(conColumna)) = True
+ancestros comunes: ['CharField', 'Field', 'RegisterLookupMixin', 'object']
+
+VEREDICTO: la guarda de la fuente NUNCA es verdadera cruzando la frontera con-columna / sin-columna, porque el unico ancestro comun es object. En la fuente SIEMPRE lo es, porque alli las dos declaraciones son la misma clase `Char` y `store` es un atributo.
+
+=== EXISTING INSTRUMENT recoleccion-de-definiciones-20260911T175852/probe_declarations_survive.py
+== recién construidos: lo escrito contra lo conservado ==
+   Char(compute=)                 CharField   _args__={'compute': '_c'}
+                                  escrito=['compute'] perdido=nada
+   Char(inverse=, recursive=)     CharField   _args__={'inverse': '_i', 'recursive': True}
+                                  escrito=['inverse', 'recursive'] perdido=nada
+   Char(max_length=, readonly=)   CharField   _args__={'max_length': 9, 'readonly': True, 'editabl
+                                  escrito=['max_length', 'readonly'] perdido=nada
+
+== ya instalados en clases reales ==
+   base  DisplayNameMixin         CharField   _args__={'verbose_name': 'Display Name', 'compute': 
+                                  escrito=['compute', 'search'] perdido=nada
+   override TestOrmCategory       CharField   _args__={'verbose_name': 'Display Name', 'compute': 
+                                  escrito=['inverse', 'recursive'] perdido=nada
+
+== el veredicto — por CONTENIDO ==
+   casos que conservan su declaración : 5 de 5
+   se puede fusionar por declaración  : True
+
+   Métrica: claves presentes en `_args__` contra las que el autor
+            escribió, por caso.
+   Ciega a: el VALOR de una clave conservada (sólo compara claves),
+            y a una clave que la fachada renombre antes de delegar
+            —`readonly` sale como `editable`, y ahí el conjunto
+            acusa la pérdida aunque el dato viaje con otro nombre.
+
+=== EXISTING INSTRUMENT fetch-contract-20260911T093329/probes/probe_fetch_dependencies.py
+pregunta de la fuenteid                created_at        updated_at        image_1920        category_ids      
+column_type         bigint            timestamp with t  timestamp with t  varchar(100)      None              
+store               True              True              True              True              (ausente)         
+prefetch            False             True              True              True              (ausente)         
+translate           False             False             False             False             (ausente)         
+read                method            method            method            method            NoneType          
+copy                True              True              True              True              (ausente)         
+inherited           False             False             False             False             (ausente)         
+_insert_cache       True              True              True              True              False             
+_cache_missing_ids  True              True              True              True              False             
+
+preguntas que NINGUN campo concreto sabe responder: 0 de 9 (alcance medido: 4 campos concretos de base.ResPartner + 1 relacion inversa de control)
+
+CONNECTION_ATTEMPTS []
+[
+  {
+    "instrument": "costura-de-fusion-de-campo-20260911T172315/probe_merge_seam.py",
+    "exit_code": 0
+  },
+  {
+    "instrument": "recoleccion-de-definiciones-20260911T175852/probe_declarations_survive.py",
+    "exit_code": 0
+  },
+  {
+    "instrument": "fetch-contract-20260911T093329/probes/probe_fetch_dependencies.py",
+    "exit_code": 0
+  }
+]

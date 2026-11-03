@@ -6,6 +6,7 @@ ORM (tarea #398, hallazgo H-API-682). Los tres algoritmos vendorizados
 ausente de este arbol -- ver la divergencia declarada en el docstring del
 modulo bajo prueba.
 """
+
 import pytest
 
 from addons.account.tools.structured_reference import (
@@ -28,13 +29,22 @@ class TestSanitizeStructuredReference:
     """Quita espacios y, solo en el patron belga, los separadores."""
 
     def test_strips_whitespace(self):
-        assert sanitize_structured_reference(' RF18 1234 5678 9  ') == 'RF18123456789'
+        assert (
+            sanitize_structured_reference(' RF18 1234 5678 9  ')
+            == 'RF18123456789'
+        )
 
     def test_strips_belgian_plus_delimiters(self):
-        assert sanitize_structured_reference('+++020/3430/57642+++') == '020343057642'
+        assert (
+            sanitize_structured_reference('+++020/3430/57642+++')
+            == '020343057642'
+        )
 
     def test_strips_belgian_star_delimiters(self):
-        assert sanitize_structured_reference('***020/3430/57642***') == '020343057642'
+        assert (
+            sanitize_structured_reference('***020/3430/57642***')
+            == '020343057642'
+        )
 
     def test_a_non_belgian_pattern_only_loses_whitespace(self):
         # No matchea el patron belga (3/4/5 digitos) -> solo se quita el
@@ -49,7 +59,9 @@ class TestFormatStructuredReferenceIso:
     """
 
     def test_the_source_docstring_example(self):
-        assert format_structured_reference_iso('123456789') == 'RF18 1234 5678 9'
+        assert (
+            format_structured_reference_iso('123456789') == 'RF18 1234 5678 9'
+        )
 
     def test_formatted_reference_round_trips_as_valid(self):
         formatted = format_structured_reference_iso('123456789')

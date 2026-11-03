@@ -12,6 +12,7 @@ bloqueado *"por mecanismo ausente"* sobre dos premisas que habían caducado —
 ``default_get`` y el contexto de entorno se construyeron después— y por tanto
 no tenía caso que lo midiera. Sin él, la corrección sería una afirmación.
 """
+
 import pytest
 
 from django.apps import apps
@@ -89,7 +90,8 @@ class TestDefaultGetInheritsTheProjectCompany:
     def test_this_addon_wins_over_the_base_for_the_same_key(self):
         """El orden de la fusión, que la fuente fija con ``result[...] = ...``
         DESPUÉS del ``super()``: ante la misma clave, este addon pisa."""
-        with context_scope(default_company_id=99,
-                           **{CREATE_PROJECT_EMPLOYEE_MAPPING: 3}):
+        with context_scope(
+            default_company_id=99, **{CREATE_PROJECT_EMPLOYEE_MAPPING: 3}
+        ):
             defaults = HrEmployee.default_get(['company_id'])
         assert defaults['company_id'] == 3

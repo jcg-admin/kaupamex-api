@@ -1,4 +1,5 @@
 """AppConfig — addons.authz_signup (Odoo auth_signup)."""
+
 import importlib
 
 from django.apps import AppConfig

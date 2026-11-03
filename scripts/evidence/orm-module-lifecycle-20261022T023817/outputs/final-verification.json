@@ -1,0 +1,22 @@
+{
+  "consumer_revision": "56b08be8",
+  "focused": {
+    "status": "PASS",
+    "count": 36,
+    "evidence": "focused-final-with-auto.log"
+  },
+  "ci_verify": {
+    "status": "FAIL",
+    "pytest_exit_code": 1,
+    "command_exit_code": 2,
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "duration_seconds": 475.71,
+    "first_error": "ProductProduct.display_name compute did not assign in cart fixture",
+    "evidence": "ci-verify-final-with-auto.log",
+    "regression_classification": "Observed before and after auto-install correction in this batch; origin before the full batch not established by these two runs"
+  },
+  "cleanup": "Harness completed DROP DATABASE and DROP ROLE; see final log",
+  "acceptance": "NOT_ACCEPTED; no merge; scoped adaptations only"
+}

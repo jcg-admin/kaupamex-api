@@ -11,6 +11,7 @@ pasar. En tiempo de import del paquete el registro aún no está poblado y
 colgar un campo sobre ``product.ProductSupplierinfo`` fallaría con
 ``AppRegistryNotReady``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -33,10 +34,12 @@ class PurchaseRequisitionConfig(AppConfig):
     #: medido en el docstring. Los dos asistentes de ``wizard/`` tampoco:
     #: declaran clases propias sin tabla, no cuelgan nada de nadie.
     _EXTENSIONES = {
-        'addons.purchase_requisition.models.purchase':
-            'apply_purchase_requisition_purchase_extensions',
-        'addons.purchase_requisition.models.product':
-            'apply_purchase_requisition_product_extensions',
+        'addons.purchase_requisition.models.purchase': (
+            'apply_purchase_requisition_purchase_extensions'
+        ),
+        'addons.purchase_requisition.models.product': (
+            'apply_purchase_requisition_product_extensions'
+        ),
     }
 
     def ready(self):

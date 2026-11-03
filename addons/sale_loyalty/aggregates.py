@@ -8,6 +8,7 @@ también. Simétrico de ``delivery/aggregates.py`` y por la misma razón —
 El importe es **negativo** (la línea lleva ``price_unit`` negativo), así que
 suma directo al total sin invertir el signo en el llamador.
 """
+
 from django.db.models import Q
 
 from addons.sale.aggregates import line_sum_subquery

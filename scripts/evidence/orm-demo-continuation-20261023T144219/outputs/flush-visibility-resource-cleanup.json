@@ -1,0 +1,49 @@
+{
+  "resources": [
+    {
+      "receipt": "native-pending-postgresql-container.json",
+      "container_id": "e15689cecee316325d297edd5366728268323e457472a8670cb53e15547929b0",
+      "probe_exit_code": 0,
+      "owned_container_removed": true
+    },
+    {
+      "receipt": "native-stored-postgresql-bootstrap-failure-container.json",
+      "container_id": "a7e6e3837b8d85e55f24a69c9f26ebe409dbeea752c5bbf278327f86a2a9a870",
+      "probe_exit_code": 1,
+      "owned_container_removed": true
+    },
+    {
+      "receipt": "native-stored-postgresql-container.json",
+      "container_id": "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+      "probe_exit_code": 0,
+      "owned_container_removed": true
+    },
+    {
+      "receipt": "native-stored-flush-postgresql-container.json",
+      "container_id": "bb8e6e3cae4423e6d837334ea676719edd58957cccbf8d2034ee07b326da76e0",
+      "probe_exit_code": 0,
+      "owned_container_removed": true
+    },
+    {
+      "receipt": "native-stored-flush-postgresql-filtered-container.json",
+      "container_id": "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+      "probe_exit_code": 1,
+      "owned_container_removed": true
+    },
+    {
+      "receipt": "native-stored-flush-postgresql-filtered-candidate-container.json",
+      "container_id": "fbe7d6695ddcb00ca9c92ba0732869a3e22e004364faa7bc69a8bf17b24d25b1",
+      "probe_exit_code": 0,
+      "owned_container_removed": true
+    },
+    {
+      "receipt": "native-stored-flush-postgresql-filtered-candidate-annulled-container.json",
+      "container_id": "6a3d719108e6269ea89c96a024a57c724aad1220485369afd2af49b2dc20608f",
+      "probe_exit_code": 1,
+      "owned_container_removed": true
+    }
+  ],
+  "all_owned_resources_removed": true,
+  "source": "Per-experiment ID/label checks and bounded removal verification; no global Docker inventory",
+  "scope": "Cleanup success does not turn failed experiment or CI into PASS"
+}

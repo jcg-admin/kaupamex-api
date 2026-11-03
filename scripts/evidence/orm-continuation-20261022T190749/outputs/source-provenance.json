@@ -1,0 +1,12 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "consumer_parent": "0d91ce3e494a09d27868998d48bec96a75480ca3",
+  "files": {
+    "src/modules/module_graph.py": "efee79eae625f04d00af047df7728fea0fe10081315c1b9290d09dcf33989615",
+    "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py": "fa19dc72df958766fe803355bd0378e2b96c30ff9d13d58e7a69a0797f6f8f28",
+    "scripts/evidence/orm-continuation-20261022T190749/probes/reconcile_current_graph.py": "8bb31fee90e36f375df4e65cfea85210686d65b6f60511f3377716467f1bb547",
+    "scripts/evidence/orm-continuation-20261022T190749/probes/verify_existing_continuation.py": "79af17623e817ef1d47708fba4e8220a83fdfb6884e0e657f9d2bc96625d0341",
+    "scripts/evidence/orm-continuation-20261022T190749/probes/check_pruning_negative.py": "fcf8aa53e2b9ab71272802409dbfc2fe23758083ad46a37b63d72a8aaf1f4539"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "argv": [
+    "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe"
+  ],
+  "cwd": "/workspace/kaupamex-api",
+  "observed_at": "2026-10-23T17:27:04.946Z",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "tasks": [
+    {
+      "task_id": "737",
+      "citation_id": "TASK-API-0382",
+      "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+      "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "738",
+      "citation_id": "TASK-API-0383",
+      "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+      "description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1153",
+      "citation_id": "TASK-API-0391",
+      "subject": "Censo de presencia con firma de src/orm y src/tools contra la referencia",
+      "description": "Medir el estado REAL de lo implementado en src/orm y src/tools: por archivo, sus clases y funciones con FIRMA y CLASE DE CUERPO (stub vs sustantivo), unidas a su homologo de la referencia (odoo19c). Los cinco instrumentos existentes miden AUSENCIA; su criterio de cierre lo satisfacen simbolos vacios. El eje nuevo es la presencia con firma, y la columna que discrimina es el stub. Salida en scripts/workbench/orm-symbol-presence-census-20260910T175850/.",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1154",
+      "citation_id": "TASK-API-0392",
+      "subject": "Inventory the reference ORM in odoo-tools",
+      "description": "Medir el lado de la REFERENCIA por si mismo: archivos, clases, funciones y firmas de funciones de $ODOO19C/odoo/orm. La unidad es la ocurrencia cruda con su clase duenia, no el nombre deduplicado del censo de presencia (TASK-API-0391) — este run NO extiende cobertura, cambia la unidad y el desglose. El eje de version se persiste como probe: odoo/orm solo existe en 19c; el ORM de 18c vive plano en odoo/{models,fields,api}.py; Enterprise no trae directorio odoo/.",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "322",
+      "citation_id": "TASK-API-0173",
+      "subject": "Romper el ciclo base ↔ authz que atrapa 89 de 91 addons",
+      "description": "Medido al derivar `depends` (#296): `base -> ['authz']` y `authz -> [..., 'base', ...]`. Con ese ciclo sólo 2 de 91 addons son ordenables topológicamente; 89 quedan atrapados. En la referencia `odoo19c: odoo/addons/base/__manifest__.py` NO declara `depends` — es la raíz.\n\nTres sitios cierran el ciclo desde `base`:\n- `src/addons/base/authz_catalog.py:25` — importa `addons.authz.declaration`\n- `src/addons/base/management/commands/update_module_list.py:54` — ídem\n- `src/addons/base/models/ir_ui_menu.py:290` — constante `'authz.Capability'`\n\nDesenlaces a MEDIR, no a preferir:\n1. Mover el mecanismo de declaración de capacidades a `base` (donde la referencia pone `ir.model.access` / `res.groups`) y dejar `authz` como consumidor.\n2. Invertir sólo `ir_ui_menu.py:290` si el resto resulta ser el mecanismo legítimo.\n3. Declarar el ciclo aceptado y retirar (a) y (b) de #320, dejando `LOCAL_APPS` mantenida a mano con su orden anotado — el estado de hoy, pero decidido.\n\nBloquea a #320 (orden de INSTALLED_APPS): un grafo con un ciclo de 89 nodos no tiene orden topológico, así que ni reordenar ni derivar del grafo son posibles hoy.\n\nHallazgo: H-API-562 en docs `pm/api/iniciativas/completar-familia-base/hallazgos/`.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "320",
+          "subject": "El orden de INSTALLED_APPS no es topológico: base va a media lista",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "1192",
+      "citation_id": "TASK-API-0417",
+      "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+      "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+      "status": "in_progress",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1441",
+      "citation_id": "TASK-API-0478",
+      "subject": "Validate API locally with the same fail-fast CI contract",
+      "description": "Solicitud explicita del usuario 2026-10-22: detectar errores antes del push, detener al primer fallo y registrar la TASK. Alcance Consumer: un mismo target Make local/GitHub, uv frozen, PostgreSQL desechable con consentimiento por nombre exacto, pytest maxfail=1, JUnit incluso al fallar, timeout CI. Sin ORM, hooks, protecciones ni otro coordinador. Relacion: TASK-API-0136 (PDF/CI completed), TASK-API-0093 (drift de migraciones pendiente: no imponer makemigrations como nuevo gate), TASK-API-0415 y H-API-1120 (bootstrap). No equivalen a este contrato. Dependencias de ejecucion: Python compatible, uv, libpng/zlib, PostgreSQL exclusivo. Aceptacion: controles negativos contra QA compartida y propagacion de fallo sin ejecutar pasos posteriores; ejecucion real con la misma orden en DB propia; distinguir fallo de suite y fallo del mecanismo; conservar resultados CI. Cierre remoto requiere aceptacion/integracion. Evidencia: scripts/evidence/ci-local-fail-fast-20261022T004947/.",
+      "status": "pending",
+      "owner": "codex-ci-local",
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ],
+  "limit": "Native read only; no TaskUpdate; initiative/functional dependencies and acceptance require existing AS IS/documentary authorities, not absence of structured blocked_by"
+}

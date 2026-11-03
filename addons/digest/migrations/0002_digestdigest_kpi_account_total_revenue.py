@@ -13,6 +13,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='digestdigest',
             name='kpi_account_total_revenue',
-            field=models.BooleanField(default=False, help_text='Muestra el KPI de ingreso total del período en el digest (Odoo kpi_account_total_revenue).', verbose_name='Ingresos'),
+            field=models.BooleanField(
+                default=False,
+                help_text=(
+                    'Muestra el KPI de ingreso total del período en el digest'
+                    ' (Odoo kpi_account_total_revenue).'
+                ),
+                verbose_name='Ingresos',
+            ),
         ),
     ]

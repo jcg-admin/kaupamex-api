@@ -1,10 +1,13 @@
-"""``res.country`` extendido — ``enforce_cities`` (Odoo ``base_address_extended``).
+"""
+``res.country`` extendido — ``enforce_cities`` (Odoo
+``base_address_extended``).
 
 Odoo agrega ``enforce_cities`` a ``res.country`` vía ``_inherit`` cross-app
 (``res_country.py``:9-13). En Django el ``_inherit`` cross-app se modela como
 RELATED OneToOne sobre ``base.ResCountry`` (DEC-SALE-01: Django no inyecta
 columnas cross-app).
 """
+
 import fields
 import models
 
@@ -26,13 +29,17 @@ class CountryAddressPolicy(models.Model):
     #: ``AddressStructured`` en el archivo hermano ``res_partner.py``.
     _inherit = 'res.country'
 
-    country         = models.OneToOneField(
-        'base.ResCountry', on_delete=models.CASCADE, related_name='address_policy',
+    country = models.OneToOneField(
+        'base.ResCountry',
+        on_delete=models.CASCADE,
+        related_name='address_policy',
         help_text='País al que aplica la política (Odoo res.country).',
     )
-    enforce_cities  = fields.Boolean(
+    enforce_cities = fields.Boolean(
         default=False,
-        help_text='Exigir ciudad del catálogo en direcciones (Odoo enforce_cities).',
+        help_text=(
+            'Exigir ciudad del catálogo en direcciones (Odoo enforce_cities).'
+        ),
     )
 
     class Meta:

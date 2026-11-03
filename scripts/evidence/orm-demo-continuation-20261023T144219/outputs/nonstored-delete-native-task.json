@@ -1,0 +1,23 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "1199"
+  },
+  "interface": "TaskGet.run",
+  "result": {
+    "content": "{\"task_id\":\"1199\",\"citation_id\":\"TASK-API-0424\",\"subject\":\"El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas\",\"description\":\"Medido al declarar ResCompany.country como Many2one(compute='_compute_address', inverse='_inverse_country') en proceso (scripts/evidence/direccion2-2026-09-12T07-52-24-001.log): la costura emite DOS UserWarning de src/orm/fields.py:4020 — «Field country in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified». Lo mismo para company_country_group_codes. La forma es la de la referencia (odoo19c: addons/base/models/res_company.py:69-78), asi que el aviso puede ser fiel y no un defecto; lo que falta es el veredicto: o el campo declara `search=`, o la dependencia se simplifica, o se declara la divergencia. Ademas, en la sonda el recolector de delete() sobre ResPartner reventó con TypeError: argument of type 'NoneType' is not iterable al consultar la columna None del campo — pendiente de re-medir con el campo declarado en el cuerpo de la clase (donde la costura lo contribuye con private_only), no por contribute_to_class manual.\",\"status\":\"pending\",\"owner\":\"VM-b501\",\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+    "isError": false
+  },
+  "task": {
+    "task_id": "1199",
+    "citation_id": "TASK-API-0424",
+    "subject": "El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas",
+    "description": "Medido al declarar ResCompany.country como Many2one(compute='_compute_address', inverse='_inverse_country') en proceso (scripts/evidence/direccion2-2026-09-12T07-52-24-001.log): la costura emite DOS UserWarning de src/orm/fields.py:4020 — «Field country in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified». Lo mismo para company_country_group_codes. La forma es la de la referencia (odoo19c: addons/base/models/res_company.py:69-78), asi que el aviso puede ser fiel y no un defecto; lo que falta es el veredicto: o el campo declara `search=`, o la dependencia se simplifica, o se declara la divergencia. Ademas, en la sonda el recolector de delete() sobre ResPartner reventó con TypeError: argument of type 'NoneType' is not iterable al consultar la columna None del campo — pendiente de re-medir con el campo declarado en el cuerpo de la clase (donde la costura lo contribuye con private_only), no por contribute_to_class manual.",
+    "status": "pending",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

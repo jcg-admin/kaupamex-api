@@ -10,6 +10,7 @@ etiqueta lleva el campo fiscal, y en qué orden van ``zip`` / ``city`` /
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from addons.base.models import ResCompany, ResCountry, ResPartner
@@ -24,7 +25,8 @@ pytestmark = pytest.mark.integration
 
 def _country(code, **extra):
     country, _created = ResCountry.objects.get_or_create(
-        code=code, defaults={'name': f'País {code}', **extra})
+        code=code, defaults={'name': f'País {code}', **extra}
+    )
     for key, value in extra.items():
         if getattr(country, key) != value:
             setattr(country, key, value)
@@ -35,13 +37,16 @@ def _country(code, **extra):
 @pytest.fixture
 def company_in(db):
     """Una empresa cuyo país declara lo que el caso necesita medir."""
+
     def build(code, **country_fields):
         country = _country(code, **country_fields)
-        partner = ResPartner.objects.create(name=f'Titular {code}',
-                                            country=country)
-        return ResCompany.objects.create(code=f'fmt-{code.lower()}',
-                                         name=f'Empresa {code}',
-                                         partner=partner)
+        partner = ResPartner.objects.create(
+            name=f'Titular {code}', country=country
+        )
+        return ResCompany.objects.create(
+            code=f'fmt-{code.lower()}', name=f'Empresa {code}', partner=partner
+        )
+
     return build
 
 
@@ -95,22 +100,28 @@ class TestTheVatLabelReachesItsField:
         company = company_in('ES', vat_label='NIF')
         with company_scope(company.pk):
             assert FormatVatLabelMixin._get_view(view_type='list') == {
-                'vat': 'NIF'}
+                'vat': 'NIF'
+            }
 
 
 class TestTheAddressFieldOrder:
     """≙ la rama de ``address_format`` de ``_view_get_address``
     (``:96-125``), que es ordenar una lista."""
 
-    def test_the_default_format_puts_city_state_and_zip_in_that_order(self, db):
+    def test_the_default_format_puts_city_state_and_zip_in_that_order(
+        self, db
+    ):
         """El eje, con la plantilla por defecto de la fuente
         (``odoo19c: res_country.py:52``): ``%(city)s %(state_code)s %(zip)s``.
         """
         country = _country(
-            'DF',
-            address_format='%(street)s\n%(city)s %(state_code)s %(zip)s')
+            'DF', address_format='%(street)s\n%(city)s %(state_code)s %(zip)s'
+        )
         assert FormatAddressMixin.field_order_for(country) == [
-            'city', 'state_id', 'zip']
+            'city',
+            'state_id',
+            'zip',
+        ]
 
     def test_the_fields_the_format_omits_go_at_the_end(self, db):
         """El control que separa el orden COMPLETO del orden declarado.
@@ -126,14 +137,21 @@ class TestTheAddressFieldOrder:
         """
         country = _country('PT', address_format='%(street)s\n%(zip)s %(city)s')
         assert FormatAddressMixin.field_order_for(country) == [
-            'zip', 'city', 'state_id']
+            'zip',
+            'city',
+            'state_id',
+        ]
 
     def test_state_name_maps_to_the_same_field_as_state_code(self, db):
         """``:112-113`` — los dos derivados apuntan al mismo campo real."""
-        country = _country('IT',
-                           address_format='%(city)s %(state_name)s %(zip)s')
+        country = _country(
+            'IT', address_format='%(city)s %(state_name)s %(zip)s'
+        )
         assert FormatAddressMixin.field_order_for(country) == [
-            'city', 'state_id', 'zip']
+            'city',
+            'state_id',
+            'zip',
+        ]
 
     def test_naming_both_derivatives_does_not_duplicate_the_field(self, db):
         """CONTROL del mapeo: un nodo XML no puede estar en dos sitios.
@@ -142,7 +160,8 @@ class TestTheAddressFieldOrder:
         dirección dibujaría el estado dos veces.
         """
         country = _country(
-            'CH', address_format='%(city)s %(state_code)s %(state_name)s')
+            'CH', address_format='%(city)s %(state_code)s %(state_name)s'
+        )
         order = FormatAddressMixin.field_order_for(country)
         assert order.count('state_id') == 1
 
@@ -153,9 +172,14 @@ class TestTheAddressFieldOrder:
         pone el nombre del país en la misma línea vería su orden roto.
         """
         country = _country(
-            'BR', address_format='%(city)s %(country_name)s %(zip)s')
+            'BR', address_format='%(city)s %(country_name)s %(zip)s'
+        )
         assert FormatAddressMixin.field_order_for(country) == [
-            'city', 'country_name', 'zip', 'state_id']
+            'city',
+            'country_name',
+            'zip',
+            'state_id',
+        ]
 
     def test_a_format_with_no_city_line_orders_nothing(self, db):
         """``:105-106`` — sin línea de ciudad, la fuente no reordena."""
@@ -171,7 +195,8 @@ class TestTheAddressViewDecision:
         company = company_in('MX', address_format='%(zip)s %(city)s')
         with company_scope(company.pk):
             assert FormatAddressMixin._get_view() == {
-                'address_field_order': ['zip', 'city', 'state_id']}
+                'address_field_order': ['zip', 'city', 'state_id']
+            }
 
     def test_a_view_that_is_not_a_form_gets_no_order(self, company_in):
         """``:133`` — ``if view.type == 'form'``.
@@ -228,5 +253,7 @@ class TestTheAddressViewDecision:
         también pasaría los dos casos anteriores y no cachearía nada."""
         company = company_in('MX', address_format='%(zip)s %(city)s')
         with company_scope(company.pk):
-            assert (FormatAddressMixin._get_view_cache_key()
-                    == FormatAddressMixin._get_view_cache_key())
+            assert (
+                FormatAddressMixin._get_view_cache_key()
+                == FormatAddressMixin._get_view_cache_key()
+            )

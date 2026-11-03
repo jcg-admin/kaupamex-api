@@ -1,0 +1,10 @@
+{
+  "base_revision": "fed0529eec295d78b35e31eefba5dc11e42730a5",
+  "base_fields_sha256": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9",
+  "candidate_fields_sha256": "9b2760f3acd51dad8ee543d42907bf6e3409f74c74db93ba298e4201c18e8914",
+  "only_change": "Recursive Django loop checks membership in existing live to_compute_ids before callback; nonrecursive callback and native recordset branches byte-identical",
+  "annulment_restores_exact_base_bytes": true,
+  "working_changes_preserved": true,
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_behavior": "Recursive Field.recompute checks record.id in captured live to_compute_ids before compute_value"
+}

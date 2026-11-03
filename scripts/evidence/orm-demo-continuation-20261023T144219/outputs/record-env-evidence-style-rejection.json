@@ -1,0 +1,90 @@
+{
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py",
+    "--base",
+    "c4917a8ae39e11cd0f3201e0c5692abf1eb45d7f",
+    "--index-tree",
+    "3f3e2fa150bc1fa9419338ff393a63c4ac759ec4",
+    "--qualify-checkers",
+    "--report",
+    "/workspace/kaupamex-api/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
+  ],
+  "files": [
+    {
+      "path": "scripts/evidence/orm-demo-continuation-20261023T144219/probes/measure_record_environment_scalar.py",
+      "old_path": "scripts/evidence/orm-demo-continuation-20261023T144219/probes/measure_record_environment_scalar.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "53e570170e5b9d2c7b523bc5628277843df12b2b",
+      "inherited": [],
+      "introduced": [
+        {
+          "line": 94,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "e13df178ab202f55646dbfdb2824b49cc0f764a780792e204d8b883d9f509f22"
+        }
+      ],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "decision": "FAIL",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    },
+    {
+      "path": "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_record_environment_candidate.py",
+      "old_path": "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_record_environment_candidate.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "ab5729f51f3bc0b0a89fb2dbd5fdeb22b974f7f7",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    }
+  ],
+  "reasons": [],
+  "increment_admission": "FAIL",
+  "global_style_compliance": "NOT_EVALUATED",
+  "ci_verification": "NOT_EVALUATED",
+  "contract_verification": "NOT_EVALUATED",
+  "integration": "NOT_EVALUATED",
+  "acceptance": "NOT_EVALUATED",
+  "activation": "EXPLICIT_INCREMENT_EVALUATION",
+  "base": "c4917a8ae39e11cd0f3201e0c5692abf1eb45d7f",
+  "candidate": {
+    "index_tree": "3f3e2fa150bc1fa9419338ff393a63c4ac759ec4",
+    "head": "c4917a8ae39e11cd0f3201e0c5692abf1eb45d7f"
+  },
+  "verifiers": {
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py": "33fcd7d40a59acebfaf0e4b54894b1a9b07591bb0197b866761d3393e78eeaf4",
+    "/workspace/kaupamex-api/scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+    "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/pycodestyle.py": "a14c299bb9f2251f7327fce593e7986b3bbb472e07b5d6b8ce3f2a0750325c00"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "pycodestyle": "2.14.0",
+  "native_checks": {
+    "style": "pycodestyle.Checker.check_all; native defaults, ignore=W503",
+    "imports": "check_no_lazy_imports.find_misplaced_imports",
+    "compilation": "compile(exec), SyntaxWarning treated as error"
+  },
+  "python_scope": "CHANGED",
+  "exit_code": 1
+}

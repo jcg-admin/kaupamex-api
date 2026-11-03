@@ -1,0 +1,118 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FFFFFF..                                                                [100%]
+=================================== FAILURES ===================================
+____ test_unsaved_partner_item_assignment_keeps_its_value_without_database _____
+tests/unit/orm/test_unsaved_modified.py:19: in test_unsaved_partner_item_assignment_keeps_its_value_without_database
+    record['name'] = 'After'
+src/orm/models.py:3589: in _model_setitem
+    setattr(self, key, value)
+src/orm/fields.py:1832: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.
+____________ test_unsaved_reverse_many_to_one_has_no_persisted_rows ____________
+tests/unit/orm/test_unsaved_modified.py:28: in test_unsaved_reverse_many_to_one_has_no_persisted_rows
+    assert _traverse_inverse([record], inverse) == []
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.
+___ test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager ____
+tests/unit/orm/test_unsaved_modified.py:35: in test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager
+    assert _traverse_inverse([record], inverse) == []
+src/orm/models.py:3675: in _traverse_inverse
+    value = getattr(row, name, None)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:647: in __get__
+    return self.related_manager_cls(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:1056: in __init__
+    raise ValueError(
+E   ValueError: "<ResPartner: New categorized parent>" needs to have a value for field "id" before this many-to-many relationship can be used.
+___________ test_unsaved_forward_many_to_many_has_no_persisted_rows ____________
+tests/unit/orm/test_unsaved_modified.py:42: in test_unsaved_forward_many_to_many_has_no_persisted_rows
+    assert _traverse_inverse([record], inverse) == []
+src/orm/models.py:3675: in _traverse_inverse
+    value = getattr(row, name, None)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:647: in __get__
+    return self.related_manager_cls(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:1059: in __init__
+    % (instance, self.pk_field_names[self.source_field_name])
+.venv/lib/python3.12/site-packages/django/db/models/base.py:611: in __repr__
+    return "<%s: %s>" % (self.__class__.__name__, self)
+src/addons/base/models/res_partner.py:3035: in __str__
+    return self.display_name
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name
+________ test_cached_new_partner_label_is_invalidated_without_database _________
+tests/unit/orm/test_unsaved_modified.py:49: in test_cached_new_partner_label_is_invalidated_without_database
+    record.name = 'Cached after'
+src/orm/fields.py:1832: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.
+______ test_new_contextual_cache_identity_does_not_invalidate_another_row ______
+tests/unit/orm/test_unsaved_modified.py:71: in test_new_contextual_cache_identity_does_not_invalidate_another_row
+    first.name = 'First updated'
+src/orm/fields.py:1832: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_unsaved_modified.py::test_saved_reverse_collection_still_reads_actual_rows
+  /workspace/kaupamex-api/src/orm/fields.py:4162: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_unsaved_modified.py::test_saved_reverse_collection_still_reads_actual_rows
+  /workspace/kaupamex-api/src/orm/fields.py:4162: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/unsaved-modified-red-refined.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_unsaved_modified.py::test_unsaved_partner_item_assignment_keeps_its_value_without_database
+FAILED tests/unit/orm/test_unsaved_modified.py::test_unsaved_reverse_many_to_one_has_no_persisted_rows
+FAILED tests/unit/orm/test_unsaved_modified.py::test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager
+FAILED tests/unit/orm/test_unsaved_modified.py::test_unsaved_forward_many_to_many_has_no_persisted_rows
+FAILED tests/unit/orm/test_unsaved_modified.py::test_cached_new_partner_label_is_invalidated_without_database
+FAILED tests/unit/orm/test_unsaved_modified.py::test_new_contextual_cache_identity_does_not_invalidate_another_row
+6 failed, 3 passed, 3 warnings in 5.33s

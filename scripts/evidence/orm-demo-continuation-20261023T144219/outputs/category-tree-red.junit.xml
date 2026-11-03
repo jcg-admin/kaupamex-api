@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="9" time="4.143" timestamp="2026-10-24T21:35:15.268485" hostname="c8a29a030cff"><testcase classname="tests.integration.base.test_module_category_tree" name="test_empty_path_has_no_side_effects" time="3.979"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:29: in test_empty_path_has_no_side_effects
+    assert _create([]) is None
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_nested_path_creates_each_level_and_its_external_identity" time="0.002"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:35: in test_nested_path_creates_each_level_and_its_external_identity
+    leaf = IrModuleCategory.objects.get(pk=_create(segments))
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_unicode_and_native_xmlid_normalization_preserve_visible_name" time="0.001"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:55: in test_unicode_and_native_xmlid_normalization_preserve_visible_name
+    record_id = _create([label])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_repeated_path_reuses_identity_and_shared_prefix" time="0.001"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:63: in test_repeated_path_reuses_identity_and_shared_prefix
+    first = _create([ROOT, 'First'])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_renamed_visible_category_keeps_its_external_identity" time="0.001"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:77: in test_renamed_visible_category_keeps_its_external_identity
+    record_id = _create([ROOT])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_caller_rollback_preserves_ownership_of_the_transaction" time="0.001"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:87: in test_caller_rollback_preserves_ownership_of_the_transaction
+    _create([ROOT, 'Child'])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_wrong_model_identity_is_not_overwritten_and_new_parents_roll_back" time="0.009"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:98: in test_wrong_model_identity_is_not_overwritten_and_new_parents_roll_back
+    _create([ROOT, 'Child'])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_missing_target_identity_is_not_silently_repaired" time="0.003"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:109: in test_missing_target_identity_is_not_silently_repaired
+    _create([ROOT])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase><testcase classname="tests.integration.base.test_module_category_tree" name="test_incompatible_parent_identity_does_not_merge_distinct_trees" time="0.007"><failure message="AttributeError: module 'modules.db' has no attribute 'create_categories'">tests/integration/base/test_module_category_tree.py:122: in test_incompatible_parent_identity_does_not_merge_distinct_trees
+    _create([ROOT, 'Child'])
+tests/integration/base/test_module_category_tree.py:17: in _create
+    return module_db.create_categories(cursor, segments)
+E   AttributeError: module 'modules.db' has no attribute 'create_categories'</failure></testcase></testsuite></testsuites>

@@ -1,4 +1,6 @@
-"""``ir.model`` extendido por ``bus`` — las definiciones de modelo para el cliente.
+"""
+``ir.model`` extendido por ``bus`` — las definiciones de modelo para el
+cliente.
 
 Adaptación de ``addons/bus/models/ir_model.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 36 líneas). ``_get_model_definitions``

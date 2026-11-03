@@ -7,6 +7,7 @@ NO se porta ``_onchange_vehicle`` — es un ``@api.onchange`` de formulario
 (recalcula ``unit`` en el cliente antes de guardar); aquí ``unit`` ya es una
 ``@property`` siempre en vivo, así que no hay nada que sincronizar.
 """
+
 import fields
 import models
 
@@ -16,19 +17,29 @@ from addons.base.models import TimeStampedModel
 class FleetVehicleOdometer(TimeStampedModel):
     """``fleet.vehicle.odometer`` — una lectura de odómetro con fecha."""
 
-    date = fields.Date(null=True, blank=True, help_text='Odoo date (default hoy).')
+    date = fields.Date(
+        null=True, blank=True, help_text='Odoo date (default hoy).'
+    )
     value = fields.Float(
-        default=0, help_text='Lectura del odómetro (Odoo value, aggregator=max).',
+        default=0,
+        help_text='Lectura del odómetro (Odoo value, aggregator=max).',
     )
     vehicle = fields.Many2one(
-        'fleet.FleetVehicle', on_delete=models.CASCADE,
-        related_name='odometer_logs', help_text='Odoo vehicle_id (required).',
+        'fleet.FleetVehicle',
+        null=False, on_delete=models.CASCADE,
+        related_name='odometer_logs',
+        help_text='Odoo vehicle_id (required).',
     )
     driver = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fleet_odometer_logs',
-        help_text='Conductor al momento de la lectura (Odoo driver_id, '
-                   'compute+store — aquí sincronizado en save() si no viene dado).',
+        help_text=(
+            'Conductor al momento de la lectura (Odoo driver_id, '
+            'compute+store — aquí sincronizado en save() si no viene dado).'
+        ),
     )
 
     class Meta:

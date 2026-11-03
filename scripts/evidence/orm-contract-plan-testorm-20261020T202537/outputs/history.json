@@ -1,0 +1,140 @@
+{
+  "api_revision": "4dd2e32682ab086aeea8b69b1f91cf872a232e11",
+  "docs_revision": "095b6b3bc42a2ea68967745a609e63341a931daf",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "scope": "odoo/addons/test_orm module, distinct from base/tests/test_orm.py; read-only history/code analysis, no tests rerun",
+  "current_adaptation": {
+    "files": [
+      "src/addons/test_orm/__init__.py",
+      "src/addons/test_orm/__manifest__.py",
+      "src/addons/test_orm/apps.py",
+      "src/addons/test_orm/models/__init__.py",
+      "src/addons/test_orm/models/test_orm.py"
+    ],
+    "models": [
+      "TestOrmCategory",
+      "TestOrmDiscussion"
+    ],
+    "coverage_limit": "Only initial model adaptation, no adapted tests, remaining models, data/security/UI resources present under addon. Presence of module is not equivalence of complete suite.",
+    "loader_equivalence": "Django discovers models through AppConfig; __init__ deliberately does not eagerly import models, to avoid AppRegistryNotReady.",
+    "relational_equivalence": "related_name=+ on moderator/participants explicitly suppresses Django reverse accessors absent from Odoo declarations; not removal of declared One2many."
+  },
+  "historical_links": [
+    {
+      "contract": "Field declaration collection/merge; display_name inherited compute plus override inverse/recursive and derived store=False",
+      "evidence": [
+        "scripts/workbench/fusion-de-declaraciones-de-campo-20260911T122051/",
+        "scripts/workbench/recoleccion-de-definiciones-20260911T175852/",
+        "scripts/workbench/deferred-routing-20260911T181509/"
+      ],
+      "tests": [
+        "tests/unit/orm/test_display_name.py",
+        "tests/unit/orm/test_declared_source_vocabulary.py"
+      ],
+      "tasks": [
+        "TASK-API-0417",
+        "TASK-API-0418",
+        "TASK-API-0419"
+      ],
+      "findings": [
+        "H-API-1103",
+        "H-API-1105"
+      ],
+      "limit": "Already represented narrow discriminator; not evidence all test_orm assertions ported or accepted."
+    },
+    {
+      "contract": "ondelete cascade and dotted model-name resolution",
+      "findings": [
+        "H-API-1098",
+        "H-API-1099"
+      ],
+      "evidence": [
+        "scripts/workbench/resolucion-de-nombre-de-modelo-20260911T104904/"
+      ],
+      "limit": "Historical addon initially untracked; current tracked adaptation supersedes absence."
+    },
+    {
+      "contract": "Bootstrap FK to res_users",
+      "finding": "H-API-1120",
+      "evidence": [
+        "scripts/evidence/orm-flow-audit-20261020T042342/outputs/ci-diagnosis.json",
+        "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/ci-diagnosis.json"
+      ],
+      "classification": "BASELINE_FAILURE",
+      "limit": "Blocks persistence acceptance, not proof test_orm behavior is conformant."
+    },
+    {
+      "contract": "Mutable JSON default TestOrmDiscussion.history",
+      "task": "TASK-API-0420",
+      "evidence": [
+        "Docs progreso/bitacora-la-costura-recoge-fusiona-y-deriva-store.rst"
+      ],
+      "limit": "Historical fields.E010 debt, no new functional defect inferred here."
+    }
+  ],
+  "commits": [
+    {
+      "revision": "0ddc7ab00bd75109e802c29feae094c624226068",
+      "subject": "Start porting the test_orm addon of the reference",
+      "meaning": "Adds five current addon files; initial155line modelport, not fullmodule."
+    },
+    {
+      "revision": "a5966121a432d3d9af999189faf6ae9ed8aa9663",
+      "subject": "Land the author’s declaration on a plain field"
+    },
+    {
+      "revision": "82bb1443868f95d1fb077174838d532865a545cc",
+      "subject": "Repoint the finding citation after a label collision"
+    }
+  ],
+  "identity_conflict": {
+    "manifest_claim": "TASK-API-0406 is successor for omitted web_tour/two UI cases; manifest asserts604total/602nonUI.",
+    "existing_census_identity": {
+      "citation": "TASK-API-0406",
+      "task_id": "1181",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Censar las aserciones negativas que el barrido invirtió en los cinco clones",
+      "related_finding": "H-API-1095",
+      "source": "scripts/evidence/census_open_api_tasks.json:482"
+    },
+    "classification": "Semantic identity conflict; historical census is evidence not live eligibility authority.",
+    "action": "Reconcile via Thyrox authoritative interfaces before assigning UI scope or asserting admission; no TASK minted."
+  },
+  "gaps": [
+    "Full fixed-revision reference module resource/file/assertion population still to delimit and hash; historical604count is not freshly validated denominator.",
+    "Remaining models and test families lack demonstrated adaptation and contract-level mapping in inspected narrow evidence.",
+    "Browser/web_tour capability unavailable permanifest; missing reference resources not automatically irrelevant.",
+    "Need separate reference-suite portability/runner qualification and product-contract equivalence; current local unit tests are discriminators, not complete Odoo suite.",
+    "No current ownership/admission/status/acceptance inferred from historical TASK census."
+  ],
+  "sources": [
+    {
+      "path": "src/addons/test_orm/__manifest__.py",
+      "sha256": "50d87b0cbfe983252ba6d20b7342e52045374d21d452654c41014c466db64f11"
+    },
+    {
+      "path": "src/addons/test_orm/models/test_orm.py",
+      "sha256": "f99a2ba3423bddaa3a0b582c3b26d40d158fafe0c4c5efdfc45774b2df82520f"
+    },
+    {
+      "path": "scripts/evidence/census_open_api_tasks.json",
+      "sha256": "674e2ba4f18e968bbb33d563435f832113160ae9869a6ece7b0753d8e07a4ef9"
+    },
+    {
+      "path": "scripts/workbench/fusion-de-declaraciones-de-campo-20260911T122051/manifest.json",
+      "sha256": "90e1938baaddc3fb9cb093f759edefe55b15f408e707cbf21ad0c102bcfab052"
+    },
+    {
+      "path": "scripts/workbench/recoleccion-de-definiciones-20260911T175852/manifest.json",
+      "sha256": "4acb9a35c699ee23e17bb3e1c99c2f1ebf595e81e6320b2af108746ae21d9612"
+    },
+    {
+      "path": "tests/unit/orm/test_display_name.py",
+      "sha256": "1001da09ee8d62b2e3ba646f39e75735eb14f290eca83119dec1ed83150c9594"
+    },
+    {
+      "path": "tests/unit/orm/test_declared_source_vocabulary.py",
+      "sha256": "1372c03efb39c295a6925b9533142eca62a1f8d850b8f18743433c573d1c0d93"
+    }
+  ]
+}

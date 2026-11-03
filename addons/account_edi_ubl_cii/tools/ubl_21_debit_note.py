@@ -1,12 +1,14 @@
 r"""Estructura del documento ``DebitNote`` de UBL 2.1, con sus nodos en orden.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/tools/ubl_21_debit_note.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/tools/ubl_21_debit_note.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 64 líneas) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 
 **Porte verbatim: 2 constantes, 0 símbolos ejecutables.** Misma divergencia
 única que ``ubl_21_invoice.py``: la ruta del ``import``.
 """
+
 from . import ubl_21_common as cac
 from . import ubl_21_extensions as ext
 

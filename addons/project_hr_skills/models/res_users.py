@@ -21,6 +21,7 @@ Porte símbolo por símbolo — 1 campo (medido por AST)
        el mismo criterio "related sin store → propiedad" de
        ``hr_fleet/models/employee.py``
 """
+
 from addons.hr_skills.models.hr_employee_skill import HrEmployeeSkill
 from orm.model_classes import extend_model
 
@@ -39,7 +40,8 @@ def apply_project_hr_skills_res_users_extensions():
     """Cuelga sobre ``res.users`` la delegación de habilidades — ≙
     ``_inherit``. Se invoca desde ``ProjectHrSkillsConfig.ready()``."""
     extend_model(
-        'base', 'ResUsers',
+        'base',
+        'ResUsers',
         propiedades={
             'employee_skill_ids': employee_skill_ids,
         },

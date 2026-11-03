@@ -17,6 +17,7 @@ Este caso discrimina dos cosas, cada una con su propio instrumento:
    acepta los tres valores de ``REPORT_TYPE_CHOICES`` sin levantar, que es
    la forma ejecutable de "el catálogo coincide con el enum".
 """
+
 import inspect
 
 import pytest
@@ -77,13 +78,16 @@ def test_module_docstring_no_longer_claims_pdf_only():
     """
     module_doc = inspect.getdoc(report_catalog) or ''
     spec_doc = inspect.getdoc(report_catalog.ReportSpec) or ''
-    stale_claim = 'sólo' in (module_doc + spec_doc).lower() \
-        and 'pdf' in (module_doc + spec_doc).lower() \
+    stale_claim = (
+        'sólo' in (module_doc + spec_doc).lower()
+        and 'pdf' in (module_doc + spec_doc).lower()
         and 'html' not in (module_doc + spec_doc).lower()
+    )
     assert not stale_claim, (
         'la prosa afirma "sólo pdf" sin nombrar html/text — está desalineada '
         'con REPORT_TYPE_CHOICES, que hoy ofrece '
-        f'{DECLARED_REPORT_TYPES!r}')
+        f'{DECLARED_REPORT_TYPES!r}'
+    )
     # Los tres valores declarados se nombran en alguno de los dos
     # docstrings — no basta con que la frase vieja haya desaparecido; el
     # texto tiene que decir positivamente lo que el enum ofrece.
@@ -91,4 +95,5 @@ def test_module_docstring_no_longer_claims_pdf_only():
     for report_type in DECLARED_REPORT_TYPES:
         assert report_type in combined, (
             f'{report_type!r} está en REPORT_TYPE_CHOICES pero ningún '
-            'docstring de report_catalog.py lo menciona')
+            'docstring de report_catalog.py lo menciona'
+        )

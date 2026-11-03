@@ -22,7 +22,8 @@ las tres rutas existe (verificado: ningún ``urls.py``/``admin_urls.py`` del
 árbol las registra). Se retiran hasta que SOL-098 las resuelva; lo que sigue
 vigente (seguridad + búsqueda/filtro del listado) se conserva.
 
-**Hallazgo de código cerrado en este pase** (no de los tests): ``_admin_orders()``
+**Hallazgo de código cerrado en este pase** (no de los tests):
+``_admin_orders()``
 (``src/addons/sale_management/admin_views.py``) hacía
 ``prefetch_related('order_line__product__images',
 'order_line__variant__option', …)`` — ninguna de las dos rutas existe
@@ -36,6 +37,7 @@ las dos rutas rotas del prefetch). ``OrderItemSerializer.get_sku``/
 ``default_code``; imagen degradada a ``None`` en vez de crashear, con la
 galería real pendiente de rediseño de producto).
 """
+
 import pytest
 from decimal import Decimal
 
@@ -48,15 +50,23 @@ from tests.factories.product_factory import make_category, make_product
 
 pytestmark = pytest.mark.integration
 
-ADMIN_LIST_URL   = '/api/v2/admin/orders/'
-ADMIN_DETAIL_URL = lambda o: f'/api/v2/admin/orders/{o}/'
+ADMIN_LIST_URL = '/api/v2/admin/orders/'
+
+
+def _admin_detail_url(o):
+    return f'/api/v2/admin/orders/{o}/'
 
 
 @pytest.fixture
 def prod_adm(db):
     cat = make_category(name='Cat Admin')
-    return make_product(name='Elekes Admin', price=Decimal('900.00'),
-                        stock=10, categ=cat, default_code='ADM-001')
+    return make_product(
+        name='Elekes Admin',
+        price=Decimal('900.00'),
+        stock=10,
+        categ=cat,
+        default_code='ADM-001',
+    )
 
 
 def _make_order(user, prod, status='PENDING'):
@@ -65,14 +75,20 @@ def _make_order(user, prod, status='PENDING'):
     """
     order = make_order(user=user, status=status)
     SaleOrderLine.objects.create(
-        order=order, name=prod.name,
-        price_unit=prod.lst_price, product_uom_qty=1,
+        order=order,
+        name=prod.name,
+        price_unit=prod.lst_price,
+        product_uom_qty=1,
         product=prod,
     )
     set_delivery_line(order, Decimal('80.00'))
     DeliveryAddress.objects.create(
-        sale_order=order, recipient_name='T',
-        street='S 1', city='CDMX', state='CMX', zip_code='06600',
+        sale_order=order,
+        recipient_name='T',
+        street='S 1',
+        city='CDMX',
+        state='CMX',
+        zip_code='06600',
     )
     return order
 
@@ -81,9 +97,12 @@ def _make_order(user, prod, status='PENDING'):
 # Seguridad — solo admins pueden acceder
 # =============================================================================
 
+
 class TestSeguridadAdminEndpoints:
 
-    def test_usuario_normal_no_accede_a_lista_admin(self, user, auth_client, db):
+    def test_usuario_normal_no_accede_a_lista_admin(
+        self, user, auth_client, db
+    ):
         res = auth_client.get(ADMIN_LIST_URL)
         assert res.status_code == 403
 
@@ -95,6 +114,7 @@ class TestSeguridadAdminEndpoints:
 # =============================================================================
 # UC-ORD-09 — Buscar/filtrar órdenes
 # =============================================================================
+
 
 class TestBuscarOrdenesAdmin:
 
@@ -159,16 +179,23 @@ class TestBuscarOrdenesAdmin:
         _make_order(user, prod_adm, 'PENDING')
         _make_order(user, prod_adm, 'SHIPPED')
 
-        res = admin_client.get(ADMIN_LIST_URL, {
-            'status': 'PENDING',
-            'email':  user.email,
-        })
+        res = admin_client.get(
+            ADMIN_LIST_URL,
+            {
+                'status': 'PENDING',
+                'email': user.email,
+            },
+        )
         results = res.json()['results']
         statuses = {o['status'] for o in results}
         assert 'SHIPPED' not in statuses
 
     def test_admin_listado_expone_user_email_y_username(
-        self, admin_client, user, prod_adm, db,
+        self,
+        admin_client,
+        user,
+        prod_adm,
+        db,
     ):
         """UC-ORD-09 D-ORD-09.01 (DEC-AOQ-02): AdminOrderSerializer
         expone user_email + user_username derivados del FK para que el
@@ -184,11 +211,11 @@ class TestBuscarOrdenesAdmin:
 
     def test_admin_detail_of_order(self, admin_client, user, prod_adm, db):
         order = _make_order(user, prod_adm)
-        res = admin_client.get(ADMIN_DETAIL_URL(order.name))
+        res = admin_client.get(_admin_detail_url(order.name))
         assert res.status_code == 200
         assert res.json()['order_number'] == order.name
 
     def test_admin_detalle_orden_inexistente_404(self, admin_client, db):
-        res = admin_client.get(ADMIN_DETAIL_URL('S99999'))
+        res = admin_client.get(_admin_detail_url('S99999'))
         assert res.status_code == 404
         assert res.json()['codigo_error'] == 'ORDER_NOT_FOUND'

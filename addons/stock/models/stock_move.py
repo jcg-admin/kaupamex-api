@@ -450,13 +450,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     # --- qué se mueve --------------------------------------------------------
 
     company         = fields.Many2one(
-        'base.ResCompany', on_delete=models.PROTECT, db_index=True,
+        'base.ResCompany', null=False, on_delete=models.PROTECT, db_index=True,
         related_name='stock_moves', default=get_current_company,
         help_text='Empresa (Odoo company_id, requerido, '
                   'default=lambda self: self.env.company).',
     )
     product         = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT, related_name='stock_moves',
+        'product.ProductProduct', null=False, on_delete=models.PROTECT, related_name='stock_moves',
         db_index=True, help_text='Producto (Odoo product_id; el dominio excluye servicios).',
     )
     never_product_template_attribute_value_ids = fields.Many2many(
@@ -508,11 +508,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     # --- de dónde a dónde ----------------------------------------------------
 
     location        = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, related_name='moves_out',
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='moves_out',
         db_index=True, help_text='Ubicación origen (Odoo location_id, compute+store).',
     )
     location_dest   = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, related_name='moves_in',
+        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='moves_in',
         db_index=True,
         help_text='Ubicación destino INTERMEDIA (Odoo location_dest_id, '
                   'compute+store con inverso).',
@@ -1372,6 +1372,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         if not self.reference_ids.exists() and self.picking_id:
             self.reference_ids.set(self.picking.reference_ids)
 
+    @api.depends('picking', 'product', 'location', 'location_dest')
     def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c: :786-792``).
 
@@ -1379,13 +1380,15 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         opcionales — la fuente los omite cuando están vacíos en vez de dejar
         separadores huérfanos.
         """
-        origen = self.picking.origin if self.picking_id else ''
-        codigo = self.product.code_for(None) if self.product_id else ''
-        return '%s%s%s>%s' % (
-            f'{origen}/' if origen else '',
-            f'{codigo}: ' if codigo else '',
+        origin = self.picking.origin if self.picking_id else ''
+        code = self.product.code_for(None) if self.product_id else ''
+        label = '%s%s%s>%s' % (
+            f'{origin}/' if origin else '',
+            f'{code}: ' if code else '',
             self.location.name if self.location_id else '',
             self.location_dest.name if self.location_dest_id else '')
+        self.display_name = label
+        return label
 
     # -- ola B · propagación a las reglas de reabastecimiento --
 

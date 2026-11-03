@@ -1,0 +1,56 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "scope": "Direct compiled helper, no database or report pipeline; diagnostic only",
+  "helper_sha256": "9d50e734e590c4358df22d46ec43a84139e237b2b7c793658fcddc4951c24d02",
+  "cases": [
+    {
+      "case": "notes_last",
+      "payload": {
+        "issuer": {
+          "name": "Kaupamex"
+        },
+        "order_number": "probe",
+        "date": "2026-10-25",
+        "buyer": {
+          "name": "Diagnostic"
+        },
+        "items": [],
+        "totals": {
+          "total": "0.00"
+        },
+        "notes": {
+          "incoterm": "Incoterm: FOB Veracruz"
+        }
+      },
+      "pdf_sha256": "8cb869c97e305a474203c32d10f5fe2e803261e51e72a5662219353f03559b8f",
+      "pdf_bytes": 52768,
+      "text": "Kaupamex\nRECIBO DE COMPRA\nOrden: probe\nFecha: 2026-10-25\nComprador\nDiagnostic\nProducto\nSKU\nCant.\nP.Unit\nImporte\nTOTAL\n0.00\nIncoterm: FOB Veracruz",
+      "incoterm_present": true
+    },
+    {
+      "case": "notes_first",
+      "payload": {
+        "notes": {
+          "incoterm": "Incoterm: FOB Veracruz"
+        },
+        "issuer": {
+          "name": "Kaupamex"
+        },
+        "order_number": "probe",
+        "date": "2026-10-25",
+        "buyer": {
+          "name": "Diagnostic"
+        },
+        "items": [],
+        "totals": {
+          "total": "0.00"
+        }
+      },
+      "pdf_sha256": "8cb869c97e305a474203c32d10f5fe2e803261e51e72a5662219353f03559b8f",
+      "pdf_bytes": 52768,
+      "text": "Kaupamex\nRECIBO DE COMPRA\nOrden: probe\nFecha: 2026-10-25\nComprador\nDiagnostic\nProducto\nSKU\nCant.\nP.Unit\nImporte\nTOTAL\n0.00\nIncoterm: FOB Veracruz",
+      "incoterm_present": true
+    }
+  ]
+}

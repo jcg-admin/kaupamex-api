@@ -34,10 +34,10 @@
     #     los liste: allá llegan transitivamente por `stock_account`; aquí el
     #     import es de Python y tiene que ser explícito.
     'depends': [
-        'base',      # ResCompany, ResPartner, IrModelData
-        'product',   # ProductTemplate, ProductProduct, ProductSupplierinfo
+        'base',  # ResCompany, ResPartner, IrModelData
+        'product',  # ProductTemplate, ProductProduct, ProductSupplierinfo
         'purchase',  # PurchaseOrder, PurchaseOrderLine — el origen
-        'stock',     # el almacén, la regla, el movimiento, el punto de pedido
+        'stock',  # el almacén, la regla, el movimiento, el punto de pedido
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

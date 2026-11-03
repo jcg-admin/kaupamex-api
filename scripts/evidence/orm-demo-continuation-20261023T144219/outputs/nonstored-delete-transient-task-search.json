@@ -1,0 +1,105 @@
+{
+  "interface": "resolve_store_dir(Namespace(claude_dir=None,repo=None),create=False)/connect_readonly",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "query_terms": [
+    "%transientmodel%",
+    "%managed = false%",
+    "%managed=false%",
+    "%resconfigsettings%"
+  ],
+  "rows": [
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "278",
+      "citation_id": "TASK-API-0152",
+      "subject": "ResConfigSettings abstracto sin subclase consumidora \u2014 tercera ocurrencia",
+      "description": "H-API-532 abre, y se\u00f1ala que es la TERCERA vez que aparece el mismo patr\u00f3n: `ResConfigSettings` es `abstract=True` y ning\u00fan addon declara subclase consumidora, as\u00ed que los ajustes transitorios de la referencia no tienen d\u00f3nde aterrizar. Ya ocurri\u00f3 en `l10n_mx` y en `account_check_printing`; ahora en `stock` (7 m\u00e9todos + ~35 campos bloqueados enteros).\n\nTres ocurrencias dejan de ser un bloqueo local y pasan a ser una decisi\u00f3n de arquitectura: o se declara la subclase concreta que la referencia asume, o se decide que los ajustes viven en `CompanySetting` (per-empresa, L1) y se retira `ResConfigSettings` del \u00e1rbol con su raz\u00f3n escrita.\n\nDECISI\u00d3N del ejecutor, no derivable. Cae cerca de DEC-KX-05 (clasificaci\u00f3n de config infra\u2192L0 / per-empresa\u2192L1).",
+      "status": "pending",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "314",
+      "citation_id": "TASK-API-0167",
+      "subject": "base_sparse_field: la mitad de ir.model.fields (7 s\u00edmbolos) \u2014 sucesor de api@61b7651",
+      "description": "El pase api@61b7651 port\u00f3 models/fields.py de base_sparse_field (el mecanismo: Serialized + descriptor Sparse, 9 s\u00edmbolos, 14 tests verdes). Falta models/models.py \u2014 7 s\u00edmbolos de la capa de introspecci\u00f3n:\n\n- Base._valid_field_parameter -> acepta 'sparse' como par\u00e1metro de campo v\u00e1lido\n- IrModelFields.ttype += ('serialized','serialized') con ondelete cascade\n- IrModelFields.serialization_field_id -> FK a ir.model.fields con domain ttype=serialized + mismo model_id\n- IrModelFields.write -> bloquea renombrar un campo disperso y cambiar su sistema de almacenamiento (UserError en ambos casos)\n- IrModelFields._reflect_fields -> puebla serialization_field_id tras reflejar, agrupando updates por valor; UserError si el campo serializado nombrado no existe\n- IrModelFields._instanciate_attrs -> devuelve attrs['sparse'] = <nombre del campo serializado> al instanciar desde la fila\n- El modelo de prueba sparse_fields.test (TransientModel con data + 6 dispersos)\n\nNuestro IrModelFields vive en src/addons/base/models/ir_model.py:377 y ya tiene ttype (:417) y ttype_for (:576). NO tiene _reflect_fields ni _instanciate_attrs \u2014 verificar primero si esa maquinaria de reflexi\u00f3n existe con otro nombre en este puerto o si no est\u00e1 portada en absoluto; si no est\u00e1, este sucesor depende de ella y hay que medirlo antes de escribir (podr\u00eda ser DESCONOCIDO con condici\u00f3n de cierre, no trabajo directo).\n\nEl modelo de prueba de la referencia es TransientModel; aqu\u00ed el descriptor no registra en _meta, as\u00ed que un modelo real s\u00f3lo hace falta si se quiere ejercer el camino de reflexi\u00f3n.",
+      "status": "completed",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "469",
+      "citation_id": "TASK-DOCS-0111",
+      "subject": "Corregir #278 y cerrar #99 \u2014 su propia evidencia las contradice (H-DOCS-188)",
+      "description": "#278 dice \"ResConfigSettings sin subclase consumidora\": SiteConfigSettings existe en base_setup/models/res_config_settings.py:108, y los otros 4 hits son prosa que cita el propio grep. #99 pide decidir qu\u00e9 deben ser Query y SQL(): ya est\u00e1 escrito en src/tools/sql.py:37 y src/tools/query.py:15. Corregir el enunciado de una y cerrar la otra.",
+      "status": "pending",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "569",
+      "citation_id": "TASK-API-0338",
+      "subject": "Portar website_sale/res_config_settings.py \u2014 los related de ajustes",
+      "description": "Sustituye el marcador #258-d. odoo19c: website_sale/models/res_config_settings.py declara 4 s\u00edmbolos: los related de la pantalla de ajustes que exponen la pol\u00edtica de carrito abandonado por sitio. NO est\u00e1 bloqueado: ResConfigSettings vive en src/addons/base/models/res_config.py:196 con precedente vivo en product_expiry y account_check_printing. Qued\u00f3 fuera del write-set del pase #258. Origen: H-API-719.",
+      "status": "completed",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "585",
+      "citation_id": "TASK-API-0346",
+      "subject": "Re-portar los 5 addons que el l\u00edmite de sesi\u00f3n dej\u00f3 sin completar",
+      "description": "La tanda 5 perdi\u00f3 4 de 5 agentes por l\u00edmite de sesi\u00f3n (H-API-743). Quedan por portar desde cero (NO se reanuda ning\u00fan parcial \u2014 los 3 con c\u00f3digo se retiraron del \u00e1rbol al scratchpad, criterio #214): account_edi_ubl_cii (32 py, cierra la cadena UBL de la Ola D #78), account_peppol + account_peppol_advanced_fields (desbloqueados tras UBL), purchase_stock (25 py) + purchase_requisition (10 py), sale_timesheet (23 py, con reportes SQL como managed=False), project_todo (7 py). Todos LGPL-3, todas sus dependencias presentes en el \u00e1rbol. Pre\u00e1mbulo vigente: scratchpad/preambulo-tanda-5.md (12 reglas).",
+      "status": "pending",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "609",
+      "citation_id": "TASK-API-0348",
+      "subject": "DECISI\u00d3N: authz_reauth contra la forma medida de auth_totp",
+      "description": "La referencia NO tiene modelo de sesi\u00f3n reautenticada. El estado elevado vive en cookie (`td_id`, TRUSTED_DEVICE_COOKIE, 90 d\u00edas) + auth_totp.device (registro con clave hasheada, _inherit res.users.apikeys, _auto=False) + auth.totp.rate.limit.log (TransientModel purgado por autovacuum) + res.users._mfa_type(). Nuestro ReauthSession es una cuarta forma. Decidir: adoptar la forma de la referencia, o declarar la divergencia con su raz\u00f3n.",
+      "status": "completed",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "991",
+      "citation_id": "TASK-GEN-0255",
+      "subject": "Construir _table_query: la vista del reporte se INLINE, no se crea",
+      "description": "Sucesor de la segunda mitad de #989. Corrige su premisa.\n\n#989 declaraba que faltaba emitir un `RunSQL` con `CREATE OR REPLACE VIEW` para `account.invoice.report`, siguiendo el precedente de `ResDevice`. **Medido 2026-08-29T10:54:55: la referencia NO crea ninguna vista para ese modelo.**\n\n`odoo19c: odoo/orm/models.py:488-497` \u2014 `_table_sql` envuelve el `_table_query` en `SQL(\"(%s)\", table_query)` y lo entrega como la clausula FROM de cada consulta. `odoo/orm/registry.py:954` lo confirma desde el otro lado: el barrido de tablas ausentes excluye a todo modelo con `_table_query`, porque no espera que tenga tabla.\n\nLa referencia usa DOS mecanismos distintos bajo `_auto = False`, y #989 los confundio:\n\n| Mecanismo | Que hace | Ejemplo |\n|---|---|---|\n| `_auto = False` + `def init(self)` | emite un `CREATE VIEW` real | `odoo19c: base/models/res_device.py:178,230` |\n| `_auto = False` + `_table_query` | **sin vista**: subconsulta inline en el FROM | `account/report/account_invoice_report.py` |\n\n*Metrica:* archivos de `addons/*/models/` y `addons/*/report/` que declaran cada forma.\n*Ciega a:* un modelo que declare las dos, y a los que resuelvan la vista fuera de esas dos rutas.\nMedido: **12** archivos con `_table_query`, **21** archivos de reporte con `def init(self)`. Las dos formas estan pobladas \u2014 no es un caso de borde.\n\nAlcance: construir el equivalente de `_table_sql` sobre Django. Nuestro `AccountInvoiceReport` ya declara `Meta.managed = False` y su `_table_query` como `property`; falta el gestor que ponga esa `SQL` como subconsulta en el FROM en vez de nombrar la tabla. La pieza natural es un `Manager` con `get_queryset()` sobre `RawSQL`/`QuerySet.raw()`, o un `Query` propio \u2014 el `SQL` de `src/tools/sql.py` ya compone.\n\nLo que NO se hace: emitir el `RunSQL`. Seria inventar una forma que la fuente no tiene, y ademas congelaria en DDL un SQL que depende de `get_current_companies()` en tiempo de consulta.",
+      "status": "pending",
+      "owner": null
+    },
+    {
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task_id": "201",
+      "citation_id": "TASK-GEN-0453",
+      "subject": "Dar veredicto a los tres transitorios que declaran managed=False",
+      "description": null,
+      "status": "pending",
+      "owner": null
+    },
+    {
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task_id": "84",
+      "citation_id": "TASK-GEN-0336",
+      "subject": "Decidir que superficie gobierna la config de authz_*: ResConfigSettings o el CRUD DRF",
+      "description": null,
+      "status": "pending",
+      "owner": null
+    },
+    {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1307",
+      "citation_id": "TASK-API-0430",
+      "subject": "Portar update_db de Many2one: prohibe Model \u2192 TransientModel",
+      "description": "`odoo19c: odoo/orm/fields_relational.py:296-300` declara `update_db`, que levanta ValueError ante un Many2one de un modelo persistente hacia un TransientModel (\"Many2one %s from Model to TransientModel is forbidden\"). Es el mismo bloque cuya rama de default cerr\u00f3 H-API-1101, y NO est\u00e1 portado: es otra fase (creaci\u00f3n de tabla), no la de resoluci\u00f3n de pol\u00edtica. Sucesor declarado en la secci\u00f3n \"Lo que este hallazgo no cierra\" de H-API-1101.",
+      "status": "pending",
+      "owner": null
+    }
+  ],
+  "native_search_cli": "buscar-tareas not used: cmd_search_tasks calls write connect/run_migrations",
+  "scope": "Targeted text matches, not global inventory or assignment/admission authority",
+  "writes": false
+}

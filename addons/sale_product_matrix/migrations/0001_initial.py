@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
                     "report_grids",
                     models.BooleanField(
                         default=True,
-                        help_text="Imprimir la grilla de variantes (Odoo report_grids).",
+                        help_text=(
+                            "Imprimir la grilla de variantes (Odoo"
+                            " report_grids)."
+                        ),
                     ),
                 ),
                 (

@@ -1,4 +1,6 @@
-r"""``res.bank``/``res.partner.bank`` — lo que ``l10n_mx`` les cuelga (≙ ``_inherit``).
+r"""
+``res.bank``/``res.partner.bank`` — lo que ``l10n_mx`` les cuelga (≙
+``_inherit``).
 
 Adaptado de Odoo Community ``l10n_mx/models/res_bank.py`` (LGPL-3,
 ``odoo-tools@622ddc2a``, ``odoo19c:``) — atribución y aviso de licencia
@@ -27,7 +29,8 @@ dependencia de nada ausente — se cuelgan igual que en la referencia.
 ``fiscal_country_codes`` — desbloqueado, y no vive aquí
 ========================================================
 
-En la referencia es ``fields.Char(store=False, default=_get_fiscal_country_codes)``,
+En la referencia es ``fields.Char(store=False,
+default=_get_fiscal_country_codes)``,
 y ``_get_fiscal_country_codes`` hace
 ``','.join(self.env.companies.mapped('account_fiscal_country_id.code'))``:
 concatena el código de país fiscal de las empresas activadas de la sesión.
@@ -57,6 +60,7 @@ referencia los repite porque su ``default=`` necesita un método en la clase;
 este ORM no tiene ese constructor, así que repetir el cuerpo sería copiar una
 restricción ajena en vez de la conducta.
 """
+
 import fields
 
 from addons.base.models.res_bank import ResBank
@@ -82,21 +86,36 @@ def apply_l10n_mx_extensions():
     Se llama desde ``L10nMxConfig.ready()``, no al importar: en tiempo de
     import el registro de modelos aún no está poblado.
     """
-    # Ninguno de los dos lleva tope: la referencia los declara ``fields.Char()``
+    # Ninguno de los dos lleva tope: la referencia los declara
+    # ``fields.Char()``
     # pelados (``odoo19c: l10n_mx/models/res_bank.py:13`` y ``:26``). Los
     # nuestros llevaban 3 y 18 —el largo nominal de un código ABM y de una
     # CLABE—, que es precisamente lo que hace peligroso el tope: parece
     # justificado por el dominio y no lo impone la fuente. Mismo defecto que
     # :ref:`h-api-750` en ``ir_module.py``; el largo se valida donde se valida
     # un dato, no en la anchura de la columna.
-    _add_if_absent(ResBank, 'l10n_mx_edi_code', fields.Char(
-        blank=True, default='',
-        help_text='Número de tres dígitos que la ABM asigna a las '
-                  'instituciones bancarias (Odoo l10n_mx_edi_code; ABM = '
-                  'Asociación de Bancos de México).',
-    ))
-    _add_if_absent(ResPartnerBank, 'l10n_mx_edi_clabe', fields.Char(
-        blank=True, default='',
-        help_text='CLABE — cifra bancaria estandarizada de México (Odoo '
-                  'l10n_mx_edi_clabe).',
-    ))
+    _add_if_absent(
+        ResBank,
+        'l10n_mx_edi_code',
+        fields.Char(
+            blank=True,
+            default='',
+            help_text=(
+                'Número de tres dígitos que la ABM asigna a las '
+                'instituciones bancarias (Odoo l10n_mx_edi_code; ABM = '
+                'Asociación de Bancos de México).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartnerBank,
+        'l10n_mx_edi_clabe',
+        fields.Char(
+            blank=True,
+            default='',
+            help_text=(
+                'CLABE — cifra bancaria estandarizada de México (Odoo '
+                'l10n_mx_edi_clabe).'
+            ),
+        ),
+    )

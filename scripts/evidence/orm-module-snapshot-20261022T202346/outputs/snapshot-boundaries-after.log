@@ -1,0 +1,37 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS test_snapshot_copies_persisted_identity_state_demo_and_installed_version
+PASS test_snapshot_does_not_invent_unknown_installed_versions
+PASS test_empty_snapshot_does_not_query
+PASS test_snapshot_rejects_unknown_database
+PASS test_snapshot_does_not_remove_an_already_pruned_row_twice
+PASS test_snapshot_mode_filters_and_prunes_dependents load installed
+PASS test_snapshot_mode_filters_and_prunes_dependents load to upgrade
+PASS test_snapshot_mode_filters_and_prunes_dependents load to remove
+PASS test_snapshot_mode_filters_and_prunes_dependents load to install
+PASS test_snapshot_mode_filters_and_prunes_dependents load uninstalled
+PASS test_snapshot_mode_filters_and_prunes_dependents load uninstallable
+PASS test_snapshot_mode_filters_and_prunes_dependents update installed
+PASS test_snapshot_mode_filters_and_prunes_dependents update to upgrade
+PASS test_snapshot_mode_filters_and_prunes_dependents update to remove
+PASS test_snapshot_mode_filters_and_prunes_dependents update to install
+PASS test_snapshot_mode_filters_and_prunes_dependents update uninstalled
+PASS test_snapshot_mode_filters_and_prunes_dependents update uninstallable
+PASS test_snapshot_preparation_prunes_unloadable_code cycle
+PASS test_snapshot_preparation_prunes_unloadable_code uninstallable_manifest
+PASS test_snapshot_preparation_prunes_unloadable_code missing_manifest
+20 PASS, 0 FAIL; real PostgreSQL, minimal schema, not full loader acceptance
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

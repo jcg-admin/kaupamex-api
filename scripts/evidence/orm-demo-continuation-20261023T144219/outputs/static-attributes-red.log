@@ -1,0 +1,65 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+________ test_static_attributes_preserve_owners_and_declaration_limits _________
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_static_attributes_preserv0')
+
+    def test_static_attributes_preserve_owners_and_declaration_limits(tmp_path):
+        source = tmp_path / 'source.py'
+        source.write_text(
+            'LIMIT = 1\n'
+            'class First:\n'
+            '    value = 2\n'
+            '    annotated: int = 3\n'
+            '    def initialize(self):\n'
+            '        self.dynamic = 4\n'
+            '        class Local:\n'
+            '            value = 5\n'
+            'class Second:\n'
+            '    value = 6\n'
+            'if True:\n'
+            '    CONDITIONAL = 7\n'
+        )
+>       result = VIEW.static_attribute_rows(source, REVISION, 'source.py')
+E       AttributeError: module 'orm_property_view' has no attribute 'static_attribute_rows'
+
+tests/unit/scripts/test_orm_property_view.py:112: AttributeError
+__ test_invalid_attribute_source_cannot_be_an_empty_population[class Broken:] __
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_invalid_attribute_source_0')
+source_bytes = b'class Broken:'
+
+    @pytest.mark.parametrize('source_bytes', [b'class Broken:', b'\xff'])
+    def test_invalid_attribute_source_cannot_be_an_empty_population(
+        tmp_path, source_bytes
+    ):
+        source = tmp_path / 'source.py'
+        source.write_bytes(source_bytes)
+        with pytest.raises(ValueError, match='source'):
+>           VIEW.static_attribute_rows(source, REVISION, 'source.py')
+E           AttributeError: module 'orm_property_view' has no attribute 'static_attribute_rows'
+
+tests/unit/scripts/test_orm_property_view.py:130: AttributeError
+______ test_invalid_attribute_source_cannot_be_an_empty_population[\xff] _______
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-23/test_invalid_attribute_source_1')
+source_bytes = b'\xff'
+
+    @pytest.mark.parametrize('source_bytes', [b'class Broken:', b'\xff'])
+    def test_invalid_attribute_source_cannot_be_an_empty_population(
+        tmp_path, source_bytes
+    ):
+        source = tmp_path / 'source.py'
+        source.write_bytes(source_bytes)
+        with pytest.raises(ValueError, match='source'):
+>           VIEW.static_attribute_rows(source, REVISION, 'source.py')
+E           AttributeError: module 'orm_property_view' has no attribute 'static_attribute_rows'
+
+tests/unit/scripts/test_orm_property_view.py:130: AttributeError
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/static-attributes-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/scripts/test_orm_property_view.py::test_static_attributes_preserve_owners_and_declaration_limits
+FAILED tests/unit/scripts/test_orm_property_view.py::test_invalid_attribute_source_cannot_be_an_empty_population[class Broken:]
+FAILED tests/unit/scripts/test_orm_property_view.py::test_invalid_attribute_source_cannot_be_an_empty_population[\xff]
+3 failed, 11 deselected in 0.08s

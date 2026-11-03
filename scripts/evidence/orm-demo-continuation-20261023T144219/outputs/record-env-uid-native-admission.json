@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-GEN-0633.uid_privilege_cache_key",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Correct the proven uid/su cache collision independently of attached-record descriptor activation; preserve every other cache-key branch",
+      "verify": "Actual native field cache-key controls for compute_sudo false/true and distinct users, pinned source conditional, existing company-key regressions",
+      "route": "local",
+      "owned": [
+        "src/orm/environments.py",
+        "tests/unit/orm/test_uid_cache_key_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-GEN-0633.uid_privilege_cache_key"
+  ],
+  "native_task": "record-env-cache-key-native-task.json",
+  "operative_owner": "codex-module-lifecycle preserved, authorized ongoing engineering; not renamed to VM-b501",
+  "claim_timing": "Selection before own resource claims; not proof of managed dispatch with this historical owner identity",
+  "dependencies": "Existing Environment and actual field metadata. Source uid branch conditional proven against pinned Odoo. No migration or generic Provider implementation.",
+  "managed_inference": false
+}

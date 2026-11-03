@@ -9,13 +9,19 @@ lo que ``stock.warehouse.orderpoint._compute_rules`` consulta
 (``odoo19c: stock/models/stock_orderpoint.py:196``), así que estas pruebas son
 el contrato del que cuelga el orderpoint.
 """
+
 from decimal import Decimal
 
 import pytest
 
 from addons.base.models import SystemParameter
 from addons.product.models import ProductCategory, ProductTemplate
-from addons.stock.models import StockLocation, StockMove, StockQuant, StockRoute
+from addons.stock.models import (
+    StockLocation,
+    StockMove,
+    StockQuant,
+    StockRoute,
+)
 from addons.stock.models.product_strategy import ProductRemoval
 from addons.stock.models.stock_package_type import StockPackageType
 from addons.uom.models.uom_uom import Uom
@@ -35,8 +41,12 @@ def _route(name, **kwargs):
 def test_parent_route_ids_walks_up_the_parent_chain(db):
     """≙ ``_compute_parent_route_ids`` (``odoo19c: :1310-1318``)."""
     grandparent = ProductCategory.objects.create(name='Abuela')
-    parent_categ = ProductCategory.objects.create(name='Madre', parent=grandparent)
-    child_categ = ProductCategory.objects.create(name='Hija', parent=parent_categ)
+    parent_categ = ProductCategory.objects.create(
+        name='Madre', parent=grandparent
+    )
+    child_categ = ProductCategory.objects.create(
+        name='Hija', parent=parent_categ
+    )
 
     grandparent_route = _route('Ruta abuela')
     parent_route = _route('Ruta madre')
@@ -50,25 +60,33 @@ def test_parent_route_ids_walks_up_the_parent_chain(db):
 def test_parent_route_ids_excludes_the_own_ones(db):
     """La referencia resta las propias: ``routes - category.route_ids``."""
     parent_categ = ProductCategory.objects.create(name='Madre')
-    child_categ = ProductCategory.objects.create(name='Hija', parent=parent_categ)
+    child_categ = ProductCategory.objects.create(
+        name='Hija', parent=parent_categ
+    )
     shared = _route('Compartida')
     shared.categ_ids.add(parent_categ, child_categ)
 
     assert list(child_categ.parent_route_ids) == []
-    assert set(child_categ.total_route_ids.values_list('pk', flat=True)) == {shared.pk}
+    assert set(child_categ.total_route_ids.values_list('pk', flat=True)) == {
+        shared.pk
+    }
 
 
 def test_total_route_ids_unions_own_and_inherited(db):
     """≙ ``_compute_total_route_ids`` (``odoo19c: :1325-1328``)."""
     parent_categ = ProductCategory.objects.create(name='Madre')
-    child_categ = ProductCategory.objects.create(name='Hija', parent=parent_categ)
+    child_categ = ProductCategory.objects.create(
+        name='Hija', parent=parent_categ
+    )
     from_parent = _route('De la madre')
     from_child = _route('De la hija')
     from_parent.categ_ids.add(parent_categ)
     from_child.categ_ids.add(child_categ)
 
     assert set(child_categ.total_route_ids.values_list('pk', flat=True)) == {
-        from_parent.pk, from_child.pk}
+        from_parent.pk,
+        from_child.pk,
+    }
 
 
 def test_search_total_route_ids_finds_the_inherited_one(db):
@@ -79,26 +97,34 @@ def test_search_total_route_ids_finds_the_inherited_one(db):
     motor de búsqueda.
     """
     parent_categ = ProductCategory.objects.create(name='Madre')
-    child_categ = ProductCategory.objects.create(name='Hija', parent=parent_categ)
+    child_categ = ProductCategory.objects.create(
+        name='Hija', parent=parent_categ
+    )
     unrelated = ProductCategory.objects.create(name='Ajena')
     route = _route('Heredable')
     route.categ_ids.add(parent_categ)
 
     found = set(
-        ProductCategory._search_total_route_ids([route]).values_list('pk', flat=True))
+        ProductCategory._search_total_route_ids([route]).values_list(
+            'pk', flat=True
+        )
+    )
     assert parent_categ.pk in found
     assert child_categ.pk in found
     assert unrelated.pk not in found
 
 
 def test_filter_for_stock_putaway_rule_narrows_to_the_product_category(db):
-    """≙ ``_search_filter_for_stock_putaway_rule`` (``odoo19c: :1330-1338``)."""
+    """
+    ≙ ``_search_filter_for_stock_putaway_rule`` (``odoo19c: :1330-1338``).
+    """
     category = ProductCategory.objects.create(name='Con producto')
     ProductCategory.objects.create(name='Sin producto')
     product = make_product(name='Anclado', categ=category)
 
     narrowed = ProductCategory._search_filter_for_stock_putaway_rule(
-        active_model='product.product', active_id=product.pk)
+        active_model='product.product', active_id=product.pk
+    )
     assert list(narrowed.values_list('pk', flat=True)) == [category.pk]
 
 
@@ -117,10 +143,12 @@ def test_removal_strategy_is_read_by_the_consumer_that_already_existed(db):
     """
     strategy = ProductRemoval.objects.create(name='LIFO', method='lifo')
     category = ProductCategory.objects.create(
-        name='Con estrategia', removal_strategy=strategy)
+        name='Con estrategia', removal_strategy=strategy
+    )
     product = make_product(name='Perecedero', categ=category)
     location = StockLocation.objects.create(
-        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL)
+        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL
+    )
 
     assert StockQuant._get_removal_strategy(product, location) == 'lifo'
 
@@ -159,15 +187,22 @@ def test_changing_the_factor_with_an_open_move_fails(db):
     """
     unit_base = Uom.objects.create(name='Unidad', relative_factor=1.0)
     unit = Uom.objects.create(
-        name='Caja', relative_factor=12.0, relative_uom_id=unit_base)
+        name='Caja', relative_factor=12.0, relative_uom_id=unit_base
+    )
     product = make_product(name='En tránsito')
     source = StockLocation.objects.create(
-        name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
+        name='Vendors', usage=StockLocation.USAGE_SUPPLIER
+    )
     dest = StockLocation.objects.create(
-        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL)
+        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL
+    )
     StockMove.objects.create(
-        product=product, product_uom=unit, product_uom_qty=Decimal('1'),
-        location=source, location_dest=dest, state='confirmed',
+        product=product,
+        product_uom=unit,
+        product_uom_qty=Decimal('1'),
+        location=source,
+        location_dest=dest,
+        state='confirmed',
     )
 
     unit.relative_factor = 24.0
@@ -179,7 +214,8 @@ def test_changing_the_factor_without_moves_passes(db):
     """Sin consumidores abiertos la guarda no se interpone."""
     unit_base = Uom.objects.create(name='Unidad', relative_factor=1.0)
     unit = Uom.objects.create(
-        name='Libre', relative_factor=2.0, relative_uom_id=unit_base)
+        name='Libre', relative_factor=2.0, relative_uom_id=unit_base
+    )
     unit.relative_factor = 3.0
     unit.save()
     unit.refresh_from_db()
@@ -195,31 +231,43 @@ def test_the_guard_does_not_fire_when_repropagating_to_children(db):
     por ``write``.
     """
     root = Uom.objects.create(name='Unidad', relative_factor=1.0)
-    parent = Uom.objects.create(name='Par', relative_factor=2.0, relative_uom_id=root)
+    parent = Uom.objects.create(
+        name='Par', relative_factor=2.0, relative_uom_id=root
+    )
     child = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom_id=parent)
+        name='Docena', relative_factor=12.0, relative_uom_id=parent
+    )
     product = make_product(name='Con hijo en uso')
     source = StockLocation.objects.create(
-        name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
+        name='Vendors', usage=StockLocation.USAGE_SUPPLIER
+    )
     dest = StockLocation.objects.create(
-        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL)
+        name='WH/Stock', usage=StockLocation.USAGE_INTERNAL
+    )
     StockMove.objects.create(
-        product=product, product_uom=child, product_uom_qty=Decimal('1'),
-        location=source, location_dest=dest, state='confirmed',
+        product=product,
+        product_uom=child,
+        product_uom_qty=Decimal('1'),
+        location=source,
+        location_dest=dest,
+        state='confirmed',
     )
 
-    parent.relative_factor = 3.0   # 2.0 → 3.0: el cambio tiene que ser real
-    parent.save()          # repropaga a ``hijo``; no debe levantar
+    parent.relative_factor = 3.0  # 2.0 → 3.0: el cambio tiene que ser real
+    parent.save()  # repropaga a ``hijo``; no debe levantar
 
     child.refresh_from_db()
     assert child.factor == 36.0
 
 
 def test_adjust_uom_quantities_converts_to_the_quant_unit(db):
-    """≙ ``_adjust_uom_quantities`` (``odoo19c: :1375-1393``), sin propagación."""
+    """
+    ≙ ``_adjust_uom_quantities`` (``odoo19c: :1375-1393``), sin propagación.
+    """
     unit = Uom.objects.create(name='Unidad', relative_factor=1.0)
     dozen = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom_id=unit)
+        name='Docena', relative_factor=12.0, relative_uom_id=unit
+    )
 
     qty, dest = dozen._adjust_uom_quantities(2, unit)
     assert dest == unit
@@ -231,7 +279,8 @@ def test_adjust_uom_quantities_propagates_when_the_parameter_asks(db):
     SystemParameter.objects.create(key='stock.propagate_uom', value='1')
     unit = Uom.objects.create(name='Unidad', relative_factor=1.0)
     dozen = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom_id=unit)
+        name='Docena', relative_factor=12.0, relative_uom_id=unit
+    )
 
     qty, dest = dozen._adjust_uom_quantities(2, unit)
     assert dest == dozen
@@ -247,5 +296,8 @@ def test_the_two_reverse_accessors_are_not_redeclared(db):
     """
     fields_by_name = {f.name: f for f in ProductCategory._meta.get_fields()}
     assert fields_by_name['route_ids'].related_model is StockRoute
-    assert fields_by_name['putaway_rule_ids'].related_model.__name__ == 'StockPutawayRule'
+    assert (
+        fields_by_name['putaway_rule_ids'].related_model.__name__
+        == 'StockPutawayRule'
+    )
     assert ProductTemplate._meta.get_fields()  # el template también los tiene

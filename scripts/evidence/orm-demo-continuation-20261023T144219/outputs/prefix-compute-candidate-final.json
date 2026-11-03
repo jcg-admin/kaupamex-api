@@ -1,0 +1,10 @@
+{
+  "head": "27a195a8d966319480dbee9a6484ae3bd602e8ae",
+  "index_tree": "fb6eb973c63bc5b36c16abf17dd39f90a13963c9",
+  "source_sha256": "1ecdb1c461c03b40d2cb35e8f771933a95cb6773fbcfeb22b3bf6130456a2474",
+  "test_sha256": "6f6f9732e2333ef18a3d80577f5d10d5f2ec0acfb2749e89a73032c91f4355d0",
+  "annulled_compute": false,
+  "pytest_exit_code": 0,
+  "provenance_unchanged": true,
+  "scope": "Staged analytic source, actual Django model and descriptor; mocked account queries; SQL prohibited; not acceptance"
+}

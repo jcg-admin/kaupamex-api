@@ -9,6 +9,7 @@ miento y al informe de previsión, y su valor depende por completo de qué
 ubicaciones entran en el conjunto — de ahí que la mitad de estas pruebas midan
 ``_get_domain_locations`` antes que la cantidad misma.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -17,8 +18,13 @@ from django.utils import timezone
 
 from addons.base.models import ResCompany
 from addons.product.models import ProductCategory, ProductProduct
-from addons.stock.models import (StockLocation, StockMove, StockQuant,
-                                 StockRoute, StockWarehouse)
+from addons.stock.models import (
+    StockLocation,
+    StockMove,
+    StockQuant,
+    StockRoute,
+    StockWarehouse,
+)
 from exceptions import UserError
 from tests.factories.product_factory import make_product
 
@@ -26,21 +32,31 @@ pytestmark = pytest.mark.integration
 
 
 def _location(name, parent=None, usage=StockLocation.USAGE_INTERNAL):
-    return StockLocation.objects.create(name=name, location=parent, usage=usage)
+    return StockLocation.objects.create(
+        name=name, location=parent, usage=usage
+    )
 
 
 def _quant(product, location, qty, reserved=0):
     return StockQuant.objects.create(
-        product=product, location=location, quantity=Decimal(str(qty)),
-        reserved_quantity=Decimal(str(reserved)))
+        product=product,
+        location=location,
+        quantity=Decimal(str(qty)),
+        reserved_quantity=Decimal(str(reserved)),
+    )
 
 
 def _move(product, source, dest, qty, state='confirmed', moment=None):
     move = StockMove.objects.create(
-        product=product, product_uom=product.uom,
-        product_uom_qty=Decimal(str(qty)), product_qty=Decimal(str(qty)),
-        quantity=Decimal(str(qty)), location=source, location_dest=dest,
-        state=state)
+        product=product,
+        product_uom=product.uom,
+        product_uom_qty=Decimal(str(qty)),
+        product_qty=Decimal(str(qty)),
+        quantity=Decimal(str(qty)),
+        location=source,
+        location_dest=dest,
+        state=state,
+    )
     if moment is not None:
         StockMove.objects.filter(pk=move.pk).update(date=moment)
         move.refresh_from_db()
@@ -55,8 +71,13 @@ def tree(db):
     shelf = _location('WH/Stock/Shelf 1', parent=stock)
     supplier = _location('Vendors', usage=StockLocation.USAGE_SUPPLIER)
     customer = _location('Customers', usage=StockLocation.USAGE_CUSTOMER)
-    return {'view': view, 'stock': stock, 'shelf': shelf,
-            'supplier': supplier, 'customer': customer}
+    return {
+        'view': view,
+        'stock': stock,
+        'shelf': shelf,
+        'supplier': supplier,
+        'customer': customer,
+    }
 
 
 # === ``_get_domain_locations`` ==============================================
@@ -72,7 +93,8 @@ def test_the_set_includes_descendants(tree):
     _quant(product, tree['shelf'], 7)
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk]['qty_available'] == 7.0
 
 
@@ -82,7 +104,8 @@ def test_strict_does_not_walk_down_the_tree(tree):
     _quant(product, tree['shelf'], 7)
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk, strict=True)
+        [product], location=tree['view'].pk, strict=True
+    )
     assert values[product.pk]['qty_available'] == 0.0
 
 
@@ -103,8 +126,12 @@ def test_without_a_location_the_company_warehouse_rules(tree, active_company):
     (``odoo19c: :388-390``).
     """
     StockWarehouse.objects.create(
-        name='Main', code='WH', company=active_company,
-        view_location=tree['view'], lot_stock=tree['stock'])
+        name='Main',
+        code='WH',
+        company=active_company,
+        view_location=tree['view'],
+        lot_stock=tree['stock'],
+    )
     product = make_product(name='By warehouse')
     _quant(product, tree['stock'], 11)
 
@@ -119,8 +146,12 @@ def test_the_warehouse_of_another_company_does_not_count(tree):
     """
     other = ResCompany.objects.create(name='Kaupamex QA', code='kx-qa')
     StockWarehouse.objects.create(
-        name='Foreign', code='WHX', company=other,
-        view_location=tree['view'], lot_stock=tree['stock'])
+        name='Foreign',
+        code='WHX',
+        company=other,
+        view_location=tree['view'],
+        lot_stock=tree['stock'],
+    )
     product = make_product(name='Foreign warehouse')
     _quant(product, tree['stock'], 11)
 
@@ -130,13 +161,18 @@ def test_the_warehouse_of_another_company_does_not_count(tree):
 def test_the_warehouse_can_be_given_by_id(tree):
     company = ResCompany.objects.create(name='Kaupamex QA 2', code='kx-qa2')
     warehouse = StockWarehouse.objects.create(
-        name='Secondary', code='WH2', company=company,
-        view_location=tree['view'], lot_stock=tree['stock'])
+        name='Secondary',
+        code='WH2',
+        company=company,
+        view_location=tree['view'],
+        lot_stock=tree['stock'],
+    )
     product = make_product(name='By warehouse id')
     _quant(product, tree['shelf'], 4)
 
     values = ProductProduct._compute_quantities(
-        [product], warehouse=warehouse.pk)
+        [product], warehouse=warehouse.pk
+    )
     assert values[product.pk]['qty_available'] == 4.0
 
 
@@ -162,7 +198,8 @@ def test_free_qty_subtracts_the_reserved_amount(tree):
     _quant(product, tree['stock'], 10, reserved=4)
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk]['qty_available'] == 10.0
     assert values[product.pk]['free_qty'] == 6.0
 
@@ -174,7 +211,8 @@ def test_incoming_and_outgoing_count_pending_moves(tree):
     _move(product, tree['stock'], tree['customer'], 2)
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk]['incoming_qty'] == 5.0
     assert values[product.pk]['outgoing_qty'] == 2.0
 
@@ -190,7 +228,8 @@ def test_an_internal_move_neither_enters_nor_leaves(tree):
     _move(product, tree['stock'], tree['shelf'], 8)
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk]['incoming_qty'] == 0.0
     assert values[product.pk]['outgoing_qty'] == 0.0
 
@@ -203,7 +242,8 @@ def test_virtual_available_is_the_sum_of_the_three(tree):
     _move(product, tree['stock'], tree['customer'], 3)
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk]['virtual_available'] == 12.0
 
 
@@ -213,7 +253,8 @@ def test_a_done_move_is_not_pending(tree):
     _move(product, tree['supplier'], tree['stock'], 5, state='done')
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk]['incoming_qty'] == 0.0
 
 
@@ -225,7 +266,8 @@ def test_a_service_carries_no_stock(tree):
     _quant(service, tree['stock'], 42)
 
     values = ProductProduct._compute_quantities(
-        [service], location=tree['view'].pk)
+        [service], location=tree['view'].pk
+    )
     assert values[service.pk]['qty_available'] == 0.0
 
 
@@ -233,10 +275,15 @@ def test_the_five_keys_come_out_even_with_nothing(tree):
     """Un producto sin quant ni movimiento devuelve ceros, no un dict vacío."""
     product = make_product(name='Untouched')
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk)
+        [product], location=tree['view'].pk
+    )
     assert values[product.pk] == {
-        'qty_available': 0.0, 'free_qty': 0.0, 'incoming_qty': 0.0,
-        'outgoing_qty': 0.0, 'virtual_available': 0.0}
+        'qty_available': 0.0,
+        'free_qty': 0.0,
+        'incoming_qty': 0.0,
+        'outgoing_qty': 0.0,
+        'virtual_available': 0.0,
+    }
 
 
 # === el eje temporal ========================================================
@@ -250,24 +297,38 @@ def test_a_past_to_date_undoes_what_was_done_after_it(tree):
     """
     product = make_product(name='Retrospective')
     _quant(product, tree['stock'], 10)
-    _move(product, tree['supplier'], tree['stock'], 4, state='done',
-          moment=timezone.now() - timedelta(hours=1))
+    _move(
+        product,
+        tree['supplier'],
+        tree['stock'],
+        4,
+        state='done',
+        moment=timezone.now() - timedelta(hours=1),
+    )
 
     yesterday = timezone.now() - timedelta(days=1)
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk, to_date=yesterday)
+        [product], location=tree['view'].pk, to_date=yesterday
+    )
     assert values[product.pk]['qty_available'] == 6.0
 
 
 def test_a_future_to_date_undoes_nothing(tree):
     product = make_product(name='Prospective')
     _quant(product, tree['stock'], 10)
-    _move(product, tree['supplier'], tree['stock'], 4, state='done',
-          moment=timezone.now() - timedelta(hours=1))
+    _move(
+        product,
+        tree['supplier'],
+        tree['stock'],
+        4,
+        state='done',
+        moment=timezone.now() - timedelta(hours=1),
+    )
 
     tomorrow = timezone.now() + timedelta(days=1)
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk, to_date=tomorrow)
+        [product], location=tree['view'].pk, to_date=tomorrow
+    )
     assert values[product.pk]['qty_available'] == 10.0
 
 
@@ -279,11 +340,18 @@ def test_a_bare_date_covers_the_whole_day(tree):
     """
     product = make_product(name='Whole day')
     _quant(product, tree['stock'], 10)
-    _move(product, tree['supplier'], tree['stock'], 4, state='done',
-          moment=timezone.now() - timedelta(minutes=5))
+    _move(
+        product,
+        tree['supplier'],
+        tree['stock'],
+        4,
+        state='done',
+        moment=timezone.now() - timedelta(minutes=5),
+    )
 
     values = ProductProduct._compute_quantities(
-        [product], location=tree['view'].pk, to_date=timezone.localdate())
+        [product], location=tree['view'].pk, to_date=timezone.localdate()
+    )
     assert values[product.pk]['qty_available'] == 10.0
 
 
@@ -296,13 +364,21 @@ def test_search_qty_available_zero_is_the_shortcut(tree):
     without_stock = make_product(name='Without stock')
     _quant(with_stock, tree['stock'], 5)
 
-    found = {p.pk for p in ProductProduct.objects.filter(
-        ProductProduct._search_qty_available('!=', 0))}
+    found = {
+        p.pk
+        for p in ProductProduct.objects.filter(
+            ProductProduct._search_qty_available('!=', 0)
+        )
+    }
     assert with_stock.pk in found
     assert without_stock.pk not in found
 
-    empty = {p.pk for p in ProductProduct.objects.filter(
-        ProductProduct._search_qty_available('=', 0))}
+    empty = {
+        p.pk
+        for p in ProductProduct.objects.filter(
+            ProductProduct._search_qty_available('=', 0)
+        )
+    }
     assert without_stock.pk in empty
     assert with_stock.pk not in empty
 
@@ -314,9 +390,14 @@ def test_search_qty_available_with_an_ordering_operator(tree):
     _quant(many, tree['stock'], 10)
     _quant(few, tree['stock'], 1)
 
-    found = {p.pk for p in ProductProduct.objects.filter(
-        ProductProduct._search_qty_available(
-            '>', 5.0, location=tree['view'].pk))}
+    found = {
+        p.pk
+        for p in ProductProduct.objects.filter(
+            ProductProduct._search_qty_available(
+                '>', 5.0, location=tree['view'].pk
+            )
+        )
+    }
     assert many.pk in found
     assert few.pk not in found
 
@@ -326,13 +407,22 @@ def test_search_free_qty_sees_the_reserved_amount(tree):
     product = make_product(name='Fully reserved')
     _quant(product, tree['stock'], 10, reserved=10)
 
-    free = {p.pk for p in ProductProduct.objects.filter(
-        ProductProduct._search_free_qty('>', 0.0, location=tree['view'].pk))}
+    free = {
+        p.pk
+        for p in ProductProduct.objects.filter(
+            ProductProduct._search_free_qty('>', 0.0, location=tree['view'].pk)
+        )
+    }
     assert product.pk not in free
 
-    on_hand = {p.pk for p in ProductProduct.objects.filter(
-        ProductProduct._search_qty_available(
-            '>', 0.0, location=tree['view'].pk))}
+    on_hand = {
+        p.pk
+        for p in ProductProduct.objects.filter(
+            ProductProduct._search_qty_available(
+                '>', 0.0, location=tree['view'].pk
+            )
+        )
+    }
     assert product.pk in on_hand
 
 
@@ -354,8 +444,9 @@ def test_get_total_routes_unions_product_and_category_routes(db):
     este test es el contrato del que cuelga el orderpoint.
     """
     parent_categ = ProductCategory.objects.create(name='Parent')
-    child_categ = ProductCategory.objects.create(name='Child',
-                                                 parent=parent_categ)
+    child_categ = ProductCategory.objects.create(
+        name='Child', parent=parent_categ
+    )
     product = make_product(name='With routes', categ=child_categ)
 
     from_grandparent = StockRoute.objects.create(name='From the grandparent')
@@ -366,4 +457,7 @@ def test_get_total_routes_unions_product_and_category_routes(db):
     from_template.product_ids.add(product.product_tmpl)
 
     assert set(product.get_total_routes().values_list('pk', flat=True)) == {
-        from_grandparent.pk, from_own_categ.pk, from_template.pk}
+        from_grandparent.pk,
+        from_own_categ.pk,
+        from_template.pk,
+    }

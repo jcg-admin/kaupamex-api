@@ -1,0 +1,69 @@
+{
+  "mechanism_tests": {
+    "status": "PASS",
+    "passed": 18,
+    "exit_code": 0,
+    "log": "mechanism-tests.log"
+  },
+  "workflow_lint": {
+    "status": "PASS",
+    "exit_code": 0
+  },
+  "full_local_suite": {
+    "status": "FAIL",
+    "pytest_exit_code": 1,
+    "make_and_harness_exit_code": 2,
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "duration_seconds": 489.48,
+    "stopped_after_first_failure": true,
+    "unreached_tests": "NOT_EVALUATED",
+    "error_nodeid": "tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_saves_cart_and_returns_200",
+    "error": "Compute method failed to assign product.ProductProduct(1,).display_name",
+    "flow": [
+      "cart_with_item",
+      "add_item_to_draft",
+      "_line_snapshot_name",
+      "ProductProduct.__str__",
+      "display_name descriptor",
+      "ProductProduct._compute_display_name returns text without assigning field"
+    ],
+    "log": "local-ci-complete-prerequisites.log",
+    "junit": "local-ci-junit.xml",
+    "classification": "Existing Consumer compute contract mismatch revealed by the full suite. Source paths equal the baseline; no ORM or Consumer business code was changed for this CI task. A separate full baseline replay was not performed."
+  },
+  "related_existing_work": {
+    "TASK-GEN-0386": "completed; display_name universal; current Consumer override returns rather than assigns: needs acceptance reconciliation, not automatic reopening",
+    "TASK-API-0415": "completed; nonstored compute dispatch; preserve strict assignment contract",
+    "TASK-API-0417": "in_progress, owner null; do not infer eligibility or transfer scope automatically"
+  },
+  "source_checks": {
+    "addons/product/models/product_product.py": {
+      "matches_baseline": true,
+      "sha256": "29e29ba7651e2b4b16dd7dac6912870838d6e5f965b08085d9ac6e19bd6a09d1"
+    },
+    "addons/sale/services.py": {
+      "matches_baseline": true,
+      "sha256": "8524bbdd43fdcd0bf4f68ec04a8510e552d5aad2514c3632a0e902b7fadfd756"
+    },
+    "tests/integration/test_v2_cart_wishlist_notifications.py": {
+      "matches_baseline": true,
+      "sha256": "3eeb49848cdde99adbb1d831995780fd8e9e8552e320b67a94576dc2e4aec5e4"
+    },
+    "src/orm/fields.py": {
+      "matches_baseline": true,
+      "sha256": "0ccccba826a1bc4191ff2ce9e8bc20ac73db03f635c94fa01a05cb12c22d3a32"
+    },
+    "src/orm/models.py": {
+      "matches_baseline": true,
+      "sha256": "35c421a6f3906c473c5d5958b419dce4f6d0467e1bac2658f640a6ffe4bffd53"
+    }
+  },
+  "resource_cleanup": {
+    "own_databases_remaining": 0,
+    "own_roles_remaining": 0,
+    "hba_cleanup_observed_in_log": true
+  },
+  "acceptance": "TASK-API-0478 remains pending remote review/acceptance. No global CI PASS, ORM acceptance or Thyrox model qualification claimed."
+}

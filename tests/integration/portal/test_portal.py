@@ -12,6 +12,7 @@ Cubre lo portado en este pase (``odoo19c: portal/``, leído completo):
 concreto (``SaleOrder``) es la decisión siguiente del loop — por eso su
 ``_portal_ensure_token``/``get_portal_url`` se ejercen ahí, no aquí.
 """
+
 from types import SimpleNamespace
 
 import pytest
@@ -53,8 +54,12 @@ class TestDocumentCheckAccess:
         doc = self._doc(1, 'tok-abc')
         model = _FakeModel([doc])
         got = document_check_access(
-            model, 1, user=None, access_token='tok-abc',
-            can_read=lambda d, u: False)
+            model,
+            1,
+            user=None,
+            access_token='tok-abc',
+            can_read=lambda d, u: False,
+        )
         assert got is doc
 
     def test_token_incorrecto_niega(self):
@@ -62,31 +67,47 @@ class TestDocumentCheckAccess:
         model = _FakeModel([doc])
         with pytest.raises(AccessDenied):
             document_check_access(
-                model, 1, user=None, access_token='tok-xxx',
-                can_read=lambda d, u: False)
+                model,
+                1,
+                user=None,
+                access_token='tok-xxx',
+                can_read=lambda d, u: False,
+            )
 
     def test_permiso_normal_concede_sin_token(self):
         doc = self._doc(1, 'tok-abc')
         model = _FakeModel([doc])
         got = document_check_access(
-            model, 1, user='alguien', access_token=None,
-            can_read=lambda d, u: True)
+            model,
+            1,
+            user='alguien',
+            access_token=None,
+            can_read=lambda d, u: True,
+        )
         assert got is doc
 
     def test_documento_inexistente(self):
         model = _FakeModel([])
         with pytest.raises(MissingError):
             document_check_access(
-                model, 99, user=None, access_token='x',
-                can_read=lambda d, u: True)
+                model,
+                99,
+                user=None,
+                access_token='x',
+                can_read=lambda d, u: True,
+            )
 
     def test_sin_token_ni_permiso_niega(self):
         doc = self._doc(1, '')  # documento sin token emitido
         model = _FakeModel([doc])
         with pytest.raises(AccessDenied):
             document_check_access(
-                model, 1, user=None, access_token=None,
-                can_read=lambda d, u: False)
+                model,
+                1,
+                user=None,
+                access_token=None,
+                can_read=lambda d, u: False,
+            )
 
 
 class TestPartnerFrontendRules:
@@ -95,12 +116,14 @@ class TestPartnerFrontendRules:
     @pytest.fixture
     def internos(self, db):
         return ResGroups.objects.create(
-            name='Internos', user_type=ResGroups.USER_TYPE_INTERNAL)
+            name='Internos', user_type=ResGroups.USER_TYPE_INTERNAL
+        )
 
     @pytest.fixture
     def publicos(self, db):
         return ResGroups.objects.create(
-            name='Público', user_type=ResGroups.USER_TYPE_PUBLIC)
+            name='Público', user_type=ResGroups.USER_TYPE_PUBLIC
+        )
 
     def test_current_partner_of_public_is_none(self, publicos):
         u = User.objects.create_user(login='anon@kaupamex.mx')
@@ -114,8 +137,8 @@ class TestPartnerFrontendRules:
     def test_can_edit_vat_solo_entidad_comercial(self, db):
         matriz = ResPartner.objects.create(name='Matriz SA')
         hija = ResPartner.objects.create(
-            name='Sucursal', parent=matriz,
-            type=ResPartner.TYPE_INVOICE)
+            name='Sucursal', parent=matriz, type=ResPartner.TYPE_INVOICE
+        )
         # Métodos desde este pase, no funciones de módulo: ``sale`` los
         # encadena con ``super()`` y eso exige un método (ver el docstring de
         # ``portal/models/res_partner.py``).
@@ -133,8 +156,8 @@ class TestPartnerFrontendRules:
         u = User.objects.create_user(login='comercial@kaupamex.mx')
         # La dirección de envío del propio partner es editable.
         envio = ResPartner.objects.create(
-            name='Envío', parent=u.partner,
-            type=ResPartner.TYPE_DELIVERY)
+            name='Envío', parent=u.partner, type=ResPartner.TYPE_DELIVERY
+        )
         assert pp.can_be_edited_by(envio, u) is True
 
     def test_publico_no_edita_nada(self, publicos):

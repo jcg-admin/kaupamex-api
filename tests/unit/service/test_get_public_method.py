@@ -14,7 +14,8 @@ Los cinco rechazos que la referencia declara, cada uno con su test:
 2. nombre en ``_UNSAFE_ATTRIBUTES`` → ``AccessError``
 3. método inexistente o no invocable → ``AttributeError``
 4. ``classmethod`` / ``staticmethod`` → ``AccessError``
-5. método decorado ``@api.private`` en cualquier punto del MRO → ``AccessError``
+5. método decorado ``@api.private`` en cualquier punto del MRO →
+   ``AccessError``
 """
 
 import pytest
@@ -27,7 +28,9 @@ from tools.safe_eval import _UNSAFE_ATTRIBUTES
 
 
 class _Base(models.Model):
-    """Ancestro que declara el método privado, para probar el barrido del MRO."""
+    """
+    Ancestro que declara el método privado, para probar el barrido del MRO.
+    """
 
     class Meta:
         abstract = True
@@ -75,7 +78,10 @@ class Model(_Base):
     @api.model
     @classmethod
     def declared_model_level(cls):
-        """Nivel de modelo, declarado: la forma que este árbol da a ``@api.model``."""
+        """
+        Nivel de modelo, declarado: la forma que este árbol da a
+        ``@api.model``.
+        """
         return 'model level'
 
     @staticmethod
@@ -133,7 +139,9 @@ def test_rejects_classmethod_and_staticmethod(model, name):
 
 
 def test_accepts_the_classmethod_marked_api_model(model):
-    """La divergencia declarada: aquí ``classmethod`` ES la forma de ``@api.model``.
+    """
+    La divergencia declarada: aquí ``classmethod`` ES la forma de
+    ``@api.model``.
 
     La referencia rechaza todo ``classmethod`` porque en su árbol un método de
     nivel de modelo se escribe ``@api.model def f(self)`` —con ``self`` = un
@@ -141,7 +149,8 @@ def test_accepts_the_classmethod_marked_api_model(model):
     la clase en vez del recordset.
 
     Aquí la convención es la contraria y está escrita en el código:
-    ``addons/product/models/product_template.py:400`` — *"Son ``@api.model``: no
+    ``addons/product/models/product_template.py:400`` — *"Son ``@api.model``:
+    no
     dependen de la instancia, así que aquí son ``classmethod``"*. Rechazarlos
     todos dejaría fuera del despacho la superficie de nivel de modelo entera.
 
@@ -207,7 +216,9 @@ def test_api_model_sets_the_marker():
 
 
 def test_api_model_create_multi_sets_the_marker():
-    """≙ ``create._api_model = True`` (``odoo19c: odoo/orm/decorators.py:371``)."""
+    """
+    ≙ ``create._api_model = True`` (``odoo19c: odoo/orm/decorators.py:371``).
+    """
 
     @api.model_create_multi
     def create(self, vals_list):

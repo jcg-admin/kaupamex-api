@@ -85,6 +85,7 @@ compone: la usan este archivo, ``tools.handle_history_divergence`` y
 distintos es cómo el emisor y el receptor acaban hablando de canales
 distintos sin que nada falle.
 """
+
 import functools
 import re
 
@@ -99,21 +100,28 @@ _WRAPPED = '_html_editor_collaboration_wrapped'
 
 #: ≙ el patrón del canal de coedición (``odoo19c: :17``), verbatim.
 EDITOR_COLLABORATION_CHANNEL_REGEX = (
-    r'editor_collaboration:(\w+(?:\.\w+)*):(\w+):(\d+)')
+    r'editor_collaboration:(\w+(?:\.\w+)*):(\w+):(\d+)'
+)
 
 #: ≙ el segundo elemento de la tupla de canal de la fuente.
 EDITOR_COLLABORATION = 'editor_collaboration'
 
 
-def editor_collaboration_channel(model_name, field_name, res_id,
-                                 db_name=DEFAULT_DB_ALIAS):
+def editor_collaboration_channel(
+    model_name, field_name, res_id, db_name=DEFAULT_DB_ALIAS
+):
     """La tupla de canal de la fuente, serializada a cadena.
 
     ≙ ``(self.env.registry.db_name, 'editor_collaboration', model_name,
     field_name, res_id)`` (``odoo19c: :38``). Ver la divergencia 2.
     """
     return '%s:%s:%s:%s:%s' % (
-        db_name, EDITOR_COLLABORATION, model_name, field_name, int(res_id))
+        db_name,
+        EDITOR_COLLABORATION,
+        model_name,
+        field_name,
+        int(res_id),
+    )
 
 
 class IrWebsocket:
@@ -150,7 +158,9 @@ class IrWebsocket:
             channels = list(channels)
             for channel in channels:
                 if isinstance(channel, str):
-                    match = re.match(EDITOR_COLLABORATION_CHANNEL_REGEX, channel)
+                    match = re.match(
+                        EDITOR_COLLABORATION_CHANNEL_REGEX, channel
+                    )
                     if match:
                         model_name = match[1]
                         field_name = match[2]
@@ -168,21 +178,31 @@ class IrWebsocket:
                             document.check_access('read')
                             document.check_access('write')
                             field = next(
-                                (f for f in model._meta.get_fields()
-                                 if getattr(f, 'name', None) == field_name), None)
+                                (
+                                    f
+                                    for f in model._meta.get_fields()
+                                    if getattr(f, 'name', None) == field_name
+                                ),
+                                None,
+                            )
                             if field is not None:
                                 document._check_field_access(field, 'read')
                                 document._check_field_access(field, 'write')
                         except Exception:
-                            # ≙ ``except AccessError: continue`` — el árbol declara
-                            # el suyo en ``exceptions``, y ``_check_field_access``
+                            # ≙ ``except AccessError: continue`` — el
+                            # árbol declara
+                            # el suyo en ``exceptions``, y
+                            # ``_check_field_access``
                             # puede levantar además el de Django. Descartar el
                             # canal es lo que la fuente hace, y por el mismo
                             # motivo: negarlo delataría que el registro existe.
                             continue
 
-                        channels.append(editor_collaboration_channel(
-                            model_name, field_name, res_id))
+                        channels.append(
+                            editor_collaboration_channel(
+                                model_name, field_name, res_id
+                            )
+                        )
         return previous(channels, *args, **kwargs)
 
 
@@ -200,7 +220,8 @@ def apply_html_editor_extensions():
     @functools.wraps(previous)
     def wrapped(channels, *args, **kwargs):
         return IrWebsocket._build_bus_channel_list(
-            channels, previous, *args, **kwargs)
+            channels, previous, *args, **kwargs
+        )
 
     setattr(wrapped, _WRAPPED, True)
     bus_ir_websocket.build_bus_channel_list = wrapped

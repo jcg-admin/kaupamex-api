@@ -1,0 +1,639 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interfaces": [
+    "resolve_store_dir(create=False)",
+    "connect_readonly",
+    "mapping_from_store/lookup",
+    "active_claims",
+    "claimsCommand --claim --task TASK-API-0420"
+  ],
+  "rows": [
+    {
+      "citation_id": "TASK-API-0416",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1191",
+      "subject": "Portar la fase que recoge las definiciones de campo por clase",
+      "description": "BLOQUEO CORREGIDO 2026-09-11. Esta tarea declaraba «depende de #318 (MetaModel) y de _setup/_setup_fields». **Falso, y la conclusión salía del censo de símbolos — significante — en vez de medir cómo funciona.**\n\nMedido por conducta (`scripts/workbench/recoleccion-de-definiciones-*/`):\n\n1. La referencia recorre `_model_classes__`, y eso ES `mro()`: `model_cls._model_classes__ = tuple(c for c in model_cls.mro() if getattr(c,'pool',None) is None)` (`odoo19c: odoo/orm/model_classes.py:358`). No es un registro propio — es el MRO filtrado a clases de definición. Python lo trae hecho.\n2. Las DOS ocurrencias sobreviven distinguibles en las dos formas de herencia de este árbol, medido con sondas: base abstracta de Django → `_meta.local_fields` de cada clase da `[('HoldsBase',10),('HoldsChild',20)]`; mixin llano → `vars(mixin)` y `vars(hija)` dan dos `NonStored` distintos, cada uno con su `compute`.\n3. `ModelBase.__new__(cls, name, bases, attrs, **kwargs)` recibe el cuerpo de clase igual que `MetaModel.__new__`, y `contribute_to_class` dispara una vez por ocurrencia en orden base→hija.\n\nVeredicto INVENTORY: la **recolección** es *el stack lo trae hecho* (mro + `_meta.local_fields` + `vars`); la **fusión** es *tiene con qué construirlo* (`_get_attrs` ya portado, `orm/fields.py:1105-1128`). No hace falta `MetaModel` ni ninguna dependencia de fuera.\n\nCASO DE ACEPTACIÓN, medido sobre el modelo real (`probe_the_override_loses_the_base.py`):\n\n    la base (DisplayNameMixin)  compute='_compute_display_name' search='_search_display_name' -> NonStored\n    el override (TestOrmCategory) compute=None search=None inverse='_inverse_display_name' recursive=True -> CharField\n\nEl override se porta verbatim de `odoo19c: odoo/addons/test_orm/models/test_orm.py:28-31`. Allá no significa «campo con columna»: significa override, y la fusión le trae el `compute` de la base, del que el bloque compute deriva `store=False`. Aquí, sin fusión, `store` cae a su defecto `True`.\n\nCierra los dos rojos heredados de `tests/unit/orm/test_display_name.py`.",
+      "status": "completed",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-12T10:57:56"
+    },
+    {
+      "citation_id": "TASK-API-0420",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1195",
+      "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+      "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL — `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perdería el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificación: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminación. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+      "status": "pending",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-11T19:24:49"
+    },
+    {
+      "citation_id": "TASK-THYROX-1072",
+      "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "task_id": "140",
+      "subject": "Read the task universe from the store in task_source",
+      "description": "task_source.records_from_store(store, layer) + load_records(.sqlite3); ids = citation number per layer; blocked_by ordinals resolved within the row's session; no prose edges from store rows. implementation_order unchanged. RED: tests/task/test_task_source_store.py (12 fallos), includes 1067 not re-proposed and 1065 rejected kept pending.",
+      "status": "pending",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-10-08T23:16:48"
+    }
+  ],
+  "claims": {
+    "kaupamex-api": [
+      {
+        "id": "c-ec94f97a-4f34-4047-a8f9-8a839c1c17df",
+        "op": "claim",
+        "path": "src/orm/fields_misc.py",
+        "owner": "codex-task-api-0420",
+        "branch": "feature/codex-workspace-bootstrap",
+        "at": "2026-10-21T05:49:19.563Z",
+        "task": "TASK-API-0420"
+      },
+      {
+        "id": "c-33e13d43-fb25-4444-8ac0-3fd907997467",
+        "op": "claim",
+        "path": "tests/unit/orm/test_json_defaults.py",
+        "owner": "codex-task-api-0420",
+        "branch": "feature/codex-workspace-bootstrap",
+        "at": "2026-10-21T05:49:19.567Z",
+        "task": "TASK-API-0420"
+      }
+    ],
+    "thyrox": [
+      {
+        "id": "c-bfa1fb5f-6ba3-4672-ac83-c8cd764ec424",
+        "op": "claim",
+        "path": "src/session/item_watchdog.py",
+        "owner": "vm-c",
+        "branch": "feature/vm-c-clean-room",
+        "task": "TASK-THYROX-1028",
+        "at": "2026-10-08T04:04:07.000Z",
+        "ownerVm": "C",
+        "ownerSession": "session_01Gg7heFfxzAv5db5fTzLD88",
+        "startSha": "454aeee90",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "running",
+        "job": "lane-c-1028"
+      },
+      {
+        "id": "c-8b739525-4637-4299-8e3c-58e6d0090c7d",
+        "op": "claim",
+        "path": "src/session/bc250_cu_mask.py",
+        "owner": "vm-b",
+        "branch": "claude/vm-b-portability",
+        "task": "TASK-THYROX-1046",
+        "at": "2026-10-08T05:07:23.000Z",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "queued",
+        "queue": "B tras 1023-r2 y 1042; recurso, no dependencia"
+      },
+      {
+        "id": "c-4f6214d9-0bb2-4911-9fed-0d8f0fd2c496",
+        "op": "claim",
+        "path": "src/packages/agent/loop/context/providerSummarizer.ts",
+        "owner": "vm-c",
+        "branch": "feature/vm-c-clean-room",
+        "task": "TASK-THYROX-1048",
+        "at": "2026-10-08T05:34:30.000Z",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "queued",
+        "queue": "C, primero tras asentar 1028: clase A, bloquea a todos los nodos (H-590)"
+      },
+      {
+        "id": "c-7d0af289-3091-4c42-8015-02a316965304",
+        "op": "claim",
+        "path": "src/packages/agent/loop/index.ts",
+        "owner": "vm-c",
+        "branch": "feature/vm-c-clean-room",
+        "task": "TASK-THYROX-1048",
+        "at": "2026-10-08T05:34:30.000Z",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "queued",
+        "queue": "C, primero tras asentar 1028: clase A, bloquea a todos los nodos (H-590)"
+      },
+      {
+        "id": "c-3c88fcf2-eebd-40e7-a6b3-435e0d21d380",
+        "op": "claim",
+        "path": "src/packages/model-artifacts/modelQualification.ts",
+        "owner": "vm-k",
+        "branch": "feature/vm-k-impl",
+        "task": "TASK-THYROX-1022",
+        "at": "2026-10-08T07:52:27.000Z",
+        "ownerVm": "K",
+        "ownerSession": "session_01UExTeuAx5vdaPhfxfSC6Y3",
+        "startSha": "f897f7a54d30",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "queued",
+        "job": "lane-k-1022-selection-r3a",
+        "link": "1022-selection"
+      },
+      {
+        "id": "c-844ca00b-019b-4297-a19f-39d1a7b4a6a0",
+        "op": "claim",
+        "path": "src/task/task_source.py",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-09T04:45:40.641Z",
+        "task": "TASK-THYROX-1072"
+      },
+      {
+        "id": "c-2f13ad7d-4a5f-4d6b-b0d6-66d952864fd5",
+        "op": "claim",
+        "path": "src/verify/commit_identity.py",
+        "owner": "vm-k",
+        "branch": "feature/vm-k-impl",
+        "task": "TASK-THYROX-1079",
+        "at": "2026-10-09T16:59:59.000Z",
+        "ownerVm": "K",
+        "ownerSession": "session_01UExTeuAx5vdaPhfxfSC6Y3",
+        "startSha": "3c5506ab8f07",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "queued",
+        "job": "lane-k-1079",
+        "link": "pre-push-identity"
+      },
+      {
+        "id": "c-87272a9d-4228-4851-b277-caa0f815d255",
+        "op": "claim",
+        "path": ".githooks/pre-push",
+        "owner": "vm-k",
+        "branch": "feature/vm-k-impl",
+        "task": "TASK-THYROX-1079",
+        "at": "2026-10-09T16:59:59.000Z",
+        "ownerVm": "K",
+        "ownerSession": "session_01UExTeuAx5vdaPhfxfSC6Y3",
+        "startSha": "3c5506ab8f07",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "queued",
+        "job": "lane-k-1079",
+        "link": "pre-push-identity"
+      },
+      {
+        "id": "c-0f5e25c0-ca26-4551-9620-8af053c53dd0",
+        "op": "claim",
+        "path": "tests/session/test-headless-pool-item-key.sh",
+        "owner": "vm-c",
+        "branch": "feature/vm-c-clean-room",
+        "task": "TASK-THYROX-1105",
+        "at": "2026-10-10T07:24:25.000Z",
+        "dependsOn": [],
+        "state": "red",
+        "queue": "RED de C; la implementación espera la ruta llama-server"
+      },
+      {
+        "id": "c-0ecde3c8-e772-4272-9884-49fabfad3971",
+        "op": "claim",
+        "path": "src/task/board_sync.py",
+        "owner": "vm-l",
+        "branch": "feature/fresh-clone-bootstrap",
+        "task": "TASK-THYROX-1071",
+        "at": "2026-10-10T23:52:57.000Z",
+        "from": "vm-m"
+      },
+      {
+        "id": "c-1123695c-71e0-405f-868d-600409797fea",
+        "op": "claim",
+        "path": "src/session/headless-pool.sh",
+        "owner": "vm-k",
+        "branch": "feature/vm-k-impl",
+        "task": "TASK-THYROX-1109",
+        "at": "2026-10-11T00:39:17.000Z",
+        "ownerVm": "K",
+        "ownerSession": "session_01UExTeuAx5vdaPhfxfSC6Y3",
+        "startSha": "09a324132022",
+        "dependsOn": [],
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "red",
+        "job": "lane-k-1109-red-s1",
+        "link": "pool-effort-env",
+        "queue": "orden acordado con A: 1109 paso 2, 1061, 1062, W 1119 paso 2"
+      },
+      {
+        "id": "c-6229692f-c7d4-44fe-bc1f-aa24b86cbf1d",
+        "op": "claim",
+        "path": "src/packages/model-scheduling/__tests__/grantRecord.test.ts",
+        "owner": "vm-c",
+        "branch": "feature/vm-c-clean-room",
+        "task": "TASK-THYROX-1107",
+        "at": "2026-10-10T09:01:36.000Z",
+        "dependsOn": [],
+        "state": "red"
+      },
+      {
+        "id": "c-5c51773f-eed7-45aa-9bf2-da2791480670",
+        "op": "claim",
+        "path": "src/packages/model-scheduling/hostCoordinator.ts",
+        "owner": "vm-c",
+        "branch": "feature/vm-c-clean-room",
+        "task": "TASK-THYROX-1107",
+        "at": "2026-10-10T09:01:36.000Z",
+        "dependsOn": [],
+        "state": "queued",
+        "queue": "implementación por trabajador local (bootstrap, thinking on)"
+      },
+      {
+        "id": "c-ecbc0d12-ec58-4a75-9417-643142ee5b52",
+        "op": "claim",
+        "path": "src/packages/provider/src/cost/executionPolicy.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1085",
+        "at": "2026-10-10T06:43:57.756Z"
+      },
+      {
+        "id": "c-45a1e048-690a-4a2e-bc76-94fa28dd401f",
+        "op": "claim",
+        "path": "src/packages/local-models/hostCoordinatorComposition.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1085",
+        "at": "2026-10-10T06:43:57.756Z"
+      },
+      {
+        "id": "c-2e38973d-6d19-4214-ad98-c18821633d75",
+        "op": "claim",
+        "path": "src/packages/local-models/__tests__/ggufRuntimeFromPolicy.test.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1085",
+        "at": "2026-10-10T06:43:57.756Z"
+      },
+      {
+        "id": "c-01088621-38f6-4495-9994-646419785bc4",
+        "op": "claim",
+        "path": "src/packages/provider/__tests__/executionPolicyRuntime.test.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1085",
+        "at": "2026-10-10T06:43:57.756Z"
+      },
+      {
+        "id": "c-5b584755-ca55-444b-aaca-fbebbf8691a6",
+        "op": "claim",
+        "path": "src/packages/local-models/artifactCacheInstaller.ts",
+        "owner": "vm-u",
+        "branch": "feature/vm-u-eval",
+        "task": "TASK-THYROX-1093",
+        "at": "2026-10-10T05:54:44.061Z"
+      },
+      {
+        "id": "c-d375ed47-894d-4d01-a696-fc668b66d1f5",
+        "op": "claim",
+        "path": "src/packages/local-models/__tests__/artifactCacheInstaller.test.ts",
+        "owner": "vm-u",
+        "branch": "feature/vm-u-eval",
+        "task": "TASK-THYROX-1093",
+        "at": "2026-10-10T05:54:44.061Z"
+      },
+      {
+        "id": "c-d5dcd8b3-187d-4fa2-a0b3-06528d9dd509",
+        "op": "claim",
+        "path": "src/packages/podman-execution/executionCommand.ts",
+        "owner": "vm-u",
+        "branch": "feature/vm-u-eval",
+        "task": "TASK-THYROX-1091",
+        "at": "2026-10-10T08:39:24.881Z"
+      },
+      {
+        "id": "c-578d70b4-d328-4f73-9caa-c79736d8d1f4",
+        "op": "claim",
+        "path": "src/packages/podman-execution/__tests__/executionCommand.test.ts",
+        "owner": "vm-u",
+        "branch": "feature/vm-u-eval",
+        "task": "TASK-THYROX-1091",
+        "at": "2026-10-10T08:39:24.881Z"
+      },
+      {
+        "id": "c-2ac0f493-bbb2-4946-b74d-6e216f3a4de7",
+        "op": "claim",
+        "path": "tests/package/execution_image_bun_version.test.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1106",
+        "at": "2026-10-10T09:02:54.771Z"
+      },
+      {
+        "id": "c-c4a8d15b-5361-4da7-8242-cfe235f969d3",
+        "op": "claim",
+        "path": "src/packages/podman-execution/task-runner-image/Containerfile",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1106",
+        "at": "2026-10-10T09:02:54.771Z"
+      },
+      {
+        "id": "c-8919d921-e8dc-4687-a725-c7c06f2ab258",
+        "op": "claim",
+        "path": "src/packages/image-registry/runtime-images.json",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1106",
+        "at": "2026-10-10T09:02:54.771Z"
+      },
+      {
+        "id": "c-1ca1e141-f66d-4ecc-b7d0-8039357dfcb4",
+        "op": "claim",
+        "path": "src/packages/image-registry/__tests__/publishedImagePin.test.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1108",
+        "at": "2026-10-10T09:16:38.139Z"
+      },
+      {
+        "id": "c-7668488f-07ce-4577-8e96-fbeba3236eb8",
+        "op": "claim",
+        "path": "src/packages/image-registry/publishedImagePin.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1108",
+        "at": "2026-10-10T09:16:38.139Z"
+      },
+      {
+        "id": "c-66fc59cb-4990-4b0a-9f4d-f2aa97c620d9",
+        "op": "claim",
+        "path": "src/packages/image-registry/declaredImages.ts",
+        "owner": "vm-l",
+        "branch": "feature/vm-l-impl",
+        "task": "TASK-THYROX-1108",
+        "at": "2026-10-10T09:16:38.139Z"
+      },
+      {
+        "id": "c-4a432829-ffe0-44cf-bb7c-4da1dd0fbe28",
+        "op": "claim",
+        "path": "src/packages/image-registry/imageCollector.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-10T23:26:31.730Z",
+        "task": "TASK-THYROX-1118"
+      },
+      {
+        "id": "c-27ee61dd-8677-4a4c-a4c6-9129b6b16358",
+        "op": "claim",
+        "path": "src/packages/image-registry/__tests__/imageCollector.test.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-10T23:26:33.514Z",
+        "task": "TASK-THYROX-1118"
+      },
+      {
+        "id": "c-47994e2a-810b-4643-b4dd-fe5b47f3c115",
+        "op": "claim",
+        "path": "src/packages/image-registry/testing/fakePodmanRegistry.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-10T23:26:35.524Z",
+        "task": "TASK-THYROX-1118"
+      },
+      {
+        "id": "c-deef65a3-f61f-4466-afc1-1fa90a9022d4",
+        "op": "claim",
+        "path": "src/packages/podman-execution/podmanObservation.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-10T23:26:37.300Z",
+        "task": "TASK-THYROX-1118"
+      },
+      {
+        "id": "c-9694e7bd-15fe-4bc9-bc03-e78b567bad72",
+        "op": "claim",
+        "path": "src/packages/provider/src/proxy/openaiCompat/admittedUpstream.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-11T02:22:19.595Z",
+        "task": "TASK-THYROX-1120"
+      },
+      {
+        "id": "c-5580a9c8-fb82-4687-bfc1-ad9c46bbf8fe",
+        "op": "claim",
+        "path": "src/packages/provider/bin/localProxy.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-11T02:22:21.296Z",
+        "task": "TASK-THYROX-1120"
+      },
+      {
+        "id": "c-11001a9a-f536-43f7-a743-61312882f98d",
+        "op": "claim",
+        "path": "src/packages/provider/src/proxy/__tests__/admittedUpstream.test.ts",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-11T02:22:23.047Z",
+        "task": "TASK-THYROX-1120"
+      },
+      {
+        "id": "c-9906ef96-5635-4130-a28c-2d05b273ea32",
+        "op": "claim",
+        "path": "tests/session/test_credential_env.py",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1119",
+        "at": "2026-10-10T23:31:09.226Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "59cb8b1a1",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed",
+        "dependsOn": [
+          "classify-1096-ollama"
+        ]
+      },
+      {
+        "id": "c-e4a4ac21-abfc-4b2a-8c70-5c4e5a47ce2b",
+        "op": "claim",
+        "path": "src/verify/env_sensitivity.tsv",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1119",
+        "at": "2026-10-10T23:31:09.226Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "59cb8b1a1",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed",
+        "dependsOn": [
+          "classify-1096-ollama"
+        ]
+      },
+      {
+        "id": "c-370b4488-9bf5-4bf6-8e0b-ad2e30a0b8fa",
+        "op": "claim",
+        "path": "src/session/credential_env.py",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1119",
+        "at": "2026-10-10T23:31:09.226Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "59cb8b1a1",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed",
+        "dependsOn": [
+          "classify-1096-ollama"
+        ]
+      },
+      {
+        "id": "c-479e487f-9db8-4e97-b7e5-860a29acbc30",
+        "op": "claim",
+        "path": "bin/credential_env",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1119",
+        "at": "2026-10-10T23:31:09.226Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "59cb8b1a1",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed",
+        "dependsOn": [
+          "classify-1096-ollama"
+        ]
+      },
+      {
+        "id": "c-6546a516-8548-451b-aa98-06de1833ffd2",
+        "op": "claim",
+        "path": "src/session/model_coordinator.sh",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1119",
+        "at": "2026-10-10T23:31:09.226Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "59cb8b1a1",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed",
+        "dependsOn": [
+          "classify-1096-ollama"
+        ]
+      },
+      {
+        "id": "c-49e5ca14-fd42-4afd-a73b-ef6101d3c623",
+        "op": "claim",
+        "path": "src/session/control_plane_entries.tsv",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1119",
+        "at": "2026-10-11T06:52:30.709Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "17d62c024",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed"
+      },
+      {
+        "id": "c-0e8e08a2-b82c-4353-add6-e43c6d799368",
+        "op": "claim",
+        "path": "tests/session/test_task_continuation_goal.py",
+        "owner": "vm-w",
+        "branch": "feature/vm-w-impl",
+        "task": "TASK-THYROX-1111",
+        "at": "2026-10-11T09:28:34.820Z",
+        "ownerVm": "vm-w",
+        "ownerSession": "session_016gMnr2Vn5YXEKUygXhs23o",
+        "startSha": "51f5bf3b8",
+        "model": "thyrox-unsloth--qwen3.5-9b-gguf:q4_k_m-hf-3885219b6810",
+        "state": "claimed"
+      },
+      {
+        "id": "c-262edd52-c33e-4d92-8d19-e50a60ebd2a7",
+        "op": "claim",
+        "path": "src/session/worker_secret_inheritance.sh",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-17T06:23:53.665Z",
+        "task": "TASK-THYROX-1069"
+      },
+      {
+        "id": "c-35920a1e-f3fe-49e7-a5e4-0b18d3bedd55",
+        "op": "claim",
+        "path": "src/session/task_continuation.py",
+        "owner": "vm-r",
+        "branch": "feature/vm-r-impl",
+        "at": "2026-10-17T06:23:55.096Z",
+        "task": "TASK-THYROX-1069"
+      },
+      {
+        "id": "c-8362bf46-91bf-41b8-9712-6fe9ce461b59",
+        "op": "claim",
+        "path": "src/session/task_continuation.py",
+        "owner": "vm-a",
+        "branch": "feature/fresh-clone-bootstrap",
+        "at": "2026-10-17T22:32:46.481Z",
+        "task": "TASK-THYROX-1065"
+      },
+      {
+        "id": "c-8a8d0027-a4ad-43c4-81d0-c690c11af52b",
+        "op": "claim",
+        "path": "src/agents/merge_sqlite_union.py",
+        "owner": "vm-a",
+        "branch": "feature/fresh-clone-bootstrap",
+        "at": "2026-10-17T23:03:34.073Z"
+      },
+      {
+        "id": "c-bd9e6052-71c6-4a81-90e5-dc8bd1e02a88",
+        "op": "claim",
+        "path": "src/agents/store_field_classes.py",
+        "owner": "vm-a",
+        "branch": "feature/fresh-clone-bootstrap",
+        "at": "2026-10-17T23:03:35.457Z"
+      },
+      {
+        "id": "c-fbf9ccf6-5b23-498b-affd-74acf1a27796",
+        "op": "claim",
+        "path": "src/peer_mailbox/inbox.py",
+        "owner": "vm-a",
+        "branch": "feature/fresh-clone-bootstrap",
+        "at": "2026-10-18T00:01:15.197Z",
+        "task": "TASK-THYROX-1126"
+      },
+      {
+        "id": "c-255790db-598c-489e-b8d7-07045a3104dd",
+        "op": "claim",
+        "path": "tests/peer_mailbox/test_peer_mailbox_carrier.py",
+        "owner": "vm-a",
+        "branch": "feature/fresh-clone-bootstrap",
+        "at": "2026-10-18T00:01:16.613Z",
+        "task": "TASK-THYROX-1126"
+      },
+      {
+        "id": "c-16875cc2-d68d-4211-8ea3-5d39e5777fe1",
+        "op": "claim",
+        "path": ".gitattributes",
+        "owner": "vm-a",
+        "branch": "feature/fresh-clone-bootstrap",
+        "at": "2026-10-18T00:01:18.153Z",
+        "task": "TASK-THYROX-1126"
+      }
+    ]
+  },
+  "store_sha256_before": "0f290d162a5907ba8476484c6986100a97d663f9d103a04c63fb5507cab20f6f",
+  "store_sha256_after": "0f290d162a5907ba8476484c6986100a97d663f9d103a04c63fb5507cab20f6f",
+  "store_unchanged": true,
+  "bounded_execution_admission": "New explicit unit authorization + native per-file task claims; NULL owner alone never grants eligibility",
+  "dependencies_verified": [
+    "Django6 JSONField callable-default protocol",
+    "copy.deepcopy supports nested JSON data",
+    "MigrationWriter partial serialization and clone tested",
+    "source dispatch related/store retained",
+    "no new dependency on GEN0417/0418 or Provider1072 projection",
+    "consumer test_orm history declaration unchanged"
+  ],
+  "limits": [
+    "Task official status/owner not altered",
+    "Full addons QA fixture acceptance remains pending",
+    "Provider vm-r claim preserved, no remote liveness proven"
+  ]
+}

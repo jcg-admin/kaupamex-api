@@ -1,4 +1,5 @@
 """AppConfig — addons.digest (Odoo digest)."""
+
 import importlib
 
 from django.apps import AppConfig

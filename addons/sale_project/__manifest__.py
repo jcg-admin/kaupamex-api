@@ -18,9 +18,9 @@
     #
     # Porte PARCIAL declarado: `sale_project` es de la Capa 0 (tarea #202).
     'depends': [
-        'base',     # ResCompany
+        'base',  # ResCompany
         'project',  # Project, ProjectTask — lo que el pedido crea
-        'sale',     # SaleOrder — el disparador
+        'sale',  # SaleOrder — el disparador
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

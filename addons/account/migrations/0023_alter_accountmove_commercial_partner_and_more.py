@@ -18,7 +18,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="commercial_partner_id",
-                help_text='Odoo commercial_partner_id ("Commercial Entity", account_move.py:430). La entidad que factura de verdad cuando el contacto es una direccion de una matriz. La calcula compute_commercial_partner().',
+                help_text=(
+                    'Odoo commercial_partner_id ("Commercial Entity",'
+                    ' account_move.py:430). La entidad que factura de verdad'
+                    ' cuando el contacto es una direccion de una matriz. La'
+                    ' calcula compute_commercial_partner().'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="commercial_moves",
@@ -37,7 +42,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="fiscal_position_id",
-                help_text='Odoo fiscal_position_id ("Fiscal Position", account_move.py:456). Adapta impuestos y cuentas para un cliente o pedido concreto; su valor por omision viene del cliente.',
+                help_text=(
+                    'Odoo fiscal_position_id ("Fiscal Position",'
+                    ' account_move.py:456). Adapta impuestos y cuentas para un'
+                    ' cliente o pedido concreto; su valor por omision viene'
+                    ' del cliente.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="moves",
@@ -56,7 +66,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="invoice_user_id",
-                help_text='Odoo invoice_user_id ("Salesperson", account_move.py:678). El tracking=True de la fuente no aplica: este asiento no es un hilo de mail.thread en este arbol.',
+                help_text=(
+                    'Odoo invoice_user_id ("Salesperson",'
+                    ' account_move.py:678). El tracking=True de la fuente no'
+                    ' aplica: este asiento no es un hilo de mail.thread en'
+                    ' este arbol.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="invoiced_moves",
@@ -75,7 +90,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="company_currency_id",
-                help_text='Odoo company_currency_id ("Company Currency", account_move_line.py:59). Related a move_id.company_currency_id, materializado en save().',
+                help_text=(
+                    'Odoo company_currency_id ("Company Currency",'
+                    ' account_move_line.py:59). Related a'
+                    ' move_id.company_currency_id, materializado en save().'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="move_lines_as_company_currency",
@@ -94,7 +113,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="company_id",
-                help_text="Odoo company_id (account_move_line.py:55). Related a move_id.company_id, materializado en save().",
+                help_text=(
+                    "Odoo company_id (account_move_line.py:55). Related a"
+                    " move_id.company_id, materializado en save()."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="move_lines",
@@ -113,7 +135,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="journal_id",
-                help_text="Odoo journal_id (account_move_line.py:42). La fuente lo declara related a move_id.journal_id con store=True; aqui es columna propia que save() copia del asiento, que es como este arbol materializa un related almacenado.",
+                help_text=(
+                    "Odoo journal_id (account_move_line.py:42). La fuente lo"
+                    " declara related a move_id.journal_id con store=True;"
+                    " aqui es columna propia que save() copia del asiento, que"
+                    " es como este arbol materializa un related almacenado."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="lines",
@@ -132,7 +159,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="partner_id",
-                help_text='Odoo partner_id ("Partner", account_move_line.py:152). Apunta a res.partner igual que la fuente. El asiento padre apunta al modelo de usuario -- ese desnivel es la tarea #142, y este campo ya nace del lado correcto.',
+                help_text=(
+                    'Odoo partner_id ("Partner", account_move_line.py:152).'
+                    ' Apunta a res.partner igual que la fuente. El asiento'
+                    ' padre apunta al modelo de usuario -- ese desnivel es la'
+                    ' tarea #142, y este campo ya nace del lado correcto.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",
@@ -151,7 +183,9 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="product_id",
-                help_text='Odoo product_id ("Product", account_move_line.py:363).',
+                help_text=(
+                    'Odoo product_id ("Product", account_move_line.py:363).'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",
@@ -170,7 +204,12 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="product_uom_id",
-                help_text='Odoo product_uom_id ("Unit", account_move_line.py:372). La calcula compute_product_uom_id(), que save() invoca. El domain= de la fuente no tiene analogo declarativo en Django y se acota al elegir candidatos.',
+                help_text=(
+                    'Odoo product_uom_id ("Unit", account_move_line.py:372).'
+                    ' La calcula compute_product_uom_id(), que save() invoca.'
+                    ' El domain= de la fuente no tiene analogo declarativo en'
+                    ' Django y se acota al elegir candidatos.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="move_lines",
@@ -188,7 +227,12 @@ class Migration(migrations.Migration):
             name="direction_sign",
             field=models.IntegerField(
                 default=1,
-                help_text="Odoo direction_sign (account_move.py:541). Multiplicador segun el tipo de documento, para convertir un precio en un saldo. La calcula compute_direction_sign(), que save() invoca.",
+                help_text=(
+                    "Odoo direction_sign (account_move.py:541). Multiplicador"
+                    " segun el tipo de documento, para convertir un precio en"
+                    " un saldo. La calcula compute_direction_sign(), que"
+                    " save() invoca."
+                ),
                 verbose_name="Signo de direccion",
             ),
         ),

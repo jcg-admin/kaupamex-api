@@ -24,6 +24,7 @@ Porte símbolo por símbolo — 4 de 4
    * - ``_name_uniq`` (``:18-21``)
      - portado — ``Meta.constraints`` con ``UniqueConstraint``
 """
+
 from random import randint
 
 import fields
@@ -32,7 +33,9 @@ from addons.base.models import TimeStampedModel
 
 
 def _get_default_color():
-    """≙ ``_get_default_color`` (``odoo19c: hr_applicant_category.py:12-13``)."""
+    """
+    ≙ ``_get_default_color`` (``odoo19c: hr_applicant_category.py:12-13``).
+    """
     return randint(1, 11)
 
 
@@ -47,7 +50,8 @@ class HrApplicantCategory(TimeStampedModel):
         help_text='Odoo "Tag Name".',
     )
     color = fields.Integer(
-        default=_get_default_color, verbose_name='Índice de color',
+        default=_get_default_color,
+        verbose_name='Índice de color',
     )
 
     class Meta:
@@ -56,7 +60,8 @@ class HrApplicantCategory(TimeStampedModel):
         verbose_name_plural = 'Etiquetas de candidato'
         constraints = [
             models.UniqueConstraint(
-                fields=['name'], name='hr_applicant_category_name_uniq',
+                fields=['name'],
+                name='hr_applicant_category_name_uniq',
                 violation_error_message='Tag name already exists!',
             ),
         ]

@@ -16,10 +16,14 @@ consigo mismo. El caso de la escritura repetida es el que la mide.
 de la vigente. Un caso que sólo contase filas pasaría con la comparación
 ausente, así que hay uno que guarda el mismo código dos veces y afirma falso.
 """
+
 import pytest
 
 from addons.base.models.ir_actions import (
-    IrActionsServer, IrActionsServerHistory, ServerActionHistoryWizard)
+    IrActionsServer,
+    IrActionsServerHistory,
+    ServerActionHistoryWizard,
+)
 from orm.environments import context_scope
 
 
@@ -36,8 +40,9 @@ class TestTheFirstRevisionIsBornWithTheAction:
     def test_creating_with_code_records_it(self):
         action = _action(code='x = 1\n')
 
-        assert list(action.code_history.values_list('code', flat=True)) == \
-            ['x = 1\n']
+        assert list(action.code_history.values_list('code', flat=True)) == [
+            'x = 1\n'
+        ]
 
     def test_creating_without_code_records_nothing(self):
         assert _action(state='multi').code_history.count() == 0
@@ -92,7 +97,9 @@ class TestWhetherTheFormOffersTheHistory:
 
 @pytest.mark.django_db
 class TestTheWizardIsOpenedOnTheAction:
-    """≙ ``history_wizard_action``: la acción de ventana que abre el asistente."""
+    """
+    ≙ ``history_wizard_action``: la acción de ventana que abre el asistente.
+    """
 
     def test_it_targets_the_wizard_model(self):
         opened = _action(code='x = 1\n').history_wizard_action()
@@ -102,13 +109,16 @@ class TestTheWizardIsOpenedOnTheAction:
     def test_it_carries_the_action_in_the_context(self):
         action = _action(code='x = 1\n')
 
-        assert action.history_wizard_action()['context'] == \
-            {'default_action_id': action.pk}
+        assert action.history_wizard_action()['context'] == {
+            'default_action_id': action.pk
+        }
 
 
 @pytest.mark.django_db
 class TestTheWizardComparesTheTwoTexts:
-    """El asistente ya portado, medido contra el historial que ahora se graba."""
+    """
+    El asistente ya portado, medido contra el historial que ahora se graba.
+    """
 
     def test_the_default_revision_is_the_last_one_that_differs(self):
         action = _action(code='x = 1\n')
@@ -116,7 +126,9 @@ class TestTheWizardComparesTheTwoTexts:
         action.save()
 
         with context_scope(default_action_id=action.pk):
-            assert ServerActionHistoryWizard._default_revision().code == 'x = 1\n'
+            assert (
+                ServerActionHistoryWizard._default_revision().code == 'x = 1\n'
+            )
 
     def test_the_diff_names_both_columns(self):
         action = _action(code='x = 1\n')
@@ -125,7 +137,8 @@ class TestTheWizardComparesTheTwoTexts:
         with context_scope(default_action_id=action.pk):
             wizard = ServerActionHistoryWizard(
                 action=action,
-                revision=ServerActionHistoryWizard._default_revision())
+                revision=ServerActionHistoryWizard._default_revision(),
+            )
 
         assert 'Código actual' in wizard.code_diff
 
@@ -136,7 +149,8 @@ class TestTheWizardComparesTheTwoTexts:
         with context_scope(default_action_id=action.pk):
             wizard = ServerActionHistoryWizard(
                 action=action,
-                revision=ServerActionHistoryWizard._default_revision())
+                revision=ServerActionHistoryWizard._default_revision(),
+            )
 
         wizard.restore_revision()
 
@@ -150,7 +164,9 @@ class TestTheHistoryIsPruned:
     def test_nothing_is_pruned_below_the_cap(self):
         action = _action(code='x = 0\n')
         for n in range(1, 5):
-            IrActionsServerHistory.objects.create(action=action, code=f'x = {n}\n')
+            IrActionsServerHistory.objects.create(
+                action=action, code=f'x = {n}\n'
+            )
 
         IrActionsServerHistory()._gc_histories()
 
@@ -158,10 +174,13 @@ class TestTheHistoryIsPruned:
 
     def test_above_the_cap_only_the_newest_survive(self, monkeypatch):
         monkeypatch.setattr(
-            IrActionsServerHistory, '_max_entries_per_action', 3)
+            IrActionsServerHistory, '_max_entries_per_action', 3
+        )
         action = _action(code='x = 0\n')
         for n in range(1, 6):
-            IrActionsServerHistory.objects.create(action=action, code=f'x = {n}\n')
+            IrActionsServerHistory.objects.create(
+                action=action, code=f'x = {n}\n'
+            )
 
         IrActionsServerHistory()._gc_histories()
 

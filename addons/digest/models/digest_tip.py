@@ -18,6 +18,7 @@ el ``domain=`` de grupo no portado en ``fleet_vehicle.py``, divergencia 5).
 ``user_ids`` (quién ya vio el tip) sí se porta — es dato propio del tip, sin
 dependencia de grupos.
 """
+
 import fields
 
 from addons.base.models import TimeStampedModel
@@ -28,17 +29,24 @@ class DigestTip(TimeStampedModel):
     de ``sequence``."""
 
     sequence = fields.Integer(
-        default=1, verbose_name='Secuencia',
+        default=1,
+        verbose_name='Secuencia',
         help_text='Odoo sequence — orden de despliegue en el correo.',
     )
-    name = fields.Char(max_length=255, blank=True, default='', verbose_name='Nombre')
+    name = fields.Char(
+        max_length=255, blank=True, default='', verbose_name='Nombre'
+    )
     user_ids = fields.Many2many(
-        'base.ResUsers', blank=True, related_name='seen_digest_tips',
+        'base.ResUsers',
+        blank=True,
+        related_name='seen_digest_tips',
         verbose_name='Ya lo vieron',
         help_text='Odoo user_ids — usuarios que ya recibieron este tip.',
     )
     tip_description = fields.Html(
-        blank=True, default='', verbose_name='Descripción',
+        blank=True,
+        default='',
+        verbose_name='Descripción',
     )
 
     class Meta:

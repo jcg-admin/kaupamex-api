@@ -1,0 +1,45 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet/TaskUpdate(description)/TaskGet;claimsCommand",
+  "input": {
+    "task_id": "737",
+    "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.\n\nContractual continuation2026-10-25: native TaskGet443 confirms TASK-API-0264 completed; the description above saying blocked by that decision is historical, not an active blocker. Current source09974556 Registry.new retains install/upgrade/reinit arguments but calls only _ensure_seeded; Registry.load adds imported app models, and Environment.registry returns the global module. These source observations do not demonstrate per-database effective model composition or loader execution. Whole loader remains unaccepted; no new coordinator, completed-state fabrication or blanket absence claim. Existing graph/loading reconciliation and AS IS remain the authorities; registry-dependency-native-443.json and registry-continuation-native-tasks.json preserve identity evidence. Historical #342 is not present in the checked legacy session; no replacement identity invented.\n\nBounded readiness unit2026-10-26: pinned Registry.new invokes load_modules183 before readyTrue210. Current Consumer retains lifecycle request arguments but does not execute loader, then returns readyTrue and replaces cached registry. Native frontier admits pure unsupported-request rejection before replacement, preserving existing no-request metadata registry behavior and RLock. Verify update/install/upgrade/reinit/demo/model-check requests cannot report readiness, previous registry/cache survives, no load/default result fabrication and no DB side effects. This unit does not implement or accept full per-base model composition, installer, hooks, versions or isolation; unaccepted full-loader dependencies are not fabricated. No source edits while fiscal4b29 full gate runs. No official state/owner/dependency or local inference change."
+  },
+  "result": {
+    "content": "{\"task_id\":\"737\",\"updated\":true}",
+    "isError": false
+  },
+  "before": {
+    "task_id": "737",
+    "citation_id": "TASK-API-0382",
+    "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+    "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.\n\nContractual continuation2026-10-25: native TaskGet443 confirms TASK-API-0264 completed; the description above saying blocked by that decision is historical, not an active blocker. Current source09974556 Registry.new retains install/upgrade/reinit arguments but calls only _ensure_seeded; Registry.load adds imported app models, and Environment.registry returns the global module. These source observations do not demonstrate per-database effective model composition or loader execution. Whole loader remains unaccepted; no new coordinator, completed-state fabrication or blanket absence claim. Existing graph/loading reconciliation and AS IS remain the authorities; registry-dependency-native-443.json and registry-continuation-native-tasks.json preserve identity evidence. Historical #342 is not present in the checked legacy session; no replacement identity invented.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "after": {
+    "task_id": "737",
+    "citation_id": "TASK-API-0382",
+    "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+    "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.\n\nContractual continuation2026-10-25: native TaskGet443 confirms TASK-API-0264 completed; the description above saying blocked by that decision is historical, not an active blocker. Current source09974556 Registry.new retains install/upgrade/reinit arguments but calls only _ensure_seeded; Registry.load adds imported app models, and Environment.registry returns the global module. These source observations do not demonstrate per-database effective model composition or loader execution. Whole loader remains unaccepted; no new coordinator, completed-state fabrication or blanket absence claim. Existing graph/loading reconciliation and AS IS remain the authorities; registry-dependency-native-443.json and registry-continuation-native-tasks.json preserve identity evidence. Historical #342 is not present in the checked legacy session; no replacement identity invented.\n\nBounded readiness unit2026-10-26: pinned Registry.new invokes load_modules183 before readyTrue210. Current Consumer retains lifecycle request arguments but does not execute loader, then returns readyTrue and replaces cached registry. Native frontier admits pure unsupported-request rejection before replacement, preserving existing no-request metadata registry behavior and RLock. Verify update/install/upgrade/reinit/demo/model-check requests cannot report readiness, previous registry/cache survives, no load/default result fabrication and no DB side effects. This unit does not implement or accept full per-base model composition, installer, hooks, versions or isolation; unaccepted full-loader dependencies are not fabricated. No source edits while fiscal4b29 full gate runs. No official state/owner/dependency or local inference change.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "claims": [
+    {
+      "path": "src/orm/registry.py",
+      "exit": 0
+    },
+    {
+      "path": "tests/unit/orm/test_registry_class.py",
+      "exit": 0
+    }
+  ],
+  "invariants": "owner,status,dependencies unchanged"
+}

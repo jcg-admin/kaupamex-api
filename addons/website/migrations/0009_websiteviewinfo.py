@@ -7,11 +7,11 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("base", "0027_seed_base_groups"),
-        (
-            "website",
+        ("base",
+         "0027_seed_base_groups"),
+        ("website",
             "0008_websitepage_footer_visible_websitepage_header_color_and_more",
-        ),
+         ),
     ]
 
     operations = [
@@ -33,7 +33,10 @@ class Migration(migrations.Migration):
                     "track",
                     models.BooleanField(
                         default=False,
-                        help_text="Permite marcar una página del sitio como rastreable (Odoo track).",
+                        help_text=(
+                            "Permite marcar una página del sitio como"
+                            " rastreable (Odoo track)."
+                        ),
                         verbose_name="Con seguimiento",
                     ),
                 ),
@@ -48,7 +51,11 @@ class Migration(migrations.Migration):
                             ("password", "With Password"),
                         ],
                         default="",
-                        help_text="Quién puede ver la página: pública, con sesión, con grupo restringido o con contraseña (Odoo visibility).",
+                        help_text=(
+                            "Quién puede ver la página: pública, con sesión,"
+                            " con grupo restringido o con contraseña (Odoo"
+                            " visibility)."
+                        ),
                         max_length=16,
                         verbose_name="Visibilidad",
                     ),
@@ -58,7 +65,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Hash de la contraseña con que se desbloquea la página (Odoo visibility_password, groups=base.group_system, copy=False).",
+                        help_text=(
+                            "Hash de la contraseña con que se desbloquea la"
+                            " página (Odoo visibility_password,"
+                            " groups=base.group_system, copy=False)."
+                        ),
                         max_length=128,
                         verbose_name="Contraseña de visibilidad",
                     ),
@@ -66,7 +77,10 @@ class Migration(migrations.Migration):
                 (
                     "view",
                     models.OneToOneField(
-                        help_text="Vista a la que pertenece esta información (Odoo _inherit ir.ui.view).",
+                        help_text=(
+                            "Vista a la que pertenece esta información (Odoo"
+                            " _inherit ir.ui.view)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="website_info",
                         to="base.iruiview",
@@ -76,7 +90,11 @@ class Migration(migrations.Migration):
                     "website",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Sitio dueño de la vista; vacío = genérica, compartida por todos (Odoo website_id, ondelete=cascade).",
+                        help_text=(
+                            "Sitio dueño de la vista; vacío = genérica,"
+                            " compartida por todos (Odoo website_id,"
+                            " ondelete=cascade)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="views",

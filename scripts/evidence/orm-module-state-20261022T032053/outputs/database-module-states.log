@@ -1,0 +1,109 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Catálogo técnico: 0 añadidos, 0 actualizados (alcance medido: 3 addon(s) en /workspace/kaupamex-api/src/addons, /workspace/kaupamex-api/addons).
+Catálogo técnico: 0 añadidos, 0 actualizados (alcance medido: 3 addon(s) en /workspace/kaupamex-api/src/addons, /workspace/kaupamex-api/addons).
+{
+  "fixture_manifests": {
+    "base": {
+      "depends": []
+    },
+    "uom": {
+      "depends": [
+        "base"
+      ]
+    },
+    "product": {
+      "depends": [
+        "base",
+        "uom"
+      ]
+    }
+  },
+  "dependency_states": {
+    "default": "uninstalled",
+    "company_97011_db": "installed"
+  },
+  "mixed_database_batch_rejected": "['A dependency batch must belong to one database']",
+  "catalog_preserves_distinct_states": {
+    "a": {
+      "base": "installed",
+      "product": "uninstalled",
+      "uom": "uninstalled"
+    },
+    "b": {
+      "base": "installed",
+      "product": "installed",
+      "uom": "installed"
+    }
+  },
+  "install_request": {
+    "order": [
+      "base",
+      "uom",
+      "product"
+    ],
+    "a": {
+      "base": "installed",
+      "product": "to install",
+      "uom": "to install"
+    },
+    "b": {
+      "base": "installed",
+      "product": "installed",
+      "uom": "installed"
+    }
+  },
+  "upgrade_request": {
+    "base": "installed",
+    "product": "to upgrade",
+    "uom": "to upgrade"
+  },
+  "uninstall_request": {
+    "base": "installed",
+    "product": "to remove",
+    "uom": "to remove"
+  },
+  "rollback_restores_states": true,
+  "concurrent_requests": {
+    "a": {
+      "base": "installed",
+      "product": "to install",
+      "uom": "to install"
+    },
+    "b": {
+      "base": "installed",
+      "product": "to upgrade",
+      "uom": "installed"
+    },
+    "rollback_restored": true
+  },
+  "bound_batch_query_count": 1,
+  "bound_exclusion_state": "installed",
+  "acceptance_limit": "Requests only. No addon schema/data/hooks execution or effective registry acceptance.",
+  "second_database_removed": true
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

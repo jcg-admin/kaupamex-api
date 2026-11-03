@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("product", "0011_productsupplierinfo_purchase_requisition_line_and_more"),
+        (
+            "product",
+            "0011_productsupplierinfo_purchase_requisition_line_and_more",
+        ),
         ("project", "0003_projecttasktype_sms_template"),
     ]
 
@@ -21,7 +24,11 @@ class Migration(migrations.Migration):
                     ("manually", "billed manually"),
                 ],
                 default="not_billable",
-                help_text="Odoo billing_type (compute, store, required, default=not_billable). El compute queda bloqueado por allow_billable (sale_project).",
+                help_text=(
+                    "Odoo billing_type (compute, store, required,"
+                    " default=not_billable). El compute queda bloqueado por"
+                    " allow_billable (sale_project)."
+                ),
                 max_length=16,
                 verbose_name="Modo de facturación",
             ),
@@ -31,7 +38,11 @@ class Migration(migrations.Migration):
             name="timesheet_product",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo timesheet_product_id. Servicio con el que se factura por defecto el tiempo de una tarea. Su domain y su default quedan bloqueados — ver el docstring del módulo.",
+                help_text=(
+                    "Odoo timesheet_product_id. Servicio con el que se factura"
+                    " por defecto el tiempo de una tarea. Su domain y su"
+                    " default quedan bloqueados — ver el docstring del módulo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="timesheet_projects",

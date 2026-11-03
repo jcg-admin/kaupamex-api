@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account_edi_proxy_client", "0002_alter_accountediproxyuser_proxy_type"),
+        (
+            "account_edi_proxy_client",
+            "0002_alter_accountediproxyuser_proxy_type",
+        ),
         ("base", "0063_alter_iractionsserver_sequence_id"),
         ("certificate", "0001_initial"),
     ]
@@ -22,7 +25,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 db_column="company_id",
-                help_text="Empresa (Odoo company_id, requerido). related_name da a res.company el O2M inverso sin tocar su archivo.",
+                help_text=(
+                    "Empresa (Odoo company_id, requerido). related_name da a"
+                    " res.company el O2M inverso sin tocar su archivo."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="account_edi_proxy_client_ids",
                 to="base.rescompany",
@@ -38,7 +44,11 @@ class Migration(migrations.Migration):
             name="private_key",
             field=models.ForeignKey(
                 db_column="private_key_id",
-                help_text="Llave para cifrar los datos del usuario (Odoo private_key_id, requerido; domain público=False en la referencia, no reforzado a nivel de campo aquí).",
+                help_text=(
+                    "Llave para cifrar los datos del usuario (Odoo"
+                    " private_key_id, requerido; domain público=False en la"
+                    " referencia, no reforzado a nivel de campo aquí)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="edi_proxy_users",
                 to="certificate.certificatekey",

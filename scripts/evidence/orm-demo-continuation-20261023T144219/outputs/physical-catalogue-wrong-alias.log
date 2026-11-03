@@ -1,0 +1,28 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ALTER ROLE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+{"source_revision": "3fb301a542c218981aed5eb8274003083671c0b5", "task": "TASK-API-0382", "mode": "wrong-alias", "databases": ["company_106703007798345_db", "company_61405995594784_db"], "scope": "Physical catalogue and graph snapshot only; no schema completeness, Registry, authentication or module installation acceptance", "fixture": "Minimal ir_module_module rows and controlled manifests; native service create/drop/aliases plus existing qualified _forget_alias", "acceptance": "not_verified", "result": "FAIL", "error_type": "AssertionError", "error": "Wrong physical catalogue admitted an uninstalled child", "remaining_owned_candidates": [], "cleanup": "PASS"}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

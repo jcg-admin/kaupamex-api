@@ -19,6 +19,7 @@ django.core.exceptions.AppRegistryNotReady. get_model() es la
 forma canonica Django de hacer late-binding al model sin recurrir
 a lazy imports (que la regla no-lazy-imports.md prohibe).
 """
+
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.core.checks import Error, register
@@ -48,29 +49,48 @@ def check_mercadopago_client_secret(app_configs, **kwargs):
 
     try:
         PGModel = django_apps.get_model('payment', 'PaymentGateway')
-        gw = PGModel.objects.filter(gateway='MERCADOPAGO', is_active=True).first()
+        gw = PGModel.objects.filter(
+            gateway='MERCADOPAGO', is_active=True
+        ).first()
         if gw is None:
-            errors.append(Error(
-                'No active PaymentGateway(MERCADOPAGO) found',
-                hint='Crear PaymentGateway con gateway=MERCADOPAGO, is_active=True, '
-                     'y credentials.client_secret antes de deploy.',
-                id='payment.E001',
-            ))
+            errors.append(
+                Error(
+                    'No active PaymentGateway(MERCADOPAGO) found',
+                    hint=(
+                        'Crear PaymentGateway con gateway=MERCADOPAGO,'
+                        ' is_active=True, y credentials.client_secret antes de'
+                        ' deploy.'
+                    ),
+                    id='payment.E001',
+                )
+            )
             return errors
 
         creds = gw.get_credentials() or {}
         if not creds.get('client_secret'):
-            errors.append(Error(
-                'PaymentGateway(MERCADOPAGO) is active but credentials.client_secret is missing',
-                hint='Configurar el secret HMAC del webhook MP en gw.credentials.client_secret. '
-                     'Sin secret, los webhooks MP se rechazan 401 fail-closed (DEC-BC-01).',
-                id='payment.E001',
-            ))
+            errors.append(
+                Error(
+                    'PaymentGateway(MERCADOPAGO) is active but'
+                    ' credentials.client_secret is missing',
+                    hint=(
+                        'Configurar el secret HMAC del webhook MP en'
+                        ' gw.credentials.client_secret. Sin secret, los'
+                        ' webhooks MP se rechazan 401 fail-closed (DEC-BC-01).'
+                    ),
+                    id='payment.E001',
+                )
+            )
     except Exception as exc:
-        errors.append(Error(
-            f'Cannot verify PaymentGateway(MERCADOPAGO) configuration: {exc!r}',
-            hint='Verificar que la tabla settings_payment_gateway existe y es leible.',
-            id='payment.E002',
-        ))
+        errors.append(
+            Error(
+                'Cannot verify PaymentGateway(MERCADOPAGO) configuration:'
+                f' {exc!r}',
+                hint=(
+                    'Verificar que la tabla settings_payment_gateway existe y'
+                    ' es leible.'
+                ),
+                id='payment.E002',
+            )
+        )
 
     return errors

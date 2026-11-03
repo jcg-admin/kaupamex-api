@@ -1,0 +1,9 @@
+{
+  "store_sha256": "0f290d162a5907ba8476484c6986100a97d663f9d103a04c63fb5507cab20f6f",
+  "store_unchanged": true,
+  "final_functional_head": "0fc622dcfedca3b9e9387d89e3215c1a348c63aa",
+  "targeted_final_exit_code": 0,
+  "no_own_qa_databases_remaining": true,
+  "provider_unchanged": true,
+  "merge_performed": false
+}

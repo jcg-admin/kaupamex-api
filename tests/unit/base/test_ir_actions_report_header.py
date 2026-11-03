@@ -34,12 +34,15 @@ class TestTheClassAttributes:
         assert IrActionsReport._allow_sudo_commands is False
 
     def test_the_table_of_the_source_and_the_one_of_django_agree(self):
-        """``_table`` no sustituye a ``Meta.db_table``: conviven y coinciden."""
+        """
+        ``_table`` no sustituye a ``Meta.db_table``: conviven y coinciden.
+        """
         assert IrActionsReport._table == IrActionsReport._meta.db_table
 
     def test_the_order_of_the_source_and_the_one_of_django_agree(self):
         assert IrActionsReport._order == ', '.join(
-            IrActionsReport._meta.ordering)
+            IrActionsReport._meta.ordering
+        )
 
 
 class TestTheDerivedModelRow:
@@ -67,7 +70,10 @@ class TestTheSearchOverTheDerivedField:
 
     def test_a_negative_operator_is_left_to_the_general_path(self):
         for operator in Domain.NEGATIVE_OPERATORS:
-            assert IrActionsReport._search_model_id(operator, 'x') is NotImplemented
+            assert (
+                IrActionsReport._search_model_id(operator, 'x')
+                is NotImplemented
+            )
 
     def test_an_id_narrows_to_the_technical_name_of_that_row(self):
         row = IrModel.objects.create(model='x_report_by_id', name='By id')
@@ -83,7 +89,7 @@ class TestTheSearchOverTheDerivedField:
         assert 'x_report_in_one' in texto and 'x_report_in_two' in texto
 
     def test_nothing_matching_gives_an_empty_narrowing(self):
-        domain = IrActionsReport._search_model_id('=', 10 ** 9)
+        domain = IrActionsReport._search_model_id('=', 10**9)
         assert str(domain).count('x_') == 0
 
 
@@ -92,17 +98,28 @@ class TestTheReadableFields:
 
     def test_it_adds_the_seven_names_of_the_source(self):
         readable = IrActionsReport(name='R', model='x')._get_readable_fields()
-        assert {'report_name', 'report_type', 'target', 'context', 'data',
-                'close_on_report_download', 'domain'} <= readable
+        assert {
+            'report_name',
+            'report_type',
+            'target',
+            'context',
+            'data',
+            'close_on_report_download',
+            'domain',
+        } <= readable
 
     def test_it_keeps_what_the_parent_declares(self):
         report = IrActionsReport(name='R', model='x')
-        assert super(IrActionsReport, report)._get_readable_fields() <= \
-            report._get_readable_fields()
+        assert (
+            super(IrActionsReport, report)._get_readable_fields()
+            <= report._get_readable_fields()
+        )
 
 
 class TestTheTwoRelationalSymbols:
-    """``group_ids`` y ``paperformat_id`` — forma C: símbolo y columna fieles."""
+    """
+    ``group_ids`` y ``paperformat_id`` — forma C: símbolo y columna fieles.
+    """
 
     def test_the_symbols_are_the_ones_of_the_source(self):
         nombres = {f.name for f in IrActionsReport._meta.get_fields()}
@@ -115,7 +132,10 @@ class TestTheTwoRelationalSymbols:
 
     def test_the_join_table_of_the_groups_did_not_move(self):
         field = IrActionsReport._meta.get_field('group_ids')
-        assert field.remote_field.through._meta.db_table == 'res_groups_report_rel'
+        assert (
+            field.remote_field.through._meta.db_table
+            == 'res_groups_report_rel'
+        )
 
 
 class TestTheReportsApplicableToAModel:
@@ -137,20 +157,29 @@ class TestTheReportsApplicableToAModel:
 
     def test_a_report_without_groups_is_applicable_to_everyone(self):
         IrActionsReport.objects.create(
-            name='Libre', model='x_applicable', report_name='libre')
+            name='Libre', model='x_applicable', report_name='libre'
+        )
         assert len(IrActionsReport.valid_reports_for('x_applicable')) == 1
 
     def test_a_report_with_groups_needs_one_of_them(self):
         group = ResGroups.objects.create(name='Impresores')
         report = IrActionsReport.objects.create(
-            name='Restringido', model='x_restricted', report_name='restringido')
+            name='Restringido', model='x_restricted', report_name='restringido'
+        )
         report.group_ids.add(group)
 
         assert IrActionsReport.valid_reports_for('x_restricted') == []
-        assert len(IrActionsReport.valid_reports_for(
-            'x_restricted', groups=[group])) == 1
+        assert (
+            len(
+                IrActionsReport.valid_reports_for(
+                    'x_restricted', groups=[group]
+                )
+            )
+            == 1
+        )
 
     def test_another_model_does_not_bring_it(self):
         IrActionsReport.objects.create(
-            name='Ajeno', model='x_other', report_name='ajeno')
+            name='Ajeno', model='x_other', report_name='ajeno'
+        )
         assert IrActionsReport.valid_reports_for('x_applicable') == []

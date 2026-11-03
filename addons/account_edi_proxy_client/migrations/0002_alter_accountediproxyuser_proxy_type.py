@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
                 blank=True,
                 choices=[("peppol", "PEPPOL")],
                 default="",
-                help_text="Tipo de proxy — vacío hasta que un l10n_*_edi concreto declare valores (Odoo proxy_type, requerido allá).",
+                help_text=(
+                    "Tipo de proxy — vacío hasta que un l10n_*_edi concreto"
+                    " declare valores (Odoo proxy_type, requerido allá)."
+                ),
                 max_length=32,
             ),
         ),

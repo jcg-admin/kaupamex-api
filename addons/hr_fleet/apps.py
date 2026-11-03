@@ -9,6 +9,7 @@ El alta en ``INSTALLED_APPS`` es automática: ``LOCAL_APPS`` se deriva del
 grafo de manifiestos (``config/settings/base.py``, ``_local_apps()``), y el
 ``depends: ['hr', 'fleet']`` de este addon lo ordena después de ambos.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -26,24 +27,33 @@ class HrFleetConfig(AppConfig):
     #: ``apply_hr_fleet_<archivo>_extensions()`` (mismo criterio que
     #: ``HrConfig._EXTENSIONES``).
     _EXTENSIONES = {
-        'addons.hr_fleet.models.employee':
-            'apply_hr_fleet_employee_extensions',
-        'addons.hr_fleet.models.fleet_vehicle':
-            'apply_hr_fleet_fleet_vehicle_extensions',
-        'addons.hr_fleet.models.fleet_vehicle_assignation_log':
-            'apply_hr_fleet_fleet_vehicle_assignation_log_extensions',
-        'addons.hr_fleet.models.fleet_vehicle_log_contract':
-            'apply_hr_fleet_fleet_vehicle_log_contract_extensions',
-        'addons.hr_fleet.models.fleet_vehicle_log_services':
-            'apply_hr_fleet_fleet_vehicle_log_services_extensions',
-        'addons.hr_fleet.models.fleet_vehicle_odometer':
-            'apply_hr_fleet_fleet_vehicle_odometer_extensions',
-        'addons.hr_fleet.models.ir_attachment':
-            'apply_hr_fleet_ir_attachment_extensions',
-        'addons.hr_fleet.models.mail_activity_plan_template':
-            'apply_hr_fleet_mail_activity_plan_template_extensions',
-        'addons.hr_fleet.wizard.hr_departure_wizard':
-            'apply_hr_fleet_hr_departure_wizard_extensions',
+        'addons.hr_fleet.models.employee': (
+            'apply_hr_fleet_employee_extensions'
+        ),
+        'addons.hr_fleet.models.fleet_vehicle': (
+            'apply_hr_fleet_fleet_vehicle_extensions'
+        ),
+        'addons.hr_fleet.models.fleet_vehicle_assignation_log': (
+            'apply_hr_fleet_fleet_vehicle_assignation_log_extensions'
+        ),
+        'addons.hr_fleet.models.fleet_vehicle_log_contract': (
+            'apply_hr_fleet_fleet_vehicle_log_contract_extensions'
+        ),
+        'addons.hr_fleet.models.fleet_vehicle_log_services': (
+            'apply_hr_fleet_fleet_vehicle_log_services_extensions'
+        ),
+        'addons.hr_fleet.models.fleet_vehicle_odometer': (
+            'apply_hr_fleet_fleet_vehicle_odometer_extensions'
+        ),
+        'addons.hr_fleet.models.ir_attachment': (
+            'apply_hr_fleet_ir_attachment_extensions'
+        ),
+        'addons.hr_fleet.models.mail_activity_plan_template': (
+            'apply_hr_fleet_mail_activity_plan_template_extensions'
+        ),
+        'addons.hr_fleet.wizard.hr_departure_wizard': (
+            'apply_hr_fleet_hr_departure_wizard_extensions'
+        ),
     }
 
     def ready(self):

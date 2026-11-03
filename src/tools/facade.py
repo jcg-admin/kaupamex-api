@@ -31,6 +31,7 @@ Python —``__wrapped`` dentro de una clase se reescribiria a
 ``_Clase__wrapped``— y ademas dejan libre el ``__wrapped__`` que
 ``functools.update_wrapper`` escribe.
 """
+
 import functools
 import inspect
 
@@ -48,10 +49,13 @@ class ProxyAttr:
     def __set_name__(self, owner, name):
         cast = self._cast__
         if cast:
+
             def getter(self):
                 value = getattr(self._wrapped__, name)
                 return cast(value) if value is not None else None
+
         else:
+
             def getter(self):
                 return getattr(self._wrapped__, name)
 
@@ -81,13 +85,18 @@ class ProxyFunc:
 
         if isinstance(descriptor, staticmethod):
             if cast:
+
                 def wrap_func(*args, **kwargs):
                     result = func(*args, **kwargs)
                     return cast(result) if result is not None else None
+
             elif cast is None:
+
                 def wrap_func(*args, **kwargs):
                     func(*args, **kwargs)
+
             else:
+
                 def wrap_func(*args, **kwargs):
                     return func(*args, **kwargs)
 
@@ -96,13 +105,18 @@ class ProxyFunc:
 
         elif isinstance(descriptor, classmethod):
             if cast:
+
                 def wrap_func(cls, *args, **kwargs):
                     result = func(*args, **kwargs)
                     return cast(result) if result is not None else None
+
             elif cast is None:
+
                 def wrap_func(cls, *args, **kwargs):
                     func(*args, **kwargs)
+
             else:
+
                 def wrap_func(cls, *args, **kwargs):
                     return func(*args, **kwargs)
 
@@ -111,13 +125,18 @@ class ProxyFunc:
 
         else:
             if cast:
+
                 def wrap_func(self, *args, **kwargs):
                     result = func(self._wrapped__, *args, **kwargs)
                     return cast(result) if result is not None else None
+
             elif cast is None:
+
                 def wrap_func(self, *args, **kwargs):
                     func(self._wrapped__, *args, **kwargs)
+
             else:
+
                 def wrap_func(self, *args, **kwargs):
                     return func(self._wrapped__, *args, **kwargs)
 
@@ -127,20 +146,26 @@ class ProxyFunc:
 
 
 class ProxyMeta(type):
-    """Metaclase de la fachada: añade la representacion y copia la identidad."""
+    """
+    Metaclase de la fachada: añade la representacion y copia la identidad.
+    """
 
     def __new__(cls, clsname, bases, attrs):
-        attrs.update({
-            func: ProxyFunc()
-            for func in ("__repr__", "__str__")
-            if func not in attrs
-        })
+        attrs.update(
+            {
+                func: ProxyFunc()
+                for func in ("__repr__", "__str__")
+                if func not in attrs
+            }
+        )
         proxy_class = super().__new__(cls, clsname, bases, attrs)
         # Para preservar el docstring, la firma y el codigo de la clase
         # envuelta. ``updated`` va a lista vacia para que NO copie el
         # ``__dict__``. Ver ``functools.WRAPPER_ASSIGNMENTS`` y
         # ``functools.WRAPPER_UPDATES``.
-        functools.update_wrapper(proxy_class, proxy_class._wrapped__, updated=[])
+        functools.update_wrapper(
+            proxy_class, proxy_class._wrapped__, updated=[]
+        )
         return proxy_class
 
 

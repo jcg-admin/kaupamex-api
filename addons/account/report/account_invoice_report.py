@@ -98,13 +98,15 @@ ocho en ``account_move_line`` (``product_id``, ``journal_id``, ``company_id``,
 
 Las otras cinco tablas que el ``FROM`` toca ya estaban completas para este SQL:
 ``res_partner.country_id``, ``product_product.{product_tmpl_id,
-standard_price}``, ``product_template.{categ_id, uom_id}``, ``uom_uom.factor`` y
+standard_price}``, ``product_template.{categ_id, uom_id}``, ``uom_uom.factor``
+y
 ``account_account.account_type`` -- 8 de 8.
 
 **Lo que las columnas nuevas NO traen todavia, y esta declarado.** Dos de ellas
 nacen en cero porque su compute esta BLOQUEADO por ``tax_ids`` -- el apunte no
 declara sus impuestos, de modo que ``_compute_totals`` no tiene que repartir.
-El motor si existe (``AccountTax.compute_all``, ``account_tax.py:411``), asi que
+El motor si existe (``AccountTax.compute_all``, ``account_tax.py:411``), asi
+que
 el bloqueo es del dato. Sucesor: tarea **#990**. La vista los leera como 0.00
 hasta entonces, que es un valor honesto y no una ausencia de columna.
 
@@ -117,6 +119,7 @@ nombre resuelva, no que su forma coincida con la de la fuente.
 modelo (``_name``, ``_description``, ``_auto``, ``_rec_name``, ``_order``,
 ``_depends``) son forma pura y describen el contrato completo de la vista.
 """
+
 import fields
 import models
 
@@ -131,7 +134,12 @@ from tools.sql import SQL
 #: (``odoo19c: addons/account/report/account_invoice_report.py:27-32``). Se
 #: deriva de ``AccountMove.MOVE_TYPES`` en vez de repetir las etiquetas a
 #: mano, para que las dos listas nunca diverjan en texto.
-_INVOICE_MOVE_TYPE_KEYS = ('out_invoice', 'in_invoice', 'out_refund', 'in_refund')
+_INVOICE_MOVE_TYPE_KEYS = (
+    'out_invoice',
+    'in_invoice',
+    'out_refund',
+    'in_refund',
+)
 _MOVE_TYPE_LABELS_BY_KEY = dict(AccountMove.MOVE_TYPES)
 MOVE_TYPE_CHOICES = [
     (key, _MOVE_TYPE_LABELS_BY_KEY[key]) for key in _INVOICE_MOVE_TYPE_KEYS
@@ -158,117 +166,209 @@ class AccountInvoiceReport(models.Model):
 
     # ==== Campos de la factura ====
     move_id = fields.Many2one(
-        'account.AccountMove', on_delete=models.DO_NOTHING,
+        'account.AccountMove',
+        on_delete=models.DO_NOTHING,
         db_column='move_id',
-        null=True, blank=True, related_name='+')
+        null=True,
+        blank=True,
+        related_name='+',
+    )
     journal_id = fields.Many2one(
-        'account.AccountJournal', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'account.AccountJournal',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='journal_id',
-        help_text='Diario (Odoo journal_id).')
+        help_text='Diario (Odoo journal_id).',
+    )
     company_id = fields.Many2one(
-        'base.ResCompany', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResCompany',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='company_id',
-        help_text='Compania (Odoo company_id).')
+        help_text='Compania (Odoo company_id).',
+    )
     company_currency_id = fields.Many2one(
-        'base.ResCurrency', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResCurrency',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='company_currency_id',
-        help_text='Moneda de la compania (Odoo company_currency_id).')
+        help_text='Moneda de la compania (Odoo company_currency_id).',
+    )
     partner_id = fields.Many2one(
-        'base.ResPartner', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResPartner',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='partner_id',
-        help_text='Contacto (Odoo partner_id).')
+        help_text='Contacto (Odoo partner_id).',
+    )
     commercial_partner_id = fields.Many2one(
-        'base.ResPartner', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResPartner',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='commercial_partner_id',
-        help_text='Contacto principal (Odoo commercial_partner_id).')
+        help_text='Contacto principal (Odoo commercial_partner_id).',
+    )
     country_id = fields.Many2one(
-        'base.ResCountry', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResCountry',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='country_id',
-        help_text='Pais (Odoo country_id).')
+        help_text='Pais (Odoo country_id).',
+    )
     invoice_user_id = fields.Many2one(
-        'base.ResUsers', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResUsers',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='invoice_user_id',
-        help_text='Comercial (Odoo invoice_user_id).')
+        help_text='Comercial (Odoo invoice_user_id).',
+    )
     move_type = fields.Selection(
-        max_length=16, choices=MOVE_TYPE_CHOICES, null=True, blank=True,
-        help_text='Tipo de documento (Odoo move_type).')
+        max_length=16,
+        choices=MOVE_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Tipo de documento (Odoo move_type).',
+    )
     state = fields.Selection(
-        max_length=16, choices=AccountMove.STATES, null=True, blank=True,
-        help_text='Estatus de la factura (Odoo state).')
+        max_length=16,
+        choices=AccountMove.STATES,
+        null=True,
+        blank=True,
+        help_text='Estatus de la factura (Odoo state).',
+    )
     payment_state = fields.Selection(
-        max_length=32, choices=AccountMove.PAYMENT_STATES,
-        null=True, blank=True,
-        help_text='Estatus de pago (Odoo payment_state).')
+        max_length=32,
+        choices=AccountMove.PAYMENT_STATES,
+        null=True,
+        blank=True,
+        help_text='Estatus de pago (Odoo payment_state).',
+    )
     fiscal_position_id = fields.Many2one(
-        'account.AccountFiscalPosition', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'account.AccountFiscalPosition',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='fiscal_position_id',
-        help_text='Posicion fiscal (Odoo fiscal_position_id).')
+        help_text='Posicion fiscal (Odoo fiscal_position_id).',
+    )
     invoice_date = fields.Date(
-        null=True, blank=True, help_text='Fecha de factura (Odoo invoice_date).')
+        null=True,
+        blank=True,
+        help_text='Fecha de factura (Odoo invoice_date).',
+    )
 
     # ==== Campos de la linea de factura ====
     quantity = fields.Float(
-        null=True, blank=True,
-        help_text='Cantidad de producto (Odoo quantity).')
+        null=True,
+        blank=True,
+        help_text='Cantidad de producto (Odoo quantity).',
+    )
     product_id = fields.Many2one(
-        'product.ProductProduct', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'product.ProductProduct',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='product_id',
-        help_text='Producto (Odoo product_id).')
+        help_text='Producto (Odoo product_id).',
+    )
     product_uom_id = fields.Many2one(
-        'uom.Uom', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'uom.Uom',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='product_uom_id',
-        help_text='Unidad (Odoo product_uom_id).')
+        help_text='Unidad (Odoo product_uom_id).',
+    )
     product_categ_id = fields.Many2one(
-        'product.ProductCategory', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'product.ProductCategory',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='product_categ_id',
-        help_text='Categoria de producto (Odoo product_categ_id).')
+        help_text='Categoria de producto (Odoo product_categ_id).',
+    )
     invoice_date_due = fields.Date(
-        null=True, blank=True,
-        help_text='Fecha de vencimiento (Odoo invoice_date_due).')
+        null=True,
+        blank=True,
+        help_text='Fecha de vencimiento (Odoo invoice_date_due).',
+    )
     account_id = fields.Many2one(
-        'account.AccountAccount', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'account.AccountAccount',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='account_id',
-        help_text='Cuenta de ingreso/gasto (Odoo account_id).')
+        help_text='Cuenta de ingreso/gasto (Odoo account_id).',
+    )
     price_subtotal_currency = fields.Float(
-        null=True, blank=True,
-        help_text='Importe sin impuestos en la moneda del documento '
-                   '(Odoo price_subtotal_currency).')
+        null=True,
+        blank=True,
+        help_text=(
+            'Importe sin impuestos en la moneda del documento '
+            '(Odoo price_subtotal_currency).'
+        ),
+    )
     price_subtotal = fields.Float(
-        null=True, blank=True,
-        help_text='Importe sin impuestos (Odoo price_subtotal).')
+        null=True,
+        blank=True,
+        help_text='Importe sin impuestos (Odoo price_subtotal).',
+    )
     price_total = fields.Float(
-        null=True, blank=True, help_text='Total (Odoo price_total).')
+        null=True, blank=True, help_text='Total (Odoo price_total).'
+    )
     price_total_currency = fields.Float(
-        null=True, blank=True,
-        help_text='Total en la moneda del documento (Odoo price_total_currency).')
+        null=True,
+        blank=True,
+        help_text=(
+            'Total en la moneda del documento (Odoo price_total_currency).'
+        ),
+    )
     price_average = fields.Float(
-        null=True, blank=True,
-        help_text='Precio promedio (Odoo price_average). El '
-                   '``aggregator="avg"`` de la fuente no se porta: depende '
-                   'de ``_read_group_select``, BLOQUEADO -- ver el '
-                   'docstring del modulo.')
+        null=True,
+        blank=True,
+        help_text=(
+            'Precio promedio (Odoo price_average). El '
+            '``aggregator="avg"`` de la fuente no se porta: depende '
+            'de ``_read_group_select``, BLOQUEADO -- ver el '
+            'docstring del modulo.'
+        ),
+    )
     price_margin = fields.Float(
-        null=True, blank=True, help_text='Margen (Odoo price_margin).')
+        null=True, blank=True, help_text='Margen (Odoo price_margin).'
+    )
     inventory_value = fields.Float(
-        null=True, blank=True,
-        help_text='Valor de inventario (Odoo inventory_value).')
+        null=True,
+        blank=True,
+        help_text='Valor de inventario (Odoo inventory_value).',
+    )
     currency_id = fields.Many2one(
-        'base.ResCurrency', on_delete=models.DO_NOTHING,
-        null=True, blank=True, related_name='+',
+        'base.ResCurrency',
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='+',
         db_column='currency_id',
-        help_text='Moneda del documento (Odoo currency_id).')
+        help_text='Moneda del documento (Odoo currency_id).',
+    )
 
     #: Verbatim contra la fuente (``odoo19c: :58-71``) -- documenta de que
     #: campos de que modelos depende el recalculo de la vista SQL. Inerte
@@ -278,16 +378,33 @@ class AccountInvoiceReport(models.Model):
     #: contrato, fiel al atributo de clase de la referencia.
     _depends = {
         'account.move': [
-            'name', 'state', 'move_type', 'partner_id', 'invoice_user_id',
-            'fiscal_position_id', 'invoice_date', 'invoice_date_due',
-            'invoice_payment_term_id', 'partner_bank_id',
+            'name',
+            'state',
+            'move_type',
+            'partner_id',
+            'invoice_user_id',
+            'fiscal_position_id',
+            'invoice_date',
+            'invoice_date_due',
+            'invoice_payment_term_id',
+            'partner_bank_id',
             'invoice_currency_rate',
         ],
         'account.move.line': [
-            'quantity', 'price_subtotal', 'price_total', 'amount_residual',
-            'balance', 'amount_currency', 'move_id', 'product_id',
-            'product_uom_id', 'account_id', 'journal_id', 'company_id',
-            'currency_id', 'partner_id',
+            'quantity',
+            'price_subtotal',
+            'price_total',
+            'amount_residual',
+            'balance',
+            'amount_currency',
+            'move_id',
+            'product_id',
+            'product_uom_id',
+            'account_id',
+            'journal_id',
+            'company_id',
+            'currency_id',
+            'partner_id',
         ],
         'product.product': ['product_tmpl_id', 'standard_price'],
         'product.template': ['categ_id'],
@@ -383,12 +500,15 @@ class AccountInvoiceReport(models.Model):
         ``ResCurrency._get_simple_currency_table`` sobre las empresas
         ACTIVADAS.
 
-        DIVERGENCIA DE MECANISMO, declarada: la fuente pasa ``self.env.companies``,
+        DIVERGENCIA DE MECANISMO, declarada: la fuente pasa
+        ``self.env.companies``,
         que es un recordset; aquí las empresas activadas son PKs
         (``get_current_companies()``) y se materializan con el gestor de
         Django. El conjunto es el mismo — cambia cómo se nombra.
         """
-        companies = list(ResCompany.objects.filter(pk__in=get_current_companies()))
+        companies = list(
+            ResCompany.objects.filter(pk__in=get_current_companies())
+        )
         return SQL(
             '''
             FROM account_move_line line
@@ -500,7 +620,8 @@ class ReportAccountReportInvoice:
 
         La cita que el gate de ceros caducados vigila es la del campo del
         que cuelgan los otros cuatro:
-        ``grep -c display_qr_code addons/account/models/account_move.py`` da **0**.
+        ``grep -c display_qr_code addons/account/models/account_move.py`` da
+        **0**.
         El dia que ese campo aterrice, el gate marca esta prosa como
         caducada y obliga a reabrir el bloqueo.
 

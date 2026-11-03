@@ -1,0 +1,17 @@
+{
+  "reason": "Do not generalize current PR integration status to historical55TASK",
+  "supersedes_only_integration_publication_interpretation": [
+    "reconciliation.json",
+    "reconciliation.md"
+  ],
+  "authoritative_views": [
+    "reconciliation-v2.json",
+    "reconciliation-v2.md"
+  ],
+  "source_tests_modified": false,
+  "hashes": {
+    "probes/reconcile_existing.py": "3561d55ca6d99d35e304985ce7e7fb36806b8b23bf51a7e1f4940e5f5533fe80",
+    "outputs/reconciliation-v2.json": "56c124b8067936a75b502f264bf08cf636c136d1ec26f6835c6f55724a9cf3de",
+    "outputs/reconciliation-v2.md": "3de3762c9c36e1bd466a9b54c9414b4d542faa3c7bdba6e6ec9dd7a216a3d636"
+  }
+}

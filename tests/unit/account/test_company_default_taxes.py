@@ -9,11 +9,14 @@ nada siembra un ``account.tax``.
 La referencia resuelve eso con un ``default`` en el M2M del producto que lee el
 campo de la empresa (``odoo19c: account/models/product.py:44`` sobre
 ``company.py:126-127``; idéntico en ``odoo18c:41``). Aquí el default no puede
-ser declarativo —Django no admite ``default=`` en un ``ManyToManyField``, no hay
-fila que asociar hasta después del INSERT— así que es un receptor ``post_save``.
+ser declarativo —Django no admite ``default=`` en un ``ManyToManyField``, no
+hay
+fila que asociar hasta después del INSERT— así que es un receptor
+``post_save``.
 Estos tests fijan que el **efecto** sea el mismo, que es lo que importa del
 porte.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -34,8 +37,12 @@ def company():
 @pytest.fixture
 def sale_tax(company):
     return AccountTax.objects.create(
-        name='IVA 16', amount=Decimal('16'), amount_type='percent',
-        type_tax_use='sale', company=company)
+        name='IVA 16',
+        amount=Decimal('16'),
+        amount_type='percent',
+        type_tax_use='sale',
+        company=company,
+    )
 
 
 class TestCompanyDefaultTaxField:
@@ -79,10 +86,16 @@ class TestProductInheritsCompanyTax:
         assert list(product.taxes.all()) == []
 
     def test_does_not_override_declared_taxes(self, company, sale_tax):
-        """Es un ``default``, no un compute: sólo actúa si el M2M quedó vacío."""
+        """
+        Es un ``default``, no un compute: sólo actúa si el M2M quedó vacío.
+        """
         other_tax = AccountTax.objects.create(
-            name='IVA 8 frontera', amount=Decimal('8'), amount_type='percent',
-            type_tax_use='sale', company=company)
+            name='IVA 8 frontera',
+            amount=Decimal('8'),
+            amount_type='percent',
+            type_tax_use='sale',
+            company=company,
+        )
         company.account_sale_tax = sale_tax
         company.save(update_fields=['account_sale_tax'])
 
@@ -94,7 +107,8 @@ class TestProductInheritsCompanyTax:
         assert list(product.taxes.all()) == [other_tax]
 
     def test_later_edit_does_not_restore_default(self, company, sale_tax):
-        """Quitar los impuestos a mano es una decisión; el receptor no la deshace.
+        """
+        Quitar los impuestos a mano es una decisión; el receptor no la deshace.
 
         Si actuara en cada ``save()`` en vez de sólo al crear, un producto sin
         impuestos sería imposible de expresar.

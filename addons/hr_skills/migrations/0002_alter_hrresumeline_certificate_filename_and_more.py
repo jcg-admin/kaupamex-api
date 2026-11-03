@@ -14,7 +14,9 @@ class Migration(migrations.Migration):
             model_name="hrresumeline",
             name="certificate_filename",
             field=models.CharField(
-                blank=True, default="", verbose_name="Nombre de archivo del certificado"
+                blank=True,
+                default="",
+                verbose_name="Nombre de archivo del certificado",
             ),
         ),
         migrations.AlterField(
@@ -22,7 +24,9 @@ class Migration(migrations.Migration):
             name="color",
             field=models.CharField(
                 default="#000000",
-                help_text="Odoo color (compute) — recómputo: _compute_color().",
+                help_text=(
+                    "Odoo color (compute) — recómputo: _compute_color()."
+                ),
                 verbose_name="Color",
             ),
         ),
@@ -41,7 +45,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo external_url (compute, store=True) — recómputo: _compute_external_url().",
+                help_text=(
+                    "Odoo external_url (compute, store=True) — recómputo:"
+                    " _compute_external_url()."
+                ),
                 verbose_name="URL externa",
             ),
         ),

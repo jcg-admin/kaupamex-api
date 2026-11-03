@@ -1,4 +1,5 @@
 """Tests — addons ``sms`` + ``sale_sms`` (confirmación SMS de la orden)."""
+
 import pytest
 
 from addons.sale.models import SaleOrder
@@ -21,7 +22,8 @@ def test_sms_defaults_and_transitions(db):
 
 def test_sms_template_render_tolerant(db):
     tpl = SmsTemplate.objects.create(
-        name='Confirmación', body='Orden {order} por ${total}. Gracias {missing}',
+        name='Confirmación',
+        body='Orden {order} por ${total}. Gracias {missing}',
     )
     out = tpl.render({'order': 'S-ABCD1234', 'total': '199.00'})
     assert 'Orden S-ABCD1234 por $199.00' in out
@@ -30,7 +32,9 @@ def test_sms_template_render_tolerant(db):
 
 
 def test_sale_order_sms_confirmation_send(db):
-    tpl = SmsTemplate.objects.create(name='Conf', body='Orden {order} total ${total}')
+    tpl = SmsTemplate.objects.create(
+        name='Conf', body='Orden {order} total ${total}'
+    )
     order = SaleOrder.objects.create()
     link = SaleOrderSmsConfirmation.send_for(order, '+525511223344', tpl)
     assert order.sms_confirmation.message == link.message

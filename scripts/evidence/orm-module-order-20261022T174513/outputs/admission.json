@@ -1,0 +1,13 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run; claimsCommand; session.job_runs scaffold_run/settle; workbench.manifest.declare_workbench",
+  "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "local_id": "737",
+  "owner": "codex-module-lifecycle",
+  "scope": "Atomic ModuleGraph ordering dependency of0382; source defect demonstrated from existing pilot/inventory before edits; no DB-bound loader construction",
+  "dependencies": "Prior native0382 admission and accepted DEC-AISL-05 retained; phase/bootstrap/compute are not prerequisites for pure ordering unit. Empty declared graph not used as independence proof.",
+  "task_mutation": false,
+  "inference": "Codex engineering, no local Provider model inference",
+  "claims": "Native Consumer claims ledger, own paths only",
+  "existing_inventory": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-pilot.json atfc2ff8c8; do not regenerate historical snapshot"
+}

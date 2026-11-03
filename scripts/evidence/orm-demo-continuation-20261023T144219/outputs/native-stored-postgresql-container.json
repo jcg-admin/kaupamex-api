@@ -1,0 +1,165 @@
+{
+  "at": "2026-11-01T21:28:19.625199+00:00",
+  "name": "orm-native-m2m-096b46c13c16",
+  "container_id": "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+  "label_token": "096b46c13c164f418a22bad7ed0d80e0",
+  "commands": [
+    {
+      "command": [
+        "docker",
+        "info",
+        "--format",
+        "{{.ID}}"
+      ],
+      "exit_code": 0,
+      "stdout": "edcaf618-1316-4b02-bf15-ddbb371e8ed8",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "--format",
+        "{{.Id}}",
+        "postgres:16-bookworm"
+      ],
+      "exit_code": 0,
+      "stdout": "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--pull",
+        "never",
+        "--rm",
+        "--detach",
+        "--name",
+        "orm-native-m2m-096b46c13c16",
+        "--label",
+        "kaupamex.orm.native-m2m=096b46c13c164f418a22bad7ed0d80e0",
+        "--env",
+        "POSTGRES_PASSWORD",
+        "--publish",
+        "127.0.0.1::5432",
+        "--tmpfs",
+        "/var/lib/postgresql/data:rw",
+        "postgres:16-bookworm"
+      ],
+      "exit_code": 0,
+      "stdout": "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 0,
+      "stdout": "/var/run/postgresql:5432 - accepting connections",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{(index (index .NetworkSettings.Ports \"5432/tcp\") 0).HostPort}}",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449"
+      ],
+      "exit_code": 0,
+      "stdout": "32774",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Id}} {{index .Config.Labels \"kaupamex.orm.native-m2m\"}}",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449"
+      ],
+      "exit_code": 0,
+      "stdout": "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449 096b46c13c164f418a22bad7ed0d80e0",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "stop",
+        "--timeout",
+        "5",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449"
+      ],
+      "exit_code": 0,
+      "stdout": "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Id}}",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449"
+      ],
+      "exit_code": 0,
+      "stdout": "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Id}}",
+        "6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Error: No such object: 6fb6b9f0018f383fc70e8d7579211849285286f6481e458663ff5693b757d449"
+    }
+  ],
+  "probe_sha256": "564a965a47878786d514f1ed38dfa4dea5dc8bf3add0a0051d7b34dac7658b25",
+  "probe_exit_code": 0,
+  "owned_container_removed": true,
+  "shared_resources_touched": false
+}

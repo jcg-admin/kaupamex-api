@@ -5,6 +5,7 @@ promedio móvil (AVCO) y FIFO. Cada entrada/salida crea una
 ``StockValuationLayer``; la salida graba el ``unit_cost`` con que se valuó, que
 es el costo real de esa entrega.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -22,20 +23,28 @@ def _product(price='100.00'):
 
 
 def _internal(name='WH/Stock'):
-    return StockLocation.objects.create(name=name, usage=StockLocation.USAGE_INTERNAL)
+    return StockLocation.objects.create(
+        name=name, usage=StockLocation.USAGE_INTERNAL
+    )
 
 
 def _supplier():
-    return StockLocation.objects.create(name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
+    return StockLocation.objects.create(
+        name='Vendors', usage=StockLocation.USAGE_SUPPLIER
+    )
 
 
 def _customer():
-    return StockLocation.objects.create(name='Customers', usage=StockLocation.USAGE_CUSTOMER)
+    return StockLocation.objects.create(
+        name='Customers', usage=StockLocation.USAGE_CUSTOMER
+    )
 
 
 def test_standard_costing_out_unit_cost(db):
     product = _product()
-    ProductCosting.for_product(product, cost_method=ProductCosting.COST_STANDARD)
+    ProductCosting.for_product(
+        product, cost_method=ProductCosting.COST_STANDARD
+    )
     valuation.receive(product, Decimal('10'), Decimal('50.00'))
     out = valuation.deliver(product, Decimal('3'))
     # Estándar: costo unitario fijo = el de la primera entrada.
@@ -46,7 +55,9 @@ def test_standard_costing_out_unit_cost(db):
 
 def test_average_costing_recomputes_running_cost(db):
     product = _product()
-    ProductCosting.for_product(product, cost_method=ProductCosting.COST_AVERAGE)
+    ProductCosting.for_product(
+        product, cost_method=ProductCosting.COST_AVERAGE
+    )
     valuation.receive(product, Decimal('10'), Decimal('100.00'))  # valor 1000
     valuation.receive(product, Decimal('10'), Decimal('200.00'))  # valor 2000
     costing = ProductCosting.objects.get(product=product)
@@ -67,7 +78,9 @@ def test_fifo_costing_consumes_oldest_layers(db):
     assert out.value == Decimal('-2000.00')
     assert out.unit_cost == Decimal('133.3333')
     # Primera capa agotada, segunda con saldo 5 @200 = 1000.
-    layers = StockValuationLayer.objects.filter(product_id=product, quantity__gt=0).order_by('id')
+    layers = StockValuationLayer.objects.filter(
+        product_id=product, quantity__gt=0
+    ).order_by('id')
     assert layers[0].remaining_qty == Decimal('0.00')
     assert layers[1].remaining_qty == Decimal('5.00')
     assert layers[1].remaining_value == Decimal('1000.00')
@@ -76,7 +89,9 @@ def test_fifo_costing_consumes_oldest_layers(db):
 def test_fifo_negative_stock_uses_last_cost(db):
     product = _product()
     ProductCosting.for_product(product, cost_method=ProductCosting.COST_FIFO)
-    valuation.receive(product, Decimal('5'), Decimal('80.00'))  # solo 5 disponibles
+    valuation.receive(
+        product, Decimal('5'), Decimal('80.00')
+    )  # solo 5 disponibles
     # Entregar 8: 5@80 = 400, faltan 3 valuadas al último costo 80 = 240 → 640.
     out = valuation.deliver(product, Decimal('8'))
     assert out.value == Decimal('-640.00')
@@ -85,14 +100,19 @@ def test_fifo_negative_stock_uses_last_cost(db):
 
 def test_value_move_receipt_then_delivery(db):
     product = _product()
-    ProductCosting.for_product(product, cost_method=ProductCosting.COST_AVERAGE)
+    ProductCosting.for_product(
+        product, cost_method=ProductCosting.COST_AVERAGE
+    )
     src = _supplier()
     stock = _internal('WH/Stock')
     cust = _customer()
     # Movimiento de entrada (proveedor → interno) valuado a 120.
     in_move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('4'), quantity=Decimal('4'),
-        location=src, location_dest=stock,
+        product=product,
+        product_uom_qty=Decimal('4'),
+        quantity=Decimal('4'),
+        location=src,
+        location_dest=stock,
     )
     in_layer = valuation.value_move(in_move, unit_cost=Decimal('120.00'))
     assert in_layer.quantity == Decimal('4.00')
@@ -100,8 +120,11 @@ def test_value_move_receipt_then_delivery(db):
     assert in_layer.stock_move_id_id == in_move.id
     # Movimiento de salida (interno → cliente): usa el AVCO (=120).
     out_move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('2'), quantity=Decimal('2'),
-        location=stock, location_dest=cust,
+        product=product,
+        product_uom_qty=Decimal('2'),
+        quantity=Decimal('2'),
+        location=stock,
+        location_dest=cust,
     )
     out_layer = valuation.value_move(out_move)
     assert out_layer.unit_cost == Decimal('120.0000')
@@ -114,8 +137,11 @@ def test_value_move_internal_transfer_no_layer(db):
     a = _internal('WH/A')
     b = _internal('WH/B')
     move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('3'), quantity=Decimal('3'),
-        location=a, location_dest=b,
+        product=product,
+        product_uom_qty=Decimal('3'),
+        quantity=Decimal('3'),
+        location=a,
+        location_dest=b,
     )
     # Transferencia interna → interna: sin cambio de valor.
     assert valuation.value_move(move) is None

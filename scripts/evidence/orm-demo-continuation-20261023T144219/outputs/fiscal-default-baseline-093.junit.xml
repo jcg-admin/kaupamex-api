@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.204" timestamp="2026-10-25T22:42:10.363451" hostname="c8a29a030cff"><testcase classname="tests.integration.company.test_base_vat" name="test_partner_full_clean_rejects_bad_rfc" time="3.986"><failure message="TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/integration/company/test_base_vat.py:62: in test_partner_full_clean_rejects_bad_rfc
+    p.full_clean()
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py:1680: in full_clean
+    self.clean_fields(exclude=exclude)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py:1728: in clean_fields
+    raw_value = getattr(self, f.attname)
+src/orm/fields.py:1666: in __get__
+    defaults = instance.default_get([field.name])
+src/addons/base/models/res_partner.py:355: in default_get
+    values = super().default_get(fields)
+src/orm/models.py:562: in default_get
+    defaults[name] = field.get_default()
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase></testsuite></testsuites>

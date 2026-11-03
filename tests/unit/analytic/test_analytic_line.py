@@ -7,10 +7,15 @@ estos tests NO usan ``pytest.mark.django_db``. La excepción es
 es un addon instalado desde el arranque del proyecto) — no toca ninguna
 tabla de ``analytic``, así que es segura contra la BD real de QA.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
-from addons.analytic.models import AccountAnalyticAccount, AccountAnalyticLine, AccountAnalyticPlan
+from addons.analytic.models import (
+    AccountAnalyticAccount,
+    AccountAnalyticLine,
+    AccountAnalyticPlan,
+)
 
 
 def _account(pk=1, name='Cuenta', plan_name='Plan'):
@@ -27,11 +32,16 @@ class TestAccountRequired:
         line = AccountAnalyticLine(name='Gasto', amount=100, company_id=1)
         with pytest.raises(ValidationError) as exc:
             line.clean()
-        assert exc.value.message_dict['account'] == ['ANALYTIC_LINE_ACCOUNT_REQUIRED']
+        assert exc.value.message_dict['account'] == [
+            'ANALYTIC_LINE_ACCOUNT_REQUIRED'
+        ]
 
     def test_clean_passes_with_account_set(self):
         line = AccountAnalyticLine(
-            name='Gasto', amount=100, company_id=1, account=_account(),
+            name='Gasto',
+            amount=100,
+            company_id=1,
+            account=_account(),
         )
         line.clean()  # no debe lanzar
 

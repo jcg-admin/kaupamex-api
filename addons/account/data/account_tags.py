@@ -25,7 +25,11 @@ seis cuentas de utilidad de ``get_accounts_data_values``.
 MASTER_ACCOUNT_TAGS = (
     ('account_tag_operating', 'Operating Activities', 'accounts'),
     ('account_tag_financing', 'Financing Activities', 'accounts'),
-    ('account_tag_investing', 'Investing & Extraordinary Activities', 'accounts'),
+    (
+        'account_tag_investing',
+        'Investing & Extraordinary Activities',
+        'accounts',
+    ),
 )
 
 #: Los identificadores externos completos, que es como los cita el plan.
@@ -53,21 +57,35 @@ def seed_account_tags(apps, alias):
     created = {}
     for name, tag_label, applicability in MASTER_ACCOUNT_TAGS:
         xmlid = f'account.{name}'
-        row = IrModelData.objects.using(alias).filter(
-            module='account', name=name).first()
+        row = (
+            IrModelData.objects.using(alias)
+            .filter(module='account', name=name)
+            .first()
+        )
         existing = None
         if row is not None:
-            existing = AccountAccountTag.objects.using(alias).filter(
-                pk=row.res_id).first()
+            existing = (
+                AccountAccountTag.objects.using(alias)
+                .filter(pk=row.res_id)
+                .first()
+            )
         if existing is None:
-            existing = AccountAccountTag.objects.using(alias).filter(
-                name=tag_label, applicability=applicability,
-                country__isnull=True).first()
+            existing = (
+                AccountAccountTag.objects.using(alias)
+                .filter(
+                    name=tag_label,
+                    applicability=applicability,
+                    country__isnull=True,
+                )
+                .first()
+            )
         if existing is None:
             existing = AccountAccountTag.objects.using(alias).create(
-                name=tag_label, applicability=applicability)
+                name=tag_label, applicability=applicability
+            )
         IrModelData.objects.using(alias).update_or_create(
-            module='account', name=name,
+            module='account',
+            name=name,
             defaults={'model': label, 'res_id': existing.pk, 'noupdate': True},
         )
         created[xmlid] = existing

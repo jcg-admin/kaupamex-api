@@ -1,0 +1,8 @@
+Verified fixed reference blob: odoo/orm/registry.py afcf4b17300f55dc085b893c1b4c8501376403be
+Verified fixed reference blob: odoo/modules/module_graph.py fc3d6334607656d1c4d725ea9431b5d7063cfa00
+Verified fixed reference blob: odoo/modules/loading.py 7be8669d7bba55c67d3bf71c09c8b7cbf0455d56
+Verified fixed reference blob: odoo/modules/db.py d612bf445fe1f0890a5db40dbe126cd454cd582b
+Verified fixed reference blob: odoo/modules/module.py 488a2a063d4c2ccde0b7bb80727880050c3ff2d0
+Verified fixed reference blob: odoo/addons/base/models/ir_module.py 175d9da4c0531d1246e877a6e17105ab2f883ecb
+Consumer lifecycle entry definitions: {}
+Literal hook calls: []

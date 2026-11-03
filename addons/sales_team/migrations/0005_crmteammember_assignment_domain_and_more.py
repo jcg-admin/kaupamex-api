@@ -27,7 +27,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo assignment_domain_preferred ("Preference assignment Domain").',
+                help_text=(
+                    'Odoo assignment_domain_preferred ("Preference assignment'
+                    ' Domain").'
+                ),
                 max_length=255,
                 verbose_name="Dominio de asignación preferente",
             ),
@@ -37,7 +40,10 @@ class Migration(migrations.Migration):
             name="assignment_max",
             field=models.IntegerField(
                 default=30,
-                help_text='Odoo assignment_max ("Average Leads Capacity (on 30 days)").',
+                help_text=(
+                    'Odoo assignment_max ("Average Leads Capacity (on 30'
+                    ' days)").'
+                ),
                 verbose_name="Capacidad media (30 días)",
             ),
         ),

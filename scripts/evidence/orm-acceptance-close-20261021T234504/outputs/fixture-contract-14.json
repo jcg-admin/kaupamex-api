@@ -1,0 +1,25 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "Native Django connection.close/schema_editor and existing ORM cursor discard contract",
+  "behavior": "Fixture DDL cleanup must use a completed test connection boundary without inheriting actorless ORM transaction state or discarding pending work.",
+  "execution_flow": "All test transactions finished/rolled back -> assert no field_dirty/tocompute/field_data_patches -> close connection -> native schema_editor drop probe table -> clean commit.",
+  "inputs_outputs": "PostgreSQL fixture with a retained anonymous Environment; old boundary reproduces missing base.public_user/autocommit, close boundary succeeds without seeding an actor.",
+  "side_effects": "Only session-scoped Consumer test fixture; product Transaction.flush, actor definitions, permissions, migration order and assertions remain unchanged.",
+  "dependencies": [
+    "TASK-API-0416 verified existing identity/completed state, native claim scope",
+    "Django connection lifecycle and existing ORM close/discard hook",
+    "No pending cache writes or compute/patch queues; explicit assertions before close"
+  ],
+  "consumers": "Two database-backed field collection tests and session table cleanup",
+  "installed_mechanism": "Existing Django connection.close and schema_editor; no custom migration/runner or store",
+  "existing_adaptation": "Session fixture ends the test connection before DDL lifecycle, retaining native flush semantics instead of swallowing actor/security errors.",
+  "verification": {
+    "before": "fixture-before.log exit1 exact public_user/autocommit traceback",
+    "after": "fixture-after.log exit0 same PostgreSQL base fixture",
+    "native_isolated_fixture_fix": "native-pytest-after.log41PASS exit0 including teardown; loaded before subsequent cache adapter",
+    "final_composition": "native-pytest-final.log47PASS exit0 including teardown, full frozen Django migrations on new own PostgreSQL database; all currently final code loaded together"
+  },
+  "equivalence": "Fixture completion verified; not public actor runtime acceptance.",
+  "limitations": "TASK-API-0379 actor/security remains pending; no claim that its production contract is implemented or no longer needed.",
+  "integration": "f5bb655c on feature branch; no task-state change or merge."
+}

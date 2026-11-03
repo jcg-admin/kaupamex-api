@@ -58,6 +58,7 @@ Divergencias declaradas
 2. **``@api.constrains('type')`` → ``clean()``**, donde este árbol pone las
    restricciones de modelo.
 """
+
 import fields
 from addons.account.models.account_journal import AccountJournal
 from exceptions import ValidationError
@@ -72,8 +73,10 @@ def _campos():
         'is_peppol_journal': fields.Boolean(
             default=False,
             verbose_name='Diario usado para Peppol',
-            help_text='Marca el diario donde aterrizan las facturas recibidas por '
-                      'Peppol (Odoo is_peppol_journal).',
+            help_text=(
+                'Marca el diario donde aterrizan las facturas recibidas por '
+                'Peppol (Odoo is_peppol_journal).'
+            ),
         ),
     }
 
@@ -93,22 +96,29 @@ def _check_type_for_peppol_journal(self, *args, **kwargs):
     validación previa.
     """
     if self.is_peppol_journal and self.type != 'purchase':
-        raise ValidationError({'type': _(
-            'No se puede cambiar el tipo de un diario usado para recibir '
-            'facturas por Peppol a uno distinto de «Compras».\n'
-            'Cambie antes el diario de recepción Peppol.',
-        )})
+        raise ValidationError(
+            {
+                'type': _(
+                    'No se puede cambiar el tipo de un diario usado para'
+                    ' recibir facturas por Peppol a uno distinto de'
+                    ' «Compras».\nCambie antes el diario de recepción Peppol.',
+                )
+            }
+        )
     return None
 
 
 def apply_account_peppol_account_journal_extensions():
     """Cuelga sobre ``account.AccountJournal`` la marca de diario Peppol — ≙
-    ``_inherit = 'account.journal'``. La llama ``AccountPeppolConfig.ready()``."""
+    ``_inherit = 'account.journal'``. La llama ``AccountPeppolConfig.ready()``.
+    """
     for name, field in _campos().items():
         add_field_if_absent(AccountJournal, name, field)
 
     if not hasattr(AccountJournal, 'account_peppol_proxy_state'):
-        AccountJournal.account_peppol_proxy_state = property(account_peppol_proxy_state)
+        AccountJournal.account_peppol_proxy_state = property(
+            account_peppol_proxy_state
+        )
 
     chain_method(AccountJournal, 'clean', _check_type_for_peppol_journal)
 

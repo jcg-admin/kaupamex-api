@@ -1,4 +1,6 @@
-r"""``IrTemplateExpressions`` — el compilador de expresiones (bloque A de la tarea #181).
+r"""
+``IrTemplateExpressions`` — el compilador de expresiones (bloque A de la tarea
+#181).
 
 Mide el comportamiento, no la forma: cada caso compila una expresión de QWeb
 y comprueba el código generado **y** su evaluación contra un contexto real.
@@ -13,6 +15,7 @@ El contrato que fija, y que la fuente declara en el docstring de
   nombres, y sus libres sí;
 - el código generado pasa por la lista blanca de opcodes antes de existir.
 """
+
 import pytest
 
 from addons.base.models.ir_template_expressions import IrTemplateExpressions
@@ -45,8 +48,10 @@ class TestNamesGetTheValuesNamespace:
         assert engine._compile_expr('b[0]') == "((values['b'][0]))"
 
     def test_raise_on_missing_forces_the_subscript(self, engine):
-        assert engine._compile_expr(
-            'a', raise_on_missing=True) == "((values['a']))"
+        assert (
+            engine._compile_expr('a', raise_on_missing=True)
+            == "((values['a']))"
+        )
 
     def test_an_allowed_keyword_is_left_alone(self, engine):
         """``True`` es del lenguaje, no del contexto."""
@@ -66,12 +71,17 @@ class TestLocalScopesAreNotNamespaced:
     """Los locales de lambda y comprensión se acceden directo."""
 
     def test_a_lambda_argument_is_local_and_its_free_name_is_not(self, engine):
-        assert engine._compile_expr('lambda a: a + b') == (
-            "((lambda _arg_a__: _arg_a__ + values.get('b')))")
+        assert (
+            engine._compile_expr('lambda a: a + b')
+            == "((lambda _arg_a__: _arg_a__ + values.get('b')))"
+        )
 
     def test_a_comprehension_variable_is_local(self, engine):
-        assert engine._compile_expr('[a + b for a in c]') == (
-            "(([_arg_a__ + values.get('b') for _arg_a__ in values.get('c')]))")
+        assert (
+            engine._compile_expr('[a + b for a in c]')
+            == "(([_arg_a__ + values.get('b') for _arg_a__ in"
+            " values.get('c')]))"
+        )
 
     def test_a_lambda_default_value_is_refused(self, engine):
         with pytest.raises(NotImplementedError):
@@ -100,7 +110,8 @@ class TestTheCompiledCodeActuallyEvaluates:
 
     def test_a_comprehension_runs(self, engine):
         assert self.evaluate(
-            engine, '[x * 2 for x in items]', {'items': [1, 2, 3]}) == [2, 4, 6]
+            engine, '[x * 2 for x in items]', {'items': [1, 2, 3]}
+        ) == [2, 4, 6]
 
 
 class TestTheOpcodeAllowlistIsTheGuard:
@@ -149,34 +160,53 @@ class TestFormatStrings:
 
     def test_the_ruby_style_substitutes(self, engine):
         code = engine._compile_format('Hola #{name}')
-        assert eval(code, {}, {'self': engine,
-                               'values': {'name': 'Kim'}}) == 'Hola Kim'
+        assert (
+            eval(code, {}, {'self': engine, 'values': {'name': 'Kim'}})
+            == 'Hola Kim'
+        )
 
     def test_the_jinja_style_substitutes(self, engine):
         code = engine._compile_format('Hola {{name}}')
-        assert eval(code, {}, {'self': engine,
-                               'values': {'name': 'Kim'}}) == 'Hola Kim'
+        assert (
+            eval(code, {}, {'self': engine, 'values': {'name': 'Kim'}})
+            == 'Hola Kim'
+        )
 
     def test_a_literal_percent_survives(self, engine):
-        """El ``%`` del texto se duplica antes de formatear; si no, revienta."""
+        """
+        El ``%`` del texto se duplica antes de formatear; si no, revienta.
+        """
         code = engine._compile_format('100% de #{n}')
-        assert eval(code, {}, {'self': engine,
-                               'values': {'n': 'todo'}}) == '100% de todo'
+        assert (
+            eval(code, {}, {'self': engine, 'values': {'n': 'todo'}})
+            == '100% de todo'
+        )
 
 
 class TestTheAttributeVocabularyIsXmlNotPython:
     """``_compile_bool`` lee un atributo, no un valor de Python."""
 
-    @pytest.mark.parametrize('given,expected', [
-        ('false', False), ('0', False), ('FALSE', False),
-        ('true', True), ('1', True), ('True', True),
-        (True, True), ('', False), (None, False),
-    ])
+    @pytest.mark.parametrize(
+        'given,expected',
+        [
+            ('false', False),
+            ('0', False),
+            ('FALSE', False),
+            ('true', True),
+            ('1', True),
+            ('True', True),
+            (True, True),
+            ('', False),
+            (None, False),
+        ],
+    )
     def test_the_xml_vocabulary(self, engine, given, expected):
         assert engine._compile_bool(given) is expected
 
     def test_an_unknown_string_falls_to_the_default(self, engine):
-        """``bool('quizas')`` de Python daría ``True``; aquí manda el default."""
+        """
+        ``bool('quizas')`` de Python daría ``True``; aquí manda el default.
+        """
         assert engine._compile_bool('quizas') is False
         assert engine._compile_bool('quizas', default=True) is True
 
@@ -184,10 +214,18 @@ class TestTheAttributeVocabularyIsXmlNotPython:
 class TestValuesBecomeText:
     """``_compile_to_str`` — y por qué ``False`` no imprime ``"False"``."""
 
-    @pytest.mark.parametrize('given,expected', [
-        (None, ''), (False, ''), ('ya texto', 'ya texto'),
-        (b'bytes', 'bytes'), (42, '42'), (0, '0'), (True, 'True'),
-    ])
+    @pytest.mark.parametrize(
+        'given,expected',
+        [
+            (None, ''),
+            (False, ''),
+            ('ya texto', 'ya texto'),
+            (b'bytes', 'bytes'),
+            (42, '42'),
+            (0, '0'),
+            (True, 'True'),
+        ],
+    )
     def test_the_conversions(self, engine, given, expected):
         assert engine._compile_to_str(given) == expected
 

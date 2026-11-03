@@ -1,12 +1,16 @@
-"""``res.country`` / ``res.country.state`` — geografía política (Odoo ``base``).
+"""
+``res.country`` / ``res.country.state`` — geografía política (Odoo ``base``).
 
 Portación fiel de ``res_country.py`` (Odoo 18 / 19 idéntico). Espina base de la
-adaptación de familias (SOL-096): direcciones/impuestos dependen de país+estado.
+adaptación de familias (SOL-096): direcciones/impuestos dependen de
+país+estado.
 """
+
 import re
 
 from django.core.exceptions import ValidationError
 
+import api
 import fields
 import models
 from tools.translate import _
@@ -14,7 +18,8 @@ from tools.translate import _
 #: Plantilla por defecto — ≙ el ``default`` de ``address_format``
 #: (``odoo19c: res_country.py:52``), verbatim.
 DEFAULT_ADDRESS_FORMAT = (
-    '%(street)s\n%(street2)s\n%(city)s %(state_code)s %(zip)s\n%(country_name)s'
+    '%(street)s\n%(street2)s\n%(city)s %(state_code)s'
+    ' %(zip)s\n%(country_name)s'
 )
 
 #: Dónde va el nombre del cliente — ≙ el Selection de ``name_position``.
@@ -26,10 +31,20 @@ NAME_POSITIONS = (
 #: Claves admitidas en ``address_format`` — ≙ la lista que arma
 #: ``_check_address_format`` (``odoo19c: res_country.py:155``):
 #: ``_formatting_address_fields()`` —que devuelve ``ADDRESS_FIELDS``
-#: (``res_partner.py:25``)— más los cinco derivados que añade en la misma línea.
+#: (``res_partner.py:25``)— más los cinco derivados que añade en la
+#: misma línea.
 ADDRESS_FORMAT_KEYS = (
-    'street', 'street2', 'zip', 'city', 'state_id', 'country_id',
-    'state_code', 'state_name', 'country_code', 'country_name', 'company_name',
+    'street',
+    'street2',
+    'zip',
+    'city',
+    'state_id',
+    'country_id',
+    'state_code',
+    'state_name',
+    'country_code',
+    'country_name',
+    'company_name',
 )
 
 #: Los DOS códigos sin bandera propia — ≙ ``NO_FLAG_COUNTRIES``
@@ -41,8 +56,16 @@ NO_FLAG_COUNTRIES = ('AQ', 'SJ')
 #: (``odoo19c: res_country.py:13-24``), verbatim. Sin esta tabla la ruta
 #: apuntaría a un archivo que no existe para diez códigos.
 FLAG_MAPPING = {
-    'GF': 'fr', 'BV': 'no', 'BQ': 'nl', 'GP': 'fr', 'HM': 'au',
-    'YT': 'fr', 'RE': 'fr', 'MF': 'fr', 'UM': 'us', 'XI': 'uk',
+    'GF': 'fr',
+    'BV': 'no',
+    'BQ': 'nl',
+    'GP': 'fr',
+    'HM': 'au',
+    'YT': 'fr',
+    'RE': 'fr',
+    'MF': 'fr',
+    'UM': 'us',
+    'XI': 'uk',
 }
 
 
@@ -64,42 +87,62 @@ class ResCountry(models.Model):
     _order = 'name, id'
     _rec_names_search = ['name', 'code']
 
-    name        = fields.Char(
+    name = fields.Char(
         max_length=120,
         help_text='Nombre del país (Odoo res.country.name).',
     )
-    code        = fields.Char(
-        max_length=2, unique=True, null=True, blank=True,
+    code = fields.Char(
+        max_length=2,
+        unique=True,
+        null=True,
+        blank=True,
         help_text='Código ISO 3166-1 alpha-2 (Odoo code).',
     )
-    currency    = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+    currency = fields.Many2one(
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='countries',
         help_text='Moneda del país (Odoo currency_id).',
     )
-    phone_code  = fields.Integer(
-        null=True, blank=True,
+    phone_code = fields.Integer(
+        null=True,
+        blank=True,
         help_text='Código telefónico del país (Odoo phone_code).',
     )
     address_format = fields.Text(
-        blank=True, default=DEFAULT_ADDRESS_FORMAT,
-        help_text='Plantilla con la que se compone una dirección de este país '
-                  '(Odoo address_format).',
+        blank=True,
+        default=DEFAULT_ADDRESS_FORMAT,
+        help_text=(
+            'Plantilla con la que se compone una dirección de este país '
+            '(Odoo address_format).'
+        ),
     )
     name_position = fields.Selection(
-        max_length=8, choices=NAME_POSITIONS, default='before',
-        help_text='Dónde va el nombre del cliente respecto de la dirección '
-                  '(Odoo name_position).',
+        max_length=8,
+        choices=NAME_POSITIONS,
+        default='before',
+        help_text=(
+            'Dónde va el nombre del cliente respecto de la dirección '
+            '(Odoo name_position).'
+        ),
     )
     vat_label = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Cómo se llama el identificador fiscal en este país — «RFC» '
-                  'en México, «NIF» en España (Odoo vat_label).',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text=(
+            'Cómo se llama el identificador fiscal en este país — «RFC» '
+            'en México, «NIF» en España (Odoo vat_label).'
+        ),
     )
     state_required = fields.Boolean(
         default=False,
-        help_text='El estado es obligatorio en una dirección de este país '
-                  '(Odoo state_required).',
+        help_text=(
+            'El estado es obligatorio en una dirección de este país '
+            '(Odoo state_required).'
+        ),
     )
     zip_required = fields.Boolean(
         default=True,
@@ -109,11 +152,13 @@ class ResCountry(models.Model):
     #: ``fields.Json(compute="_compute_country_group_codes")`` — un computado
     #: SIN ``store``. Era un ``@property`` aquí, y su docstring lo justificaba
     #: con *"no hay columna que migrar"*: eso explica la referencia, no nuestra
-    #: diferencia. Un ``@property`` no vive en ``_meta``, así que ninguna cadena
+    #: diferencia. Un ``@property`` no vive en ``_meta``, así que
+    #: ninguna cadena
     #: ``related=`` puede navegarlo — que es lo que rompía
     #: ``company_country_group_codes`` de ``SiteConfigSettings``.
     country_group_codes = fields.Json(
-        compute='_compute_country_group_codes', store=False)
+        compute='_compute_country_group_codes', store=False
+    )
 
     # `country_groups` NO se declara aquí: ya existe como el `related_name` del
     # M2M que `ResCountryGroup.country_ids` declara sobre la tabla
@@ -152,7 +197,9 @@ class ResCountry(models.Model):
         super().save(*args, **kwargs)
 
     def get_address_fields(self):
-        """Las claves que su plantilla de dirección usa — ≙ ``get_address_fields``.
+        """
+        Las claves que su plantilla de dirección usa — ≙
+        ``get_address_fields``.
 
         ≙ ``odoo19c: res_country.py:138-140``. Extrae los ``%(clave)s`` del
         ``address_format``: es lo que dice **qué campos pedir** al capturar una
@@ -173,6 +220,7 @@ class ResCountry(models.Model):
         country = cls.objects.filter(code=(code or '').upper()).first()
         return country.phone_code if country else None
 
+    @api.depends('country_groups')
     def _compute_country_group_codes(self):
         """Los códigos de sus agrupaciones — ≙ ``_compute_country_group_codes``
         (``odoo19c: odoo/addons/base/models/res_country.py:162-168``).
@@ -186,11 +234,15 @@ class ResCountry(models.Model):
         contra esta lista, y cambiar ``['']`` por ``[]`` alteraría el resultado
         de esa comparación para todo país sin agrupación.
         """
-        return [g.code for g in self.country_groups.all() if g.code] or ['']
+        codes = [g.code for g in self.country_groups.all() if g.code] or ['']
+        self.country_group_codes = codes
+        return codes
 
     @property
     def image_url(self):
-        """La bandera — ≙ ``_compute_image_url`` (``odoo19c: res_country.py:143``).
+        """
+        La bandera — ≙ ``_compute_image_url`` (``odoo19c:
+        res_country.py:143``).
 
         Ruta estática derivada del código ISO. ``None`` para los códigos que la
         referencia excluye por no tener bandera propia.
@@ -223,7 +275,8 @@ class ResCountryState(models.Model):
     """``res.country.state`` — estado/provincia de un país (Odoo base).
 
     Fiel a ``res_country.py`` (18:162-171 / 19 idéntico): ``country`` (FK,
-    requerido), ``name`` (requerido), ``code`` (requerido). Único (country, code)
+    requerido), ``name`` (requerido), ``code`` (requerido). Único (country,
+    code)
     replica el ``_sql_constraints`` ``name_code_uniq`` de Odoo.
 
     Atributos de clase completados en la tarea **#132**, igual que en
@@ -236,21 +289,26 @@ class ResCountryState(models.Model):
     _rec_names_search = ['name', 'code']
 
     country = fields.Many2one(
-        'base.ResCountry', on_delete=models.CASCADE, related_name='state_ids',
+        'base.ResCountry',
+        null=False, on_delete=models.CASCADE,
+        related_name='state_ids',
         help_text='País (Odoo country_id).',
     )
-    name    = fields.Char(
-        max_length=120, help_text='Nombre del estado (Odoo name).',
+    name = fields.Char(
+        max_length=120,
+        help_text='Nombre del estado (Odoo name).',
     )
-    code    = fields.Char(
-        max_length=8, help_text='Código del estado (Odoo code).',
+    code = fields.Char(
+        max_length=8,
+        help_text='Código del estado (Odoo code).',
     )
 
     class Meta:
         db_table = 'res_country_state'
         constraints = [
             models.UniqueConstraint(
-                fields=['country', 'code'], name='unique_state_country_code',
+                fields=['country', 'code'],
+                name='unique_state_country_code',
             ),
         ]
         ordering = ['country', 'code']

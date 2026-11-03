@@ -18,7 +18,9 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 default=addons.website.models.website.default_company,
-                help_text="Empresa dueña del sitio (Odoo company_id, required).",
+                help_text=(
+                    "Empresa dueña del sitio (Odoo company_id, required)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="websites",
                 to="base.rescompany",
@@ -29,7 +31,9 @@ class Migration(migrations.Migration):
             name="default_lang",
             field=models.ForeignKey(
                 default=addons.website.models.website.default_language,
-                help_text="Idioma por defecto (Odoo default_lang_id, required).",
+                help_text=(
+                    "Idioma por defecto (Odoo default_lang_id, required)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="default_websites",
                 to="base.reslang",

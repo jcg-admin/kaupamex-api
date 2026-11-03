@@ -1,0 +1,43 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFF.F                                                                 [100%]
+=================================== FAILURES ===================================
+______ test_depth_rejects_cycle_with_a_domain_error[dependencies0-cycle0] ______
+tests/unit/modules/test_module_graph.py:22: in test_depth_rejects_cycle_with_a_domain_error
+    with pytest.raises(ValueError, match=' -> '.join(cycle)) as error:
+E   Failed: DID NOT RAISE <class 'ValueError'>
+______ test_depth_rejects_cycle_with_a_domain_error[dependencies1-cycle1] ______
+tests/unit/modules/test_module_graph.py:22: in test_depth_rejects_cycle_with_a_domain_error
+    with pytest.raises(ValueError, match=' -> '.join(cycle)) as error:
+E   Failed: DID NOT RAISE <class 'ValueError'>
+______ test_depth_rejects_cycle_with_a_domain_error[dependencies2-cycle2] ______
+tests/unit/modules/test_module_graph.py:22: in test_depth_rejects_cycle_with_a_domain_error
+    with pytest.raises(ValueError, match=' -> '.join(cycle)) as error:
+E   Failed: DID NOT RAISE <class 'ValueError'>
+__________ test_order_rejects_cycles_before_returning_a_partial_plan ___________
+tests/unit/modules/test_module_graph.py:30: in test_order_rejects_cycles_before_returning_a_partial_plan
+    with pytest.raises(ValueError, match='a -> b -> a'):
+E   Failed: DID NOT RAISE <class 'ValueError'>
+____________ test_diamond_is_not_a_cycle_and_ties_are_deterministic ____________
+tests/unit/modules/test_module_graph.py:38: in test_diamond_is_not_a_cycle_and_ties_are_deterministic
+    assert graph['sale'].depth == 2
+E   AssertionError: assert 0 == 2
+E    +  where 0 = ModuleNode('sale', depth=0).depth
+_______ test_depth_does_not_reuse_a_stale_memo_after_dependencies_change _______
+tests/unit/modules/test_module_graph.py:43: in test_depth_does_not_reuse_a_stale_memo_after_dependencies_change
+    assert graph['a'].depth == 1
+E   AssertionError: assert 0 == 1
+E    +  where 0 = ModuleNode('a', depth=0).depth
+______________ test_each_node_depth_is_computed_once_per_ordering ______________
+tests/unit/modules/test_module_graph.py:70: in test_each_node_depth_is_computed_once_per_ordering
+    assert len(visits) == 4
+E   assert 0 == 4
+E    +  where 0 = len({})
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies0-cycle0]
+FAILED tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies1-cycle1]
+FAILED tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies2-cycle2]
+FAILED tests/unit/modules/test_module_graph.py::test_order_rejects_cycles_before_returning_a_partial_plan
+FAILED tests/unit/modules/test_module_graph.py::test_diamond_is_not_a_cycle_and_ties_are_deterministic
+FAILED tests/unit/modules/test_module_graph.py::test_depth_does_not_reuse_a_stale_memo_after_dependencies_change
+FAILED tests/unit/modules/test_module_graph.py::test_each_node_depth_is_computed_once_per_ordering
+7 failed, 1 passed in 0.14s

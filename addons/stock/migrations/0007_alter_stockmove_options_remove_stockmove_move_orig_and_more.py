@@ -23,15 +23,20 @@ def _backfill_company(apps, schema_editor):
     if respaldo is None:
         raise RuntimeError(
             'stock_move tiene filas sin empresa y no hay ninguna ResCompany '
-            'para asignarles. Crear la empresa antes de migrar.')
+            'para asignarles. Crear la empresa antes de migrar.'
+        )
     for movimiento in huerfanos.select_related('picking').iterator():
         picking = getattr(movimiento, 'picking', None)
-        movimiento.company_id = getattr(picking, 'company_id', None) or respaldo.pk
+        movimiento.company_id = (
+            getattr(picking, 'company_id', None) or respaldo.pk
+        )
         movimiento.save(update_fields=['company'])
 
 
 def _sin_marcha_atras(apps, schema_editor):
-    """Sin inversa: el rellenado no distingue lo que puso de lo que ya estaba."""
+    """
+    Sin inversa: el rellenado no distingue lo que puso de lo que ya estaba.
+    """
 
 
 class Migration(migrations.Migration):
@@ -65,14 +70,22 @@ class Migration(migrations.Migration):
             name="additional",
             field=models.BooleanField(
                 default=False,
-                help_text="El movimiento se añadió DESPUÉS de confirmar el albarán (Odoo additional).",
+                help_text=(
+                    "El movimiento se añadió DESPUÉS de confirmar el albarán"
+                    " (Odoo additional)."
+                ),
             ),
         ),
         migrations.AddField(
             model_name="stockmove",
             name="company",
             field=models.ForeignKey(
-                help_text="Empresa (Odoo company_id, requerido). Ver la divergencia D-5 del docstring: la columna nace NULL para poder añadirse a una tabla existente y la migración la cierra a NOT NULL.",
+                help_text=(
+                    "Empresa (Odoo company_id, requerido). Ver la divergencia"
+                    " D-5 del docstring: la columna nace NULL para poder"
+                    " añadirse a una tabla existente y la migración la cierra"
+                    " a NOT NULL."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
@@ -85,7 +98,10 @@ class Migration(migrations.Migration):
             field=models.DateTimeField(
                 db_index=True,
                 default=django.utils.timezone.now,
-                help_text="Fecha planificada hasta que se hace; después, la real (Odoo date, requerido, default=Datetime.now).",
+                help_text=(
+                    "Fecha planificada hasta que se hace; después, la real"
+                    " (Odoo date, requerido, default=Datetime.now)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -93,7 +109,10 @@ class Migration(migrations.Migration):
             name="date_deadline",
             field=models.DateTimeField(
                 blank=True,
-                help_text="Fecha límite propagada por la cadena (Odoo date_deadline, readonly; lo escribe _set_date_deadline).",
+                help_text=(
+                    "Fecha límite propagada por la cadena (Odoo date_deadline,"
+                    " readonly; lo escribe _set_date_deadline)."
+                ),
                 null=True,
             ),
         ),
@@ -102,7 +121,10 @@ class Migration(migrations.Migration):
             name="delay_alert_date",
             field=models.DateTimeField(
                 blank=True,
-                help_text="Fecha de alerta por retraso de un movimiento origen (Odoo delay_alert_date, compute+store).",
+                help_text=(
+                    "Fecha de alerta por retraso de un movimiento origen (Odoo"
+                    " delay_alert_date, compute+store)."
+                ),
                 null=True,
             ),
         ),
@@ -112,7 +134,11 @@ class Migration(migrations.Migration):
             field=models.TextField(
                 blank=True,
                 default="",
-                help_text="Descripción escrita a mano (Odoo description_picking_manual, readonly). Cuando está, gana sobre la derivada del producto.",
+                help_text=(
+                    "Descripción escrita a mano (Odoo"
+                    " description_picking_manual, readonly). Cuando está, gana"
+                    " sobre la derivada del producto."
+                ),
             ),
         ),
         migrations.AddField(
@@ -130,7 +156,10 @@ class Migration(migrations.Migration):
             name="is_inventory",
             field=models.BooleanField(
                 default=False,
-                help_text="El movimiento es un ajuste de inventario (Odoo is_inventory).",
+                help_text=(
+                    "El movimiento es un ajuste de inventario (Odoo"
+                    " is_inventory)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -138,7 +167,11 @@ class Migration(migrations.Migration):
             name="location_final",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Ubicación destino FINAL de la cadena (Odoo location_final_id). El destino intermedio es el siguiente salto; éste es el fin del encargo.",
+                help_text=(
+                    "Ubicación destino FINAL de la cadena (Odoo"
+                    " location_final_id). El destino intermedio es el"
+                    " siguiente salto; éste es el fin del encargo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="moves_final",
@@ -151,7 +184,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="stock_move_move_rel",
-                help_text="Movimientos origen que abastecen a éste (Odoo move_orig_ids). El inverso es move_dest_ids, el nombre que la referencia le da a la otra mitad.",
+                help_text=(
+                    "Movimientos origen que abastecen a éste (Odoo"
+                    " move_orig_ids). El inverso es move_dest_ids, el nombre"
+                    " que la referencia le da a la otra mitad."
+                ),
                 related_name="move_dest_ids",
                 to="stock.stockmove",
             ),
@@ -162,7 +199,10 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="template_attribute_value_stock_move_rel",
-                help_text="Valores de atributo excluidos (Odoo never_product_template_attribute_value_ids).",
+                help_text=(
+                    "Valores de atributo excluidos (Odoo"
+                    " never_product_template_attribute_value_ids)."
+                ),
                 related_name="stock_moves",
                 to="product.producttemplateattributevalue",
             ),
@@ -173,7 +213,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Primer número de serie a generar (Odoo next_serial).",
+                help_text=(
+                    "Primer número de serie a generar (Odoo next_serial)."
+                ),
                 max_length=255,
             ),
         ),
@@ -182,7 +224,10 @@ class Migration(migrations.Migration):
             name="next_serial_count",
             field=models.IntegerField(
                 default=0,
-                help_text="Cuántos números de serie generar (Odoo next_serial_count).",
+                help_text=(
+                    "Cuántos números de serie generar (Odoo"
+                    " next_serial_count)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -200,7 +245,10 @@ class Migration(migrations.Migration):
             name="origin_returned_move",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Movimiento que originó esta devolución (Odoo origin_returned_move_id).",
+                help_text=(
+                    "Movimiento que originó esta devolución (Odoo"
+                    " origin_returned_move_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="returned_move_ids",
@@ -212,7 +260,10 @@ class Migration(migrations.Migration):
             name="packaging_uom",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Unidad de empaque de la orden de origen (Odoo packaging_uom_id, compute+store precompute).",
+                help_text=(
+                    "Unidad de empaque de la orden de origen (Odoo"
+                    " packaging_uom_id, compute+store precompute)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves_packaging",
@@ -225,7 +276,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text="La demanda en la unidad de empaque (Odoo packaging_uom_qty, compute+store).",
+                help_text=(
+                    "La demanda en la unidad de empaque (Odoo"
+                    " packaging_uom_qty, compute+store)."
+                ),
                 max_digits=16,
             ),
         ),
@@ -234,7 +288,10 @@ class Migration(migrations.Migration):
             name="partner",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Dirección de entrega opcional (Odoo partner_id, compute+store desde el albarán).",
+                help_text=(
+                    "Dirección de entrega opcional (Odoo partner_id,"
+                    " compute+store desde el albarán)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="stock_moves",
@@ -246,7 +303,11 @@ class Migration(migrations.Migration):
             name="picked",
             field=models.BooleanField(
                 default=False,
-                help_text="Marca indicativa de recogido (Odoo picked, compute+store con inverso). No valida ni genera movimientos por sí sola.",
+                help_text=(
+                    "Marca indicativa de recogido (Odoo picked, compute+store"
+                    " con inverso). No valida ni genera movimientos por sí"
+                    " sola."
+                ),
             ),
         ),
         migrations.AddField(
@@ -254,7 +315,10 @@ class Migration(migrations.Migration):
             name="picking_type",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Tipo de operación (Odoo picking_type_id, compute+store con readonly=False).",
+                help_text=(
+                    "Tipo de operación (Odoo picking_type_id, compute+store"
+                    " con readonly=False)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
@@ -267,7 +331,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text="Coste unitario fijado al confirmar, en la divisa de la empresa (Odoo price_unit; campo técnico, sin digits).",
+                help_text=(
+                    "Coste unitario fijado al confirmar, en la divisa de la"
+                    " empresa (Odoo price_unit; campo técnico, sin digits)."
+                ),
                 max_digits=16,
             ),
         ),
@@ -277,7 +344,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("0", "Normal"), ("1", "Urgent")],
                 default="0",
-                help_text="Prioridad (Odoo priority, compute+store desde el albarán).",
+                help_text=(
+                    "Prioridad (Odoo priority, compute+store desde el"
+                    " albarán)."
+                ),
                 max_length=1,
             ),
         ),
@@ -290,7 +360,10 @@ class Migration(migrations.Migration):
                     ("make_to_order", "Advanced: Apply Procurement Rules"),
                 ],
                 default="make_to_stock",
-                help_text="Método de suministro (Odoo procure_method). make_to_stock espera disponibilidad; make_to_order dispara una regla.",
+                help_text=(
+                    "Método de suministro (Odoo procure_method). make_to_stock"
+                    " espera disponibilidad; make_to_order dispara una regla."
+                ),
                 max_length=16,
             ),
         ),
@@ -300,7 +373,11 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text="La misma demanda en la unidad del PRODUCTO (Odoo product_qty, compute+store; su inverso lanza error a propósito — se escribe product_uom_qty).",
+                help_text=(
+                    "La misma demanda en la unidad del PRODUCTO (Odoo"
+                    " product_qty, compute+store; su inverso lanza error a"
+                    " propósito — se escribe product_uom_qty)."
+                ),
                 max_digits=16,
             ),
         ),
@@ -309,7 +386,10 @@ class Migration(migrations.Migration):
             name="product_uom",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Unidad del movimiento (Odoo product_uom, compute+store con readonly=False; la recalcula compute_product_uom).",
+                help_text=(
+                    "Unidad del movimiento (Odoo product_uom, compute+store"
+                    " con readonly=False; la recalcula compute_product_uom)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
@@ -321,7 +401,10 @@ class Migration(migrations.Migration):
             name="propagate_cancel",
             field=models.BooleanField(
                 default=True,
-                help_text="Si al cancelar éste se cancela el movimiento enlazado (Odoo propagate_cancel).",
+                help_text=(
+                    "Si al cancelar éste se cancela el movimiento enlazado"
+                    " (Odoo propagate_cancel)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -330,7 +413,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Etiqueta del movimiento (Odoo reference, compute+store). Es el _rec_name: sale del albarán, del desecho o del nombre de inventario, en ese orden.",
+                help_text=(
+                    "Etiqueta del movimiento (Odoo reference, compute+store)."
+                    " Es el _rec_name: sale del albarán, del desecho o del"
+                    " nombre de inventario, en ese orden."
+                ),
                 max_length=255,
             ),
         ),
@@ -339,7 +426,11 @@ class Migration(migrations.Migration):
             name="reservation_date",
             field=models.DateField(
                 blank=True,
-                help_text="Fecha a partir de la cual reservar (Odoo reservation_date, compute+store desde el tipo de operación).",
+                help_text=(
+                    "Fecha a partir de la cual reservar (Odoo"
+                    " reservation_date, compute+store desde el tipo de"
+                    " operación)."
+                ),
                 null=True,
             ),
         ),
@@ -348,7 +439,10 @@ class Migration(migrations.Migration):
             name="restrict_partner",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Propietario cuyos quants son los únicos considerables al marcar hecho (Odoo restrict_partner_id).",
+                help_text=(
+                    "Propietario cuyos quants son los únicos considerables al"
+                    " marcar hecho (Odoo restrict_partner_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="stock_moves_restricted",
@@ -371,7 +465,10 @@ class Migration(migrations.Migration):
             name="rule",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Regla que creó el movimiento (Odoo rule_id, ondelete='restrict').",
+                help_text=(
+                    "Regla que creó el movimiento (Odoo rule_id,"
+                    " ondelete='restrict')."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
@@ -382,7 +479,8 @@ class Migration(migrations.Migration):
             model_name="stockmove",
             name="sequence",
             field=models.IntegerField(
-                default=10, help_text="Orden dentro del albarán (Odoo sequence)."
+                default=10,
+                help_text="Orden dentro del albarán (Odoo sequence).",
             ),
         ),
         migrations.AddField(
@@ -390,7 +488,10 @@ class Migration(migrations.Migration):
             name="warehouse",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Almacén a considerar al elegir ruta en el siguiente aprovisionamiento (Odoo warehouse_id).",
+                help_text=(
+                    "Almacén a considerar al elegir ruta en el siguiente"
+                    " aprovisionamiento (Odoo warehouse_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
@@ -402,14 +503,20 @@ class Migration(migrations.Migration):
             name="is_locked",
             field=models.BooleanField(
                 default=True,
-                help_text="Odoo is_locked. Con el albarán sin validar permite cambiar la demanda inicial; ya validado, las cantidades hechas.",
+                help_text=(
+                    "Odoo is_locked. Con el albarán sin validar permite"
+                    " cambiar la demanda inicial; ya validado, las cantidades"
+                    " hechas."
+                ),
             ),
         ),
         migrations.AlterField(
             model_name="stockmove",
             name="location",
             field=models.ForeignKey(
-                help_text="Ubicación origen (Odoo location_id, compute+store).",
+                help_text=(
+                    "Ubicación origen (Odoo location_id, compute+store)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="moves_out",
                 to="stock.stocklocation",
@@ -419,7 +526,10 @@ class Migration(migrations.Migration):
             model_name="stockmove",
             name="location_dest",
             field=models.ForeignKey(
-                help_text="Ubicación destino INTERMEDIA (Odoo location_dest_id, compute+store con inverso).",
+                help_text=(
+                    "Ubicación destino INTERMEDIA (Odoo location_dest_id,"
+                    " compute+store con inverso)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="moves_in",
                 to="stock.stocklocation",
@@ -429,7 +539,9 @@ class Migration(migrations.Migration):
             model_name="stockmove",
             name="product",
             field=models.ForeignKey(
-                help_text="Producto (Odoo product_id; el dominio excluye servicios).",
+                help_text=(
+                    "Producto (Odoo product_id; el dominio excluye servicios)."
+                ),
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_moves",
                 to="product.productproduct",
@@ -441,7 +553,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text="Cantidad demandada, en la unidad del movimiento (Odoo product_uom_qty). Bajarla NO genera pedido pendiente.",
+                help_text=(
+                    "Cantidad demandada, en la unidad del movimiento (Odoo"
+                    " product_uom_qty). Bajarla NO genera pedido pendiente."
+                ),
                 max_digits=16,
             ),
         ),
@@ -451,7 +566,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text="Suma de las cantidades de las líneas (Odoo quantity, compute+store con inverso).",
+                help_text=(
+                    "Suma de las cantidades de las líneas (Odoo quantity,"
+                    " compute+store con inverso)."
+                ),
                 max_digits=16,
             ),
         ),
@@ -470,14 +588,23 @@ class Migration(migrations.Migration):
                 ],
                 db_index=True,
                 default="draft",
-                help_text="Estado (Odoo state, readonly). Los SIETE de la referencia.",
+                help_text=(
+                    "Estado (Odoo state, readonly). Los SIETE de la"
+                    " referencia."
+                ),
                 max_length=20,
             ),
         ),
         migrations.AddIndex(
             model_name="stockmove",
             index=models.Index(
-                fields=["product", "location", "location_dest", "company", "state"],
+                fields=[
+                    "product",
+                    "location",
+                    "location_dest",
+                    "company",
+                    "state",
+                ],
                 name="stock_move_product_location_idx",
             ),
         ),

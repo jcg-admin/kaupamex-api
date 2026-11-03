@@ -6,6 +6,7 @@
 punto lo atrapa explícitamente, porque es la parte del flujo genuinamente
 bloqueada por la ausencia de un motor de reportes, no un fallo del wizard.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -34,7 +35,8 @@ def company(db):
 @pytest.fixture
 def journal(company):
     row = AccountJournal.objects.create(
-        name='Banco', code='BNK', type='bank', company=company)
+        name='Banco', code='BNK', type='bank', company=company
+    )
     # `ensure_for`: la señal `post_save` ya provisionó la fila al crear el
     # diario de banco; `objects.create` chocaría con el UNIQUE de `journal_id`.
     settings = CheckPrintingJournalSettings.ensure_for(row)
@@ -45,8 +47,11 @@ def journal(company):
 
 def _payment(journal, company, **kwargs):
     defaults = {
-        'amount': Decimal('100.00'), 'payment_type': 'outbound',
-        'partner_type': 'supplier', 'journal': journal, 'company': company,
+        'amount': Decimal('100.00'),
+        'payment_type': 'outbound',
+        'partner_type': 'supplier',
+        'journal': journal,
+        'company': company,
         'state': 'draft',
     }
     defaults.update(kwargs)
@@ -59,10 +64,15 @@ class TestValidateNextCheckNumber:
             PrintPrenumberedChecksWizard.validate_next_check_number('ABC')
 
     def test_accepts_digits(self):
-        assert PrintPrenumberedChecksWizard.validate_next_check_number('00042') == '00042'
+        assert (
+            PrintPrenumberedChecksWizard.validate_next_check_number('00042')
+            == '00042'
+        )
 
     def test_accepts_blank(self):
-        assert PrintPrenumberedChecksWizard.validate_next_check_number('') == ''
+        assert (
+            PrintPrenumberedChecksWizard.validate_next_check_number('') == ''
+        )
 
 
 class TestPrintChecks:
@@ -75,7 +85,8 @@ class TestPrintChecks:
             PrintPrenumberedChecksWizard.print_checks(payments, '00042')
 
         numbers = [
-            CheckPrintingPaymentInfo.for_payment(p).check_number for p in payments
+            CheckPrintingPaymentInfo.for_payment(p).check_number
+            for p in payments
         ]
         assert numbers == ['00042', '00043', '00044']
 
@@ -104,12 +115,15 @@ class TestPrintChecks:
         with pytest.raises(ValidationError):
             PrintPrenumberedChecksWizard.print_checks([payment], 'ABC')
 
-    def test_rejects_duplicate_numbers_within_the_batch(self, journal, company):
+    def test_rejects_duplicate_numbers_within_the_batch(
+        self, journal, company
+    ):
         # Dos pagos ya comprometidos (in_process) con números que la
         # numeración secuencial del lote haría colisionar.
         p1 = _payment(journal, company, state='in_process')
         CheckPrintingPaymentInfo.objects.create(
-            payment=p1, check_number='00043')
+            payment=p1, check_number='00043'
+        )
 
         p2 = _payment(journal, company, state='draft')
         CheckPrintingPaymentInfo.for_payment(p2, create=True)

@@ -1,0 +1,48 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.F.FFF.........                                                          [100%]
+=================================== FAILURES ===================================
+_______ TestTheFieldWasApplied.test_prefix_placeholder_creates_no_column _______
+tests/unit/account/test_account_analytic_distribution_model.py:48: in test_prefix_placeholder_creates_no_column
+    assert 'prefix_placeholder' not in names_in_meta
+E   AssertionError: assert 'prefix_placeholder' not in {'account_prefix', 'analytic_distribution', 'company', 'created_at', 'display_name', 'id', ...}
+_ TestPrefixPlaceholder.test_without_an_expense_account_uses_the_60_61_62_default _
+tests/unit/account/test_account_analytic_distribution_model.py:64: in test_without_an_expense_account_uses_the_60_61_62_default
+    assert record.prefix_placeholder == 'e.g. 60, 61, 62'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+____ TestPrefixPlaceholder.test_derives_from_the_real_code_not_the_default _____
+tests/unit/account/test_account_analytic_distribution_model.py:73: in test_derives_from_the_real_code_not_the_default
+    assert record.prefix_placeholder == 'e.g. 55, 56, 57'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+__ TestPrefixPlaceholder.test_without_a_company_it_does_not_filter_by_company __
+tests/unit/account/test_account_analytic_distribution_model.py:82: in test_without_a_company_it_does_not_filter_by_company
+    assert record.prefix_placeholder == 'e.g. 60, 61, 62'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_exists_on_the_model
+tests/unit/account/test_account_analytic_distribution_model.py::TestPrefixPlaceholder::test_without_an_expense_account_uses_the_60_61_62_default
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_exists_on_the_model
+tests/unit/account/test_account_analytic_distribution_model.py::TestPrefixPlaceholder::test_without_an_expense_account_uses_the_60_61_62_default
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/prefix-placeholder-before.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column
+FAILED tests/unit/account/test_account_analytic_distribution_model.py::TestPrefixPlaceholder::test_without_an_expense_account_uses_the_60_61_62_default
+FAILED tests/unit/account/test_account_analytic_distribution_model.py::TestPrefixPlaceholder::test_derives_from_the_real_code_not_the_default
+FAILED tests/unit/account/test_account_analytic_distribution_model.py::TestPrefixPlaceholder::test_without_a_company_it_does_not_filter_by_company
+4 failed, 11 passed, 5 warnings in 5.00s

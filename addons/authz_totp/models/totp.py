@@ -18,6 +18,7 @@ Adaptado de @progress-independiente: sólo se removió la dependencia de Odoo
 ``TOTP.match`` compara ``hotp(key, counter) == code`` — el llamador pasa el
 código de 6 dígitos como ``int``.
 """
+
 import hmac
 import struct
 import time
@@ -53,10 +54,14 @@ class TOTP:
         low = int((t - window) / timestep)
         high = int((t + window) / timestep) + 1
 
-        return next((
-            counter for counter in range(low, high)
-            if hotp(self._key, counter) == code
-        ), None)
+        return next(
+            (
+                counter
+                for counter in range(low, high)
+                if hotp(self._key, counter) == code
+            ),
+            None,
+        )
 
 
 def hotp(secret, counter):
@@ -70,5 +75,5 @@ def hotp(secret, counter):
     # hard-limits it to 10: each digit is normally worth 3.32 bits but the
     # 10th is only worth 1.1 (9 digits encode 29.9 bits).
     code = struct.unpack_from('>I', mac, offset)[0] & 0x7FFFFFFF
-    r = code % (10 ** DIGITS)
+    r = code % (10**DIGITS)
     return r

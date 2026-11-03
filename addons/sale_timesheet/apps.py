@@ -32,6 +32,7 @@ no al colgarla. Lo que el orden garantiza de verdad es que
 addons**, no este diccionario: ``sale_timesheet`` declara ``hr_timesheet`` en
 su ``depends``, así que su ``ready()`` corre después.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -39,43 +40,58 @@ from django.apps import AppConfig
 
 class SaleTimesheetConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.sale_timesheet'
-    label              = 'sale_timesheet'
-    verbose_name       = 'Venta de tiempo (sale_timesheet)'
+    name = 'addons.sale_timesheet'
+    label = 'sale_timesheet'
+    verbose_name = 'Venta de tiempo (sale_timesheet)'
 
     #: Módulo → función. Cada uno define ``apply_sale_timesheet_*_extensions``.
     #: Mismo patrón que ``HrTimesheetConfig._EXTENSIONES``.
     _EXTENSIONES = {
-        'addons.sale_timesheet.models.project_project':
-            'apply_sale_timesheet_project_project_extensions',
-        'addons.sale_timesheet.models.project_task':
-            'apply_sale_timesheet_project_task_extensions',
-        'addons.sale_timesheet.models.hr_timesheet':
-            'apply_sale_timesheet_hr_timesheet_extensions',
-        'addons.sale_timesheet.models.hr_employee':
-            'apply_sale_timesheet_hr_employee_extensions',
-        'addons.sale_timesheet.models.product_product':
-            'apply_sale_timesheet_product_product_extensions',
-        'addons.sale_timesheet.models.product_template':
-            'apply_sale_timesheet_product_template_extensions',
-        'addons.sale_timesheet.models.sale_order':
-            'apply_sale_timesheet_sale_order_extensions',
-        'addons.sale_timesheet.models.sale_order_line':
-            'apply_sale_timesheet_sale_order_line_extensions',
-        'addons.sale_timesheet.models.account_move':
-            'apply_sale_timesheet_account_move_extensions',
-        'addons.sale_timesheet.models.account_move_line':
-            'apply_sale_timesheet_account_move_line_extensions',
-        'addons.sale_timesheet.models.account_move_reversal':
-            'apply_sale_timesheet_account_move_reversal_extensions',
-        'addons.sale_timesheet.models.res_config_settings':
-            'apply_sale_timesheet_res_config_settings_extensions',
-        'addons.sale_timesheet.report.project_report':
-            'apply_sale_timesheet_project_report_extensions',
-        'addons.sale_timesheet.report.timesheets_analysis_report':
-            'apply_sale_timesheet_timesheets_analysis_report_extensions',
-        'addons.sale_timesheet.wizard.sale_make_invoice_advance':
-            'apply_sale_timesheet_sale_make_invoice_advance_extensions',
+        'addons.sale_timesheet.models.project_project': (
+            'apply_sale_timesheet_project_project_extensions'
+        ),
+        'addons.sale_timesheet.models.project_task': (
+            'apply_sale_timesheet_project_task_extensions'
+        ),
+        'addons.sale_timesheet.models.hr_timesheet': (
+            'apply_sale_timesheet_hr_timesheet_extensions'
+        ),
+        'addons.sale_timesheet.models.hr_employee': (
+            'apply_sale_timesheet_hr_employee_extensions'
+        ),
+        'addons.sale_timesheet.models.product_product': (
+            'apply_sale_timesheet_product_product_extensions'
+        ),
+        'addons.sale_timesheet.models.product_template': (
+            'apply_sale_timesheet_product_template_extensions'
+        ),
+        'addons.sale_timesheet.models.sale_order': (
+            'apply_sale_timesheet_sale_order_extensions'
+        ),
+        'addons.sale_timesheet.models.sale_order_line': (
+            'apply_sale_timesheet_sale_order_line_extensions'
+        ),
+        'addons.sale_timesheet.models.account_move': (
+            'apply_sale_timesheet_account_move_extensions'
+        ),
+        'addons.sale_timesheet.models.account_move_line': (
+            'apply_sale_timesheet_account_move_line_extensions'
+        ),
+        'addons.sale_timesheet.models.account_move_reversal': (
+            'apply_sale_timesheet_account_move_reversal_extensions'
+        ),
+        'addons.sale_timesheet.models.res_config_settings': (
+            'apply_sale_timesheet_res_config_settings_extensions'
+        ),
+        'addons.sale_timesheet.report.project_report': (
+            'apply_sale_timesheet_project_report_extensions'
+        ),
+        'addons.sale_timesheet.report.timesheets_analysis_report': (
+            'apply_sale_timesheet_timesheets_analysis_report_extensions'
+        ),
+        'addons.sale_timesheet.wizard.sale_make_invoice_advance': (
+            'apply_sale_timesheet_sale_make_invoice_advance_extensions'
+        ),
     }
 
     def ready(self):

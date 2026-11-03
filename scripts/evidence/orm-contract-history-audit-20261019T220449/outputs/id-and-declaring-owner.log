@@ -1,0 +1,24 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+INSTRUMENT scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py
+consumidor    : /workspace/kaupamex-api
+descriptor id : FieldDescriptor
+--- object.__new__ pelado
+    tiene _state : False
+    __dict__     : []
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py", line 113, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py", line 105, in main
+    report('object.__new__ pelado', blank)
+  File "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py", line 67, in report
+    with CaptureQueriesContext(connection) as capturadas:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/test/utils.py", line 732, in __enter__
+    self.connection.ensure_connection()
+  File "<stdin>", line 7, in refuse
+AssertionError: No DB access authorized

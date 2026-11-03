@@ -26,6 +26,7 @@ columna de la vista (``related_name='+'``, ``db_column='employee_id'``),
 así que ``self.employee_id`` SÍ resuelve a la instancia de ``hr.HrEmployee``
 — la delegación es directa, sin mecanismo adicional que construir.
 """
+
 from addons.hr.models import HrEmployeePublic
 
 

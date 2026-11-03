@@ -1,6 +1,7 @@
 """TDD del addon ``mass_mailing`` — hogar Odoo fiel de la newsletter (en
 disolucion). Verifica el contrato de los modelos portados: list/contact/
 subscription (opt-out por lista) / mailing (hereda mail.thread) / trace."""
+
 import pytest
 from django.db import IntegrityError, transaction
 
@@ -18,7 +19,9 @@ class TestMailingListAndContacts:
     def test_subscription_links_contact_and_list(self, db):
         lst = MailingList.objects.create(name='Ofertas')
         contact = MailingContact.objects.create(email='a@x.com', name='Ana')
-        sub = MailingSubscription.objects.create(contact_id=contact, mailing_list=lst)
+        sub = MailingSubscription.objects.create(
+            contact_id=contact, mailing_list=lst
+        )
         assert sub.opt_out is False
         # reversos por related_name
         assert lst.subscription_ids.filter(pk=sub.pk).exists()
@@ -30,13 +33,17 @@ class TestMailingListAndContacts:
         MailingSubscription.objects.create(contact_id=c, mailing_list=lst)
         with pytest.raises(IntegrityError):
             with transaction.atomic():
-                MailingSubscription.objects.create(contact_id=c, mailing_list=lst)
+                MailingSubscription.objects.create(
+                    contact_id=c, mailing_list=lst
+                )
 
     def test_optout_is_per_list_not_global(self, db):
         c = MailingContact.objects.create(email='a@x.com')
         l1 = MailingList.objects.create(name='L1')
         l2 = MailingList.objects.create(name='L2')
-        s1 = MailingSubscription.objects.create(contact_id=c, mailing_list=l1, opt_out=True)
+        s1 = MailingSubscription.objects.create(
+            contact_id=c, mailing_list=l1, opt_out=True
+        )
         s2 = MailingSubscription.objects.create(contact_id=c, mailing_list=l2)
         # el contacto salio de L1 pero sigue en L2 (fiel a Odoo)
         assert s1.opt_out is True and s2.opt_out is False
@@ -45,7 +52,9 @@ class TestMailingListAndContacts:
 class TestMailingIsThread:
     def test_mailing_inherits_mailthread(self, db):
         assert issubclass(MailingMailing, MailThread)
-        m = MailingMailing.objects.create(subject='Promo', body_html='<p>hi</p>')
+        m = MailingMailing.objects.create(
+            subject='Promo', body_html='<p>hi</p>'
+        )
         # gana chatter (mail.thread) sin columnas propias
         msg = m.message_post(body='campana creada')
         assert isinstance(msg, MailMessage)
@@ -90,8 +99,9 @@ class TestSubscriptionOptInLifecycle:
 
     def _sub(self):
         c = MailingContact.objects.create(email='a@x.com')
-        l = MailingList.objects.create(name='News')
-        return MailingSubscription.objects.create(contact_id=c, mailing_list=l)
+        item = MailingList.objects.create(name='News')
+        return MailingSubscription.objects.create(
+            contact_id=c, mailing_list=item)
 
     def test_new_subscription_is_pending(self, db):
         s = self._sub()
@@ -120,12 +130,16 @@ class TestSubscriptionOptInLifecycle:
     def test_unsubscribe_tokens_unique(self, db):
         s1 = self._sub()
         c2 = MailingContact.objects.create(email='b@x.com')
-        s2 = MailingSubscription.objects.create(contact_id=c2, mailing_list=s1.mailing_list)
+        s2 = MailingSubscription.objects.create(
+            contact_id=c2, mailing_list=s1.mailing_list
+        )
         assert s1.unsubscribe_token != s2.unsubscribe_token
 
 
-# La cobertura de la migración de datos ``0003`` (newsletter→mass_mailing) vivió
+# La cobertura de la migración de datos ``0003``
+# (newsletter→mass_mailing) vivió
 # en ``TestNewsletterDataMigration`` mientras el addon ``newsletter`` existía
 # (pasos 2b/2c). En el paso 3 el addon se retiró: ``0003`` es ahora un no-op
 # resiliente (guarda ``LookupError``) y no hay modelos ``newsletter`` que
-# ejercitar. La copia sin pérdida quedó verificada en el historial (api@f26528a).
+# ejercitar. La copia sin pérdida quedó verificada en el historial
+# (api@f26528a).

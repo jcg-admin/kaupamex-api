@@ -1,11 +1,13 @@
-"""``res.company`` — lo que ``account_check_printing`` le cuelga (≙ ``_inherit``).
+"""
+``res.company`` — lo que ``account_check_printing`` le cuelga (≙ ``_inherit``).
 
 Adaptación de ``odoo19c: addons/account_check_printing/models/res_company.py``
 (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de licencia
 preservados, DEC-KX-03). Seis campos, todos portados:
 ``account_check_printing_layout``, ``account_check_printing_date_label``,
 ``account_check_printing_multi_stub``, ``account_check_printing_margin_top``,
-``account_check_printing_margin_left``, ``account_check_printing_margin_right``.
+``account_check_printing_margin_left``,
+``account_check_printing_margin_right``.
 
 Cross-app ``_inherit`` → RELATED OneToOne (DEC-SALE-01, mismo criterio que
 ``account_add_gln.PartnerGln`` / ``account_debit_note.JournalDebitSequence``):
@@ -29,6 +31,7 @@ referencia, no una limitación de este puerto — el mismo comentario de
 ``selection_add`` sigue siendo la vía de extensión el día que se porte un
 diseño de talón concreto.
 """
+
 import fields
 import models
 from addons.base.models import ResCompany, TimeStampedModel
@@ -43,39 +46,55 @@ class CheckPrintingCompanySettings(TimeStampedModel):
     LAYOUT_CHOICES = [('disabled', 'Ninguno')]
 
     company = models.OneToOneField(
-        ResCompany, on_delete=models.CASCADE,
+        ResCompany,
+        on_delete=models.CASCADE,
         related_name='check_printing_settings',
         help_text='Empresa (Odoo _inherit res.company).',
     )
     layout = fields.Selection(
-        max_length=64, choices=LAYOUT_CHOICES, default='disabled',
+        max_length=64,
+        choices=LAYOUT_CHOICES,
+        default='disabled',
         verbose_name='Diseño de cheque',
-        help_text='Formato del papel donde se imprimen los cheques. '
-                  '"Ninguno" desactiva la impresión (Odoo '
-                  'account_check_printing_layout).',
+        help_text=(
+            'Formato del papel donde se imprimen los cheques. '
+            '"Ninguno" desactiva la impresión (Odoo '
+            'account_check_printing_layout).'
+        ),
     )
     date_label = fields.Boolean(
-        default=True, verbose_name='Imprimir etiqueta de fecha',
-        help_text='Imprime la etiqueta de fecha según CPA. Desactivar si el '
-                  'talonario preimpreso ya la trae (Odoo '
-                  'account_check_printing_date_label).',
+        default=True,
+        verbose_name='Imprimir etiqueta de fecha',
+        help_text=(
+            'Imprime la etiqueta de fecha según CPA. Desactivar si el '
+            'talonario preimpreso ya la trae (Odoo '
+            'account_check_printing_date_label).'
+        ),
     )
     multi_stub = fields.Boolean(
-        default=False, verbose_name='Talón de cheque en varias páginas',
-        help_text='Permite que el detalle del talón use varias páginas si '
-                  'no cabe en una sola (Odoo account_check_printing_multi_stub).',
+        default=False,
+        verbose_name='Talón de cheque en varias páginas',
+        help_text=(
+            'Permite que el detalle del talón use varias páginas si '
+            'no cabe en una sola (Odoo account_check_printing_multi_stub).'
+        ),
     )
     margin_top = fields.Float(
-        default=0.25, verbose_name='Margen superior',
-        help_text='Ajusta el margen del cheque generado, en pulgadas '
-                  '(Odoo account_check_printing_margin_top).',
+        default=0.25,
+        verbose_name='Margen superior',
+        help_text=(
+            'Ajusta el margen del cheque generado, en pulgadas '
+            '(Odoo account_check_printing_margin_top).'
+        ),
     )
     margin_left = fields.Float(
-        default=0.25, verbose_name='Margen izquierdo',
+        default=0.25,
+        verbose_name='Margen izquierdo',
         help_text='Odoo account_check_printing_margin_left.',
     )
     margin_right = fields.Float(
-        default=0.25, verbose_name='Margen derecho',
+        default=0.25,
+        verbose_name='Margen derecho',
         help_text='Odoo account_check_printing_margin_right.',
     )
 
@@ -110,7 +129,11 @@ class CheckPrintingCompanySettings(TimeStampedModel):
         ``_get_check_printing_layouts`` (``odoo19c: account_journal.py:43-46``,
         que en la referencia vive en el diario y lee el selection de la
         empresa; aquí se expone donde vive el dato)."""
-        return [(value, label) for value, label in cls.LAYOUT_CHOICES if value != 'disabled']
+        return [
+            (value, label)
+            for value, label in cls.LAYOUT_CHOICES
+            if value != 'disabled'
+        ]
 
     @classmethod
     def check_layout_available(cls):

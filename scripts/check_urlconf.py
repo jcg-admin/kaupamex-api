@@ -66,9 +66,13 @@ def reexec_en_venv():
     """
     if importlib.util.find_spec('django') is not None:
         return
-    if not os.path.exists(VENV) or os.path.realpath(sys.executable) == os.path.realpath(VENV):
-        print(f'FAIL — Django no es importable y no hay venv usable en {VENV}',
-              file=sys.stderr)
+    if not os.path.exists(VENV) or os.path.realpath(
+        sys.executable
+    ) == os.path.realpath(VENV):
+        print(
+            f'FAIL — Django no es importable y no hay venv usable en {VENV}',
+            file=sys.stderr,
+        )
         raise SystemExit(1)
     os.execv(VENV, [VENV, os.path.abspath(__file__), *sys.argv[1:]])
 
@@ -106,8 +110,11 @@ def main():
     try:
         patrones = get_resolver().url_patterns
     except Exception:
-        print('FAIL — la URLConf no resuelve. Un módulo de rutas importa algo '
-              'que su origen no define, o el import revienta:\n', file=sys.stderr)
+        print(
+            'FAIL — la URLConf no resuelve. Un módulo de rutas importa algo '
+            'que su origen no define, o el import revienta:\n',
+            file=sys.stderr,
+        )
         traceback.print_exc()
         return 1
 
@@ -115,8 +122,10 @@ def main():
     if args.quiet:
         print(n)
     else:
-        print(f'OK: la URLConf resuelve ({n} patrones alcanzables desde '
-              f'ROOT_URLCONF, {len(patrones)} en la raíz).')
+        print(
+            f'OK: la URLConf resuelve ({n} patrones alcanzables desde '
+            f'ROOT_URLCONF, {len(patrones)} en la raíz).'
+        )
     return 0
 
 

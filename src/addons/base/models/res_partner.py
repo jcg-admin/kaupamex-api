@@ -415,6 +415,12 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             'calcula al leer.'
         ),
     )
+    #: ≙ ``odoo19c: res_partner.py:218``, ``fields.Char(string='Reference',
+    #: index=True)``. ``_rec_names_search`` lo nombra (``:205``): sin el campo,
+    #: toda búsqueda por ``display_name`` de un partner moría con
+    #: ``Invalid field 'ref'``. ``null=True`` porque en la fuente un ``Char``
+    #: sin ``required`` admite ``NULL`` (H-API-1125). Ver H-API-1126.
+    ref = fields.Char(string='Reference', index=True, null=True, blank=True)
     company_registry = fields.Char(
         max_length=64, blank=True, default='', db_index=True,
         help_text=(
@@ -1043,9 +1049,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             return
         sync_vals = commercial_partner._get_commercial_values()
         if sync_vals:
-            type(self).objects.filter(pk=self.pk).update(**sync_vals)
-            for key, value in sync_vals.items():
-                setattr(self, key, value)
+            # ``self.write(sync_vals)``: por ``save()``, que reentra en
+            # ``_fields_sync`` sólo con lo que de verdad cambió.
+            self.write(sync_vals)
             self._commercial_sync_to_descendants()
         self._company_dependent_commercial_sync()
 
@@ -1088,12 +1094,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                 # los de la activa de fuera.
                 sync_vals = (self.commercial_partner_id
                              ._convert_fields_to_values(fields_to_sync))
-                for key, value in sync_vals.items():
-                    setattr(self, key, value)
-                type(self).objects.filter(pk=self.pk).update(
-                    **{fname: type(self)._meta.get_field(fname)
-                       .raw_company_values(self)
-                       for fname in sync_vals})
+                # ``self_in_company.write(...)``: el descriptor del campo
+                # dependiente de empresa escribe el valor de ESTA empresa.
+                self.write(sync_vals)
 
     def _commercial_sync_to_descendants(self, fields_to_sync=None):
         """≙ ``_commercial_sync_to_descendants`` (``odoo19c: :751-768``).
@@ -1127,8 +1130,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                 children_ids_to_sync.add(child.pk)
             child._commercial_sync_to_descendants(fields_to_sync)
         if children_ids_to_sync:
-            type(self).objects.filter(
-                pk__in=list(children_ids_to_sync)).update(**sync_vals)
+            # ``children_to_sync.write(sync_vals)``, fila a fila.
+            for child in type(self).objects.filter(
+                    pk__in=list(children_ids_to_sync)):
+                child.write(sync_vals)
 
     # ------------------------------------------------------------------
     # Restricciones y onchange — ``odoo19c: res_partner.py:546-599`` y ``:647``.
@@ -1348,7 +1353,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         if commercial_to_upstream:
             new_synced = self._get_synced_commercial_values()
             if new_synced:
-                type(self).objects.filter(pk=self.parent_id).update(**new_synced)
+                # ``self.parent_id.write(...)``: la entidad de arriba se
+                # escribe por el ORM, y su propio ``save`` baja a los hijos.
+                self.parent.write(new_synced)
 
         # 3. De aquí hacia los hijos
         self._children_sync(values)
@@ -1982,6 +1989,14 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # display_name — el nombre enriquecido segun quien lo pide
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:1038-1069``
     # ------------------------------------------------------------------
+    @api.depends(lambda model: (
+        'name', 'complete_name', 'parent.name', 'email', 'vat',
+        'commercial_company_name', 'is_company', 'type',
+    ) + tuple(model._display_address_depends()))
+    @api.depends_context(
+        'show_address', 'partner_show_db_id', 'show_email', 'show_vat',
+        'lang', 'formatted_display_name', 'partner_display_name_hide_company',
+    )
     def _compute_display_name(self):
         """El nombre completo, enriquecido segun cinco claves de contexto.
 
@@ -2004,30 +2019,30 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         ``TYPES``, que es una lista literal — no hay traduccion que fijar. Se
         cierra con el catalogo, no antes.
         """
-        contexto = get_context()
+        context = get_context()
         type_description = dict(self.TYPES)
 
-        if contexto.get('formatted_display_name'):
+        if context.get('formatted_display_name'):
             name = self.name or ''
             if self.parent_id or self.company_name:
                 company = self.company_name or (
                     self.parent.name if self.parent_id else '')
                 own = self.name or type_description.get(self.type, '')
                 name = f"{company} \t --{own}--"
-            if contexto.get('show_email') and self.email:
+            if context.get('show_email') and self.email:
                 name = f"{name} \t --{self.email}--"
-            elif contexto.get('partner_show_db_id'):
+            elif context.get('partner_show_db_id'):
                 name = f"{name} \t --{self.pk}--"
         else:
             name = self._get_complete_name()
-            if contexto.get('partner_show_db_id'):
+            if context.get('partner_show_db_id'):
                 name = f"{name} ({self.pk})"
-            if contexto.get('show_email') and self.email:
+            if context.get('show_email') and self.email:
                 name = f"{name} <{self.email}>"
-            if contexto.get('show_address'):
+            if context.get('show_address'):
                 name = name + "\n" + self._display_address(without_company=True)
-            if contexto.get('show_vat') and self.vat:
-                if contexto.get('show_address'):
+            if context.get('show_vat') and self.vat:
+                if context.get('show_address'):
                     name = f"{name} \n {self.vat}"
                 else:
                     name = f"{name} - {self.vat}"
@@ -2035,7 +2050,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         # ≙ *"Remove extra empty lines"* de la fuente (``:1067``): la plantilla
         # del pais deja blancos delante del salto cuando una parte va vacia.
         name = re.sub(r'\s+\n', '\n', name)
-        return name.strip()
+        self.display_name = name.strip()
+        return self.display_name
 
     # ------------------------------------------------------------------
     # El avatar y su relleno por tipo de direccion
@@ -3078,6 +3094,7 @@ class ResPartnerCategory(TimeStampedModel):
             return f'{self.pk}/'
         return f'{self.parent.parent_path}{self.pk}/'
 
+    @api.depends('parent')
     def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:162-172``).
 
@@ -3090,7 +3107,9 @@ class ResPartnerCategory(TimeStampedModel):
         while current is not None:
             names.append(current.name or '')
             current = current.parent
-        return ' / '.join(reversed(names))
+        label = ' / '.join(reversed(names))
+        self.display_name = label
+        return label
 
     @classmethod
     def _search_display_name(cls, operator, value):

@@ -1,4 +1,5 @@
-"""Tests — ``stock.lot`` + dimensión de lote en ``stock.quant`` (addon ``stock``).
+"""
+Tests — ``stock.lot`` + dimensión de lote en ``stock.quant`` (addon ``stock``).
 
 Cubre la base que ``product_expiry`` extiende: el lote (``StockLot``) con su
 cantidad a la mano computada sobre los quants, la dimensión ``lot`` en el quant
@@ -6,6 +7,7 @@ cantidad a la mano computada sobre los quants, la dimensión ``lot`` en el quant
 la base (FIFO por ``in_date``, LIFO por ``-in_date``). La estrategia FEFO la
 añade el satélite ``product_expiry`` — aquí se verifica solo la base.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -14,7 +16,10 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from addons.stock.models import (
-    ProductRemoval, StockLocation, StockLot, StockQuant,
+    ProductRemoval,
+    StockLocation,
+    StockLot,
+    StockQuant,
 )
 from tests.factories.product_factory import make_product
 
@@ -27,24 +32,29 @@ def _product(price='100.00'):
     _slug_seq[0] += 1
     n = _slug_seq[0]
     return make_product(
-        name=f'Lot Prod {n}', default_code=f'LOT-{n:04d}',
+        name=f'Lot Prod {n}',
+        default_code=f'LOT-{n:04d}',
         price=Decimal(price),
     )
 
 
 def _internal(name='WH/Stock'):
-    return StockLocation.objects.create(name=name, usage=StockLocation.USAGE_INTERNAL)
+    return StockLocation.objects.create(
+        name=name, usage=StockLocation.USAGE_INTERNAL
+    )
 
 
 def test_lot_product_qty_sums_its_quants(db):
     product = _product()
     loc = _internal()
     lot = StockLot.objects.create(name='LOT-A', product=product)
-    StockQuant.objects.create(product=product, location=loc, lot=lot,
-                              quantity=Decimal('7.00'))
+    StockQuant.objects.create(
+        product=product, location=loc, lot=lot, quantity=Decimal('7.00')
+    )
     other = _internal('WH/Stock2')
-    StockQuant.objects.create(product=product, location=other, lot=lot,
-                              quantity=Decimal('3.00'))
+    StockQuant.objects.create(
+        product=product, location=other, lot=lot, quantity=Decimal('3.00')
+    )
     # product_qty agrega la cantidad de todos los quants del lote.
     assert lot.product_qty == Decimal('10.00')
 
@@ -53,12 +63,17 @@ def test_lot_and_nonlot_quants_coexist_at_same_location(db):
     product = _product()
     loc = _internal()
     lot = StockLot.objects.create(name='LOT-B', product=product)
-    # El quant sin lote y el quant con lote son filas distintas (unique incluye lot).
-    StockQuant.objects.create(product=product, location=loc, lot=None,
-                              quantity=Decimal('2.00'))
-    StockQuant.objects.create(product=product, location=loc, lot=lot,
-                              quantity=Decimal('5.00'))
-    assert StockQuant.objects.filter(product=product, location=loc).count() == 2
+    # El quant sin lote y el quant con lote son filas distintas (unique
+    # incluye lot).
+    StockQuant.objects.create(
+        product=product, location=loc, lot=None, quantity=Decimal('2.00')
+    )
+    StockQuant.objects.create(
+        product=product, location=loc, lot=lot, quantity=Decimal('5.00')
+    )
+    assert (
+        StockQuant.objects.filter(product=product, location=loc).count() == 2
+    )
     # available_qty agrega ambos (réplica de _get_available_quantity de Odoo).
     assert StockQuant.available_qty(product, loc) == Decimal('7.00')
 
@@ -75,13 +90,19 @@ def test_gather_orders_oldest_in_date_first(db):
     l_old = StockLot.objects.create(name='OLD', product=product)
     l_new = StockLot.objects.create(name='NEW', product=product)
     now = timezone.now()
-    q_new = StockQuant.objects.create(product=product, location=loc, lot=l_new,
-                                      quantity=Decimal('4.00'))
-    q_old = StockQuant.objects.create(product=product, location=loc, lot=l_old,
-                                      quantity=Decimal('6.00'))
+    q_new = StockQuant.objects.create(
+        product=product, location=loc, lot=l_new, quantity=Decimal('4.00')
+    )
+    q_old = StockQuant.objects.create(
+        product=product, location=loc, lot=l_old, quantity=Decimal('6.00')
+    )
     # Forzar in_date: old anterior a new.
-    StockQuant.objects.filter(pk=q_old.pk).update(in_date=now - timedelta(days=2))
-    StockQuant.objects.filter(pk=q_new.pk).update(in_date=now - timedelta(days=1))
+    StockQuant.objects.filter(pk=q_old.pk).update(
+        in_date=now - timedelta(days=2)
+    )
+    StockQuant.objects.filter(pk=q_new.pk).update(
+        in_date=now - timedelta(days=1)
+    )
 
     assert StockQuant._get_removal_strategy(product, loc) == 'fifo'
     fifo = list(StockQuant._gather(product, loc))
@@ -98,18 +119,25 @@ def test_gather_lifo_when_the_location_declares_it(db):
     product = _product()
     loc = _internal()
     loc.removal_strategy = ProductRemoval.objects.create(
-        name='LIFO', method='lifo')
+        name='LIFO', method='lifo'
+    )
     loc.save(update_fields=['removal_strategy', 'updated_at'])
 
     l_old = StockLot.objects.create(name='OLD2', product=product)
     l_new = StockLot.objects.create(name='NEW2', product=product)
     now = timezone.now()
-    q_new = StockQuant.objects.create(product=product, location=loc, lot=l_new,
-                                      quantity=Decimal('4.00'))
-    q_old = StockQuant.objects.create(product=product, location=loc, lot=l_old,
-                                      quantity=Decimal('6.00'))
-    StockQuant.objects.filter(pk=q_old.pk).update(in_date=now - timedelta(days=2))
-    StockQuant.objects.filter(pk=q_new.pk).update(in_date=now - timedelta(days=1))
+    q_new = StockQuant.objects.create(
+        product=product, location=loc, lot=l_new, quantity=Decimal('4.00')
+    )
+    q_old = StockQuant.objects.create(
+        product=product, location=loc, lot=l_old, quantity=Decimal('6.00')
+    )
+    StockQuant.objects.filter(pk=q_old.pk).update(
+        in_date=now - timedelta(days=2)
+    )
+    StockQuant.objects.filter(pk=q_new.pk).update(
+        in_date=now - timedelta(days=1)
+    )
 
     assert StockQuant._get_removal_strategy(product, loc) == 'lifo'
     lifo = list(StockQuant._gather(product, loc))
@@ -132,12 +160,14 @@ def test_gather_incluye_los_quants_en_cero(db):
     product = _product()
     loc = _internal()
     lot = StockLot.objects.create(name='Z', product=product)
-    quant = StockQuant.objects.create(product=product, location=loc, lot=lot,
-                                      quantity=Decimal('0.00'))
+    quant = StockQuant.objects.create(
+        product=product, location=loc, lot=lot, quantity=Decimal('0.00')
+    )
     assert [q.pk for q in StockQuant._gather(product, loc)] == [quant.pk]
     # Y no aporta nada que reservar, que es donde sí se descarta.
-    assert StockQuant._get_reserve_quantity(
-        product, loc, Decimal('1.00')) == []
+    assert (
+        StockQuant._get_reserve_quantity(product, loc, Decimal('1.00')) == []
+    )
 
 
 def test_lot_name_unique_per_product(db):

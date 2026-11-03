@@ -40,11 +40,15 @@ import sys
 DECLINE_MARKERS = re.compile(
     r'no se porta|no se portan|se omite|se omiten|no aporta|puede divergir|'
     r'no aplica aqu|no tiene sentido aqu|se descarta|no se declara|'
-    r'no hace falta|no lo necesitamos|se deja fuera', re.I)
+    r'no hace falta|no lo necesitamos|se deja fuera',
+    re.I,
+)
 
 #: Lo que hace contrastable una razon: una cita de la referencia o de un
 #: hallazgo que ya la midio.
-ANCHOR = re.compile(r'odoo1[89][ce]:|``:\d+|la fuente|la referencia|≙|:ref:`h-')
+ANCHOR = re.compile(
+    r'odoo1[89][ce]:|``:\d+|la fuente|la referencia|≙|:ref:`h-'
+)
 
 #: Cuantas lineas a cada lado cuentan como el bloque de la razon.
 CONTEXT = 6
@@ -65,19 +69,27 @@ def scan(repo_root):
                 if not DECLINE_MARKERS.search(line):
                     continue
                 block = '\n'.join(
-                    lines[max(0, index - CONTEXT):index + CONTEXT + 1])
-                row = (str(path.relative_to(repo_root)), index + 1,
-                       line.strip()[:110])
+                    lines[max(0, index - CONTEXT): index + CONTEXT + 1]
+                )
+                row = (
+                    str(path.relative_to(repo_root)),
+                    index + 1,
+                    line.strip()[:110],
+                )
                 (anchored if ANCHOR.search(block) else unanchored).append(row)
     return anchored, unanchored
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--sin-ancla', action='store_true',
-                        help='lista sólo las razones sin ancla a la fuente')
-    parser.add_argument('--prefijo', default='',
-                        help='acota a las rutas que empiecen así')
+    parser.add_argument(
+        '--sin-ancla',
+        action='store_true',
+        help='lista sólo las razones sin ancla a la fuente',
+    )
+    parser.add_argument(
+        '--prefijo', default='', help='acota a las rutas que empiecen así'
+    )
     args = parser.parse_args()
 
     repo_root = pathlib.Path(__file__).parent.parent
@@ -86,7 +98,9 @@ def main():
     if not total:
         # Un 0 aqui no distinguiria «no hay declinaciones» de «el recorrido no
         # vio ningun archivo», que es el verde falso de H-API-335.
-        sys.exit('ERROR — 0 lineas medidas sobre ninguna raiz. NO se emite conteo.')
+        sys.exit(
+            'ERROR — 0 lineas medidas sobre ninguna raiz. NO se emite conteo.'
+        )
 
     listed = unanchored if args.sin_ancla else anchored + unanchored
     listed = [r for r in listed if r[0].startswith(args.prefijo)]
@@ -94,10 +108,12 @@ def main():
         print(f'{path}:{number}  {text}')
 
     by_file = collections.Counter(row[0] for row in anchored + unanchored)
-    print(f'\n(alcance medido: {total} linea(s) con marcador en '
-          f'{len(by_file)} archivo(s) bajo {"/, ".join(ROOTS)}/; '
-          f'{len(anchored)} con ancla a la fuente, {len(unanchored)} sin ella; '
-          f'listadas aqui: {len(listed)})')
+    print(
+        f'\n(alcance medido: {total} linea(s) con marcador en '
+        f'{len(by_file)} archivo(s) bajo {"/, ".join(ROOTS)}/; '
+        f'{len(anchored)} con ancla a la fuente, {len(unanchored)} sin ella; '
+        f'listadas aqui: {len(listed)})'
+    )
     return 0
 
 

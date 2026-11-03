@@ -14,9 +14,17 @@ class Migration(migrations.Migration):
             model_name="accounttax",
             name="l10n_mx_factor_type",
             field=models.CharField(
-                choices=[("Tasa", "Tasa"), ("Cuota", "Cuota"), ("Exento", "Exento")],
+                choices=[
+                    ("Tasa", "Tasa"),
+                    ("Cuota", "Cuota"),
+                    ("Exento", "Exento"),
+                ],
                 default="Tasa",
-                help_text="Factor SAT (TipoFactor) para CFDI 4.0: indica cómo se aplica el monto sobre la base del impuesto (Odoo l10n_mx_factor_type).",
+                help_text=(
+                    "Factor SAT (TipoFactor) para CFDI 4.0: indica cómo se"
+                    " aplica el monto sobre la base del impuesto (Odoo"
+                    " l10n_mx_factor_type)."
+                ),
                 max_length=8,
             ),
         ),
@@ -32,7 +40,12 @@ class Migration(migrations.Migration):
                     ("local", "Local"),
                 ],
                 default="",
-                help_text='Clasificación SAT del impuesto — ISR/IVA/IEPS/Local. Se rellena en "iva" cuando la empresa dueña del impuesto es mexicana y el campo está vacío (Odoo l10n_mx_tax_type, compute).',
+                help_text=(
+                    'Clasificación SAT del impuesto — ISR/IVA/IEPS/Local. Se'
+                    ' rellena en "iva" cuando la empresa dueña del impuesto es'
+                    ' mexicana y el campo está vacío (Odoo l10n_mx_tax_type,'
+                    ' compute).'
+                ),
                 max_length=8,
             ),
         ),

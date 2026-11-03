@@ -26,7 +26,10 @@ class Migration(migrations.Migration):
                 (
                     "acc_number",
                     models.CharField(
-                        help_text="Número de cuenta tal como lo escribió el usuario (Odoo acc_number, requerido).",
+                        help_text=(
+                            "Número de cuenta tal como lo escribió el usuario"
+                            " (Odoo acc_number, requerido)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -36,7 +39,13 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="``acc_number`` sin separadores y en mayúsculas. Es la columna que hace única la cuenta y por la que se busca — sin ella, el mismo IBAN escrito con y sin espacios serían dos cuentas distintas (Odoo sanitized_acc_number).",
+                        help_text=(
+                            "``acc_number`` sin separadores y en mayúsculas."
+                            " Es la columna que hace única la cuenta y por la"
+                            " que se busca — sin ella, el mismo IBAN escrito"
+                            " con y sin espacios serían dos cuentas distintas"
+                            " (Odoo sanitized_acc_number)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -44,7 +53,11 @@ class Migration(migrations.Migration):
                     "acc_type",
                     models.CharField(
                         default="bank",
-                        help_text="Tipo inferido del número: ``bank`` en el núcleo, ``iban`` cuando base_iban lo valide (Odoo acc_type; ver divergencia 2).",
+                        help_text=(
+                            "Tipo inferido del número: ``bank`` en el núcleo,"
+                            " ``iban`` cuando base_iban lo valide (Odoo"
+                            " acc_type; ver divergencia 2)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -53,7 +66,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Número de compensación, donde el país lo usa (Odoo clearing_number).",
+                        help_text=(
+                            "Número de compensación, donde el país lo usa"
+                            " (Odoo clearing_number)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -62,7 +78,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Titular de la cuenta, cuando difiere del nombre del contacto (Odoo acc_holder_name).",
+                        help_text=(
+                            "Titular de la cuenta, cuando difiere del nombre"
+                            " del contacto (Odoo acc_holder_name)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -70,33 +89,46 @@ class Migration(migrations.Migration):
                     "allow_out_payment",
                     models.BooleanField(
                         default=False,
-                        help_text="La cuenta puede usarse para pagos salientes. Default False a propósito, fiel a la referencia: habilitar una cuenta para enviar dinero es un acto deliberado (Odoo allow_out_payment).",
+                        help_text=(
+                            "La cuenta puede usarse para pagos salientes."
+                            " Default False a propósito, fiel a la referencia:"
+                            " habilitar una cuenta para enviar dinero es un"
+                            " acto deliberado (Odoo allow_out_payment)."
+                        ),
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Cuenta vigente; desactivar la archiva sin borrarla (Odoo active).",
+                        help_text=(
+                            "Cuenta vigente; desactivar la archiva sin"
+                            " borrarla (Odoo active)."
+                        ),
                     ),
                 ),
                 (
                     "note",
                     models.TextField(
-                        blank=True, default="", help_text="Notas libres (Odoo note)."
+                        blank=True,
+                        default="",
+                        help_text="Notas libres (Odoo note).",
                     ),
                 ),
                 (
                     "bank",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Institución donde está la cuenta (Odoo bank_id).",
+                        help_text=(
+                            "Institución donde está la cuenta (Odoo bank_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="accounts",
@@ -117,7 +149,10 @@ class Migration(migrations.Migration):
                 (
                     "partner",
                     models.ForeignKey(
-                        help_text="Contacto titular de la cuenta (Odoo partner_id, requerido, ondelete cascade).",
+                        help_text=(
+                            "Contacto titular de la cuenta (Odoo partner_id,"
+                            " requerido, ondelete cascade)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="bank_accounts",
                         to="base.respartner",

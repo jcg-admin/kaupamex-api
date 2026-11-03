@@ -4,6 +4,7 @@ Portación fiel de ``ResCountryGroup`` (``res_country.py`` de Odoo 18/19).
 Agrupa países (p. ej. Unión Europea, NAFTA) para reglas fiscales/logísticas.
 M2M a ``base.ResCountry``.
 """
+
 import fields
 import models
 
@@ -11,12 +12,19 @@ import models
 class ResCountryGroup(models.Model):
     """``res.country.group`` — conjunto nombrado de países."""
 
-    name        = fields.Char(max_length=128, help_text='Nombre del grupo (Odoo name).')
-    code        = fields.Char(
-        max_length=16, blank=True, default='', help_text='Código del grupo (Odoo code).',
+    name = fields.Char(
+        max_length=128, help_text='Nombre del grupo (Odoo name).'
+    )
+    code = fields.Char(
+        max_length=16,
+        blank=True,
+        default='',
+        help_text='Código del grupo (Odoo code).',
     )
     country_ids = fields.Many2many(
-        'base.ResCountry', related_name='country_groups', blank=True,
+        'base.ResCountry',
+        related_name='country_groups',
+        blank=True,
         db_table='res_country_res_country_group_rel',
         help_text='Países del grupo (Odoo country_ids).',
     )

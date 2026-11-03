@@ -48,6 +48,7 @@ Qué NO se porta, con su medición
   el campo —es ``JSONField`` en este árbol— pero **no** la maquinaria que lo
   aplica a los productos, que vive en ``product_template.py``.
 """
+
 import fields
 import models
 from django.apps import apps
@@ -64,28 +65,49 @@ class ProductCategory(TimeStampedModel):
 
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     complete_name = fields.Char(
-        max_length=1024, blank=True, default='', db_index=True,
+        max_length=1024,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Nombre completo',
-        help_text='Ruta legible "Padre / Hijo". Almacenado y repropagado a '
-                  'los descendientes al renombrar un padre.',
+        help_text=(
+            'Ruta legible "Padre / Hijo". Almacenado y repropagado a '
+            'los descendientes al renombrar un padre.'
+        ),
     )
     parent = fields.Many2one(
-        'self', on_delete=models.CASCADE, null=True, blank=True, db_index=True,
-        related_name='child_id', verbose_name='Categoría padre',
-        help_text='Odoo parent_id. El related_name es child_id, que es como '
-                  'la referencia llama al One2many inverso.',
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='child_id',
+        verbose_name='Categoría padre',
+        help_text=(
+            'Odoo parent_id. El related_name es child_id, que es como '
+            'la referencia llama al One2many inverso.'
+        ),
     )
     parent_path = fields.Char(
-        max_length=1024, blank=True, default='', db_index=True,
+        max_length=1024,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Ruta del árbol',
-        help_text='Ruta materializada de ids: responde "qué hay debajo" con '
-                  'un LIKE en vez de N consultas.',
+        help_text=(
+            'Ruta materializada de ids: responde "qué hay debajo" con '
+            'un LIKE en vez de N consultas.'
+        ),
     )
     product_properties_definition = fields.Json(
-        default=list, blank=True, verbose_name='Propiedades del producto',
-        help_text='Esquema de propiedades libres que heredan los productos de '
-                  'esta categoría. La maquinaria que lo aplica vive en '
-                  'product_template.',
+        default=list,
+        blank=True,
+        verbose_name='Propiedades del producto',
+        help_text=(
+            'Esquema de propiedades libres que heredan los productos de '
+            'esta categoría. La maquinaria que lo aplica vive en '
+            'product_template.'
+        ),
     )
 
     class Meta:
@@ -98,25 +120,32 @@ class ProductCategory(TimeStampedModel):
         return self.complete_name or self.name
 
     def clean(self):
-        """``_check_category_recursion`` — no se admiten categorías cíclicas."""
+        """
+        ``_check_category_recursion`` — no se admiten categorías cíclicas.
+        """
         super().clean()
         seen = set()
         node = self.parent
         while node is not None:
             if node.pk == self.pk or node.pk in seen:
-                raise ValidationError('No se pueden crear categorías recursivas.')
+                raise ValidationError(
+                    'No se pueden crear categorías recursivas.'
+                )
             seen.add(node.pk)
             node = node.parent
 
     def build_complete_name(self):
-        """``_compute_complete_name`` — ``Padre / Hijo``, o el nombre a secas."""
+        """
+        ``_compute_complete_name`` — ``Padre / Hijo``, o el nombre a secas.
+        """
         if self.parent is not None:
             parent_name = self.parent.complete_name or self.parent.name
             return f'{parent_name}{COMPLETE_NAME_SEPARATOR}{self.name}'
         return self.name
 
     def save(self, *args, **kwargs):
-        """Mantiene ``complete_name`` y ``parent_path``, y repropaga a los hijos.
+        """
+        Mantiene ``complete_name`` y ``parent_path``, y repropaga a los hijos.
 
         Los dos son ``store=True`` en la referencia y su ORM los recalcula en
         cadena. Django no, así que la repropagación es explícita: sin ella,
@@ -128,7 +157,8 @@ class ProductCategory(TimeStampedModel):
 
         parent_path = (
             f'{self.parent.parent_path}{self.pk}/'
-            if self.parent is not None else f'{self.pk}/'
+            if self.parent is not None
+            else f'{self.pk}/'
         )
         if self.parent_path != parent_path:
             self.parent_path = parent_path
@@ -159,5 +189,6 @@ class ProductCategory(TimeStampedModel):
         """
         template_model = apps.get_model('product', 'ProductTemplate')
         branch = type(self).objects.filter(
-            parent_path__startswith=self.parent_path)
+            parent_path__startswith=self.parent_path
+        )
         return template_model.objects.filter(categ__in=branch).count()

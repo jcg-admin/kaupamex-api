@@ -147,21 +147,25 @@ plausible y viejo. Mismo criterio que ``stock`` ya aplicó con
 
 **D-2 — ``reference_ids`` NO se declara aquí.** La fuente lo declara en los dos
 lados del M2M (``purchase.order.reference_ids`` y
-``stock.reference.purchase_ids``, ambos sobre ``stock_reference_purchase_rel``).
+``stock.reference.purchase_ids``, ambos sobre
+``stock_reference_purchase_rel``).
 Django declara la relación **una vez** y genera el accesor inverso; declararla
-dos veces produce dos tablas. Se declara en ``stock_reference.py`` de este mismo
+dos veces produce dos tablas. Se declara en ``stock_reference.py`` de este
+mismo
 addon con ``related_name='reference_ids'``, así que ``order.reference_ids`` se
 lee igual que en la fuente. Es el mismo criterio y el mismo motivo que
 ``addons/stock/models/stock_reference.py`` documentó para ``move_ids``.
 
 **D-3 — ``picking_type_id`` es ``required=True`` allá y opcional aquí.** La
 fuente lo declara requerido con ``default=_default_picking_type``. Una columna
-``NOT NULL`` sobre una tabla que **ya tiene filas** (``purchase_order`` existe y
+``NOT NULL`` sobre una tabla que **ya tiene filas** (``purchase_order`` existe
+y
 se puebla) exigiría un valor para las existentes, y el valor por defecto
 depende de que haya un tipo de operación de entrada sembrado — que este árbol
 no garantiza. Se declara ``null=True`` y el ``default`` se conserva como
 ``_default_picking_type``, que sigue siendo el método que lo resuelve.
 """
+
 from django.apps import apps
 
 import fields
@@ -192,13 +196,16 @@ def _get_picking_type(cls, company_id):
     """
     StockPickingType = apps.get_model('stock', 'StockPickingType')
     picking_type = StockPickingType.objects.filter(
-        code='incoming', warehouse__company=company_id).first()
+        code='incoming', warehouse__company=company_id
+    ).first()
     if picking_type is None:
         picking_type = StockPickingType.objects.filter(
-            code='incoming', warehouse__isnull=True, active=True).first()
+            code='incoming', warehouse__isnull=True, active=True
+        ).first()
     if picking_type is None:
         picking_type = StockPickingType.objects.filter(
-            code='incoming', warehouse__isnull=True).first()
+            code='incoming', warehouse__isnull=True
+        ).first()
     return picking_type
 
 
@@ -223,7 +230,8 @@ def _compute_picking_ids(self):
     """
     StockPicking = apps.get_model('stock', 'StockPicking')
     return StockPicking.objects.filter(
-        move_ids__purchase_line__order=self).distinct()
+        move_ids__purchase_line__order=self
+    ).distinct()
 
 
 def picking_ids(self):
@@ -249,8 +257,10 @@ def _compute_effective_date(self):
     llegada.
     """
     dates = [
-        p.date_done for p in self._compute_picking_ids()
-        if p.state == 'done' and p.date_done
+        p.date_done
+        for p in self._compute_picking_ids()
+        if p.state == 'done'
+        and p.date_done
         and p.location_dest is not None
         and p.location_dest.usage != 'supplier'
     ]
@@ -320,7 +330,8 @@ def _compute_dest_address_id(self):
 def default_location_dest_id_usage(self):
     """≙ ``default_location_dest_id_usage`` (``odoo19c: :25-26``).
 
-    Campo técnico: ``related='picking_type_id.default_location_dest_id.usage'``.
+    Campo técnico:
+    ``related='picking_type_id.default_location_dest_id.usage'``.
     La fuente lo declara para que la vista sepa cuándo mostrar la dirección de
     dropship; aquí es una ``property`` porque un ``related`` sin ``store`` no
     tiene columna.
@@ -337,8 +348,11 @@ def _get_destination_location(self):
     Dónde entra la mercancía: la ubicación de cliente de la dirección de
     destino si es un dropship, y si no la de destino del tipo de operación.
     """
-    if self.dest_address_id and self.picking_type_id \
-            and self.picking_type.code == 'dropship':
+    if (
+        self.dest_address_id
+        and self.picking_type_id
+        and self.picking_type.code == 'dropship'
+    ):
         return self.dest_address.property_stock_customer
     if self.picking_type_id is None:
         return None
@@ -363,7 +377,8 @@ def _get_final_location_record(self):
     wh_stock_loc = warehouse.lot_stock if warehouse is not None else None
     default_dest_loc = self.picking_type.default_location_dest
     if default_dest_loc is not None and (
-            wh_stock_loc is None or default_dest_loc.child_of(wh_stock_loc)):
+        wh_stock_loc is None or default_dest_loc.child_of(wh_stock_loc)
+    ):
         return default_dest_loc
     return wh_stock_loc
 
@@ -401,29 +416,43 @@ def apply_purchase_stock_purchase_order_extensions():
     """Cuelga sobre ``purchase.PurchaseOrder`` lo que ``purchase_stock`` le
     añade — ≙ ``_inherit``."""
     extend_model(
-        'purchase', 'PurchaseOrder',
+        'purchase',
+        'PurchaseOrder',
         campos={
             'incoterm_location': fields.Char(
-                max_length=255, blank=True, default='',
+                max_length=255,
+                blank=True,
+                default='',
                 verbose_name='Lugar del Incoterm',
-                help_text='Lugar al que se refiere el Incoterm de la compra '
-                          '(Odoo incoterm_location).',
+                help_text=(
+                    'Lugar al que se refiere el Incoterm de la compra '
+                    '(Odoo incoterm_location).'
+                ),
             ),
             'picking_type': fields.Many2one(
-                'stock.StockPickingType', null=True, blank=True,
-                on_delete=models.PROTECT, related_name='purchase_orders',
+                'stock.StockPickingType',
+                null=True,
+                blank=True,
+                on_delete=models.PROTECT,
+                related_name='purchase_orders',
                 verbose_name='Entregar en',
-                help_text='Determina el tipo de operación de la recepción '
-                          '(Odoo picking_type_id). D-3: opcional aquí, '
-                          'requerido en la referencia.',
+                help_text=(
+                    'Determina el tipo de operación de la recepción '
+                    '(Odoo picking_type_id). D-3: opcional aquí, '
+                    'requerido en la referencia.'
+                ),
             ),
             'dest_address': fields.Many2one(
-                'base.ResPartner', null=True, blank=True,
+                'base.ResPartner',
+                null=True,
+                blank=True,
                 on_delete=models.SET_NULL,
                 related_name='dropship_purchase_orders',
                 verbose_name='Dirección de destino',
-                help_text='Dirección a la que se envía directamente cuando la '
-                          'operación es dropship (Odoo dest_address_id).',
+                help_text=(
+                    'Dirección a la que se envía directamente cuando la '
+                    'operación es dropship (Odoo dest_address_id).'
+                ),
             ),
         },
         propiedades={

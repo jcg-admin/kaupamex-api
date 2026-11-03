@@ -6,6 +6,7 @@ addon ``mail`` de Odoo, ejercitado a traves de su primer consumidor real
 artificial): ``message_post`` crea ``mail.message`` polimorficos y
 ``message_subscribe`` crea ``mail.followers`` idempotentes.
 """
+
 import datetime
 
 import pytest
@@ -42,7 +43,9 @@ def user(db):
 @pytest.fixture
 def ticket(db, user):
     return SupportTicket.objects.create(
-        user=user, subject='Pedido no llego', body='Detalle del incidente',
+        user=user,
+        subject='Pedido no llego',
+        body='Detalle del incidente',
     )
 
 
@@ -61,7 +64,9 @@ class TestMailThreadMessagePost:
         assert str(ticket.pk) in msg.record_name
 
     def test_message_post_sets_date_when_absent(self, ticket):
-        """Odoo mail_message.py:92 — default=fields.Datetime.now; aqui via save()."""
+        """
+        Odoo mail_message.py:92 — default=fields.Datetime.now; aqui via save().
+        """
         msg = ticket.message_post(body='sin fecha explicita')
         assert msg.date is not None
 
@@ -74,7 +79,8 @@ class TestMailThreadMessagePost:
 
     def test_message_type_override(self, ticket):
         msg = ticket.message_post(
-            body='correo', message_type=MailMessage.TYPE_EMAIL,
+            body='correo',
+            message_type=MailMessage.TYPE_EMAIL,
         )
         assert msg.message_type == MailMessage.TYPE_EMAIL
 
@@ -129,7 +135,9 @@ class TestMailThreadFollowers:
 
 
 class TestMailThreadActivities:
-    def test_activity_schedule_creates_polymorphic_activity(self, ticket, user):
+    def test_activity_schedule_creates_polymorphic_activity(
+        self, ticket, user
+    ):
         act = ticket.activity_schedule(summary='Llamar al cliente', user=user)
         assert isinstance(act, MailActivity)
         assert act.res_model == 'helpdesk.SupportTicket'
@@ -150,10 +158,12 @@ class TestMailThreadActivities:
     def test_activity_state_property(self, ticket, user):
         today = datetime.date.today()
         overdue = ticket.activity_schedule(
-            user=user, date_deadline=today - datetime.timedelta(days=1))
+            user=user, date_deadline=today - datetime.timedelta(days=1)
+        )
         due = ticket.activity_schedule(user=user, date_deadline=today)
         planned = ticket.activity_schedule(
-            user=user, date_deadline=today + datetime.timedelta(days=3))
+            user=user, date_deadline=today + datetime.timedelta(days=3)
+        )
         assert overdue.state == MailActivity.STATE_OVERDUE
         assert due.state == MailActivity.STATE_TODAY
         assert planned.state == MailActivity.STATE_PLANNED
@@ -162,7 +172,8 @@ class TestMailThreadActivities:
         act = ticket.activity_schedule(summary='Revisar pedido', user=user)
         pk = act.pk
         msg = act.action_done(feedback='listo')
-        # actividad eliminada; mensaje de tipo notification publicado en el hilo
+        # actividad eliminada; mensaje de tipo notification publicado en
+        # el hilo
         assert not MailActivity.objects.filter(pk=pk).exists()
         assert isinstance(msg, MailMessage)
         assert msg.model == 'helpdesk.SupportTicket'
@@ -180,16 +191,32 @@ class TestMailThreadActivities:
 
 class TestMailThreadTracking:
     def test_message_track_creates_notification_and_values(self, ticket, user):
-        msg = ticket._message_track([
-            {'field': 'status', 'field_desc': 'Estado', 'field_type': 'char',
-             'old': 'OPEN', 'new': 'RESOLVED'},
-            {'field': 'priority', 'field_desc': 'Prioridad', 'field_type': 'char',
-             'old': 'NORMAL', 'new': 'HIGH'},
-        ], author=user)
+        msg = ticket._message_track(
+            [
+                {
+                    'field': 'status',
+                    'field_desc': 'Estado',
+                    'field_type': 'char',
+                    'old': 'OPEN',
+                    'new': 'RESOLVED',
+                },
+                {
+                    'field': 'priority',
+                    'field_desc': 'Prioridad',
+                    'field_type': 'char',
+                    'old': 'NORMAL',
+                    'new': 'HIGH',
+                },
+            ],
+            author=user,
+        )
         assert isinstance(msg, MailMessage)
         assert msg.message_type == MailMessage.TYPE_NOTIFICATION
-        assert msg.model == 'helpdesk.SupportTicket' and msg.res_id == ticket.pk
-        # dos tracking values colgados del mensaje (relacion Odoo tracking_value_ids)
+        assert (
+            msg.model == 'helpdesk.SupportTicket' and msg.res_id == ticket.pk
+        )
+        # dos tracking values colgados del mensaje (relacion Odoo
+        # tracking_value_ids)
         tvs = msg.tracking_value_ids.all()
         assert tvs.count() == 2
         status_tv = tvs.get(field='status')
@@ -197,13 +224,23 @@ class TestMailThreadTracking:
         assert status_tv.get_new_value() == 'RESOLVED'
 
     def test_message_track_typed_value_columns(self, ticket, user):
-        msg = ticket._message_track([
-            {'field': 'amount', 'field_type': 'float', 'old': 10.0, 'new': 25.5},
-            {'field': 'qty', 'field_type': 'integer', 'old': 1, 'new': 3},
-        ])
+        msg = ticket._message_track(
+            [
+                {
+                    'field': 'amount',
+                    'field_type': 'float',
+                    'old': 10.0,
+                    'new': 25.5,
+                },
+                {'field': 'qty', 'field_type': 'integer', 'old': 1, 'new': 3},
+            ]
+        )
         amount = msg.tracking_value_ids.get(field='amount')
-        assert amount.old_value_float == 10.0 and amount.new_value_float == 25.5
-        # el valor cae en la columna correcta segun field_type (Odoo _get_field_value_type)
+        assert (
+            amount.old_value_float == 10.0 and amount.new_value_float == 25.5
+        )
+        # el valor cae en la columna correcta segun field_type (Odoo
+        # _get_field_value_type)
         assert amount.old_value_char == ''
         qty = msg.tracking_value_ids.get(field='qty')
         assert qty.old_value_integer == 1 and qty.new_value_integer == 3
@@ -213,8 +250,9 @@ class TestMailThreadTracking:
         assert ticket.message_ids.count() == 0
 
     def test_tracking_deleted_with_message(self, ticket, user):
-        msg = ticket._message_track([
-            {'field': 'status', 'old': 'OPEN', 'new': 'CLOSED'}], author=user)
+        msg = ticket._message_track(
+            [{'field': 'status', 'old': 'OPEN', 'new': 'CLOSED'}], author=user
+        )
         tv_pk = msg.tracking_value_ids.first().pk
         msg.delete()  # CASCADE (Odoo ondelete='cascade')
         assert not MailTrackingValue.objects.filter(pk=tv_pk).exists()
@@ -223,9 +261,13 @@ class TestMailThreadTracking:
 class TestMailTemplate:
     def test_render_substitutes_placeholders(self, ticket, user):
         tpl = MailTemplate.objects.create(
-            name='Ticket resuelto', model='helpdesk.SupportTicket',
+            name='Ticket resuelto',
+            model='helpdesk.SupportTicket',
             subject='Ticket #{{ object.pk }}: {{ object.subject }}',
-            body_html='<p>Hola, tu ticket "{{ object.subject }}" fue actualizado.</p>',
+            body_html=(
+                '<p>Hola, tu ticket "{{ object.subject }}" fue'
+                ' actualizado.</p>'
+            ),
             email_to='{{ object.user.email }}',
         )
         out = tpl.render(ticket)
@@ -241,7 +283,8 @@ class TestMailTemplate:
 
     def test_message_post_with_template_posts_rendered(self, ticket, user):
         tpl = MailTemplate.objects.create(
-            name='aviso', model='helpdesk.SupportTicket',
+            name='aviso',
+            model='helpdesk.SupportTicket',
             subject='Aviso {{ object.pk }}',
             body_html='<p>{{ object.subject }}</p>',
         )
@@ -315,7 +358,9 @@ class TestMailNotification:
         assert MailNotification.objects.filter(message=msg).count() == 0
 
     def test_notify_gated_by_subtype(self, ticket, user):
-        discussions = MailMessageSubtype.objects.get(name='Discussions', res_model='')
+        discussions = MailMessageSubtype.objects.get(
+            name='Discussions', res_model=''
+        )
         note = MailMessageSubtype.objects.get(name='Note', res_model='')
         follower = UserFactory()
         # el seguidor solo sigue "Discussions"
@@ -330,8 +375,11 @@ class TestMailNotification:
     def test_message_notify_reaches_non_followers(self, ticket, user):
         target = UserFactory()
         assert not ticket.message_is_follower(target)
-        msg = ticket.message_notify([target], body='asignado a ti', author=user)
-        # message_notify NO suscribe al partner (aviso transitorio, fiel a Odoo)
+        msg = ticket.message_notify(
+            [target], body='asignado a ti', author=user
+        )
+        # message_notify NO suscribe al partner (aviso transitorio, fiel
+        # a Odoo)
         assert not ticket.message_is_follower(target)
         notifs = MailNotification.objects.filter(message=msg)
         assert notifs.count() == 1
@@ -371,7 +419,9 @@ class TestNotificationInboxBridge:
 
     def test_from_mail_message_bridges_inbox(self, ticket, user):
         msg = ticket.message_post(
-            subject='Tu ticket avanzo', body='<p>En proceso</p>', author=user,
+            subject='Tu ticket avanzo',
+            body='<p>En proceso</p>',
+            author=user,
         )
         notif = Notification.from_mail_message(msg, user)
         assert isinstance(notif, Notification)
@@ -386,14 +436,19 @@ class TestNotificationInboxBridge:
     def test_from_mail_message_respects_type(self, ticket, user):
         msg = ticket.message_post(subject='promo', body='oferta', author=user)
         notif = Notification.from_mail_message(
-            msg, user, type=NotificationType.SUPPORT_UPDATE)
+            msg, user, type=NotificationType.SUPPORT_UPDATE
+        )
         assert notif.type == NotificationType.SUPPORT_UPDATE
 
     def test_plain_notification_has_no_mail_message(self, db, user):
-        """Las notificaciones transaccionales del servicio no nacen del chatter."""
+        """
+        Las notificaciones transaccionales del servicio no nacen del chatter.
+        """
         n = Notification.objects.create(
-            user=user, type=NotificationType.ORDER_UPDATE,
-            subject='Orden pagada', body='ok',
+            user=user,
+            type=NotificationType.ORDER_UPDATE,
+            subject='Orden pagada',
+            body='ok',
         )
         assert n.mail_message_id is None
 
@@ -406,7 +461,10 @@ class TestMailThreadEmailChannel:
     def test_send_thread_email_delivers_and_records(self, ticket, user):
         django_mail.outbox = []
         notif = email_executor.send_thread_email(
-            ticket, user, subject='Actualizacion', body='Tu ticket avanzo',
+            ticket,
+            user,
+            subject='Actualizacion',
+            body='Tu ticket avanzo',
         )
         # correo realmente enviado (DISPATCH_EMAIL_SYNC en testing)
         assert len(django_mail.outbox) == 1
@@ -420,16 +478,22 @@ class TestMailThreadEmailChannel:
         assert notif.message.message_type == MailMessage.TYPE_EMAIL
 
     def test_dispatch_failure_links_mail_mail_and_exception(
-            self, ticket, user, monkeypatch):
+        self, ticket, user, monkeypatch
+    ):
         # forzar fallo del envio SMTP (sync en testing)
         def _boom(*a, **k):
             raise RuntimeError('smtp down')
+
         monkeypatch.setattr(email_executor, '_send_mail', _boom)
         before = MailMail.objects.count()
         notif = email_executor.send_thread_email(
-            ticket, user, subject='X', body='Y',
+            ticket,
+            user,
+            subject='X',
+            body='Y',
         )
-        # se reencolo un mail.mail y la notificacion quedo en exception + cross-link
+        # se reencolo un mail.mail y la notificacion quedo en exception
+        # + cross-link
         assert MailMail.objects.count() == before + 1
         assert notif.notification_status == MailNotification.STATUS_EXCEPTION
         assert notif.failure_type == MailNotification.FAILURE_MAIL_SMTP
@@ -440,12 +504,14 @@ class TestMailThreadEmailChannel:
         django_mail.outbox = []
         msg = ticket.message_post(body='hola', author=user, notify=False)
         n = MailNotification.objects.create(
-            message=msg, partner=user,
+            message=msg,
+            partner=user,
             notification_type=MailNotification.TYPE_EMAIL,
             notification_status=MailNotification.STATUS_PROCESS,
         )
         email_executor.dispatch_email(
-            'S', 'B', 'from@x.com', [user.email], notification=n)
+            'S', 'B', 'from@x.com', [user.email], notification=n
+        )
         n.refresh_from_db()
         assert n.notification_status == MailNotification.STATUS_SENT
 
@@ -456,7 +522,9 @@ class TestMailThreadSmsChannel:
     transporte real las resuelve con mark_sms_sent/mark_sms_error."""
 
     def test_send_thread_sms_records_intent_and_delivery(self, ticket, user):
-        notif = send_thread_sms(ticket, user, body='Tu ticket avanzo', number='5215500000000')
+        notif = send_thread_sms(
+            ticket, user, body='Tu ticket avanzo', number='5215500000000'
+        )
         assert notif.notification_type == MailNotification.TYPE_SMS
         assert notif.notification_status == MailNotification.STATUS_PROCESS
         assert notif.sms_id is not None

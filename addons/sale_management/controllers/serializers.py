@@ -6,6 +6,7 @@ vistas XML y acciones. Nosotros exponemos API, así que la superficie
 equivalente es un par de endpoints admin; lo que se conserva es la frontera —
 el recorrido del comprador es de ``sale``, la gestión es de aquí.
 """
+
 from rest_framework import serializers
 
 from addons.sale.controllers.serializers import OrderSerializer
@@ -19,7 +20,8 @@ class AdminOrderSerializer(OrderSerializer):
     cada usuario por separado. El serializer del comprador no los lleva porque
     ahí el cliente es siempre quien pregunta.
     """
-    user_email    = serializers.SerializerMethodField()
+
+    user_email = serializers.SerializerMethodField()
     user_username = serializers.SerializerMethodField()
 
     class Meta(OrderSerializer.Meta):

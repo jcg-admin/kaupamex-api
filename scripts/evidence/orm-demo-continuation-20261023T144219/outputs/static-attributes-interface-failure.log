@@ -1,0 +1,11 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py", line 341, in <module>
+    main()
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py", line 212, in main
+    result = attribute_snapshot(arguments.attribute_snapshot)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py", line 168, in attribute_snapshot
+    'owner': pair.ours.owner,
+             ^^^^^^^^^^^^^^^
+AttributeError: 'FunctionDef' object has no attribute 'owner'

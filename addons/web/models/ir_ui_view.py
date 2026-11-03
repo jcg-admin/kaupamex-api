@@ -9,7 +9,8 @@ tipo de vista que consume el selector de tipo del cliente web.
 Medición símbolo-por-símbolo: **2** métodos de **1** clase (``IrUiView``).
 El nodo ``class IrUiView`` no es un símbolo ausente — artefacto del medidor
 (H-API-379): se extiende con funciones de módulo instaladas como
-``classmethod`` (``chain_method`` con el descriptor explícito), no redeclarando la
+``classmethod`` (``chain_method`` con el descriptor explícito), no redeclarando
+la
 clase. **2 de 2 portados**, **0 ausentes**.
 
 Adaptación de vocabulario
@@ -30,6 +31,7 @@ concreto en la referencia (se invocan sobre un recordset vacío,
 modelo. Se instalan aquí como ``classmethod``, igual que
 ``ir_model.py::apply_web_extensions`` hace con sus cuatro extensiones.
 """
+
 from addons.base.models.ir_ui_view import (
     VIEW_TYPE_CHOICES,
     VIEW_TYPE_TEMPLATE,

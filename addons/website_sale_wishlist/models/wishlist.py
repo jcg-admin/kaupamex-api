@@ -10,6 +10,7 @@ interés del comprador y el precio al momento de agregar (``price_at_add``).
 
 Identifiers + field names in English per DEC-DOC-005.
 """
+
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
@@ -24,20 +25,24 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
     (``product.product``), igual que el ``product_id`` de ``product.wishlist``
     en la referencia, cuya restriccion es ``UNIQUE(product_id, partner_id)``
     (odoo19c: ``website_sale_wishlist/models/product_wishlist.py:11``).
-    price_at_add: precio en el momento de agregar (informativo, no snapshot de orden).
+    price_at_add: precio en el momento de agregar (informativo, no snapshot de
+    orden).
 
     Hereda SoftDeleteModel (DEC-DOC-007): un item eliminado conserva
     historial para metricas de interes / re-marketing.
     """
-    user          = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='wishlist_items',
     )
-    product       = models.ForeignKey(
-        'product.ProductProduct', on_delete=models.CASCADE,
+    product = models.ForeignKey(
+        'product.ProductProduct',
+        on_delete=models.CASCADE,
         related_name='wishlist_items',
     )
-    price_at_add  = models.DecimalField(max_digits=10, decimal_places=2)
+    price_at_add = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         db_table = 'wishlist_item'
@@ -53,7 +58,7 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
                 name='unique_wishlist_user_product',
             ),
         ]
-        ordering     = ['-created_at']
+        ordering = ['-created_at']
         verbose_name = 'Item de lista de deseos'
 
     def __str__(self):
@@ -69,5 +74,7 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
 
     @property
     def is_available(self) -> bool:
-        return (self.product.active
-                and InventoryService.available_quantity(self.product) > 0)
+        return (
+            self.product.active
+            and InventoryService.available_quantity(self.product) > 0
+        )

@@ -1,0 +1,1162 @@
+# VM-b501 — Continuación contractual exhaustiva del ORM, reconciliación estructural por archivo y ejecución funcional mediante TASK existentes
+
+**Tipo:** Instrucción integral de ejecución y continuación.
+
+**Sesión:** VM-b501.
+
+**Iniciativa persistente:** `completar-raiz-orm`.
+
+**Consumer:** `jcg-admin/kaupamex-api`.
+
+**Autoridad documental:** `jcg-admin/kaupamex-docs`.
+
+**Provider:** `NestorMonroy/thyrox`.
+
+**Referencia contractual:** Odoo 19 Community, revisión `abe4040ec1a45beee90fb694e4eae4453e46b389`.
+
+**Último antecedente:** `VM-b501-log-20261024T120715.txt`.
+
+**Rama histórica de la sesión:** `feature/codex-workspace-bootstrap`.
+
+Esta instrucción continúa las anteriores sobre implementación contractual exhaustiva por archivo, trazabilidad de TASK, conservación de la arquitectura existente y continuidad mediante Thyrox.
+
+No constituye una nueva iniciativa.
+
+---
+
+# 0. Directiva principal
+
+Continúa `completar-raiz-orm` desde el estado realmente persistido.
+
+**El objetivo inmediato es cerrar la brecha entre inventario estructural, cumplimiento contractual, implementación funcional, verificación e integración.**
+
+No repitas auditorías generales.
+
+No reinicies inventarios ya respaldados por evidencia reproducible.
+
+No selecciones funciones para implementarlas únicamente porque existen en Odoo y no tienen un homónimo en Kaupamex.
+
+No reduzcas el objetivo a reparaciones aisladas.
+
+No construyas nuevas autoridades de planificación, identidad, requisitos, TASK, claims, estados o aceptación.
+
+La siguiente cadena debe poder reconstruirse para cada obligación trabajada:
+
+```
+Existing TASK↓
+Applicable Odoo contract↓
+Reference file and qualified symbol↓
+Dependencies and expected behavior↓
+Existing Kaupamex implementation↓
+Required implementation or justified equivalence↓
+Discriminating verification↓
+Contractual reconciliation↓
+Integration and acceptance↓
+Native continuation
+```
+
+La cadena representa responsabilidades existentes. No autoriza crear otro pipeline o coordinador.
+
+---
+
+# PARTE I — Recuperación del estado real
+
+## 1. Consultar autoridades
+
+Lee las reglas pertinentes de:
+
+```
+kaupamex-api/AGENTS.md
+kaupamex-docs/AGENTS.md
+thyrox/AGENTS.md
+```
+
+Consulta las reglas locales adicionales solo cuando sean necesarias para la operación.
+
+Respeta:
+
+- API: autoridad del código del Consumer.
+- Docs: autoridad documental del proyecto.
+- Thyrox: Provider de mecanismos generales.
+- Odoo 19 Community: referencia contractual funcional.
+
+No confundas código de referencia, documentación histórica e implementación vigente.
+
+## 2. Recuperar Git
+
+En los repositorios involucrados:
+
+```
+git rev-parse --show-toplevel
+git branch --show-current
+git rev-parse HEAD
+git status --short
+git worktree list
+git stash list
+```
+
+Verifica también operaciones Git pendientes, procesos activos, PR y estado remoto.
+
+No utilices:
+
+```
+reset --hard
+clean
+force-push
+--no-verify
+```
+
+No elimines evidencia ni modifiques worktrees de otras sesiones.
+
+## 3. Revisiones de recuperación
+
+El último log reportó:
+
+```
+Kaupamex API:
+3fb301a542c218981aed5eb8274003083671c0b5
+
+Kaupamex Docs:
+c917cbb0fd7d8a06aeba09014bf3560dbae58ed6
+```
+
+Estas son revisiones históricas observadas, no valores que deban imponerse.
+
+Comprueba los HEAD actuales y la presencia de los commits relevantes:
+
+```
+2807e5ba
+479f02c6
+312b7fb6
+3fb301a5
+```
+
+Consulta los PR existentes:
+
+```
+API  #109
+Docs #154
+```
+
+No declares integración sin comprobar el estado remoto.
+
+## 4. Recuperar CI
+
+El antecedente reportó, para la última ejecución global local:
+
+```
+77 PASS
+1 SKIP
+1 ERROR
+```
+
+Primer error:
+
+```
+ProductProduct.display_name
+```
+
+La ejecución se interrumpió antes de evaluar todas las pruebas posteriores.
+
+Consulta los resultados remotos actuales.
+
+Distingue:
+
+```
+Current HEAD
+Tested revision
+Local CI
+Remote CI
+Focused verification
+Integration status
+```
+
+No atribuyas a la revisión actual resultados de una revisión anterior.
+
+No declares que existe un único error global por haber usado `--maxfail=1`.
+
+## 5. Recuperar TASK
+
+Consulta mediante las interfaces nativas del Provider:
+
+```
+TASK-API-0382
+TASK-API-0383
+TASK-API-0391
+TASK-API-0392
+TASK-API-0173
+TASK-API-0417
+TASK-API-0478
+```
+
+Identifica también las TASK existentes vinculadas con el error de `display_name`, aislamiento, Registry y carga de módulos.
+
+No presupongas ownership.
+
+Para cada TASK determina:
+
+```
+Identity
+Initiative
+Scope
+Owner
+Status
+Dependencies
+Claims
+Verification
+Integration
+Acceptance
+```
+
+No crees TASK equivalentes sin consultar primero las autoridades existentes.
+
+No confundas una relación documental con autorización de ejecución.
+
+---
+
+# PARTE II — Corregir la unidad de control de implementación
+
+## 6. Principio de cobertura contractual
+
+La unidad de ejecución seguirá siendo una TASK existente y admisible.
+
+La unidad de análisis estructural será el archivo de referencia aplicable.
+
+La unidad de cumplimiento será la obligación contractual.
+
+La unidad de verificación será el comportamiento comprobable.
+
+No confundas esas unidades.
+
+Una TASK puede satisfacer varios contratos.
+
+Un contrato puede tener implementación distribuida.
+
+Una función puede participar en varias obligaciones.
+
+Un archivo puede contener contratos ya satisfechos y otros pendientes.
+
+## 7. Población contractual por archivo
+
+Para cada archivo relevante identifica:
+
+```
+Reference revision
+Reference file
+Structural population
+Applicable contractual population
+Contract-to-implementation relations
+Verification status
+Acceptance status
+```
+
+El denominador estructural no equivale al contractual.
+
+El denominador contractual no equivale al número de TASK.
+
+El número de pruebas no representa el número de contratos aceptados.
+
+No publiques porcentajes sin población explícita y trazable.
+
+## 8. Analizar la totalidad de responsabilidades aplicables
+
+Para cada archivo de Odoo dentro del alcance:
+
+1. Recupera el inventario estructural existente.
+2. Comprueba si contiene todos los elementos pertinentes.
+3. Analiza funciones, clases, métodos, firmas y dependencias.
+4. Identifica efectos, invariantes, estados y transacciones.
+5. Identifica consumidores y llamadas relacionadas.
+6. Clasifica las obligaciones funcionales aplicables.
+7. Localiza las implementaciones correspondientes de Kaupamex.
+8. Verifica las equivalencias semánticas.
+9. Conserva brechas y exclusiones justificadas.
+10. Relaciona cada obligación con sus TASK y verificadores.
+
+No implementes todo un archivo indiscriminadamente.
+
+No declares completo un archivo por haber implementado únicamente la función seleccionada.
+
+## 9. Clasificación semántica
+
+Distingue las siguientes situaciones utilizando las categorías ya existentes en los registros:
+
+```
+Direct implementation
+Adapted implementation
+Distributed implementation
+Native framework implementation
+Pending implementation
+Authorized exclusion
+```
+
+No crees una taxonomía paralela.
+
+La existencia de nombres equivalentes no demuestra cumplimiento.
+
+Las implementaciones Django o PostgreSQL pueden diferir internamente de Odoo cuando preservan las obligaciones observables aplicables.
+
+## 10. Prohibición de equivalencias aparentes
+
+No aceptes como implementación:
+
+- Métodos vacíos.
+- Stubs sin comportamiento.
+- Delegaciones sin efectos verificables.
+- Firmas compatibles con semántica incorrecta.
+- Pruebas que únicamente inspeccionen nombres.
+- Documentación sin código o comportamiento correspondiente.
+- TASK cerradas sin verificador contractual.
+- Exclusiones sin justificación autorizada.
+
+Aplica controles negativos donde puedan discriminar estos casos.
+
+---
+
+# PARTE III — Reconciliación exhaustiva de module_graph.py
+
+## 11. Recuperar la población
+
+Consulta el inventario existente de:
+
+```
+odoo/modules/module_graph.py
+```
+
+El último log reportó 19 declaraciones estructurales inventariadas.
+
+No utilices ese número como denominador contractual sin clasificar las declaraciones.
+
+Comprueba su revisión y cobertura antes de continuar.
+
+## 12. Conservar implementaciones verificadas
+
+Recupera las capacidades existentes, incluidas:
+
+```
+ModuleGraph._remove
+ModuleGraph._update_depends
+ModuleGraph._update_depth
+ModuleGraph.from_database
+ModuleGraph.extend
+```
+
+No presupongas que esta lista incluye todas las obligaciones del archivo.
+
+No repitas pruebas válidas sin cambios relevantes en sus dependencias.
+
+## 13. Reconciliar ModuleGraph.extend
+
+El último lote reportó:
+
+```
+Implementation:
+312b7fb6
+
+Evidence:
+3fb301a5
+```
+
+Y verificaciones:
+
+```
+16 focused PASS
+65 neighboring contract PASS
+12 differential PASS
+```
+
+Recupera las pruebas reales y sus límites.
+
+Verifica que la extensión incremental conserva:
+
+- Nodos existentes.
+- Dependencias.
+- Poda.
+- Estados por base.
+- Indicadores de demo.
+- Versiones instaladas.
+- Integridad del catálogo.
+- Ausencia de escrituras no autorizadas.
+
+Distingue grafo estático y grafo vinculado a una base.
+
+## 14. Validar diferencias entre bases físicas
+
+El antecedente utilizó pruebas con esquemas separados en PostgreSQL.
+
+No presentes esa verificación como prueba definitiva de dos bases físicas de empresa.
+
+Cuando la obligación seleccionada lo requiera, verifica la composición contra bases físicas independientes.
+
+No repitas experimentos equivalentes si ya existe evidencia suficiente para el contrato concreto.
+
+## 15. Cerrar la reconciliación por archivo
+
+Para cada obligación relevante del inventario:
+
+```
+Reference
+Contract
+Implementation
+Dependencies
+Tests
+Evidence
+TASK
+Status
+```
+
+Identifica cuáles están:
+
+```
+Verified
+Pending
+Blocked
+Not verified
+Authorized exclusion
+```
+
+Utiliza la semántica real de los estados existentes.
+
+No cambies estados oficiales por una clasificación calculada sin autoridad.
+
+---
+
+# PARTE IV — Reconciliación exhaustiva de loading.py
+
+## 16. Recuperar el inventario
+
+Consulta:
+
+```
+odoo/modules/loading.py
+```
+
+El antecedente reportó siete registros de funciones en el inventario utilizado.
+
+Comprueba qué representa exactamente ese conteo.
+
+No confundas funciones inventariadas con totalidad de obligaciones funcionales.
+
+## 17. Conservar lo ya verificado
+
+Recupera las implementaciones y pruebas de:
+
+```
+load_data
+load_demo
+```
+
+Y los contratos relacionados con validación de nombres y recuperación de estados transitorios.
+
+No reconstruyas sus implementaciones si siguen siendo correctas.
+
+## 18. Analizar el ciclo completo
+
+Evalúa las obligaciones aplicables relacionadas con:
+
+```
+Module discovery
+Module selection
+Dependency resolution
+Graph preparation
+Registry composition
+Schema initialization
+Data loading
+Demo loading
+Hooks
+State persistence
+Installed version finalization
+Registry invalidation
+Error recovery
+Transaction boundaries
+```
+
+No presupongas que todas carecen de implementación.
+
+Identifica cuáles están satisfechas por mecanismos nativos o distribuidos.
+
+## 19. Seleccionar implementación funcional pendiente
+
+La siguiente unidad debe satisfacer una obligación real.
+
+No selecciones funciones únicamente por ausencia nominal.
+
+Antes de editar código, comprueba:
+
+```
+Existing TASK
+Owner
+Dependencies
+Affected files
+Existing models
+Expected behavior
+Verifier
+Acceptance criteria
+```
+
+Continúa mediante los modelos propietarios actuales.
+
+No introduzcas un segundo sistema de carga.
+
+## 20. Verificar el Registry efectivo
+
+Distingue:
+
+```
+Database connection
+Database schema
+Module catalogue
+Module installation state
+Effective Registry
+Module loader execution
+```
+
+La existencia del esquema no acredita instalación.
+
+La presencia de módulos en un catálogo no acredita carga.
+
+La ejecución del grafo no acredita composición de modelos.
+
+La ejecución de migraciones no acredita hooks, versiones o invalidación.
+
+Cada obligación debe conservar pruebas discriminantes.
+
+---
+
+# PARTE V — TASK-API-0383: aislamiento y recuperación
+
+## 21. Conservar las correcciones recientes
+
+El último log reportó avances relacionados con:
+
+```
+2807e5ba
+479f02c6
+```
+
+Recupera los resultados del preflight de migraciones:
+
+```
+Before:
+2 FAIL / 11 PASS
+
+After:
+17 PASS
+```
+
+No presupongas que estos resultados aceptan toda la TASK.
+
+## 22. Coherencia histórica
+
+Comprueba el contrato de coherencia entre:
+
+```
+Migration history
+Physical schema
+Expected managed tables
+Database state
+```
+
+No marques migraciones como válidas cuando sus objetos físicos requeridos no existen.
+
+No manipules directamente el historial para ocultar inconsistencias.
+
+Distingue:
+
+- Base nueva.
+- Base consistente.
+- Base histórica incompleta.
+- Base no recuperable automáticamente.
+- Base que requiere intervención autorizada.
+
+No propongas reparaciones destructivas sin autorización.
+
+## 23. Recuperar el fixture de aislamiento
+
+Consulta el estado actual de:
+
+```
+tests/integration/company/test_multidb_isolation.py
+```
+
+Y de sus verificadores relacionados.
+
+El fixture histórico todavía incluía referencias a MariaDB, nombres fijos y mecanismos privados de Django.
+
+No confundas documentación histórica con comportamiento vigente.
+
+No elimines las pruebas para ocultar deuda.
+
+## 24. Cualificar los mecanismos de prueba
+
+Utiliza preferentemente interfaces públicas de Django y pytest.
+
+No deshabilites protecciones privadas de conexiones para forzar un PASS.
+
+Verifica propiedad, creación y limpieza de recursos desechables.
+
+Conserva controles de fallos parciales.
+
+No elimines bases compartidas.
+
+No levantes `skip` sin comprobar las precondiciones.
+
+## 25. Aislamiento funcional
+
+Cuando la infraestructura y los contratos permitan ejecutar estas pruebas, comprueba:
+
+```
+Company A
+Company B
+Shared platform
+```
+
+Y los comportamientos pertinentes:
+
+```
+Data isolation
+Model identity
+Authentication
+Authorization
+Company scope
+Session persistence
+Cross-company rejection
+Local foreign keys
+Failure recovery
+```
+
+No confundas aislamiento de esquema con aislamiento funcional.
+
+## 26. Política de metadatos
+
+La propuesta de ubicación de `contenttypes` sigue siendo una decisión arquitectónica que requiere aceptación.
+
+Consulta `DEC-AISL-05` y sus autoridades.
+
+No conviertas resultados positivos en aprobación automática.
+
+Si una modificación reciente cambia el modelo efectivo, actualiza sus representaciones y relaciones existentes.
+
+---
+
+# PARTE VI — Evitar parches y mantener modelos
+
+## 27. Análisis de impacto obligatorio
+
+Antes de modificar un componente, identifica:
+
+```
+Root cause
+Contract owner
+Affected models
+Affected dependencies
+Existing implementation
+Expected impact
+Regression surface
+```
+
+No repares únicamente el síntoma cuando la causa contractual permanezca abierta.
+
+## 28. Actualizar modelos propietarios
+
+Cuando un cambio altere comportamiento o relaciones, verifica si deben actualizarse:
+
+- Modelos ORM.
+- Catálogos.
+- Registries.
+- Migraciones.
+- Routers.
+- Servicios.
+- Tests.
+- Contratos.
+- Representaciones documentales.
+
+No modifiques indiscriminadamente todos esos componentes.
+
+Actualiza solo aquellos realmente afectados y conserva las relaciones.
+
+## 29. Documentación histórica
+
+El último análisis identificó referencias antiguas a MariaDB en archivos que actualmente utilizan PostgreSQL.
+
+Determina cuáles son antecedentes históricos y cuáles pretenden describir el comportamiento actual.
+
+Conserva la evidencia histórica en su autoridad.
+
+Corrige documentación ejecutable obsoleta cuando sea parte del alcance y exista evidencia suficiente.
+
+No realices una reescritura documental general ajena a las TASK.
+
+---
+
+# PARTE VII — Clean Code y convenciones de idioma
+
+## 30. Convenciones obligatorias
+
+En código nuevo o modificado:
+
+|Elemento|Convención|
+|---|---|
+|Archivos|Inglés|
+|Módulos|Inglés|
+|Clases|Inglés|
+|Funciones y métodos|Inglés|
+|Firmas y parámetros|Inglés|
+|Atributos y variables|Inglés|
+|Constantes|Inglés|
+|Comentarios|Español de México|
+|Docstrings explicativas propias|Español de México|
+|Términos técnicos|Inglés cuando corresponda|
+
+No renombres identificadores públicos de Odoo, Django o bibliotecas externas por motivos lingüísticos.
+
+No modifiques la referencia Odoo.
+
+Preserva los contratos de compatibilidad.
+
+## 31. Principios de Clean Code
+
+Aplica:
+
+```
+Meaningful names
+Single responsibility
+Low duplication
+Explicit dependencies
+Clear error handling
+Cohesive interfaces
+Appropriate abstraction
+Testable behavior
+```
+
+No utilices Clean Code para introducir refactorizaciones innecesarias.
+
+No crees nuevas capas cuando los mecanismos actuales satisfacen el contrato.
+
+## 32. Control lingüístico
+
+Verifica los comentarios y docstrings añadidos o modificados en el lote.
+
+No traduzcas masivamente código heredado.
+
+No alteres mensajes, APIs ni claves persistidas sin comprobar sus contratos.
+
+Las explicaciones en español deben conservar el significado técnico, evitando mezclas lingüísticas innecesarias.
+
+---
+
+# PARTE VIII — Trazabilidad, AS IS y evidencia
+
+## 33. Reconciliación obligatoria
+
+Para cada obligación implementada conserva:
+
+```
+TASK
+Contract
+Reference revision
+Reference file
+Qualified symbol
+Consumer implementation
+Test
+Evidence
+Integration
+Acceptance
+```
+
+No basta incluir el identificador de TASK en un commit.
+
+No basta actualizar un inventario.
+
+## 34. Actualizar las autoridades existentes
+
+Reutiliza:
+
+```
+TASK AS IS
+Implementation AS IS
+Contractual assessments
+Task assessments
+```
+
+No crees un tercer registro maestro.
+
+No escribas directamente en la persistencia estructurada del Provider.
+
+Usa sus interfaces nativas.
+
+## 35. Poblaciones separadas
+
+Conserva conteos independientes de:
+
+```
+Files
+Symbols
+Contracts
+Implementations
+Tests
+TASK
+Verified contracts
+Accepted contracts
+```
+
+No atribuyas aceptación a una población por resultados de otra.
+
+No declares un porcentaje de avance sin denominador verificable.
+
+## 36. Evidencia reproducible
+
+Reutiliza los expedientes existentes.
+
+Conserva:
+
+```
+Inputs
+Commands
+Outputs
+Exit codes
+Revisions
+Hashes
+Known limitations
+```
+
+No crees un nuevo banco paralelo.
+
+No dependas exclusivamente de archivos temporales.
+
+No atribuyas a una prueba focalizada el alcance de un gate global.
+
+---
+
+# PARTE IX — CI e integración
+
+## 37. CI global
+
+Consulta el estado actual del PR.
+
+Para cambios que requieren aceptación API, ejecuta el procedimiento vigente:
+
+```
+make ci-verify
+```
+
+Utiliza PostgreSQL desechable autorizado.
+
+Conserva el primer fallo, pero no presupongas que es el único.
+
+Distingue fallos heredados y regresiones demostradas.
+
+## 38. Ownership del error global
+
+Identifica la TASK propietaria de:
+
+```
+ProductProduct.display_name
+```
+
+Comprueba su estado y claims.
+
+No modifiques archivos reservados.
+
+No introduzcas una corrección ORM fuera de alcance sin identificar su contrato y sus dependencias.
+
+## 39. Publicación
+
+Respeta:
+
+```
+feature/* → PR → develop
+```
+
+No realices merges no autorizados.
+
+No publiques cambios de otra sesión.
+
+Conserva revisiones y manifiestos.
+
+No declares aceptación por tener un PR abierto.
+
+---
+
+# PARTE X — Continuidad mediante Thyrox
+
+## 40. Reutilizar mecanismos existentes
+
+Consulta las interfaces vigentes de:
+
+```
+local_plan
+task_source
+implementation_order
+continuation_frontier
+node_next_task
+model_coordinator
+resource_admission
+headless-pool
+pool_integrate
+execution-records
+agent_store
+```
+
+No presupongas disponibilidad ni firmas.
+
+No crees otro TaskStore, scheduler o mailbox.
+
+## 41. Selección y cobertura
+
+El último lote utilizó un conjunto delimitado de candidatos para `node_frontier`.
+
+Distingue:
+
+**Selection correctness:** el selector elige correctamente entre las entradas suministradas.
+
+**Population coverage:** las entradas incluyen las TASK y obligaciones relevantes según la autoridad vigente.
+
+No declares agotada la iniciativa si únicamente se vació una frontera local.
+
+## 42. Claims y dependencias
+
+Antes de ejecutar:
+
+1. Consultar TASK.
+2. Verificar ownership.
+3. Resolver dependencias.
+4. Comprobar claims.
+5. Validar recursos.
+6. Seleccionar unidad.
+7. Adquirir únicamente las reservas necesarias.
+
+Después de concluir:
+
+1. Persistir evidencia.
+2. Actualizar relaciones autorizadas.
+3. Liberar claims.
+4. Recalcular continuación.
+
+No inventes TASK ni estados para desbloquear trabajo.
+
+## 43. Modelos locales
+
+Los agentes gestionados por Thyrox deben usar modelos locales.
+
+Comprueba artefacto, revisión, runtime, tokenizer, plantilla, herramientas, recursos y cualificación antes de inferir.
+
+No habilites proveedores externos.
+
+No atribuyas inferencia local a la ejecución independiente de Codex.
+
+Si un mecanismo no está cualificado, registra el límite y continúa únicamente el trabajo autorizado que no dependa de él.
+
+## 44. Continuidad operativa
+
+Después de verificar una unidad contractual, continúa con la siguiente unidad admisible.
+
+No detengas el objetivo por:
+
+- Un commit terminado.
+- Un piloto satisfactorio.
+- Un archivo inventariado.
+- Una prueba focalizada aprobada.
+- Un PR publicado.
+- Una frontera local sin candidatos.
+
+Si existe un límite real de sesión, conserva el estado y la siguiente acción verificable.
+
+---
+
+# PARTE XI — Separación del trabajo documental paralelo
+
+## 45. Referencias metodológicas
+
+Existe un trabajo independiente de sistematización documental basado en BABOK v3 y una plantilla de trazabilidad.
+
+Sus artefactos incluyen:
+
+```
+05 — Conciliación de la plantilla de trazabilidad
+06 — Procedimiento de reconciliación
+07 — Identificación y nomenclatura
+```
+
+VM-b501 no tiene acceso a esos archivos.
+
+No debe solicitarlos ni depender de ellos para ejecutar `completar-raiz-orm`.
+
+## 46. Principios aplicables
+
+Conserva las responsabilidades de:
+
+```
+Trace Requirements
+Maintain Requirements
+Specify and Model Requirements
+Verify Requirements
+Validate Requirements
+Measure Solution Performance
+```
+
+No crees agentes o TASK nuevas únicamente para representar estas tareas de Business Analysis.
+
+No implantes una nueva matriz Excel.
+
+No introduzcas otra numeración de requisitos, contratos o evidencias.
+
+## 47. Frontera entre los trabajos
+
+VM-b501 ejecuta y verifica contratos funcionales del ORM.
+
+El análisis documental paralelo examina la sistematización, identificación, relaciones y metodología.
+
+VM-b501 debe continuar utilizando sus autoridades actuales sin esperar a que termine el análisis documental.
+
+---
+
+# PARTE XII — Criterios de aceptación del próximo lote
+
+## 48. Requisitos mínimos
+
+El siguiente lote debe demostrar:
+
+1. Recuperación verificable del estado actual.
+2. Identificación de TASK y propietario.
+3. Delimitación contractual de los archivos afectados.
+4. Análisis de dependencias y comportamiento.
+5. Correspondencia con modelos existentes de Kaupamex.
+6. Implementación funcional cuando la unidad esté admitida.
+7. Pruebas discriminantes.
+8. Reconciliación de contratos y AS IS.
+9. Evidencia reproducible.
+10. Estado real de integración y aceptación.
+11. Continuación hacia otra unidad admisible o bloqueo demostrado.
+
+## 49. No aceptar sustitutos
+
+No sustituyas implementación con:
+
+- Informes.
+- Inventarios.
+- Métricas.
+- Commits.
+- Comparaciones de nombres.
+- Pruebas superficiales.
+- Cambios de estado manuales.
+- Declaraciones del modelo.
+
+La evidencia debe demostrar el contrato correspondiente.
+
+## 50. Criterios de terminación de la iniciativa
+
+La iniciativa no termina hasta satisfacer su población contractual autorizada y cumplir los verificadores e integraciones requeridos.
+
+Distingue:
+
+```
+Unit completed
+TASK implemented
+TASK verified
+TASK integrated
+TASK accepted
+Persistent objective completed
+Session terminated
+```
+
+No inventes estados alternativos.
+
+---
+
+# PARTE XIII — Secuencia inmediata de ejecución
+
+## 51. Primera unidad: reconciliación contractual del grafo
+
+Recupera el inventario completo de `module_graph.py`.
+
+Confirma la cobertura contractual de las 19 declaraciones estructurales observadas.
+
+No implementes automáticamente las 19.
+
+Determina las obligaciones todavía pendientes y sus TASK.
+
+Conserva las pruebas válidas de `ModuleGraph.extend`.
+
+## 52. Segunda unidad: reconciliación contractual del cargador
+
+Recupera el inventario de `loading.py`.
+
+Relaciona sus funciones y responsabilidades con:
+
+- Implementación actual.
+- Dependencias.
+- Registry.
+- Catálogo por base.
+- Estados y versiones.
+- Hooks.
+- Verificadores.
+- TASK.
+
+Selecciona la siguiente obligación admitida de la población real.
+
+## 53. Tercera unidad: aislamiento pendiente
+
+Mantén visible `TASK-API-0383`.
+
+Recupera el estado del fixture y de los casos omitidos.
+
+Continúa su cualificación cuando exista propiedad y recursos admitidos.
+
+No declares que la corrección del preflight sustituyó las pruebas de aislamiento.
+
+## 54. Cuarta unidad: integración y continuidad
+
+Verifica CI y PR.
+
+Reconcila los AS IS.
+
+Conserva el estado de aceptación.
+
+Reevalúa la frontera mediante las interfaces reales de Thyrox.
+
+Continúa mientras existan obligaciones admitidas.
+
+---
+
+# Directiva final
+
+**Continúa la implementación real de** `**completar-raiz-orm**` **sin reiniciar los análisis ni perder los resultados de las sesiones anteriores.**
+
+La TASK es la autoridad de ejecución.
+
+La referencia Odoo 19 Community es la base del análisis contractual.
+
+El archivo de referencia debe evaluarse estructural y semánticamente en su totalidad aplicable.
+
+La implementación de Kaupamex debe satisfacer las obligaciones mediante sus modelos y mecanismos existentes, sin duplicaciones ni refactorizaciones injustificadas.
+
+Los nombres de archivos, clases, funciones, firmas, parámetros y atributos deben mantenerse en inglés.
+
+Los comentarios y docstrings explicativos propios deben escribirse en español de México, conservando los términos técnicos.
+
+Cada obligación implementada debe conservar su relación con TASK, referencia, código, pruebas, evidencia, integración y aceptación.
+
+No se aceptarán parches como sustituto de una implementación contractual completa.
+
+No se declarará terminado el objetivo por completar una función, una TASK, un archivo o un PR.
+
+**Ejecuta las siguientes unidades funcionales admisibles, conserva sus resultados y continúa mediante los mecanismos actuales de Thyrox hasta alcanzar un bloqueo verificable o la aceptación contractual real del objetivo persistente.**
+
+## Qué debe mejorar respecto de la ejecución anterior
+
+Esta instrucción cambia el criterio de progreso: VM-b501 deberá demostrar no solamente que implementó `ModuleGraph.extend`, sino también qué obligaciones del archivo permanecen pendientes y cómo se relacionan con las TASK vigentes.
+
+Lo mismo aplica a `loading.py`: no basta enumerar siete funciones; hay que verificar que la población de responsabilidades contractuales esté representada y que los elementos pendientes conserven propietario y criterios de aceptación.
+
+También impide que el avance de `TASK-API-0382` haga desaparecer los pendientes de `TASK-API-0383`, especialmente el fixture de aislamiento, autenticación multiempresa y la revisión de la política de metadatos.
+
+Por último, mantiene explícitamente separados los tres tipos de progreso:
+
+|Progreso|Qué lo acredita|
+|---|---|
+|Estructural|Inventarios completos y correspondencias semánticas por archivo|
+|Funcional|Comportamiento verificable mediante contratos y pruebas discriminantes|
+|Operativo|TASK, claims, integración, aceptación y continuidad mediante Thyrox|
+
+Mi recomendación es enviar esta instrucción a la misma VM-b501. Cuando recibamos el siguiente log, el criterio principal será comprobar si disminuyeron las obligaciones contractuales pendientes y si la implementación avanzó hacia el ciclo efectivo del `Registry` y el cargador, en lugar de limitarse a generar más expedientes o pruebas focalizadas.

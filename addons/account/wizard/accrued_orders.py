@@ -16,7 +16,8 @@ Símbolo de la referencia                    Qué pasa aquí
 ``company_id`` (campo)                      PORTADO — ``_get_default_company``
 ``journal_id`` (campo)                      PORTADO — ``_compute_journal_id``
 ``date`` (campo)                            PORTADO — ``_get_default_date``
-``reversal_date`` (campo)                   PORTADO — ``_compute_reversal_date``
+``reversal_date`` (campo)                   PORTADO —
+``_compute_reversal_date``
 ``amount`` (campo)                          PORTADO — parámetro ``amount``
 ``currency_id`` (related)                   NO — utilería de widget
                                              monetario del formulario
@@ -83,6 +84,7 @@ Otras divergencias declaradas: ``analytic_distribution`` y
 ``account.move.line`` (mismas exclusiones que ``account_partial_reconcile``);
 ``formatLang``/``format_date`` (formato por locale) → f-string/isoformat.
 """
+
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -101,7 +103,7 @@ from tools.translate import _
 def _ellipsis(string, size):
     """≙ el helper interno ``_ellipsis`` de ``_compute_move_vals``."""
     if len(string) > size:
-        return string[0:size - 3] + '...'
+        return string[0: size - 3] + '...'
     return string
 
 
@@ -141,7 +143,9 @@ class AccountAccruedOrdersWizard(TransientModel):
     def _compute_reversal_date(cls, accrual_date, reversal_date=None):
         """≙ ``_compute_reversal_date`` — el día siguiente al devengo, salvo
         que el llamador ya haya fijado una posterior."""
-        if accrual_date and (not reversal_date or reversal_date <= accrual_date):
+        if accrual_date and (
+            not reversal_date or reversal_date <= accrual_date
+        ):
             return accrual_date + timedelta(days=1)
         return reversal_date
 
@@ -150,7 +154,8 @@ class AccountAccruedOrdersWizard(TransientModel):
         """≙ ``_compute_journal_id`` — el primer diario general de la
         empresa."""
         return AccountJournal.objects.filter(
-            company=company, type='general').first()
+            company=company, type='general'
+        ).first()
 
     @classmethod
     def _get_computed_account(cls, order, product, is_purchase):
@@ -164,14 +169,23 @@ class AccountAccruedOrdersWizard(TransientModel):
         return accounts['income']
 
     @classmethod
-    def _compute_move_vals(cls, orders, company, journal, accrual_date,
-                            account, amount=None, is_purchase=False):
+    def _compute_move_vals(
+        cls,
+        orders,
+        company,
+        journal,
+        accrual_date,
+        account,
+        amount=None,
+        is_purchase=False,
+    ):
         """≙ ``_compute_move_vals`` (parcial declarado — sólo la rama de
         monto manual; ver el docstring del módulo).
 
         Devuelve ``(move_vals, orders_with_entries)`` con la misma forma que
         la referencia: ``move_vals`` trae ``line_ids`` como lista de dicts.
         """
+
         def _get_aml_vals(balance, account_id, label=""):
             """≙ el helper interno ``_get_aml_vals`` — sin
             ``amount_currency``/``analytic_distribution`` (divergencias
@@ -187,9 +201,12 @@ class AccountAccruedOrdersWizard(TransientModel):
 
         orders = list(orders)
         if any(order.company_id != company.pk for order in orders):
-            raise UserError(_(
-                'Entries can only be created for a single company at a '
-                'time.'))
+            raise UserError(
+                _(
+                    'Entries can only be created for a single company at a '
+                    'time.'
+                )
+            )
 
         move_lines = []
         orders_with_entries = []
@@ -199,32 +216,48 @@ class AccountAccruedOrdersWizard(TransientModel):
             order = orders[0]
             order_line = order.order_line.filter(product__isnull=False).first()
             if order_line is None:
-                raise UserError(_(
-                    'La orden no tiene líneas con producto para devengar.'))
+                raise UserError(
+                    _('La orden no tiene líneas con producto para devengar.')
+                )
             total_balance = Decimal(amount)
             accrual_account = cls._get_computed_account(
-                order, order_line.product, is_purchase)
-            move_lines.append(_get_aml_vals(
-                Decimal(amount), accrual_account.pk, label=_('Manual entry')))
+                order, order_line.product, is_purchase
+            )
+            move_lines.append(
+                _get_aml_vals(
+                    Decimal(amount),
+                    accrual_account.pk,
+                    label=_('Manual entry'),
+                )
+            )
         else:
             # Rama de devengo por línea — bloqueada por los campos at-date
             # de las líneas de orden (ver el docstring del módulo).
-            raise UserError(_(
-                'El devengo por línea de orden requiere las cantidades '
-                'facturadas/entregadas a fecha, aún no portadas en '
-                'sale/purchase — usa el monto manual sobre una sola orden.'))
+            raise UserError(
+                _(
+                    'El devengo por línea de orden requiere las cantidades '
+                    'facturadas/entregadas a fecha, aún no portadas en '
+                    'sale/purchase — usa el monto manual sobre una sola orden.'
+                )
+            )
 
         if total_balance != Decimal('0.00'):
             # Contrapartida global — ≙ la línea "Accrued total".
-            move_lines.append(_get_aml_vals(
-                -total_balance, account.pk, label=_('Accrued total')))
+            move_lines.append(
+                _get_aml_vals(
+                    -total_balance, account.pk, label=_('Accrued total')
+                )
+            )
 
         move_type = _('Expense') if is_purchase else _('Revenue')
         move_vals = {
-            'ref': _('Accrued %(entry_type)s entry as of %(date)s') % {
-                'entry_type': move_type,
-                'date': accrual_date.isoformat(),
-            },
+            'ref': (
+                _('Accrued %(entry_type)s entry as of %(date)s')
+                % {
+                    'entry_type': move_type,
+                    'date': accrual_date.isoformat(),
+                }
+            ),
             'name': '/',
             'journal': journal,
             'date': accrual_date,
@@ -234,9 +267,17 @@ class AccountAccruedOrdersWizard(TransientModel):
 
     @classmethod
     @transaction.atomic
-    def create_entries(cls, orders, company, journal, accrual_date,
-                        reversal_date, account, amount=None,
-                        is_purchase=False):
+    def create_entries(
+        cls,
+        orders,
+        company,
+        journal,
+        accrual_date,
+        reversal_date,
+        account,
+        amount=None,
+        is_purchase=False,
+    ):
         """≙ ``create_entries`` — crea y publica el devengo y su reverso.
 
         Sin el ``message_post`` a las órdenes (chatter no portado) y
@@ -246,12 +287,19 @@ class AccountAccruedOrdersWizard(TransientModel):
         if reversal_date <= accrual_date:
             raise UserError(_('Reversal date must be posterior to date.'))
         move_vals, orders_with_entries = cls._compute_move_vals(
-            orders, company, journal, accrual_date, account,
-            amount=amount, is_purchase=is_purchase)
+            orders,
+            company,
+            journal,
+            accrual_date,
+            account,
+            amount=amount,
+            is_purchase=is_purchase,
+        )
 
         line_vals = move_vals.pop('line_ids')
         move = AccountMove.objects.create(
-            move_type='entry', company=company, **move_vals)
+            move_type='entry', company=company, **move_vals
+        )
         for values in line_vals:
             AccountMoveLine.objects.create(
                 move=move,
@@ -262,11 +310,14 @@ class AccountAccruedOrdersWizard(TransientModel):
             )
         move.post()
 
-        reverse_move = AccountMoveReversal._reverse_single_move(move, {
-            'ref': _('Reversal of: %s') % move.ref,
-            'date': reversal_date,
-            'journal': journal,
-        })
+        reverse_move = AccountMoveReversal._reverse_single_move(
+            move,
+            {
+                'ref': _('Reversal of: %s') % move.ref,
+                'date': reversal_date,
+                'journal': journal,
+            },
+        )
         reverse_move.post()
         # ``orders_with_entries`` queda vacío mientras la rama por línea
         # esté bloqueada — el message_post de la referencia tampoco aplica.

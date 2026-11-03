@@ -7,6 +7,7 @@ inicialización (``migrate --database``). Requiere el grant ``company\\_%``
 (T-091-01, ``db_setup.sh``): sin él el motor devuelve 1044 y estos tests fallan
 — es la señal correcta de que el provisioning no está habilitado.
 """
+
 import pytest
 from django.db import connections
 from django.test import override_settings
@@ -27,7 +28,8 @@ from service.db import (
 )
 
 # transaction=True: el DDL (CREATE/DROP DATABASE) auto-commitea en MariaDB y
-# rompería el wrapper transaccional de un django_db normal. databases='__all__':
+# rompería el wrapper transaccional de un django_db normal.
+# databases='__all__':
 # estas pruebas tocan bases company_* dinámicas fuera de 'default'.
 pytestmark = pytest.mark.django_db(transaction=True, databases='__all__')
 
@@ -52,7 +54,9 @@ def _clean_company_dbs():
 
 def test_database_exists_catalog():
     # El schema de la conexión default existe; uno inventado, no.
-    assert database_exists(connections['default'].settings_dict['NAME']) is True
+    assert (
+        database_exists(connections['default'].settings_dict['NAME']) is True
+    )
     assert database_exists('company_does_not_exist_db') is False
 
 
@@ -64,8 +68,10 @@ def test_create_then_drop():
     # con ``pg_encoding_to_char`` porque la columna guarda su id numérico.
     with connections['default'].cursor() as c:
         c.execute(
-            'SELECT pg_encoding_to_char(encoding) FROM pg_database WHERE datname = %s',
-            [DB_A])
+            'SELECT pg_encoding_to_char(encoding) FROM pg_database WHERE'
+            ' datname = %s',
+            [DB_A],
+        )
         (encoding,) = c.fetchone()
     assert encoding == 'UTF8'
     assert drop_database(DB_A) is True
@@ -91,7 +97,8 @@ def test_kill_connections_best_effort():
 
 def test_duplicate_copies_schema_and_data():
     # PostgreSQL NO permite calificar una tabla con el nombre de la base
-    # (``base.tabla`` designa ``schema.tabla``): hay que CONECTARSE a cada base.
+    # (``base.tabla`` designa ``schema.tabla``): hay que CONECTARSE a
+    # cada base.
     # Bajo MariaDB el ``\`db\`.tabla`` funcionaba porque allá base y schema son
     # lo mismo. Se usa el mismo helper que ``service.db`` (``_connect``).
     create_empty_database(DB_A)

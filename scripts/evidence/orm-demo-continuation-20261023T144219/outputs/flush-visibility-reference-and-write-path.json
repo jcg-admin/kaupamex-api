@@ -1,0 +1,23 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/models.py BaseModel._flush",
+  "reference_source_sha256": "4dc0f7ed1bfedf292b91d9603a67e83b740910601f418880e2ebf12902297c1e",
+  "reference_line": 6387,
+  "reference_behavior": "Pops dirty IDs, browses those IDs and passes values to _write_multi; no public visibility manager selection",
+  "existing_resolver": "counterpart_body.pair_declarations",
+  "automatic_matches": 0,
+  "resolver_limit": "Module-level installed adapter is not automatically paired to class method by this resolver; no new matcher or global equivalence inferred",
+  "consumer_symbol": "src/orm/models.py module _flush",
+  "source_before_sha256": "05201fc9a4842ffeb0a04701af681efe6b4f2d464009adfd754f60be372a866f",
+  "candidate_sha256": "cc6fad58ff6c9f7e879da6ec2a6347fd0c013e60dd260c0927864877bbf0836b",
+  "intentional_AST_changes": 1,
+  "whole_module_AST_equal_after_normalizing_only_flush_selector": true,
+  "write_paths": "row.save and _flush_m2m/manager.set code unchanged; access classes and signal handlers unchanged",
+  "scope": "Physical lookup of already-dirty IDs. Does not qualify authentication, complete record rules, cross-database routing or independent acceptance",
+  "related_TASKs": [
+    "TASK-API-0397 ownerVM-b501 active",
+    "TASK-GEN-0558 cache/M2M qualification",
+    "TASK-GEN-0348 completed preserved",
+    "TASK-API-0282 pending ownerNULL preserved"
+  ]
+}

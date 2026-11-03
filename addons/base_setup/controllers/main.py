@@ -33,6 +33,7 @@ fila que acotar por compañía; y el canal de elevación (``su``) tampoco se
 usa: el gate es la capacidad ``settings``, sensible en el catálogo de
 ``base``.
 """
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
@@ -80,13 +81,17 @@ class SiteSettingsView(APIView):
     def patch(self, request):
         serializer = SiteSettingsSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        return Response(SiteSettingsSerializer.apply(dict(serializer.validated_data)))
+        return Response(
+            SiteSettingsSerializer.apply(dict(serializer.validated_data))
+        )
 
 
 class BaseSetupDataView(APIView):
-    """≙ ``BaseSetup.base_setup_data`` (``odoo19c: controllers/main.py:10-51``).
+    """
+    ≙ ``BaseSetup.base_setup_data`` (``odoo19c: controllers/main.py:10-51``).
 
-    El panel de arranque: cuántos usuarios internos active_users hay, cuántos de
+    El panel de arranque: cuántos usuarios internos active_users hay, cuántos
+    de
     ellos **nunca han entrado**, y quiénes son los diez últimos.
 
     Divergencias declaradas
@@ -129,22 +134,34 @@ class BaseSetupDataView(APIView):
     )
     def get(self, request):
         with sudo():
-            active_users = [user for user in ResUsers.objects.filter(active=True)
-                       if not user.share]
+            active_users = [
+                user
+                for user in ResUsers.objects.filter(active=True)
+                if not user.share
+            ]
             with_access = set(
-                ResUsersLog.objects.values_list('user_id', flat=True))
+                ResUsersLog.objects.values_list('user_id', flat=True)
+            )
         pending = [user for user in active_users if user.pk not in with_access]
         pending.sort(key=lambda user: user.pk, reverse=True)
-        return Response(BaseSetupDataSerializer({
-            'active_users': len(active_users),
-            'pending_count': len(pending),
-            'pending_users': [[user.pk, user.login]
-                              for user in pending[:PENDING_USERS_LIMIT]],
-        }).data)
+        return Response(
+            BaseSetupDataSerializer(
+                {
+                    'active_users': len(active_users),
+                    'pending_count': len(pending),
+                    'pending_users': [
+                        [user.pk, user.login]
+                        for user in pending[:PENDING_USERS_LIMIT]
+                    ],
+                }
+            ).data
+        )
 
 
 class BaseSetupDemoActiveView(APIView):
-    """≙ ``BaseSetup.base_setup_is_demo`` (``odoo19c: controllers/main.py:53-59``).
+    """
+    ≙ ``BaseSetup.base_setup_is_demo`` (``odoo19c:
+    controllers/main.py:53-59``).
 
     Comentario de la fuente, verbatim: *"We assume that if there's at least one
     module with demo data active, then the db was initialized with demo=True or

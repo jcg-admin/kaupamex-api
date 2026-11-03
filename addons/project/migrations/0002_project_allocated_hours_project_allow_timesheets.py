@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="allocated_hours",
             field=models.FloatField(
                 default=0.0,
-                help_text="Odoo allocated_hours. BLOQUEADO por ``el motor de tracking`` — tracking=True lo exige; ver docstring del módulo.",
+                help_text=(
+                    "Odoo allocated_hours. BLOQUEADO por ``el motor de"
+                    " tracking`` — tracking=True lo exige; ver docstring del"
+                    " módulo."
+                ),
             ),
         ),
         migrations.AddField(
@@ -23,7 +27,11 @@ class Migration(migrations.Migration):
             name="allow_timesheets",
             field=models.BooleanField(
                 default=True,
-                help_text="Odoo allow_timesheets. La referencia lo apaga cuando no hay cuenta analítica (account_id); ausente aquí — queda escribible directo.",
+                help_text=(
+                    "Odoo allow_timesheets. La referencia lo apaga cuando no"
+                    " hay cuenta analítica (account_id); ausente aquí — queda"
+                    " escribible directo."
+                ),
             ),
         ),
     ]

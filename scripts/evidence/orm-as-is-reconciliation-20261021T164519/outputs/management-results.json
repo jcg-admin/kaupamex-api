@@ -1,0 +1,20 @@
+{
+  "consumer_revision": "35501644c380f5f198e407fee16357994ac43b27",
+  "read_only_database_session": true,
+  "results": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "src/manage.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log": "django-check.log",
+      "json_e010_reported": false
+    }
+  ],
+  "limits": "Normal installed addons/checks; no migrations applied, no fixtures seeded, no whole-ORM acceptance"
+}

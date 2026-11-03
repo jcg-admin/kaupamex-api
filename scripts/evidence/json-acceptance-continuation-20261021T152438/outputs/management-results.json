@@ -1,0 +1,35 @@
+{
+  "consumer_revision": "79bc956e15f83c19714585246ba41501234a51fe",
+  "read_only_database_session": true,
+  "results": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "src/manage.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log": "django-check.log",
+      "json_e010_reported": false
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "src/manage.py",
+        "makemigrations",
+        "--check",
+        "--dry-run"
+      ],
+      "exit_code": 1,
+      "log": "makemigrations-check.log",
+      "json_e010_reported": false
+    }
+  ],
+  "limits": "Normal installed addons/checks; no migrations applied, no fixtures seeded, no whole-ORM acceptance"
+}

@@ -37,11 +37,16 @@ from addons.base.models.res_users import ResUsers
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_rule import RuleScopedManager
-from addons.base.models.soft_delete_mixin import (AllObjectsManager,
-                                                  SoftDeleteManager)
+from addons.base.models.soft_delete_mixin import (
+    AllObjectsManager,
+    SoftDeleteManager,
+)
 from addons.base.models.res_users import ResUsersManager
-from orm.model_classes import (THIRD_PARTY_MODULE_PREFIXES,
-                               adopt_access_manager, ensure_access_managers)
+from orm.model_classes import (
+    THIRD_PARTY_MODULE_PREFIXES,
+    adopt_access_manager,
+    ensure_access_managers,
+)
 from orm.models import AccessManager, AccessQuerySet
 from scripts import check_access_manager
 from scripts.check_access_manager import offenders
@@ -52,8 +57,11 @@ def _concretos():
 
 
 def _nuestros():
-    return [m for m in _concretos()
-            if not m.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)]
+    return [
+        m
+        for m in _concretos()
+        if not m.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)
+    ]
 
 
 class TestUniversalAdoption:
@@ -64,19 +72,25 @@ class TestUniversalAdoption:
 
     def test_a_model_without_its_own_manager_got_it(self):
         """``SystemParameter`` no declara manager; lo puso la señal."""
-        assert isinstance(SystemParameter._default_manager.get_queryset(),
-                          AccessQuerySet)
+        assert isinstance(
+            SystemParameter._default_manager.get_queryset(), AccessQuerySet
+        )
 
     def test_a_model_with_the_shared_base_got_it_too(self):
         """``ResPartner`` lo hereda de ``TimeStampedModel``, no de la señal."""
-        assert isinstance(ResPartner._default_manager.get_queryset(),
-                          AccessQuerySet)
+        assert isinstance(
+            ResPartner._default_manager.get_queryset(), AccessQuerySet
+        )
 
     def test_the_four_forms_are_reachable(self):
         """Las cuatro de la fuente, no una muestra."""
         qs = ResPartner.objects.all()
-        for form in ('check_access', 'has_access', '_check_access',
-                     '_filtered_access'):
+        for form in (
+            'check_access',
+            'has_access',
+            '_check_access',
+            '_filtered_access',
+        ):
             assert hasattr(qs, form), form
 
     def test_third_party_models_are_left_alone(self):
@@ -86,19 +100,26 @@ class TestUniversalAdoption:
         adoptando **todo**, incluidos los de Django, y el caso de arriba
         pasaría igual sin decir nada de nuestro criterio.
         """
-        assert not isinstance(ContentType._default_manager.get_queryset(),
-                              AccessQuerySet)
+        assert not isinstance(
+            ContentType._default_manager.get_queryset(), AccessQuerySet
+        )
 
 
 class TestOwnManagersDeriveFromIt:
     """Un manager propio no esquiva las cuatro formas: deriva de ellas."""
 
-    @pytest.mark.parametrize('manager_class', [
-        SoftDeleteManager, AllObjectsManager, ResUsersManager,
-        RuleScopedManager,
-    ])
-    def test_the_declared_managers_derive_from_access_manager(self,
-                                                              manager_class):
+    @pytest.mark.parametrize(
+        'manager_class',
+        [
+            SoftDeleteManager,
+            AllObjectsManager,
+            ResUsersManager,
+            RuleScopedManager,
+        ],
+    )
+    def test_the_declared_managers_derive_from_access_manager(
+        self, manager_class
+    ):
         assert issubclass(manager_class, AccessManager)
 
     @pytest.mark.django_db
@@ -106,7 +127,8 @@ class TestOwnManagersDeriveFromIt:
         """Derivar no puede comerse lo que el manager ya hacía.
 
         **Este caso leía el código fuente** —``inspect.getsource`` sobre
-        ``SoftDeleteManager.get_queryset``, buscando ``is_deleted=False``— y por
+        ``SoftDeleteManager.get_queryset``, buscando ``is_deleted=False``— y
+        por
         eso pasó en verde mientras el árbol estaba roto: el filtro seguía
         escrito, y lo que se había perdido era **quién resuelve el manager**.
         Es el sub-patrón D de ``metrica-decide-la-conclusion.md`` en su forma
@@ -120,7 +142,8 @@ class TestOwnManagersDeriveFromIt:
             name='Control de eclipse',
             email='control@example.com',
             subject='Control',
-            body='La fila se borra y no debe volver a verse.')
+            body='La fila se borra y no debe volver a verse.',
+        )
         pk = mensaje.pk
         mensaje.delete()
         assert not ContactMessage.objects.filter(pk=pk).exists()
@@ -133,8 +156,9 @@ class TestOwnManagersDeriveFromIt:
         resolvía ``ManagerFromAccessQuerySet``: la base genérica está antes en
         el MRO y ``Options.managers`` se queda con el primero.
         """
-        assert isinstance(ContactMessage._meta.managers_map['objects'],
-                          SoftDeleteManager)
+        assert isinstance(
+            ContactMessage._meta.managers_map['objects'], SoftDeleteManager
+        )
 
 
 class TestAdoptAccessManagerDiscriminates:
@@ -199,7 +223,8 @@ class TestNoDeclaredManagerIsShadowed:
         assert check_access_manager.shadowed() == []
 
     def test_it_names_the_eclipse_when_a_generic_base_declares_objects(self):
-        """El control se prueba contra el defecto real, no contra uno inventado.
+        """
+        El control se prueba contra el defecto real, no contra uno inventado.
 
         Se cuelga un ``objects`` de ``TimeStampedModel`` —el cambio exacto que
         rompió el árbol— y se comprueba que la función lo nombra en los modelos
@@ -220,8 +245,11 @@ class TestNoDeclaredManagerIsShadowed:
             for model in _nuestros():
                 model._meta._expire_cache()
 
-        assert any('crm.ContactMessage.objects' in line
-                   and 'SoftDeleteManager' in line for line in eclipsados)
+        assert any(
+            'crm.ContactMessage.objects' in line
+            and 'SoftDeleteManager' in line
+            for line in eclipsados
+        )
         assert check_access_manager.shadowed() == []
 
 
@@ -233,5 +261,7 @@ class TestPrefixesStayInSync:
     """
 
     def test_the_gate_and_the_adopter_share_the_prefixes(self):
-        assert (check_access_manager.THIRD_PARTY_MODULE_PREFIXES
-                == THIRD_PARTY_MODULE_PREFIXES)
+        assert (
+            check_access_manager.THIRD_PARTY_MODULE_PREFIXES
+            == THIRD_PARTY_MODULE_PREFIXES
+        )

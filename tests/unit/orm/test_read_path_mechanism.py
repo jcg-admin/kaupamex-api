@@ -17,6 +17,7 @@ se ejercía; lo que faltaba era medirla y fijarla.
 Los cinco pasos de ``Field.__get__`` de la fuente no desaparecen: se reparten
 entre quien ya los tiene. Su reparto es la tabla de ``TestTheFiveSteps``.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models
@@ -54,17 +55,21 @@ class TestWhereTheProtocolLives:
         assert not hasattr(models.Field, '__set__')
 
     def test_django_puts_it_on_the_attribute(self, partner_class):
-        assert isinstance(descriptor_of(partner_class, 'name'), DeferredAttribute)
+        assert isinstance(
+            descriptor_of(partner_class, 'name'), DeferredAttribute
+        )
         assert models.Field.descriptor_class is DeferredAttribute
 
     def test_our_two_precedents_did_the_same(self, partner_class):
         """Los dos descriptores propios de este árbol, construidos en pases
         distintos, coinciden con Django y no con la fuente: los dos van en el
         atributo. Es el precedente que decide, y son dos y no uno."""
-        assert isinstance(descriptor_of(partner_class, 'barcode'),
-                          _CompanyDependentAttribute)
-        assert isinstance(descriptor_of(partner_class, 'active_lang_count'),
-                          NonStored)
+        assert isinstance(
+            descriptor_of(partner_class, 'barcode'), _CompanyDependentAttribute
+        )
+        assert isinstance(
+            descriptor_of(partner_class, 'active_lang_count'), NonStored
+        )
 
     def test_the_company_dependent_one_extends_djangos(self):
         """Extiende ``DeferredAttribute`` en vez de sustituirlo: el camino de
@@ -85,7 +90,9 @@ class TestTheFiveSteps:
         assert hasattr(partner_class, '_has_field_access')
         assert hasattr(partner_class, '_check_field_access')
 
-    def test_ensure_one_has_no_counterpart_by_construction(self, partner_class):
+    def test_ensure_one_has_no_counterpart_by_construction(
+        self, partner_class
+    ):
         """Paso 2 — la fuente lo necesita porque su recordset puede tener N
         filas. Aquí una instancia ES una fila, así que el paso no tiene a qué
         aplicarse: es divergencia por forma del objeto, no hueco de porte."""

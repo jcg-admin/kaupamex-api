@@ -30,9 +30,11 @@ class Migration(migrations.Migration):
                 (
                     "move",
                     models.OneToOneField(
-                        help_text="La nota de débito misma (Odoo debit_origin_id "
-                        "vive en este registro — el Many2one de la referencia, "
-                        "leído desde el lado de la nota).",
+                        help_text=(
+                            "La nota de débito misma (Odoo debit_origin_id"
+                            " vive en este registro — el Many2one de la"
+                            " referencia, leído desde el lado de la nota)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="debit_note_link",
                         to="account.accountmove",
@@ -42,7 +44,9 @@ class Migration(migrations.Migration):
                     "origin",
                     models.ForeignKey(
                         db_index=True,
-                        help_text="Factura original debitada (Odoo debit_origin_id).",
+                        help_text=(
+                            "Factura original debitada (Odoo debit_origin_id)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="debit_notes",
                         to="account.accountmove",
@@ -73,16 +77,20 @@ class Migration(migrations.Migration):
                     "debit_sequence",
                     models.BooleanField(
                         default=False,
-                        help_text="No compartir la secuencia de facturas y "
-                        "notas de débito de este diario (Odoo debit_sequence).",
+                        help_text=(
+                            "No compartir la secuencia de facturas y notas de"
+                            " débito de este diario (Odoo debit_sequence)."
+                        ),
                         verbose_name="Secuencia dedicada de nota de débito",
                     ),
                 ),
                 (
                     "journal",
                     models.OneToOneField(
-                        help_text="Diario al que pertenece (Odoo _inherit "
-                        "account.journal).",
+                        help_text=(
+                            "Diario al que pertenece (Odoo _inherit "
+                            "account.journal)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="debit_sequence_setting",
                         to="account.accountjournal",
@@ -91,7 +99,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Secuencia de nota de débito del diario",
-                "verbose_name_plural": "Secuencias de nota de débito de diarios",
+                "verbose_name_plural": (
+                    "Secuencias de nota de débito de diarios"
+                ),
                 "db_table": "account_debit_note_journal_debit_sequence",
             },
         ),

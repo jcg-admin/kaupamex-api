@@ -20,6 +20,7 @@ El censo de :ref:`h-api-1041` es estructuralmente ciego a esta capa: su alcance
 de resolucion es el archivo **dentro** de ``odoo/orm/``, y los tres paquetes
 viven fuera. Ver :ref:`h-api-1043`.
 """
+
 import ast
 import importlib
 import pathlib
@@ -38,22 +39,42 @@ import orm.table_objects as table_objects
 #: ``ImportFrom`` de ``odoo19c: odoo/{api,fields,models}/__init__.py`` cruzado
 #: con las declaraciones de modulo de ``src/orm/``.
 PORTABLE_NOW = {
-    'api': ('NewId', 'Environment', 'SUPERUSER_ID',
-            'ContextType', 'DomainType', 'IdType', 'ValuesType',
-            # Los dos que la tarea #330 porta y liga en el mismo pase.
-            'depends_context', 'ondelete'),
+    'api': (
+        'NewId',
+        'Environment',
+        'SUPERUSER_ID',
+        'ContextType',
+        'DomainType',
+        'IdType',
+        'ValuesType',
+        # Los dos que la tarea #330 porta y liga en el mismo pase.
+        'depends_context',
+        'ondelete',
+    ),
     'fields': ('Field', 'NO_ACCESS'),
-    'models': ('LOG_ACCESS_COLUMNS', 'MAGIC_COLUMNS',
-               'READ_GROUP_NUMBER_GRANULARITY', 'fix_import_export_id_paths',
-               'regex_order', 'is_model_class', 'is_model_definition',
-               'TransientModel', 'Constraint', 'Index', 'UniqueIndex',
-               'check_object_name', 'check_pg_name',
-               # Los tres que la tarea #328 porta y liga en el mismo pase.
-               'AbstractModel', 'parse_read_group_spec', 'check_method_name',
-               # El que la tarea #331 porta y liga en el mismo pase.
-               'to_record_ids',
-               # El que TASK-API-0397 porta y liga en el mismo pase.
-               'BaseModel'),
+    'models': (
+        'LOG_ACCESS_COLUMNS',
+        'MAGIC_COLUMNS',
+        'READ_GROUP_NUMBER_GRANULARITY',
+        'fix_import_export_id_paths',
+        'regex_order',
+        'is_model_class',
+        'is_model_definition',
+        'TransientModel',
+        'Constraint',
+        'Index',
+        'UniqueIndex',
+        'check_object_name',
+        'check_pg_name',
+        # Los tres que la tarea #328 porta y liga en el mismo pase.
+        'AbstractModel',
+        'parse_read_group_spec',
+        'check_method_name',
+        # El que la tarea #331 porta y liga en el mismo pase.
+        'to_record_ids',
+        # El que TASK-API-0397 porta y liga en el mismo pase.
+        'BaseModel',
+    ),
 }
 
 #: Lo que la fachada de la referencia liga y ``src/orm`` todavia NO declara.
@@ -84,27 +105,35 @@ PACKAGES = {'api': api, 'fields': fields, 'models': models}
 #: ``READ_GROUP_NUMBER_GRANULARITY`` (alla ``orm/models.py``, aqui
 #: ``orm/utils.py``, junto a su hermano ``READ_GROUP_TIME_GRANULARITY``).
 DECLARANTE = {
-    'NewId': 'orm.identifiers', 'IdType': 'orm.identifiers',
+    'NewId': 'orm.identifiers',
+    'IdType': 'orm.identifiers',
     'Environment': 'orm.environments',
     'SUPERUSER_ID': 'orm.utils',
-    'ContextType': 'orm.types', 'DomainType': 'orm.types',
+    'ContextType': 'orm.types',
+    'DomainType': 'orm.types',
     'ValuesType': 'orm.types',
     'Field': 'orm.fields',
     'NO_ACCESS': 'orm.models',
-    'LOG_ACCESS_COLUMNS': 'orm.models', 'MAGIC_COLUMNS': 'orm.models',
-    'fix_import_export_id_paths': 'orm.models', 'regex_order': 'orm.models',
+    'LOG_ACCESS_COLUMNS': 'orm.models',
+    'MAGIC_COLUMNS': 'orm.models',
+    'fix_import_export_id_paths': 'orm.models',
+    'regex_order': 'orm.models',
     'READ_GROUP_NUMBER_GRANULARITY': 'orm.utils',
     'READ_GROUP_TIME_GRANULARITY': 'orm.utils',
-    'check_object_name': 'orm.utils', 'check_pg_name': 'orm.utils',
-    'depends_context': 'orm.decorators', 'ondelete': 'orm.decorators',
+    'check_object_name': 'orm.utils',
+    'check_pg_name': 'orm.utils',
+    'depends_context': 'orm.decorators',
+    'ondelete': 'orm.decorators',
     'check_method_name': 'orm.utils',
-    'AbstractModel': 'orm.models', 'parse_read_group_spec': 'orm.models',
+    'AbstractModel': 'orm.models',
+    'parse_read_group_spec': 'orm.models',
     'BaseModel': 'orm.models',
     'to_record_ids': 'orm.models',
     'is_model_class': 'orm.model_classes',
     'is_model_definition': 'orm.model_classes',
     'TransientModel': 'orm.models_transient',
-    'Constraint': 'orm.table_objects', 'Index': 'orm.table_objects',
+    'Constraint': 'orm.table_objects',
+    'Index': 'orm.table_objects',
     'UniqueIndex': 'orm.table_objects',
 }
 
@@ -124,8 +153,9 @@ class TestTheFacadeBindsWhatOrmAlreadyDeclares:
         )
 
     @pytest.mark.parametrize(('package', 'name'), _cases(PORTABLE_NOW))
-    def test_it_is_the_very_object_its_orm_module_declares(self, package,
-                                                           name):
+    def test_it_is_the_very_object_its_orm_module_declares(
+        self, package, name
+    ):
         """EL CONTROL que discrimina ligar de re-declarar.
 
         ``hasattr`` pasaria igual si la fachada definiera un objeto propio con
@@ -152,7 +182,9 @@ class TestTheFacadeBindsWhatOrmAlreadyDeclares:
 class TestTheBlockedOnesDeclareTheirCoverage:
     """Lo que no se liga hoy declara por que, y el por que es medible."""
 
-    @pytest.mark.parametrize(('package', 'name'), _cases(BLOCKED_BY_ITS_SYMBOL))
+    @pytest.mark.parametrize(
+        ('package', 'name'), _cases(BLOCKED_BY_ITS_SYMBOL)
+    )
     def test_src_orm_does_not_declare_it_yet(self, package, name):
         """EL CONTROL POSITIVO del bloqueo.
 
@@ -181,12 +213,15 @@ class TestTheFacadeDoesNotHideItsProvenance:
         """
         path = pathlib.Path('src') / package / '__init__.py'
         tree = ast.parse(path.read_text())
-        stars = [n.module for n in ast.walk(tree)
-                     if isinstance(n, ast.ImportFrom)
-                     and any(a.name == '*' for a in n.names)]
-        assert stars == [], (
-            f'src/{package}/__init__.py importa con * desde {estrellas}'
-        )
+        stars = [
+            n.module
+            for n in ast.walk(tree)
+            if isinstance(n, ast.ImportFrom)
+            and any(a.name == '*' for a in n.names)
+        ]
+        assert (
+            stars == []
+        ), f'src/{package}/__init__.py importa con * desde {estrellas}'
 
     def test_the_models_star_is_a_measured_divergence_not_an_oversight(self):
         """``models`` SI importa con ``*``, y no es descuido: es el puente.
@@ -201,9 +236,12 @@ class TestTheFacadeDoesNotHideItsProvenance:
         que siga siendo el de ``django.db.models``, no una copia nuestra.
         """
         tree = ast.parse(pathlib.Path('src/models/__init__.py').read_text())
-        stars = [n.module for n in ast.walk(tree)
-                     if isinstance(n, ast.ImportFrom)
-                     and any(a.name == '*' for a in n.names)]
+        stars = [
+            n.module
+            for n in ast.walk(tree)
+            if isinstance(n, ast.ImportFrom)
+            and any(a.name == '*' for a in n.names)
+        ]
         assert stars == ['orm.models'], stars
         assert models.CharField is django_models.CharField
         assert models.ForeignKey is django_models.ForeignKey
@@ -219,14 +257,17 @@ def _declarations_of_src_orm():
         except SyntaxError:
             continue
         for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                 ast.ClassDef)):
+            if isinstance(
+                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+            ):
                 names.add(node.name)
             elif isinstance(node, ast.Assign):
-                names |= {t.id for t in node.targets
-                            if isinstance(t, ast.Name)}
-            elif isinstance(node, ast.AnnAssign) and isinstance(node.target,
-                                                                ast.Name):
+                names |= {
+                    t.id for t in node.targets if isinstance(t, ast.Name)
+                }
+            elif isinstance(node, ast.AnnAssign) and isinstance(
+                node.target, ast.Name
+            ):
                 names.add(node.target.id)
     return names
 
@@ -244,11 +285,13 @@ class TestTheIndexNameServesBothUses:
     """
 
     def test_the_facade_hands_the_table_object_on_a_positional_call(self):
-        assert isinstance(models.Index('(active) WHERE active IS TRUE'),
-                          table_objects.Index)
+        assert isinstance(
+            models.Index('(active) WHERE active IS TRUE'), table_objects.Index
+        )
 
     def test_the_facade_hands_djangos_index_on_a_keyword_call(self):
         """EL CONTROL de los 51: si esto cae, ``Meta.indexes`` deja de recibir
         lo que Django espera y las migraciones del arbol se rompen."""
         assert type(models.Index(fields=['name'], name='x_idx')) is (
-            django_models.Index)
+            django_models.Index
+        )

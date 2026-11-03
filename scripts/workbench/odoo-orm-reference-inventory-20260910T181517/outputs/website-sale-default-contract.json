@@ -1,0 +1,80 @@
+{
+  "reference_file": "addons/website_sale/models/website.py",
+  "reference_sha256": "6015cc2026f519f2c33bd5389fa35a3b40ef1617b7e12ffac6d6b012d6f68dc8",
+  "consumer_file": "addons/website_sale/models/website.py",
+  "consumer_sha256": "8f075de6f3643ff1e1d62515b1b96da216d602ce2ed2638108252193ce20bc03",
+  "migration_file": "addons/website_sale/migrations/0003_websitesalesettings_salesteam_and_more.py",
+  "migration_sha256": "31c092b3daad51a172125d08989b008e9273b75a76742ffc6158ef062a0f4769",
+  "contract_records": [
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "addons/website_sale/models/website.py::Website._default_salesteam_id",
+      "source_location": 35,
+      "owner": "odoo.addons.website_sale.models.website.Website",
+      "symbol_kind": "method/default",
+      "behavior": "Select the optional active website sales team from the same database as the active environment; historical schema changes must not query current runtime models.",
+      "execution_flow": [
+        "Resolve optional local XMLID",
+        "Accept only active target team",
+        "Runtime uses existing database router and IrModelData.ref(using=...)",
+        "Migration adds nullable FK without evaluating runtime callable",
+        "RunPython uses historical apps and schema_editor.connection.alias for local active-team backfill",
+        "Preserve original callable in state, partial index and reverse"
+      ],
+      "inputs_outputs": {
+        "runtime": "No-argument Django default under existing company_scope; selected active team PK or None",
+        "historical": "Historical apps and schema_editor; update only NULL new field values from local valid metadata",
+        "fixtures": "Missing XMLID, active/inactive team, dangling XMLID, wrong-model identity; minimal historical PostgreSQL schema and clone alias, not productive multi-database proof"
+      },
+      "side_effects": "Nullable column/index creation and bounded historical backfill; metadata and team rows preserved; unknown historical target model blocks rather than guesses. Runtime only reads metadata/team.",
+      "dependencies": [
+        "Existing CompanyDatabaseRouter/company_scope",
+        "Existing IrModelData.ref explicit using interface",
+        "Django SeparateDatabaseAndState/RunPython historical models",
+        "Existing sales_team0001/base dependency fields verified by MigrationLoader.project_state"
+      ],
+      "consumers": [
+        "WebsiteSaleSettings.salesteam_id runtime default",
+        "website_sale0003/bootstrap from TASK-API-0383",
+        "website_sale0004 rename/field/index migration, tested unchanged"
+      ],
+      "installed_mechanism": [
+        "addons/website_sale/models/website.py::_default_salesteam_id",
+        "addons/website_sale/migrations/0003_websitesalesettings_salesteam_and_more.py",
+        "Existing Django migration and routing machinery; no second resolver or scheduler"
+      ],
+      "existing_adaptation": "Odoo self.env.ref database binding becomes existing router.db_for_read(IrModelData) passed to existing ref. Historical migration uses local Django model label sales_team.CrmTeam; field storage remains Django nullable FK.",
+      "verification": {
+        "runtime_before": "2FAIL missing explicit alias",
+        "runtime_after": "2PASS",
+        "postgresql": "Four complete forward/reverse0003+0004 cases PASS; wrong-model case rejects/rolls back and preserves old row; no default-alias SQL or live runtime ref during DDL",
+        "negative": "Restoring runtime default in historical DDL only in memory exits1 as expected",
+        "invalid_precondition": "Initial module-wide django_db marker attempted an unprovisioned dummy connection, authentication failed before tests; log retained with ephemeral values redacted, excluded from RED/PASS counts",
+        "project_state": "Required historical fields confirmed via native MigrationLoader, not assumed by fixture",
+        "ci": "Current exact e8ea2938 make2/pytest1;77PASS/1SKIP/1ERROR501.29s; first inherited display_name; later tests NOT_EVALUATED",
+        "full_company": "Without override at ea963f24:380migrations/107FK each in own default/company, metadata and session storage PASS; CI still make2"
+      },
+      "equivalence": "Bounded active-team/default alias and migration behavior verified; native Odoo runtime not executed. Historical migration is Consumer architecture, not claimed literal Odoo schema parity.",
+      "limitations": [
+        "Already-applied migrations/data are not silently rerun or repaired",
+        "Local metadata placement implemented as reviewable proposal; formal review, full login/identity and integration pending",
+        "No full login/cross-company identity/authorization acceptance from session storage checks",
+        "Complete738 and737, Registry/outer-loader integration and PR acceptance remain not_verified"
+      ],
+      "integration": {
+        "task": "TASK-API-0383",
+        "native_identity": {
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "738"
+        },
+        "owner": "codex-module-lifecycle",
+        "code_commit": "e8ea2938d5a5c0547e004eb4971bea5a8c34d924",
+        "task_status": "pending",
+        "acceptance": "not_verified",
+        "merged": false
+      }
+    }
+  ],
+  "scope": "One selected dependency contract. This is not exhaustive semantic or acceptance coverage of the whole website_sale file/addon.",
+  "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219"
+}

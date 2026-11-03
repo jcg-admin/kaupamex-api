@@ -1,0 +1,100 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/transaction.py", line 263, in __exit__
+    connection.commit()
+  File "/workspace/kaupamex-api/src/orm/environments.py", line 710, in cut
+    current.flush()
+  File "/workspace/kaupamex-api/src/orm/environments.py", line 526, in flush
+    public_user = environment.ref('base.public_user')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/environments.py", line 1473, in ref
+    return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_model.py", line 3102, in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_model.py", line 3071, in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/tools/cache.py", line 121, in lookup
+    return self.lookup(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/tools/cache.py", line 185, in lookup
+    value = self.method(*args, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/ir_model.py", line 3059, in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+ValueError: Identificador externo no encontrado: base.public_user
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py", line 475, in _set_autocommit
+    self.connection.autocommit = autocommit
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_connection_base.py", line 186, in autocommit
+    self._set_autocommit(value)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/connection.py", line 497, in _set_autocommit
+    self.set_autocommit(value)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/connection.py", line 502, in set_autocommit
+    self.wait(self._set_autocommit_gen(value))
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/connection.py", line 484, in wait
+    return waiting.wait(gen, self.pgconn.socket, interval=interval)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "psycopg_binary/_psycopg/waiting.pyx", line 219, in psycopg_binary._psycopg.wait_c
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_connection_base.py", line 192, in _set_autocommit_gen
+    yield from self._check_intrans_gen("autocommit")
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_connection_base.py", line 264, in _check_intrans_gen
+    raise e.ProgrammingError(
+psycopg.ProgrammingError: can't change 'autocommit' now: connection in transaction status INTRANS
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-acceptance-close-20261021T234504/probes/fixture_boundary.py", line 17, in <module>
+    with connection.schema_editor() as editor:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 172, in __exit__
+    self.atomic.__exit__(exc_type, exc_value, traceback)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/transaction.py", line 307, in __exit__
+    connection.set_autocommit(True)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/base.py", line 484, in set_autocommit
+    self._set_autocommit(autocommit)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py", line 474, in _set_autocommit
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py", line 475, in _set_autocommit
+    self.connection.autocommit = autocommit
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_connection_base.py", line 186, in autocommit
+    self._set_autocommit(value)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/connection.py", line 497, in _set_autocommit
+    self.set_autocommit(value)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/connection.py", line 502, in set_autocommit
+    self.wait(self._set_autocommit_gen(value))
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/connection.py", line 484, in wait
+    return waiting.wait(gen, self.pgconn.socket, interval=interval)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "psycopg_binary/_psycopg/waiting.pyx", line 219, in psycopg_binary._psycopg.wait_c
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_connection_base.py", line 192, in _set_autocommit_gen
+    yield from self._check_intrans_gen("autocommit")
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_connection_base.py", line 264, in _check_intrans_gen
+    raise e.ProgrammingError(
+django.db.utils.ProgrammingError: can't change 'autocommit' now: connection in transaction status INTRANS
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

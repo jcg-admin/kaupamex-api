@@ -1,0 +1,20 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control in memory only: consumer
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+__________________ test_compute_assigns_instead_of_returning ___________________
+tests/unit/orm/test_res_groups_compute_contract.py:31: in test_compute_assigns_instead_of_returning
+    assert group._compute_full_name() is None
+E   AssertionError: assert 'Operations' is None
+E    +  where 'Operations' = <[ValueError('Compute method failed to assign base.ResGroups(None,).full_name') raised in repr()] method object at 0x7fd03df18f80>()
+E    +    where <[ValueError('Compute method failed to assign base.ResGroups(None,).full_name') raised in repr()] method object at 0x7fd03df18f80> = <[ValueError('Compute method failed to assign base.ResGroups(None,).full_name') raised in repr()] ResGroups object at 0x7fd03e693ad0>._compute_full_name
+___________________ test_first_and_second_reads_compute_once ___________________
+tests/unit/orm/test_res_groups_compute_contract.py:25: in test_first_and_second_reads_compute_once
+    assert group.full_name == 'Operations'
+src/orm/fields.py:1629: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResGroups(None,).full_name
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_compute_assigns_instead_of_returning
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_first_and_second_reads_compute_once
+2 failed in 0.14s

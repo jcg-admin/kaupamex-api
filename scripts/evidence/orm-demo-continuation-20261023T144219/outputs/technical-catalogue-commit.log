@@ -1,0 +1,18 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+OK: sin lazy imports (5 archivos medidos).
+check_canon_language: OK — sin violaciones.
+OK: todo silencio de excepción está justificado (5 archivos medidos).
+OK: identificadores en inglés (5 archivos medidos, 3531 en deuda heredada).
+OK: ningun identificador lleva el nombre de la referencia (5 archivos medidos).
+OK: 0 marca(s) nueva(s) sin forma fija (alcance medido: 5 archivos, 0 marcas informes, 332 congeladas en baseline)
+OK: 0 marca(s) caducada(s) nueva(s) · 0 caducada(s) en 0 clave(s) · 0 viva(s) · 0 de forma no medible (alcance medido: 0 aristas bien formadas; 19 clave(s) en baseline)
+OK: sin secuencias de escape inválidas (alcance medido: 5 archivos pedidos por ruta).
+OK: ningún modelo concreto choca con el lookup (alcance medido: 5 archivos).
+OK: ningun chain_method nuevo sin combine donde la referencia combina (alcance medido: 0 llamada(s); 0 sin contraparte en la referencia, 0 con el metodo no declarado alli, 0 que la referencia no extiende; 8 en baseline)
+check_write_path: 0 hallazgo(s) nuevo(s) (0 en total; 17 en baseline) (alcance medido: 0 par(es) de metodo que escriben en ambos lados, sobre 0 archivo(s) con contraparte de 5 recorrido(s); 0 indeterminado(s) por granularidad de metodo)
+  TASK-API-0265 -> Sembrar el registro de módulos para que la pantalla de aplicaciones se
+[feature/codex-workspace-bootstrap 5a84f1ff] Expose the technical module catalogue
+ Author: Nestor Monroy <46802445+NestorMonroy@users.noreply.github.com>
+ 5 files changed, 245 insertions(+), 1 deletion(-)
+ create mode 100644 src/addons/base/controllers/module_catalogue.py
+ create mode 100644 tests/integration/base/test_module_catalogue_api.py

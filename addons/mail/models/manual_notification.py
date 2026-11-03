@@ -1,4 +1,6 @@
-"""Notificacion manual del admin — envio dirigido a una audiencia (familia ``mail``).
+"""
+Notificacion manual del admin — envio dirigido a una audiencia (familia
+``mail``).
 
 Reubicado desde el addon de proyecto ``notifications`` (en disolucion, slice 3c
 de la familia ``mail``). En Odoo un envio manual del staff a una audiencia se
@@ -13,6 +15,7 @@ Adaptacion de proyecto (no es un modelo Odoo 1:1): se conserva la tabla
 que el buzon en 3a y la preferencia en 3b). Vive en ``mail`` porque el envio
 manual a una audiencia es una preocupacion del backbone de mensajeria.
 """
+
 from django.conf import settings
 from django.db import models
 
@@ -38,15 +41,20 @@ class ManualNotification(TimeStampedModel):
         related_name='manual_notifications_sent',
     )
     recipient_type = models.CharField(
-        max_length=24, choices=RecipientType.choices,
+        max_length=24,
+        choices=RecipientType.choices,
     )
-    recipient_identifier = models.CharField(max_length=150, blank=True, default='')
+    recipient_identifier = models.CharField(
+        max_length=150, blank=True, default=''
+    )
     product_id = models.PositiveIntegerField(null=True, blank=True)
     subject = models.CharField(max_length=200)
     message = models.TextField()
     recipients_count = models.PositiveIntegerField(default=0)
     status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.PENDING,
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
     )
 
     class Meta:

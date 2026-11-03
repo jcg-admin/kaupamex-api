@@ -17,6 +17,7 @@ DEFERIDO (no stub):
 - El recordatorio ``activity_reschedule`` al cambiar ``expiration_date``/
   ``user`` — depende del mismo external ID no portado.
 """
+
 from datetime import date
 
 import calendar
@@ -50,62 +51,106 @@ class FleetVehicleLogContract(MailThread, TimeStampedModel):
     ]
 
     vehicle = fields.Many2one(
-        'fleet.FleetVehicle', on_delete=models.CASCADE,
-        related_name='log_contracts', help_text='Odoo vehicle_id (required).',
+        'fleet.FleetVehicle',
+        null=False, on_delete=models.CASCADE,
+        related_name='log_contracts',
+        help_text='Odoo vehicle_id (required).',
     )
     cost_subtype = fields.Many2one(
-        'fleet.FleetServiceType', on_delete=models.SET_NULL, null=True, blank=True,
+        'fleet.FleetServiceType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='contracts',
-        help_text='Tipo de costo (Odoo cost_subtype_id). El ``domain=[(category, '
-                   '=, contract)]`` de la referencia es un filtro de UI, no se '
-                   'porta como restricción de datos.',
+        help_text=(
+            'Tipo de costo (Odoo cost_subtype_id). El ``domain=[(category, '
+            '=, contract)]`` de la referencia es un filtro de UI, no se '
+            'porta como restricción de datos.'
+        ),
     )
     amount = fields.Monetary(
-        max_digits=12, decimal_places=2, null=True, blank=True, help_text='Odoo amount.',
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Odoo amount.',
     )
-    date = fields.Date(null=True, blank=True, help_text='Fecha del gasto (Odoo date).')
+    date = fields.Date(
+        null=True, blank=True, help_text='Fecha del gasto (Odoo date).'
+    )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='fleet_contracts', help_text='Odoo company_id.',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fleet_contracts',
+        help_text='Odoo company_id.',
     )
     active = fields.Boolean(default=True, help_text='Odoo active.')
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fleet_contracts_responsible',
-        help_text='Responsable (Odoo user_id; el default desde '
-                   'vehicle.manager_id no se auto-aplica — ver sync_defaults).',
+        help_text=(
+            'Responsable (Odoo user_id; el default desde '
+            'vehicle.manager_id no se auto-aplica — ver sync_defaults).'
+        ),
     )
     start_date = fields.Date(
-        null=True, blank=True, help_text='Odoo start_date (default hoy).',
+        null=True,
+        blank=True,
+        help_text='Odoo start_date (default hoy).',
     )
     expiration_date = fields.Date(
-        null=True, blank=True,
-        help_text='Odoo expiration_date (default: un año después de start_date; '
-                   'ver next_year_date()).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Odoo expiration_date (default: un año después de start_date; '
+            'ver next_year_date()).'
+        ),
     )
     insurer = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='fleet_contracts_insured', help_text='Odoo insurer_id.',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fleet_contracts_insured',
+        help_text='Odoo insurer_id.',
     )
     ins_ref = fields.Char(
-        max_length=64, blank=True, default='', help_text='Odoo ins_ref.',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text='Odoo ins_ref.',
     )
     state = fields.Selection(
-        max_length=7, choices=STATES, default=STATE_OPEN, help_text='Odoo state.',
+        max_length=7,
+        choices=STATES,
+        default=STATE_OPEN,
+        help_text='Odoo state.',
     )
     notes = fields.Html(blank=True, default='', help_text='Odoo notes.')
     cost_generated = fields.Monetary(
-        max_digits=12, decimal_places=2, null=True, blank=True,
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text='Odoo cost_generated.',
     )
     cost_frequency = fields.Selection(
-        max_length=7, choices=FREQUENCIES, default='monthly',
+        max_length=7,
+        choices=FREQUENCIES,
+        default='monthly',
         help_text='Odoo cost_frequency.',
     )
     services = fields.Many2many(
-        'fleet.FleetServiceType', blank=True,
+        'fleet.FleetServiceType',
+        blank=True,
         db_table='fleet_vehicle_log_contract_service_rel',
-        related_name='contracts_included_in', help_text='Odoo service_ids.',
+        related_name='contracts_included_in',
+        help_text='Odoo service_ids.',
     )
 
     class Meta:
@@ -130,7 +175,9 @@ class FleetVehicleLogContract(MailThread, TimeStampedModel):
         que hace ``relativedelta``.
         """
         year = start_date.year + 1
-        day = min(start_date.day, calendar.monthrange(year, start_date.month)[1])
+        day = min(
+            start_date.day, calendar.monthrange(year, start_date.month)[1]
+        )
         return start_date.replace(year=year, day=day)
 
     @property
@@ -151,14 +198,20 @@ class FleetVehicleLogContract(MailThread, TimeStampedModel):
 
         0 si está vencido y sigue abierto; -1 si está cerrado.
         """
-        if self.expiration_date and self.state in (self.STATE_OPEN, self.STATE_EXPIRED):
+        if self.expiration_date and self.state in (
+            self.STATE_OPEN,
+            self.STATE_EXPIRED,
+        ):
             diff = (self.expiration_date - date.today()).days
             return diff if diff > 0 else 0
         return -1
 
     @property
     def expires_today(self):
-        if self.expiration_date and self.state in (self.STATE_OPEN, self.STATE_EXPIRED):
+        if self.expiration_date and self.state in (
+            self.STATE_OPEN,
+            self.STATE_EXPIRED,
+        ):
             return (self.expiration_date - date.today()).days == 0
         return False
 
@@ -169,7 +222,8 @@ class FleetVehicleLogContract(MailThread, TimeStampedModel):
         if not self.vehicle_id:
             return False
         qs = type(self).objects.filter(
-            vehicle_id=self.vehicle_id, state=self.STATE_OPEN,
+            vehicle_id=self.vehicle_id,
+            state=self.STATE_OPEN,
             expiration_date__gte=date.today(),
         )
         if self.pk:
@@ -197,7 +251,10 @@ class FleetVehicleLogContract(MailThread, TimeStampedModel):
         today = date.today()
         if today < self.start_date:
             self.state = self.STATE_FUTUR
-        elif not self.expiration_date or self.start_date <= today <= self.expiration_date:
+        elif (
+            not self.expiration_date
+            or self.start_date <= today <= self.expiration_date
+        ):
             self.state = self.STATE_OPEN
         else:
             self.state = self.STATE_EXPIRED

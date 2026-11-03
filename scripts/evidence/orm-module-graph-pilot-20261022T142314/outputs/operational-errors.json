@@ -1,0 +1,14 @@
+[
+  {
+    "operation": "Read-only native store lookup",
+    "exit_code": 1,
+    "cause": "Earlier call passed database filename to connect_readonly, which expects directory",
+    "resolution": "Correct directory resolved through resolve_store_dir(create=False); TaskGet exports subsequently succeeded; no store writes"
+  },
+  {
+    "operation": "Import native manifest verifier",
+    "exit_code": 1,
+    "cause": "missing_keys belongs to session.job_runs, not workbench.manifest",
+    "resolution": "Imported existing native interface from actual owner; settlement exit1 preserved"
+  }
+]

@@ -10,6 +10,7 @@ clase tenía el **resolutor** (leer un identificador externo) y un
 Cuatro bloques: la cabecera, el escritor en lote, el resolutor memorizado y
 el barrido de fin de carga.
 """
+
 import pytest
 
 from addons.base.models import ResCompany
@@ -40,20 +41,39 @@ class TestHeaderClassAttributes:
 class TestPortedSymbolNames:
     """Los símbolos del cargador, con el guion bajo de la fuente."""
 
-    @pytest.mark.parametrize('name', [
-        '_compute_complete_name', '_compute_reference', '_compute_display_name',
-        '_xmlid_lookup', '_xmlid_to_res_model_res_id', '_xmlid_to_res_id',
-        'check_object_reference', 'copy_data', '_lookup_xmlids',
-        '_update_xmlids', '_build_insert_xmlids_values',
-        '_build_update_xmlids_query', '_load_xmlid', 'toggle_noupdate',
-        '_process_end', '_process_end_unlink_record', '_module_data_uninstall',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            '_compute_complete_name',
+            '_compute_reference',
+            '_compute_display_name',
+            '_xmlid_lookup',
+            '_xmlid_to_res_model_res_id',
+            '_xmlid_to_res_id',
+            'check_object_reference',
+            'copy_data',
+            '_lookup_xmlids',
+            '_update_xmlids',
+            '_build_insert_xmlids_values',
+            '_build_update_xmlids_query',
+            '_load_xmlid',
+            'toggle_noupdate',
+            '_process_end',
+            '_process_end_unlink_record',
+            '_module_data_uninstall',
+        ],
+    )
     def test_the_reference_symbol_is_declared(self, name):
         assert callable(getattr(IrModelData, name))
 
-    @pytest.mark.parametrize('promoted', [
-        'xmlid_lookup', 'xmlid_to_res_model_res_id', 'xmlid_to_res_id',
-    ])
+    @pytest.mark.parametrize(
+        'promoted',
+        [
+            'xmlid_lookup',
+            'xmlid_to_res_model_res_id',
+            'xmlid_to_res_id',
+        ],
+    )
     def test_the_promoted_name_is_gone(self, promoted):
         # porte-completo-no-parcial.md: quitar el guion bajo publica lo
         # reservado. Los tres se despromovieron en esta tarea.
@@ -68,12 +88,16 @@ class TestPortedSymbolNames:
 
     def test_the_lookup_is_memoised_like_the_reference(self):
         # odoo19c: :2270 — @tools.ormcache('xmlid')
-        assert isinstance(IrModelData._xmlid_lookup.__func__.__cache__, ormcache)
+        assert isinstance(
+            IrModelData._xmlid_lookup.__func__.__cache__, ormcache
+        )
 
     def test_the_key_carries_the_db_alias(self):
         # DIVERGENCIA DE CLAVE declarada: aquí el registry es el módulo.
         assert IrModelData._xmlid_lookup.__func__.__cache__.args == (
-            'xmlid', 'using')
+            'xmlid',
+            'using',
+        )
 
 
 @pytest.mark.django_db
@@ -86,27 +110,36 @@ class TestUpdateXmlids:
     def test_it_creates_the_row(self):
         registry.clear_cache('default')
         company = self._company()
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_one', 'record': company},
-        ])
+        IrModelData._update_xmlids(
+            [
+                {'xml_id': 'base.imd_probe_one', 'record': company},
+            ]
+        )
         row = IrModelData.objects.get(module='base', name='imd_probe_one')
         assert (row.model, row.res_id) == ('base.ResCompany', company.pk)
 
     def test_it_fills_the_audit_columns(self):
         registry.clear_cache('default')
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_audit', 'record': self._company('imd-aud')},
-        ])
+        IrModelData._update_xmlids(
+            [
+                {
+                    'xml_id': 'base.imd_probe_audit',
+                    'record': self._company('imd-aud'),
+                },
+            ]
+        )
         row = IrModelData.objects.get(module='base', name='imd_probe_audit')
         assert row.created_at is not None and row.updated_at is not None
 
     def test_it_repoints_instead_of_duplicating(self):
         registry.clear_cache('default')
         first, second = self._company('imd-a'), self._company('imd-b')
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_move', 'record': first}])
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_move', 'record': second}])
+        IrModelData._update_xmlids(
+            [{'xml_id': 'base.imd_probe_move', 'record': first}]
+        )
+        IrModelData._update_xmlids(
+            [{'xml_id': 'base.imd_probe_move', 'record': second}]
+        )
         rows = IrModelData.objects.filter(module='base', name='imd_probe_move')
         assert rows.count() == 1
         assert rows.first().res_id == second.pk
@@ -115,42 +148,65 @@ class TestUpdateXmlids:
         """El ``AND NOT ir_model_data.noupdate`` de la fuente, medido."""
         registry.clear_cache('default')
         first, second = self._company('imd-p1'), self._company('imd-p2')
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_keep', 'record': first,
-             'noupdate': True}])
         IrModelData._update_xmlids(
-            [{'xml_id': 'base.imd_probe_keep', 'record': second}], update=True)
+            [
+                {
+                    'xml_id': 'base.imd_probe_keep',
+                    'record': first,
+                    'noupdate': True,
+                }
+            ]
+        )
+        IrModelData._update_xmlids(
+            [{'xml_id': 'base.imd_probe_keep', 'record': second}], update=True
+        )
         row = IrModelData.objects.get(module='base', name='imd_probe_keep')
-        assert row.res_id == first.pk        # la bandera lo protegió
+        assert row.res_id == first.pk  # la bandera lo protegió
 
     def test_without_noupdate_an_update_repoints(self):
         registry.clear_cache('default')
         first, second = self._company('imd-q1'), self._company('imd-q2')
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_move2', 'record': first}])
         IrModelData._update_xmlids(
-            [{'xml_id': 'base.imd_probe_move2', 'record': second}], update=True)
-        assert IrModelData.objects.get(
-            module='base', name='imd_probe_move2').res_id == second.pk
+            [{'xml_id': 'base.imd_probe_move2', 'record': first}]
+        )
+        IrModelData._update_xmlids(
+            [{'xml_id': 'base.imd_probe_move2', 'record': second}], update=True
+        )
+        assert (
+            IrModelData.objects.get(
+                module='base', name='imd_probe_move2'
+            ).res_id
+            == second.pk
+        )
 
     def test_it_registers_the_xmlid_as_loaded(self):
         registry.loaded_xmlids.clear()
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_loaded', 'record': self._company('imd-l')}])
+        IrModelData._update_xmlids(
+            [
+                {
+                    'xml_id': 'base.imd_probe_loaded',
+                    'record': self._company('imd-l'),
+                }
+            ]
+        )
         assert 'base.imd_probe_loaded' in registry.loaded_xmlids
 
     def test_it_seeds_the_lookup_cache(self):
         """La optimización de la fuente: sembrar en vez de vaciar."""
         registry.clear_cache('default')
         company = self._company('imd-seed')
-        IrModelData._update_xmlids([
-            {'xml_id': 'base.imd_probe_seed', 'record': company}])
+        IrModelData._update_xmlids(
+            [{'xml_id': 'base.imd_probe_seed', 'record': company}]
+        )
         # La row se borra por SQL para que el resolutor no pueda volver a
         # leerla; si responde, salió de la caché sembrada.
         IrModelData.objects.filter(
-            module='base', name='imd_probe_seed').delete()
+            module='base', name='imd_probe_seed'
+        ).delete()
         assert IrModelData._xmlid_lookup('base.imd_probe_seed') == (
-            'base.ResCompany', company.pk)
+            'base.ResCompany',
+            company.pk,
+        )
 
     def test_an_empty_list_does_nothing(self):
         assert IrModelData._update_xmlids([]) is None
@@ -169,8 +225,9 @@ class TestLookupXmlids:
     """``_lookup_xmlids`` — el LEFT JOIN que distingue dos ausencias."""
 
     def test_a_missing_xmlid_is_absent_from_the_result(self):
-        assert IrModelData._lookup_xmlids(
-            ['base.imd_absent'], ResCompany) == []
+        assert (
+            IrModelData._lookup_xmlids(['base.imd_absent'], ResCompany) == []
+        )
 
     def test_an_empty_input_short_circuits(self):
         assert IrModelData._lookup_xmlids([], ResCompany) == []
@@ -211,11 +268,12 @@ class TestProcessEnd:
         registry.clear_cache('default')
         company = ResCompany.objects.create(code='imd-drop', name='Drop')
         IrModelData.set_xmlid(company, 'probe_mod.imd_drop')
-        registry.loaded_xmlids.clear()        # la recarga ya no lo declara
+        registry.loaded_xmlids.clear()  # la recarga ya no lo declara
         IrModelData._process_end(['probe_mod'])
         assert not ResCompany.objects.filter(pk=company.pk).exists()
         assert not IrModelData.objects.filter(
-            module='probe_mod', name='imd_drop').exists()
+            module='probe_mod', name='imd_drop'
+        ).exists()
 
     def test_noupdate_protects_the_record_from_the_sweep(self):
         registry.clear_cache('default')
@@ -238,7 +296,9 @@ class TestResolverAndToggle:
         company = ResCompany.objects.create(code='imd-chk', name='Chk')
         IrModelData.set_xmlid(company, 'base.imd_chk')
         assert IrModelData.check_object_reference('base', 'imd_chk') == (
-            'base.ResCompany', company.pk)
+            'base.ResCompany',
+            company.pk,
+        )
 
     def test_toggle_noupdate_flips_the_flag(self):
         registry.clear_cache('default')
@@ -246,8 +306,10 @@ class TestResolverAndToggle:
         IrModelData.set_xmlid(company, 'base.imd_tog')
         with sudo():
             IrModelData.toggle_noupdate('base.ResCompany', company.pk)
-        assert IrModelData.objects.get(
-            module='base', name='imd_tog').noupdate is True
+        assert (
+            IrModelData.objects.get(module='base', name='imd_tog').noupdate
+            is True
+        )
 
     def test_toggle_noupdate_inverts_a_second_time(self):
         registry.clear_cache('default')
@@ -255,8 +317,10 @@ class TestResolverAndToggle:
         IrModelData.set_xmlid(company, 'base.imd_tog2', noupdate=True)
         with sudo():
             IrModelData.toggle_noupdate('base.ResCompany', company.pk)
-        assert IrModelData.objects.get(
-            module='base', name='imd_tog2').noupdate is False
+        assert (
+            IrModelData.objects.get(module='base', name='imd_tog2').noupdate
+            is False
+        )
 
     def test_toggle_noupdate_flips_every_xmlid_of_the_record(self):
         # La fuente itera el `search` entero: un mismo registro puede llevar
@@ -267,15 +331,22 @@ class TestResolverAndToggle:
         IrModelData.set_xmlid(company, 'sale.imd_two_b')
         with sudo():
             IrModelData.toggle_noupdate('base.ResCompany', company.pk)
-        assert list(IrModelData.objects.filter(
-            model='base.ResCompany', res_id=company.pk,
-        ).order_by('name').values_list('noupdate', flat=True)) == [True, True]
+        assert list(
+            IrModelData.objects.filter(
+                model='base.ResCompany',
+                res_id=company.pk,
+            )
+            .order_by('name')
+            .values_list('noupdate', flat=True)
+        ) == [True, True]
 
     def test_toggle_noupdate_on_a_record_without_an_xmlid_is_a_noop(self):
         company = ResCompany.objects.create(code='imd-none', name='None')
         with sudo():
-            assert IrModelData.toggle_noupdate(
-                'base.ResCompany', company.pk) is None
+            assert (
+                IrModelData.toggle_noupdate('base.ResCompany', company.pk)
+                is None
+            )
 
     def test_toggle_noupdate_requires_write_access_on_the_target(self):
         # CONTROL que puede fallar (sub-patrón D): la guarda de la fuente es
@@ -287,8 +358,10 @@ class TestResolverAndToggle:
         IrModelData.set_xmlid(company, 'base.imd_deny')
         with pytest.raises(AccessError):
             IrModelData.toggle_noupdate('base.ResCompany', company.pk)
-        assert IrModelData.objects.get(
-            module='base', name='imd_deny').noupdate is False
+        assert (
+            IrModelData.objects.get(module='base', name='imd_deny').noupdate
+            is False
+        )
 
     def test_load_xmlid_marks_it_as_loaded(self):
         registry.clear_cache('default')
@@ -305,17 +378,20 @@ class TestResolverAndToggle:
         assert 'base.imd_never' not in registry.loaded_xmlids
 
     def test_copy_data_gives_the_copy_a_distinct_name(self):
-        row = IrModelData(module='base', name='imd_orig',
-                          model='base.ResCompany', res_id=1)
+        row = IrModelData(
+            module='base', name='imd_orig', model='base.ResCompany', res_id=1
+        )
         assert IrModelData.copy_data(row)['name'].startswith('imd_orig_')
         assert IrModelData.copy_data(row)['name'] != 'imd_orig'
 
     def test_display_name_falls_back_to_the_complete_name(self):
-        row = IrModelData(module='base', name='imd_x', model='base.Absent',
-                           res_id=1)
+        row = IrModelData(
+            module='base', name='imd_x', model='base.Absent', res_id=1
+        )
         assert row._compute_display_name() == 'base.imd_x'
 
     def test_reference_is_the_model_id_pair(self):
-        row = IrModelData(module='base', name='imd_y',
-                           model='base.ResCompany', res_id=7)
+        row = IrModelData(
+            module='base', name='imd_y', model='base.ResCompany', res_id=7
+        )
         assert row._compute_reference() == 'base.ResCompany,7'

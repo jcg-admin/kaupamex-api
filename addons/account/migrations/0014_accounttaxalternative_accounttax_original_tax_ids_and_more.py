@@ -26,7 +26,10 @@ class Migration(migrations.Migration):
                 (
                     "dest_tax",
                     models.ForeignKey(
-                        help_text='Impuesto de reemplazo — "this Replacement tax" en la referencia (Odoo dest_tax_id).',
+                        help_text=(
+                            'Impuesto de reemplazo — "this Replacement tax" en'
+                            ' la referencia (Odoo dest_tax_id).'
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="+",
                         to="account.accounttax",
@@ -35,7 +38,10 @@ class Migration(migrations.Migration):
                 (
                     "src_tax",
                     models.ForeignKey(
-                        help_text="Impuesto doméstico a reemplazar (Odoo src_tax_id).",
+                        help_text=(
+                            "Impuesto doméstico a reemplazar (Odoo"
+                            " src_tax_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="+",
                         to="account.accounttax",
@@ -53,7 +59,14 @@ class Migration(migrations.Migration):
             name="original_tax_ids",
             field=models.ManyToManyField(
                 blank=True,
-                help_text='Impuestos que ESTE reemplaza al aplicar cualquiera de las posiciones fiscales estipuladas (Odoo original_tax_ids, string "Replaces"). Es la mitad de escritura del mecanismo de sustitución: sin ella, AccountFiscalPosition._compute_tax_map devuelve siempre {} (H-API-322).',
+                help_text=(
+                    'Impuestos que ESTE reemplaza al aplicar cualquiera de las'
+                    ' posiciones fiscales estipuladas (Odoo original_tax_ids,'
+                    ' string "Replaces"). Es la mitad de escritura del'
+                    ' mecanismo de sustitución: sin ella,'
+                    ' AccountFiscalPosition._compute_tax_map devuelve siempre'
+                    ' {} (H-API-322).'
+                ),
                 related_name="+",
                 through="account.AccountTaxAlternative",
                 through_fields=("dest_tax", "src_tax"),
@@ -66,7 +79,11 @@ class Migration(migrations.Migration):
             name="replacing_tax_ids",
             field=models.ManyToManyField(
                 editable=False,
-                help_text='Reverso de original_tax_ids: impuestos que reemplazan a ESTE (Odoo replacing_tax_ids, string "Replaced by", readonly=True en la referencia — de ahí editable=False).',
+                help_text=(
+                    'Reverso de original_tax_ids: impuestos que reemplazan a'
+                    ' ESTE (Odoo replacing_tax_ids, string "Replaced by",'
+                    ' readonly=True en la referencia — de ahí editable=False).'
+                ),
                 related_name="+",
                 through="account.AccountTaxAlternative",
                 through_fields=("src_tax", "dest_tax"),
@@ -77,7 +94,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="accounttaxalternative",
             constraint=models.UniqueConstraint(
-                fields=("src_tax", "dest_tax"), name="unique_account_tax_alternative"
+                fields=("src_tax", "dest_tax"),
+                name="unique_account_tax_alternative",
             ),
         ),
     ]

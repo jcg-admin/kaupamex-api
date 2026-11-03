@@ -1,0 +1,11 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+== invalidate_all
+   declara      : /workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/environments.py:357  Environment.invalidate_all
+   bases con el : 0
+   lo llaman    : 2
+                  /workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/models.py:4194  BaseModel.unlink
+                  /workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py:383  Registry._setup_models__
+   hermanos     : 1  ['Environment']
+
+reference_flow: 1 simbolo(s) (alcance medido: 23 archivo(s) .py sobre 1 raiz(ces): /workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm; 4 parseado(s) tras el prefiltro por nombre)
+Ciega a: la llamada dinamica (getattr, despacho por cadena) no deja arista; la llamada desde XML, CSV o data no se lee: el alcance es .py; el receptor de una llamada por atributo no se resuelve a su clase, asi que un homonimo de otra clase cuenta como llamador; un llamador fuera de las raices medidas no aparece.

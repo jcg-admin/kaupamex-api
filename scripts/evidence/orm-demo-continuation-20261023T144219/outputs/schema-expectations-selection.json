@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "Provider Python stdin with full actual claims ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.schema_expectations",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile two historical fixtures against demonstrated pinned Field.column_type/column_order and native _auto_init store guard. Preserve stable64nodeids, direct no-SQL-type API behavior and separate actual migrated-schema absence control; no production property changes.",
+      "verify": "Full existing conversion/update_db tests on owned PostgreSQL; exact64replay and per-row provenance, negative stored-column coverage retained",
+      "route": "local",
+      "owned": [
+        "tests/unit/orm/test_field_conversion.py",
+        "tests/unit/orm/test_field_update_db.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 436,
+  "selected": [
+    "TASK-GEN-0633.schema_expectations"
+  ],
+  "admission": "Native1203 owned pending and description legitimately reconciled after extracted-body contradiction proof; source scope test fixtures only, no 0397/unowned execution or accepted dependency state invented",
+  "scope": "Bounded local candidate, not global population coverage or managed local-model dispatch"
+}

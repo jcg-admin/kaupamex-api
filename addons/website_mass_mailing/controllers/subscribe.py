@@ -5,6 +5,7 @@ POST /api/v2/newsletter/subscriptions/. Persistencia delegada en
 PENDING/CONFIRMED/UNSUBSCRIBED se deriva de la máquina por-lista; el salt
 ``newsletter-confirm`` se conserva (enlaces ya enviados / datos migrados).
 """
+
 from django.conf import settings
 from django.core import mail, signing
 from drf_spectacular.utils import extend_schema
@@ -34,7 +35,8 @@ def _send_confirmation_email(email: str, token: str) -> None:
         subject='Confirma tu suscripción al Newsletter',
         message=f'Haz click para confirmar: {confirm_url}',
         from_email=CompanySetting.get_setting(
-            'newsletter.from_email', NEWSLETTER_FROM_EMAIL_DEFAULT,
+            'newsletter.from_email',
+            NEWSLETTER_FROM_EMAIL_DEFAULT,
         ),
         recipient_list=[email],
         fail_silently=True,
@@ -43,6 +45,7 @@ def _send_confirmation_email(email: str, token: str) -> None:
 
 class NewsletterSubscribeView(APIView):
     """POST /api/v2/newsletter/subscriptions/ — UC-NEW-01."""
+
     permission_classes = [AllowAny]
     # H-CICLO26-02: throttle para evitar flooding de suscripciones y envíos
     # masivos de emails de confirmación desde una IP.
@@ -67,7 +70,9 @@ class NewsletterSubscribeView(APIView):
                 confirm_token = signing.dumps(email, salt='newsletter-confirm')
                 mm.reopt_in(sub, confirm_token)
                 _send_confirmation_email(email, confirm_token)
-                return Response(mm.serialize_item(sub), status=status.HTTP_200_OK)
+                return Response(
+                    mm.serialize_item(sub), status=status.HTTP_200_OK
+                )
             # Ya suscrito (PENDING o CONFIRMED) — idempotente.
             return Response(mm.serialize_item(sub), status=status.HTTP_200_OK)
 

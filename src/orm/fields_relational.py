@@ -90,6 +90,7 @@ donde el eje ``store`` queda medido tipo por tipo.
 de las 54 declaraciones de producto. Ver la rama en :func:`Many2one`.
 """
 import collections.abc
+import functools
 import itertools
 
 from django.apps import apps
@@ -97,6 +98,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields.related import RelatedField
 
+from orm.commands import Command, apply_one2many_commands, is_command_list
 from orm.environments import env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
@@ -107,9 +109,11 @@ from orm.fields_nonstored import (
 from django.db.models.fields.related import lazy_related_operation
 from orm.identifiers import NewId
 from orm.model_classes import is_transient
-from orm.registry import IR_MODELS, model_by_name, name_of, sentinel_label
-from orm.utils import display_name_of, model_of, record_ids
-from tools.misc import SENTINEL, unique
+from orm.registry import (IR_MODELS, field_inverses, model_by_key, model_by_name,
+                          name_of, sentinel_label)
+from orm.utils import (display_name_of, model_field_registry, model_of,
+                       record_ids)
+from tools.misc import SENTINEL, OrderedSet, unique
 from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access',
@@ -189,7 +193,7 @@ class One2many:
                                             cinco comandos no pasan por el
                                             campo: ``Command`` aqui es
                                             ejecutivo (:ref:`h-api-589`, tarea
-                                            **#345**)
+                                            **TASK-API-0190**)
     ``read``                                **divergencia de mecanismo** — la
                                             fuente llena su cache por lote; aqui
                                             la lectura es el manager del
@@ -224,7 +228,8 @@ class One2many:
 
     def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
                  string=None, domain=None, context=None,
-                 bypass_search_access=False, related=None, **_ignored):
+                 bypass_search_access=False, related=None, related_sudo=True,
+                 compute=None, inverse=None, **_ignored):
         #: Se acepta con nombre para que **no** caiga en ``**_ignored``, que es
         #: como se tragaba antes: la declaración se escribía igual que la de la
         #: fuente (``fields.One2many(related='employee_id.subordinate_ids')``),
@@ -239,6 +244,15 @@ class One2many:
         #: cadena es el manager del reverso, que no necesita comodelo ni
         #: inverso declarados — es lo que la referencia declara, sin ellos.
         self.related = related
+        #: ≙ ``compute``/``inverse`` del campo (``odoo19c: odoo/orm/fields.py``):
+        #: un One2many calculado no se lee por su inverso sino por su método,
+        #: y su escritura la propaga ``inverse``. Se aceptaban en ``**_ignored``.
+        self.compute = compute
+        self.inverse = inverse
+        #: ≙ ``related_sudo`` (``odoo19c: odoo/orm/fields.py``, defecto
+        #: ``True``): un ``related`` sin ``sudo`` busca con la regla de cada
+        #: comodelo intermedio (``any``), uno con ``sudo`` la salta (``any!``).
+        self.related_sudo = bool(related_sudo)
         self.comodel_name = comodel_name
         self.inverse_name = inverse_name
         #: Los tres que la fuente documenta en su docstring (``:852-860``) y
@@ -258,6 +272,26 @@ class One2many:
         self.copy = bool(copy)
         self.string = string
         self.name = None
+
+    #: Un One2many es relacional: una ruta ``campo.subcampo`` lo atraviesa.
+    is_relation = True
+    #: ≙ ``_Relational`` de la fuente: lo leen los optimizadores de ``any``.
+    relational = True
+    one_to_many = True
+    many_to_many = False
+
+    @property
+    def related_model(self):
+        """El comodelo — el declarado o, en un ``related``, el del último
+        eslabón de la ruta (≙ ``comodel_name`` que ``setup_related`` copia
+        del destino, ``odoo19c: odoo/orm/fields.py:643-647``)."""
+        if self.comodel_name:
+            return model_by_key(self.comodel_name) or apps.get_model(
+                self.comodel_name)
+        current = apps.get_model(self.model_name)
+        for part in (self.related or '').split('.'):
+            current = model_field_registry(current)[part].related_model
+        return current
 
     @property
     def _description_relation_field(self):
@@ -362,7 +396,10 @@ class One2many:
         Un ``FieldDoesNotExist`` pelado de Django no dice cual de los dos
         nombres esta mal: si el del comodelo o el del inverso.
         """
-        comodel = apps.get_model(self.comodel_name)
+        # El comodelo viene escrito como en la fuente (``'test_orm.message'``)
+        # o como label de Django; ``model_by_key`` resuelve los dos.
+        comodel = model_by_key(self.comodel_name) or apps.get_model(
+            self.comodel_name)
         try:
             return comodel, comodel._meta.get_field(self.inverse_name)
         except FieldDoesNotExist:
@@ -370,10 +407,77 @@ class One2many:
                 f'{self.inverse_name!r} declared in {self!r} does not exist '
                 f'on {self.comodel_name!r}.') from None
 
+    def _computed_key(self):
+        return f'_computed_one2many_{self.name}'
+
+    def _comodel(self):
+        return model_by_key(self.comodel_name) or apps.get_model(
+            self.comodel_name)
+
+    def _get_computed(self, instance):
+        """El valor de un One2many calculado: el del almacén de la fila, o el
+        que deja su método — ≙ ``Field.__get__`` → ``compute_value`` de un
+        campo no almacenado."""
+        key = self._computed_key()
+        if key not in instance.__dict__:
+            instance.__dict__['_computing_one2many'] = True
+            try:
+                getattr(instance, self.compute)()
+            finally:
+                instance.__dict__.pop('_computing_one2many', None)
+        value = instance.__dict__.get(key)
+        if value is None:
+            value = self._comodel()._from_ids(get_environment(), (), ())
+        return value
+
+    def _set_computed(self, instance, value):
+        """Escribir un One2many calculado — ≙ ``write`` sobre un campo con
+        ``inverse``: los comandos se aplican al valor actual, que queda en el
+        almacén de la fila, y ``inverse`` lo propaga."""
+        comodel = self._comodel()
+        if instance.__dict__.get('_computing_one2many'):
+            instance.__dict__[self._computed_key()] = value
+            return
+        current = list(self._get_computed(instance).ids)
+        if is_command_list(value):
+            for code, target, payload in value:
+                if code == Command.CREATE:
+                    current.append(comodel.create(payload).id)
+                elif code == Command.UPDATE:
+                    comodel.browse([target]).write(payload)
+                elif code in (Command.DELETE, Command.UNLINK):
+                    current = [i for i in current if i != target]
+                    if code == Command.DELETE:
+                        comodel.browse([target]).unlink()
+                elif code == Command.LINK:
+                    current.append(target)
+                elif code == Command.CLEAR:
+                    current = []
+                elif code == Command.SET:
+                    current = [getattr(i, 'id', i) for i in payload]
+        else:
+            current = list(getattr(value, '_ids', None)
+                           or [getattr(i, 'pk', i) for i in (value or ())])
+        ids = tuple(dict.fromkeys(current))
+        instance.__dict__[self._computed_key()] = comodel._from_ids(
+            get_environment(), ids, ids)
+        if self.inverse:
+            getattr(instance, self.inverse)()
+
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
+        if self.compute:
+            return self._get_computed(instance)
+        if self.related:
+            return self._get_related(instance)
         comodel, inverse = self._inverse_field()
+        if getattr(inverse, 'store', True) is False:
+            # ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``):
+            # el One2many se lee filtrando por su inverso, y un inverso sin
+            # columna no tiene SQL que emitir.
+            raise ValueError(
+                f'Cannot convert {inverse} to SQL because it is not stored')
         accessor = inverse.remote_field.get_accessor_name()
         if accessor is not None and hasattr(instance, accessor):
             # El manager del reverso: trae ademas la escritura (``add``,
@@ -382,6 +486,29 @@ class One2many:
         # El inverso apunta a otro modelo, o su reverso esta suprimido con
         # ``related_name='+'``. Queda la definicion literal de la fuente.
         return comodel._default_manager.filter(**{self.inverse_name: instance})
+
+    def _get_related(self, instance):
+        """El valor de un ``related=`` — ≙ ``Field._compute_related``
+        (``odoo19c: odoo/orm/fields.py``): se recorre la ruta desde el
+        registro y el valor es el del último eslabón; un eslabón vacío da el
+        conjunto vacío del comodelo.
+
+        Divergencia de forma: un comodelo que no es ``BaseModel`` devuelve su
+        ``QuerySet`` (el gestor del reverso, materializado con ``all()``),
+        que es como este árbol representa un conjunto de esas filas.
+        """
+        *path, last = self.related.split('.')
+        model, value = type(instance), instance
+        for part in path:
+            model = model._meta.get_field(part).related_model
+            value = getattr(value, part) if value else None
+        comodel = model._meta.get_field(last).related_model
+        if not value:
+            if isinstance(comodel, type) and hasattr(comodel, '_from_ids'):
+                return comodel._from_ids(get_environment(), (), ())
+            return comodel._default_manager.none()
+        value = getattr(value, last)
+        return value.all() if hasattr(value, 'get_queryset') else value
 
     def _deletes_the_leftover(self, inverse):
         """Que hacer con el hijo que se queda fuera — ≙ ``write_real:975-979``.
@@ -409,13 +536,19 @@ class One2many:
         lineas dadas, y las que sobran pasan por ``unlink``. ``CLEAR`` es el
         mismo camino con la lista vacia.
 
-        Los otros cinco comandos —``CREATE``, ``UPDATE``, ``DELETE``,
-        ``UNLINK``, ``LINK``— no pasan por aqui: en este arbol ``Command`` es
-        **ejecutivo** (escribe al llamarlo) en vez de ser un valor diferido que
-        el ORM interpreta. Esa divergencia es de la clase entera y esta
-        registrada en :ref:`h-api-589` (tarea **#345**), no de este metodo.
+        Una lista de triples de ``Command`` la interpreta
+        :func:`~orm.commands.apply_one2many_commands` sobre el ``Many2one``
+        inverso (:ref:`h-api-1132`).
         """
+        if self.compute:
+            self._set_computed(instance, value)
+            return
         comodel, inverse = self._inverse_field()
+        if is_command_list(value):
+            # Los siete comandos de la fuente — ≙ ``One2many.write_real``
+            # (``odoo19c: odoo/orm/fields_relational.py:969``).
+            apply_one2many_commands(instance, inverse.remote_field, value)
+            return
         nuevos = list(value or ())
         vivos = [obj.pk for obj in nuevos if obj.pk is not None]
         sobrantes = (comodel._default_manager
@@ -493,6 +626,212 @@ def _mark_check_company(field, check_company):
     return field
 
 
+#: Los posicionales de ``Many2many`` en la fuente, tras el comodelo —
+#: ``odoo19c: odoo/orm/fields_relational.py`` (``Many2many.__init__``):
+#: ``(comodel_name, relation, column1, column2, string)``.
+_MANY2MANY_SOURCE_POSITIONAL = ('relation', 'column1', 'column2', 'string')
+
+#: ``(apps, relation) -> Many2manyField`` — el extremo que materializa la
+#: tabla. Se indexa por el registro de aplicaciones porque el estado de una
+#: migración construye sus propias clases con los mismos campos.
+_RELATION_OWNERS = {}
+
+
+def _model_keys(model):
+    """Los nombres por los que se reconoce un modelo: ``_name`` y etiqueta."""
+    return {name_of(model), model._meta.label_lower} - {None}
+
+
+def _target_key(field):
+    """El destino declarado: el ``_name`` de la fuente si lo hay.
+
+    Mientras el destino no existe, ``remote_field.model`` es una etiqueta
+    centinela (:func:`_deferred_comodel`); ``comodel_name`` conserva el nombre
+    que el autor escribió.
+    """
+    declared = getattr(field, 'comodel_name', None)
+    if declared:
+        return declared
+    model = field.remote_field.model
+    return model.lower() if isinstance(model, str) else model._meta.label_lower
+
+
+class Many2manyField(models.ManyToManyField):
+    """``ManyToManyField`` con la tabla y las columnas que la fuente nombra.
+
+    ≙ ``Many2many(comodel_name, relation, column1, column2)``: ``relation``
+    es la tabla, ``column1`` la columna que apunta al modelo que declara el
+    campo y ``column2`` la del comodelo. Django nombra él mismo la tabla y las
+    columnas de la intermedia que genera; aquí ``relation`` se entrega como
+    ``db_table`` y las dos columnas se fijan sobre esa intermedia en cuanto
+    existe. ``deconstruct`` las conserva, así que el estado de una migración
+    reconstruye la misma tabla.
+
+    **Dos declaraciones, una relación.** En la fuente, dos ``Many2many`` con
+    la misma ``relation``, los modelos cruzados y las columnas invertidas son
+    los dos extremos de una sola tabla (``test_orm.category.discussions`` y
+    ``test_orm.discussion.categories``). Django expresa eso con UN campo y su
+    accesor inverso: el segundo extremo no crea tabla, y su nombre pasa a ser
+    el ``related_name`` del primero.
+
+    **Divergencias declaradas:** sin ``relation`` se conserva el nombrado de
+    Django (las 87 declaraciones de un posicional del árbol ya están
+    migradas así). Una tabla compartida por más de dos extremos
+    (``test_orm_crew``) no se empareja y se rehúsa en los checks de Django.
+    El segundo extremo exige que el primero no haya contribuido aún su
+    inverso, que es el orden de declaración de la fuente.
+    """
+
+    def __init__(self, *args, relation=None, column1=None, column2=None,
+                 **kwargs):
+        if relation is not None:
+            kwargs.setdefault('db_table', relation)
+        self.relation = relation
+        self.column1 = column1
+        self.column2 = column2
+        self.mirror_of = None
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        """Conserva ``column1``/``column2``: sin ellos la migración nombraría
+        las columnas a la manera de Django."""
+        name, path, args, kwargs = super().deconstruct()
+        through = self.remote_field.through
+        explicit = through is not None and not isinstance(through, str) and \
+            not through._meta.auto_created
+        if explicit or (self.column1 is None and self.column2 is None):
+            # Con ``through`` explícito la tabla y las columnas son las del
+            # modelo intermedio, y Django las reconstruye solo; ``db_table``
+            # no puede acompañar a ``through``.
+            if explicit:
+                kwargs.pop('db_table', None)
+            return name, path, args, kwargs
+        kwargs['column1'] = self.column1
+        kwargs['column2'] = self.column2
+        return name, 'orm.fields_relational.Many2manyField', args, kwargs
+
+    def _relation_key(self, cls, swapped=False):
+        """La tabla y el par de columnas que identifican una relación.
+
+        Una tabla puede servir a más de una relación (``test_orm_crew`` sirve a
+        pirata↔barco y a prisionero↔barco), así que el par de columnas forma
+        parte de la clave. ``swapped`` es la clave del otro extremo.
+        """
+        columns = ((self.column2, self.column1) if swapped
+                   else (self.column1, self.column2))
+        return (cls._meta.apps, self.relation, columns)
+
+    def _explicit_through(self, cls):
+        """El modelo declarado cuya tabla es ``relation``, si lo hay.
+
+        En la fuente la tabla de un ``Many2many`` puede ser la de un modelo
+        propio: ``test_orm.crew`` declara ``_table = 'test_orm_crew'`` con tres
+        ``Many2one`` anulables, y ``ship.pirate_ids``/``prisoner_ids`` la usan
+        con su par de columnas. En Django eso es un ``through`` explícito con
+        ``through_fields``.
+        """
+        if self.relation is None:
+            return None
+        for models_of_app in cls._meta.apps.all_models.values():
+            for model in models_of_app.values():
+                if (model._meta.db_table == self.relation
+                        and not model._meta.auto_created):
+                    return model
+        return None
+
+    def _explicit_through_fields(self, through):
+        """Los campos del ``through`` cuyas columnas son ``column1``/``column2``."""
+        by_column = {field.column: field.name
+                     for field in through._meta.local_fields
+                     if isinstance(field, models.ForeignKey)}
+        try:
+            return by_column[self.column1], by_column[self.column2]
+        except KeyError as missing:
+            raise ValueError(
+                f'{through._meta.label} no declara la columna {missing} que '
+                f'pide la relación {self.relation!r}') from None
+
+    def _owner_for_mirror(self, cls):
+        if self.relation is None:
+            return None
+        owner = _RELATION_OWNERS.get(self._relation_key(cls, swapped=True))
+        if owner is None or owner is self:
+            return None
+        crossed = (
+            _target_key(owner) in _model_keys(cls)
+            and _target_key(self) in _model_keys(owner.model)
+            and (owner.column1, owner.column2) == (self.column2, self.column1))
+        return owner if crossed else None
+
+    def contribute_to_class(self, cls, name, *args, **kwargs):
+        owner = self._owner_for_mirror(cls)
+        if owner is not None:
+            # El otro extremo de la misma tabla: su accesor inverso lleva este
+            # nombre. Se instala cuando ``cls`` termine de registrarse.
+            self.set_attributes_from_name(name)
+            self.model = cls
+            self.mirror_of = owner
+            # ``deconstruct`` lee ``_related_name``; el accesor, ``remote_field``.
+            owner.remote_field.related_name = name
+            owner._related_name = name
+            return
+        explicit = self._explicit_through(cls)
+        if explicit is not None:
+            self.remote_field.through = explicit
+            self.remote_field.through_fields = self._explicit_through_fields(
+                explicit)
+            self.db_table = None
+        super().contribute_to_class(cls, name, *args, **kwargs)
+        if self.relation is not None and not cls._meta.abstract:
+            _RELATION_OWNERS[self._relation_key(cls)] = self
+        through = self.remote_field.through
+        if (self.column1 is not None and not isinstance(through, str)
+                and through._meta.auto_created):
+            self._name_through_columns(through, cls)
+
+    def _name_through_columns(self, through, cls):
+        """Fija ``column1``/``column2`` sobre la intermedia generada."""
+        source, target = self._through_field_names(cls)
+        for field_name, column in ((source, self.column1),
+                                   (target, self.column2)):
+            if column is None:
+                continue
+            field = through._meta.get_field(field_name)
+            field.db_column = column
+            field.set_attributes_from_name(field.name)
+
+    def _through_field_names(self, cls):
+        """Los nombres que ``create_many_to_many_intermediary_model`` usa."""
+        target = self.remote_field.model
+        target_name = (target.split('.')[-1] if isinstance(target, str)
+                       else target._meta.model_name).lower()
+        source_name = cls._meta.model_name
+        if source_name == target_name:
+            return 'from_%s' % source_name, 'to_%s' % target_name
+        return source_name, target_name
+
+
+def _source_many2many_kwargs(args, kwargs):
+    """Nombra los posicionales de la fuente tras el comodelo.
+
+    Antes llegaban a ``ManyToManyField(to, related_name, related_query_name,
+    limit_choices_to)`` y la migración ``test_orm 0001`` guardó
+    ``limit_choices_to='category'`` (H-API-1124).
+    """
+    if len(args) <= 1:
+        return args, kwargs
+    extra = args[1:]
+    if len(extra) > len(_MANY2MANY_SOURCE_POSITIONAL):
+        raise TypeError('Many2many() admite a lo sumo cinco posicionales')
+    for name, value in zip(_MANY2MANY_SOURCE_POSITIONAL, extra):
+        if name in kwargs:
+            raise TypeError(f'Many2many() recibió {name!r} dos veces')
+        kwargs[name] = value
+    if 'string' in kwargs:
+        kwargs.setdefault('verbose_name', kwargs.pop('string'))
+    return args[:1], kwargs
+
+
 def Many2many(*args, check_company=False, store=_UNSET, related=None,
               **kwargs):
     """``fields.Many2many`` — el ``ManyToManyField`` de Django, marcable.
@@ -527,8 +866,11 @@ def Many2many(*args, check_company=False, store=_UNSET, related=None,
     #: columna la resuelve la costura —``contribute_to_class`` con
     #: ``private_only``— y no el enrutado de esta fachada.
     args, source_name = _translate_comodel(args)
-    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
-                                check_company)
+    args, kwargs = _source_many2many_kwargs(args, kwargs)
+    field_class = (Many2manyField if any(
+        name in kwargs for name in ('relation', 'column1', 'column2'))
+        else models.ManyToManyField)
+    field = _mark_check_company(field_class(*args, **kwargs), check_company)
     if source_name is not None:
         field.comodel_name = source_name
     return annotate_related(field, related, related_attrs)
@@ -889,6 +1231,14 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
             CompanyDependent(*resto, base_type='many2one',
                              comodel=_comodel_label(to), **kwargs),
             check_company)
+    #: ``required`` vale ``False`` salvo que se declare (``odoo19c: odoo/orm/
+    #: fields_relational.py:282``): un ``Many2one`` sin ``null=`` es opcional,
+    #: como en la fuente. Antes heredaba el ``null=False`` de ``ForeignKey`` y
+    #: salía ``NOT NULL`` por omisión (:ref:`h-api-1122`); las declaraciones
+    #: que deben seguir requeridas lo dicen con ``null=False``.
+    if 'null' not in kwargs:
+        kwargs['null'] = True
+        kwargs.setdefault('blank', True)
     args, kwargs, resolved_ondelete, ondelete_from_default = \
         _apply_ondelete(args, kwargs)
     # DESPUES de ``_apply_ondelete``, y no antes: su guarda de ``:289`` compara
@@ -1050,21 +1400,16 @@ def _relational_update_inverse(self, records, value):
 def _many2one_convert_to_cache(self, value, record, validate=True):
     """``Many2one.convert_to_cache`` — ≙ ``:328-351``. Formato: id o ``None``.
 
-    Las cinco ramas de la fuente, con una divergencia de forma y un bloqueo
-    medido:
+    Las cinco ramas de la fuente, con una divergencia de forma:
 
     - ``isinstance(value, BaseModel)`` se abre aquí a **instancia o
       ``QuerySet``**, que son las dos formas en que este árbol representa un
       conjunto de filas, y el modelo se compara con
       :func:`~orm.utils.model_of` en vez de con ``value._name``.
-    - la rama de ``dict`` **no se porta**: la fuente construye un registro
-      virtual con ``comodel.new(value, origin=…)`` y ``BaseModel.new`` no
-      existe todavía en este árbol (``src/orm/models.py:376`` declara que su
-      equivalente es ``Model(**valores)``, sin registro que devuelva la fila
-      por su ``NewId``). Emitir sólo el ``NewId`` y descartar las demás claves
-      del ``dict`` sería un porte generoso —el método existiría sin hacer lo
-      que hace el de la fuente—, así que levanta ``NotImplementedError`` y su
-      sucesor está registrado como la tarea **#327**.
+    - la rama de ``dict`` construye el registro virtual con
+      ``comodel.new(value, origin=…)``, como la fuente. Levantaba
+      ``NotImplementedError`` mientras ``BaseModel.new`` no existía (tarea
+      **#327**, H-API-1135).
 
     La guarda final es la que da sentido a ``delegate``: si **todas** las filas
     son nuevas, el padre al que delegan también lo es, y su id se envuelve en
@@ -1081,11 +1426,10 @@ def _many2one_convert_to_cache(self, value, record, validate=True):
         # el valor es un par (id, nombre), o una tupla de ids
         id_ = value[0] if value else None
     elif isinstance(value, dict):
-        raise NotImplementedError(
-            "%s.convert_to_cache no admite un dict: la fuente construye el "
-            "registro virtual con comodel.new(), que este arbol todavia no "
-            "tiene (tarea #327)" % (self.name,)
-        )
+        # return a new record (with the given field 'id' as origin)
+        comodel = self.related_model
+        origin = comodel.browse(value.get('id'))
+        id_ = comodel.new(value, origin=origin).id
     else:
         id_ = None
 
@@ -1202,6 +1546,154 @@ models.ForeignKey.convert_to_cache = _many2one_convert_to_cache
 models.ForeignKey.convert_to_display_name = _many2one_convert_to_display_name
 models.ForeignKey._update_inverse = _many2one_update_inverse
 models.ManyToManyField._update_inverse = _relational_multi_update_inverse
+
+
+def _reverse_one2many_get_cache(self, env):
+    """El caché del One2many inverso de un Many2one — ≙ ``Field._get_cache``.
+
+    Aquí el One2many es el ``ManyToOneRel`` de Django y no un campo, así que
+    no tenía caché propio. Lo necesita en un registro de ``new()``: sin fila
+    que apunte a él, su conjunto de líneas sólo existe en caché. Sin cubos de
+    contexto, como el ``One2many`` de la fuente.
+    """
+    return env.transaction.field_data[self]
+
+
+def _reverse_one2many_cache_accessor(self):
+    """``_get_cache`` sólo para el uno-a-muchos: el inverso de un
+    ``OneToOneField`` es un registro, no una tupla de ids."""
+    if isinstance(self, models.OneToOneRel):
+        raise AttributeError('_get_cache')
+    return functools.partial(_reverse_one2many_get_cache, self)
+
+
+def _reverse_one2many_update_inverse_accessor(self):
+    if isinstance(self, models.OneToOneRel):
+        raise AttributeError('_update_inverse')
+    return functools.partial(_relational_multi_update_inverse, self)
+
+
+models.ManyToOneRel._get_cache = property(_reverse_one2many_cache_accessor)
+models.ManyToOneRel._update_inverse = property(_reverse_one2many_update_inverse_accessor)
+
+
+def _reverse_one2many_convert_to_cache(self, value, record, validate=True):
+    """``_RelationalMulti.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/
+    fields_relational.py:589-641``. Formato: tupla de ids.
+
+    Divergencia de forma: el comodelo es ``self.related_model`` (la clase) y
+    el nombre del campo en el dueño es el accesor del inverso de Django.
+    """
+    # cache format: tuple(ids)
+    if getattr(value, '_ids', None) is not None:
+        if validate and model_of(value) is not self.related_model:
+            raise ValueError("Wrong value for %s: %s" % (self, value))
+        ids = value._ids
+        if record and not record.id:
+            # x2many field value of new record is new records
+            ids = tuple(it and NewId(it) for it in ids)
+        return ids
+
+    elif isinstance(value, (list, tuple)):
+        # value is a list/tuple of commands, dicts or record ids
+        comodel = self.related_model
+        # if record is new, the field's value is new records
+        if record and not record.id:
+            browse = lambda it: comodel.browse((it and NewId(it),))
+        else:
+            browse = comodel.browse
+        # determine the value ids: in case of a real record or a new record
+        # with origin, take its current value
+        ids = OrderedSet(record[self.get_accessor_name()]._ids if record._origin else ())
+        # modify ids with the commands
+        for command in value:
+            if isinstance(command, (tuple, list)):
+                if command[0] == Command.CREATE:
+                    ids.add(comodel.new(command[2], ref=command[1] or None).id)
+                elif command[0] == Command.UPDATE:
+                    line = browse(command[1])
+                    if validate:
+                        line.update(command[2])
+                    else:
+                        line._update_cache(command[2], validate=False)
+                    ids.add(line.id)
+                elif command[0] in (Command.DELETE, Command.UNLINK):
+                    ids.discard(browse(command[1]).id)
+                elif command[0] == Command.LINK:
+                    ids.add(browse(command[1]).id)
+                elif command[0] == Command.CLEAR:
+                    ids.clear()
+                elif command[0] == Command.SET:
+                    ids = OrderedSet(browse(it).id for it in command[2])
+            elif isinstance(command, dict):
+                ids.add(comodel.new(command).id)
+            else:
+                ids.add(browse(command).id)
+        # return result as a tuple
+        return tuple(ids)
+
+    elif not value:
+        return ()
+
+    raise ValueError("Wrong value for %s: %s" % (self, value))
+
+
+def _reverse_one2many_convert_to_write(self, value, record):
+    """``_RelationalMulti.convert_to_write`` — ≙ ``:671-711``."""
+    if isinstance(value, tuple):
+        # a tuple of ids, this is the cache format
+        value = self.related_model.browse(value)
+
+    if getattr(value, '_ids', None) is not None and model_of(value) is self.related_model:
+        def get_origin(val):
+            return val._origin if getattr(val, '_ids', None) is not None else val
+
+        # make result with new and existing records
+        inv_names = {field.name for field in field_inverses[self]}
+        result = [Command.set([])]
+        for record in value:
+            origin = record._origin
+            if not origin:
+                values = record._convert_to_write({
+                    name: record[name]
+                    for name in record._cache
+                    if name not in inv_names
+                })
+                result.append(Command.create(values))
+            else:
+                result[0][2].append(origin.id)
+                if record != origin:
+                    values = record._convert_to_write({
+                        name: record[name]
+                        for name in record._cache
+                        if name not in inv_names and get_origin(record[name]) != origin[name]
+                    })
+                    if values:
+                        result.append(Command.update(origin.id, values))
+        return result
+
+    if value is False or value is None:
+        return [Command.clear()]
+
+    if isinstance(value, list):
+        return value
+
+    raise ValueError("Wrong value for %s: %s" % (self, value))
+
+
+def _reverse_one2many_only(function):
+    """El método sólo para el uno-a-muchos (ver ``_get_cache``)."""
+    def accessor(self):
+        if isinstance(self, models.OneToOneRel):
+            raise AttributeError(function.__name__)
+        return functools.partial(function, self)
+    return property(accessor)
+
+
+models.ManyToOneRel.write_sequence = 0
+models.ManyToOneRel.convert_to_cache = _reverse_one2many_only(_reverse_one2many_convert_to_cache)
+models.ManyToOneRel.convert_to_write = _reverse_one2many_only(_reverse_one2many_convert_to_write)
+models.ManyToOneRel._update_cache = _reverse_one2many_only(_relational_multi_update_cache)
 models.ManyToManyField._update_cache = _relational_multi_update_cache
 models.ManyToManyField.convert_to_display_name = (
     _relational_multi_convert_to_display_name)
@@ -1315,3 +1807,23 @@ def _many2one_convert_to_column(self, value, record, values=None, validate=True)
 
 
 models.ForeignKey.convert_to_column = _many2one_convert_to_column
+
+_DJANGO_FOREIGN_KEY_GET_DB_PREP_SAVE = models.ForeignKey.get_db_prep_save
+
+
+def _many2one_get_db_prep_save(self, value, connection):
+    """El cableado de ``convert_to_column`` en la ruta de la clave foránea.
+
+    ``ForeignKey.get_db_prep_save`` de Django (``related.py:1175``) no llama
+    a la versión de ``models.Field`` que este árbol cablea: delega en el campo
+    destino. Sin este paso, ``create({'company_id': False})`` llegaba al
+    ``AutoField`` del destino como ``0`` y la columna guardaba una relación a
+    una fila que no existe (``ForeignKeyViolation`` en PostgreSQL), donde la
+    fuente escribe ``NULL`` (``odoo19c: odoo/orm/fields_relational.py:326-327``).
+    """
+    if not hasattr(value, 'as_sql'):
+        value = self.convert_to_column(value, None, validate=False)
+    return _DJANGO_FOREIGN_KEY_GET_DB_PREP_SAVE(self, value, connection)
+
+
+models.ForeignKey.get_db_prep_save = _many2one_get_db_prep_save

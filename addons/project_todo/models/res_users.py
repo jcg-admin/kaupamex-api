@@ -31,7 +31,8 @@ dos grupos —«Tarea» y «To-Do»— según la tarea tenga proyecto o no.
    sería inventar el contrato además de la implementación — mismo desenlace
    y misma forma que ``account/models/res_users.py::get_application_groups``.
 2. **Sus dos piezas de apoyo tampoco existen** (medido, 0 hits cada una):
-   ``ProjectTask._systray_view`` (``odoo19c: project/models/project_task.py:106``)
+   ``ProjectTask._systray_view`` (``odoo19c:
+   project/models/project_task.py:106``)
    y ``modules.Manifest.for_addon`` (``src/modules/module.py`` declara
    ``class Manifest`` pero **no** ``for_addon``), del que la referencia saca
    el icono de cada grupo.
@@ -61,7 +62,8 @@ Crea el to-do de bienvenida de cada usuario renderizando la plantilla
 ``project_todo.todo_user_onboarding``. Tres bloqueadores, los tres medidos:
 
 1. **El compilador de QWeb no está portado, y lo dice él mismo.**
-   ``IrTemplateExpressions.render`` (``src/addons/base/models/ir_template_expressions.py:261``) levanta
+   ``IrTemplateExpressions.render``
+   (``src/addons/base/models/ir_template_expressions.py:261``) levanta
    ``NotImplementedError`` a propósito: *"este árbol renderiza en el cliente
    (React) y no compila plantillas almacenadas"*. Sin ``_render`` no hay
    cuerpo del to-do, y la referencia hace ``continue`` cuando el cuerpo sale
@@ -77,7 +79,8 @@ Crea el to-do de bienvenida de cada usuario renderizando la plantilla
 
 Bloqueador de cuarto orden, para cuando se retome: la referencia crea la
 tarea con ``user_ids: user.ids`` (M2M de asignados) y ``ProjectTask`` de este
-árbol declara ``assignee``, FK simple (``addons/project/models/project_task.py:58``).
+árbol declara ``assignee``, FK simple
+(``addons/project/models/project_task.py:58``).
 
 **Sucesor:** tarea PENDIENTE DE ASIGNAR — se retoma cuando exista un motor de
 plantillas del lado servidor, o cuando el cuerpo de bienvenida se decida como

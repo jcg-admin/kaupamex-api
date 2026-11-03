@@ -1,0 +1,28 @@
+{
+  "database": "kaupamex_core_qa",
+  "schema_tables_after": 0,
+  "setup_connection_attempts": [],
+  "cases": [
+    {
+      "case": "Registry.cursor normal exit, autocommit=False",
+      "transaction_status": "INTRANS",
+      "lock_released": false
+    },
+    {
+      "case": "Registry.cursor SQL error exit",
+      "transaction_status": "INERROR"
+    },
+    {
+      "case": "Django atomic normal exit",
+      "transaction_status": "IDLE",
+      "lock_released": true
+    },
+    {
+      "case": "Django atomic SQL error exit",
+      "transaction_status": "IDLE",
+      "lock_released": true
+    }
+  ],
+  "uses_data_writes_or_ddl": false,
+  "scope": "cursor transaction lifecycle only; no full Odoo runtime, pool, replica or hook equivalence"
+}

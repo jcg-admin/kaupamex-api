@@ -1,0 +1,18 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+No changes detected in app 'test_orm'
+{"legacy_initial_adoption": "PASS", "columns_and_constraints_unchanged": true, "sentinel_row_preserved": true, "migration_recorded": true, "limits": "Native --fake-initial only for verified matching legacy schema; no shared database touched."}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

@@ -1,0 +1,4 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+....................                                                     [100%]
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-green.junit.xml -
+20 passed in 0.07s

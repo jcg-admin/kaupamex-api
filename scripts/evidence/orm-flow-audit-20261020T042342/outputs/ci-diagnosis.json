@@ -1,0 +1,43 @@
+{
+  "classification": "BASELINE_FAILURE",
+  "scope": "test database preparation; not independent failure of each test",
+  "reference": "H-API-1120",
+  "run": 39357612617,
+  "command_under_test": "uv run pytest --create-db -q",
+  "failure_chain": [
+    "pytest_django.fixtures.django_db_setup",
+    "django.test.utils.setup_databases",
+    "django.core.management.commands.migrate.sync_apps",
+    "schema_editor.__exit__",
+    "ALTER TABLE test_orm_testormdiscussion ADD FOREIGN KEY moderator_id REFERENCES res_users(id)",
+    "psycopg.errors.UndefinedTable / django.db.utils.ProgrammingError: res_users missing"
+  ],
+  "origin_field": "src/addons/test_orm/models/test_orm.py:112",
+  "secondary_setup_observation": "kaupamex_qa already exists before test database creation; not proven sole cause",
+  "summary": {
+    "errors": 10617,
+    "skipped": 26,
+    "xfailed": 1,
+    "warnings": 18,
+    "seconds": 1447.74
+  },
+  "compared_product_revisions": [
+    "61ea5e9f6c379a9808d71c2a5fd801fd150be0f0",
+    "694587d9a5b6715e1e0309e7c8b36c58d8ebdc2d"
+  ],
+  "product_diff_command_exit": 0,
+  "product_diff_stdout": "",
+  "product_diff_scope": [
+    "src",
+    "tests",
+    "pyproject.toml",
+    "uv.lock",
+    ".github/workflows"
+  ],
+  "claim_limits": [
+    "missing relation and failure chain are proven; complete model registration/migration root cause not investigated here",
+    "baseline signature agrees with prior evidence, product/test/dependency/workflow diff is empty",
+    "CI failure is not acceptance or new regression proof",
+    "no full test suite rerun locally; no CI rerun triggered"
+  ]
+}

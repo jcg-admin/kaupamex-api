@@ -14,7 +14,8 @@ Los tres modos de fallo que el script cierra, medidos en la sesion del
 2. **regex con lookahead** — deja ocurrencias sin renombrar (las seguidas de
    ``]`` o de fin de linea) y **sigue** danando la prosa;
 3. **saltar lineas por su primer caracter** — no ve el interior de un
-   docstring de modulo, y salta una linea de codigo real por contener ``or ''``,
+   docstring de modulo, y salta una linea de codigo real por contener ``or
+   ''``,
    dejando una variable muerta.
 
 El control que puede fallar
@@ -35,14 +36,19 @@ cinco tramos de prosa danados, no tres—. Es el mismo defecto que
 porque la leccion es exactamente esa: una prediccion sobre el resultado de un
 control no es el control.
 """
+
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from scripts.rename_identifier import (posiciones, renombrar, _prosa,
-                                       _prosa_intacta)
+from scripts.rename_identifier import (
+    posiciones,
+    renombrar,
+    _prosa,
+    _prosa_intacta,
+)
 
 pytestmark = [pytest.mark.unit]
 
@@ -75,6 +81,7 @@ def target(tmp_path):
 # --------------------------------------------------------------------------
 # Lo que renombra, y lo que no
 # --------------------------------------------------------------------------
+
 
 def test_it_renames_every_binding_of_the_identifier():
     nuevo, n = renombrar(CASO, 'accion', 'action')
@@ -129,14 +136,19 @@ def test_it_finds_the_occurrence_a_lookahead_would_miss():
 
 
 def test_it_finds_the_line_a_quote_heuristic_would_skip():
-    """El modo de fallo 3: ``otra = accion or ''`` tiene comillas y es codigo."""
+    """
+    El modo de fallo 3: ``otra = accion or ''`` tiene comillas y es codigo.
+    """
     filas = {f for f, _ in posiciones(CASO, 'accion')}
-    assert any("otra = accion or ''" in CASO.splitlines()[f - 1] for f in filas)
+    assert any(
+        "otra = accion or ''" in CASO.splitlines()[f - 1] for f in filas
+    )
 
 
 # --------------------------------------------------------------------------
 # La guarda de prosa — y el control que la hace discriminar
 # --------------------------------------------------------------------------
+
 
 def test_the_prose_is_untouched_by_construction():
     nuevo, _ = renombrar(CASO, 'accion', 'action')
@@ -162,6 +174,7 @@ def test_the_guard_aborts_a_naive_replacement():
 # El guard de interprete — no emite cifra al fallar
 # --------------------------------------------------------------------------
 
+
 def test_the_interpreter_guard_refuses_below_312(target):
     """Con 3.11 aborta con exit 2, sin escribir y **sin publicar un conteo**.
 
@@ -173,8 +186,16 @@ def test_the_interpreter_guard_refuses_below_312(target):
         pytest.skip('no hay Python 3.11 en el sistema para medir el guard')
     antes = target.read_text(encoding='utf-8')
     r = subprocess.run(
-        [str(viejo), 'scripts/rename_identifier.py', 'accion', 'action',
-         str(target)], capture_output=True, text=True)
+        [
+            str(viejo),
+            'scripts/rename_identifier.py',
+            'accion',
+            'action',
+            str(target),
+        ],
+        capture_output=True,
+        text=True,
+    )
     assert r.returncode == 2
     assert 'ocurrencia' not in r.stdout
     assert target.read_text(encoding='utf-8') == antes
@@ -182,8 +203,16 @@ def test_the_interpreter_guard_refuses_below_312(target):
 
 def test_it_runs_end_to_end_on_the_project_interpreter(target):
     r = subprocess.run(
-        [sys.executable, 'scripts/rename_identifier.py', 'accion', 'action',
-         str(target)], capture_output=True, text=True)
+        [
+            sys.executable,
+            'scripts/rename_identifier.py',
+            'accion',
+            'action',
+            str(target),
+        ],
+        capture_output=True,
+        text=True,
+    )
     assert r.returncode == 0, r.stderr
     salida = target.read_text(encoding='utf-8')
     assert 'def abrir(action):' in salida

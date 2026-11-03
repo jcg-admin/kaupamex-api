@@ -1,4 +1,6 @@
-"""Modelo ``ProductTemplateAttributeValue`` — addon ``product`` (base del monolito modular).
+"""
+Modelo ``ProductTemplateAttributeValue`` — addon ``product`` (base del monolito
+modular).
 
 Adaptación fiel de Odoo ``product.template.attribute.value``
 (``product/models/product_template_attribute_value.py:10-35``, verificado en 18
@@ -7,6 +9,7 @@ y 19): el valor de un atributo **para un producto concreto**, con su
 opción (p. ej. talla XL) cueste ``+50`` sobre el precio base — lo que el
 ``chartsize`` original no modelaba de forma reutilizable.
 """
+
 from decimal import Decimal
 
 import fields
@@ -16,19 +19,26 @@ from addons.base.models import TimeStampedModel
 
 
 class ProductTemplateAttributeValue(TimeStampedModel):
-    """``product.template.attribute.value`` — valor por-producto con price_extra."""
+    """
+    ``product.template.attribute.value`` — valor por-producto con price_extra.
+    """
 
-    line            = fields.Many2one(
-        'product.ProductTemplateAttributeLine', on_delete=models.CASCADE,
-        related_name='template_values', help_text='Línea (Odoo attribute_line_id).',
+    line = fields.Many2one(
+        'product.ProductTemplateAttributeLine',
+        null=False, on_delete=models.CASCADE,
+        related_name='template_values',
+        help_text='Línea (Odoo attribute_line_id).',
     )
     attribute_value = fields.Many2one(
-        'product.ProductAttributeValue', on_delete=models.PROTECT,
+        'product.ProductAttributeValue',
+        null=False, on_delete=models.PROTECT,
         related_name='template_values',
         help_text='Valor del atributo (Odoo product_attribute_value_id).',
     )
-    price_extra     = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    price_extra = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Sobreprecio de esta opción (Odoo price_extra).',
     )
 

@@ -1,0 +1,765 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FF.FFFFFFFFFFFFF.......                                                 [100%]
+=================================== FAILURES ===================================
+_________________________________ test_stable __________________________________
+tests/integration/test_orm/test_sort.py:47: in test_stable
+    assert (cities.sorted('name', reverse=True).sorted('country_id.id')
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5624: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5624: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5618: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5600: in getter
+    return func_comodel(value)
+src/orm/models.py:5624: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5624: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5618: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5610: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'id'
+________________________________ test_basic_m2o ________________________________
+tests/integration/test_orm/test_sort.py:53: in test_basic_m2o
+    assert db_result.ids == cities.sorted().ids
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5624: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5624: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5618: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5600: in getter
+    return func_comodel(value)
+src/orm/models.py:5624: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5624: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5618: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5610: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+_______________________________ test_custom_m2o ________________________________
+tests/integration/test_orm/test_sort.py:71: in test_custom_m2o
+    assert db_result.ids == cities.sorted(order).ids
+src/orm/models.py:5535: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5624: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5624: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5618: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5600: in getter
+    return func_comodel(value)
+src/orm/models.py:5624: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5624: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5618: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5610: in getter
+    value = raw_getter(rec)
+src/orm/fields.py:922: in <lambda>
+    return lambda record: getattr(record, self.name)
+E   AttributeError: 'int' object has no attribute 'name'
+________________________ test_nulls[country_id ASC, id] ________________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (21, 2026-11-02 21:07:43.669198+00, 2026-11-02 21:07:43.66927+00, null, 14).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (21, 2026-11-02 21:07:43.669198+00, 2026-11-02 21:07:43.66927+00, null, 14).
+_______________________ test_nulls[country_id DESC, id] ________________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (24, 2026-11-02 21:07:43.941532+00, 2026-11-02 21:07:43.941596+00, null, 17).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (24, 2026-11-02 21:07:43.941532+00, 2026-11-02 21:07:43.941596+00, null, 17).
+__________________ test_nulls[country_id ASC NULLS FIRST, id] __________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (27, 2026-11-02 21:07:44.192071+00, 2026-11-02 21:07:44.192137+00, null, 20).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (27, 2026-11-02 21:07:44.192071+00, 2026-11-02 21:07:44.192137+00, null, 20).
+_________________ test_nulls[country_id DESC NULLS FIRST, id] __________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (30, 2026-11-02 21:07:44.73278+00, 2026-11-02 21:07:44.732951+00, null, 23).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (30, 2026-11-02 21:07:44.73278+00, 2026-11-02 21:07:44.732951+00, null, 23).
+__________________ test_nulls[country_id ASC NULLS LAST, id] ___________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (33, 2026-11-02 21:07:45.029179+00, 2026-11-02 21:07:45.029247+00, null, 26).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (33, 2026-11-02 21:07:45.029179+00, 2026-11-02 21:07:45.029247+00, null, 26).
+__________________ test_nulls[country_id DESC NULLS LAST, id] __________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (36, 2026-11-02 21:07:45.31843+00, 2026-11-02 21:07:45.318604+00, null, 29).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (36, 2026-11-02 21:07:45.31843+00, 2026-11-02 21:07:45.318604+00, null, 29).
+___________________________ test_nulls[name ASC, id] ___________________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (39, 2026-11-02 21:07:45.60172+00, 2026-11-02 21:07:45.601795+00, null, 32).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (39, 2026-11-02 21:07:45.60172+00, 2026-11-02 21:07:45.601795+00, null, 32).
+__________________________ test_nulls[name DESC, id] ___________________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (42, 2026-11-02 21:07:45.952544+00, 2026-11-02 21:07:45.952609+00, null, 35).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (42, 2026-11-02 21:07:45.952544+00, 2026-11-02 21:07:45.952609+00, null, 35).
+_____________________ test_nulls[name ASC NULLS FIRST, id] _____________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (45, 2026-11-02 21:07:46.255467+00, 2026-11-02 21:07:46.255535+00, null, 38).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (45, 2026-11-02 21:07:46.255467+00, 2026-11-02 21:07:46.255535+00, null, 38).
+____________________ test_nulls[name DESC NULLS FIRST, id] _____________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (48, 2026-11-02 21:07:46.525756+00, 2026-11-02 21:07:46.525828+00, null, 41).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (48, 2026-11-02 21:07:46.525756+00, 2026-11-02 21:07:46.525828+00, null, 41).
+_____________________ test_nulls[name ASC NULLS LAST, id] ______________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (51, 2026-11-02 21:07:46.808148+00, 2026-11-02 21:07:46.80821+00, null, 44).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (51, 2026-11-02 21:07:46.808148+00, 2026-11-02 21:07:46.80821+00, null, 44).
+_____________________ test_nulls[name DESC NULLS LAST, id] _____________________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (54, 2026-11-02 21:07:47.071812+00, 2026-11-02 21:07:47.071891+00, null, 47).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_sort.py:92: in test_nulls
+    cities = env['test_orm.city'].create([
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:852: in create
+    records = cls._create(data_list)
+src/orm/models.py:1011: in _create
+    record = cls._create_row_from_values(
+src/orm/models.py:2734: in _create_row_from_values
+    record = cls.objects.using(using).create(**columns)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:4906: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:2621: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1395: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "name" of relation "test_orm_testormcity" violates not-null constraint
+E   DETAIL:  Failing row contains (54, 2026-11-02 21:07:47.071812+00, 2026-11-02 21:07:47.071891+00, null, 47).
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_sort.py::test_basic
+tests/integration/test_orm/test_sort.py::test_stable
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_sort.py::test_basic
+tests/integration/test_orm/test_sort.py::test_stable
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_sort.py::test_stable - AttributeError:...
+FAILED tests/integration/test_orm/test_sort.py::test_basic_m2o - AttributeErr...
+FAILED tests/integration/test_orm/test_sort.py::test_custom_m2o - AttributeEr...
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC NULLS LAST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC NULLS LAST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[name ASC, id] - dj...
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[name DESC, id] - d...
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[name ASC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[name DESC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[name ASC NULLS LAST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[name DESC NULLS LAST, id]
+15 failed, 9 passed, 4 warnings in 11.65s

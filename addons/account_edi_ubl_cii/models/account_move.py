@@ -89,6 +89,7 @@ import fields
 from django.db import models as django_models
 from orm.method_chain import chain_method
 from orm.model_classes import add_field_if_absent
+from tools.mimetypes import guess_mimetype
 
 from addons.account.models.account_move import AccountMove
 
@@ -220,12 +221,8 @@ def _ubl_parse_attached_document(cls, tree):
 def _unwrap_attachment(self, file_data, recurse=True):
     """≙ ``_unwrap_attachment`` (``odoo19c: :281-306``).
 
-    DIVERGENCIA: ``guess_mimetype`` de ``odoo.tools.mimetypes`` no existe en
-    este árbol (0 hits); el equivalente es
-    ``IrBinary._guess_mimetype(filename)``, que decide por **nombre de
-    archivo**, no por contenido. Como aquí el contenido siempre es XML —lo
-    acaba de parsear ``_ubl_parse_attached_document``— se fija
-    ``'application/xml'``, que es lo que la fuente deduciría del mismo dato.
+    El tipo del adjunto embebido sale de su contenido, con ``guess_mimetype``
+    (``tools.mimetypes``), como en la fuente.
     """
     if file_data['import_file_type'] != 'account.edi.xml.ubl.attached_document':
         return None
@@ -239,7 +236,7 @@ def _unwrap_attachment(self, file_data, recurse=True):
         'name': file_data['name'],
         'raw': content,
         'xml_tree': tree,
-        'mimetype': 'application/xml',
+        'mimetype': guess_mimetype(content),
         'attachment': None,
         'origin_attachment': file_data['origin_attachment'],
         'origin_import_file_type': file_data['origin_import_file_type'],

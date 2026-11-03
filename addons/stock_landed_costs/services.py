@@ -3,15 +3,19 @@
 Adaptación fiel de Odoo ``compute_landed_cost``
 (``stock_landed_costs/models/stock_landed_cost.py:270-315``) y
 ``button_validate`` (aplicación del ajuste sobre la valoración). Reparte cada
-componente de coste sobre los movimientos de recepción según su ``split_method``
+componente de coste sobre los movimientos de recepción según su
+``split_method``
 y suma el resultado al costo de inventario del producto — cerrando el rastreo
 del **costo unitario real de entrega** (precio de compra + flete/aranceles).
 """
+
 from decimal import Decimal
 
 from addons.stock_account import services as valuation
 from addons.stock_account.models.product_costing import ProductCosting
-from addons.stock_account.models.stock_valuation_layer import StockValuationLayer
+from addons.stock_account.models.stock_valuation_layer import (
+    StockValuationLayer,
+)
 from addons.stock_landed_costs.models.stock_valuation_adjustment import (
     StockValuationAdjustment,
 )
@@ -24,13 +28,17 @@ def _q2(value) -> Decimal:
 def _former_cost(move) -> Decimal:
     """Costo de la recepción de ese movimiento (SVL de entrada)."""
     total = Decimal('0.00')
-    for svl in StockValuationLayer.objects.filter(stock_move_id=move, quantity__gt=0):
+    for svl in StockValuationLayer.objects.filter(
+        stock_move_id=move, quantity__gt=0
+    ):
         total += svl.value
     return total
 
 
 def compute(cost, moves):
-    """Construye las líneas de ajuste y reparte cada componente (Odoo compute_landed_cost).
+    """
+    Construye las líneas de ajuste y reparte cada componente (Odoo
+    compute_landed_cost).
 
     Para cada componente de coste, crea una línea de ajuste por movimiento
     objetivo con ``quantity``/``weight``/``volume``/``former_cost``, y reparte
@@ -65,20 +73,47 @@ def compute(cost, moves):
         for move in moves:
             qty, weight, volume, former = former_by_move[move.id]
             additional = _split_value(
-                line, qty, weight, volume, former,
-                total_qty, total_weight, total_volume, total_cost, total_line,
+                line,
+                qty,
+                weight,
+                volume,
+                former,
+                total_qty,
+                total_weight,
+                total_volume,
+                total_cost,
+                total_line,
             )
             StockValuationAdjustment.objects.create(
-                cost=cost, cost_line=line, move=move, product=move.product,
-                quantity=qty, weight=weight, volume=volume, former_cost=former,
-                additional_landed_cost=additional, final_cost=_q2(former + additional),
+                cost=cost,
+                cost_line=line,
+                move=move,
+                product=move.product,
+                quantity=qty,
+                weight=weight,
+                volume=volume,
+                former_cost=former,
+                additional_landed_cost=additional,
+                final_cost=_q2(former + additional),
             )
     return cost.adjustment_lines.all()
 
 
-def _split_value(line, qty, weight, volume, former,
-                 total_qty, total_weight, total_volume, total_cost, total_line):
-    """Reparte ``line.price_unit`` a esta línea según el método (Odoo split_method).
+def _split_value(
+    line,
+    qty,
+    weight,
+    volume,
+    former,
+    total_qty,
+    total_weight,
+    total_volume,
+    total_cost,
+    total_line,
+):
+    """
+    Reparte ``line.price_unit`` a esta línea según el método (Odoo
+    split_method).
 
     Si el denominador del método es cero, cae a reparto igual (mismo fallback
     que Odoo con el ``else`` final).
@@ -109,8 +144,10 @@ def validate(cost):
         if adj.additional_landed_cost == 0:
             continue
         StockValuationLayer.objects.create(
-            product_id=adj.product, quantity=Decimal('0.00'),
-            unit_cost=Decimal('0.0000'), value=_q2(adj.additional_landed_cost),
+            product_id=adj.product,
+            quantity=Decimal('0.00'),
+            unit_cost=Decimal('0.0000'),
+            value=_q2(adj.additional_landed_cost),
             remaining_qty=Decimal('0.00'),
             remaining_value=_q2(adj.additional_landed_cost),
             stock_move_id=adj.move,
@@ -123,7 +160,10 @@ def validate(cost):
 
 
 def _bump_avco(product):
-    """Recalcula el AVCO del producto tras la revaluación (Odoo _update_standard_price)."""
+    """
+    Recalcula el AVCO del producto tras la revaluación (Odoo
+    _update_standard_price).
+    """
     costing = ProductCosting.for_product(product)
     if costing.cost_method != ProductCosting.COST_AVERAGE:
         return

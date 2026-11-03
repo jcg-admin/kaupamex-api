@@ -5,8 +5,8 @@
     'version': '1.0',
     'category': 'Hidden',
     'summary': (
-        'BusMessage y BusListenerMixin: el canal por el que un modelo notifica '
-        'a un destinatario sin acoplarse a él'
+        'BusMessage y BusListenerMixin: el canal por el que un modelo notifica'
+        ' a un destinatario sin acoplarse a él'
     ),
     # `depends` MEDIDO contra los imports reales. La referencia declara
     # ['base', 'web']; `web` aporta el cliente JS del long-polling, que aquí

@@ -1,0 +1,161 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "command": "bun -e taskTools({dbPath:storePath(),sessionId}).TaskGet.run for explicit related ids",
+  "rows": [
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "443"
+      },
+      "task": {
+        "task_id": "443",
+        "citation_id": "TASK-API-0264",
+        "subject": "DECIDIDA (DEC-AISL-05) — no se reparte esquema; toda app migra a toda base",
+        "description": "DECIDIDA por el ejecutor 2026-08-21: \"queremos que nuestra api sea igual a la referencia, en donde la referencia no reparte esquema entre bases. Cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\".\n\nRegistrada como DEC-AISL-05 en decisiones-implementar-aislamiento-multi-db-per-company. Cierra el punto \"Abierta (capa-3 de 091)\" de ADR-021.\n\nEn una línea: toda app de dominio migra a TODA base; los tres base* salen de MULTIDB_CONTROL_PLANE_APPS; allow_migrate deja de partir el dominio y pasa a consultar el roster; las 79 FK a res_users quedan intra-base sin cortar ninguna.\n\nQueda DESCARTADA la opción 1 de H-API-646 (core sólo en default, dominio sólo en company_<N>_db), que además se justificaba atribuyendo el reparto a la referencia — falso, ver H-API-783.\n\nImplementación: #738. Granularidad de instalación por base (ir_module_module.state vs INSTALLED_APPS, H-API-784): #737.\n\nMedición que la alimentó: analisis-multidb-en-la-referencia (odoo19c @ odoo-tools@622ddc2a).",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "449"
+      },
+      "task": {
+        "task_id": "449",
+        "citation_id": "TASK-API-0265",
+        "subject": "Sembrar el registro de módulos para que la pantalla de aplicaciones sea visible (H-API-647/649)",
+        "description": "**RE-ENCUADRADA 2026-08-18 por directiva del ejecutor.** El encuadre anterior era «sembrar datos de demostración de producto — producto → carrito → orden → envío», y era falso: *\"estás pensando en el L1 es un ecommerce y ya no es así; lo que dices de la siembra es poder ver los módulos, quizá como se ven en la imagen\"* (captura de la pantalla de aplicaciones de Odoo: tarjetas por módulo + barra lateral de categorías con su conteo).\n\nKaupamex es el operador **L0**. Lo que tiene que ser consultable primero no es un catálogo de productos de una empresa L1 — es el **registro de módulos** de la plataforma.\n\n**Mitad (a) — CERRADA en `api@6945cc1`.** `update_module_list` recorría una sola raíz de addons y registraba 1 módulo de 94 (:ref:`h-api-649`). Corregido: 94 filas en `ir_module_module`, todas con su nombre técnico, resumen, licencia, versión, `application`, `auto_install` y estado derivado de `INSTALLED_APPS`.\n\n**Mitad (b) — la barra lateral.** El árbol de categorías sigue vacío: tarea **#452**.\n\n**Mitad (c) — el canal HTTP.** Ningún endpoint sirve hoy la lista de aplicaciones: los dos hits de `ir.module.module` en controladores son menciones de docstring. Sin él, las 94 filas existen y nadie las ve desde fuera. Falta medir qué expone la referencia (`odoo19c: addons/base/…`) y decidir su forma DRF.\n\nLo que **sale** del alcance: sembrar productos, carritos y órdenes de un L1. Eso es data de demostración de una empresa cliente, no del operador, y su decisión es aparte.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "456"
+      },
+      "task": {
+        "task_id": "456",
+        "citation_id": "TASK-API-0269",
+        "subject": "installable: False no tiene efecto en la carga (H-API-654)",
+        "description": "_local_apps() (src/config/settings/base.py:89-118) deriva LOCAL_APPS de todo lo que get_modules() encuentra bajo ADDONS_PATHS: presencia en disco es carga. La clave installable la lee un solo sitio — update_module_list.py:175 — y para mostrar el catálogo, no para decidir la carga. Hoy 0 addons la declaran, así que nada está roto; decide el día que un addon a medias necesite estar en disco sin cargarse. Arreglo acotado (_local_apps consulta installable antes de incluir) pero toca el arranque de los 94 addons. Ver hallazgo-H-API-654.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "736"
+      },
+      "task": {
+        "task_id": "736",
+        "citation_id": "TASK-API-0381",
+        "subject": "Cablear la resolución de base POR PETICIÓN: db_list_for_host y db_monodb tienen 0 consumidores",
+        "description": "Origen: H-API-781, y la corrección del ejecutor 2026-08-21 sobre la divergencia 1 de addons/web/controllers/session.py.\n\nEl mecanismo host→base está portado fielmente y probado: service.db.db_filter (== odoo/http.py::db_filter, con %h/%d, quita :puerto y www.), db_list_for_host (== http.db_list) y db_monodb, con tests en tests/unit/service/test_db_resolution.py. La iniciativa implementar-aislamiento-multi-db-per-company está :estado: en-ejecucion y su análisis lo declara IMPLEMENTADO.\n\nLo que NO está: nadie lo llama en el camino de la petición. Medido 2026-08-21 sobre src/ y addons/, excluyendo src/service/db.py y tests: db_list_for_host → 0 consumidores, db_monodb → 0, db_filter → 2 (y las dos son prosa de docstring, no llamadas). La base la elige hoy CompanyDatabaseRouter por app/modelo (MULTIDB_CONTROL_PLANE_APPS), no el host de la petición.\n\nConsecuencia concreta: /web/session/* no acepta el parámetro db de la referencia, y esa omisión se documentó como \"aquí la base es una\" — falso: el árbol declara DATABASE_ROUTERS, install_company_aliases, company_create, company_migrate_all y un cron que itera list_company_db_names.\n\nEntregable: decidir y cablear quién resuelve la base por petición (middleware sobre el host vs parámetro explícito vs sesión), y luego reponer o declarar con fundamento el parámetro db de session.py.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "1203"
+      },
+      "task": {
+        "task_id": "1203",
+        "citation_id": "TASK-GEN-0633",
+        "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables",
+        "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de 2026-08-28.\n\nAgrupación medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).\n\nLos grupos medidos, por dueño:\n\n- **5** — `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el relacional desde `_args__`), no de aquí.\n- **6** — `src/orm/fields.py:1593` `Compute method failed to assign …display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo triaje.\n- **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html) más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** — `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin cerrar para el resto.\n- **2** — `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no tiene atributo editable y su hermano con columna sí).\n- **2** — `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` — resolución de modelo por cadena mal formada.\n- **1 + 1 + 1** — `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminación de estado entre casos, no defecto de porte).\n\nCondición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condición de cierre escrita. Ninguno se queda sin dueño.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "1193"
+      },
+      "task": {
+        "task_id": "1193",
+        "citation_id": "TASK-API-0418",
+        "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+        "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "1190"
+      },
+      "task": {
+        "task_id": "1190",
+        "citation_id": "TASK-API-0415",
+        "subject": "Despachar el compute declarado al leer un NonStored",
+        "description": "CERRADA en `api@a95c11fb`. TASK-API-0415.\n\n`NonStored.__get__` gana su tercera rama —entre `related` y `default`— que llama `determine_compute`, instalado desde `fields.py` como sus hermanos `determine_domain`/`determine_inverse` (el import inverso sería ciclo). Los dos sitios declaran ahora la forma de la referencia: `display_name = Char('Display Name', compute='_compute_display_name', search='_search_display_name')` y `full_name = fields.Char('Group Name', compute='_compute_full_name', search='_search_full_name')`; el envoltorio `_display_name_default` retirado, y la etiqueta movida de `help_text=` (alias de `help=`) al primer posicional (`verbose_name` en Django, `string` en la fuente).\n\nFlujo medido antes de escribir: `Field.__get__` abre la rama en `odoo19c: odoo/orm/fields.py:1736-1737`; su cuerpo llega a `_compute_field_value` (`odoo/orm/models.py:4953`), cuyo cuerpo entero es `determine(field.compute, self)` más un `if field.store:` que un campo sin columna nunca alcanza. `determine` ya estaba portado (`orm/fields.py:1699`).\n\nTDD con su rojo persistido: `scripts/evidence/rojo-compute-dispatch-2026-09-11T17-33-32.log` (2 failed, 6 passed) → verde (9 passed). Control de anulación: deshabilitada la rama caen EXACTAMENTE los cuatro casos que la miden (4 failed, 5 passed) y no se mueve ninguno de precedencia ni de regresión. Suite completa tras el porte: 3 failed, 10553 passed, 30 skipped en 317.63 s — los tres rojos son los heredados.\n\nEl control de control original NO discriminaba (`label != plain_label` era verde en los dos estados); se sustituyó por uno parametrizado con dos cómputos distintos, que ninguna constante satisface.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "1191"
+      },
+      "task": {
+        "task_id": "1191",
+        "citation_id": "TASK-API-0416",
+        "subject": "Portar la fase que recoge las definiciones de campo por clase",
+        "description": "BLOQUEO CORREGIDO 2026-09-11. Esta tarea declaraba «depende de #318 (MetaModel) y de _setup/_setup_fields». **Falso, y la conclusión salía del censo de símbolos — significante — en vez de medir cómo funciona.**\n\nMedido por conducta (`scripts/workbench/recoleccion-de-definiciones-*/`):\n\n1. La referencia recorre `_model_classes__`, y eso ES `mro()`: `model_cls._model_classes__ = tuple(c for c in model_cls.mro() if getattr(c,'pool',None) is None)` (`odoo19c: odoo/orm/model_classes.py:358`). No es un registro propio — es el MRO filtrado a clases de definición. Python lo trae hecho.\n2. Las DOS ocurrencias sobreviven distinguibles en las dos formas de herencia de este árbol, medido con sondas: base abstracta de Django → `_meta.local_fields` de cada clase da `[('HoldsBase',10),('HoldsChild',20)]`; mixin llano → `vars(mixin)` y `vars(hija)` dan dos `NonStored` distintos, cada uno con su `compute`.\n3. `ModelBase.__new__(cls, name, bases, attrs, **kwargs)` recibe el cuerpo de clase igual que `MetaModel.__new__`, y `contribute_to_class` dispara una vez por ocurrencia en orden base→hija.\n\nVeredicto INVENTORY: la **recolección** es *el stack lo trae hecho* (mro + `_meta.local_fields` + `vars`); la **fusión** es *tiene con qué construirlo* (`_get_attrs` ya portado, `orm/fields.py:1105-1128`). No hace falta `MetaModel` ni ninguna dependencia de fuera.\n\nCASO DE ACEPTACIÓN, medido sobre el modelo real (`probe_the_override_loses_the_base.py`):\n\n    la base (DisplayNameMixin)  compute='_compute_display_name' search='_search_display_name' -> NonStored\n    el override (TestOrmCategory) compute=None search=None inverse='_inverse_display_name' recursive=True -> CharField\n\nEl override se porta verbatim de `odoo19c: odoo/addons/test_orm/models/test_orm.py:28-31`. Allá no significa «campo con columna»: significa override, y la fusión le trae el `compute` de la base, del que el bloque compute deriva `store=False`. Aquí, sin fusión, `store` cae a su defecto `True`.\n\nCierra los dos rojos heredados de `tests/unit/orm/test_display_name.py`.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet.run",
+      "input": {
+        "task_id": "342"
+      },
+      "task": {
+        "task_id": "342",
+        "citation_id": "TASK-API-0187",
+        "subject": "Los 11 fallos de stock_location y stock_quant que la suite destapó (H-API-585)",
+        "description": "Con la suite de stock ya coleccionando (H-API-583 cerrado), 11 tests fallan por deuda de otros portes: (a) test_stock.py llama complete_name() como método y el porte lo declara campo fields.Char — el test quedó atrás; (b) StockQuant.set_on_hand revienta con TypeError: fromisoformat: argument must be str al escribir inventory_date, que _compute_inventory_date asigna desde location.get_next_inventory_date(). Cada uno se compara contra su archivo de la referencia antes de tocarlo.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ],
+  "official_states_changed": false
+}

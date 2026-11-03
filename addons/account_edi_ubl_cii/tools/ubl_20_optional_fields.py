@@ -1,6 +1,8 @@
-r"""Campos opcionales de PEPPOL declarados como campos de estudio (``x_studio_*``).
+r"""
+Campos opcionales de PEPPOL declarados como campos de estudio (``x_studio_*``).
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/tools/ubl_20_optional_fields.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/tools/ubl_20_optional_fields.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 91 líneas) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 

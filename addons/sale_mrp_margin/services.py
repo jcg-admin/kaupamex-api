@@ -14,10 +14,13 @@ que allá es emergente: el costo de un producto con BoM tipo **kit**
 (``phantom``) es la suma del costo estándar de sus componentes. Mismo
 espíritu behavior-only que su hermano ``sale_stock_margin``.
 """
+
 from decimal import ROUND_HALF_UP, Decimal
 
 from addons.mrp.models.mrp_bom import MrpBom
-from addons.sale_margin.models.sale_order_line_margin import SaleOrderLineMargin
+from addons.sale_margin.models.sale_order_line_margin import (
+    SaleOrderLineMargin,
+)
 
 
 def bom_unit_cost(product) -> Decimal | None:
@@ -33,21 +36,33 @@ def bom_unit_cost(product) -> Decimal | None:
     """
     if product is None:
         return None
-    bom = (MrpBom.objects.filter(
-        active=True, type=MrpBom.TYPE_PHANTOM, product=product)
-        .order_by('sequence', 'id').first())
+    bom = (
+        MrpBom.objects.filter(
+            active=True, type=MrpBom.TYPE_PHANTOM, product=product
+        )
+        .order_by('sequence', 'id')
+        .first()
+    )
     if bom is None:
-        bom = (MrpBom.objects.filter(
-            active=True, type=MrpBom.TYPE_PHANTOM,
-            product__isnull=True, product_tmpl=product.product_tmpl)
-            .order_by('sequence', 'id').first())
+        bom = (
+            MrpBom.objects.filter(
+                active=True,
+                type=MrpBom.TYPE_PHANTOM,
+                product__isnull=True,
+                product_tmpl=product.product_tmpl,
+            )
+            .order_by('sequence', 'id')
+            .first()
+        )
     if bom is None:
         return None
     total = Decimal('0.00')
     for line in bom.bom_line_ids.select_related('product'):
-        component_cost = (line.product.standard_price
-                          if line.product and line.product.standard_price
-                          is not None else Decimal('0.00'))
+        component_cost = (
+            line.product.standard_price
+            if line.product and line.product.standard_price is not None
+            else Decimal('0.00')
+        )
         total += component_cost * line.product_qty
     produced = bom.product_qty or Decimal('1.00')
     return (total / produced).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)

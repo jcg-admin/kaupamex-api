@@ -1,4 +1,6 @@
-"""Siembra los tres motivos de baja maestros — ≙ ``odoo19c: hr/data/hr_data.xml:56-73``.
+"""
+Siembra los tres motivos de baja maestros — ≙ ``odoo19c:
+hr/data/hr_data.xml:56-73``.
 
 Sin ellos ``HrDepartureReason._get_default_departure_reasons()`` no resuelve
 nada y su guarda de borrado (``delete()``) queda sin efecto — mismo patrón
@@ -13,6 +15,7 @@ tabla serían dos fuentes de verdad que nadie sincroniza.
 ``base`` entra en las dependencias porque la fila del identificador externo
 vive en ``ir.model.data``, que es de ese addon.
 """
+
 from django.db import migrations
 
 from addons.hr.data.hr_departure_reason_data import seed_departure_reasons
@@ -25,8 +28,11 @@ def seed(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('hr', '0002_hrcontracttype_hrdeparturereason_hremployeecategory_and_more'),
-        ('base', '0024_respartner_check_name'),
+        ('hr',
+         '0002_hrcontracttype_hrdeparturereason_hremployeecategory_and_more',
+         ),
+        ('base',
+         '0024_respartner_check_name'),
     ]
 
     operations = [

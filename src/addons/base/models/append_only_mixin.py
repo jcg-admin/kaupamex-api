@@ -16,6 +16,7 @@ Sin homólogo en la referencia: allá la inmutabilidad de un log se apoya en
 ``_log_access = False`` más reglas de acceso. Aquí se impone en el modelo
 (SOL-011, DEC-LOG-05).
 """
+
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
@@ -40,10 +41,12 @@ class AppendOnlyModel(TimeStampedModel):
     def save(self, *args, **kwargs):
         if not self._state.adding:
             raise PermissionError(
-                f'{type(self).__name__} es append-only: UPDATE no permitido')
+                f'{type(self).__name__} es append-only: UPDATE no permitido'
+            )
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         raise PermissionError(
             f'{type(self).__name__} es append-only: DELETE de instancia no '
-            f'permitido (usar purga bulk por retencion)')
+            'permitido (usar purga bulk por retencion)'
+        )

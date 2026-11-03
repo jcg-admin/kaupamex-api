@@ -1,0 +1,46 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+________________ test_recursive_removal_matches_reference[True] ________________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:220: in test_recursive_removal_matches_reference
+    ours._remove('base', log_dependents=log_dependents)
+E   AttributeError: 'ModuleGraph' object has no attribute '_remove'
+------------------------------ Captured log call -------------------------------
+INFO     pinned_module_graph:module_graph.py:316 module right: its direct/indirect dependency is skipped, skipped
+INFO     pinned_module_graph:module_graph.py:316 module diamond: its direct/indirect dependency is skipped, skipped
+INFO     pinned_module_graph:module_graph.py:316 module left: its direct/indirect dependency is skipped, skipped
+_______________ test_recursive_removal_matches_reference[False] ________________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:220: in test_recursive_removal_matches_reference
+    ours._remove('base', log_dependents=log_dependents)
+E   AttributeError: 'ModuleGraph' object has no attribute '_remove'
+------------------------------ Captured log call -------------------------------
+INFO     pinned_module_graph:module_graph.py:316 module diamond: its direct/indirect dependency is skipped, skipped
+________________ test_removing_absent_node_rejects_both_graphs _________________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:228: in test_removing_absent_node_rejects_both_graphs
+    graph._remove('absent')
+E   AttributeError: 'ModuleGraph' object has no attribute '_remove'
+____ test_missing_dependency_prunes_dependents_and_retains_independent_node ____
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:241: in test_missing_dependency_prunes_dependents_and_retains_independent_node
+    ours._update_depends(names)
+E   AttributeError: 'ModuleGraph' object has no attribute '_update_depends'
+------------------------------ Captured log call -------------------------------
+WARNING  pinned_module_graph:module_graph.py:265 module child: some depends are not loaded (base), skipped
+_________ test_explicit_depth_preparation_prunes_cycles_like_reference _________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:253: in test_explicit_depth_preparation_prunes_cycles_like_reference
+    ours._update_depth(names)
+E   AttributeError: 'ModuleGraph' object has no attribute '_update_depth'
+------------------------------ Captured log call -------------------------------
+WARNING  pinned_module_graph:module_graph.py:277 module a: in a dependency loop, skipped
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_recursive_removal_matches_reference[True]
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_recursive_removal_matches_reference[False]
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_removing_absent_node_rejects_both_graphs
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_missing_dependency_prunes_dependents_and_retains_independent_node
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_explicit_depth_preparation_prunes_cycles_like_reference
+5 failed, 16 deselected, 1 warning in 0.18s

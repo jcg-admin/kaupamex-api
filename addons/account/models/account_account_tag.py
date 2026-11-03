@@ -29,6 +29,7 @@ son datos de demo (viven en ``data/account_data.xml``, que la referencia carga
 siempre) y sí se cargan aquí desde la migración anterior. La guarda se porta
 abajo. Ver :ref:`h-api-352`.
 """
+
 import fields
 import models
 from addons.base.models.ir_model import IrModelData
@@ -45,23 +46,35 @@ class AccountAccountTag(models.Model):
         ('products', 'Productos'),
     ]
 
-    name           = fields.Char(
-        max_length=255, help_text='Nombre de la etiqueta (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre de la etiqueta (Odoo name, requerido).',
     )
-    applicability   = fields.Selection(
-        max_length=8, choices=APPLICABILITIES, default='accounts',
+    applicability = fields.Selection(
+        max_length=8,
+        choices=APPLICABILITIES,
+        default='accounts',
         help_text='Dónde aplica la etiqueta (Odoo applicability, requerido).',
     )
-    color            = fields.Integer(
-        default=0, help_text='Índice de color en UI (Odoo color).',
+    color = fields.Integer(
+        default=0,
+        help_text='Índice de color en UI (Odoo color).',
     )
-    active            = fields.Boolean(
-        default=True, help_text='Etiqueta activa; desactivar en vez de borrar (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text=(
+            'Etiqueta activa; desactivar en vez de borrar (Odoo active).'
+        ),
     )
-    country            = fields.Many2one(
-        'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
+    country = fields.Many2one(
+        'base.ResCountry',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='account_tags',
-        help_text='País donde aplica, cuando applicability=taxes (Odoo country_id).',
+        help_text=(
+            'País donde aplica, cuando applicability=taxes (Odoo country_id).'
+        ),
     )
 
     class Meta:
@@ -101,11 +114,13 @@ class AccountAccountTag(models.Model):
 
     @classmethod
     def get_tax_tags(cls, tag_name, country):
-        """Las etiquetas de impuesto de ese nombre y país — ≙ ``_get_tax_tags``.
+        """
+        Las etiquetas de impuesto de ese nombre y país — ≙ ``_get_tax_tags``.
 
         ≙ ``odoo19c: account_account_tag.py:78-86``. Allá el ``search`` lleva
         ``active_test=False`` explícito porque su ORM descarta los archivados
-        por defecto; **aquí no hace falta** — el manager de este stack no filtra
+        por defecto; **aquí no hace falta** — el manager de este stack no
+        filtra
         por ``active``, así que la consulta ya ve la etiqueta archivada. El
         efecto es el que la referencia busca, y es el que importa: una etiqueta
         archivada sigue ocupando su ``(name, applicability, country)``, y no
@@ -126,9 +141,11 @@ class AccountAccountTag(models.Model):
     )
 
     def delete(self, *args, **kwargs):
-        """Impide borrar una etiqueta maestra — ≙ ``_unlink_except_master_tags``.
+        """
+        Impide borrar una etiqueta maestra — ≙ ``_unlink_except_master_tags``.
 
-        ≙ ``odoo19c: account_account_tag.py:110-120`` (``odoo-tools@622ddc2a``).
+        ≙ ``odoo19c: account_account_tag.py:110-120``
+        (``odoo-tools@622ddc2a``).
         Allá la guarda cuelga de ``@api.ondelete``; aquí del ``delete`` del
         modelo, que es el punto equivalente en este stack.
 
@@ -141,6 +158,10 @@ class AccountAccountTag(models.Model):
             master = IrModelData.ref(xmlid, raise_if_not_found=False)
             if master is not None and master.pk == self.pk:
                 raise UserError(
-                    _('No se puede borrar la etiqueta «%(name)s»: la usa la '
-                      'definición del plan contable.') % {'name': self.name})
+                    _(
+                        'No se puede borrar la etiqueta «%(name)s»: la usa la '
+                        'definición del plan contable.'
+                    )
+                    % {'name': self.name}
+                )
         return super().delete(*args, **kwargs)

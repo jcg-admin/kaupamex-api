@@ -33,6 +33,7 @@ se reconstruyen los ``vals`` campo por campo desde cada
 ``hr.applicant`` de origen — mismo criterio que ``account_debit_note``
 al copiar líneas.
 """
+
 from orm.models_transient import TransientModel
 from tools.translate import _
 
@@ -66,14 +67,20 @@ class JobAddApplicants(TransientModel):
         """≙ ``_add_applicants_to_job`` (``odoo19c: :11-29``) — crea una
         aplicación nueva por cada par (candidato, puesto), en la primera
         etapa elegible de ese puesto."""
-        HrApplicant = type(next(iter(applicants), None)) if applicants else None
+        HrApplicant = (
+            type(next(iter(applicants), None)) if applicants else None
+        )
         if HrApplicant is None:
             return []
         new_applicants = []
         for applicant in applicants:
             base_vals = cls._copy_applicant_vals(applicant)
             for job in jobs:
-                stage = job._get_first_stage() if hasattr(job, '_get_first_stage') else None
+                stage = (
+                    job._get_first_stage()
+                    if hasattr(job, '_get_first_stage')
+                    else None
+                )
                 vals = dict(base_vals)
                 vals.update(job=job, stage=stage)
                 new_applicants.append(HrApplicant.objects.create(**vals))
@@ -91,6 +98,7 @@ class JobAddApplicants(TransientModel):
             names = ', '.join({a.partner_name or '' for a in new_applicants})
             message = _(
                 'Se crearon %(amount)s postulaciones nuevas para: %(names)s',
-                amount=len(new_applicants), names=names,
+                amount=len(new_applicants),
+                names=names,
             )
         return {'applicants': new_applicants, 'message': message}

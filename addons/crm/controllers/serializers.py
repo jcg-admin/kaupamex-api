@@ -3,9 +3,9 @@ Serializers — addons.contact.
 
 JSON keys in English (DEC-DOC-005).
 """
+
 from rest_framework import serializers
 from addons.crm.models import ContactMessage
-
 
 
 class ContactMessageCreateSerializer(serializers.ModelSerializer):
@@ -28,9 +28,17 @@ class ContactMessageListItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactMessage
         fields = [
-            'id', 'name', 'email', 'phone', 'subject', 'body',
-            'read', 'replied', 'created_at',
-            'reply_body', 'reply_sent_at',
+            'id',
+            'name',
+            'email',
+            'phone',
+            'subject',
+            'body',
+            'read',
+            'replied',
+            'created_at',
+            'reply_body',
+            'reply_sent_at',
         ]
         read_only_fields = fields
 
@@ -43,12 +51,18 @@ class ContactMessageReplySerializer(serializers.Serializer):
 
 # Aliases for view compatibility
 class ContactMessageSerializer(ContactMessageCreateSerializer):
-    """Public create + read serializer (alias for ContactMessageCreateSerializer)."""
-    id         = serializers.IntegerField(read_only=True)
+    """
+    Public create + read serializer (alias for ContactMessageCreateSerializer).
+    """
+
+    id = serializers.IntegerField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
     class Meta(ContactMessageCreateSerializer.Meta):
-        fields = ContactMessageCreateSerializer.Meta.fields + ['id', 'created_at']
+        fields = ContactMessageCreateSerializer.Meta.fields + [
+            'id',
+            'created_at',
+        ]
 
 
 ContactMessageAdminSerializer = ContactMessageListItemSerializer

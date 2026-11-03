@@ -6,6 +6,7 @@ paqueterías elegibles y reporte de inelegibles con motivo.
 
 English JSON keys per DEC-DOC-005.
 """
+
 from decimal import Decimal
 from addons.delivery.models import CarrierRateCard, Courier
 
@@ -19,9 +20,12 @@ OFFERS_URL = '/api/v2/shipping-offers/'
 def _card(code, name, **kw):
     courier = Courier.objects.create(name=name, code=code, is_active=True)
     defaults = dict(
-        base_cost=Decimal('50.00'), cost_per_kg=Decimal('10.00'),
-        transit_days=3, environmental=CarrierRateCard.ENV_MEDIUM,
-        allows_hazardous=False, is_active=True,
+        base_cost=Decimal('50.00'),
+        cost_per_kg=Decimal('10.00'),
+        transit_days=3,
+        environmental=CarrierRateCard.ENV_MEDIUM,
+        allows_hazardous=False,
+        is_active=True,
     )
     defaults.update(kw)
     return CarrierRateCard.objects.create(courier=courier, **defaults)
@@ -29,10 +33,17 @@ def _card(code, name, **kw):
 
 @pytest.fixture
 def one_pkg():
-    return {'packages': [{
-        'length': '10', 'width': '10', 'height': '10',
-        'weight': '2', 'value': '100',
-    }]}
+    return {
+        'packages': [
+            {
+                'length': '10',
+                'width': '10',
+                'height': '10',
+                'weight': '2',
+                'value': '100',
+            }
+        ]
+    }
 
 
 class TestShippingOffersAdminOnly:
@@ -65,16 +76,33 @@ class TestShippingOffersAdminOnly:
         assert r.status_code == 400
 
     def test_dimension_no_positiva_400(self, admin_client, db):
-        payload = {'packages': [{
-            'length': '0', 'width': '10', 'height': '10',
-            'weight': '1', 'value': '100',
-        }]}
+        payload = {
+            'packages': [
+                {
+                    'length': '0',
+                    'width': '10',
+                    'height': '10',
+                    'weight': '1',
+                    'value': '100',
+                }
+            ]
+        }
         r = admin_client.post(OFFERS_URL, payload, format='json')
         assert r.status_code == 400
 
     def test_ranking_por_costo(self, admin_client, one_pkg, db):
-        _card('caro', 'Caro', base_cost=Decimal('500.00'), cost_per_kg=Decimal('0'))
-        _card('barato', 'Barato', base_cost=Decimal('50.00'), cost_per_kg=Decimal('0'))
+        _card(
+            'caro',
+            'Caro',
+            base_cost=Decimal('500.00'),
+            cost_per_kg=Decimal('0'),
+        )
+        _card(
+            'barato',
+            'Barato',
+            base_cost=Decimal('50.00'),
+            cost_per_kg=Decimal('0'),
+        )
         r = admin_client.post(OFFERS_URL, one_pkg, format='json')
         assert r.status_code == 200
         carriers = [o['carrier'] for o in r.data['offers']]
@@ -82,10 +110,17 @@ class TestShippingOffersAdminOnly:
 
     def test_inelegible_reporta_motivo(self, admin_client, db):
         _card('liviano', 'Liviano', max_package_weight_kg=Decimal('1.00'))
-        payload = {'packages': [{
-            'length': '10', 'width': '10', 'height': '10',
-            'weight': '5', 'value': '100',
-        }]}
+        payload = {
+            'packages': [
+                {
+                    'length': '10',
+                    'width': '10',
+                    'height': '10',
+                    'weight': '5',
+                    'value': '100',
+                }
+            ]
+        }
         r = admin_client.post(OFFERS_URL, payload, format='json')
         assert r.status_code == 200
         assert r.data['offers'] == []

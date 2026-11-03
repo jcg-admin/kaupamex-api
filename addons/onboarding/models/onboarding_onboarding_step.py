@@ -21,6 +21,7 @@ argumento, no abrir infraestructura. Queda pendiente por **falta de
 consumidor**, no por falta de mecanismo — y se hace junto con el primer
 endpoint que sirva ``step_image``.
 """
+
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -63,39 +64,53 @@ class OnboardingOnboardingStep(models.Model):
 
     # Odoo title (onboarding_onboarding_step.py:17, translate).
     title = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Título',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Título',
     )
     # Odoo description (línea 18, translate).
     description = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Descripción',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Descripción',
     )
     # Odoo button_text (línea 19-21, required, default "Let's do it").
     button_text = fields.Char(
-        max_length=255, default="Let's do it", verbose_name='Texto del botón',
-        help_text='Texto del botón que arranca este paso '
-                  '(Odoo button_text).',
+        max_length=255,
+        default="Let's do it",
+        verbose_name='Texto del botón',
+        help_text='Texto del botón que arranca este paso (Odoo button_text).',
     )
     # Odoo done_icon (línea 22, default 'fa-star').
     done_icon = fields.Char(
-        max_length=64, default='fa-star',
+        max_length=64,
+        default='fa-star',
         verbose_name='Ícono Font Awesome al completar',
     )
     # Odoo done_text (línea 23-24, default 'Step Completed!').
     done_text = fields.Char(
-        max_length=255, default='Step Completed!',
+        max_length=255,
+        default='Step Completed!',
         verbose_name='Texto al completar el paso',
     )
     # Odoo step_image / step_image_filename (línea 25-26).
     step_image = fields.Binary(
-        null=True, blank=True, verbose_name='Imagen del paso',
+        null=True,
+        blank=True,
+        verbose_name='Imagen del paso',
     )
     step_image_filename = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Nombre de archivo de la imagen',
     )
     # Odoo step_image_alt (línea 27-29, default 'Onboarding Step Image').
     step_image_alt = fields.Char(
-        max_length=255, default='Onboarding Step Image',
+        max_length=255,
+        default='Onboarding Step Image',
         verbose_name='Texto alternativo de la imagen del paso',
     )
     # Odoo panel_step_open_action_name (línea 30-33). NO required a nivel de
@@ -103,14 +118,19 @@ class OnboardingOnboardingStep(models.Model):
     # está vinculado a un onboarding), verificado en ``clean()`` (ver abajo,
     # adaptación de ``check_step_on_onboarding_has_action``).
     panel_step_open_action_name = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         verbose_name='Acción de apertura',
-        help_text='Nombre de la acción de modelo a ejecutar al abrir el '
-                  'paso, p. ej. action_open_onboarding_1_step_1.',
+        help_text=(
+            'Nombre de la acción de modelo a ejecutar al abrir el '
+            'paso, p. ej. action_open_onboarding_1_step_1.'
+        ),
     )
     # Odoo is_per_company (línea 44, default True).
     is_per_company = fields.Boolean(
-        default=True, verbose_name='¿Es per-company?',
+        default=True,
+        verbose_name='¿Es per-company?',
     )
     # Odoo sequence (línea 45, default 10).
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
@@ -146,7 +166,11 @@ class OnboardingOnboardingStep(models.Model):
 
         Sin guion bajo, como la fuente: es parte de su superficie pública.
         """
-        if self.pk and self.onboardings.exists() and not self.panel_step_open_action_name:
+        if (
+            self.pk
+            and self.onboardings.exists()
+            and not self.panel_step_open_action_name
+        ):
             raise ValidationError(
                 'Se requiere una "Acción de apertura" para vincular este '
                 'paso a un panel de onboarding: %s' % (self.title or self.pk)
@@ -163,9 +187,14 @@ class OnboardingOnboardingStep(models.Model):
         """
         is_per_company_changed = False
         if self.pk:
-            previous_value = type(self).objects.filter(
-                pk=self.pk,
-            ).values_list('is_per_company', flat=True).first()
+            previous_value = (
+                type(self)
+                .objects.filter(
+                    pk=self.pk,
+                )
+                .values_list('is_per_company', flat=True)
+                .first()
+            )
             is_per_company_changed = (
                 previous_value is not None
                 and previous_value != self.is_per_company
@@ -255,7 +284,11 @@ class OnboardingOnboardingStep(models.Model):
         step = cls.objects.filter(pk=step_id).first()
         if step is None:
             return 'NOT_FOUND'
-        return 'JUST_DONE' if step.action_set_just_done(company=company) else 'WAS_DONE'
+        return (
+            'JUST_DONE'
+            if step.action_set_just_done(company=company)
+            else 'WAS_DONE'
+        )
 
     def _get_placeholder_filename(self, field):
         """≙ ``_get_placeholder_filename`` (línea 107-111).
@@ -291,7 +324,8 @@ class OnboardingOnboardingStep(models.Model):
         """
         context_company_id = _resolve_company_id(company)
         onboarding_progress_model = apps.get_model(
-            'onboarding', 'OnboardingProgress')
+            'onboarding', 'OnboardingProgress'
+        )
         onboarding_progress_records = onboarding_progress_model.objects.filter(
             onboarding__in=self.onboardings.all(),
         ).filter(

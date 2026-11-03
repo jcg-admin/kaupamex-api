@@ -1,0 +1,421 @@
+{
+  "existing_instruments": [
+    {
+      "responsibility": "reference inventory",
+      "path": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517",
+      "files_present": [
+        "README.md",
+        "inventory_reference_orm.py",
+        "manifest.json",
+        "outputs/inventory-odoo19c.json",
+        "outputs/module-graph-pilot.json",
+        "outputs/orm-across-trees.json",
+        "outputs/stub-bodies-odoo19c.json",
+        "probes/probe_orm_across_trees.py",
+        "probes/probe_stub_bodies.py",
+        "tests/test_inventory_reference_orm.py",
+        "tests/test_module_graph_contract.py"
+      ],
+      "manifest": {
+        "question": "TASK-API-0392 — que declara el ORM de la referencia por si mismo: cuantos archivos, cuantas clases, cuantas funciones y con que firmas. Es el espejo del censo de presencia (TASK-API-0391), que midio NUESTRO lado contra el suyo; aqui la referencia se mide sola, sin el eje de ausencia.",
+        "instrument": [
+          "inventory_reference_orm.py",
+          "probes/probe_orm_across_trees.py",
+          "probes/probe_stub_bodies.py",
+          "tests/test_inventory_reference_orm.py"
+        ],
+        "metric": "Ocurrencias declaradas en odoo/orm de odoo19c (odoo-tools@abe4040ec1), extraidas por AST: una clase, una funcion de modulo, o un metodo con su clase `owner`. La FIRMA se guarda entera (parametros en orden, banderas de opcional, vararg, kw-only, kwarg). ESTE RUN NO EXTIENDE COBERTURA: el censo de presencia ya alcanzo los 22 archivos no-__init__ de la referencia — cada uno tiene un archivo del mismo nombre en src/orm. Lo que cambia son dos cosas. (1) La UNIDAD: el censo empareja por nombre y su indice se queda con el primer homonimo, asi que su universo es de nombres UNICOS por archivo; aqui la unidad es la ocurrencia. Medido, la diferencia es 954 contra 792 — y ese 792 coincide EXACTAMENTE con los '792 simbolos de referencia' que el censo publico. Eso es CONSISTENCIA, no un control cruzado: los dos runs llaman al MISMO extractor sobre los MISMOS 22 archivos y deduplican igual, asi que la coincidencia confirma que la poblacion es la misma y no puede fallar por una razon interesante. Un control cruzado exigiria un segundo instrumento independiente, y este run no lo tiene. (2) El DESGLOSE: cada archivo lleva sus clases, cada clase sus metodos y cada funcion su firma, que es literalmente lo que el encargo pide contar.",
+        "blind_to": [
+          "Simbolos declarados dentro de un if o un try a nivel de modulo: solo se recorre tree.body. Medido, son 4 en todo odoo/orm y los cuatro viven en decorators.py: la clase 'deprecated' (:18), sus dos metodos (__init__ :19, __call__ :35) y el cierre 'wrapper' (:44) que vive DENTRO de __call__. No es una estimacion: se conto con un recorrido aparte.",
+          "Clases anidadas dentro de una clase: el recorrido baja un nivel. Medido, son 0 en odoo/orm — la ceguera existe y hoy no tiene poblacion.",
+          "Simbolos definidos dentro de una funcion (cierres): no entran, por decision del extractor que se importa. Son detalle de implementacion, no superficie.",
+          "Metodos ligados dinamicamente con setattr o por metaclase: MetaModel existe en models.py:206, asi que la ceguera es real; el AST no puede verlos.",
+          "types.py y __init__.py dan 0 simbolos y eso NO significa que esten vacios: el primero declara alias de tipo y el segundo re-exporta. Un 0 aqui es 'no declara def ni class', no 'no tiene contenido'.",
+          "El mapeo archivo-a-archivo entre el ORM PLANO de 18c y el paquete de 19c. La sonda mide donde vive el ORM en cada arbol y sus tamanios; NO afirma que odoo/api.py de 18 sea environments.py de 19. Eso exige emparejar simbolo a simbolo entre las dos formas y es otro analisis.",
+          "El IDIOMA de este run no lo defiende ningun gate del arbol, y por eso su primera version llego a commit con claves en español. Medido con control: check_identifier_language.py ve un `def` en español y NO ve una clave de dict con la misma morfologia (1 de 3 sujetos del banco), porque recorre simbolos DECLARADOS por AST y una clave es un literal — TASK-API-0394. Y check_vocabulario_prosa.py ni siquiera corre en api (sus dos listas viven solo en kaupamex-docs), y forzandolas da 0: sus ejes son `inventado` y `prohibido`, y «cubo», «dueño» y «defecto» son palabras españolas atestiguadas y no vetadas. Mide el significante; el defecto era de referente — TASK-API-0395.",
+          "El CUERPO como medida de completitud del lado de la referencia: el eje de fidelidad se resolvio en el run del censo, no en este. Lo que este run SI mide de los 38 'stub' es su clase, con probes/probe_stub_bodies.py — porque una version anterior de esta clave afirmaba sin medir que 'la mayoria son metodos de base abstracta'. Medido: 14 llevan @typing.overload (declaracion de firma para el verificador de tipos, con su implementacion real al lado, NO un `stub` sin implementar), 3 llevan otro decorador que cambia lo que el cuerpo significa (classproperty, api.model, api.private) y 21 no llevan ninguno. De esos 21, 17 tienen su nombre implementado con cuerpo en otra clase del paquete —base de jerarquia— y 4 no: BaseModel._register_hook y _unregister_hook (que los addons implementan, fuera de odoo/orm) y DummyRLock.acquire/release (no-op deliberado). Sigue ciega a la jerarquia REAL: el cruce es por nombre dentro del paquete, no por MRO."
+        ],
+        "control": [
+          "Anulacion 1 — deduplicar por nombre ('raw' := len(set(names))): cae EXACTAMENTE test_raw_exceeds_unique_where_a_name_repeats_across_classes (1 failed, 4 passed). Es la asercion que defiende la unidad de este run.",
+          "Anulacion 2 — atribuir todo metodo a la PRIMERA clase del archivo en vez de a su `owner`: caen EXACTAMENTE dos, test_raw_exceeds... (los cuatro `owner` colapsan en uno) y test_a_class_carries_its_own_methods (BaseModel deja de tener 194) (2 failed, 3 passed). Es la asercion que defiende el desglose por clase.",
+          "Anulacion 3 — que el `bucket` de un stub ignore el decorador (siempre 'plain'): cae EXACTAMENTE test_an_overload_is_not_an_empty_implementation (1 failed, 6 passed). Es la asercion que separa una declaracion de firma de un `stub` sin implementar.",
+          "Anulacion 4 — retirar el cruce de sobreescritura (overridden_elsewhere := [] siempre): cae EXACTAMENTE test_the_plain_bucket_separates_abstract_base_from_empty_hook (1 failed, 6 passed). Es la asercion que separa la base de jerarquia del hook vacio.",
+          "Los siete sujetos de la suite son REALES del arbol de la referencia — fields_relational.py, models.py::BaseModel, utils.py::parse_field_expr, la raiz ausente odoo18c/odoo/orm, models.py::BaseModel.mapped (duplicado a proposito por @typing.overload) y el par domains.py::Domain._to_sql contra registry.py::DummyRLock.acquire. Ninguno fabricado: un sujeto fabricado confirma el encuadre de quien escribio el instrumento."
+        ],
+        "reproducible": [
+          "uv run pytest scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/ -q",
+          "uv run python scripts/workbench/odoo-orm-reference-inventory-20260910T181517/inventory_reference_orm.py",
+          "uv run python scripts/workbench/odoo-orm-reference-inventory-20260910T181517/probes/probe_orm_across_trees.py",
+          "uv run python scripts/workbench/odoo-orm-reference-inventory-20260910T181517/probes/probe_stub_bodies.py"
+        ],
+        "outputs": [
+          "outputs/inventory-odoo19c.json — el inventario completo, con la firma de cada funcion y metodo",
+          "outputs/orm-across-trees.json — donde vive el ORM en cada uno de los cuatro arboles",
+          "outputs/stub-bodies-odoo19c.json — los 38 cuerpos stub, cada uno con su `bucket`, su decorador y su `owner`"
+        ],
+        "source": [
+          "scripts/reference_roots.py — las cuatro raices de odoo-tools. Ninguna ruta se teclea: el arbol de 19 esta triplicado y un literal a mano cae en un directorio inexistente.",
+          "scripts/workbench/orm-symbol-presence-census-20260910T175850/census_symbol_presence.py — declared_symbols, signature_of y body_class se IMPORTAN, no se reescriben. Ya tienen suite propia alli; un segundo extractor seria una segunda fuente de verdad del mismo juicio."
+        ],
+        "results": {
+          "population": "odoo19c: odoo/orm — 23 archivos .py, 20084 lineas",
+          "files": 23,
+          "lines": 20084,
+          "classes": 59,
+          "module_functions": 87,
+          "methods": 808,
+          "raw_symbols": 954,
+          "unique_names_per_file": 792,
+          "signatures_with_default": 155,
+          "signatures_with_vararg": 19,
+          "signatures_with_kwonly": 11,
+          "signatures_with_kwarg": 13,
+          "stub_bodies": 38,
+          "stub_bodies_overload": 14,
+          "stub_bodies_other_decorator": 3,
+          "stub_bodies_plain": 21,
+          "stub_bodies_plain_implemented_elsewhere": 17,
+          "stub_bodies_plain_not_implemented_in_package": 4,
+          "classes_without_methods": 2,
+          "largest_class": "models.py::BaseModel — 194 metodos",
+          "file_with_most_homonyms": "fields_relational.py — 86 ocurrencias contra 50 nombres"
+        },
+        "tasks": [
+          "TASK-API-0392",
+          "TASK-API-0394",
+          "TASK-API-0395"
+        ],
+        "destination": "El reporte del lado de la referencia se entrega en el turno; el JSON queda en outputs/ como fuente de las cifras. El par con el censo (TASK-API-0391) es lo que da el saldo del porte de src/orm, y ese saldo va al progreso de la iniciativa completar-raiz-orm en kaupamex-docs. Ese progreso NO esta escrito: 'destino' aqui declara donde ira, no que ya este.",
+        "measured_at": "2026-09-10T18:49:42",
+        "api_head": "cdb41aa6",
+        "odoo_tools_head": "abe4040ec1"
+      },
+      "limits": "occurrences/owner/signature flags; seven original tests PASS; excludes nested/imports/aliases/bases"
+    },
+    {
+      "responsibility": "consumer structural census",
+      "path": "scripts/workbench/orm-root-census-20260902T203712",
+      "files_present": [
+        "census_orm_root.py",
+        "manifest.json",
+        "outputs/censo-orm-detalle-20260902T204428.txt",
+        "outputs/censo-orm-detalle-20260910T081947.txt",
+        "probe_resolve_mro.py",
+        "probe_translated_storage.py",
+        "tests/test_census_orm_root.py"
+      ],
+      "manifest": {
+        "question": "De los simbolos que la referencia declara en odoo/orm/, cuales estan aqui en el archivo que les corresponde, cuales viven en otro archivo, y cuales faltan — para saber si el porte del ORM esta cerrado antes de portar Cache y Starred.",
+        "instrument": [
+          "census_orm_root.py",
+          "uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle",
+          "probe_resolve_mro.py (ODOO19C declarado): comparación de cuerpo y mutación aislada, no un censo funcional global",
+          "probe_translated_storage.py: tipo PostgreSQL de un Char traducible frente al cuerpo original de Field.column_type"
+        ],
+        "metric": "Simbolos declarados por AST en cada archivo de odoo/orm/ (clases, funciones de modulo y metodos a cualquier profundidad, deduplicados por archivo), repartidos en cinco cubos contra el archivo homonimo de src/orm/: present, misplaced, dissolved, missing_classes y missing. El alcance de resolucion es EL ARCHIVO, no la raiz.",
+        "blind_to": [
+          "Los alias de tipo y las constantes de modulo: types.py declara DomainType, ContextType, ValuesType y ModelType, y el instrumento le mide 0 simbolos. Un archivo que sea solo re-exportacion y alias sale limpio sin estarlo.",
+          "El CUERPO del simbolo. Un metodo cuenta como presente por su nombre; que haga lo que el de la referencia hace no lo mide nadie aqui (porte-completo-no-parcial.md ya registra el conteo generoso).",
+          "El renombre. Un simbolo portado con otro nombre sale como ausente y como nuestro-sin-contraparte a la vez; no hay mapa de equivalencias como el de check_porte_completo.",
+          "Los atributos de clase (_name, _order, _inherit). No entran en ninguno de los cinco cubos — su gate es otro (atributos-de-clase-de-modelo.md).",
+          "La firma. Un simbolo con el mismo nombre y otros parametros cuenta como presente."
+        ],
+        "destination": "outputs/censo-orm-detalle.txt; la cifra alimenta el veredicto de #209 y el orden de porte de #217",
+        "corrected_premise": {
+          "antes": "La pregunta traia un censo por nombre desnudo sobre la raiz entera: 302 de 644 presentes, 342 ausentes.",
+          "despues": "Ese instrumento absuelve un simbolo que existe en OTRO archivo, que es la divergencia de sitio de h-api-578. Con el alcance por archivo: 327 de 853 presentes (38.3 %), 138 en otro archivo, 9 clases disueltas, 379 ausentes. Las dos poblaciones no son comparables — la primera deduplica por raiz, esta por archivo.",
+          "quien_la_destapo": "el propio instrumento, al correr los tests: BaseModel la CLASE tambien es un simbolo de la fuente y aqui no existe. No era una ausencia sino divergencia de forma, y sin su cubo propio el censo la contaba como deuda."
+        },
+        "control": "El cubo dissolved tiene que poder NO aplicarse: TestTheScopeIsTheFile::test_a_name_nobody_declares_is_missing declara una clase cuyo miembro tampoco llego y exige dissolved == [] con la clase en missing_classes. Sin ese caso, un instrumento que absolviera toda clase ausente pasaria los otros dos y convertiria el cubo en una amnistia automatica (sub-patron D de metrica-decide-la-conclusion.md).",
+        "reproducible": "uv run pytest scripts/workbench/orm-root-census-20260902T203712/tests/ -q && uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle",
+        "outputs": [
+          "outputs/censo-orm-detalle-*.txt"
+        ],
+        "source": "odoo19c @ odoo-tools abe4040ec1 (solo lectura); arbol propio src/orm en la rama feature/kaupamex-l3",
+        "tasks": [
+          "#209"
+        ],
+        "behavior_probe": {
+          "unit": "orm.fields.resolve_mro",
+          "reference": "odoo19c@abe4040ec1a45beee90fb694e4eae4453e46b389",
+          "preconditions": "Registro Django mínimo contenttypes, PostgreSQL sin conexión y orm.models importado primero",
+          "measures": "5 casos contra el cuerpo de referencia y 10 casos API clase/instancia; mutación break->continue detectada",
+          "blind_to": "Registro de addons, persistencia, MRO de modelos compuestos reales y completitud de BaseModel"
+        },
+        "translated_storage_probe": {
+          "task": "TASK-GEN-0060",
+          "reference": "odoo19c@abe4040ec1a45beee90fb694e4eae4453e46b389",
+          "metric": "Control sin traducción coincide en varchar; translate=True devuelve jsonb en referencia y varchar(24) en Consumer",
+          "result": "Implementation Gap; exit 1",
+          "blind_to": [
+            "persistencia de registros",
+            "filtrado y ordenación por idioma",
+            "migraciones de datos",
+            "copy_translations completo"
+          ],
+          "reproducible": "ODOO19C declarado por reference_roots; uv run --frozen python scripts/workbench/orm-root-census-20260902T203712/probe_translated_storage.py"
+        }
+      },
+      "limits": "file-scope class/function/method names; dissolved/misplaced; no semantics"
+    },
+    {
+      "responsibility": "inventory location axis",
+      "path": "scripts/workbench/orm-inventory-axis-20260902T205231",
+      "files_present": [
+        "locate_absent_symbols.py",
+        "manifest.json",
+        "outputs/eje-de-inventario-orm-20260902T210420.txt",
+        "outputs/eje-de-inventario-orm-20260902T213828.txt",
+        "outputs/eje-de-inventario-orm-20260910T081947.txt",
+        "tests/test_locate_absent_symbols.py"
+      ],
+      "manifest": {
+        "question": "De los simbolos que faltan en src/orm, cuales caen en «el stack lo trae hecho» y cuales en «el stack tiene con que construirlo» — la mitad del veredicto que el censo hermano dejo abierta, y la directiva del ejecutor de revisar que tenemos NOSOTROS antes de implementar el ORM.",
+        "instrument": [
+          "locate_absent_symbols.py",
+          "uv run python scripts/workbench/orm-inventory-axis-20260902T205231/locate_absent_symbols.py --root orm --detalle"
+        ],
+        "metric": "Nombres declarados como def/class por AST, indexados en dos universos: el stack instalado (.venv/lib/python3.12/site-packages mas la stdlib del interprete) y nuestro arbol fuera de la raiz espejada (src/ y addons/ menos src/orm/). Cada simbolo ausente cae en uno de CINCO cubos, con la especificidad exigida en LOS DOS lados: un solo paquete del stack o un solo archivo nuestro. El quinto cubo, trae_renombrado, lo produce STACK_RENAME: filas nombre_referencia -> nombre_stack decididas una por una leyendo el cuerpo de la fuente, y sometidas a la MISMA exigencia de especificidad — un destino en dos o mas paquetes da nombre_generico, no trae_renombrado.",
+        "blind_to": [
+          "Que el simbolo encontrado HAGA lo que el de la fuente hace. El instrumento mide la forma —existe un nombre— y el veredicto es sobre el fondo: es el sub-patron C de metrica-decide-la-conclusion.md, declarado y no cometido. Por eso el guion NO emite el veredicto: emite el material.",
+          "El simbolo renombrado que NADIE puso en el mapa. STACK_RENAME cubre las tres familias que se midieron (composicion de SQL, DDL de columna, protocolo de descriptor), no el universo: un sin_rastro sigue pudiendo ser un TRAE que nadie ha leido, y el cubo terminal sigue siendo una cota SUPERIOR de «se construye». Lo que cambio es que la cota bajo de 264 a 251 con evidencia, no con una promesa.",
+          "Todo lo que un paquete expone por C, por __getattr__ o por reexportacion en __init__: psycopg, lxml y libharu tienen superficie que ningun AST de .py ve.",
+          "El renombre nuestro. Un simbolo portado aqui con otro nombre sale en sin_rastro.",
+          "La distincion entre un metodo de BaseModel que aterrizo en un addon consumidor y una homonimia. El cubo ya_esta_aqui la acota con la especificidad pero no la cierra: convert_to_column_insert en base_sparse_field es lo primero; check en ir_model.py, lo segundo.",
+          "Que el simbolo del DESTINO haga lo que hace el de la fuente. La fila justifica la equivalencia con el file:line de la referencia que se leyo, pero el instrumento solo comprueba que el destino este declarado: es el sub-patron C otra vez, un nivel mas abajo. La fila es una hipotesis firmada, no una medicion de conducta."
+        ],
+        "destination": "outputs/eje-de-inventario-orm.txt; cierra la mitad TRAE/CONSTRUYE de #209 y alimenta el orden de porte de #217",
+        "corrected_premise": {
+          "antes": "La premisa del eje era que un indice de nombres separa TRAE de CONSTRUYE.",
+          "despues": "El propio resultado la refuta en su mitad util: con la especificidad exigida en un solo lado, ya_esta_aqui recogia 36 simbolos de los que la mayoria eran dunders y verbos genericos (__setitem__, add, read, join, patch). Exigida en los dos, baja a 23 y la mayoria de esos si son reubicaciones reales. El cubo terminal —264 de 333, 79.3 %— es lo unico que el nombre decide solo. Y el propio cubo terminal resulto una cota superior mas gruesa de lo declarado: con trece filas de renombre —cero de ellas inventadas, cada una con su file:line— baja de 264 (79.3 %) a 251 (75.4 %), y doce simbolos pasan a trae_renombrado. El nombre no decide solo ni siquiera ahi.",
+          "quien_la_destapo": "el propio instrumento al correrse sobre el arbol real, no una relectura del diseno."
+        },
+        "control": "TestOnlyDeclarationsCount::test_a_name_only_mentioned_in_a_body_is_not_a_declaration — un archivo que nombra OrderedSet dos veces sin declararlo. Un instrumento que midiera por texto lo daria por presente y el veredicto diria «el stack lo trae hecho» sobre una variable local. Y TestTheSpecificityIsDemandedOnBothSides::test_two_files_of_ours_make_the_name_generic, que es el control de la premisa corregida: sin el, add entra como inventario propio. Y para el mapa, dos: TestTheRenameMapIsAnExplicitDecision::test_dead_entries_are_reported_not_swallowed — una fila cuyo destino no existe se lista, no se traga; sin el listado el conteo baja un punto y se lee como si el mapa siguiera entero. Y test_the_rename_does_not_launder_a_generic_target, con un caso real del arbol: contribute_to_class lo declaran tres paquetes instalados, asi que la fila setup_nonrelated -> contribute_to_class lo deja en nombre_generico. El mapa no lava un nombre generico, y eso se ve en la corrida despachada, no solo en la suite.",
+        "reproducible": "uv run pytest scripts/workbench/orm-inventory-axis-20260902T205231/tests/ -q && uv run python scripts/workbench/orm-inventory-axis-20260902T205231/locate_absent_symbols.py --root orm --detalle",
+        "outputs": [
+          "outputs/eje-de-inventario-orm-*.txt"
+        ],
+        "source": "odoo19c @ odoo-tools abe4040ec1 (solo lectura); stack instalado del .venv de api; arbol propio en feature/kaupamex-l3",
+        "tasks": [
+          "#209",
+          "#319"
+        ]
+      },
+      "limits": "responsibility/location, not behavioral equivalence"
+    },
+    {
+      "responsibility": "signature comparison",
+      "path": "scripts/workbench/orm-signature-parity-20260904T162214",
+      "files_present": [
+        "README.md",
+        "manifest.json",
+        "neutralize_and_measure.sh",
+        "outputs/control-2026-09-04T16-33-54.txt",
+        "outputs/parity-2026-09-04T16-33-54.txt",
+        "outputs/parity-20260910T081947.txt",
+        "outputs/parity-20260913T075508.txt",
+        "outputs/suite-2026-09-04T16-33-54.txt",
+        "signature_parity.py",
+        "tests/conftest.py",
+        "tests/test_signature_parity.py"
+      ],
+      "manifest": {
+        "question": "Cuando un simbolo de odoo/orm ya esta portado en src/orm, la firma que declara aqui es la que declara la referencia?",
+        "instrument": [
+          "scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py",
+          "python3 scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py --detail"
+        ],
+        "metric": "Simbolos con contraparte en los 22 archivos de src/orm que espejan un archivo de odoo/orm, comparados por AST en cinco categorias de parametro: posicionales EN ORDEN, keyword-only COMO CONJUNTO, *args y **kwargs por presencia y nombre, y que parametros LLEVAN default. Un veredicto por simbolo, el mas estructural.",
+        "blind_to": [
+          "El VALOR del default: se mide su presencia, no cuanto vale.",
+          "La anotacion de tipo y el tipo de retorno: no entran en la comparacion.",
+          "El simbolo AUSENTE aqui: sale en not_ported y lo mide el censo de raiz, no este instrumento. Sumar las dos cifras infla el eje de firma con deuda que ya tiene su propio cubo (sub-patron A).",
+          "El nombre declarado mas de una vez en cualquiera de los dos lados: 85 nombres distintos quedan FUERA de la comparacion porque el par seria arbitrario. Su cierre exige calificar por clase, que este arbol no puede en models.py — BaseModel no existe aqui como clase.",
+          "El CUERPO del metodo: dos firmas identicas con comportamientos distintos salen como identicas. Eso lo mide porte-completo-no-parcial.md, no la firma.",
+          "El archivo de src/orm sin contraparte en odoo/orm: no se compara con nada."
+        ],
+        "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/tareas-completar-raiz-orm.rst — seccion «La firma tiene un instrumento propio»",
+        "control": "neutralize_and_measure.sh — anula classify() a «nunca diverge» con un parche en proceso (no escribe ningun archivo) y mide que cae. Con el comparador intacto: clear_all_caches marcado, init_models no. Anulado: clear_all_caches deja de estar marcado y la suite cae de 20 passed a 9 failed, 11 passed. Los dos anclajes son REALES y verificados leyendo la fuente, no aceptando el veredicto del instrumento: clear_all_caches es metodo con self en odoo19c: odoo/orm/registry.py:988 y funcion de modulo sin self en src/orm/registry.py:303; init_models declara los mismos cinco posicionales con default en install en :723 y :2155.",
+        "reproducible": "eval \"$(python3 scripts/reference_roots.py --env)\" && python3 scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py --detail && uv run pytest scripts/workbench/orm-signature-parity-20260904T162214/tests/ -q && bash scripts/workbench/orm-signature-parity-20260904T162214/neutralize_and_measure.sh",
+        "source": "odoo19c @ abe4040ec1 (Community 19) contra src/orm de api@703b8de",
+        "outputs": [
+          "outputs/control-2026-09-04T16-33-54.txt",
+          "outputs/parity-2026-09-04T16-33-54.txt",
+          "outputs/suite-2026-09-04T16-33-54.txt",
+          "outputs/parity-20260913T075508.txt"
+        ],
+        "tasks": [
+          "TASK-API-0391"
+        ],
+        "corrected_premise": {
+          "decia": "El censo de raiz declara la firma como ceguera y check_porte_completo tampoco la compara, asi que un puerto con el nombre correcto y otros parametros pasa los dos gates.",
+          "medido": "352 firmas comparables, 287 identicas (81.5 %), 65 divergentes. El instrumento se corrigio dos veces contra el arbol real antes de publicar: los stubs de @typing.overload fabricaban 2 divergencias inexistentes en decorators.py (91 -> 89), y los 83 nombres declarados mas de una vez producian pares arbitrarios (89 -> 65 sobre un denominador limpio de 352)."
+        }
+      },
+      "limits": "parameter/default flags; excludes ambiguous homonyms, values and annotations"
+    },
+    {
+      "responsibility": "rename resolution",
+      "path": "scripts/workbench/orm-rename-resolution-20260910T083919",
+      "files_present": [
+        "manifest.json",
+        "outputs/resolucion-20260910T083919.txt",
+        "resolve_renames.py",
+        "tests/test_resolve_renames.py"
+      ],
+      "manifest": {
+        "question": "¿Cuántos de los símbolos que el censo de la raíz llama «ausentes» están portados bajo el prefijo de disolución de este árbol?",
+        "instrument": "scripts/workbench/orm-rename-resolution-20260910T083919/resolve_renames.py",
+        "metric": "símbolos de la lista de ausentes que el CENSO publica por archivo, resueltos contra los símbolos declarados por AST en el mismo archivo de src/orm/ bajo uno de DISSOLUTION_PREFIXES ('_field_', '_model_', '_registry_'). El universo es el del censo, heredado a propósito.",
+        "blind_to": "el método portado con OTRO nombre (traducción, sinónimo) — el prefijo es una convención declarada, no un detector de renombres; y el CUERPO, igual que el censo: que `_field_read` exista no dice que haga lo que `Field.read` hace. Y ciega a los 9 archivos de la referencia sin lista de ausentes en el censo.",
+        "control": "anulación del mecanismo de prefijo (dejando sólo el literal): caen EXACTAMENTE 2 de 6 aserciones — las dos que dependen de él — y sobreviven las cuatro que miden el literal, el rechazo del sufijo y los prefijos declarados. Un emparejador laxo daría verde en las seis.",
+        "corrected_premise": {
+          "decia": "el censo publica «272 ausentes en src/orm» y la iniciativa lee esa cifra como símbolos sin portar (OE-1 del alcance)",
+          "mide": "29 de los 256 ausentes con lista publicada están portados bajo `_field_`, concentrados en fields.py (29 de sus 40). Otros 2 son desacuerdo de universo entre los dos instrumentos. Ausentes tras descontar ambos: 225.",
+          "consecuencia": "`src/orm/fields.py` no tiene clase `Field`: la fuente declara UNA clase con 72 métodos y este árbol la disolvió en 91 funciones de módulo instaladas sobre el Field de Django. El censo, que compara por nombre literal, cuenta cada método disuelto como ausente. La cifra del censo es una COTA SUPERIOR de lo que falta, no la medida."
+        },
+        "reproducible": "python3 scripts/workbench/orm-rename-resolution-20260910T083919/resolve_renames.py",
+        "source": [
+          "odoo19c: odoo/orm/fields.py — class Field, 72 métodos, 1937 líneas",
+          "src/orm/fields.py — 0 clases Field, 91 funciones de módulo, 4225 líneas",
+          "scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle"
+        ],
+        "tasks": [
+          "#211",
+          "#365"
+        ],
+        "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/ — corrige la lectura de OE-1 en alcance-completar-raiz-orm.rst",
+        "measured_at": "2026-09-10T08:41:02",
+        "api_head": "27277510",
+        "odoo_tools_head": "abe4040ec1"
+      },
+      "limits": "existing dissolution prefixes; no blanket authz alias"
+    },
+    {
+      "responsibility": "presence/body class",
+      "path": "scripts/workbench/orm-symbol-presence-census-20260910T175850",
+      "files_present": [
+        "README.md",
+        "census_symbol_presence.py",
+        "manifest.json",
+        "outputs/census.json",
+        "probes/probe_prefix_blindness.py",
+        "tests/test_census_symbol_presence.py"
+      ],
+      "manifest": {
+        "question": "De lo que src/orm y src/tools YA declaran, ¿cuánto tiene cuerpo? Los cinco instrumentos previos miden AUSENCIA; su criterio de cierre —«0 ausentes»— lo satisface un árbol de firmas vacías, porque ninguno mira el cuerpo. (TASK-API-0391)",
+        "instrument": "scripts/workbench/orm-symbol-presence-census-20260910T175850/census_symbol_presence.py",
+        "metric": "por archivo de las dos raíces espejadas: clases y funciones declaradas por AST (módulo y método; NO anidadas dentro de una función), cada una con su FIRMA —parámetros en orden sin el receptor, banderas de default, vararg, kw-only, kwarg— y su CLASE DE CUERPO. `stub` = retirado el docstring, el cuerpo queda vacío o es exactamente uno de `pass`, `...`, `raise NotImplementedError` (con o sin mensaje), `return` pelado o `return None`. Todo lo demás es `substantive`, incluido el que sólo delega en super(). La unión con odoo19c es por NOMBRE DE ARCHIVO dentro del par de FIXED_MIRRORED_ROOTS y por NOMBRE DE SÍMBOLO vía resolve() de orm-rename-resolution.",
+        "blind_to": "Cuatro cegueras, tres medidas en este mismo pase.\n(1) El PREFIJO DE DISOLUCIÓN que resolve() conoce se derivó de fields.py (`_field_`, `_model_`, `_registry_`). Los archivos que disuelven con otro prefijo cuentan sus símbolos como ausentes: medido por la sonda, 52 de 650 ocurrencias de la referencia (8 %) casarían por sufijo, concentradas en fields_temporal.py (20 de 23). La ausencia deduplicada tras descontarlas sigue siendo el eje dominante.\n(2) DESACUERDO DE UNIVERSO entre el censo y su propia sonda: el censo deduplica por nombre (1518 símbolos, 557 ausentes) y la sonda cuenta ocurrencias (650), porque `convert_to_column` existe en varias clases del mismo archivo. Las dos cifras son correctas y NO son comparables entre sí.\n(3) El emparejamiento por nombre de ARCHIVO: un símbolo cuyo homólogo vive en otro archivo de la referencia sale como ausente — es la misma ceguera declarada de check_mirrored_roots (H-API-855).\n(4) Un cuerpo de DOS statements no es stub aunque los dos sean vacíos: `__iter__` de domains.py hace `yield from ()` y luego `raise NotImplementedError`, y se cuenta como sustantivo. Y ciega, como todos los instrumentos previos, a que un cuerpo sustantivo HAGA lo que el de la referencia hace.",
+        "control": "dos anulaciones, cada una sobre su mecanismo, con las aserciones que caen contadas. (1) Retirado el detector de stub (todo `substantive`): caen EXACTAMENTE 4 de 8 — las tres de sujeto real del árbol más la unitaria; sobreviven las cuatro que miden firma y cuerpos sustantivos. (2) El `raise` detectado por SUBCADENA en vez de por nodo: cae EXACTAMENTE 1 de 8 — `depends` de decorators.py, que levanta NotImplementedError dentro de un `elif` y un detector laxo borraría de la medición una guarda con lógica real. Los sujetos son reales y del árbol, no fabricados.",
+        "corrected_premise": {
+          "decia": "el eje nuevo es la presencia con firma, y la columna que discrimina es el stub — la sospecha era que el criterio «0 ausentes» estuviera satisfecho por símbolos vacíos",
+          "mide": "42 stubs sobre 1646 símbolos declarados. De los 33 que casan contra la referencia, 32 son FIDELIDAD —la fuente también los deja vacíos— y sólo 1 es hueco real: `copy_translations` en src/orm/models.py:1312, sustantivo en la referencia y vacío aquí.",
+          "consecuencia": "la sospecha que motivó el censo NO se sostiene: el árbol no está hueco por dentro. El eje que sí gobierna sigue siendo la AUSENCIA — 557 de 1518 símbolos de la referencia (37 %) no resuelven bajo ningún nombre, concentrados en models.py (129), translate.py (90 de 90), config.py (55 de 56) y misc.py (48). Y aparece un tercer eje que ningún instrumento medía: 95 firmas DIVERGENTES entre símbolos que sí están portados."
+        },
+        "reproducible": "eval \"$(uv run python scripts/reference_roots.py --env)\" && uv run python scripts/workbench/orm-symbol-presence-census-20260910T175850/census_symbol_presence.py   # 0.47 s, sin ledger de trabajos: medido antes de decidir",
+        "outputs": [
+          "outputs/census.json"
+        ],
+        "source": [
+          "odoo19c @ odoo-tools abe4040ec1 — resuelto por scripts/reference_roots.py, NUNCA tecleado: el árbol de 19 está triplicado y la ruta de tres segmentos da 0 addons",
+          "src/orm y src/tools @ api b521f421",
+          "scripts/check_mirrored_roots.py — FIXED_MIRRORED_ROOTS",
+          "scripts/workbench/orm-rename-resolution-20260910T083919/resolve_renames.py — resolve, DISSOLUTION_PREFIXES",
+          "scripts/compare_reference_symbols.py — inventory(): da métodos por clase con lineno, y NI firma NI clase de cuerpo, que son los dos ejes de este censo"
+        ],
+        "tasks": [
+          "TASK-API-0391"
+        ],
+        "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/ — el censo reencuadra OE-1: el hueco no es de cuerpo (1 caso) sino de ausencia (557) y de firma divergente (95)",
+        "measured_at": "2026-09-10T18:04:23",
+        "api_head": "b521f421",
+        "odoo_tools_head": "abe4040ec1"
+      },
+      "limits": "owner/signature/stub; seven PASS one FAIL stale line844 vs current ConstraintMethods979"
+    },
+    {
+      "responsibility": "body analysis",
+      "path": "scripts/workbench/orm-body-axis-blindness-20260911T021435",
+      "files_present": [
+        "manifest.json",
+        "measure_owner_agreement.py",
+        "measure_pairing_blindness.py",
+        "outputs/blindness.txt",
+        "outputs/nullification.txt",
+        "outputs/owner-agreement.txt",
+        "outputs/red-half.txt"
+      ],
+      "manifest": {
+        "question": "OE-8 del alcance completar-raiz-orm declara que el único medidor de cuerpo empareja con `methods_of` y es «58.7 % ciego». ¿Cuánto ve realmente, y qué perdería un emparejamiento por (owner, name)?",
+        "instrument": [
+          "scripts/workbench/orm-body-axis-blindness-20260911T021435/measure_pairing_blindness.py",
+          "scripts/workbench/orm-body-axis-blindness-20260911T021435/measure_owner_agreement.py"
+        ],
+        "metric": "pares de símbolo del mismo nombre presentes en ambos lados del espejo, sobre src/orm y src/tools (77 archivos, 67 con contraparte), contados por dos extractores del propio motor: `methods_of` (métodos declarados en clase, colapsados por nombre) y `declarations_of` (clase, método de clase, función de módulo y asignación, sin colapsar). El segundo guion mide, de los pares que `methods_of` ve, en cuántos la clase dueña coincide entre lado y lado.",
+        "blind_to": [
+          "si los dos cuerpos de un par HACEN lo mismo — un par visible sólo dice que el instrumento los puede comparar",
+          "el símbolo portado bajo otro nombre: no hay tabla de equivalencia, así que un renombre se lee como ausencia",
+          "las raíces espejadas que no son src/orm ni src/tools (src/addons, addons/<x>), fuera del alcance medido",
+          "de qué par concreto salió el 1416 del alcance: el numerador (585) reproduce exacto y el denominador no lo hace ningún emparejamiento del árbol de hoy"
+        ],
+        "corrected_premise": {
+          "decia": "el alcance publica «585 de 1416 pares: 58.7 % ciego» como el estado de OE-8",
+          "mide": "el numerador reproduce EXACTO (585 sobre src/orm+src/tools), y ningún emparejamiento del árbol da 1416. Denominadores medidos sobre el mismo alcance: 826 (métodos + funciones de módulo, colapsados por nombre), 923 (funciones por (owner,name)), 1253 (todas las declaraciones por (owner,name,kind)). Sobre alcance ['src']: methods_of 1177, funciones por (owner,name) 1472.",
+          "consecuencia": "la cobertura real de `methods_of` sobre su universo emparejable es 70.8 %, no 41.3 %. La ceguera existe y es menor de lo declarado; el método del denominador de 1416 está perdido y no se puede reconstruir."
+        },
+        "control": "el emparejamiento por (owner, name) se midió ANTES de escribirlo: 522 de 585 pares coinciden en clase dueña y 63 NO, los 63 con clase en ambos lados. La causa de los 63 está nombrada — nuestro puerto disuelve BaseModel en mixins, que es el bloqueo que OE-5 ya declara. Un emparejamiento estricto por dueña perdería esos 63; por eso el respaldo por nombre no es opcional y Scope publica cuántos resolvió cada ruta.",
+        "reproducible": "python3 scripts/workbench/orm-body-axis-blindness-20260911T021435/measure_pairing_blindness.py && python3 scripts/workbench/orm-body-axis-blindness-20260911T021435/measure_owner_agreement.py",
+        "outputs": [
+          "outputs/blindness.txt",
+          "outputs/owner-agreement.txt"
+        ],
+        "source": [
+          "scripts/counterpart_body.py — el motor: methods_of (consumido por compare) y declarations_of (declarado y sin consumir)",
+          "scripts/check_write_path.py — el único eje vivo sobre el motor",
+          "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/alcance-completar-raiz-orm.rst v1.3.0, fila OE-8"
+        ],
+        "destination": "scripts/counterpart_body.py (pair_declarations + Scope por ruta) · scripts/write_path_baseline.txt (regenerado con la clave nueva) · docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/hallazgos/",
+        "measured_at": "2026-09-11T02:21:27",
+        "api_head": "742ae2dc",
+        "odoo_tools_head": "abe4040ec1"
+      },
+      "limits": "counterpart_body declarations preserve owners/bases; body vocabulary is not semantic acceptance"
+    }
+  ],
+  "root_census_distinction": "scripts/census_orm_reference.py scans top-level definitions/assignments and optional global search; root-census collects per-file methods/dissolved classification. Different scope, not interchangeable counts. No new general inventory created.",
+  "test_results": {
+    "inventory_plus_pilot": {
+      "exit_code": 0,
+      "passed": 12
+    },
+    "presence_with_inventory_and_initial_pilot": {
+      "exit_code": 1,
+      "passed": 18,
+      "failed": 1
+    },
+    "four_specialized_suites": {
+      "exit_code": 0,
+      "passed": 62
+    }
+  },
+  "native_interface": {
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "TaskGet": "taskTools({dbPath:storePath(),sessionId}).find(name=TaskGet).run({task_id},ctx)",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_ids": [
+      "1153",
+      "1154",
+      "737"
+    ],
+    "result": "TaskGet succeeded; 0391/0392 completed, owner null; 0382 pending owner codex-module-lifecycle. No status/owner mutation.",
+    "evidence": [
+      "native-task-1153.json",
+      "native-task-1154.json",
+      "native-task-737.json"
+    ],
+    "claims": "claimsCommand --claim/--release path --owner codex-module-lifecycle --branch feature/codex-workspace-bootstrap --task TASK-API-0382; native ledger",
+    "jobs": "session.job_runs.jobs_dir/scaffold_run/settle + workbench.manifest.declare_workbench; no parallel coordinator",
+    "provider_execution": "No model inference; Codex Consumer verification only"
+  }
+}

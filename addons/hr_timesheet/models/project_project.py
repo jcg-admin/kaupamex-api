@@ -78,7 +78,8 @@ Métodos — todos BLOQUEADOS
 crean/reutilizan la cuenta analítica, ausente), ``_compute_display_name``
 (sesión multi-compañía), ``_init_data_analytic_account``,
 ``_unlink_except_contains_entries`` (``RedirectWarning``, UI),
-``get_create_edit_project_ids``, ``_convert_project_uom_to_timesheet_encode_uom``
+``get_create_edit_project_ids``,
+``_convert_project_uom_to_timesheet_encode_uom``
 (UOM + sesión), ``action_project_timesheets`` (acción de UI),
 ``_get_processed_analytic_account_vals``, ``_get_stat_buttons`` (botones de
 UI), ``action_view_tasks`` (acción de UI), ``_toggle_template_mode``
@@ -96,6 +97,7 @@ equivalente cuando la unidad de codificación es "Horas" (el default de
 ``res.company`` en este mismo addon, ``models/res_company.py``); diverge si
 la compañía usa "Días". Documentado, no oculto.
 """
+
 import fields
 import models
 
@@ -131,18 +133,30 @@ def apply_hr_timesheet_project_project_extensions():
 
     La llama ``HrTimesheetConfig.ready()``.
     """
-    _add_if_absent(Project, 'allow_timesheets', fields.Boolean(
-        default=True,
-        help_text='Odoo allow_timesheets. La referencia lo apaga cuando no '
-                  'hay cuenta analítica (account_id); ausente aquí — queda '
-                  'escribible directo.',
-    ))
-    _add_if_absent(Project, 'allocated_hours', fields.Float(
-        default=0.0,
-        help_text='Odoo allocated_hours. BLOQUEADO por ``el motor de '
-                  'tracking`` — tracking=True lo exige; ver '
-                  'docstring del módulo.',
-    ))
+    _add_if_absent(
+        Project,
+        'allow_timesheets',
+        fields.Boolean(
+            default=True,
+            help_text=(
+                'Odoo allow_timesheets. La referencia lo apaga cuando no '
+                'hay cuenta analítica (account_id); ausente aquí — queda '
+                'escribible directo.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        Project,
+        'allocated_hours',
+        fields.Float(
+            default=0.0,
+            help_text=(
+                'Odoo allocated_hours. BLOQUEADO por ``el motor de '
+                'tracking`` — tracking=True lo exige; ver '
+                'docstring del módulo.'
+            ),
+        ),
+    )
     for name, function in (
         ('effective_hours', _effective_hours),
         ('remaining_hours', _remaining_hours),

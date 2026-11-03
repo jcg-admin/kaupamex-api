@@ -38,14 +38,21 @@ que es otra cosa, y está bien que la mida — lo que no valdría es no saberlo.
 que borra por prefijo lo declara y no borra nada con los otros motores; aquí
 se mide el que ``config/settings/base.py:675`` configura.
 """
+
+import datetime
+
 import pytest
 
-from addons.base.models.res_device import (ResDevice, ResDeviceLog,
-                                           delete_sessions_from_identifiers)
+from addons.base.models.res_device import (
+    ResDevice,
+    ResDeviceLog,
+    delete_sessions_from_identifiers,
+)
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users import ResUsers
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
+from django.utils import timezone
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -65,8 +72,12 @@ def _make_session():
 
 def _make_log(user, session_key, platform='linux', browser='firefox'):
     return ResDeviceLog.objects.create(
-        session_identifier=session_key, platform=platform, browser=browser,
-        user_id=user.pk, revoked=False)
+        session_identifier=session_key,
+        platform=platform,
+        browser=browser,
+        user_id=user.pk,
+        revoked=False,
+    )
 
 
 class _Request:
@@ -110,6 +121,19 @@ def test_revoking_marks_the_log_row(db):
     ResDevice.objects.filter(user_id=user.pk)._revoke(_Request())
     fila.refresh_from_db()
     assert fila.revoked is True
+
+
+def test_revoking_writes_the_log_row_through_the_orm(db):
+    """≙ ``revoked_devices.write(...)`` (``:190``): el ``write`` fecha la
+    escritura de cada fila; un ``QuerySet.update`` la dejaba con la anterior."""
+    user = _make_user('marca-fecha@ejemplo.mx')
+    key = _make_session()
+    fila = _make_log(user, key)
+    long_ago = timezone.now() - datetime.timedelta(days=30)
+    ResDeviceLog.objects.filter(pk=fila.pk).update(updated_at=long_ago)
+    ResDevice.objects.filter(user_id=user.pk)._revoke(_Request())
+    fila.refresh_from_db()
+    assert fila.updated_at > long_ago
 
 
 def test_revoking_returns_how_many_log_rows_it_marked(db):

@@ -25,7 +25,10 @@ class Migration(migrations.Migration):
             name="active",
             field=models.BooleanField(
                 default=True,
-                help_text="Si se desmarca, la regla se oculta sin borrarla (Odoo active).",
+                help_text=(
+                    "Si se desmarca, la regla se oculta sin borrarla (Odoo"
+                    " active)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -37,7 +40,11 @@ class Migration(migrations.Migration):
                     ("transparent", "Automatic No Step Added"),
                 ],
                 default="manual",
-                help_text="«Manual Operation» crea un movimiento nuevo tras el actual; «Automatic No Step Added» sustituye la ubicación en el movimiento original (Odoo auto).",
+                help_text=(
+                    "«Manual Operation» crea un movimiento nuevo tras el"
+                    " actual; «Automatic No Step Added» sustituye la ubicación"
+                    " en el movimiento original (Odoo auto)."
+                ),
                 max_length=16,
             ),
         ),
@@ -46,7 +53,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa (Odoo company_id; su dominio la ata a la empresa de la ruta — ver _check_company_consistency).",
+                help_text=(
+                    "Empresa (Odoo company_id; su dominio la ata a la empresa"
+                    " de la ruta — ver _check_company_consistency)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="stock_rules",
@@ -58,7 +68,10 @@ class Migration(migrations.Migration):
             name="delay",
             field=models.IntegerField(
                 default=0,
-                help_text="Plazo en días que se resta a la fecha prevista del movimiento creado (Odoo delay).",
+                help_text=(
+                    "Plazo en días que se resta a la fecha prevista del"
+                    " movimiento creado (Odoo delay)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -66,7 +79,11 @@ class Migration(migrations.Migration):
             name="location_dest_from_rule",
             field=models.BooleanField(
                 default=False,
-                help_text="Si es verdadero, el destino del movimiento lo fija la regla; si no, lo toma del tipo de operación (Odoo location_dest_from_rule).",
+                help_text=(
+                    "Si es verdadero, el destino del movimiento lo fija la"
+                    " regla; si no, lo toma del tipo de operación (Odoo"
+                    " location_dest_from_rule)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -74,7 +91,9 @@ class Migration(migrations.Migration):
             name="partner_address",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Dirección de entrega, opcional (Odoo partner_address_id).",
+                help_text=(
+                    "Dirección de entrega, opcional (Odoo partner_address_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="stock_rules",
@@ -86,7 +105,10 @@ class Migration(migrations.Migration):
             name="picking_type",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Tipo de operación que la regla usa al crear el movimiento (Odoo picking_type_id, required, check_company).",
+                help_text=(
+                    "Tipo de operación que la regla usa al crear el movimiento"
+                    " (Odoo picking_type_id, required, check_company)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="rule_ids",
@@ -98,7 +120,10 @@ class Migration(migrations.Migration):
             name="propagate_cancel",
             field=models.BooleanField(
                 default=False,
-                help_text="Si se cancela el movimiento que crea esta regla, se cancela también el siguiente (Odoo propagate_cancel).",
+                help_text=(
+                    "Si se cancela el movimiento que crea esta regla, se"
+                    " cancela también el siguiente (Odoo propagate_cancel)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -106,7 +131,10 @@ class Migration(migrations.Migration):
             name="propagate_carrier",
             field=models.BooleanField(
                 default=False,
-                help_text="Propaga el transportista al movimiento siguiente (Odoo propagate_carrier).",
+                help_text=(
+                    "Propaga el transportista al movimiento siguiente (Odoo"
+                    " propagate_carrier)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -115,7 +143,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Dominio extra de aplicabilidad de la regla push (Odoo push_domain).",
+                help_text=(
+                    "Dominio extra de aplicabilidad de la regla push (Odoo"
+                    " push_domain)."
+                ),
                 max_length=255,
             ),
         ),
@@ -137,14 +168,18 @@ class Migration(migrations.Migration):
             field=models.IntegerField(
                 db_index=True,
                 default=0,
-                help_text="Secuencia de la ruta, replicada aquí para poder ordenar por ella (Odoo route_sequence, related+store=True).",
+                help_text=(
+                    "Secuencia de la ruta, replicada aquí para poder ordenar"
+                    " por ella (Odoo route_sequence, related+store=True)."
+                ),
             ),
         ),
         migrations.AddField(
             model_name="stockrule",
             name="sequence",
             field=models.IntegerField(
-                default=20, help_text="Secuencia dentro de la ruta (Odoo sequence)."
+                default=20,
+                help_text="Secuencia dentro de la ruta (Odoo sequence).",
             ),
         ),
         migrations.AddField(
@@ -152,7 +187,10 @@ class Migration(migrations.Migration):
             name="warehouse",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Almacén al que la regla queda acotada (Odoo warehouse_id, check_company).",
+                help_text=(
+                    "Almacén al que la regla queda acotada (Odoo warehouse_id,"
+                    " check_company)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="rule_ids",
@@ -178,7 +216,10 @@ class Migration(migrations.Migration):
             model_name="stockrule",
             name="location_dest",
             field=models.ForeignKey(
-                help_text="Ubicación destino (Odoo location_dest_id, required, check_company).",
+                help_text=(
+                    "Ubicación destino (Odoo location_dest_id, required,"
+                    " check_company)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="rules_in",
                 to="stock.stocklocation",
@@ -189,7 +230,9 @@ class Migration(migrations.Migration):
             name="location_src",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Ubicación origen (Odoo location_src_id, check_company).",
+                help_text=(
+                    "Ubicación origen (Odoo location_src_id, check_company)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="rules_out",
@@ -200,7 +243,10 @@ class Migration(migrations.Migration):
             model_name="stockrule",
             name="name",
             field=models.CharField(
-                help_text="Nombre de la regla; rellena el origen del albarán y el nombre de sus movimientos (Odoo name, translate=True).",
+                help_text=(
+                    "Nombre de la regla; rellena el origen del albarán y el"
+                    " nombre de sus movimientos (Odoo name, translate=True)."
+                ),
                 max_length=255,
             ),
         ),
@@ -213,7 +259,10 @@ class Migration(migrations.Migration):
                     ("make_to_order", "Trigger Another Rule"),
                     (
                         "mts_else_mto",
-                        "Take From Stock, if unavailable, Trigger Another Rule",
+                        (
+                            "Take From Stock, if unavailable, Trigger Another"
+                            " Rule"
+                        ),
                     ),
                 ],
                 default="make_to_stock",

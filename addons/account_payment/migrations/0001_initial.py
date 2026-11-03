@@ -5,6 +5,7 @@ este agente); cada uno es una tabla propia de ``account_payment`` con
 FK/OneToOne hacia los modelos que extiende. Ver ``models/links.py`` para la
 correspondencia con los campos de la referencia.
 """
+
 import django.db.models.deletion
 from django.db import migrations, models
 
@@ -25,8 +26,10 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True,
-                        serialize=False, verbose_name='ID',
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
                     ),
                 ),
                 (
@@ -41,8 +44,12 @@ class Migration(migrations.Migration):
                 (
                     'transaction',
                     models.ForeignKey(
-                        blank=True, null=True,
-                        help_text='Transacción de pago (Odoo payment_transaction_id).',
+                        blank=True,
+                        null=True,
+                        help_text=(
+                            'Transacción de pago (Odoo'
+                            ' payment_transaction_id).'
+                        ),
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name='account_payment_links',
                         to='payment.payment',
@@ -51,8 +58,11 @@ class Migration(migrations.Migration):
                 (
                     'token',
                     models.ForeignKey(
-                        blank=True, null=True,
-                        help_text='Tarjeta guardada usada (Odoo payment_token_id).',
+                        blank=True,
+                        null=True,
+                        help_text=(
+                            'Tarjeta guardada usada (Odoo payment_token_id).'
+                        ),
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name='account_payment_links',
                         to='payment.savedcard',
@@ -61,11 +71,14 @@ class Migration(migrations.Migration):
                 (
                     'source_payment',
                     models.ForeignKey(
-                        blank=True, null=True,
-                        help_text='Pago original del que ESTE pago es reembolso '
-                                  '(Odoo source_payment_id — related a través de la '
-                                  'transacción en la referencia; aquí, FK directa '
-                                  'por simplicidad).',
+                        blank=True,
+                        null=True,
+                        help_text=(
+                            'Pago original del que ESTE pago es reembolso '
+                            '(Odoo source_payment_id — related a través de la '
+                            'transacción en la referencia; aquí, FK directa '
+                            'por simplicidad).'
+                        ),
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name='refund_links',
                         to='account.accountpayment',
@@ -84,14 +97,18 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True,
-                        serialize=False, verbose_name='ID',
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
                     ),
                 ),
                 (
                     'move',
                     models.ForeignKey(
-                        help_text='Factura/asiento (Odoo invoice_ids, lado inverso).',
+                        help_text=(
+                            'Factura/asiento (Odoo invoice_ids, lado inverso).'
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name='transaction_links',
                         to='account.accountmove',
@@ -100,7 +117,9 @@ class Migration(migrations.Migration):
                 (
                     'transaction',
                     models.ForeignKey(
-                        help_text='Transacción de pago (Odoo transaction_ids).',
+                        help_text=(
+                            'Transacción de pago (Odoo transaction_ids).'
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name='invoice_links',
                         to='payment.payment',
@@ -119,8 +138,10 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True,
-                        serialize=False, verbose_name='ID',
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
                     ),
                 ),
                 (
@@ -135,9 +156,12 @@ class Migration(migrations.Migration):
                 (
                     'provider',
                     models.ForeignKey(
-                        blank=True, null=True,
-                        help_text='Pasarela que procesa esta línea (Odoo '
-                                  'payment_provider_id).',
+                        blank=True,
+                        null=True,
+                        help_text=(
+                            'Pasarela que procesa esta línea (Odoo '
+                            'payment_provider_id).'
+                        ),
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name='method_lines',
                         to='payment.paymentgateway',
@@ -156,8 +180,10 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True,
-                        serialize=False, verbose_name='ID',
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
                     ),
                 ),
                 (
@@ -172,9 +198,12 @@ class Migration(migrations.Migration):
                 (
                     'journal',
                     models.ForeignKey(
-                        blank=True, null=True,
-                        help_text='Diario donde se postean los pagos exitosos de '
-                                  'la pasarela.',
+                        blank=True,
+                        null=True,
+                        help_text=(
+                            'Diario donde se postean los pagos exitosos de '
+                            'la pasarela.'
+                        ),
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name='payment_gateways',
                         to='account.accountjournal',

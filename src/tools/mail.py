@@ -1,4 +1,6 @@
-"""``tools.mail`` — espejo de ``odoo/tools/mail.py`` (sólo símbolos con consumidor).
+"""
+``tools.mail`` — espejo de ``odoo/tools/mail.py`` (sólo símbolos con
+consumidor).
 
 Archivo separado de ``tools/misc.py`` a propósito: en la referencia
 ``single_email_re`` vive en ``odoo/tools/mail.py:722``, no en ``misc`` — y
@@ -7,6 +9,7 @@ este árbol no agrupa lo que la referencia mantiene separado.
 Adaptado de Odoo Community ``odoo/tools/mail.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+
 import base64
 import email.utils
 import html as htmllib
@@ -30,7 +33,8 @@ from lxml import etree
 # Django y no aquí) — se preserva el comportamiento de la referencia y se
 # deja la validación rica donde toca: los serializers DRF (``EmailField``).
 single_email_re = re.compile(
-    r"""^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$""", re.VERBOSE)
+    r"""^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$""", re.VERBOSE
+)
 
 
 def is_html_empty(html_content) -> bool:
@@ -47,17 +51,25 @@ def is_html_empty(html_content) -> bool:
     """
     if not html_content:
         return True
-    icon_re = (r'<\s*(i|span)\b(\s+[A-Za-z_-][A-Za-z0-9-_]*'
-               r'(\s*=\s*[\'"][^"\']*[\'"])?)*\s*\bclass\s*=\s*'
-               r'["\'][^"\']*\b(fa|fab|fad|far|oi)\b')
-    tag_re = (r'<\s*\/?(?:p|div|section|span|br|b|i|font)\b'
-              r'(?:(\s+[A-Za-z_-][A-Za-z0-9-_]*(\s*=\s*[\'"][^"\']*[\'"]))*)'
-              r'(?:\s*>|\s*\/\s*>)')
+    icon_re = (
+        r'<\s*(i|span)\b(\s+[A-Za-z_-][A-Za-z0-9-_]*'
+        r'(\s*=\s*[\'"][^"\']*[\'"])?)*\s*\bclass\s*=\s*'
+        r'["\'][^"\']*\b(fa|fab|fad|far|oi)\b'
+    )
+    tag_re = (
+        r'<\s*\/?(?:p|div|section|span|br|b|i|font)\b'
+        r'(?:(\s+[A-Za-z_-][A-Za-z0-9-_]*(\s*=\s*[\'"][^"\']*[\'"]))*)'
+        r'(?:\s*>|\s*\/\s*>)'
+    )
     text_content = htmllib.unescape(re.sub(tag_re, '', html_content))
-    return not bool(text_content.strip()) and not re.search(icon_re, html_content)
+    return not bool(text_content.strip()) and not re.search(
+        icon_re, html_content
+    )
 
 
-def html2plaintext(html, body_id=None, encoding='utf-8', include_references=True) -> str:
+def html2plaintext(
+    html, body_id=None, encoding='utf-8', include_references=True
+) -> str:
     """≙ ``html2plaintext`` (``odoo19c: odoo/tools/mail.py:539-619``).
 
     Convierte HTML a texto plano conservando el énfasis en marcas ASCII
@@ -77,7 +89,9 @@ def html2plaintext(html, body_id=None, encoding='utf-8', include_references=True
     if isinstance(html, bytes):
         html = html.decode(encoding)
     else:
-        assert isinstance(html, str), f"expected str got {html.__class__.__name__}"
+        assert isinstance(
+            html, str
+        ), f"expected str got {html.__class__.__name__}"
 
     tree = etree.fromstring(html, parser=etree.HTMLParser())
 
@@ -101,11 +115,13 @@ def html2plaintext(html, body_id=None, encoding='utf-8', include_references=True
             if src := img.get('src'):
                 img.tag = 'span'
                 if src.startswith('data:'):
-                    img_name = None     # imagen en base64: no tiene nombre
+                    img_name = None  # imagen en base64: no tiene nombre
                 else:
                     img_name = re.search(r'[^/]+(?=\.[a-zA-Z]+(?:\?|$))', src)
-                img.text = '%s [%s]' % (img_name[0] if img_name else 'Image',
-                                        next(linkrefs))
+                img.text = '%s [%s]' % (
+                    img_name[0] if img_name else 'Image',
+                    next(linkrefs),
+                )
                 url_index.append(src)
 
     html = etree.tostring(tree, encoding='unicode')
@@ -152,8 +168,9 @@ def html2plaintext(html, body_id=None, encoding='utf-8', include_references=True
 #: ≙ ``email_re`` (``odoo19c: odoo/tools/mail.py:719``), verbatim. Encuentra
 #: direcciones DENTRO de un texto; su hermano ``single_email_re`` (arriba)
 #: pregunta si el texto ES una y nada más.
-email_re = re.compile(r"""([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63})""",
-                      re.VERBOSE)
+email_re = re.compile(
+    r"""([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63})""", re.VERBOSE
+)
 
 #: ≙ ``email_addr_escapes_re`` (``:726``), verbatim. La barra y la comilla son
 #: los dos caracteres que hay que escapar dentro de un nombre entrecomillado
@@ -168,8 +185,10 @@ email_addr_escapes_re = re.compile(r'[\\"]')
 # entenderlo. El `hasattr` es porque el argumento sólo existe desde
 # CPython 3.11.4 (cfr. python/cpython@4a153a1).
 if hasattr(email.utils, 'supports_strict_parsing'):
+
     def getaddresses(fieldvalues):
         return orig_getaddresses(fieldvalues, strict=False)
+
 else:
     getaddresses = orig_getaddresses
 
@@ -190,6 +209,7 @@ def email_split_tuples(text):
     - el caso de ``'@dominio.com'`` — una dirección sin parte local pasa el
       filtro del ``@`` y no es una dirección; ahí manda ``email_re``.
     """
+
     def _parse_based_on_spaces(pair):
         name, addr = pair
         if not name and addr and ' ' in addr:
@@ -211,13 +231,17 @@ def email_split_tuples(text):
     # devuelve '' al fallar, y a veces una cadena sin '@' — que el addr-spec
     # del RFC 2822 exige.
     valid_pairs = [
-        (addr[0], addr[1]) for addr in getaddresses([text])
+        (addr[0], addr[1])
+        for addr in getaddresses([text])
         if addr[1] and '@' in addr[1]
     ]
     # caso borde: una dirección que empieza por '@' (ver test_email_split)
     if any(pair[1].startswith('@') for pair in valid_pairs):
-        filtered = [found for found in email_re.findall(text)
-                    if found and not found.startswith('@')]
+        filtered = [
+            found
+            for found in email_re.findall(text)
+            if found and not found.startswith('@')
+        ]
         if filtered:
             valid_pairs = [('', found) for found in filtered]
 
@@ -326,7 +350,8 @@ def email_domain_normalize(domain):
 
 
 def parse_contact_from_email(text):
-    """≙ ``parse_contact_from_email`` (``odoo19c: odoo/tools/mail.py:1031-1056``).
+    """
+    ≙ ``parse_contact_from_email`` (``odoo19c: odoo/tools/mail.py:1031-1056``).
 
     Docstring de la fuente, verbatim: *"Parse contact name and email (given by
     text) in order to find contact information, able to populate records like

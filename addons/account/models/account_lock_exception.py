@@ -1,4 +1,6 @@
-"""``account.lock_exception`` — Adaptación de Odoo addons/account/models/account_lock_exception.py
+"""
+``account.lock_exception`` — Adaptación de Odoo
+addons/account/models/account_lock_exception.py
 (odoo-tools@622ddc2a, odoo19c:).
 
 Excepción temporal a un candado de fecha (lock date) de ``res.company``: 19
@@ -28,6 +30,7 @@ se porta como propiedad Python (mismo criterio que ``mail_mail.subject`` — sin
 compute-engine en este ORM, ver docstring de ``mail_mail.py``), no como
 columna.
 """
+
 from django.utils import timezone
 
 import fields
@@ -44,48 +47,66 @@ LOCK_DATE_FIELD_CHOICES = [
 
 
 class AccountLockException(models.Model):
-    """``account.lock_exception`` — excepción temporal a un candado de fecha."""
+    """
+    ``account.lock_exception`` — excepción temporal a un candado de fecha.
+    """
 
     STATE_ACTIVE = 'active'
     STATE_REVOKED = 'revoked'
     STATE_EXPIRED = 'expired'
 
     active = fields.Boolean(
-        default=True, help_text='Vigente (Odoo active).',
+        default=True,
+        help_text='Vigente (Odoo active).',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='lock_exceptions',
+        'base.ResCompany',
+        null=False, on_delete=models.CASCADE,
+        related_name='lock_exceptions',
         help_text='Empresa (Odoo company_id, requerido).',
     )
     # Sin user, la excepción aplica a todos (Odoo: "An exception w/o user_id
     # is an exception for everyone").
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, null=True, blank=True,
+        'base.ResUsers',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='lock_exceptions',
         help_text='Usuario beneficiario; vacío = para todos (Odoo user_id).',
     )
     reason = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Motivo de la excepción (Odoo reason).',
     )
     # Sin end_datetime, la excepción es indefinida (Odoo: "valid forever").
     end_datetime = fields.Datetime(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Fin de vigencia; vacío = indefinida (Odoo end_datetime).',
     )
     lock_date_field = fields.Selection(
-        max_length=32, choices=LOCK_DATE_FIELD_CHOICES,
-        help_text='Candado que esta excepción modifica (Odoo lock_date_field, '
-                  'requerido).',
+        max_length=32,
+        choices=LOCK_DATE_FIELD_CHOICES,
+        help_text=(
+            'Candado que esta excepción modifica (Odoo lock_date_field, '
+            'requerido).'
+        ),
     )
     lock_date = fields.Date(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Fecha a la que se mueve el candado (Odoo lock_date).',
     )
     company_lock_date = fields.Date(
-        null=True, blank=True,
-        help_text='Candado original de la empresa al crear la excepción '
-                  '(Odoo company_lock_date, técnico, no editable).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Candado original de la empresa al crear la excepción '
+            '(Odoo company_lock_date, técnico, no editable).'
+        ),
     )
 
     class Meta:

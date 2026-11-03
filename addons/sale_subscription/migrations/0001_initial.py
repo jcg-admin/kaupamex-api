@@ -46,11 +46,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "started_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="Inicio"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Inicio"
+                    ),
                 ),
                 (
                     "expires_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="Expira"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Expira"
+                    ),
                 ),
                 (
                     "billing_cycle",
@@ -113,7 +117,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("period", models.CharField(max_length=7, verbose_name="Periodo")),
+                (
+                    "period",
+                    models.CharField(max_length=7, verbose_name="Periodo"),
+                ),
                 (
                     "triggered_by",
                     models.CharField(
@@ -128,15 +135,21 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "started_at",
-                    models.DateTimeField(auto_now_add=True, verbose_name="Inicio"),
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Inicio"
+                    ),
                 ),
                 (
                     "finished_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="Fin"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Fin"
+                    ),
                 ),
                 (
                     "invoices_issued",
-                    models.IntegerField(default=0, verbose_name="Facturas emitidas"),
+                    models.IntegerField(
+                        default=0, verbose_name="Facturas emitidas"
+                    ),
                 ),
                 (
                     "amount_charged",
@@ -155,7 +168,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "failures",
-                    models.IntegerField(default=0, verbose_name="Cobros fallidos"),
+                    models.IntegerField(
+                        default=0, verbose_name="Cobros fallidos"
+                    ),
                 ),
             ],
             options={
@@ -204,7 +219,10 @@ class Migration(migrations.Migration):
                         default="MXN", max_length=3, verbose_name="Moneda"
                     ),
                 ),
-                ("effective_from", models.DateTimeField(verbose_name="Vigente desde")),
+                (
+                    "effective_from",
+                    models.DateTimeField(verbose_name="Vigente desde"),
+                ),
                 (
                     "effective_to",
                     models.DateTimeField(
@@ -225,7 +243,11 @@ class Migration(migrations.Migration):
                 "verbose_name": "Tarifa de módulo",
                 "verbose_name_plural": "Tarifas de módulo",
                 "db_table": "module_price",
-                "ordering": ["module__code", "billing_cycle", "-effective_from"],
+                "ordering": [
+                    "module__code",
+                    "billing_cycle",
+                    "-effective_from",
+                ],
                 "indexes": [
                     models.Index(
                         fields=["module", "billing_cycle", "effective_from"],
@@ -248,7 +270,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("period", models.CharField(max_length=7, verbose_name="Periodo")),
+                (
+                    "period",
+                    models.CharField(max_length=7, verbose_name="Periodo"),
+                ),
                 (
                     "amount",
                     models.DecimalField(
@@ -346,7 +371,9 @@ class Migration(migrations.Migration):
                         fields=["company", "status"],
                         name="subscriptio_company_8cb2e1_idx",
                     ),
-                    models.Index(fields=["run"], name="subscriptio_run_id_83d8c5_idx"),
+                    models.Index(
+                        fields=["run"], name="subscriptio_run_id_83d8c5_idx"
+                    ),
                 ],
                 "unique_together": {("subscription", "period")},
             },

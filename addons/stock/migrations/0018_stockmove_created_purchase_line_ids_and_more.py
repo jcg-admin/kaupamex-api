@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("product", "0011_productsupplierinfo_purchase_requisition_line_and_more"),
+        (
+            "product",
+            "0011_productsupplierinfo_purchase_requisition_line_and_more",
+        ),
         ("purchase", "0002_purchaseorder_dest_address_and_more"),
         ("stock", "0017_stockpicking_project"),
     ]
@@ -19,7 +22,13 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="stock_move_created_purchase_line_rel",
-                help_text="Líneas de compra que este movimiento hizo crear (Odoo created_purchase_line_ids, caso make-to-order). El inverso es ``line.move_dest_ids``, el nombre que la referencia le da a la otra mitad (purchase_order_line.py:30).",
+                help_text=(
+                    "Líneas de compra que este movimiento hizo crear (Odoo"
+                    " created_purchase_line_ids, caso make-to-order). El"
+                    " inverso es ``line.move_dest_ids``, el nombre que la"
+                    " referencia le da a la otra mitad"
+                    " (purchase_order_line.py:30)."
+                ),
                 related_name="move_dest_ids",
                 to="purchase.purchaseorderline",
             ),
@@ -29,7 +38,10 @@ class Migration(migrations.Migration):
             name="purchase_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Línea de compra que originó este movimiento (Odoo purchase_line_id). El inverso es ``line.move_ids``.",
+                help_text=(
+                    "Línea de compra que originó este movimiento (Odoo"
+                    " purchase_line_id). El inverso es ``line.move_ids``."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="move_ids",
@@ -42,7 +54,10 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="stock_reference_purchase_rel",
-                help_text="Órdenes de compra que comparten esta referencia (Odoo purchase_ids). El inverso es ``order.reference_ids``.",
+                help_text=(
+                    "Órdenes de compra que comparten esta referencia (Odoo"
+                    " purchase_ids). El inverso es ``order.reference_ids``."
+                ),
                 related_name="reference_ids",
                 to="purchase.purchaseorder",
             ),
@@ -52,7 +67,10 @@ class Migration(migrations.Migration):
             name="buy_pull",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Regla que convierte una necesidad de este almacén en una solicitud de cotización (Odoo buy_pull_id).",
+                help_text=(
+                    "Regla que convierte una necesidad de este almacén en una"
+                    " solicitud de cotización (Odoo buy_pull_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="buy_warehouse_ids",
@@ -65,7 +83,10 @@ class Migration(migrations.Migration):
             name="supplier",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Tarifa del proveedor con el que se reabastece (Odoo supplier_id).",
+                help_text=(
+                    "Tarifa del proveedor con el que se reabastece (Odoo"
+                    " supplier_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="orderpoint_ids",

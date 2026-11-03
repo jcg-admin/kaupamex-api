@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=addons.base.models.res_bank._supported_account_types,
                 default="bank",
-                help_text="Tipo inferido del número: ``bank`` en el núcleo, ``iban`` cuando base_iban lo valide (Odoo acc_type; ver divergencia 2).",
+                help_text=(
+                    "Tipo inferido del número: ``bank`` en el núcleo, ``iban``"
+                    " cuando base_iban lo valide (Odoo acc_type; ver"
+                    " divergencia 2)."
+                ),
                 max_length=16,
             ),
         ),

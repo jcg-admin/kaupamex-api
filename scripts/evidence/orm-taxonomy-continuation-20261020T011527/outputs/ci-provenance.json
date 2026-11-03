@@ -1,0 +1,11 @@
+{
+  "repository": "jcg-admin/kaupamex-api",
+  "run": 39346338432,
+  "job": 118379726762,
+  "head": "4538cee5c81763fae0dfa0444f96c2a4fa19acd0",
+  "log_download_exit_code": 0,
+  "workflow_conclusion": "FAILURE",
+  "bytes": 50681616,
+  "sha256": "2888627da50f17c95f653802f76fd171678e8e0db7e723fb4da44284efc4f06e",
+  "classification": "baseline signature H-API-1120; no product changes in the previous evidence commit"
+}

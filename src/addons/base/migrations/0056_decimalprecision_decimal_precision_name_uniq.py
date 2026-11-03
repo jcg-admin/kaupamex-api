@@ -15,7 +15,9 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("name",),
                 name="decimal_precision_name_uniq",
-                violation_error_message="Only one value can be defined for each given usage!",
+                violation_error_message=(
+                    "Only one value can be defined for each given usage!"
+                ),
             ),
         ),
     ]

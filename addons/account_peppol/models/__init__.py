@@ -33,7 +33,8 @@ los carga:
   ``account_edi_ubl_cii``, addon que **se está portando en otro pase, en
   paralelo**. Este addon no lo importa ni lo declara en ``depends``: la arista
   la reconcilia el orquestador.
-- ``account_move_send.py`` — el flujo de **salida** (generar el UBL y enviarlo).
+- ``account_move_send.py`` — el flujo de **salida** (generar el UBL y
+  enviarlo).
   Bloqueado por la misma arista más los campos de envío de ``account``
   (medidos, 0 hits: ``invoice_sending_method``, ``invoice_edi_format``,
   ``sending_data``, ``display_send_button``, ``is_self_billing``,

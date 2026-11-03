@@ -49,6 +49,7 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     tiene 2FA de app, la cadena se corta ahí y el eslabón interno —el único con
     razón para decir que sí— nunca responde.
 """
+
 import base64
 
 import pytest
@@ -76,8 +77,9 @@ RPC = {'interactive': False}
 def _internal(login):
     """Un user interno — es quien la guarda de ``_generate`` deja crear."""
     account = User.objects.create_user(login=login, password=PASSWORD)
-    group = ResGroups.objects.create(name=f'grupo-{login}',
-                                     user_type='internal')
+    group = ResGroups.objects.create(
+        name=f'grupo-{login}', user_type='internal'
+    )
     account.group_ids.add(group)
     return account
 
@@ -86,8 +88,10 @@ def _key_for(user):
     """Una clave de API real y vigente del user, en claro."""
     with user_scope(user.pk):
         return ResUsersApikeys._generate(
-            'rpc', 'clave de prueba',
-            timezone.now() + timezone.timedelta(days=1))
+            'rpc',
+            'clave de prueba',
+            timezone.now() + timezone.timedelta(days=1),
+        )
 
 
 def _credential(password):
@@ -114,8 +118,11 @@ class TestChannel:
     def test_a_valid_key_authenticates_over_rpc(self, user):
         clave = _key_for(user)
         info = user._check_credentials(_credential(clave), RPC)
-        assert info == {'uid': user.pk, 'auth_method': 'apikey',
-                        'mfa': 'default'}
+        assert info == {
+            'uid': user.pk,
+            'auth_method': 'apikey',
+            'mfa': 'default',
+        }
 
     def test_the_key_of_another_user_is_refused(self, user):
         """CONTROL — la clave es de su dueño, no de quien la presente."""

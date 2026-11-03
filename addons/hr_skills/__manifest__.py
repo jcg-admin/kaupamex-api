@@ -26,7 +26,7 @@
     # así que el modelo ya está cargado cuando este addon se instala.
     'depends': [
         'hr',  # hr.HrEmployee, hr.HrEmployeePublic, hr.HrJob + resource.
-               # ResourceResource (transitivo vía hr → resource)
+        # ResourceResource (transitivo vía hr → resource)
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `hr_skills` en Odoo Community

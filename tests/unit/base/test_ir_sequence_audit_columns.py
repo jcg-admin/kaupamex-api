@@ -3,7 +3,8 @@
 La fuente **no** declara ``_log_access = False`` en ninguna de sus dos clases
 (``odoo19c: odoo/addons/base/models/ir_sequence.py``), así que su ORM les añade
 las columnas de auditoría. Aquí ninguna de las dos las llevaba: se declaró como
-divergencia heredada con sucesor, porque añadir una columna con ``auto_now_add``
+divergencia heredada con sucesor, porque añadir una columna con
+``auto_now_add``
 a una tabla viva bloquea ``makemigrations`` en su cuestionario y la conducta
 correcta es una migración escrita a mano, no responderlo.
 
@@ -15,7 +16,8 @@ La forma del log-access adoptada en este árbol es ``TimeStampedModel``, con
 ``write_date``— y no cuatro. Las de *quién* (``create_uid``/``write_uid``) no
 existen en **ningún** modelo del proyecto: medido,
 ``grep -rln "create_uid = fields" src/ addons/`` da 0. Es una divergencia del
-mixin, ya declarada como alternativa diferida en DEC-09, no de estas dos tablas.
+mixin, ya declarada como alternativa diferida en DEC-09, no de estas dos
+tablas.
 
 Así que estos casos miden que las dos tablas dejaron de ser la excepción, no
 que el proyecto tenga las cuatro.
@@ -33,6 +35,7 @@ mixin.
 banco de pruebas construye la tabla desde cero, así que el ``default`` de la
 migración no se ejerce aquí. Eso lo mide la creación desde cero de #61.
 """
+
 import pytest
 
 from addons.base.models.ir_sequence import IrSequence, IrSequenceDateRange
@@ -56,6 +59,7 @@ def test_a_sequence_records_when_it_was_created(db):
 def test_a_date_range_records_when_it_was_created(db):
     sequence = IrSequence.objects.create(name='Folio', code='folio.range')
     date_range = IrSequenceDateRange.objects.create(
-        sequence=sequence, date_from='2026-01-01', date_to='2026-12-31')
+        sequence=sequence, date_from='2026-01-01', date_to='2026-12-31'
+    )
     assert date_range.created_at is not None
     assert date_range.updated_at is not None

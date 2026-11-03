@@ -26,18 +26,29 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("active", models.BooleanField(default=True, help_text="Odoo active.")),
+                (
+                    "active",
+                    models.BooleanField(
+                        default=True, help_text="Odoo active."
+                    ),
+                ),
                 (
                     "id_client",
                     models.CharField(
-                        help_text="Identificador asignado por el proxy (Odoo id_client, requerido).",
+                        help_text=(
+                            "Identificador asignado por el proxy (Odoo"
+                            " id_client, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "edi_identification",
                     models.CharField(
-                        help_text="Identificador único del usuario (típicamente el RFC/VAT), requerido.",
+                        help_text=(
+                            "Identificador único del usuario (típicamente el"
+                            " RFC/VAT), requerido."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -49,7 +60,10 @@ class Migration(migrations.Migration):
                     "is_token_out_of_sync",
                     models.BooleanField(
                         default=False,
-                        help_text="El token quedó desincronizado con el proxy y necesita renovarse (Odoo is_token_out_of_sync).",
+                        help_text=(
+                            "El token quedó desincronizado con el proxy y"
+                            " necesita renovarse (Odoo is_token_out_of_sync)."
+                        ),
                     ),
                 ),
                 ("token_sync_version", models.IntegerField(default=0)),
@@ -59,7 +73,11 @@ class Migration(migrations.Migration):
                         blank=True,
                         choices=[],
                         default="",
-                        help_text="Tipo de proxy — vacío hasta que un l10n_*_edi concreto declare valores (Odoo proxy_type, requerido allá).",
+                        help_text=(
+                            "Tipo de proxy — vacío hasta que un l10n_*_edi"
+                            " concreto declare valores (Odoo proxy_type,"
+                            " requerido allá)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -79,7 +97,11 @@ class Migration(migrations.Migration):
                 (
                     "company",
                     models.ForeignKey(
-                        help_text="Empresa (Odoo company_id, requerido). related_name da a res.company el O2M inverso sin tocar su archivo.",
+                        help_text=(
+                            "Empresa (Odoo company_id, requerido)."
+                            " related_name da a res.company el O2M inverso sin"
+                            " tocar su archivo."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="account_edi_proxy_client_ids",
                         to="base.rescompany",
@@ -88,7 +110,12 @@ class Migration(migrations.Migration):
                 (
                     "private_key",
                     models.ForeignKey(
-                        help_text="Llave para cifrar los datos del usuario (Odoo private_key_id, requerido; domain público=False en la referencia, no reforzado a nivel de campo aquí).",
+                        help_text=(
+                            "Llave para cifrar los datos del usuario (Odoo"
+                            " private_key_id, requerido; domain público=False"
+                            " en la referencia, no reforzado a nivel de campo"
+                            " aquí)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="edi_proxy_users",
                         to="certificate.certificatekey",

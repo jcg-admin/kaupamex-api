@@ -1,0 +1,25 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_forward_reverse_and_query_use_reconstructed_relation (test_relational_reconstruction_persistence.RelationalPersistenceTests.test_forward_reverse_and_query_use_reconstructed_relation) ... ok
+test_leaf_cascade_policy_deletes_only_dependent_child (test_relational_reconstruction_persistence.RelationalPersistenceTests.test_leaf_cascade_policy_deletes_only_dependent_child) ... ok
+test_leaf_protect_policy_prevents_parent_deletion (test_relational_reconstruction_persistence.RelationalPersistenceTests.test_leaf_protect_policy_prevents_parent_deletion) ... ok
+test_postgresql_rejects_orphan_foreign_key (test_relational_reconstruction_persistence.RelationalPersistenceTests.test_postgresql_rejects_orphan_foreign_key) ... ok
+test_relation_update_obeys_rollback (test_relational_reconstruction_persistence.RelationalPersistenceTests.test_relation_update_obeys_rollback) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.052s
+
+OK
+CREATE ROLE
+GRANT
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+REVOKE
+DROP ROLE

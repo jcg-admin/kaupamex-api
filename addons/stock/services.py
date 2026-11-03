@@ -1,29 +1,35 @@
 """``InventoryService`` — disponibilidad y movimiento de existencias.
 
-Adaptación fiel de la aritmética de ``odoo19c: addons/stock/models/stock_quant.py``
+Adaptación fiel de la aritmética de ``odoo19c:
+addons/stock/models/stock_quant.py``
 (``odoo-tools@622ddc2a``):
 
 - ``:87-90,119-122`` — ``available_quantity`` es un **computado**
   ``quantity - reserved_quantity``. La existencia no es una columna del
   producto: se **deriva** de los quants.
-- ``:635`` — la agregación por producto es ``SUM(quantity - reserved_quantity)``
+- ``:635`` — la agregación por producto es ``SUM(quantity -
+  reserved_quantity)``
   sobre todos sus quants.
 
 **Procedencia y por qué está aquí.** El servicio vivía en
 ``inventory/services.py``. La familia ``inventory`` se disolvió en ``stock``
 (:ref:`analisis-panorama-familias-strangler`), los modelos viajaron
-(``stock_quant``, ``stock_move``, ``stock_lot``…) pero el servicio **no**: quedó
+(``stock_quant``, ``stock_move``, ``stock_lot``…) pero el servicio **no**:
+quedó
 un ``from addons.inventory.services import InventoryService`` colgado en
 ``sale/services.py:31``. Ver H-API-212.
 
 **Un solo eje de producto.** La firma anterior aceptaba ``{'product':…,
 'variant':…}`` — el modelo plano previo a la separación. En la referencia el
 stock se lleva por **variante** (``product.product``), y la línea de venta
-apunta a la variante (``odoo19c: addons/sale/models/sale_order_line.py:83-88``);
+apunta a la variante (``odoo19c:
+addons/sale/models/sale_order_line.py:83-88``);
 la plantilla (``product.template``) no tiene existencias propias. Por eso el
 servicio se indexa por ``ProductProduct`` y el eje ``variant`` desaparece: era
-el mismo dato dos veces. Ver :ref:`analisis-destino-por-addon-del-fk-producto` §2.
+el mismo dato dos veces. Ver :ref:`analisis-destino-por-addon-del-fk-producto`
+§2.
 """
+
 from collections import OrderedDict
 from decimal import Decimal
 
@@ -65,11 +71,12 @@ class InventoryService:
 
     @staticmethod
     def available_quantity(product) -> Decimal:
-        """``SUM(quantity - reserved_quantity)`` del producto (odoo19c :635)."""
-        total = (StockQuant.objects
-                 .filter(product=product)
-                 .aggregate(total=Sum(F('quantity') - F('reserved_quantity')))
-                 ['total'])
+        """
+        ``SUM(quantity - reserved_quantity)`` del producto (odoo19c :635).
+        """
+        total = StockQuant.objects.filter(product=product).aggregate(
+            total=Sum(F('quantity') - F('reserved_quantity'))
+        )['total']
         return Decimal(total) if total is not None else ZERO
 
     @classmethod
@@ -84,11 +91,13 @@ class InventoryService:
         for product, requested in _aggregate(items):
             available = cls.available_quantity(product)
             if requested > available:
-                insufficient.append({
-                    'product': product,
-                    'requested': requested,
-                    'available': available,
-                })
+                insufficient.append(
+                    {
+                        'product': product,
+                        'requested': requested,
+                        'available': available,
+                    }
+                )
         return insufficient
 
     @classmethod
@@ -103,10 +112,11 @@ class InventoryService:
         """
         for product, requested in _aggregate(items):
             remaining = requested
-            quants = (StockQuant.objects
-                      .select_for_update()
-                      .filter(product=product)
-                      .order_by('pk'))
+            quants = (
+                StockQuant.objects.select_for_update()
+                .filter(product=product)
+                .order_by('pk')
+            )
             for quant in quants:
                 if remaining <= ZERO:
                     break
@@ -120,8 +130,13 @@ class InventoryService:
             if remaining > ZERO:
                 raise InsufficientStockError(
                     'Existencias insuficientes para %s.' % product,
-                    items=[{'product': product, 'requested': requested,
-                            'available': requested - remaining}],
+                    items=[
+                        {
+                            'product': product,
+                            'requested': requested,
+                            'available': requested - remaining,
+                        }
+                    ],
                 )
 
     @classmethod
@@ -137,15 +152,18 @@ class InventoryService:
         for product, qty in _aggregate(items):
             if qty <= ZERO:
                 continue
-            quant = (StockQuant.objects
-                     .select_for_update()
-                     .filter(product=product)
-                     .order_by('pk')
-                     .first())
+            quant = (
+                StockQuant.objects.select_for_update()
+                .filter(product=product)
+                .order_by('pk')
+                .first()
+            )
             if quant is None:
                 quant = StockQuant(
-                    product=product, location=_default_internal_location(),
-                    quantity=ZERO, reserved_quantity=ZERO,
+                    product=product,
+                    location=_default_internal_location(),
+                    quantity=ZERO,
+                    reserved_quantity=ZERO,
                 )
             quant.quantity += qty
             quant.save()
@@ -159,6 +177,7 @@ def _default_internal_location():
     vez de fallar al restaurar.
     """
     location, _ = StockLocation.objects.get_or_create(
-        name='WH/Stock', usage='internal',
+        name='WH/Stock',
+        usage='internal',
     )
     return location

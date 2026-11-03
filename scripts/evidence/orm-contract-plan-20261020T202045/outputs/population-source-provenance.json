@@ -1,0 +1,26 @@
+{
+  "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json": {
+    "sha256": "ba627a3de8eff1661c1f42305dbfd812db26c5fa31b5f179a43ff491d9c6431c",
+    "git_blob": "1bce9f3a3f3990feb17cd4ff00a54520f8f32642"
+  },
+  "scripts/evidence/orm-real-contracts-20261020T015333/outputs/cursor-contract.json": {
+    "sha256": "c3a2e0c52fd048e0a286c63b06b25b36126c3dcf9bdafd687c5c2e20da5f0219",
+    "git_blob": "403e6cd0408b58ac89da1bfa044d743865348b55"
+  },
+  "scripts/evidence/orm-real-contracts-20261020T015333/outputs/field-trigger-tests.log": {
+    "sha256": "9b78957b974a252d4e264f67f883b048956ae563bc10706a4e7237a1aef02b35",
+    "git_blob": "b7445d15e7c8bfa90cd63b4d734d41db9c534aa2"
+  },
+  "scripts/evidence/orm-flow-audit-20261020T042342/outputs/invalidate-all-observations.json": {
+    "sha256": "e718592b2f5609a1a8d7c5358938c6989ab4104dc81c65bddf0f5d0f8a4012da",
+    "git_blob": "1fa7449579b3086e4f49e0e5c326bfa9375c012a"
+  },
+  "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/flush-fixpoint-observations.json": {
+    "sha256": "b6dc5eb168b69f38df26beae769beb6ae911e31c929e41ea62fea7448ae9166a",
+    "git_blob": "04bcd4b85d8a58ab6672b4a1e09617132c5898cf"
+  },
+  "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/cursor-replica-observations.json": {
+    "sha256": "dd1b10d222ed98e9771d5d12f3b4734ec9f0ecdaee4a71788eea4ede28b8e3bc",
+    "git_blob": "4e11ad2e0832189ff798c53aa651a2fde3ad8866"
+  }
+}

@@ -10,6 +10,7 @@ Aquí la política vive en ``SystemParameter`` (L2) — editable en caliente. NA
 cableado en las vistas: consultan estos helpers, que leen L2 y caen a "abierto"
 (default 'b2c' de un e-commerce) sólo si la clave no fue sembrada.
 """
+
 from addons.base.models import SystemParameter
 
 # Claves L2 (equivalentes a los config-params de Odoo auth_signup).

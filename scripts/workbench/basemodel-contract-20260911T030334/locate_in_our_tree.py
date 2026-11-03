@@ -20,8 +20,11 @@ parser.add_argument('--tree', default='src', help='raiz de nuestro arbol')
 args = parser.parse_args()
 
 CONTRACT = args.contract
-wanted = {line.split('\t')[0] for line in open(CONTRACT)
-          if '\t' in line and not line.startswith(' ')}
+wanted = {
+    line.split('\t')[0]
+    for line in open(CONTRACT)
+    if '\t' in line and not line.startswith(' ')
+}
 
 found = collections.defaultdict(list)
 scanned = 0
@@ -39,17 +42,27 @@ for base, dirs, files in os.walk(args.tree):
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 for child in node.body:
-                    if (isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
-                            and child.name in wanted):
+                    if (
+                        isinstance(
+                            child, (ast.FunctionDef, ast.AsyncFunctionDef)
+                        )
+                        and child.name in wanted
+                    ):
                         found[child.name].append(
-                            f'{path}:{child.lineno} {node.name}')
+                            f'{path}:{child.lineno} {node.name}'
+                        )
         for node in tree.body:
-            if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and node.name in wanted):
+            if (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name in wanted
+            ):
                 found[node.name].append(f'{path}:{node.lineno} <modulo>')
 
 print(f'contrato: {len(wanted)} nombres · archivos recorridos: {scanned}')
-print(f'presentes por nombre: {len(found)} · ausentes: {len(wanted) - len(found)}')
+print(
+    f'presentes por nombre: {len(found)} · ausentes:'
+    f' {len(wanted) - len(found)}'
+)
 print()
 for name in sorted(wanted):
     if name in found:

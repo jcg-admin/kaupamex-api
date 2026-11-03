@@ -24,6 +24,7 @@ settings se asigna ``company_id=<pk>`` escalar y no la instancia — asignar la
 instancia dispara el descriptor de la FK, que consulta el router multi-DB sin
 ``company_scope`` activo y revienta con ``CompanyContextRequired``.
 """
+
 from django.conf import settings
 
 from addons.base.models import ResCompany
@@ -47,4 +48,5 @@ def seed():
     # creación que fabrica el partner, no por un get_or_create plano.
     name = getattr(settings, 'BOOTSTRAP_COMPANY_NAME', '') or code
     return ResCompany.create_company(
-        name, code=code, status=ResCompany.Status.ACTIVE)
+        name, code=code, status=ResCompany.Status.ACTIVE
+    )

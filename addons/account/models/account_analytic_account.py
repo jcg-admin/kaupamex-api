@@ -1,4 +1,5 @@
-"""Lo que ``account`` le cuelga de ``account.analytic.account`` — ≙ ``_inherit``.
+"""
+Lo que ``account`` le cuelga de ``account.analytic.account`` — ≙ ``_inherit``.
 
 Adaptación de Odoo ``addons/account/models/account_analytic_account.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 78 líneas, 4 ``def``: medido
@@ -39,6 +40,7 @@ cliente; su equivalente sería un endpoint DRF, que no es este símbolo. Lo que
 sí se porta de ellos es su **consulta**, que es idéntica a la de los conteos y
 queda disponible en ``move_lines_for``.
 """
+
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
 from addons.analytic.models.analytic_account import AccountAnalyticAccount
@@ -68,13 +70,16 @@ def _count_by_account(account, move_types):
 
 def compute_invoice_count(account):
     """≙ ``_compute_invoice_count`` (``odoo19c: :18-30``)."""
-    return _count_by_account(account, AccountMove.get_sale_types(include_receipts=True))
+    return _count_by_account(
+        account, AccountMove.get_sale_types(include_receipts=True)
+    )
 
 
 def compute_vendor_bill_count(account):
     """≙ ``_compute_vendor_bill_count`` (``odoo19c: :32-46``)."""
     return _count_by_account(
-        account, AccountMove.get_purchase_types(include_receipts=True))
+        account, AccountMove.get_purchase_types(include_receipts=True)
+    )
 
 
 def apply_account_extensions():
@@ -89,5 +94,7 @@ def apply_account_extensions():
     ``AccountConfig.ready()`` vía ``_EXTENSIONES``.
     """
     AccountAnalyticAccount.invoice_count = property(compute_invoice_count)
-    AccountAnalyticAccount.vendor_bill_count = property(compute_vendor_bill_count)
+    AccountAnalyticAccount.vendor_bill_count = property(
+        compute_vendor_bill_count
+    )
     return None

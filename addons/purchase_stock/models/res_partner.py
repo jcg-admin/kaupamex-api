@@ -67,14 +67,17 @@ reverso de un campo que **no existe en este árbol**. Medido:
 Y el eslabón de arriba tampoco sirve de puente: ``PurchaseOrder.partner``
 (``addons/purchase/models/purchase_order.py:44-47``) apunta a
 ``settings.AUTH_USER_MODEL`` —**un usuario**, no un ``res.partner``—, así que
-``PurchaseOrderLine.objects.filter(order__partner=self)`` con ``self`` siendo un
+``PurchaseOrderLine.objects.filter(order__partner=self)`` con ``self`` siendo
+un
 ``ResPartner`` no compila ni conceptual ni técnicamente. Es una divergencia del
-addon ``purchase`` de este árbol, no de este puerto, y no se corrige desde aquí:
+addon ``purchase`` de este árbol, no de este puerto, y no se corrige desde
+aquí:
 ``purchase`` está fuera del write-set de este pase.
 
 ``_compute_on_time_rate`` necesita, además de lo anterior, cinco campos que la
 línea de compra tampoco tiene: ``qty_received``, ``date_planned``,
-``date_order``, ``product_uom_qty`` y ``order_id.state == 'purchase'``. Los tres
+``date_order``, ``product_uom_qty`` y ``order_id.state == 'purchase'``. Los
+tres
 primeros los porta ``purchase_stock`` en la referencia
 (``purchase_order_line.py``), pero sobre un modelo que ya trae los otros dos.
 El bloqueo por tanto es de **cuatro** piezas, no de una.
@@ -100,11 +103,13 @@ El ``help`` de ``group_rfq`` se conserva **traducido pero completo** — sus
 cuatro reglas (On Order / Daily / Weekly / Always) son la semántica del campo,
 no adorno: quien lea el valor ``'week'`` sin ellas no sabe qué agrupa.
 """
+
 from orm.model_classes import extend_model
 
 import fields
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 #: ≙ ``group_rfq`` (``odoo19c: :21-28``) — cuándo se juntan varias necesidades
@@ -136,35 +141,51 @@ def apply_purchase_stock_res_partner_extensions():
         _inherit,
         campos={
             'suggest_based_on': fields.Char(
-                max_length=32, default='30_days', blank=True,
-                help_text='Base sobre la que se calcula la cantidad sugerida '
-                          'de compra (Odoo suggest_based_on).',
+                max_length=32,
+                default='30_days',
+                blank=True,
+                help_text=(
+                    'Base sobre la que se calcula la cantidad sugerida '
+                    'de compra (Odoo suggest_based_on).'
+                ),
             ),
             'suggest_days': fields.Integer(
                 default=7,
-                help_text='Días de horizonte de la sugerencia de compra '
-                          '(Odoo suggest_days).',
+                help_text=(
+                    'Días de horizonte de la sugerencia de compra '
+                    '(Odoo suggest_days).'
+                ),
             ),
             'suggest_percent': fields.Integer(
                 default=100,
-                help_text='Porcentaje que se aplica a la cantidad sugerida '
-                          '(Odoo suggest_percent).',
+                help_text=(
+                    'Porcentaje que se aplica a la cantidad sugerida '
+                    '(Odoo suggest_percent).'
+                ),
             ),
             'group_rfq': fields.Selection(
-                max_length=8, choices=GROUP_RFQ_CHOICES, default='default',
-                help_text='Define si las solicitudes de cotización se agrupan '
-                          'según la llegada prevista, salvo en dropship '
-                          '(Odoo group_rfq). Por pedido: las necesidades de '
-                          'reabastecimiento se agrupan salvo las MTO. '
-                          'Diaria: se agrupan si la llegada prevista es el '
-                          'mismo día. Semanal: se agrupan si la llegada '
-                          'prevista cae en la misma semana o el mismo día de '
-                          'la semana. Siempre: se agrupan sin condición.',
+                max_length=8,
+                choices=GROUP_RFQ_CHOICES,
+                default='default',
+                help_text=(
+                    'Define si las solicitudes de cotización se agrupan '
+                    'según la llegada prevista, salvo en dropship '
+                    '(Odoo group_rfq). Por pedido: las necesidades de '
+                    'reabastecimiento se agrupan salvo las MTO. '
+                    'Diaria: se agrupan si la llegada prevista es el '
+                    'mismo día. Semanal: se agrupan si la llegada '
+                    'prevista cae en la misma semana o el mismo día de '
+                    'la semana. Siempre: se agrupan sin condición.'
+                ),
             ),
             'group_on': fields.Selection(
-                max_length=8, choices=GROUP_ON_CHOICES, default='default',
-                help_text='Día de la semana con el que se alinea la '
-                          'agrupación semanal de RFQ (Odoo group_on).',
+                max_length=8,
+                choices=GROUP_ON_CHOICES,
+                default='default',
+                help_text=(
+                    'Día de la semana con el que se alinea la '
+                    'agrupación semanal de RFQ (Odoo group_on).'
+                ),
             ),
         },
     )

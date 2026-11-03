@@ -1,0 +1,106 @@
+
+>>> Base de producción/desarrollo en PostgreSQL: kaupamex_core
+
+  --  PostgreSQL 16 (mínimo efectivo: 14 — referencia 13, Django 6 exige 14)
+[1/6] Rol django_user
+  OK  Rol ya existía — contraseña y CREATEDB actualizados
+[2/6] Base kaupamex_core
+  OK  Base ya existía — no se toca
+[3/6] Privilegios sobre el schema public
+  OK  GRANT aplicado
+[4/6] Extensiones (unaccent, pg_trgm)
+  OK  unaccent instalada
+  OK  pg_trgm instalada
+[5/6] Autenticación por socket para django_user
+  OK  Regla de socket añadida para django_user y configuración recargada
+[6/6] Verificación
+  OK  Base de producción/desarrollo lista: kaupamex_core (rol django_user)
+  --  Para la base de QA:  sudo bash provisioners/postgresql/db_setup.sh --qa
+
+>>> Base de QA en PostgreSQL: kaupamex_core_qa
+
+  --  PostgreSQL 16 (mínimo efectivo: 14 — referencia 13, Django 6 exige 14)
+[1/6] Rol django_user
+  OK  Rol ya existía — contraseña y CREATEDB actualizados
+[2/6] Base kaupamex_core_qa
+  OK  Base ya existía — no se toca
+[3/6] Privilegios sobre el schema public
+  OK  GRANT aplicado
+[4/6] Extensiones (unaccent, pg_trgm)
+  OK  unaccent instalada
+  OK  pg_trgm instalada
+[5/6] Autenticación por socket para django_user
+  OK  Regla de socket ya presente para django_user
+[6/6] Verificación
+  OK  Base de QA lista: kaupamex_core_qa (rol django_user)
+
+>>> kaupamex-db — Verificación PostgreSQL (9 checks)
+
+
+
+>>> PASO: Variables de entorno (.env)
+
+  OK    [OK]   DB_NAME definida
+  OK    [OK]   DB_QA_NAME definida
+  OK    [OK]   DB_USER definida
+  OK    [OK]   DB_PASSWORD definida
+  OK    [OK]   DB_PORT definida
+  OK    [OK]   DB_SOCKET=/var/run/postgresql (en libpq el socket ES el HOST)
+
+
+>>> PASO: Herramientas CLI de PostgreSQL
+
+  OK    [OK]   psql disponible
+  OK    [OK]   pg_isready disponible
+  OK    [OK]   pg_dump disponible
+  OK    [OK]   pg_ctlcluster disponible (Debian opera por cluster)
+
+
+>>> PASO: El servidor responde
+
+  OK    [OK]   PostgreSQL responde (socket: /var/run/postgresql)
+
+
+>>> PASO: Versión mínima efectiva (14)
+
+  OK    [OK]   PostgreSQL 16 (mínimo efectivo: 14 — referencia 13, Django 6 exige 14)
+
+
+>>> PASO: Base kaupamex_core: existencia y migraciones
+
+  OK    [OK]   Base kaupamex_core existe
+WARN    [WARN] django_migrations no encontrada — ejecuta: manage.py migrate
+
+
+>>> PASO: Base kaupamex_core_qa: existencia y migraciones
+
+  OK    [OK]   Base kaupamex_core_qa existe
+WARN    [WARN] django_migrations no encontrada — ejecuta: manage.py migrate
+
+
+>>> PASO: Rol django_user: LOGIN y CREATEDB
+
+  OK    [OK]   django_user tiene LOGIN
+  OK    [OK]   django_user tiene CREATEDB (bases por empresa)
+
+
+>>> PASO: django_user autentica por socket (pg_hba)
+
+  OK    [OK]   django_user entra a kaupamex_core por /var/run/postgresql
+  OK    [OK]   django_user entra a kaupamex_core_qa por /var/run/postgresql
+
+
+>>> PASO: Extensiones pg_trgm y unaccent
+
+  OK    [OK]   pg_trgm instalada en kaupamex_core
+  OK    [OK]   unaccent instalada en kaupamex_core
+  OK    [OK]   pg_trgm instalada en kaupamex_core_qa
+  OK    [OK]   unaccent instalada en kaupamex_core_qa
+
+============================================================
+
+  OK  OK:           22
+WARN  Advertencias: 2
+  OK  Errores:      0
+
+WARN  Entorno funcional con advertencias — revisa los items marcados.

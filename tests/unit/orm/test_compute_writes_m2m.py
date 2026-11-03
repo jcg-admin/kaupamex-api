@@ -92,6 +92,7 @@ guardas.
 son de configuracion, de cardinalidad baja— y al orden entre el volcado del
 M2M y el de las columnas de la misma fila, que aqui no se ejerce.
 """
+
 import pytest
 import fields
 from django.apps import apps
@@ -99,7 +100,6 @@ from django.apps import apps
 from orm import registry
 from orm.environments import env, transaction_scope
 from orm.utils import model_field_registry
-
 
 AccountAccount = apps.get_model('account', 'AccountAccount')
 AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
@@ -127,7 +127,8 @@ def tagged(company):
     """
     tag = AccountAccountTag.objects.create(name='Ingresos gravados')
     first = AccountAccount.objects.create(
-        code='4000', name='Ventas', account_type='income', company=company)
+        code='4000', name='Ventas', account_type='income', company=company
+    )
     first.tags.set([tag])
     return tag, first
 
@@ -135,19 +136,33 @@ def tagged(company):
 class TestTheThreeFieldsDeclareTheirCompute:
     """La declaracion, contra la de la fuente."""
 
-    @pytest.mark.parametrize('model,name,compute', [
-        (AccountAccount, 'tags', '_compute_account_tags'),
-        (BaseAutomation, 'trigger_field_ids', '_compute_trigger_field_ids'),
-        (BaseAutomation, 'on_change_field_ids', '_compute_on_change_field_ids'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name,compute',
+        [
+            (AccountAccount, 'tags', '_compute_account_tags'),
+            (
+                BaseAutomation,
+                'trigger_field_ids',
+                '_compute_trigger_field_ids',
+            ),
+            (
+                BaseAutomation,
+                'on_change_field_ids',
+                '_compute_on_change_field_ids',
+            ),
+        ],
+    )
     def test_it_names_its_compute(self, model, name, compute):
         assert field_of(model, name).compute == compute
 
-    @pytest.mark.parametrize('model,name', [
-        (AccountAccount, 'tags'),
-        (BaseAutomation, 'trigger_field_ids'),
-        (BaseAutomation, 'on_change_field_ids'),
-    ])
+    @pytest.mark.parametrize(
+        'model,name',
+        [
+            (AccountAccount, 'tags'),
+            (BaseAutomation, 'trigger_field_ids'),
+            (BaseAutomation, 'on_change_field_ids'),
+        ],
+    )
     def test_it_stays_stored_and_writable(self, model, name):
         """La fuente declara los tres ``store=True, readonly=False``: el
         computo RELLENA lo que el usuario no puso, y el usuario si escribe."""
@@ -173,17 +188,26 @@ class TestTheThreeFieldsDeclareTheirCompute:
         """
         with pytest.warns(UserWarning, match='many2many'):
             field = fields.Many2many(
-                'account.AccountAccountTag', blank=True,
-                compute='_compute_account_tags', store=True, readonly=False,
-                precompute=True)
+                'account.AccountAccountTag',
+                blank=True,
+                compute='_compute_account_tags',
+                store=True,
+                readonly=False,
+                precompute=True,
+            )
         assert field.precompute is False
 
     def test_a_scalar_field_keeps_its_precompute(self):
         """El control que separa «se apaga en un M2M» de «se apaga siempre».
         Sin este caso, un guard que apagara el adelanto de TODO campo pasaria
         el de arriba sin distinguirse."""
-        field = fields.Char(max_length=8, compute='_compute_account_type',
-                            store=True, readonly=False, precompute=True)
+        field = fields.Char(
+            max_length=8,
+            compute='_compute_account_type',
+            store=True,
+            readonly=False,
+            precompute=True,
+        )
         assert field.precompute is True
 
 
@@ -191,15 +215,23 @@ class TestTheDeclarationReachesTheGraph:
     """Un M2M con ``compute=`` es clave del grafo, como cualquier otro."""
 
     def test_the_code_reaches_the_tags(self):
-        derived = {f.name for f in registry.get_dependent_fields(
-            field_of(AccountAccount, 'code'))}
+        derived = {
+            f.name
+            for f in registry.get_dependent_fields(
+                field_of(AccountAccount, 'code')
+            )
+        }
         assert 'tags' in derived
 
     def test_a_field_nobody_computes_from_has_no_dependents(self):
         """El control que discrimina: la MISMA maquinaria sobre un campo del
         que nadie deriva no produce aristas."""
-        assert list(registry.get_dependent_fields(
-            field_of(AccountAccount, 'note'))) == []
+        assert (
+            list(
+                registry.get_dependent_fields(field_of(AccountAccount, 'note'))
+            )
+            == []
+        )
 
 
 class TestTheCycleReachesTheJoinTable:
@@ -208,27 +240,35 @@ class TestTheCycleReachesTheJoinTable:
     def test_touching_the_code_writes_the_relation(self, tagged, company):
         tag, first = tagged
         second = AccountAccount.objects.create(
-            code='4010', name='Ventas nacionales', account_type='income',
-            company=company)
+            code='4010',
+            name='Ventas nacionales',
+            account_type='income',
+            company=company,
+        )
         second.tags.clear()
         assert list(second.tags.all()) == []
 
         with transaction_scope():
             second.modified(['code'])
             assert second.pk in env().records_to_compute(
-                field_of(AccountAccount, 'tags'))
+                field_of(AccountAccount, 'tags')
+            )
             second.flush_recordset(['tags'])
 
         assert list(second.tags.all()) == [tag]
 
-    def test_without_touching_it_the_relation_is_left_alone(self, tagged,
-                                                            company):
+    def test_without_touching_it_the_relation_is_left_alone(
+        self, tagged, company
+    ):
         """El control que discrimina: sin ``modified``, el mismo volcado no
         escribe. Lo que mueve la relacion es la marca, no el ``flush``."""
         _tag, _first = tagged
         second = AccountAccount.objects.create(
-            code='4010', name='Ventas nacionales', account_type='income',
-            company=company)
+            code='4010',
+            name='Ventas nacionales',
+            account_type='income',
+            company=company,
+        )
         second.tags.clear()
 
         with transaction_scope():
@@ -237,7 +277,8 @@ class TestTheCycleReachesTheJoinTable:
         assert list(second.tags.all()) == []
 
     def test_the_flush_is_the_only_writer_when_the_cache_is_seeded(
-            self, tagged, company):
+        self, tagged, company
+    ):
         """El control que discrimina la rama del volcado, y costo encontrarlo.
 
         En los dos casos de arriba el computo escribe la relacion **el mismo**
@@ -249,7 +290,8 @@ class TestTheCycleReachesTheJoinTable:
         """
         tag, _first = tagged
         alone = AccountAccount.objects.create(
-            code='7000', name='Orden', account_type='expense', company=company)
+            code='7000', name='Orden', account_type='expense', company=company
+        )
         alone.tags.clear()
 
         field = model_field_registry(AccountAccount)['tags']
@@ -275,12 +317,14 @@ class TestTheCycleReachesTheJoinTable:
         ``values_list`` arma la tupla desde la fila sin instanciar el modelo,
         asi que no pasa por el descriptor ni dispara recalculo alguno.
         """
-        columna = lambda: AccountAccount.objects.filter(
-            pk=account.pk).values_list('internal_group', flat=True)[0]
+        def columna():
+            return AccountAccount.objects.filter(
+                pk=account.pk).values_list(
+                'internal_group', flat=True)[0]
 
         account = AccountAccount.objects.create(
-            code='5000', name='Gastos', account_type='expense',
-            company=company)
+            code='5000', name='Gastos', account_type='expense', company=company
+        )
         AccountAccount.objects.filter(pk=account.pk).update(internal_group='')
         assert columna() == ''
 

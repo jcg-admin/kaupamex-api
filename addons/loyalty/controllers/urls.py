@@ -9,6 +9,7 @@ Montado en ``config/urls.py``::
 Cuelga de ``account/`` porque es superficie de cuenta propia, igual que la
 capacidad que la gatea (``account.referral``).
 """
+
 from django.urls import path
 
 from addons.loyalty.controllers.referral import (

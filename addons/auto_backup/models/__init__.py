@@ -5,6 +5,7 @@ Layout ``models/`` con un archivo por modelo, espejo de la referencia
 y ``db_backup_details.py`` (cada corrida). Este ``__init__`` re-exporta la
 superficie pública.
 """
+
 from addons.auto_backup.models.db_backup import DbBackup
 from addons.auto_backup.models.db_backup_details import DbBackupDetails
 

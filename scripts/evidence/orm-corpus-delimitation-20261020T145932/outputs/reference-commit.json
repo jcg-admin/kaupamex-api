@@ -1,0 +1,18 @@
+{
+  "command": [
+    "gh",
+    "api",
+    "repos/jcg-admin/odoo-tools/commits/abe4040ec1a45beee90fb694e4eae4453e46b389"
+  ],
+  "exit_code": 0,
+  "sha": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "tree": {
+    "sha": "fcbca94a0d18ae346202d97071eb8dd8e173e926",
+    "url": "https://api.github.com/repos/jcg-admin/odoo-tools/git/trees/fcbca94a0d18ae346202d97071eb8dd8e173e926"
+  },
+  "date": "2026-08-10T07:51:12Z",
+  "message": "Add troubleshooting guide for sparse-checkout\n\nDocument three recurring errors and their fixes: sparse-checkout\nnever activated, files present but folder not in the cone, and\ngit mv on untracked files. Linked from both git-sparse-clone and\nscalar index files.",
+  "parents": [
+    "fa871f4c116dd97b77698861fbf4c5e95236f0de"
+  ]
+}

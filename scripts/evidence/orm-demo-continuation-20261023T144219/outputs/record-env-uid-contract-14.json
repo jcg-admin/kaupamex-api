@@ -1,0 +1,35 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": {
+    "path": "odoo19c:odoo/orm/environments.py",
+    "symbol": "Environment.cache_key uid branch",
+    "sha256": "ff987a65389ac6c9648bad8bad86d8a9b1f8444ffd6c3598ffda53b8b0612bc5"
+  },
+  "behavior": "UID-dependent non-sudo computes distinguish user and superuser mode; compute_sudo=True intentionally shares only the privilege axis.",
+  "execution_flow": "registry.field_depends_context -> Environment.cache_key -> uid conditional -> existing field cache bucket/memoization.",
+  "inputs_outputs": "uid17/suFalse -> ((17,False),); uid17/suTrue -> ((17,True),) when compute_sudoFalse. Both -> (17,) when compute_sudoTrue. Different users remain distinct.",
+  "side_effects": "In-memory key shape only; no DB/schema/data migration, context-channel mutation or role assignment. Existing transaction lifetime remains unchanged.",
+  "dependencies": [
+    "NativeTASK-GEN-0633/session168b0fdf-bfe4-590b-b6c0-b6be124c124a/task1203 ownercodex-module-lifecycle retained",
+    "Existing Field.compute_sudo, field_depends_context and Environment.uid/su",
+    "Record-environment descriptor is an independent increment, not a prerequisite for direct key verification"
+  ],
+  "consumers": [
+    "Fields with depends_context(uid)",
+    "Actual BaseModel context/sudo computed-field integration tested separately",
+    "Existing allowed_company_ids cache key consumers retained"
+  ],
+  "installed_mechanism": "Existing Environment.cache_key branch, field metadata and Thyrox TaskGet/claims/node_frontier; no second cache or Provider mechanism.",
+  "existing_adaptation": "Keeps all other key branches, including the previously qualified validated company channel. Pinned source conditional is restored without claiming full Environment equivalence.",
+  "verification": {
+    "red": "2FAIL/3PASS",
+    "independent_candidate": "7PASS with published descriptor, including existing two company controls",
+    "annulment": "2expectedFAIL/5PASS when uid conditional alone restored",
+    "combined": "52PASS in final descriptor/environment candidate",
+    "formatting": "Comment/blank-line corrections preserve AST, record-env-format-proof.json",
+    "sql": "Prohibited; no DB opened"
+  },
+  "equivalence": "Bounded uid/su key conditional verified; unrelated cache-key branches and complete Environment semantics not_verified.",
+  "limitations": "No full ACL, multi-database routing, live hot-reload or application concurrency acceptance. No broad 64-case rerun or blanket TASK closure.",
+  "integration": "Commit1340f23c published in pending PR109; normal hooksPASS; merge and acceptance not_verified"
+}

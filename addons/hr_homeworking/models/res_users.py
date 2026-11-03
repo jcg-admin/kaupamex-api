@@ -49,6 +49,7 @@ Divergencias declaradas
    ``INSTALLED_APPS``). Si la property previa no existe, la aportación
    propia se instala sola y lo dice el docstring de la envoltura.
 """
+
 from addons.base.models import ResUsers
 from addons.hr_homeworking.models.hr_homeworking import DAYS
 from orm.method_chain import chain_method, extend_list
@@ -65,6 +66,7 @@ def _get_employee_fields_to_sync(self):
 def _day_location_property(day_field_name):
     """Fábrica de las 7 properties ``related='employee_id.<día>'`` con
     ``readonly=False`` (divergencia 1)."""
+
     def getter(self):
         employee = self.employee
         if employee is None:
@@ -79,9 +81,11 @@ def _day_location_property(day_field_name):
         employee.save(update_fields=[day_field_name])
 
     getter.__name__ = day_field_name
-    getter.__doc__ = (f'≙ ``{day_field_name}_id`` '
-                      f'(``related="employee_id.{day_field_name}_id"``, '
-                      f'``readonly=False``).')
+    getter.__doc__ = (
+        f'≙ ``{day_field_name}_id`` '
+        f'(``related="employee_id.{day_field_name}_id"``, '
+        '``readonly=False``).'
+    )
     return property(getter, setter)
 
 
@@ -108,9 +112,16 @@ def apply_hr_homeworking_res_users_extensions():
     este archivo."""
     for day_field_name in DAYS:
         if not hasattr(ResUsers, day_field_name):
-            setattr(ResUsers, day_field_name,
-                    _day_location_property(day_field_name))
-    chain_method(ResUsers, '_get_employee_fields_to_sync',
-                 _get_employee_fields_to_sync, combine=extend_list)
+            setattr(
+                ResUsers,
+                day_field_name,
+                _day_location_property(day_field_name),
+            )
+    chain_method(
+        ResUsers,
+        '_get_employee_fields_to_sync',
+        _get_employee_fields_to_sync,
+        combine=extend_list,
+    )
     extend_property(ResUsers, 'SELF_READABLE_FIELDS', _add_the_days)
     extend_property(ResUsers, 'SELF_WRITEABLE_FIELDS', _add_the_days)

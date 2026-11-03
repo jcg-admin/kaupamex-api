@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="sale_warn_msg",
             field=models.TextField(
                 blank=True,
-                help_text='Odoo sale_warn_msg ("Message for Sales Order"). Aviso interno que se muestra al vender a este cliente.',
+                help_text=(
+                    'Odoo sale_warn_msg ("Message for Sales Order"). Aviso'
+                    ' interno que se muestra al vender a este cliente.'
+                ),
                 null=True,
             ),
         ),

@@ -1,0 +1,18 @@
+{
+  "source_revision": "948c523363b75ef2f0091c983a347f328dcfdc43",
+  "run": 40031305381,
+  "job": 120679934029,
+  "state": "COMPLETED",
+  "conclusion": "FAILURE",
+  "source_change_since_local_ci": "Package docstring only; executable AST compared equal to4b67be0f",
+  "log": "remote-ci-40031305381.log",
+  "passed": 77,
+  "skipped": 1,
+  "errors": 1,
+  "seconds": 484.2,
+  "make_exit": 2,
+  "pytest_exit": 1,
+  "first_failure": "ProductProduct.display_name",
+  "classification": "BASELINE_FAILURE",
+  "later_tests": "NOT_EVALUATED"
+}

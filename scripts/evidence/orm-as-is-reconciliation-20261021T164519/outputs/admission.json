@@ -1,0 +1,41 @@
+{
+  "task_identity": {
+    "citation_id": "TASK-GEN-0559",
+    "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+    "task_id": "307",
+    "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+    "description": null,
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "null"
+  },
+  "authority": "User ongoing authorized incremental ORM engineering and latest operational continuation; no privilege or merge inferred from attachment.",
+  "scope": "Only missing-after-query cleanup obligation under existingGEN0559; not full task closure or runtime MissingError retry.",
+  "claims": [
+    {
+      "id": "c-ee87c612-6a9c-424c-aa8f-21b0a3099544",
+      "op": "claim",
+      "path": "src/orm/models.py",
+      "owner": "codex-missing-recompute",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-21T16:47:34.856Z",
+      "task": "TASK-GEN-0559",
+      "process_liveness": "not_verified across agents/VMs; claim alone is not progress"
+    },
+    {
+      "id": "c-b638ac38-7b0f-45c2-b900-ab2d93eee722",
+      "op": "claim",
+      "path": "tests/unit/orm/test_missing_recompute.py",
+      "owner": "codex-missing-recompute",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-21T16:47:34.862Z",
+      "task": "TASK-GEN-0559",
+      "process_liveness": "not_verified across agents/VMs; claim alone is not progress"
+    }
+  ],
+  "identity_proof": "native mapping_from_store/lookup agrees session29a5e555-e34f-5a20-8c39-ad6cf2f19961 local307; Consumer existing scope bullet307 and fields.recompute docstring describe same obligation.",
+  "dependencies_proof": "Source trace and real PostgreSQL red test demonstrate existing query/compute/group/removal mechanisms usable now. No dependency inferred from NULL owner/JSON null or lossy graph.",
+  "verification_plan": "7 real PostgreSQL tests, original helper negative, regression/full registry; retain virtual/subset/compute-error guards and rollback.",
+  "available_resources": "Existing PostgreSQL16 QA via declared container/DB/bridge; temporary CONNECT,TEMP role and scoped SCRAM HBA; no production provisioning.",
+  "provider_limit": "Native planning reader demonstrably drops edges, TASK1072 foreign claim preserved. No local Thyrox execution qualification; Codex performs authorized bounded engineering."
+}

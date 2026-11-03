@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+check_workbench: 0 incumplidor(es) (alcance medido: 50 pieza(s) de trabajo; 5 clave(s) obligatoria(s) leidas del esquema; sin baseline por directiva del ejecutor 2026-08-30)

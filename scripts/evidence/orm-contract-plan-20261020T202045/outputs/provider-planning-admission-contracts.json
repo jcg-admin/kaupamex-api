@@ -1,0 +1,159 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "scope": "Read-only planning/admission reconciliation; documentation design only, not executable plan or admission",
+  "interfaces": [
+    {
+      "mechanism": "plan_schema",
+      "interface": "session.task_continuation.PlanItem / plan_items_from_rows / load_plan",
+      "source": "src/session/task_continuation.py",
+      "line_start": 128,
+      "line_end": 286,
+      "contract": "plan.jsonl supports verify, owned, dependsOn, taskId, resourceProfile, route, bounded attempts/maxTurns; one aggregate parent only. No executable plan created.",
+      "qualification_limit": "Source inspected; runtime not invoked. No multi-parent family hierarchy in runtime."
+    },
+    {
+      "mechanism": "task_identity",
+      "interface": "agents.agent_store.resolve_store_dir(create=False), connect_readonly; task.task_ids.mapping_from_store,lookup",
+      "source": "src/agents/agent_store.py",
+      "line_start": 1696,
+      "line_end": 1730,
+      "contract": "Read current store without DDL/migration and resolve existing stable identities.",
+      "qualification_limit": "Observed exit0; TASK status pending or owner NULL does not establish available eligibility."
+    },
+    {
+      "mechanism": "task_projection",
+      "interface": "task.task_source.records_from_store",
+      "source": "src/task/task_source.py",
+      "line_start": 110,
+      "line_end": 166,
+      "contract": "Existing store reader used by order resolver.",
+      "qualification_limit": "Known unchanged blockedBy loss; prior discriminating evidence reused, not re-probed. TASK-THYROX-1072 pending; active vm-r claim. Do not fix or replace here."
+    },
+    {
+      "mechanism": "implementation_order",
+      "interface": "task.implementation_order.load_tasks/build_edges",
+      "source": "src/task/implementation_order.py",
+      "line_start": 92,
+      "line_end": 160,
+      "contract": "Declared dependency graph, SCC/Kahn and existing ordering logic; textual similarity is not dependency.",
+      "qualification_limit": "Incomplete projection and missing declared dependencies mean output cannot prove functional readiness. Direct read-only same-session edge preserves GEN0060 -> GEN0062."
+    },
+    {
+      "mechanism": "frontier",
+      "interface": "session.continuation_frontier.runnable_items/doomed_items/conflicts",
+      "source": "src/session/continuation_frontier.py",
+      "line_start": 57,
+      "line_end": 111,
+      "contract": "All predecessors accepted, no exposed secret, and no mutating owned-path/worktree conflicts.",
+      "qualification_limit": "Does not itself check contract completeness, owner, actual resources, qualification or authorization. No frontier executed."
+    },
+    {
+      "mechanism": "resources",
+      "interface": "ResourceAdmissionCli.admitDisk/admitMemory/availableBytes; unitResourceAdmission",
+      "source": "src/packages/local-models/resourceAdmission.ts",
+      "line_start": 19,
+      "line_end": 100,
+      "contract": "Existing disk/RAM reservations via bin/resource_admission and observed cgroup placement; refuses unmeasured placement.",
+      "qualification_limit": "Source inspected only; no reservations, downloads, resource probes or model startups performed. Presence is not availability."
+    },
+    {
+      "mechanism": "qualification",
+      "interface": "validateQualification,isWorkerProfileMeasurement,qualifiedModels",
+      "source": "src/packages/model-artifacts/modelQualification.ts",
+      "line_start": 189,
+      "line_end": 397,
+      "contract": "Latest passed protocol + task-class measurements for worker runtime profile, context threshold and optional runtime; artifact/runtime profile identity.",
+      "qualification_limit": "Catalogue alone insufficient. Existing lack of demonstrated qualification retained; no inference or repeated qualification probe."
+    },
+    {
+      "mechanism": "local_dispatch",
+      "interface": "session.task_continuation.local_dispatch_argv",
+      "source": "src/session/task_continuation.py",
+      "line_start": 904,
+      "line_end": 920,
+      "contract": "headless-pool --local-only --execution unit; model selected by existing recommender, credentials absent.",
+      "qualification_limit": "Source only. An accepted preexisting preverify path is not evidence of local model execution."
+    },
+    {
+      "mechanism": "verification_acceptance",
+      "interface": "session.task_continuation.run_item/contained/accept",
+      "source": "src/session/task_continuation.py",
+      "line_start": 1035,
+      "line_end": 1246,
+      "contract": "Independent verifier in managed unit, bounded retries, containment gate, acceptance under integration lock.",
+      "qualification_limit": "Does not establish ORM verifier quality or permit execution. Model run and verifier source must be traceable separately."
+    },
+    {
+      "mechanism": "integration",
+      "interface": "session.task_continuation.integrate_worktree / settle_parent",
+      "source": "src/session/task_continuation.py",
+      "line_start": 1249,
+      "line_end": 1285,
+      "contract": "Owned-path check, apply-check, serialized integration; parent verify only once children accepted.",
+      "qualification_limit": "Native continuation may commit/push; not invoked or authorized for functional ORM work in this phase. Repo/PR policies remain separate."
+    }
+  ],
+  "six_admission_conditions": [
+    {
+      "condition": "Contract characterized",
+      "native": "PlanItem.prompt/verify; parent verify; existing consumer contract evidence",
+      "limit": "No generic runtime gate proves semantic characterization. Attach existing bounded contract authority and unresolved limits; planning inclusion is not eligibility."
+    },
+    {
+      "condition": "Dependencies satisfied",
+      "native": "dependsOn; continuation_frontier.runnable_items; implementation_order",
+      "limit": "Runtime requires accepted declared predecessors only. Functional/persistence/acceptance dependencies must first be evidenced; store reader currently loses edges."
+    },
+    {
+      "condition": "Verification defined",
+      "native": "PlanItem.verify; run_item independent managed unit; contained; settle_parent",
+      "limit": "Command presence does not prove discriminating behavior, negative tests, authority or integration acceptance. No verifier executed now."
+    },
+    {
+      "condition": "Identity and ownership reconciled",
+      "native": "mapping_from_store + lookup; activeClaims(readLedger(ledgerPathFor(root))); task_id/owned",
+      "limit": "All nine Consumer tasks owner NULL. Three in_progress; pending is not availability. Claim for TASK1072 independently exists although owner NULL. No ownership adjudicated."
+    },
+    {
+      "condition": "Resources available",
+      "native": "ResourceAdmissionCli + unitResourceAdmission; qualifiedModels; local recommender",
+      "limit": "Current source availability not live resource/model qualification. Prior blocking evidence retained. No admission reservation performed."
+    },
+    {
+      "condition": "Execution authorized",
+      "native": "local_only parse guard and headless-pool --local-only; existing claims/acceptance/integration policy",
+      "limit": "Technical route restrictions do not grant user authorization. This phase prohibits functional ORM execution, TaskStore changes, new tasks and Provider fix."
+    }
+  ],
+  "hierarchy_mapping": {
+    "documentation": "Keep objective -> contract family -> bounded unit -> verification/acceptance hierarchy in existing Docs/WP authorities.",
+    "native_runtime": "Map future authorized executable leaves to existing plan.jsonl DAG, one aggregate parent verifier; preserve stable existing TASK references. No family-parent runtime capability inferred.",
+    "no_new_mechanism": true,
+    "no_executable_plan_created": true
+  },
+  "unchanged_behavioral_evidence": [
+    "/workspace/scratch/orm-continuation-dependencies/records-from-store-observation.json",
+    "/workspace/scratch/orm-corpus-provider/capabilities.json"
+  ],
+  "current_evidence": [
+    "tasks-current.json",
+    "claims-current.json"
+  ],
+  "outcome": "No TASK established eligible; no selection, inference, integration or end-to-end Provider cycle claimed.",
+  "skills": [
+    {
+      "path": ".agents/skills/workflow-structure/SKILL.md",
+      "contract": "Phase7 existing requirements/spec/design + Given/When/Then + checklist; existing higher plan must govern; does not authorize execution."
+    },
+    {
+      "path": ".agents/skills/workflow-decompose/SKILL.md",
+      "contract": "Phase8 existing task-plan traceability SPEC-to-task, DAG, checkpoints and atomicity. Gate explicitly STOP before execution; user restriction forbids creating new TASK/IDs/store now. Reconcile existing IDs; no new engine, no executable plan."
+    },
+    {
+      "path": ".agents/skills/workflow-track/SKILL.md",
+      "contract": "Phase11 evidence versus baseline, epistemic debt and source commits; no closure claimed because no implementation acceptance/integration occurred."
+    }
+  ],
+  "skills_use_limit": "Read as existing capability contracts, not invoked phase hooks or state mutations. Do not infer skill installed/availability guarantees from presence alone.",
+  "progress_correction_dependency": "0417 -> 0418 is historical textual dependency only, not present store blocked_by. Reconcile against code/current progress-correction evidence before declaring hard prerequisite; neither TASK owner NULL nor in_progress makes it runnable."
+}

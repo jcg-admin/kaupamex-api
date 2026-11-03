@@ -25,6 +25,7 @@ su tabla.
 destino fiel es ``res.partner``, que es lo que el addon extiende en la
 referencia (``odoo19c: addons/base_geolocalize/models/res_partner.py:8``).
 """
+
 from django.utils import timezone
 
 import fields
@@ -38,7 +39,11 @@ from orm.method_chain import chain_method, wrap_method
 # Fiel a Odoo 19:15 ('street', 'zip', 'city', 'state_id', 'country_id') con la
 # convención de nombres del proyecto (sin sufijo ``_id`` en los Many2one).
 ADDRESS_FIELDS_TRIGGERING_RESET = (
-    'street', 'zip', 'city', 'state', 'country',
+    'street',
+    'zip',
+    'city',
+    'state',
+    'country',
 )
 # Campos de geolocalización propios (Odoo 19:16: 'latitude', 'longitude').
 GEOLOCATION_FIELDS = ('latitude', 'longitude')
@@ -48,24 +53,34 @@ class PartnerGeolocation(models.Model):
     """``date_localization`` + ``partner_latitude``/``partner_longitude``
     (Odoo 19:10 + ``base`` core 270-271) para un ``res.partner``.
     """
+
     _inherit = 'res.partner'
 
     partner = models.OneToOneField(
-        'base.ResPartner', on_delete=models.CASCADE, related_name='geolocation',
+        'base.ResPartner',
+        on_delete=models.CASCADE,
+        related_name='geolocation',
         help_text='Partner al que pertenece (Odoo _inherit res.partner).',
     )
     latitude = fields.Float(
         default=0.0,
-        help_text='Latitud GPS (Odoo partner_latitude, base/res_partner.py:270).',
+        help_text=(
+            'Latitud GPS (Odoo partner_latitude, base/res_partner.py:270).'
+        ),
     )
     longitude = fields.Float(
         default=0.0,
-        help_text='Longitud GPS (Odoo partner_longitude, base/res_partner.py:271).',
+        help_text=(
+            'Longitud GPS (Odoo partner_longitude, base/res_partner.py:271).'
+        ),
     )
     date_localization = fields.Date(
-        null=True, blank=True,
-        help_text='Fecha de la última geolocalización exitosa (Odoo '
-                   'date_localization, 19:10).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Fecha de la última geolocalización exitosa (Odoo '
+            'date_localization, 19:10).'
+        ),
     )
 
     class Meta:
@@ -79,7 +94,9 @@ class PartnerGeolocation(models.Model):
     # -- Reset on address change (Odoo write, 19:12-21) ---------------------
 
     def write(self, **vals):
-        """≙ ``write`` (``odoo19c: base_geolocalize/models/res_partner.py:12-21``).
+        """
+        ≙ ``write`` (``odoo19c:
+        base_geolocalize/models/res_partner.py:12-21``).
 
         Conserva el nombre de la fuente. Comentario suyo, verbatim: *"Reset
         latitude/longitude in case we modify the address without updating the
@@ -114,8 +131,9 @@ class PartnerGeolocation(models.Model):
         dentro del mismo ``write()`` transaccional del partner.
         """
         changed = set(changed_fields)
-        if (changed & set(ADDRESS_FIELDS_TRIGGERING_RESET)
-                and not set(GEOLOCATION_FIELDS).issubset(changed)):
+        if changed & set(ADDRESS_FIELDS_TRIGGERING_RESET) and not set(
+            GEOLOCATION_FIELDS
+        ).issubset(changed):
             self.latitude = 0.0
             self.longitude = 0.0
 
@@ -123,15 +141,19 @@ class PartnerGeolocation(models.Model):
 
     @staticmethod
     def _geo_localize(street='', zip='', city='', state='', country=''):
-        """Resuelve una dirección a ``(lat, lng)`` con fallback (Odoo 19:23-31):
-        primero con la calle completa; si no hay match, sólo ciudad/estado/país.
+        """
+        Resuelve una dirección a ``(lat, lng)`` con fallback (Odoo 19:23-31):
+        primero con la calle completa; si no hay match, sólo
+        ciudad/estado/país.
         """
         search = BaseGeocoder.geo_query_address(
-            street=street, zip=zip, city=city, state=state, country=country)
+            street=street, zip=zip, city=city, state=state, country=country
+        )
         result = BaseGeocoder.geo_find(search, force_country=country)
         if result is None:
-            search = BaseGeocoder.geo_query_address(city=city, state=state,
-                                                 country=country)
+            search = BaseGeocoder.geo_query_address(
+                city=city, state=state, country=country
+            )
             result = BaseGeocoder.geo_find(search, force_country=country)
         return result
 
@@ -149,7 +171,8 @@ class PartnerGeolocation(models.Model):
         igual que la referencia (``odoo19c: 19:44-48`` →
         ``partner.state_id.name`` / ``partner.country_id.name``). La
         divergencia anterior —pasar el código ISO— existía porque
-        ``users.Address.country`` era un ``Char``; ``res.partner.country`` es un
+        ``users.Address.country`` era un ``Char``; ``res.partner.country`` es
+        un
         Many2one a ``res.country``, así que la fidelidad ya es alcanzable.
 
         Devuelve ``True`` si hubo match (y persiste latitude/longitude/
@@ -157,7 +180,9 @@ class PartnerGeolocation(models.Model):
         """
         partner = self.partner
         result = self._geo_localize(
-            street=partner.street, zip=partner.zip, city=partner.city,
+            street=partner.street,
+            zip=partner.zip,
+            city=partner.city,
             state=partner.state.name if partner.state_id else '',
             country=partner.country.name if partner.country_id else '',
         )
@@ -191,16 +216,19 @@ def _geolocation_of(partner):
     return fila
 
 
-def _partner_geo_localize(cls, street='', zip='', city='', state='',
-                          country=''):
-    """≙ ``_geo_localize`` (``odoo19c: :23-31``) — con receptor ``res.partner``.
+def _partner_geo_localize(
+    cls, street='', zip='', city='', state='', country=''
+):
+    """
+    ≙ ``_geo_localize`` (``odoo19c: :23-31``) — con receptor ``res.partner``.
 
     ``@api.model`` en la fuente: no depende de un registro, sólo del entorno.
     Aquí es ``classmethod``, la traducción que este árbol ya usa para ese
     decorador.
     """
     return PartnerGeolocation._geo_localize(
-        street=street, zip=zip, city=city, state=state, country=country)
+        street=street, zip=zip, city=city, state=state, country=country
+    )
 
 
 def _partner_geo_localize_record(self):
@@ -252,12 +280,16 @@ def _partner_write(self, previous, values):
       aquí sería una sorpresa: las que se sacan ya no son suyas.
     """
     remaining = dict(values)
-    geolocation = {name: remaining.pop(name)
-                   for name in GEOLOCATION_FIELDS if name in remaining}
+    geolocation = {
+        name: remaining.pop(name)
+        for name in GEOLOCATION_FIELDS
+        if name in remaining
+    }
     touched = set(values)
     address_changed = touched & set(
         ADDRESS_FIELDS_TRIGGERING_RESET
-        + tuple(f'{name}_id' for name in ('state', 'country')))
+        + tuple(f'{name}_id' for name in ('state', 'country'))
+    )
     if address_changed and not set(GEOLOCATION_FIELDS).issubset(touched):
         geolocation = {name: 0.0 for name in GEOLOCATION_FIELDS}
         # Un contacto sin fila RELATED no tiene coordenadas que resetear: se
@@ -284,7 +316,8 @@ def apply_base_geolocalize_extensions():
     None``). ``write`` va por ``wrap_method``: la previa existe y su resultado
     es el del override.
     """
-    chain_method(ResPartner, '_geo_localize',
-                 classmethod(_partner_geo_localize))
+    chain_method(
+        ResPartner, '_geo_localize', classmethod(_partner_geo_localize)
+    )
     chain_method(ResPartner, 'geo_localize', _partner_geo_localize_record)
     wrap_method(ResPartner, 'write', _partner_write)

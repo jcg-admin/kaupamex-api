@@ -1,10 +1,12 @@
-"""Tests — addon ``product_attribute`` (atributos reutilizables + combinaciones).
+"""
+Tests — addon ``product_attribute`` (atributos reutilizables + combinaciones).
 
 Cubre el enriquecimiento del sistema de variantes hacia el modelo Odoo: un
 atributo (Color, Talla) se define una vez y se reutiliza entre productos; cada
 producto declara qué valores aplican, con su ``price_extra``; las combinaciones
 son el producto cartesiano de los ejes y su precio = base + Σ price_extra.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -27,7 +29,8 @@ def _product(price='100.00'):
     _slug_seq[0] += 1
     n = _slug_seq[0]
     return make_product(
-        name=f'Attr {n}', default_code=f'ATR-{n:04d}',
+        name=f'Attr {n}',
+        default_code=f'ATR-{n:04d}',
         price=Decimal(price),
     )
 
@@ -35,7 +38,9 @@ def _product(price='100.00'):
 def _attribute(name, values):
     attr = ProductAttribute.objects.create(name=name)
     objs = [
-        ProductAttributeValue.objects.create(attribute=attr, name=v, sequence=i)
+        ProductAttributeValue.objects.create(
+            attribute=attr, name=v, sequence=i
+        )
         for i, v in enumerate(values)
     ]
     return attr, objs
@@ -43,7 +48,9 @@ def _attribute(name, values):
 
 def _line(product, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=product.product_tmpl, attribute=attr, sequence=sequence,
+        product_tmpl=product.product_tmpl,
+        attribute=attr,
+        sequence=sequence,
     )
     line.values.set(values)
     return line
@@ -91,13 +98,21 @@ def test_combination_price_adds_price_extra(db):
     line = _line(product, size, [s, m, l])
     pa_services.sync_template_values(line)
     # XL cuesta +50; S y M sin extra.
-    ptav_l = ProductTemplateAttributeValue.objects.get(line=line, attribute_value=l)
+    ptav_l = ProductTemplateAttributeValue.objects.get(
+        line=line, attribute_value=l
+    )
     ptav_l.price_extra = Decimal('50.00')
     ptav_l.save(update_fields=['price_extra', 'updated_at'])
-    ptav_s = ProductTemplateAttributeValue.objects.get(line=line, attribute_value=s)
+    ptav_s = ProductTemplateAttributeValue.objects.get(
+        line=line, attribute_value=s
+    )
     # Precio de la combinación S = 100 ; combinación L = 150.
-    assert pa_services.combination_price(product.product_tmpl, [ptav_s]) == Decimal('100.00')
-    assert pa_services.combination_price(product.product_tmpl, [ptav_l]) == Decimal('150.00')
+    assert pa_services.combination_price(
+        product.product_tmpl, [ptav_s]
+    ) == Decimal('100.00')
+    assert pa_services.combination_price(
+        product.product_tmpl, [ptav_l]
+    ) == Decimal('150.00')
 
 
 def test_multi_axis_price_sums_extras(db):
@@ -110,17 +125,27 @@ def test_multi_axis_price_sums_extras(db):
     pa_services.sync_template_values(ls)
     # Dorado +30 ; XL +40.
     ProductTemplateAttributeValue.objects.filter(
-        line=lc, attribute_value=gold).update(price_extra=Decimal('30.00'))
+        line=lc, attribute_value=gold
+    ).update(price_extra=Decimal('30.00'))
     ProductTemplateAttributeValue.objects.filter(
-        line=ls, attribute_value=xl).update(price_extra=Decimal('40.00'))
-    gold_ptav = ProductTemplateAttributeValue.objects.get(line=lc, attribute_value=gold)
-    xl_ptav = ProductTemplateAttributeValue.objects.get(line=ls, attribute_value=xl)
+        line=ls, attribute_value=xl
+    ).update(price_extra=Decimal('40.00'))
+    gold_ptav = ProductTemplateAttributeValue.objects.get(
+        line=lc, attribute_value=gold
+    )
+    xl_ptav = ProductTemplateAttributeValue.objects.get(
+        line=ls, attribute_value=xl
+    )
     # Combinación Dorado+XL = 200 + 30 + 40 = 270.
-    assert pa_services.combination_price(product.product_tmpl, [gold_ptav, xl_ptav]) == Decimal('270.00')
+    assert pa_services.combination_price(
+        product.product_tmpl, [gold_ptav, xl_ptav]
+    ) == Decimal('270.00')
 
 
 def test_no_lines_yields_single_empty_combination(db):
     product = _product()
     assert pa_services.combinations(product.product_tmpl) == [()]
     assert pa_services.combination_count(product.product_tmpl) == 0
-    assert pa_services.combination_price(product.product_tmpl, ()) == Decimal('100.00')
+    assert pa_services.combination_price(product.product_tmpl, ()) == Decimal(
+        '100.00'
+    )

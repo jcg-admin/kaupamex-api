@@ -3,6 +3,7 @@ Tests — UC-WISH-04 (H-08): agregado de wishlist para marketing (admin).
 
 GET /api/v2/admin/wishlist/aggregate/ — solo staff; agregados anonimos.
 """
+
 import pytest
 from decimal import Decimal
 
@@ -17,8 +18,10 @@ AGG_URL = '/api/v2/admin/wishlist/aggregate/'
 @pytest.fixture
 def product(db):
     return make_product(
-        name='Elekes de Yemayá', default_code='AGG-1',
-        price=Decimal('500.00'), stock=10,
+        name='Elekes de Yemayá',
+        default_code='AGG-1',
+        price=Decimal('500.00'),
+        stock=10,
     )
 
 
@@ -33,9 +36,11 @@ class TestWishlistAggregate:
         self, admin_client, admin_user, user, product, db
     ):
         WishlistItem.objects.create(
-            user=user, product=product, price_at_add=Decimal('500.00'))
+            user=user, product=product, price_at_add=Decimal('500.00')
+        )
         WishlistItem.objects.create(
-            user=admin_user, product=product, price_at_add=Decimal('500.00'))
+            user=admin_user, product=product, price_at_add=Decimal('500.00')
+        )
 
         res = admin_client.get(AGG_URL)
         assert res.status_code == 200

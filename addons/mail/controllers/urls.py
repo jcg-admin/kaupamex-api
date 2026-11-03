@@ -1,4 +1,5 @@
 """URLs — addons.mail (user endpoints, F8 consolidation)."""
+
 from django.urls import path
 from .main import (
     NotificationListV2View,
@@ -7,20 +8,23 @@ from .main import (
     NotificationPreferencesView,
 )
 
-
 app_name = 'notifications_v2'
 
 urlpatterns = [
-    path('',
-         NotificationListV2View.as_view(),
-         name='list'),
-    path('unread-count/',
-         NotificationUnreadCountView.as_view(),
-         name='unread-count'),
-    path('preferences/',
-         NotificationPreferencesView.as_view(),
-         name='preferences'),
-    path('<int:pk>/',
-         NotificationMarkReadV2View.as_view(),
-         name='notification-detail'),
+    path('', NotificationListV2View.as_view(), name='list'),
+    path(
+        'unread-count/',
+        NotificationUnreadCountView.as_view(),
+        name='unread-count',
+    ),
+    path(
+        'preferences/',
+        NotificationPreferencesView.as_view(),
+        name='preferences',
+    ),
+    path(
+        '<int:pk>/',
+        NotificationMarkReadV2View.as_view(),
+        name='notification-detail',
+    ),
 ]

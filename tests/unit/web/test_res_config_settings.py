@@ -6,6 +6,7 @@ el motor heredado de ``ResConfigSettings`` (``addons.base.models.res_config``)
 con el campo real de este addon — clasificación, escritura y lectura —, y
 que el modelo NO crea tabla (``managed = False``, formulario transitorio).
 """
+
 import pytest
 
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -39,7 +40,9 @@ class TestWebConfigSettingsRoundTrip:
     def test_apply_values_writes_the_system_parameter(self):
         settings = WebConfigSettings(web_app_name='Kaupamex Tienda')
         settings.apply_values()
-        assert SystemParameter.get_param('web.web_app_name') == 'Kaupamex Tienda'
+        assert (
+            SystemParameter.get_param('web.web_app_name') == 'Kaupamex Tienda'
+        )
 
     def test_current_values_reads_back_what_was_written(self):
         settings = WebConfigSettings(web_app_name='Kaupamex App')

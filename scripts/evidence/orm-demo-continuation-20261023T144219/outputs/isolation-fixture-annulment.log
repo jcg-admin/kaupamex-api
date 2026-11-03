@@ -1,0 +1,94 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF......                                                                 [100%]
+=================================== FAILURES ===================================
+_____ test_setup_and_cleanup_preserve_unowned_resources[existing_database] _____
+
+isolation_module = <module 'isolation_fixture_contract' from '/workspace/kaupamex-api/tests/integration/company/test_multidb_isolation.py'>
+failure = 'existing_database'
+
+    @pytest.mark.parametrize('failure', [
+        'existing_database', 'existing_alias', 'first_creation',
+        'second_creation', 'first_migration', 'second_migration', 'cleanup',
+    ])
+    def test_setup_and_cleanup_preserve_unowned_resources(isolation_module, failure):
+        module = isolation_module
+        aliases = ('company_771991_db', 'company_771992_db')
+        databases = {'default': {}}
+        if failure == 'existing_alias':
+            databases[aliases[1]] = {'NAME': aliases[1]}
+        with mock.patch.object(module.settings, 'DATABASES', databases), \
+                mock.patch.object(module.svc, 'database_exists',
+                                  side_effect=lambda name: failure == 'existing_database' and name == aliases[1]), \
+                mock.patch.object(module.svc, 'install_company_aliases'), \
+                mock.patch.object(module.svc, 'create_empty_database') as create, \
+                mock.patch.object(module.svc, 'provision_company_database') as provision, \
+                mock.patch.object(module.svc, 'drop_database') as drop, \
+                mock.patch.object(module, '_forget_alias') as forget:
+            if failure == 'first_creation':
+                create.side_effect = RuntimeError('No resource acquired')
+            if failure == 'second_creation':
+                create.side_effect = [None, RuntimeError('No second resource acquired')]
+            if failure == 'first_migration':
+                provision.side_effect = RuntimeError('Migration failed')
+            if failure == 'second_migration':
+                provision.side_effect = [None, RuntimeError('Migration failed')]
+            if failure == 'cleanup':
+                drop.side_effect = [RuntimeError('First cleanup failed'), True]
+            with pytest.raises(RuntimeError):
+                with module._company_databases(aliases):
+                    if failure != 'cleanup':
+>                       pytest.fail('Setup unexpectedly succeeded')
+E                       Failed: Setup unexpectedly succeeded
+
+tests/unit/service/test_isolation_fixture_safety.py:49: Failed
+______ test_setup_and_cleanup_preserve_unowned_resources[existing_alias] _______
+
+isolation_module = <module 'isolation_fixture_contract' from '/workspace/kaupamex-api/tests/integration/company/test_multidb_isolation.py'>
+failure = 'existing_alias'
+
+    @pytest.mark.parametrize('failure', [
+        'existing_database', 'existing_alias', 'first_creation',
+        'second_creation', 'first_migration', 'second_migration', 'cleanup',
+    ])
+    def test_setup_and_cleanup_preserve_unowned_resources(isolation_module, failure):
+        module = isolation_module
+        aliases = ('company_771991_db', 'company_771992_db')
+        databases = {'default': {}}
+        if failure == 'existing_alias':
+            databases[aliases[1]] = {'NAME': aliases[1]}
+        with mock.patch.object(module.settings, 'DATABASES', databases), \
+                mock.patch.object(module.svc, 'database_exists',
+                                  side_effect=lambda name: failure == 'existing_database' and name == aliases[1]), \
+                mock.patch.object(module.svc, 'install_company_aliases'), \
+                mock.patch.object(module.svc, 'create_empty_database') as create, \
+                mock.patch.object(module.svc, 'provision_company_database') as provision, \
+                mock.patch.object(module.svc, 'drop_database') as drop, \
+                mock.patch.object(module, '_forget_alias') as forget:
+            if failure == 'first_creation':
+                create.side_effect = RuntimeError('No resource acquired')
+            if failure == 'second_creation':
+                create.side_effect = [None, RuntimeError('No second resource acquired')]
+            if failure == 'first_migration':
+                provision.side_effect = RuntimeError('Migration failed')
+            if failure == 'second_migration':
+                provision.side_effect = [None, RuntimeError('Migration failed')]
+            if failure == 'cleanup':
+                drop.side_effect = [RuntimeError('First cleanup failed'), True]
+            with pytest.raises(RuntimeError):
+                with module._company_databases(aliases):
+                    if failure != 'cleanup':
+>                       pytest.fail('Setup unexpectedly succeeded')
+E                       Failed: Setup unexpectedly succeeded
+
+tests/unit/service/test_isolation_fixture_safety.py:49: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/service/test_isolation_fixture_safety.py::test_setup_and_cleanup_preserve_unowned_resources[existing_database]
+FAILED tests/unit/service/test_isolation_fixture_safety.py::test_setup_and_cleanup_preserve_unowned_resources[existing_alias]
+2 failed, 6 passed, 1 warning in 0.15s

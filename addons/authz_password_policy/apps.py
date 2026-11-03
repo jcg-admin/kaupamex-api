@@ -1,4 +1,5 @@
 """AppConfig — addons.authz_password_policy (Odoo auth_password_policy)."""
+
 from django.apps import AppConfig
 
 

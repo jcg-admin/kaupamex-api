@@ -8,6 +8,7 @@ Las funciones de módulo no tocan la base de datos; los métodos colgados sobre
 ``ResPartnerBank`` sí necesitan el registro de modelos poblado, que es lo que
 ``django_db`` garantiza.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -103,7 +104,8 @@ class TestResPartnerBankExtension:
 
     def test_supported_types_accumulate(self):
         assert ResPartnerBank.get_supported_account_types() == [
-            ('bank', 'Normal'), ('iban', 'IBAN'),
+            ('bank', 'Normal'),
+            ('iban', 'IBAN'),
         ]
 
     def test_retrieve_acc_type_relays_to_base(self):
@@ -126,7 +128,8 @@ class TestResPartnerBankExtension:
         """La columna dice ``iban`` y el número ya no valida — el caso que la
         forma almacenada permite y la ``compute`` de la referencia no."""
         bank_account = ResPartnerBank(
-            acc_number='ES9121000418450200051333', acc_type='iban')
+            acc_number='ES9121000418450200051333', acc_type='iban'
+        )
         with pytest.raises(ValidationError):
             bank_account.clean()
 
@@ -149,8 +152,9 @@ class TestResPartnerBankExtension:
 
     def test_save_leaves_a_domestic_account_untouched(self):
         partner = ResPartner.objects.create(name='Tortillería La Esquina')
-        bank_account = ResPartnerBank(partner=partner,
-                                      acc_number='0012 3456 78')
+        bank_account = ResPartnerBank(
+            partner=partner, acc_number='0012 3456 78'
+        )
         bank_account.save()
 
         bank_account.refresh_from_db()

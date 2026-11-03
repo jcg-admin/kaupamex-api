@@ -11,6 +11,7 @@ sub-patrón D): si apuntara a una ruta inexistente, el ``os.path.isfile`` del
 propio ``zip_dir`` lo descartaría y el caso pasaría en verde aunque el
 predicado de confinamiento no estuviera escrito.
 """
+
 import io
 import os
 import platform
@@ -19,34 +20,60 @@ import zipfile
 import pytest
 
 from tools import osutil
-from tools.osutil import (WINDOWS_RESERVED, clean_filename,
-                          is_running_as_nt_service, memory_info, system_name,
-                          zip_dir)
+from tools.osutil import (
+    WINDOWS_RESERVED,
+    clean_filename,
+    is_running_as_nt_service,
+    memory_info,
+    system_name,
+    zip_dir,
+)
 
 
 class TestCleanFilename:
     """El nombre con que ``export.py`` y ``pivot.py`` sirven una descarga."""
 
-    @pytest.mark.parametrize('reserved', [
-        'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM9', 'LPT1', 'LPT9',
-        'con', 'Nul', 'CON.txt', 'lpt3.csv',
-    ])
+    @pytest.mark.parametrize(
+        'reserved',
+        [
+            'CON',
+            'PRN',
+            'AUX',
+            'NUL',
+            'COM1',
+            'COM9',
+            'LPT1',
+            'LPT9',
+            'con',
+            'Nul',
+            'CON.txt',
+            'lpt3.csv',
+        ],
+    )
     def test_a_windows_reserved_name_is_replaced_whole(self, reserved):
         # Se sustituye entero, no carácter a carácter: en Windows no existe un
         # archivo llamado CON ni siquiera con extensión.
         assert WINDOWS_RESERVED.match(reserved)
         assert clean_filename(reserved) == 'Untitled'
 
-    @pytest.mark.parametrize('allowed', [
-        'informe 2026.csv', 'ventas_Q1.xlsx', 'lista [borrador].txt',
-        'reporte (final).pdf', 'año-fiscal.csv', 'ñandú.txt',
-    ])
+    @pytest.mark.parametrize(
+        'allowed',
+        [
+            'informe 2026.csv',
+            'ventas_Q1.xlsx',
+            'lista [borrador].txt',
+            'reporte (final).pdf',
+            'año-fiscal.csv',
+            'ñandú.txt',
+        ],
+    )
     def test_the_allowed_characters_survive_untouched(self, allowed):
         assert clean_filename(allowed) == allowed
 
     def test_a_run_of_problem_characters_collapses_into_one_replacement(self):
         # «Cada secuencia contigua de problemas se sustituye por UNA sola
-        # ocurrencia» — con el default vacío desaparece; con uno explícito, una.
+        # ocurrencia» — con el default vacío desaparece; con uno
+        # explícito, una.
         assert clean_filename('a///b') == 'ab'
         assert clean_filename('a///b', '_') == 'a_b'
         assert clean_filename('a/*?b', '-') == 'a-b'
@@ -89,7 +116,8 @@ class TestZipDir:
         root.mkdir()
         for name in ('a.txt', 'a.pyc', 'a.pyo', 'a.swp', '.DS_Store'):
             (root / name).write_text('x')
-        # ``.DS_Store`` no tiene extensión para ``splitext``: el ``ext or bname``
+        # ``.DS_Store`` no tiene extensión para ``splitext``: el ``ext
+        # or bname``
         # de la fuente es lo que lo descarta igual.
         assert self._names(str(root), include_dir=False) == ['a.txt']
 
@@ -100,10 +128,13 @@ class TestZipDir:
             (root / name).write_text('x')
 
         assert self._names(str(root), include_dir=False) == [
-            'a.txt', 'b.txt', 'c.txt']
-        assert self._names(str(root), include_dir=False,
-                           fnct_sort=lambda n: -ord(n[0])) == [
-            'c.txt', 'b.txt', 'a.txt']
+            'a.txt',
+            'b.txt',
+            'c.txt',
+        ]
+        assert self._names(
+            str(root), include_dir=False, fnct_sort=lambda n: -ord(n[0])
+        ) == ['c.txt', 'b.txt', 'a.txt']
 
     def test_a_symlink_pointing_outside_the_tree_is_left_out(self, tmp_path):
         # El control que puede fallar. El destino EXISTE y es legible: si el
@@ -117,7 +148,7 @@ class TestZipDir:
         os.symlink(outside, root / 'fuga.txt')
 
         assert outside.is_file()
-        assert (root / 'fuga.txt').is_file()   # el enlace resuelve
+        assert (root / 'fuga.txt').is_file()  # el enlace resuelve
         assert self._names(str(root), include_dir=False) == ['propio.txt']
 
     def test_a_symlink_pointing_inside_the_tree_does_travel(self, tmp_path):
@@ -129,7 +160,9 @@ class TestZipDir:
         os.symlink(root / 'sub' / 'real.txt', root / 'alias.txt')
 
         assert sorted(self._names(str(root), include_dir=False)) == [
-            'alias.txt', 'sub/real.txt']
+            'alias.txt',
+            'sub/real.txt',
+        ]
 
 
 class _FakeMemoryInfo:

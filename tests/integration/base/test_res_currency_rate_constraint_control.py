@@ -7,6 +7,7 @@ declaración. El control que sí discrimina la retira de la base.
 
 Vive en el árbol —no en un turno— para que se pueda volver a correr.
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -28,10 +29,14 @@ def currency(db):
 
 @pytest.fixture
 def without_the_constraint(db):
-    """Retira la restricción, cede el control, y la restaura pase lo que pase."""
+    """
+    Retira la restricción, cede el control, y la restaura pase lo que pase.
+    """
     with connection.cursor() as cursor:
-        cursor.execute(f'ALTER TABLE res_currency_rate '
-                       f'DROP CONSTRAINT IF EXISTS {CONSTRAINT}')
+        cursor.execute(
+            'ALTER TABLE res_currency_rate '
+            f'DROP CONSTRAINT IF EXISTS {CONSTRAINT}'
+        )
     try:
         yield
     finally:
@@ -44,7 +49,8 @@ def without_the_constraint(db):
             cursor.execute('SET CONSTRAINTS ALL IMMEDIATE')
             cursor.execute(
                 f'ALTER TABLE res_currency_rate ADD CONSTRAINT {CONSTRAINT} '
-                f'CHECK (rate > 0)')
+                'CHECK (rate > 0)'
+            )
 
 
 def test_the_constraint_is_what_refuses_a_zero_rate(currency):
@@ -52,17 +58,20 @@ def test_the_constraint_is_what_refuses_a_zero_rate(currency):
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             ResCurrencyRate.objects.create(
-                currency=currency, name=date(2026, 3, 1), rate=Decimal('0'))
+                currency=currency, name=date(2026, 3, 1), rate=Decimal('0')
+            )
 
 
 def test_without_the_constraint_a_zero_rate_is_stored(
-        without_the_constraint, currency):
+    without_the_constraint, currency
+):
     """Sin ella: la fila **entra**, y ése es el hecho que la restricción cubre.
 
     Si este caso fallara, el rechazo del anterior vendría de otra parte —una
     validación del modelo, un default— y la restricción no mediría nada.
     """
     row = ResCurrencyRate.objects.create(
-        currency=currency, name=date(2026, 3, 1), rate=Decimal('0'))
+        currency=currency, name=date(2026, 3, 1), rate=Decimal('0')
+    )
     row.refresh_from_db()
     assert row.rate == 0

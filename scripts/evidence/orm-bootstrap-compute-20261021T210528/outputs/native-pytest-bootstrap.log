@@ -1,0 +1,107 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.........................................E                               [100%]
+==================================== ERRORS ====================================
+______ ERROR at teardown of test_testorm_follows_the_user_table_migration ______
+.venv/lib/python3.12/site-packages/django/db/transaction.py:263: in __exit__
+    connection.commit()
+src/orm/environments.py:710: in cut
+    current.flush()
+src/orm/environments.py:526: in flush
+    public_user = environment.ref('base.public_user')
+src/orm/environments.py:1473: in ref
+    return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
+src/addons/base/models/ir_model.py:3102: in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3071: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:121: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:185: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3059: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: base.public_user
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:475: in _set_autocommit
+    self.connection.autocommit = autocommit
+.venv/lib/python3.12/site-packages/psycopg/_connection_base.py:186: in autocommit
+    self._set_autocommit(value)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:497: in _set_autocommit
+    self.set_autocommit(value)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:502: in set_autocommit
+    self.wait(self._set_autocommit_gen(value))
+.venv/lib/python3.12/site-packages/psycopg/connection.py:484: in wait
+    return waiting.wait(gen, self.pgconn.socket, interval=interval)
+psycopg_binary/_psycopg/waiting.pyx:219: in psycopg_binary._psycopg.wait_c
+    ???
+.venv/lib/python3.12/site-packages/psycopg/_connection_base.py:192: in _set_autocommit_gen
+    yield from self._check_intrans_gen("autocommit")
+.venv/lib/python3.12/site-packages/psycopg/_connection_base.py:264: in _check_intrans_gen
+    raise e.ProgrammingError(
+E   psycopg.ProgrammingError: can't change 'autocommit' now: connection in transaction status INTRANS
+
+The above exception was the direct cause of the following exception:
+tests/unit/orm/test_field_definition_collection.py:96: in tables
+    with connection.schema_editor() as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:172: in __exit__
+    self.atomic.__exit__(exc_type, exc_value, traceback)
+.venv/lib/python3.12/site-packages/django/db/transaction.py:307: in __exit__
+    connection.set_autocommit(True)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:484: in set_autocommit
+    self._set_autocommit(autocommit)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:474: in _set_autocommit
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:475: in _set_autocommit
+    self.connection.autocommit = autocommit
+.venv/lib/python3.12/site-packages/psycopg/_connection_base.py:186: in autocommit
+    self._set_autocommit(value)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:497: in _set_autocommit
+    self.set_autocommit(value)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:502: in set_autocommit
+    self.wait(self._set_autocommit_gen(value))
+.venv/lib/python3.12/site-packages/psycopg/connection.py:484: in wait
+    return waiting.wait(gen, self.pgconn.socket, interval=interval)
+psycopg_binary/_psycopg/waiting.pyx:219: in psycopg_binary._psycopg.wait_c
+    ???
+.venv/lib/python3.12/site-packages/psycopg/_connection_base.py:192: in _set_autocommit_gen
+    yield from self._check_intrans_gen("autocommit")
+.venv/lib/python3.12/site-packages/psycopg/_connection_base.py:264: in _check_intrans_gen
+    raise e.ProgrammingError(
+E   django.db.utils.ProgrammingError: can't change 'autocommit' now: connection in transaction status INTRANS
+---------------------------- Captured log teardown -----------------------------
+WARNING  orm.environments:environments.py:525 Missing default_env, flushing as public user
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_res_groups_compute_contract.py::test_compute_assigns_instead_of_returning
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_res_groups_compute_contract.py::test_compute_assigns_instead_of_returning
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/unit/orm/test_bootstrap_migration_graph.py::test_testorm_follows_the_user_table_migration
+41 passed, 3 warnings, 1 error in 454.09s (0:07:34)
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

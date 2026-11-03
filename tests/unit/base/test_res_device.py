@@ -1,4 +1,5 @@
-"""``res.device.log`` / ``res.device`` — el contrato del registro de dispositivos.
+"""
+``res.device.log`` / ``res.device`` — el contrato del registro de dispositivos.
 
 Cubre las tres piezas que la referencia gobierna (``odoo-tools@622ddc2a``):
 
@@ -9,9 +10,11 @@ Cubre las tres piezas que la referencia gobierna (``odoo-tools@622ddc2a``):
 - ``res.device`` (``odoo19c: res_device.py:175-256``) — la vista deja viva sólo
   la última actividad por dispositivo, y esconde las revocadas.
 """
+
 from datetime import timedelta
 
 import pytest
+from django.db.models.signals import post_save
 from django.test import RequestFactory
 from django.utils import timezone
 
@@ -27,11 +30,15 @@ from addons.base.models.res_device import (
 )
 from addons.base.models.res_users import ResUsers
 
-UA_CHROME_LINUX = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
-                   '(KHTML, like Gecko) Chrome/120.0 Safari/537.36')
-UA_SAFARI_IPHONE = ('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
-                    'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
-                    'Mobile/15E148 Safari/604.1')
+UA_CHROME_LINUX = (
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+    '(KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+)
+UA_SAFARI_IPHONE = (
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+    'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
+    'Mobile/15E148 Safari/604.1'
+)
 
 
 class _Sesion(dict):
@@ -57,13 +64,21 @@ def _request(ua=UA_CHROME_LINUX, ip='203.0.113.7', usuario=None):
 
 @pytest.fixture
 def usuario(db):
-    return ResUsers.objects.create_user(login='dev@kaupamex.test', password='x')
+    return ResUsers.objects.create_user(
+        login='dev@kaupamex.test', password='x'
+    )
 
 
 def _log(usuario, **kwargs):
-    datos = dict(session_identifier='s1', platform='linux', browser='chrome',
-                 ip_address='203.0.113.7', device_type='computer',
-                 user=usuario, revoked=False)
+    datos = dict(
+        session_identifier='s1',
+        platform='linux',
+        browser='chrome',
+        ip_address='203.0.113.7',
+        device_type='computer',
+        user=usuario,
+        revoked=False,
+    )
     datos.update(kwargs)
     datos.setdefault('first_activity', datos.get('last_activity'))
     return ResDeviceLog.objects.create(**datos)
@@ -72,6 +87,7 @@ def _log(usuario, **kwargs):
 # ----------------------------------------------------------------------
 # update_trace
 # ----------------------------------------------------------------------
+
 
 def test_primera_peticion_crea_traza():
     request = _request()
@@ -83,7 +99,9 @@ def test_primera_peticion_crea_traza():
 
 
 def test_segunda_peticion_dentro_de_la_hora_no_traza():
-    """``if bool(now - last_activity >= 3600)`` — antes de la hora, ``None``."""
+    """
+    ``if bool(now - last_activity >= 3600)`` — antes de la hora, ``None``.
+    """
     request = _request()
     update_trace(request)
     assert update_trace(request) is None
@@ -92,7 +110,9 @@ def test_segunda_peticion_dentro_de_la_hora_no_traza():
 def test_pasada_la_hora_refresca_y_devuelve_la_misma_traza():
     request = _request()
     primera = update_trace(request)
-    request.session[TRACE_SESSION_KEY][0]['last_activity'] -= TRACE_MAX_IDLE_SECONDS
+    request.session[TRACE_SESSION_KEY][0][
+        'last_activity'
+    ] -= TRACE_MAX_IDLE_SECONDS
     segunda = update_trace(request)
     assert segunda is not None
     assert segunda['first_activity'] == primera['first_activity']
@@ -100,7 +120,9 @@ def test_pasada_la_hora_refresca_y_devuelve_la_misma_traza():
 
 
 def test_otra_terna_es_otro_dispositivo():
-    """La identidad es (platform, browser, ip): cambiar uno abre traza nueva."""
+    """
+    La identidad es (platform, browser, ip): cambiar uno abre traza nueva.
+    """
     request = _request()
     update_trace(request)
     request.META['HTTP_USER_AGENT'] = UA_SAFARI_IPHONE
@@ -125,12 +147,29 @@ def test_el_proxy_inverso_manda_sobre_remote_addr():
 # _update_device
 # ----------------------------------------------------------------------
 
+
 def test_update_device_inserta_una_fila(usuario):
     fila = ResDeviceLog._update_device(_request(usuario=usuario))
     assert fila.user_id == usuario.pk
     assert (fila.platform, fila.browser) == ('linux', 'chrome')
     assert fila.device_type == ResDeviceLog.DEVICE_COMPUTER
     assert fila.revoked is False
+
+
+def test_update_device_inserts_below_the_orm(usuario):
+    """≙ ``INSERT INTO res_device_log`` (``odoo19c: res_device.py:98-113``):
+    la fuente inserta por SQL; aquí ``bulk_create`` sin ``save()`` ni señal."""
+    saved = []
+
+    def receiver(sender, instance, **kwargs):
+        saved.append(instance.pk)
+
+    post_save.connect(receiver, sender=ResDeviceLog)
+    try:
+        fila = ResDeviceLog._update_device(_request(usuario=usuario))
+    finally:
+        post_save.disconnect(receiver, sender=ResDeviceLog)
+    assert fila.pk and saved == []
 
 
 def test_update_device_no_reinserta_dentro_de_la_hora(usuario):
@@ -142,7 +181,9 @@ def test_update_device_no_reinserta_dentro_de_la_hora(usuario):
 
 def test_movil_se_clasifica_como_movil(usuario):
     """``_is_mobile`` (``odoo19c: res_device.py:70-75``) sobre ``iphone``."""
-    fila = ResDeviceLog._update_device(_request(ua=UA_SAFARI_IPHONE, usuario=usuario))
+    fila = ResDeviceLog._update_device(
+        _request(ua=UA_SAFARI_IPHONE, usuario=usuario)
+    )
     assert fila.platform == 'iphone'
     assert fila.device_type == ResDeviceLog.DEVICE_MOBILE
 
@@ -160,23 +201,31 @@ def test_middleware_ignora_al_anonimo(db):
     assert ResDeviceLog.objects.count() == 0
 
 
-def test_middleware_no_rompe_la_respuesta_si_falla_el_trazado(usuario, monkeypatch):
-    monkeypatch.setattr(ResDeviceLog, '_update_device',
-                        classmethod(lambda cls, request: 1 / 0))
-    assert DeviceLogMiddleware(lambda r: 'respuesta')(
-        _request(usuario=usuario)) == 'respuesta'
+def test_middleware_no_rompe_la_respuesta_si_falla_el_trazado(
+    usuario, monkeypatch
+):
+    monkeypatch.setattr(
+        ResDeviceLog, '_update_device', classmethod(lambda cls, request: 1 / 0)
+    )
+    assert (
+        DeviceLogMiddleware(lambda r: 'respuesta')(_request(usuario=usuario))
+        == 'respuesta'
+    )
 
 
 # ----------------------------------------------------------------------
 # res.device (la vista)
 # ----------------------------------------------------------------------
 
+
 def test_la_vista_deja_solo_la_ultima_actividad(usuario):
     ahora = timezone.now()
     _log(usuario, last_activity=ahora - timedelta(hours=2))
     reciente = _log(usuario, last_activity=ahora)
     assert ResDeviceLog.objects.filter(user=usuario).count() == 2
-    assert [d.pk for d in ResDevice.objects.filter(user_id=usuario.pk)] == [reciente.pk]
+    assert [d.pk for d in ResDevice.objects.filter(user_id=usuario.pk)] == [
+        reciente.pk
+    ]
 
 
 def test_la_vista_esconde_las_revocadas(usuario):
@@ -187,7 +236,12 @@ def test_la_vista_esconde_las_revocadas(usuario):
 def test_dos_dispositivos_distintos_son_dos_filas(usuario):
     ahora = timezone.now()
     _log(usuario, last_activity=ahora, session_identifier='s1')
-    _log(usuario, last_activity=ahora, session_identifier='s2', platform='iphone')
+    _log(
+        usuario,
+        last_activity=ahora,
+        session_identifier='s2',
+        platform='iphone',
+    )
     assert ResDevice.objects.filter(user_id=usuario.pk).count() == 2
 
 

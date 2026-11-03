@@ -39,6 +39,7 @@ H-CFG-02). El fallback sigue siendo la capa de archivo — en Odoo un
 que ya cumple ese rol (development.py/testing.py/production.py sobre
 base.py son la jerarquía de archivos de configuración de Django).
 """
+
 from decouple import config as _decouple_config, Csv, Undefined
 
 
@@ -87,52 +88,87 @@ class Option:
 # que el diff de la migración sea trazable línea a línea.
 OPTIONS = {
     # --- Django core ---------------------------------------------------
-    'SECRET_KEY': Option('SECRET_KEY', help='Django secret key (SOL-087: requerida, sin default)'),
+    'SECRET_KEY': Option(
+        'SECRET_KEY',
+        help='Django secret key (SOL-087: requerida, sin default)',
+    ),
     'MFA_ENCRYPTION_KEY': Option(
         'MFA_ENCRYPTION_KEY',
         default=lambda: OPTIONS['SECRET_KEY'].resolve(),
-        help='Clave Fernet para 2FA/TOTP en reposo; cae a SECRET_KEY si no se declara aparte',
+        help=(
+            'Clave Fernet para 2FA/TOTP en reposo; cae a SECRET_KEY si no se'
+            ' declara aparte'
+        ),
     ),
     'DEBUG': Option('DEBUG', default=False, cast=bool),
     'DJANGO_ADMIN_ENABLED': Option(
         'DJANGO_ADMIN_ENABLED',
         default=lambda: OPTIONS['DEBUG'].resolve(),
         cast=bool,
-        help='Monta /admin/ de Django (H-11); cae a DEBUG si no se declara aparte',
+        help=(
+            'Monta /admin/ de Django (H-11); cae a DEBUG si no se declara'
+            ' aparte'
+        ),
     ),
-    'ALLOWED_HOSTS': Option('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv()),
-
+    'ALLOWED_HOSTS': Option(
+        'ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv()
+    ),
     # --- Base de datos — producción/desarrollo (DATABASES['default']) --
-    'DB_SSL_MODE': Option('DB_SSL_MODE', default='', help='Toggle opcional; vacío = verify-full contra CAs públicas (certifi)'),
-    'DB_SOCKET': Option('DB_SOCKET', default='', help='Directorio del socket Unix; el socket ES el HOST en libpq (H-API-305)'),
+    'DB_SSL_MODE': Option(
+        'DB_SSL_MODE',
+        default='',
+        help=(
+            'Toggle opcional; vacío = verify-full contra CAs públicas'
+            ' (certifi)'
+        ),
+    ),
+    'DB_SOCKET': Option(
+        'DB_SOCKET',
+        default='',
+        help=(
+            'Directorio del socket Unix; el socket ES el HOST en libpq'
+            ' (H-API-305)'
+        ),
+    ),
     'DB_NAME': Option('DB_NAME', help='SOL-087: requerida'),
     'DB_USER': Option('DB_USER', help='SOL-087: requerida'),
     'DB_PASSWORD': Option('DB_PASSWORD', help='SOL-087: requerida'),
-    'DB_HOST': Option('DB_HOST', help='SOL-087: requerida (ignorada si DB_SOCKET está presente)'),
+    'DB_HOST': Option(
+        'DB_HOST',
+        help='SOL-087: requerida (ignorada si DB_SOCKET está presente)',
+    ),
     'DB_PORT': Option('DB_PORT', help='SOL-087: requerida'),
-
     # --- Multi-DB DB-per-company (SOL-091) ------------------------------
-    'MULTIDB_COMPANY_DATABASES': Option('MULTIDB_COMPANY_DATABASES', default='', cast=Csv()),
-
+    'MULTIDB_COMPANY_DATABASES': Option(
+        'MULTIDB_COMPANY_DATABASES', default='', cast=Csv()
+    ),
     # --- Bootstrap del L1 de ejemplo (DEC-3 tenants-sin-clases-en-codigo)
     'BOOTSTRAP_COMPANY_CODE': Option('BOOTSTRAP_COMPANY_CODE', default=''),
     'BOOTSTRAP_COMPANY_NAME': Option('BOOTSTRAP_COMPANY_NAME', default=''),
-
     # --- CORS ------------------------------------------------------------
-    'CORS_ALLOWED_ORIGINS': Option('CORS_ALLOWED_ORIGINS', default='', cast=Csv()),
-
+    'CORS_ALLOWED_ORIGINS': Option(
+        'CORS_ALLOWED_ORIGINS', default='', cast=Csv()
+    ),
     # --- Base de datos — QA (testing.py, DATABASES['default']) ----------
     'DB_QA_SSL_MODE': Option('DB_QA_SSL_MODE', default=''),
     'DB_QA_SOCKET': Option('DB_QA_SOCKET', default=''),
     'DB_QA_NAME': Option('DB_QA_NAME', help='SOL-087: requerida'),
     'DB_QA_USER': Option('DB_QA_USER', help='SOL-087: requerida'),
     'DB_QA_PASSWORD': Option('DB_QA_PASSWORD', help='SOL-087: requerida'),
-    'DB_QA_HOST': Option('DB_QA_HOST', help='SOL-087: requerida (ignorada si DB_QA_SOCKET está presente)'),
+    'DB_QA_HOST': Option(
+        'DB_QA_HOST',
+        help='SOL-087: requerida (ignorada si DB_QA_SOCKET está presente)',
+    ),
     'DB_QA_PORT': Option('DB_QA_PORT', help='SOL-087: requerida'),
-
     # --- Producción (production.py) --------------------------------------
-    'UI_DIST': Option('UI_DIST', default='', help='Ruta al build del SPA; vacío desactiva serve_spa'),
-    'EMAIL_BACKEND': Option('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend'),
+    'UI_DIST': Option(
+        'UI_DIST',
+        default='',
+        help='Ruta al build del SPA; vacío desactiva serve_spa',
+    ),
+    'EMAIL_BACKEND': Option(
+        'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend'
+    ),
     'EMAIL_HOST': Option('EMAIL_HOST', default=''),
     'EMAIL_PORT': Option('EMAIL_PORT', default=587, cast=int),
     'EMAIL_USE_TLS': Option('EMAIL_USE_TLS', default=True, cast=bool),

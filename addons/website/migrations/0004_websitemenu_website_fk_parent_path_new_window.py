@@ -17,7 +17,9 @@ class Migration(migrations.Migration):
             name="new_window",
             field=models.BooleanField(
                 default=False,
-                help_text="Odoo new_window. Abrir el destino en una pestaña nueva.",
+                help_text=(
+                    "Odoo new_window. Abrir el destino en una pestaña nueva."
+                ),
                 verbose_name="Ventana nueva",
             ),
         ),
@@ -28,7 +30,11 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Odoo parent_path (index=True). Ruta materializada «1/4/9/»; la mantiene save() — es el invariante de _parent_store, cuyo motor este ORM no tiene (#191).",
+                help_text=(
+                    "Odoo parent_path (index=True). Ruta materializada"
+                    " «1/4/9/»; la mantiene save() — es el invariante de"
+                    " _parent_store, cuyo motor este ORM no tiene (#191)."
+                ),
                 max_length=255,
                 verbose_name="Ruta del árbol",
             ),
@@ -38,7 +44,10 @@ class Migration(migrations.Migration):
             name="website",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo website_id (ondelete=cascade). Null = menú plantilla sin sitio, el que copy_menu_hierarchy clona por sitio.",
+                help_text=(
+                    "Odoo website_id (ondelete=cascade). Null = menú plantilla"
+                    " sin sitio, el que copy_menu_hierarchy clona por sitio."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="menus",
@@ -51,7 +60,10 @@ class Migration(migrations.Migration):
             name="sequence",
             field=models.PositiveIntegerField(
                 default=addons.website.models.website_menu.default_sequence,
-                help_text="Odoo sequence (default=_default_sequence): el menú nuevo entra al final.",
+                help_text=(
+                    "Odoo sequence (default=_default_sequence): el menú nuevo"
+                    " entra al final."
+                ),
                 verbose_name="Secuencia",
             ),
         ),

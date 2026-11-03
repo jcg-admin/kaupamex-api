@@ -5,6 +5,7 @@ locale, formatos de fecha/hora, separadores y agrupamiento numérico. Es config
 de dominio (no framework-UI): da el control de localización que tiene Odoo
 (``lang.grouping``, ``decimal_point``, ``week_start``), sobre Django.
 """
+
 import ast
 import re
 
@@ -32,50 +33,77 @@ class ResLang(models.Model):
     DIRECTIONS = [('ltr', 'Left-to-Right'), ('rtl', 'Right-to-Left')]
     TIME_FORMATS = [('%H:%M:%S', '13:00:00'), ('%I:%M:%S %p', ' 1:00:00 PM')]
     WEEK_STARTS = [
-        ('1', 'Monday'), ('2', 'Tuesday'), ('3', 'Wednesday'), ('4', 'Thursday'),
-        ('5', 'Friday'), ('6', 'Saturday'), ('7', 'Sunday'),
+        ('1', 'Monday'),
+        ('2', 'Tuesday'),
+        ('3', 'Wednesday'),
+        ('4', 'Thursday'),
+        ('5', 'Friday'),
+        ('6', 'Saturday'),
+        ('7', 'Sunday'),
     ]
-    GROUPINGS = [('[3,0]', 'International Grouping'), ('[3,2,0]', 'Indian Grouping')]
+    GROUPINGS = [
+        ('[3,0]', 'International Grouping'),
+        ('[3,2,0]', 'Indian Grouping'),
+    ]
 
-    name         = fields.Char(max_length=64, help_text='Nombre del idioma (Odoo name).')
-    code         = fields.Char(
+    name = fields.Char(
+        max_length=64, help_text='Nombre del idioma (Odoo name).'
+    )
+    code = fields.Char(
         # La unicidad la declara ``_code_uniq`` en ``Meta.constraints``, como
         # la fuente: es un objeto de tabla, no un atributo del campo.
         max_length=16,
         help_text='Locale code (Odoo code, p. ej. es_MX). Único.',
     )
-    iso_code     = fields.Char(
-        max_length=16, blank=True, default='',
+    iso_code = fields.Char(
+        max_length=16,
+        blank=True,
+        default='',
         help_text='ISO code — nombre del .po de traducción (Odoo iso_code).',
     )
-    url_code     = fields.Char(
-        max_length=16, help_text='Código en la URL (Odoo url_code).',
+    url_code = fields.Char(
+        max_length=16,
+        help_text='Código en la URL (Odoo url_code).',
     )
-    active       = fields.Boolean(default=False, help_text='Odoo active.')
-    direction    = fields.Char(
-        max_length=3, choices=DIRECTIONS, default='ltr',
+    active = fields.Boolean(default=False, help_text='Odoo active.')
+    direction = fields.Char(
+        max_length=3,
+        choices=DIRECTIONS,
+        default='ltr',
         help_text='Dirección de escritura (Odoo direction).',
     )
-    date_format  = fields.Char(
-        max_length=32, default='%m/%d/%Y', help_text='Formato de fecha (Odoo date_format).',
+    date_format = fields.Char(
+        max_length=32,
+        default='%m/%d/%Y',
+        help_text='Formato de fecha (Odoo date_format).',
     )
-    time_format  = fields.Char(
-        max_length=32, choices=TIME_FORMATS, default='%H:%M:%S',
+    time_format = fields.Char(
+        max_length=32,
+        choices=TIME_FORMATS,
+        default='%H:%M:%S',
         help_text='Formato de hora (Odoo time_format).',
     )
-    week_start   = fields.Char(
-        max_length=1, choices=WEEK_STARTS, default='7',
+    week_start = fields.Char(
+        max_length=1,
+        choices=WEEK_STARTS,
+        default='7',
         help_text='Primer día de la semana (Odoo week_start).',
     )
-    grouping     = fields.Char(
-        max_length=16, choices=GROUPINGS, default='[3,0]',
+    grouping = fields.Char(
+        max_length=16,
+        choices=GROUPINGS,
+        default='[3,0]',
         help_text='Formato de agrupamiento de miles (Odoo grouping).',
     )
     decimal_point = fields.Char(
-        max_length=4, default='.', help_text='Separador decimal (Odoo decimal_point).',
+        max_length=4,
+        default='.',
+        help_text='Separador decimal (Odoo decimal_point).',
     )
     thousands_sep = fields.Char(
-        max_length=4, blank=True, default=',',
+        max_length=4,
+        blank=True,
+        default=',',
         help_text='Separador de miles (Odoo thousands_sep).',
     )
 
@@ -88,16 +116,25 @@ class ResLang(models.Model):
             # Los tres ``models.Constraint`` de la fuente
             # (``odoo19c: res_lang.py:110-121``), con su nombre conservado.
             models.UniqueConstraint(
-                fields=['name'], name='res_lang_name_uniq',
-                violation_error_message='The name of the language must be unique!',
+                fields=['name'],
+                name='res_lang_name_uniq',
+                violation_error_message=(
+                    'The name of the language must be unique!'
+                ),
             ),
             models.UniqueConstraint(
-                fields=['code'], name='res_lang_code_uniq',
-                violation_error_message='The code of the language must be unique!',
+                fields=['code'],
+                name='res_lang_code_uniq',
+                violation_error_message=(
+                    'The code of the language must be unique!'
+                ),
             ),
             models.UniqueConstraint(
-                fields=['url_code'], name='res_lang_url_code_uniq',
-                violation_error_message='The URL code of the language must be unique!',
+                fields=['url_code'],
+                name='res_lang_url_code_uniq',
+                violation_error_message=(
+                    'The URL code of the language must be unique!'
+                ),
             ),
         ]
 
@@ -106,7 +143,9 @@ class ResLang(models.Model):
 
     @classmethod
     def get_installed(cls):
-        """≙ ``get_installed`` (``odoo19c: odoo/addons/base/models/res_lang.py:311-313``).
+        """
+        ≙ ``get_installed`` (``odoo19c:
+        odoo/addons/base/models/res_lang.py:311-313``).
 
         Los pares ``(code, name)`` de los idiomas **activos**, ordenados por
         nombre. La fuente los saca de ``_get_active_by('code')``, una caché de
@@ -139,7 +178,8 @@ class ResLang(models.Model):
         """
         if not percent or percent[0] != '%':
             raise ValidationError(
-                'format() necesita exactamente un especificador %char.')
+                'format() necesita exactamente un especificador %char.'
+            )
 
         formatted = percent % value
         decimal_point = self.decimal_point or '.'
@@ -149,12 +189,14 @@ class ResLang(models.Model):
             lang_grouping = ast.literal_eval(self.grouping or '[]')
             if percent[-1] in 'eEfFgG':
                 parts = formatted.split('.')
-                parts[0] = intersperse(parts[0], lang_grouping,
-                                       thousands_sep)[0]
+                parts[0] = intersperse(parts[0], lang_grouping, thousands_sep)[
+                    0
+                ]
                 formatted = decimal_point.join(parts)
             elif percent[-1] in 'diu':
-                formatted = intersperse(formatted, lang_grouping,
-                                        thousands_sep)[0]
+                formatted = intersperse(
+                    formatted, lang_grouping, thousands_sep
+                )[0]
         elif percent[-1] in 'eEfFgG' and '.' in formatted:
             formatted = formatted.replace('.', decimal_point)
 
@@ -176,7 +218,7 @@ def split(sequence, counts):
     ['he', 'llo world']
     """
     res = []
-    saved_count = len(sequence)   # el tamaño a repetir cuando llegue un cero
+    saved_count = len(sequence)  # el tamaño a repetir cuando llegue un cero
     for count in counts:
         if not sequence:
             break

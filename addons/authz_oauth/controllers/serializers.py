@@ -1,4 +1,5 @@
 """Serializers — addons.authz_oauth."""
+
 from urllib.parse import urlencode
 
 from rest_framework import serializers
@@ -12,9 +13,19 @@ class OauthProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = OauthProvider
         fields = [
-            'id', 'name', 'client_id', 'auth_endpoint', 'scope',
-            'validation_endpoint', 'data_endpoint', 'enabled', 'css_class',
-            'body', 'sequence', 'created_at', 'updated_at',
+            'id',
+            'name',
+            'client_id',
+            'auth_endpoint',
+            'scope',
+            'validation_endpoint',
+            'data_endpoint',
+            'enabled',
+            'css_class',
+            'body',
+            'sequence',
+            'created_at',
+            'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -29,8 +40,15 @@ class OauthProviderPublicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OauthProvider
-        fields = ['id', 'name', 'auth_endpoint', 'scope', 'css_class',
-                  'body', 'auth_link']
+        fields = [
+            'id',
+            'name',
+            'auth_endpoint',
+            'scope',
+            'css_class',
+            'body',
+            'auth_link',
+        ]
 
     def get_auth_link(self, obj) -> str:
         redirect_uri = self.context.get('redirect_uri', '')

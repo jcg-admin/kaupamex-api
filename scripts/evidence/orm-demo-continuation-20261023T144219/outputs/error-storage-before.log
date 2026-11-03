@@ -1,0 +1,23 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_error_storage.py", line 15, in <module>
+    controls['test_complete_error_round_trips_without_truncation']()
+  File "/workspace/kaupamex-api/tests/unit/modules/test_demo_failure_storage.py", line 46, in test_complete_error_round_trips_without_truncation
+    assert failure.objects.get(pk=saved.pk).error == LONG_ERROR
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

@@ -32,7 +32,9 @@ class Migration(migrations.Migration):
                     "message",
                     models.ForeignKey(
                         blank=True,
-                        help_text="SMS de confirmación emitido (Odoo sms.sms).",
+                        help_text=(
+                            "SMS de confirmación emitido (Odoo sms.sms)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_confirmations",
@@ -51,7 +53,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Confirmación SMS de orden de venta",
-                "verbose_name_plural": "Confirmaciones SMS de órdenes de venta",
+                "verbose_name_plural": (
+                    "Confirmaciones SMS de órdenes de venta"
+                ),
                 "db_table": "sale_order_sms_confirmation",
             },
         ),

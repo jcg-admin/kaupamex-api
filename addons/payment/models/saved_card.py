@@ -1,4 +1,5 @@
 """Modelo ``SavedCard`` — addon ``payment`` (~ ``payment.token`` de Odoo)."""
+
 import secrets
 from django.conf import settings
 from django.db import models
@@ -22,41 +23,49 @@ class SavedCard(TimeStampedModel):
     mp_card_id es el ID de la tarjeta en el sistema de MP.
     mp_customer_id duplica el campo del User para consultas sin JOIN.
     """
-    STATUS_PENDING  = 'pending_verification'
-    STATUS_ACTIVE   = 'active'
-    STATUS_DELETED  = 'deleted'
+
+    STATUS_PENDING = 'pending_verification'
+    STATUS_ACTIVE = 'active'
+    STATUS_DELETED = 'deleted'
     STATUSES = [
         (STATUS_PENDING, 'Pendiente de verificación'),
-        (STATUS_ACTIVE,  'Activa'),
+        (STATUS_ACTIVE, 'Activa'),
         (STATUS_DELETED, 'Eliminada'),
     ]
 
-    user               = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='saved_cards',
     )
-    mp_card_id         = models.CharField(max_length=100, db_index=True)
-    mp_customer_id     = models.CharField(max_length=100, db_index=True)
-    last_four_digits   = models.CharField(max_length=4)
-    first_six_digits   = models.CharField(max_length=6, blank=True, default='')
-    expiration_month   = models.PositiveSmallIntegerField()
-    expiration_year    = models.PositiveSmallIntegerField()
-    payment_method_id  = models.CharField(max_length=50, blank=True, default='')
-    cardholder_name    = models.CharField(max_length=200, blank=True, default='')
-    status             = models.CharField(
-        max_length=30, choices=STATUSES, default=STATUS_PENDING, db_index=True,
+    mp_card_id = models.CharField(max_length=100, db_index=True)
+    mp_customer_id = models.CharField(max_length=100, db_index=True)
+    last_four_digits = models.CharField(max_length=4)
+    first_six_digits = models.CharField(max_length=6, blank=True, default='')
+    expiration_month = models.PositiveSmallIntegerField()
+    expiration_year = models.PositiveSmallIntegerField()
+    payment_method_id = models.CharField(max_length=50, blank=True, default='')
+    cardholder_name = models.CharField(max_length=200, blank=True, default='')
+    status = models.CharField(
+        max_length=30,
+        choices=STATUSES,
+        default=STATUS_PENDING,
+        db_index=True,
     )
     verification_token = models.CharField(
-        max_length=100, unique=True, default=_make_verification_token,
-        help_text='Token de un solo uso enviado por email para activar la tarjeta.',
+        max_length=100,
+        unique=True,
+        default=_make_verification_token,
+        help_text=(
+            'Token de un solo uso enviado por email para activar la tarjeta.'
+        ),
     )
 
     class Meta:
-        db_table     = 'payments_saved_card'
-        ordering     = ['-created_at']
+        db_table = 'payments_saved_card'
+        ordering = ['-created_at']
         verbose_name = 'Tarjeta guardada'
-        constraints  = [
+        constraints = [
             models.UniqueConstraint(
                 fields=['user', 'mp_card_id'],
                 name='unique_user_mp_card',
@@ -64,4 +73,7 @@ class SavedCard(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f'****{self.last_four_digits} ({self.payment_method_id}) — {self.status}'
+        return (
+            f'****{self.last_four_digits} ({self.payment_method_id}) —'
+            f' {self.status}'
+        )

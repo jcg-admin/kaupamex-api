@@ -1,0 +1,24 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "pinned_differential_cases": 5,
+  "real_postgresql_sql_import": true,
+  "duplicate_file_executed_twice": true,
+  "caller_atomic_rolls_back_failed_data_stage": true,
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "limits": "Source-function differential, not native Odoo runtime; no XML/CSV/hooks/schema/registry/version acceptance"
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

@@ -1,0 +1,8 @@
+{
+  "AGENTS.md": "8da55dbc0f94172463614ac48a9583d0d7081ab66da9fb6837ae701631aa41ee",
+  "Makefile": "313ac6000f42d89303517a19b5fd54c7260ba6913219aecba94df3ba0a5402c7",
+  ".github/workflows/api-tests.yml": "b29a544c123e6ffd25c2396d6470121d5a27c74753b3b70eb8f44406b9de5616",
+  "scripts/check_ci_database.py": "4a2113b43a2faa5ee27ab7058d26fa55d32d695c9dda2f8ec4e60b0358c852ed",
+  "tests/unit/scripts/test_ci_verification.py": "9049b60216d9cc4746b04d7fb423af80c16a780d3adbf9434f9f863df6bb0590",
+  "docs/ci-local.md": "7423fd8ec7364ea5ff42453eb9d0d7ac43ebb73735e8553c80246b98e3595f7a"
+}

@@ -8,6 +8,7 @@ Depende de ``account_payment.0001_initial`` (existencia de la app en el
 grafo de migraciones) y de ``base.0001_initial`` (tabla ``system_parameter``,
 ``SystemParameter``).
 """
+
 from django.db import migrations
 
 from addons.account_payment.data import seed_config_parameters

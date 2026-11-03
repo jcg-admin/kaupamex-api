@@ -1,0 +1,12 @@
+{
+  "command": [
+    "gh",
+    "api",
+    "repos/jcg-admin/kaupamex-api/actions/jobs/119497896712/logs"
+  ],
+  "exit_code": 1,
+  "run": 39679481359,
+  "head": "5f0f759e71b745911a9a00819596ffbba1e3744c",
+  "partial": true,
+  "error": "gh: HTTP 404\n"
+}

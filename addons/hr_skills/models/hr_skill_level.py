@@ -29,6 +29,7 @@ Porte símbolo por símbolo — 4 campos + 1 constraint + 3 métodos
        ``default_level`` por tipo") es la misma en ambos casos de la
        referencia, así que un solo hook la cubre
 """
+
 import fields
 import models
 
@@ -43,20 +44,30 @@ class HrSkillLevel(TimeStampedModel):
     _order = 'level_progress'
 
     skill_type = fields.Many2one(
-        'hr_skills.HrSkillType', on_delete=models.CASCADE,
-        null=True, blank=True, db_index=True,
-        related_name='skill_level_ids', verbose_name='Tipo de habilidad',
+        'hr_skills.HrSkillType',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='skill_level_ids',
+        verbose_name='Tipo de habilidad',
     )
     name = fields.Char(required=True, verbose_name='Nombre')
     level_progress = fields.Integer(
-        default=0, verbose_name='Progreso',
-        help_text='Odoo level_progress — de 0 por ciento (sin conocimiento) '
-                  'a 100 por ciento (dominio total).',
+        default=0,
+        verbose_name='Progreso',
+        help_text=(
+            'Odoo level_progress — de 0 por ciento (sin conocimiento) '
+            'a 100 por ciento (dominio total).'
+        ),
     )
     default_level = fields.Boolean(
-        default=False, verbose_name='Nivel por defecto',
-        help_text='Odoo default_level — si está marcado, este nivel se '
-                  'preselecciona al elegir esta habilidad.',
+        default=False,
+        verbose_name='Nivel por defecto',
+        help_text=(
+            'Odoo default_level — si está marcado, este nivel se '
+            'preselecciona al elegir esta habilidad.'
+        ),
     )
 
     class Meta:
@@ -83,7 +94,8 @@ class HrSkillLevel(TimeStampedModel):
         front-end muta vía ``_onchange_skill_level_ids`` de
         ``hr.skill.type``, BLOQUEADO en ``hr_skill_type.py`` por ausencia
 
-        ≙ ``_compute_technical_is_new_default`` (``odoo19c: hr_skills/models/hr_skill_level.py``).
+        ≙ ``_compute_technical_is_new_default`` (``odoo19c:
+        hr_skills/models/hr_skill_level.py``).
         de motor de onchange)."""
         return False
 
@@ -93,6 +105,8 @@ class HrSkillLevel(TimeStampedModel):
         mismo tipo."""
         super().save(*args, **kwargs)
         if self.default_level and self.skill_type_id:
-            (self.skill_type.skill_level_ids
-                .exclude(pk=self.pk)
-                .update(default_level=False))
+            (
+                self.skill_type.skill_level_ids.exclude(pk=self.pk).update(
+                    default_level=False
+                )
+            )

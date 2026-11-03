@@ -18,35 +18,48 @@ Un test que sólo comprobara la vía en memoria sería el verde que no
 discrimina: pasaría igual si el predicado interpretara ``ilike`` como ``like``,
 porque nada lo estaría contrastando con la semántica que el motor aplica.
 """
+
 import pytest
 from django.db import models as django_models
 
 from addons.base.models import ResPartner
-from orm.domains import NEGATIVE_CONDITION_OPERATORS as DOMAINS_NEGATIVE_OPERATORS
+from orm.domains import (
+    NEGATIVE_CONDITION_OPERATORS as DOMAINS_NEGATIVE_OPERATORS,
+)
 from orm.domains import Domain
-from orm.fields import NEGATIVE_CONDITION_OPERATORS as FIELDS_NEGATIVE_OPERATORS
+from orm.fields import (
+    NEGATIVE_CONDITION_OPERATORS as FIELDS_NEGATIVE_OPERATORS,
+)
 from orm.models import AccessQuerySet, filtered_domain
-
+from tools.sql import SQL
 
 #: Los dominios que las dos vías tienen que resolver igual. Cada uno nombra el
 #: operador que ejercita, para que un fallo diga cuál cayó.
 DOMAINS = [
-    ('igualdad',            [('name', '=', 'Beta')]),
-    ('desigualdad',         [('name', '!=', 'Beta')]),
-    ('in',                  [('name', 'in', ['Alfa', 'Beta'])]),
-    ('not in',              [('name', 'not in', ['Beta'])]),
-    ('like',                [('name', 'like', 'Al%')]),
-    ('ilike',               [('name', 'ilike', 'al%')]),
-    ('=like exacto',        [('name', '=like', 'Alfa')]),
+    ('igualdad', [('name', '=', 'Beta')]),
+    ('desigualdad', [('name', '!=', 'Beta')]),
+    ('in', [('name', 'in', ['Alfa', 'Beta'])]),
+    ('not in', [('name', 'not in', ['Beta'])]),
+    ('like', [('name', 'like', 'Al%')]),
+    ('ilike', [('name', 'ilike', 'al%')]),
+    ('=like exacto', [('name', '=like', 'Alfa')]),
     # El acentuado va con el acento en el patrón porque la fila lo lleva; que
     # además lo encuentre **sin** acento lo mide ``tests/unit/orm/
     # test_unaccent.py``, donde vive la decisión completa.
-    ('ilike con acento',    [('name', 'ilike', 'ácme')]),
-    ('and',                 ['&', ('name', '=', 'Alfa'), ('active', '=', True)]),
-    ('or',                  ['|', ('name', '=', 'Alfa'), ('name', '=', 'Beta')]),
-    ('not',                 ['!', ('name', '=', 'Beta')]),
-    ('or anidado en and',   ['&', ('active', '=', True),
-                             '|', ('name', '=', 'Alfa'), ('name', '=', 'Ácme')]),
+    ('ilike con acento', [('name', 'ilike', 'ácme')]),
+    ('and', ['&', ('name', '=', 'Alfa'), ('active', '=', True)]),
+    ('or', ['|', ('name', '=', 'Alfa'), ('name', '=', 'Beta')]),
+    ('not', ['!', ('name', '=', 'Beta')]),
+    (
+        'or anidado en and',
+        [
+            '&',
+            ('active', '=', True),
+            '|',
+            ('name', '=', 'Alfa'),
+            ('name', '=', 'Ácme'),
+        ],
+    ),
 ]
 
 
@@ -68,12 +81,16 @@ def _names(records):
 class TestBothCompilersAgree:
     """El mismo dominio, resuelto por PostgreSQL y en memoria, coincide."""
 
-    @pytest.mark.parametrize('label,domain', DOMAINS, ids=[d[0] for d in DOMAINS])
+    @pytest.mark.parametrize(
+        'label,domain', DOMAINS, ids=[d[0] for d in DOMAINS]
+    )
     def test_the_engine_and_the_predicate_return_the_same_rows(
-            self, partners, label, domain):
+        self, partners, label, domain
+    ):
         ids = [partner.pk for partner in partners]
         from_engine = ResPartner.objects.filter(pk__in=ids).filter(
-            Domain(domain)._to_q(ResPartner))
+            Domain(domain)._to_q(ResPartner)
+        )
         in_memory = filtered_domain(partners, domain)
         assert _names(in_memory) == _names(from_engine), label
 
@@ -99,7 +116,10 @@ class TestFilteredDomain:
         """
         unsaved = ResPartner(name='Sin guardar')
         assert unsaved.pk is None
-        assert len(filtered_domain([unsaved], [('name', '=', 'Sin guardar')])) == 1
+        assert (
+            len(filtered_domain([unsaved], [('name', '=', 'Sin guardar')]))
+            == 1
+        )
         assert filtered_domain([unsaved], [('name', '=', 'Otra')]) == []
 
     def test_the_queryset_method_delegates_to_the_function(self, partners):
@@ -110,13 +130,17 @@ class TestFilteredDomain:
         que ya se puede llegar por ``.objects``.
         """
         rows = AccessQuerySet(model=ResPartner).filter(
-            pk__in=[partner.pk for partner in partners])
+            pk__in=[partner.pk for partner in partners]
+        )
         assert _names(rows.filtered_domain([('active', '=', True)])) == [
-            'Alfa', 'Beta']
+            'Alfa',
+            'Beta',
+        ]
 
     def test_it_returns_a_list_not_a_queryset(self, partners):
         rows = AccessQuerySet(model=ResPartner).filter(
-            pk__in=[partner.pk for partner in partners])
+            pk__in=[partner.pk for partner in partners]
+        )
         assert isinstance(rows.filtered_domain([('active', '=', True)]), list)
 
 
@@ -131,8 +155,12 @@ class TestAsPredicate:
 
     def test_an_empty_collection_collapses_to_a_constant(self):
         record = ResPartner(name='X')
-        assert not Domain([('name', 'in', [])])._as_predicate(ResPartner)(record)
-        assert Domain([('name', 'not in', [])])._as_predicate(ResPartner)(record)
+        assert not Domain([('name', 'in', [])])._as_predicate(ResPartner)(
+            record
+        )
+        assert Domain([('name', 'not in', [])])._as_predicate(ResPartner)(
+            record
+        )
 
     def test_without_a_model_it_refuses_instead_of_guessing(self):
         with pytest.raises(ValueError, match='Sin modelo'):
@@ -146,21 +174,37 @@ class TestAsPredicate:
 
         El caso **ejecuta** el predicado: hasta ``api@24b9b12c`` el operador ni
         siquiera existía en ``CONDITION_OPERATORS`` y este mismo caso afirmaba
-        que ``checked()`` lo rechazaba. Comprobar sólo que no levanta lo dejaría
+        que ``checked()`` lo rechazaba. Comprobar sólo que no levanta lo
+        dejaría
         pasar con la rama ausente, porque el rechazo también vendría de
         ``_normalized``: por eso se afirma sobre a quién acepta y a quién no.
         """
         padre = ResPartner.objects.create(name='Padre 967')
         hija = ResPartner.objects.create(name='Hija 967', parent=padre)
         ajena = ResPartner.objects.create(name='Ajena 967')
-        predicado = Domain([('id', 'child_of', padre.pk)])._as_predicate(ResPartner)
+        predicado = Domain([('id', 'child_of', padre.pk)])._as_predicate(
+            ResPartner
+        )
         assert predicado(hija) and predicado(padre)
         assert not predicado(ajena)
 
-    def test_a_relation_traversal_refuses_in_memory(self):
+    def test_a_relation_traversal_is_evaluated_in_memory(self):
+        """≙ ``Many2one.filter_function`` (``odoo19c: odoo/orm/
+        fields_relational.py:174-190``): la fila pasa si alguno de sus
+        corregistros cumple el subdominio. Era la tarea #225."""
+        predicate = Domain(
+            [('parent', 'any', Domain([('name', '=', 'X')]))]
+        )._as_predicate(ResPartner)
+        assert predicate(ResPartner(name='hija', parent=ResPartner(name='X')))
+        assert not predicate(
+            ResPartner(name='hija', parent=ResPartner(name='Y')))
+        assert not predicate(ResPartner(name='sin padre'))
+
+    def test_a_traversal_with_a_query_value_refuses_in_memory(self):
         with pytest.raises(NotImplementedError, match='travesía'):
-            Domain([('parent', 'any', Domain([('name', '=', 'X')]))]
-                   )._as_predicate(ResPartner)
+            Domain(
+                [('parent', 'any', SQL('SELECT 1'))]
+            )._as_predicate(ResPartner)
 
     def test_a_custom_domain_without_predicate_says_so(self):
         custom = Domain.custom(to_q=lambda model: django_models.Q())
@@ -170,7 +214,8 @@ class TestAsPredicate:
     def test_a_custom_domain_uses_the_predicate_it_was_given(self):
         custom = Domain.custom(
             to_q=lambda model: django_models.Q(),
-            predicate=lambda record: record.name == 'sí')
+            predicate=lambda record: record.name == 'sí',
+        )
         assert custom._as_predicate(ResPartner)(ResPartner(name='sí'))
         assert not custom._as_predicate(ResPartner)(ResPartner(name='no'))
 
@@ -191,8 +236,8 @@ class TestUnaccentDecisionIsShared:
     def test_both_ways_answer_the_same(self, partners):
         domain = [('name', 'ilike', 'acme')]
         from_engine = ResPartner.objects.filter(
-            pk__in=[p.pk for p in partners]).filter(
-                Domain(domain)._to_q(ResPartner))
+            pk__in=[p.pk for p in partners]
+        ).filter(Domain(domain)._to_q(ResPartner))
         assert _names(filtered_domain(partners, domain)) == _names(from_engine)
 
 
@@ -221,19 +266,22 @@ class TestFilterFunction:
     def test_the_like_pattern_escapes_the_regex_metacharacters(self):
         """``.`` en el patrón es un punto literal, no «cualquier carácter»."""
         function = self._field().filter_function(
-            ResPartner, 'name', '=like', 'a.c')
+            ResPartner, 'name', '=like', 'a.c'
+        )
         assert function(ResPartner(name='a.c'))
         assert not function(ResPartner(name='abc'))
 
     def test_the_backslash_escapes_the_sql_wildcard(self):
         function = self._field().filter_function(
-            ResPartner, 'name', '=like', r'100\%')
+            ResPartner, 'name', '=like', r'100\%'
+        )
         assert function(ResPartner(name='100%'))
         assert not function(ResPartner(name='100X'))
 
     def test_underscore_matches_exactly_one_character(self):
         function = self._field().filter_function(
-            ResPartner, 'name', '=like', 'a_c')
+            ResPartner, 'name', '=like', 'a_c'
+        )
         assert function(ResPartner(name='abc'))
         assert not function(ResPartner(name='ac'))
 
@@ -247,4 +295,6 @@ class TestNegativeOperatorsStayInSync:
     """
 
     def test_the_copy_covers_the_same_operators(self):
-        assert set(DOMAINS_NEGATIVE_OPERATORS) == set(FIELDS_NEGATIVE_OPERATORS)
+        assert set(DOMAINS_NEGATIVE_OPERATORS) == set(
+            FIELDS_NEGATIVE_OPERATORS
+        )

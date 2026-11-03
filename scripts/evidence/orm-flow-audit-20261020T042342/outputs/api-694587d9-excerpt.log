@@ -1,0 +1,88 @@
+2026-10-20T02:36:55.7766831Z EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE [ 99%]
+2026-10-20T02:37:05.1528042Z EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE              [100%]
+2026-10-20T02:37:05.1528998Z ==================================== ERRORS ====================================
+2026-10-20T02:37:05.1529931Z _ ERROR at setup of TestTimeStampedModelHerencia.test_todos_los_modelos_heredan_de_timestampedmodel _
+2026-10-20T02:37:05.1530984Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T02:37:05.1531674Z     return self.cursor.execute(sql)
+2026-10-20T02:37:05.1532259Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T02:37:05.1532856Z     raise ex.with_traceback(None)
+2026-10-20T02:37:05.1533434Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2026-10-20T02:37:05.1534237Z 
+2026-10-20T02:37:05.1534541Z The above exception was the direct cause of the following exception:
+2026-10-20T02:37:05.1535370Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+2026-10-20T02:37:05.1536074Z     db_cfg = setup_databases(
+2026-10-20T02:37:05.1536689Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T02:37:05.1543229Z     res = handle_func(*args, **kwargs)
+2026-10-20T02:37:05.1544135Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T02:37:05.1545038Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T02:37:05.1545898Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T02:37:05.1546703Z     with connection.schema_editor() as editor:
+2026-10-20T02:37:05.1547402Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T02:37:05.1558615Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T02:37:05.1559209Z     raise ex.with_traceback(None)
+2026-10-20T02:37:05.1559806Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:05.1560603Z ---------------------------- Captured stderr setup -----------------------------
+2026-10-20T02:37:05.1561397Z Got an error creating the test database: database "kaupamex_qa" already exists
+2026-10-20T02:37:05.1562305Z _ ERROR at setup of TestTimeStampedModelHerencia.test_timestampedmodel_es_abstracto _
+2026-10-20T02:37:05.1563222Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T02:37:05.1564012Z     return self.cursor.execute(sql)
+2026-10-20T02:37:05.1564582Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T02:37:05.1565175Z     raise ex.with_traceback(None)
+2026-10-20T02:37:05.1565744Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2026-10-20T02:37:05.1566218Z 
+2026-10-20T02:37:05.1566513Z The above exception was the direct cause of the following exception:
+2026-10-20T02:37:05.1567330Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+2026-10-20T02:37:05.1568011Z     db_cfg = setup_databases(
+2026-10-20T02:37:05.1568609Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T02:37:05.1575118Z     res = handle_func(*args, **kwargs)
+2026-10-20T02:37:05.1575818Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T02:37:05.1576671Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T02:37:05.1577523Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T02:37:05.1578331Z     with connection.schema_editor() as editor:
+2026-10-20T02:37:05.1579021Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T02:37:05.1590045Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T02:37:05.1590638Z     raise ex.with_traceback(None)
+2026-10-20T02:37:05.1591223Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:05.1592168Z _ ERROR at setup of TestTimeStampedModelHerencia.test_timestampedmodel_tiene_get_latest_by _
+2026-10-20T02:37:05.1593125Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T02:37:05.1593940Z     return self.cursor.execute(sql)
+2026-10-20T02:37:05.1594508Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T02:37:05.1595102Z     raise ex.with_traceback(None)
+2026-10-20T02:37:05.1595681Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2026-10-20T02:37:05.1596149Z 
+2026-10-20T02:37:05.1596450Z The above exception was the direct cause of the following exception:
+2026-10-20T02:37:05.1597276Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+2026-10-20T02:37:05.1597961Z     db_cfg = setup_databases(
+2026-10-20T02:37:05.1598548Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T02:37:05.1605074Z     res = handle_func(*args, **kwargs)
+2026-10-20T02:37:05.1605766Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T02:37:05.1606649Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T02:37:05.1607500Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T02:37:05.1608295Z     with connection.schema_editor() as editor:
+2026-10-20T02:37:05.1608992Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T02:37:05.1620144Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T02:37:05.1620746Z     raise ex.with_traceback(None)
+2026-10-20T02:37:05.1621452Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:05.1623327Z _ ERROR at setup of TestTimestampsEspeciales.test_h_inh_001_order_created_at_tiene_db_index _
+2026-10-20T02:37:05.1644019Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T02:37:05.1644792Z     return self.cursor.execute(sql)
+2026-10-20T02:37:14.7921439Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_latin_accent_is_stripped_by_decomposition - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7922178Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_an_underscore_is_replaced_like_any_non_word_character - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7922851Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_plain_ascii_name_is_unchanged - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7923636Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[!!!] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7924431Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[---] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7925162Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[   ] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7925883Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[### $$$] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7926575Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_the_guard_is_not_reached_by_an_ordinary_name - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7927367Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[\u624b\u5de5\u7682] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7928244Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Caf\xe9 Org\xe1nico] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7929011Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Camisa Azul] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7929835Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_both_come_from_the_ported_slugify - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T02:37:14.7930032Z 26 skipped, 1 xfailed, 18 warnings, 10617 errors in 1447.74s (0:24:07)
+2026-10-20T02:37:14.7940894Z ##[error]Process completed with exit code 1.
+2026-10-20T02:37:14.8069262Z Post job cleanup.
+2026-10-20T02:37:15.0391832Z  2026-10-20 02:13:14.962 UTC [62] LOG:  checkpoint starting: immediate force wait
+2026-10-20T02:37:15.0393080Z  2026-10-20 02:13:14.966 UTC [62] LOG:  checkpoint complete: wrote 43 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.004 s; sync files=12, longest=0.001 s, average=0.001 s; distance=239 kB, estimate=239 kB; lsn=0/195B000, redo lsn=0/195AFC8
+2026-10-20T02:37:15.0393397Z  2026-10-20 02:13:15.518 UTC [123] ERROR:  relation "res_users" does not exist
+2026-10-20T02:37:15.0394961Z  2026-10-20 02:13:15.518 UTC [123] STATEMENT:  ALTER TABLE "test_orm_testormdiscussion" ADD CONSTRAINT "test_orm_testormdisc_moderator_id_85ba696f_fk_res_users" FOREIGN KEY ("moderator_id") REFERENCES "res_users" ("id") DEFERRABLE INITIALLY DEFERRED
+2026-10-20T02:37:15.0395325Z  2026-10-20 02:18:15.053 UTC [62] LOG:  checkpoint starting: time

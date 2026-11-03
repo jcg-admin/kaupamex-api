@@ -27,6 +27,7 @@ Por eso cada caso declara **qué claves espera** y el veredicto compara claves
 presentes contra claves declaradas. Un atributo vacío falla; uno con el residuo
 parcial falla nombrando lo que perdió.
 """
+
 import importlib
 import os
 import sys
@@ -37,10 +38,16 @@ import django
 #: Son las claves que la fuente guardaría verbatim en ``_args__``.
 CASES = [
     ('Char(compute=)', dict(compute='_c'), {'compute'}),
-    ('Char(inverse=, recursive=)', dict(inverse='_i', recursive=True),
-     {'inverse', 'recursive'}),
-    ('Char(max_length=, readonly=)', dict(max_length=9, readonly=True),
-     {'max_length', 'readonly'}),
+    (
+        'Char(inverse=, recursive=)',
+        dict(inverse='_i', recursive=True),
+        {'inverse', 'recursive'},
+    ),
+    (
+        'Char(max_length=, readonly=)',
+        dict(max_length=9, readonly=True),
+        {'max_length', 'readonly'},
+    ),
 ]
 
 
@@ -64,33 +71,50 @@ def main():
         kept = declared_of(field)
         lost = written - kept
         verdicts.append(not lost)
-        print(f'   {label:30} {type(field).__name__:11} '
-              f'_args__={getattr(field, "_args__", None)!r:.44}')
-        print(f'   {"":30} escrito={sorted(written)} '
-              f'perdido={sorted(lost) or "nada"}')
+        print(
+            f'   {label:30} {type(field).__name__:11} '
+            f'_args__={getattr(field, "_args__", None)!r:.44}'
+        )
+        print(
+            f'   {"":30} escrito={sorted(written)} '
+            f'perdido={sorted(lost) or "nada"}'
+        )
 
     print('\n== ya instalados en clases reales ==')
     base = vars(mixin)['display_name']
     Category = apps.get_model('test_orm', 'TestOrmCategory')
-    override = next(f for f in Category._meta.get_fields()
-                    if f.name == 'display_name')
+    override = next(
+        f for f in Category._meta.get_fields() if f.name == 'display_name'
+    )
     for label, holder, written in [
-            ('base  DisplayNameMixin', base, {'compute', 'search'}),
-            ('override TestOrmCategory', override, {'inverse', 'recursive'})]:
+        ('base  DisplayNameMixin', base, {'compute', 'search'}),
+        ('override TestOrmCategory', override, {'inverse', 'recursive'}),
+    ]:
         kept = declared_of(holder)
         lost = written - kept
         verdicts.append(not lost)
-        print(f'   {label:30} {type(holder).__name__:11} '
-              f'_args__={getattr(holder, "_args__", None)!r:.44}')
-        print(f'   {"":30} escrito={sorted(written)} '
-              f'perdido={sorted(lost) or "nada"}')
+        print(
+            f'   {label:30} {type(holder).__name__:11} '
+            f'_args__={getattr(holder, "_args__", None)!r:.44}'
+        )
+        print(
+            f'   {"":30} escrito={sorted(written)} '
+            f'perdido={sorted(lost) or "nada"}'
+        )
 
     print('\n== el veredicto — por CONTENIDO ==')
-    print(f'   casos que conservan su declaración : {sum(verdicts)} de {len(verdicts)}')
+    print(
+        f'   casos que conservan su declaración : {sum(verdicts)} de'
+        f' {len(verdicts)}'
+    )
     print(f'   se puede fusionar por declaración  : {all(verdicts)}')
-    print('\n   Métrica: claves presentes en `_args__` contra las que el autor')
+    print(
+        '\n   Métrica: claves presentes en `_args__` contra las que el autor'
+    )
     print('            escribió, por caso.')
-    print('   Ciega a: el VALOR de una clave conservada (sólo compara claves),')
+    print(
+        '   Ciega a: el VALOR de una clave conservada (sólo compara claves),'
+    )
     print('            y a una clave que la fachada renombre antes de delegar')
     print('            —`readonly` sale como `editable`, y ahí el conjunto')
     print('            acusa la pérdida aunque el dato viaje con otro nombre.')

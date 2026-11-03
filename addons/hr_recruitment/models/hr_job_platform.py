@@ -32,6 +32,7 @@ provisional de ``ir_mail_server.py``, que se declara canónico para
 (``strip().lower()``) — misma forma que ``hr: models/models.py::
 _alias_get_error`` ya adoptó para el mismo símbolo ausente.
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -43,22 +44,29 @@ def _normalize_email(text):
 
 
 class HrJobPlatform(TimeStampedModel):
-    """``hr.job.platform`` — plataforma de origen de candidaturas por correo."""
+    """
+    ``hr.job.platform`` — plataforma de origen de candidaturas por correo.
+    """
 
     _name = 'hr.job.platform'
     _description = 'Job Platforms'
 
     name = fields.Char()
     email = fields.Char(
-        help_text="Applications received from this Email won't be linked to "
-                  'a contact. There will be no email address set on the '
-                  'Applicant either.',
+        help_text=(
+            "Applications received from this Email won't be linked to "
+            "a contact. There will be no email address set on the "
+            "Applicant either."
+        ),
     )
     regex = fields.Char(
-        blank=True, default='',
-        help_text='The regex facilitates to extract information from the '
-                  "subject or body of the received email to autopopulate "
-                  "the Applicant's name field.",
+        blank=True,
+        default='',
+        help_text=(
+            'The regex facilitates to extract information from the '
+            'subject or body of the received email to autopopulate '
+            'the Applicant\'s name field.'
+        ),
     )
 
     class Meta:
@@ -67,10 +75,13 @@ class HrJobPlatform(TimeStampedModel):
         verbose_name_plural = 'Plataformas de reclutamiento'
         constraints = [
             models.UniqueConstraint(
-                fields=['email'], name='hr_job_platform_email_uniq',
-                violation_error_message='The Email must be unique, this one '
-                                        'already corresponds to another Job '
-                                        'Platform.',
+                fields=['email'],
+                name='hr_job_platform_email_uniq',
+                violation_error_message=(
+                    'The Email must be unique, this one '
+                    'already corresponds to another Job '
+                    'Platform.'
+                ),
             ),
         ]
 

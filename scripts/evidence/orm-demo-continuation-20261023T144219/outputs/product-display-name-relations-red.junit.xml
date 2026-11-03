@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="2.448" timestamp="2026-10-24T20:58:50.905832" hostname="c8a29a030cff"><testcase classname="tests.integration.product.test_display_name_assignment" name="test_reverse_add_invalidates_the_owning_variant" time="2.271"><failure message="AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta (Rojo, Azul)'&#10;  - Camiseta (Rojo, Azul)&#10;  ?               ------&#10;  + Camiseta (Rojo)">tests/integration/product/test_display_name_assignment.py:97: in test_reverse_add_invalidates_the_owning_variant
+    assert variant.display_name == 'Camiseta (Rojo, Azul)'
+E   AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta (Rojo, Azul)'
+E     - Camiseta (Rojo, Azul)
+E     ?               ------
+E     + Camiseta (Rojo)</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_reverse_remove_and_clear_invalidate_previous_owners" time="0.025"><failure message="AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta'&#10;  - Camiseta&#10;  + Camiseta (Rojo)">tests/integration/product/test_display_name_assignment.py:107: in test_reverse_remove_and_clear_invalidate_previous_owners
+    assert variant.display_name == 'Camiseta'
+E   AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta'
+E     - Camiseta
+E     + Camiseta (Rojo)</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_set_replacement_invalidates_the_previous_combination" time="0.022"><failure message="AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta (Azul)'&#10;  - Camiseta (Azul)&#10;  + Camiseta (Rojo)">tests/integration/product/test_display_name_assignment.py:118: in test_set_replacement_invalidates_the_previous_combination
+    assert variant.display_name == 'Camiseta (Azul)'
+E   AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta (Azul)'
+E     - Camiseta (Azul)
+E     + Camiseta (Rojo)</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_unrelated_cached_variant_is_not_recomputed" time="0.027" /></testsuite></testsuites>

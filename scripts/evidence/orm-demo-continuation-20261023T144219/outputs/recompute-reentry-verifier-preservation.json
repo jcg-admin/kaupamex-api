@@ -1,0 +1,18 @@
+{
+  "purpose": "Keep historical verifier bytes and existing checksum verification valid as optional modes evolve; diagnostic/source hashes not rewritten",
+  "changed_manifests": [
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-stored-postgresql-artifacts.SHA256SUMS",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-stored-artifacts.SHA256SUMS",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-visibility-artifacts.SHA256SUMS",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-pending-artifacts.SHA256SUMS",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/record-env-artifacts.SHA256SUMS",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/flush-visibility-artifacts.SHA256SUMS"
+  ],
+  "preserved_verifier_sources": [
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/verifier-source-0e7b2180dabe79d617ae4a9ed8c5db3d2fb54134a3563816cd9a114e35dc90f8.py.txt",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/verifier-source-16d2a30599b011e0938e29bc75c4ec3e9e09e263967017f03f2d7f6605f05a5a.py.txt",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/verifier-source-7b52962f9220a38eeb83c8e2013786ab9faa67cdd663a2245b19cca435a0ae9d.py.txt",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/verifier-source-fc79d1bbff57ed8cc303bf70b28a1409a7c1ff8b89c3c7351142a3841552f599.py.txt"
+  ],
+  "repeated_historical_tests": false
+}

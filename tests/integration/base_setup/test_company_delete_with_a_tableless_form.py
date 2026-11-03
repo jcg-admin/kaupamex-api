@@ -20,6 +20,7 @@ Qué haría fallar a cada control
     razón de ``DO_NOTHING`` desaparece y este caso avisa antes de que nadie
     lea la declaración como una relajación gratuita de la integridad.
 """
+
 import pytest
 from django.db.models.deletion import DO_NOTHING
 
@@ -39,7 +40,8 @@ class TestTheDeclarationSaysWhy:
         field = SiteConfigSettings._meta.get_field('company_id')
         assert field.remote_field.on_delete is DO_NOTHING, (
             'una politica que el recolector visita hace consultar una tabla '
-            'que no existe')
+            'que no existe'
+        )
 
 
 class TestDeletingACompany:
@@ -47,7 +49,8 @@ class TestDeletingACompany:
 
     def test_it_does_not_query_the_form_without_a_table(self, db):
         company = ResCompany.objects.create(
-            code='kaupamex_test_delete', name='Kaupamex de prueba')
+            code='kaupamex_test_delete', name='Kaupamex de prueba'
+        )
         pk = company.pk
 
         company.delete()

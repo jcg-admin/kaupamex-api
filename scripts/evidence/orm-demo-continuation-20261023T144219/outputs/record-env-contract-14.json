@@ -1,0 +1,57 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": {
+    "path": "odoo19c:odoo/orm/fields.py",
+    "symbols": [
+      "Field.__get__ record.env",
+      "Field.__set__ record.env",
+      "Field.compute_value records.sudo()"
+    ],
+    "sha256": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e"
+  },
+  "behavior": "Attached record environment governs field reads/writes and context/privilege buckets; native compute_sudo callbacks receive elevated recordsets; caller channels are restored.",
+  "execution_flow": "FieldDescriptor entry binding -> existing attached Environment call/scope -> unchanged descriptor bodies -> existing compute/cache machinery. compute_value derives native recordsets through sudo while preserving Django-row ambient path.",
+  "inputs_outputs": "Same-id red/blue contexts stay distinct; ambient helpers see attached value only during operation; assignments enter attached bucket; exceptions restore context; two controlled threads restore their own channels; ordinary/elevated buckets separate; derived and ambient compute_sudo cases retain callback/write elevation.",
+  "side_effects": "Bounded native ContextVar activation/reset and existing in-memory field cache updates. No SQL, schema, migrations, new ContextVar/store/coordinator or persistent role changes.",
+  "dependencies": [
+    "TASK-API-0397 native1167 in_progress ownerVM-b501",
+    "UID cache-key fix1340f23c, TaskGEN0633 separate owner/commit",
+    "Existing BaseModel.with_context/with_env/sudo and native Environment.__call__/__enter__/__exit__",
+    "Existing protection, compute dispatcher, cache update and ordinary Django storage"
+  ],
+  "consumers": [
+    "Actual BaseModel attached environment recordsets",
+    "FieldDescriptor class access and plain Django rows",
+    "Existing field cache, environment channels, nonstored dispatch and prefix-placeholder tests"
+  ],
+  "installed_mechanism": "Existing Environment scopes are canonicalized in the current transaction by attached(); field-specific bindings are installed at the existing module binding phase; no Provider execution mechanism duplicated.",
+  "existing_adaptation": "Consumer helpers read ambient channels rather than native record.env everywhere, so activate the attached environment at descriptor boundaries. Reuse native recordset.sudo for compute_sudo; do not invent a recordset for Django rows.",
+  "verification": {
+    "initial": "4FAIL/3PASS; separate threadRED1FAIL",
+    "intermediate": "7PASS/1FAIL exposed independent UID key collision",
+    "final_combined": "54PASS; exact source/index/test hashes in record-env-keyword-final.json",
+    "descriptor_annulment": "5expectedFAIL/14PASS in record-env-final-descriptor-annulled.json",
+    "canonical_scope_annulment": "1expectedFAIL: ContextVar token created in different Context",
+    "compute_sudo_red": "2derivedFAIL/2ambientPASS",
+    "compute_sudo_annulment": "2expectedFAIL/2PASS after removing native recordset sudo branch",
+    "admission": "PASS; ordinary hooks recorded after commit",
+    "explicit_keyword_compatibility": {
+      "introduced_regression": "bb72edcd wrapper descriptor parameter rejected explicit self keyword; two RED TypeError cases",
+      "correction_commit": "c4917a8ae39e11cd0f3201e0c5692abf1eb45d7f",
+      "previous_interface_control": "2PASS with descriptor binding removed; record-env-keyword-original-interface.json",
+      "classification": "NEW_REGRESSION detected and corrected before integration"
+    }
+  },
+  "equivalence": "Bounded attached-env descriptor and native-recordset compute_sudo contracts verified. These proofs do not accept all BaseModel, Field, ACL or persistence behavior.",
+  "limitations": "No database routing, complete stored native recordset flush/inverse behavior, business permissions or whole-application acceptance. Controlled thread test is not a performance or general concurrency claim. Existing unsearchable-dependency warnings remain visible.",
+  "integration": {
+    "commits": [
+      "1340f23c",
+      "bb72edcd",
+      "c4917a8ae39e11cd0f3201e0c5692abf1eb45d7f"
+    ],
+    "publication": "Normal feature branch push; verify remote receipt separately",
+    "merge": "not_verified",
+    "acceptance": "not_verified"
+  }
+}

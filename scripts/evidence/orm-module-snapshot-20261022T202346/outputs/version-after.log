@@ -1,0 +1,20 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS test_refresh_preserves_installed_version_when_manifest_changes
+PASS test_new_catalog_entry_has_unknown_installed_version
+PASS test_dry_run_preserves_both_version_sources
+3 PASS, 0 FAIL; real PostgreSQL, minimal model schema; not full migration/bootstrap acceptance
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

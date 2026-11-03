@@ -1,0 +1,62 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "capabilities": [
+    {
+      "interface": "session.job_runs.scaffold_run(base_dir,slug,command,now,flat_home)",
+      "source": "src/session/job_runs.py:189-222",
+      "responsibility": "Timestamped run anatomy, launch manifest, outputs/log location",
+      "limit": "Timestamp is seconds; mkdir(exist_ok=True) and README/manifest write_text do not guarantee create-only preservation on same id. Does not copy instrument or redirect script writes."
+    },
+    {
+      "interface": "workbench.manifest.scaffold_workbench/declare_workbench",
+      "source": "src/workbench/manifest.py:244-339",
+      "responsibility": "Existing per-run identity, tests/outputs anatomy and append declaration including destination",
+      "limit": "destination is metadata, no process sandbox/output interception. Can choose isolated new run, but cannot make a script using __file__ write elsewhere automatically."
+    },
+    {
+      "interface": "checkWorkbench(dir)",
+      "source": "src/packages/workbench/manifest.ts:299-352",
+      "responsibility": "Required declaration values, timestamped run id, instrument existence, optional form existence",
+      "limit": "No source revision or source hash assertion in this gate; existing basename behavior not reconsidered as unauthorized."
+    },
+    {
+      "interface": "session.record_environment.capture/repo_head/executable_sha256; CLI event [--force]",
+      "source": "src/session/record_environment.py:73-142",
+      "responsibility": "Actual executable hash/version, Python version, repo HEAD and bounded watched variables. CLI refuses existing environment.json unless --force",
+      "limit": "Records observed identity; does not compare an asserted Odoo revision. Does not record every ORM dependency by itself. Main capture default targets claude, not automatically Codex; do not misattribute selected executable."
+    },
+    {
+      "interface": "verify.tree_fingerprint.fingerprint(repo,scope)",
+      "source": "src/verify/tree_fingerprint.py:43-58; tests/run.sh:93-94",
+      "responsibility": "Actual HEAD+diff+untracked content identity before/after suite",
+      "verification": "Read-only real Provider fingerprint twice equal; no product mutation",
+      "limit": "Detects state drift in scope, not equality with expected reference; default scope src/tests/bin excludes ORM evidence instruments and external reference cache unless caller scopes them deliberately. Cannot detect changes reverted between readings."
+    },
+    {
+      "interface": "session.snapshot_store.take_snapshot; SnapshotManifest.sealed/is_intact",
+      "source": "src/session/snapshot_store.py:76-92,130-192",
+      "responsibility": "Git snapshot identity, generation refs create-only/CAS and sealed manifest",
+      "verification": "Pure isolated manifest fixture seals/intact; mutated base_head rejected. No actual snapshot created in this audit",
+      "limit": "Manifest field integrity is not automatically current Odoo corpus verification. Ignored files and external reference tree absent from consumer Git snapshot. Existing mechanism needs correct scope rather than new store."
+    },
+    {
+      "interface": "session.pool_lifecycle.open_run/publish/verify_closed",
+      "source": "src/session/pool_lifecycle.py:355-368,456-580,632-674",
+      "responsibility": "Distinct live runtime create-only, per-generation staged artifact publication, writer guards, hash verification against closed artifact manifests",
+      "verification": "Source and existing tests read; live runtime not executed",
+      "limit": "Applies to managed pool lifecycle, not automatically to direct Codex probe writes. Artifact hash consistency does not prove claimed reference contract/revision."
+    },
+    {
+      "interface": "session.documentation_publisher.assert_expected_blob",
+      "source": "src/session/documentation_publisher.py:210-213,326",
+      "responsibility": "Compare actual target blob against expected blob before publishing documentation",
+      "verification": "Code inspected only",
+      "limit": "A real expected-vs-observed identity guard exists for document publishing; not evidence that historical ORM probes automatically enforce source identity."
+    }
+  ],
+  "conclusion": "Existing Provider mechanisms cover recording, run anatomy, generation preservation, drift and artifact guards; no second runner/store needed. Applying them to isolated historical-probe reproduction and checking exact expected reference identity remains explicit audit work, not automatically solved by metadata.",
+  "TASK1072": "pending owner NULL; identity confirmed, vm-r claimsrc/task/task_source.py remains;49active claims preserved. No new record-reader probe, fix or TASK state change.",
+  "no_product_changes": true,
+  "no_store_writes": true,
+  "no_model_execution": true
+}

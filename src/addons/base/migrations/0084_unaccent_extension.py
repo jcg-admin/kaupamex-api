@@ -18,6 +18,7 @@ disponible y nadie la creaba.
 ``CreateExtension`` emite ``CREATE EXTENSION IF NOT EXISTS``, asi que es
 idempotente sobre una base que ya la tenga.
 """
+
 from django.contrib.postgres.operations import CreateExtension
 from django.db import migrations
 

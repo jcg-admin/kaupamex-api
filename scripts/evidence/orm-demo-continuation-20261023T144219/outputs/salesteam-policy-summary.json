@@ -1,0 +1,103 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "task": "TASK-API-0383",
+  "owner": "codex-module-lifecycle",
+  "official_status": "pending",
+  "state_updates": false,
+  "default_correction": {
+    "code_commit": "e8ea2938d5a5c0547e004eb4971bea5a8c34d924",
+    "historical_forward_reverse_cases": 4,
+    "wrong_model_rejection_case": 1,
+    "runtime_alias_controls": 2,
+    "negative_annulment_exit": 1,
+    "invalid_first_pytest_setup_excluded": true,
+    "ci_make_exit": 2,
+    "ci_passed": 77,
+    "ci_skipped": 1,
+    "ci_errors": 1,
+    "ci_seconds": 501.29
+  },
+  "experimental_schema": {
+    "instrument_commit": "1e3dfe2d",
+    "exit": 0,
+    "migrations_each": 380,
+    "local_res_users_fks_each": 107,
+    "metadata_cache_local": true,
+    "session_storage_cycle": "pass",
+    "scope": "Separate own default and one company physical database, local metadata override only in memory"
+  },
+  "policy_proposal": {
+    "code_commit": "ea963f24fc9626b28f3ddec89548557aec91ae9e",
+    "task": "TASK-API-0383 pending",
+    "basis": "Actual mandatory local FK failure plus controlled experiment; not a build-only policy relaxation",
+    "implementation": "Existing control-plane apps list now sessions only; metadata follows declared domain alias and existing fail-closed routing",
+    "focused": "4new controls FAIL before;26routing/context/provisioner controls PASS after",
+    "approval": "Proposal for existing PR review, not automatically approved",
+    "without_override_verification": {
+      "code_revision": "ea963f24fc9626b28f3ddec89548557aec91ae9e",
+      "exit": 0,
+      "actual_provisioner": true,
+      "experimental_override": false,
+      "physical_databases": "Owned default and one separate company",
+      "migrations_each": 380,
+      "local_res_users_fks_each": 107,
+      "metadata_cache_and_session_storage": "pass",
+      "cleanup": "Company removed, base/role dropped,0ownedDB/roles observed",
+      "ci": {
+        "make_exit": 2,
+        "pytest_exit": 1,
+        "passed": 77,
+        "skipped": 1,
+        "errors": 1,
+        "seconds": 490.26,
+        "first_failure": "ProductProduct.display_name",
+        "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED"
+      }
+    },
+    "old_fixture_review": "Two skip decorators cover3cases; fixed8801/8802 names, unconditional drop, TestCase private-method bypass and partial migration bypass require fixture qualification. Do not unskip or treat old AUTH_USER_MODEL placement as current."
+  },
+  "continuation_evidence_correction": "Old global CI failure must not be treated as functional failure of passing bounded stages; old call retained, subsequent interpretation corrected. No native accepted state manufactured.",
+  "provider": "Existing TaskGet/claimsCommand/node_frontier only; no new coordinator, TaskStore or managed model inference",
+  "integration": {
+    "merged": false,
+    "whole_task_acceptance": "not_verified",
+    "source_commits": [
+      "e8ea2938",
+      "1e3dfe2d",
+      "ea963f24",
+      "4f5a166f"
+    ],
+    "source_published": true,
+    "remote_source_verified": "4f5a166f30b076ab4928ca10c28d62dea9e0c4d4",
+    "pr": 109,
+    "evidence_publication": "Existing PR/Git history is authority for final evidence commit"
+  },
+  "remaining": [
+    "Full login and user identity/authorization across companies",
+    "Safe qualification of3legacy isolation cases",
+    "Explicit review/acceptance of metadata proposal",
+    "Partial historical databases already recorded without physical tables require bounded recovery",
+    "Effective per-database Registry and whole module loader/hooks/version/state/invalidation",
+    "Global CI baseline compute defect, related unowned GEN0633/0418; subsequent tests not evaluated",
+    "Provider global task admission and local-model execution qualification"
+  ],
+  "fixture_safety": {
+    "commit": "4f5a166f30b076ab4928ca10c28d62dea9e0c4d4",
+    "before": "3FAIL, unconditional DROP after setup failure",
+    "after": "3PASS, mocks only: no actual databases used",
+    "behavior": "Reject existing databases/aliases; track completed creation and drop only tracked resources; delegate migrations to native provisioner",
+    "limits": "Not full fixture qualification; private TestCase overrides/fixed names persist,3cases still skipped. Partial SQL creation/extension failure ownership is not certified by these mocked controls.",
+    "ci_limit": "Test-only fixture change follows exact production CI at ea963f24; targeted3controls PASS, no additional full local suite repeated solely to rediscover the same earlier failure."
+  },
+  "cleanup": {
+    "owned_databases_remaining": 0,
+    "owned_roles_remaining": 0,
+    "local_verifiers_running": false
+  },
+  "source_ci_applicability": {
+    "tested_production_revision": "ea963f24fc9626b28f3ddec89548557aec91ae9e",
+    "production_changed_since_test": false,
+    "test_only_fixture_controls": "3PASS after4f5a166f; no full-head suite success inferred"
+  }
+}

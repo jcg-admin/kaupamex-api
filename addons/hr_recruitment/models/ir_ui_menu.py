@@ -20,6 +20,7 @@ Divergencias declaradas
    campo ``key`` de ``base.IrUiMenu`` cumple el papel del xmlid. Sin las
    filas sembradas (data, no esquema), la rama simplemente no aplica.
 """
+
 from orm.method_chain import chain_method, extend_list
 from orm.model_classes import extend_model
 
@@ -37,7 +38,9 @@ def _load_menus_blacklist(cls, user):
         if job_menu is not None:
             result.append(job_menu.pk)
     elif not user.has_group('hr_recruitment.group_hr_recruitment_user'):
-        pos_menu = cls.objects.filter(key='hr_recruitment.menu_hr_job_position').first()
+        pos_menu = cls.objects.filter(
+            key='hr_recruitment.menu_hr_job_position'
+        ).first()
         if pos_menu is not None:
             result.append(pos_menu.pk)
     else:
@@ -55,8 +58,10 @@ def _wire(model):
     relevo por defecto, así que aquí se llama a ``chain_method`` directo
     con ``combine=extend_list`` desde ``luego=``."""
     chain_method(
-        model, '_load_menus_blacklist',
-        classmethod(_load_menus_blacklist), combine=extend_list,
+        model,
+        '_load_menus_blacklist',
+        classmethod(_load_menus_blacklist),
+        combine=extend_list,
     )
 
 

@@ -1,4 +1,5 @@
-"""Reparte el eje de senalizacion de ``Registry`` en los dos cubos del criterio.
+"""
+Reparte el eje de senalizacion de ``Registry`` en los dos cubos del criterio.
 
 **La pregunta.** De los siete simbolos que la referencia declara entre
 ``setup_signaling`` (``odoo19c: odoo/orm/registry.py:1036``) y ``cursor``
@@ -21,6 +22,7 @@ simbolos que se apoyan en nuestro propio arbol pasan a BLOCKED. Un
 clasificador que devolviera BUILDABLE siempre daria el mismo reparto en los
 dos casos.
 """
+
 import argparse
 import importlib
 import json
@@ -29,7 +31,8 @@ from dataclasses import dataclass, field
 
 #: El inventario del ejecutor, verbatim: los origenes con los que se paga cada
 #: mecanismo. Un simbolo que necesitara algo de fuera de este mapa no seria
-#: BUILDABLE, y el suite lo exige (``test_no_symbol_declares_a_dependency_...``).
+#: BUILDABLE, y el suite lo exige
+#: (``test_no_symbol_declares_a_dependency_...``).
 INVENTORY = {
     ('cpython', 'contención por bytecode'): '',
     ('cpython', 'evaluación y control de flujo'): '',
@@ -79,8 +82,11 @@ SYMBOLS = [
         name='setup_signaling',
         reference='odoo19c: odoo/orm/registry.py:1036',
         installed=[],
-        primitives=['django.db.connections', 'tools.sql.SQL',
-                    'orm.registry._CACHES_BY_KEY'],
+        primitives=[
+            'django.db.connections',
+            'tools.sql.SQL',
+            'orm.registry._CACHES_BY_KEY',
+        ],
         inventory=('postgresql', 'guardar y consultar el arch'),
     ),
     Symbol(
@@ -94,8 +100,12 @@ SYMBOLS = [
         name='check_signaling',
         reference='odoo19c: odoo/orm/registry.py:1076',
         installed=[],
-        primitives=['contextlib.closing', 'contextlib.nullcontext',
-                    'orm.registry.Registry.new', 'orm.registry._CACHES_BY_KEY'],
+        primitives=[
+            'contextlib.closing',
+            'contextlib.nullcontext',
+            'orm.registry.Registry.new',
+            'orm.registry._CACHES_BY_KEY',
+        ],
         inventory=('cpython', 'evaluación y control de flujo'),
     ),
     Symbol(
@@ -154,8 +164,9 @@ def resolve(dotted):
 
 def classify(symbol):
     """El cubo de un simbolo — READY, BUILDABLE o BLOCKED."""
-    if symbol.installed and all(resolve(path) is not None
-                                for path in symbol.installed):
+    if symbol.installed and all(
+        resolve(path) is not None for path in symbol.installed
+    ):
         return Verdict(symbol.name, READY, symbol.inventory)
     missing = [path for path in symbol.primitives if resolve(path) is None]
     if missing:
@@ -173,21 +184,37 @@ def report():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--json', action='store_true',
-                        help='emite el reparto como JSON')
-    parser.add_argument('--strict', action='store_true',
-                        help='sale 1 si algun simbolo queda BLOCKED')
+    parser.add_argument(
+        '--json', action='store_true', help='emite el reparto como JSON'
+    )
+    parser.add_argument(
+        '--strict',
+        action='store_true',
+        help='sale 1 si algun simbolo queda BLOCKED',
+    )
     options = parser.parse_args(argv)
 
     verdicts = [classify(symbol) for symbol in SYMBOLS]
     buckets = report()
     if options.json:
-        print(json.dumps({
-            'buckets': buckets,
-            'verdicts': [{'name': v.name, 'bucket': v.bucket,
-                          'inventory': list(v.inventory), 'missing': v.missing}
-                         for v in verdicts],
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    'buckets': buckets,
+                    'verdicts': [
+                        {
+                            'name': v.name,
+                            'bucket': v.bucket,
+                            'inventory': list(v.inventory),
+                            'missing': v.missing,
+                        }
+                        for v in verdicts
+                    ],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     else:
         for verdict in verdicts:
             origin, topic = verdict.inventory
@@ -195,9 +222,11 @@ def main(argv=None):
             if verdict.missing:
                 line += '  falta: ' + ', '.join(verdict.missing)
             print(line)
-        print(f'\nREADY {len(buckets[READY])} · BUILDABLE '
-              f'{len(buckets[BUILDABLE])} · BLOCKED {len(buckets[BLOCKED])} '
-              f'(alcance medido: {len(SYMBOLS)} simbolos del tramo)')
+        print(
+            f'\nREADY {len(buckets[READY])} · BUILDABLE '
+            f'{len(buckets[BUILDABLE])} · BLOCKED {len(buckets[BLOCKED])} '
+            f'(alcance medido: {len(SYMBOLS)} simbolos del tramo)'
+        )
     return 1 if options.strict and buckets[BLOCKED] else 0
 
 

@@ -27,41 +27,53 @@ propiedades de sólo lectura.
    * - ``display_certification_page`` (``related``, ``:14``)
      - propiedad — ``self.employee_id.display_certification_page``
 """
+
 from orm.model_classes import extend_model
 
 
 def resume_line_ids(self):
     """≙ ``resume_line_ids`` (``:9``)."""
-    return self.employee_id.resume_line_ids.all() if self.employee_id_id else []
+    return (
+        self.employee_id.resume_line_ids.all() if self.employee_id_id else []
+    )
 
 
 def employee_skill_ids(self):
     """≙ ``employee_skill_ids`` (``:10-11``)."""
-    return self.employee_id.employee_skill_ids.all() if self.employee_id_id else []
+    return (
+        self.employee_id.employee_skill_ids.all()
+        if self.employee_id_id
+        else []
+    )
 
 
 def current_employee_skill_ids(self):
     """≙ ``current_employee_skill_ids`` (``:12``)."""
-    return self.employee_id.current_employee_skill_ids if self.employee_id_id else []
+    return (
+        self.employee_id.current_employee_skill_ids
+        if self.employee_id_id
+        else []
+    )
 
 
 def certification_ids(self):
     """≙ ``certification_ids`` (``:13``)."""
-    return (self.employee_id.certification_ids
-            if self.employee_id_id else [])
+    return self.employee_id.certification_ids if self.employee_id_id else []
 
 
 def display_certification_page(self):
     """≙ ``display_certification_page`` (``:14``)."""
-    return bool(self.employee_id_id
-                and self.employee_id.display_certification_page)
+    return bool(
+        self.employee_id_id and self.employee_id.display_certification_page
+    )
 
 
 def apply_hr_skills_hr_employee_public_extensions():
     """Cuelga sobre ``hr.employee.public`` lo que ``hr_skills`` le añade —
     ≙ ``_inherit``."""
     extend_model(
-        'hr', 'HrEmployeePublic',
+        'hr',
+        'HrEmployeePublic',
         propiedades={
             'resume_line_ids': resume_line_ids,
             'employee_skill_ids': employee_skill_ids,

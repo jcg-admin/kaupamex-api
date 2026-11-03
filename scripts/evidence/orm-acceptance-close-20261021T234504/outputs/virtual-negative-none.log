@@ -1,0 +1,29 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control: cache identity only; pk and persistence untouched
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___________ test_unsaved_context_switch_preserves_each_cached_value ____________
+tests/unit/orm/test_res_groups_compute_contract.py:101: in test_unsaved_context_switch_preserves_each_cached_value
+    assert group.full_name == 'Explicit normal-context label'
+E   AssertionError: assert 'Admin / Operations' == 'Explicit nor...context label'
+E     - Explicit normal-context label
+E     + Admin / Operations
+____________ test_unsaved_instances_have_separate_contextual_values ____________
+tests/unit/orm/test_res_groups_compute_contract.py:115: in test_unsaved_instances_have_separate_contextual_values
+    assert len(cache) == 2
+E   assert 0 == 2
+E    +  where 0 = len({})
+=============================== warnings summary ===============================
+tests/unit/orm/test_res_groups_compute_contract.py::test_unsaved_context_switch_preserves_each_cached_value
+  /workspace/kaupamex-api/src/orm/fields.py:4159: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_res_groups_compute_contract.py::test_unsaved_context_switch_preserves_each_cached_value
+  /workspace/kaupamex-api/src/orm/fields.py:4159: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_unsaved_context_switch_preserves_each_cached_value
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_unsaved_instances_have_separate_contextual_values
+2 failed, 2 warnings in 0.16s

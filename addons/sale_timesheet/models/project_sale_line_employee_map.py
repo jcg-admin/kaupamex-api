@@ -147,12 +147,12 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
     _description = 'Project Sales line, employee mapping'
 
     project = fields.Many2one(
-        Project, on_delete=models.CASCADE, db_index=True,
+        Project, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='sale_line_employee_ids', verbose_name='Proyecto',
         help_text='Odoo project_id (required, index).',
     )
     employee = fields.Many2one(
-        HrEmployee, on_delete=models.CASCADE,
+        HrEmployee, null=False, on_delete=models.CASCADE,
         related_name='project_sale_line_maps', verbose_name='Empleado',
         help_text='Odoo employee_id (required).',
     )

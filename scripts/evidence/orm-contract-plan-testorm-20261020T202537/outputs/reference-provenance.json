@@ -1,0 +1,469 @@
+{
+  "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "module_tree": "4364e0104ab7421751822bc8c6f6bbad96ea298e",
+  "recursive_tree_truncated": false,
+  "resolver": "scripts/reference_roots.py::tree(odoo19c), ODOO_TOOLS per process only",
+  "root": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/test_orm",
+  "files": [
+    {
+      "path": "__init__.py",
+      "git_blob": "0650744f6bc69b9f0b865e8c7174c813a5f5995e",
+      "sha256": "5fd10918e1361ad65b4b41bcd8fb525e659267f47c8c4334ae52530e58908e9e",
+      "bytes": 21,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/0650744f6bc69b9f0b865e8c7174c813a5f5995e"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "__manifest__.py",
+      "git_blob": "ee63bc9be35eefdd7e40d8f63f9cb088150e8a88",
+      "sha256": "5573cfe7820bcae8bf6365a5d57b78a5675e065d6ee98c18e5b3e8941ddd6a5e",
+      "bytes": 602,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/ee63bc9be35eefdd7e40d8f63f9cb088150e8a88"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "data/test_orm_data.xml",
+      "git_blob": "f493be78ae51b4528b6c30a3701eb54066467cab",
+      "sha256": "763a2a82d8d4af259782e16bda550c0c1ffba920bc033490d5722a0d324786e8",
+      "bytes": 2044,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/f493be78ae51b4528b6c30a3701eb54066467cab"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "i18n/fr.po",
+      "git_blob": "1cfa9777070ef90d3351663baff2c7bcc999fc67",
+      "sha256": "ea87524dfc1029545f2e57dee3c5f3306656ac53486ea0ef8f55b3fd8f313b2d",
+      "bytes": 671,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/1cfa9777070ef90d3351663baff2c7bcc999fc67"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "i18n/test_orm.pot",
+      "git_blob": "9534d8d41aa644c81e748ee43951f265b09eb75c",
+      "sha256": "f0e98d8f5da167afc3709b6d99c5558f72ec6b23f0880023bbde2160ff69c4e9",
+      "bytes": 613,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/9534d8d41aa644c81e748ee43951f265b09eb75c"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "models/__init__.py",
+      "git_blob": "89ec6b3eb089c25e7affcf750f15f29110c90a01",
+      "sha256": "8076fe28f4c6b27c4e9bc237b094b7cbc2f1bc8d2b0b38520cd01b859133449f",
+      "bytes": 75,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/89ec6b3eb089c25e7affcf750f15f29110c90a01"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "models/test_orm.py",
+      "git_blob": "f1ea489eba590ae550d483ef30a533fc7d968983",
+      "sha256": "5cb16e502ede06f8027a65205ec62fcbffacc36af610eb92c9ab972aef167d2a",
+      "bytes": 90782,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/f1ea489eba590ae550d483ef30a533fc7d968983"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "models/test_performance.py",
+      "git_blob": "06f6494c4906334b40a4db02125c43ddea579757",
+      "sha256": "15b1dd468f4f1c5a91e0cfc0eeed83730b606a7067bfc004fae6f41516906de3",
+      "bytes": 3334,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/06f6494c4906334b40a4db02125c43ddea579757"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "models/test_unity_read.py",
+      "git_blob": "034849060cc123396e790e70e612cfbe0f248ec3",
+      "sha256": "c0196be404affd4e93ae679c560cef2dde6cb5bc46a9ae96fb29a310f098f886",
+      "bytes": 3012,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/034849060cc123396e790e70e612cfbe0f248ec3"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "security/ir.model.access.csv",
+      "git_blob": "0406eeae2dc21f704f1ce8426149e3a9ff37b20a",
+      "sha256": "8422b5c222f17eb0c384de1f2b9370ddc7748d3c40df5c4cb65e306a1e49a053",
+      "bytes": 18811,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/0406eeae2dc21f704f1ce8426149e3a9ff37b20a"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "security/test_orm_security.xml",
+      "git_blob": "e17098aed37e2b6fb3009fcabe75635294bbb6cb",
+      "sha256": "8779df77a03fd530733769e4f86db622c376ffe6bc56164ea038e0acc4d79ef6",
+      "bytes": 536,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/e17098aed37e2b6fb3009fcabe75635294bbb6cb"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "static/tests/tours/constraint.js",
+      "git_blob": "cbd2395df8975ccf0fd136887d829372dd20fc68",
+      "sha256": "f394c6075e0dd2605f8a7e42d617a32658ab6d253cb2cd6ae6d761d1a1ffd5d9",
+      "bytes": 1273,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/cbd2395df8975ccf0fd136887d829372dd20fc68"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "static/tests/tours/x2many.js",
+      "git_blob": "2d6eee3a963f95d95b246f7264793f97ec83fdee",
+      "sha256": "1a4eae65484ffacc9bcff2d0749489e6f870b99d83b2c02d1790379088439cb6",
+      "bytes": 21526,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/2d6eee3a963f95d95b246f7264793f97ec83fdee"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/__init__.py",
+      "git_blob": "eca1d7695dcad693c4d88dd7b8c9e1555b3d25e0",
+      "sha256": "18517f5d5279eb48b376a78e4389d3e2aa0bb9fd1a6840ceb8470e23aafccdb1",
+      "bytes": 480,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/eca1d7695dcad693c4d88dd7b8c9e1555b3d25e0"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_attributes.py",
+      "git_blob": "63c4542276ccabc90e0c41a3a12eaa8feca1a51f",
+      "sha256": "eac9bef7872c72a1250618b6235019d213acf6254d1bae64f2fd7955ac49c91f",
+      "bytes": 302,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/63c4542276ccabc90e0c41a3a12eaa8feca1a51f"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_autovacuum.py",
+      "git_blob": "354f8f24f990ba5a42a95d13678a076215a2c4d7",
+      "sha256": "14243b9ab337b29a3772c834dd8a6e47b200b2d3f816b7455729f0a6c82ac1d0",
+      "bytes": 576,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/354f8f24f990ba5a42a95d13678a076215a2c4d7"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_company_checks.py",
+      "git_blob": "0de0740e89b746afa7c6357f341ff21d01e2b9ac",
+      "sha256": "8ca7697a8a8d74f30a866b28a6f62d3edacef22df16bfbe945928009c6747812",
+      "bytes": 11409,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/0de0740e89b746afa7c6357f341ff21d01e2b9ac"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_domain.py",
+      "git_blob": "1711fc140b4f2569c0ac86683109d01d8103fe31",
+      "sha256": "254cd1a27805498396c79aa0f18dfac2caa6f9c00c2f3e3f5faedf4e4ed39db0",
+      "bytes": 47361,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/1711fc140b4f2569c0ac86683109d01d8103fe31"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_fields.py",
+      "git_blob": "ff54eeed69dad4dfd40874bf8ed7a83c61e3a4fa",
+      "sha256": "a97110371e961bec55a796e8a7f6247860e9bc1be0e388bdab3c100402d6ffd3",
+      "bytes": 239996,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/ff54eeed69dad4dfd40874bf8ed7a83c61e3a4fa"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_index_method.py",
+      "git_blob": "3f9bb4313fd50fc62d2590fa46190ed553893c39",
+      "sha256": "f408f8390702f308d08943081d5bc3f7deb33cc492d697ebdf4013d7bfe3ee47",
+      "bytes": 1822,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/3f9bb4313fd50fc62d2590fa46190ed553893c39"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_indexed_translation.py",
+      "git_blob": "c11656963d7fd64015db85cf1a192e63023af935",
+      "sha256": "e7720fd01522b9632c990e586f227207c6ce08df75651dce2e0a9aae7963bce7",
+      "bytes": 4616,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/c11656963d7fd64015db85cf1a192e63023af935"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_json_field.py",
+      "git_blob": "15164110fe207477fd1484e43beceaabef5c626d",
+      "sha256": "b419b54f942b592106c586035903754bb6e7fa3f27f2445b7c3d47d27a056c76",
+      "bytes": 1419,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/15164110fe207477fd1484e43beceaabef5c626d"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_many2many.py",
+      "git_blob": "5f0be57c476f74619fa919bc81e3bee0335e557a",
+      "sha256": "29800a672cea1cc198d02c3a75bc27d675208f0eed8eeadb80d36d5097f3f048",
+      "bytes": 4031,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/5f0be57c476f74619fa919bc81e3bee0335e557a"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_onchange.py",
+      "git_blob": "4256c88325b0364167ef4417e0e2b4cb951b8688",
+      "sha256": "41d0f78b9f60e2d9e8bd4b4c56f91ce2b0e6188d89e9f8ed8a8bc02c074cb7e8",
+      "bytes": 54820,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/4256c88325b0364167ef4417e0e2b4cb951b8688"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_one2many.py",
+      "git_blob": "3922a458421f7c470ecbc51f869285d4452bccb6",
+      "sha256": "4cffa7e5d2e452cb3e14be6da3c0a2ed3324126438c9e057841ddf2e074ddf67",
+      "bytes": 22201,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/3922a458421f7c470ecbc51f869285d4452bccb6"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_performance.py",
+      "git_blob": "74f628116a3fb15e25762f77ec6ba9cea5f5028c",
+      "sha256": "ca0d9abd93b3d812df62e6d18623442aca0ce1cb176c724ddbe3787e95af4503",
+      "bytes": 32960,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/74f628116a3fb15e25762f77ec6ba9cea5f5028c"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_properties.py",
+      "git_blob": "3263ac3b788d92f1ebe064360ed373cb40dd4d2e",
+      "sha256": "890f0844ed3fbc8e4fefbb3df24a73634bbdaa219f5d96e87a9bfda9838b98d1",
+      "bytes": 147596,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/3263ac3b788d92f1ebe064360ed373cb40dd4d2e"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_qweb_float.py",
+      "git_blob": "c65de58ba6134d78b1709f97862c10e09f7e7799",
+      "sha256": "276136acd7573df75918a0807e11254ade6b2e9d7c3e610e3aebe0f4ec9e2834",
+      "bytes": 2034,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/c65de58ba6134d78b1709f97862c10e09f7e7799"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_related_translation.py",
+      "git_blob": "ad544e63e1b8c5b5eaeee5b188d31ee6d9509d57",
+      "sha256": "f40995e9def222eb51549ec38c4186a3c7c54df20992e559063f989d227ac83d",
+      "bytes": 26290,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/ad544e63e1b8c5b5eaeee5b188d31ee6d9509d57"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_schema.py",
+      "git_blob": "d8c2b37c78abd819c24fe29016fc04839ee983bb",
+      "sha256": "91552d6b77cc3563d3553d2c55d35c57723acfa55ab413ba367cf432d2299462",
+      "bytes": 31503,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/d8c2b37c78abd819c24fe29016fc04839ee983bb"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_search.py",
+      "git_blob": "a98a34d4d9365c87673f2205b668dc7cbafbc04e",
+      "sha256": "58fde001df7137f7f9dbf77526ed76e7fe2adc45919a80f905bb0aef42821e22",
+      "bytes": 88158,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/a98a34d4d9365c87673f2205b668dc7cbafbc04e"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_sort.py",
+      "git_blob": "1d5d8bfacf942d18f5a763e03343d5b25fa08675",
+      "sha256": "3333629b6432899ba8f5a3a02bc5f96b2112129a45cabde8c64d166499acdbd0",
+      "bytes": 7850,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/1d5d8bfacf942d18f5a763e03343d5b25fa08675"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_timeit.py",
+      "git_blob": "dcbdf98eaa357195c17c0ff8c131c554c80f49c1",
+      "sha256": "cfbc5d845f1980f8a2a23017d36e654277ce943a1131c7d05fbbc430c2eae908",
+      "bytes": 8703,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/dcbdf98eaa357195c17c0ff8c131c554c80f49c1"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_ui.py",
+      "git_blob": "008e1b1dbe8e78739873b623c973472de5f00d7e",
+      "sha256": "d5f664b723d5b549c0d5890d3210d3df3f1000bebe1e6c5b22bb515dc94bf28d",
+      "bytes": 1851,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/008e1b1dbe8e78739873b623c973472de5f00d7e"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_unity_read.py",
+      "git_blob": "d067f595a980ef963c2089493a105788c24e9696",
+      "sha256": "5a8d43d621b7301dfb50e7abb55827848d20011247dd69d502896236c8b99939",
+      "bytes": 32891,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/d067f595a980ef963c2089493a105788c24e9696"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_views.py",
+      "git_blob": "5807cbf37be116c3e193aa02c6149aa6eb72c23e",
+      "sha256": "0edb2d8063618a9804c855ecfce1fe01b61862770e0ff43fff39b8c0c7e3c874",
+      "bytes": 13295,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/5807cbf37be116c3e193aa02c6149aa6eb72c23e"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "tests/test_web_save.py",
+      "git_blob": "c47f6e17b47d965713760bac9c60aa67543932ba",
+      "sha256": "9c72397371f83fbb7eb74ec77e851968cc72c453b04795fe179b38df7fb2336f",
+      "bytes": 4166,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/c47f6e17b47d965713760bac9c60aa67543932ba"
+      ],
+      "exit_code": 0
+    },
+    {
+      "path": "views/test_orm_views.xml",
+      "git_blob": "d9873f8b5a23267d6ef88b246b62b3b5568a2ff9",
+      "sha256": "9f737695ff9a7e7f78e951962b41db4eb4f83a2c700c267149294b930d08db8d",
+      "bytes": 23573,
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/git/blobs/d9873f8b5a23267d6ef88b246b62b3b5568a2ff9"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "file_count": 38,
+  "test_files": 23,
+  "conformance": "not_verified",
+  "tree_derivation": "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/core-and-overlay-verification.json:core_addons19, pinned ref contents response module tree4364e0104ab7421751822bc8c6f6bbad96ea298e"
+}

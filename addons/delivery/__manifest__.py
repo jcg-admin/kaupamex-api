@@ -17,11 +17,11 @@
     # La arista hacia `authz` es el gate de capacidad, no dependencia de
     # datos — no se declara (ver lote 2).
     'depends': [
-        'base',     # ResCompany, ResPartner, ResCurrency
+        'base',  # ResCompany, ResPartner, ResCurrency
         'product',  # Product — el flete se factura como un producto de servicio
-        'sale',     # SaleOrder — el destinatario de la línea de flete
+        'sale',  # SaleOrder — el destinatario de la línea de flete
         'payment',  # el cobro del envío junto con el pedido
-        'mail',     # el aviso de expedición al comprador
+        'mail',  # el aviso de expedición al comprador
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

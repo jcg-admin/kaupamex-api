@@ -1,0 +1,204 @@
+[
+  {
+    "repository": "kaupamex-api",
+    "present": true,
+    "root": {
+      "exit_code": 0,
+      "output": "/workspace/kaupamex-api"
+    },
+    "branch": {
+      "exit_code": 0,
+      "output": "feature/codex-workspace-bootstrap"
+    },
+    "head": {
+      "exit_code": 0,
+      "output": "ebc91835b4e2a200cd8cab72e4a8bf2eefb45a9b"
+    },
+    "status": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "worktrees": {
+      "exit_code": 0,
+      "output": "worktree /workspace/kaupamex-api\nHEAD ebc91835b4e2a200cd8cab72e4a8bf2eefb45a9b\nbranch refs/heads/feature/codex-workspace-bootstrap"
+    },
+    "stashes": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "unpublished": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "operations": []
+  },
+  {
+    "repository": "kaupamex-docs",
+    "present": true,
+    "root": {
+      "exit_code": 0,
+      "output": "/workspace/kaupamex-docs"
+    },
+    "branch": {
+      "exit_code": 0,
+      "output": "feature/codex-workspace-bootstrap"
+    },
+    "head": {
+      "exit_code": 0,
+      "output": "080b2c4d0c79b16be26f073684c7df3e1eaf88a4"
+    },
+    "status": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "worktrees": {
+      "exit_code": 0,
+      "output": "worktree /workspace/kaupamex-docs\nHEAD 080b2c4d0c79b16be26f073684c7df3e1eaf88a4\nbranch refs/heads/feature/codex-workspace-bootstrap"
+    },
+    "stashes": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "unpublished": {
+      "exit_code": 128,
+      "output": ""
+    },
+    "operations": []
+  },
+  {
+    "repository": "kaupamex-db",
+    "present": true,
+    "root": {
+      "exit_code": 0,
+      "output": "/workspace/kaupamex-db"
+    },
+    "branch": {
+      "exit_code": 0,
+      "output": "feature/codex-workspace-bootstrap"
+    },
+    "head": {
+      "exit_code": 0,
+      "output": "50a4aca4b0c2afe71610d6d5088d1873596020ac"
+    },
+    "status": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "worktrees": {
+      "exit_code": 0,
+      "output": "worktree /workspace/kaupamex-db\nHEAD 50a4aca4b0c2afe71610d6d5088d1873596020ac\nbranch refs/heads/feature/codex-workspace-bootstrap"
+    },
+    "stashes": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "unpublished": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "operations": []
+  },
+  {
+    "repository": "kaupamex-server",
+    "present": true,
+    "root": {
+      "exit_code": 0,
+      "output": "/workspace/kaupamex-server"
+    },
+    "branch": {
+      "exit_code": 0,
+      "output": "feature/codex-workspace-bootstrap"
+    },
+    "head": {
+      "exit_code": 0,
+      "output": "f5008aa5addd796aaf1cfe35694209668944fb2e"
+    },
+    "status": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "worktrees": {
+      "exit_code": 0,
+      "output": "worktree /workspace/kaupamex-server\nHEAD f5008aa5addd796aaf1cfe35694209668944fb2e\nbranch refs/heads/feature/codex-workspace-bootstrap"
+    },
+    "stashes": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "unpublished": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "operations": []
+  },
+  {
+    "repository": "kaupamex-ui",
+    "present": true,
+    "root": {
+      "exit_code": 0,
+      "output": "/workspace/kaupamex-ui"
+    },
+    "branch": {
+      "exit_code": 0,
+      "output": "feature/codex-workspace-bootstrap"
+    },
+    "head": {
+      "exit_code": 0,
+      "output": "945ea00b6944cd664f1e950c32b7284d753cb9eb"
+    },
+    "status": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "worktrees": {
+      "exit_code": 0,
+      "output": "worktree /workspace/kaupamex-ui\nHEAD 945ea00b6944cd664f1e950c32b7284d753cb9eb\nbranch refs/heads/feature/codex-workspace-bootstrap"
+    },
+    "stashes": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "unpublished": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "operations": []
+  },
+  {
+    "repository": "thyrox",
+    "present": true,
+    "root": {
+      "exit_code": 0,
+      "output": "/workspace/thyrox"
+    },
+    "branch": {
+      "exit_code": 0,
+      "output": "feature/codex-workspace-bootstrap"
+    },
+    "head": {
+      "exit_code": 0,
+      "output": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+    },
+    "status": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "worktrees": {
+      "exit_code": 0,
+      "output": "worktree /workspace/thyrox\nHEAD 9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f\nbranch refs/heads/feature/codex-workspace-bootstrap"
+    },
+    "stashes": {
+      "exit_code": 0,
+      "output": ""
+    },
+    "unpublished": {
+      "exit_code": 128,
+      "output": ""
+    },
+    "operations": []
+  },
+  {
+    "repository": "odoo-tools",
+    "present": false
+  }
+]

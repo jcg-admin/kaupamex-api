@@ -97,7 +97,8 @@ Porte símbolo por símbolo — 33 símbolos: 21 portados, 12 bloqueados
      - BLOQUEADO por ``account_edi_ubl_cii`` — importa el XML entrante con
        ``_get_edi_builder`` / el flujo de importación UBL de ese addon, que
        **se está portando en otro pase y no puede tocarse desde aquí**.
-       Bloqueadores de segundo orden medidos: ``AccountJournal.is_self_billing``
+       Bloqueadores de segundo orden medidos:
+       ``AccountJournal.is_self_billing``
        y ``AccountMove.is_sale_document`` → 0 hits en este árbol.
    * - ``_peppol_get_new_documents`` (``:259-318``)
      - BLOQUEADO — orquesta ``_peppol_import_invoice`` (arriba) y depende de
@@ -185,6 +186,7 @@ Divergencias declaradas
    ``dumps``/``loads`` con ``salt`` propio y ``max_age`` de 30 días, que es la
    misma expiración que la fuente declara (``expiration_hours=30 * 24``).
 """
+
 import logging
 from datetime import timedelta
 
@@ -226,13 +228,16 @@ def _extend_selection_choices(model, field_name, extra_choices):
     hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
     ``selection_add``, que es lo que la tarea **#205** construyó.
 
-    La política es la medida en ``odoo19c: account_peppol/models/account_edi_proxy_user.py``:
+    La política es la medida en ``odoo19c:
+    account_peppol/models/account_edi_proxy_user.py``:
     ``{'peppol': 'cascade'}``. Sin ella los registros que
     guardaban el valor quedaban huérfanos al borrarlo.
     """
     return extend_selection_choices(
-        model, field_name, extra_choices,
-        ondelete={'peppol': 'cascade'})
+        model, field_name, extra_choices, ondelete={'peppol': 'cascade'}
+    )
+
+
 def _merge_with_previous(new, previous):
     """``combine`` para hooks que aportan claves a un dict — ≙
     ``urls = super()...; urls['peppol'] = ...``."""
@@ -242,6 +247,7 @@ def _merge_with_previous(new, previous):
 # -------------------------------------------------------------------------
 # MÉTODOS DE APOYO
 # -------------------------------------------------------------------------
+
 
 def _get_peppol_proxy_types(cls):
     """≙ ``_get_peppol_proxy_types`` (``odoo19c: :29-30``) — los tipos de
@@ -266,7 +272,8 @@ def _get_proxy_urls(self):
 def _get_peppol_proxy_endpoint(self, endpoint, proxy_type=None):
     """≙ ``_get_peppol_proxy_endpoint`` (``odoo19c: :40-46``).
 
-    El ``endpoint`` incluye el número de versión, p. ej. ``2/participant_status``.
+    El ``endpoint`` incluye el número de versión, p. ej.
+    ``2/participant_status``.
     """
     if not proxy_type:
         proxy_type = self.proxy_type
@@ -289,6 +296,7 @@ def _get_can_send_domain(cls):
 # LA LLAMADA AL PROXY
 # -------------------------------------------------------------------------
 
+
 def _call_peppol_proxy(self, endpoint, params=None):
     """≙ ``_call_peppol_proxy`` (``odoo19c: :53-101``) — la llamada firmada,
     con el tratamiento de error que la fuente define.
@@ -299,11 +307,15 @@ def _call_peppol_proxy(self, endpoint, params=None):
     peppol_proxy_types = type(self)._get_peppol_proxy_types()
     if self.proxy_type not in peppol_proxy_types:
         etiquetas = dict(type(self)._meta.get_field('proxy_type').choices)
-        proxy_types = [etiquetas.get(tipo, tipo) for tipo in peppol_proxy_types]
-        raise UserError(_(
-            'El usuario EDI debe ser de alguno de estos tipos: %s',
-            ' o '.join(proxy_types),
-        ))
+        proxy_types = [
+            etiquetas.get(tipo, tipo) for tipo in peppol_proxy_types
+        ]
+        raise UserError(
+            _(
+                'El usuario EDI debe ser de alguno de estos tipos: %s',
+                ' o '.join(proxy_types),
+            )
+        )
 
     token_out_of_sync_error_message = _(
         'Falló la conexión con el Access Point de Peppol. Puede ocurrir si '
@@ -317,7 +329,9 @@ def _call_peppol_proxy(self, endpoint, params=None):
 
     params = params or {}
     try:
-        response = self._make_request(f'{self._get_server_url()}{endpoint}', params=params)
+        response = self._make_request(
+            f'{self._get_server_url()}{endpoint}', params=params
+        )
     except AccountEdiProxyError as e:
         if (
             e.code == 'no_such_user'
@@ -328,13 +342,18 @@ def _call_peppol_proxy(self, endpoint, params=None):
         ):
             self.company_id.account_peppol_proxy_state = 'not_registered'
             self.company_id.account_peppol_migration_key = ''
-            self.company_id.save(update_fields=[
-                'account_peppol_proxy_state', 'account_peppol_migration_key',
-            ])
-            raise UserError(_(
-                'No encontramos un usuario con esta información en nuestro '
-                'servidor. Verifique sus datos.'
-            ))
+            self.company_id.save(
+                update_fields=[
+                    'account_peppol_proxy_state',
+                    'account_peppol_migration_key',
+                ]
+            )
+            raise UserError(
+                _(
+                    'No encontramos un usuario con esta información en nuestro'
+                    ' servidor. Verifique sus datos.'
+                )
+            )
         if e.code == 'invalid_signature':
             self._mark_connection_out_of_sync()
             raise UserError(token_out_of_sync_error_message)
@@ -349,6 +368,7 @@ def _call_peppol_proxy(self, endpoint, params=None):
 # -------------------------------------------------------------------------
 # TOKEN DESINCRONIZADO
 # -------------------------------------------------------------------------
+
 
 def _mark_connection_out_of_sync(self):
     """≙ ``_mark_connection_out_of_sync`` (``odoo19c: :103-124``)."""
@@ -367,14 +387,18 @@ def _mark_connection_out_of_sync(self):
     except AccountEdiProxyError as e:
         if e.code == 'connection_superseded':
             self._peppol_out_of_sync_disconnect_this_database()
-            raise UserError(_(
-                'Otra base de datos reemplazó esta conexión. Regístrese de nuevo.'
-            ))
+            raise UserError(
+                _(
+                    'Otra base de datos reemplazó esta conexión. Regístrese de'
+                    ' nuevo.'
+                )
+            )
         raise
 
 
 def _peppol_out_of_sync_reconnect_this_database(self):
-    """≙ ``_peppol_out_of_sync_reconnect_this_database`` (``odoo19c: :126-152``).
+    """
+    ≙ ``_peppol_out_of_sync_reconnect_this_database`` (``odoo19c: :126-152``).
 
     Sin el ``_trigger()`` final del cron de estado del participante
     (divergencia 5): el identificador externo vive en ``data/cron.xml``.
@@ -394,7 +418,8 @@ def _peppol_out_of_sync_reconnect_this_database(self):
             response['error'].get('code', 'unknown_error'),
             response['error'].get(
                 'message',
-                'Ocurrió un error desconocido al autenticarse con el servidor IAP.',
+                'Ocurrió un error desconocido al autenticarse con el servidor'
+                ' IAP.',
             ),
         )
     self.refresh_token = response['refresh_token']
@@ -403,7 +428,9 @@ def _peppol_out_of_sync_reconnect_this_database(self):
 
 
 def _peppol_out_of_sync_disconnect_this_database(self):
-    """≙ ``_peppol_out_of_sync_disconnect_this_database`` (``odoo19c: :154-160``)."""
+    """
+    ≙ ``_peppol_out_of_sync_disconnect_this_database`` (``odoo19c: :154-160``).
+    """
     assert self.is_token_out_of_sync
     self.company_id._reset_peppol_configuration(soft=True)
     self.delete()
@@ -412,6 +439,7 @@ def _peppol_out_of_sync_disconnect_this_database(self):
 # -------------------------------------------------------------------------
 # CRONS
 # -------------------------------------------------------------------------
+
 
 def _cron_peppol_get_new_documents(cls):
     """≙ ``_cron_peppol_get_new_documents`` (``odoo19c: :169-171``).
@@ -460,6 +488,7 @@ def _cron_peppol_webhook_keepalive(cls):
 # IDENTIFICACIÓN
 # -------------------------------------------------------------------------
 
+
 def _get_proxy_identification(cls, company, proxy_type):
     """≙ ``_get_proxy_identification`` (``odoo19c: :193-199``).
 
@@ -474,17 +503,20 @@ def _get_proxy_identification(cls, company, proxy_type):
     (``addons/account_edi_proxy_client/models/account_edi_proxy_user.py:201``).
     """
     if proxy_type == 'peppol':
-        raise UserError(_(
-            'Complete el código EAS y el identificador de participante. '
-            '(Bloqueado por account_edi_ubl_cii: los campos peppol_eas y '
-            'peppol_endpoint los aporta ese addon.)'
-        ))
+        raise UserError(
+            _(
+                'Complete el código EAS y el identificador de participante. '
+                '(Bloqueado por account_edi_ubl_cii: los campos peppol_eas y '
+                'peppol_endpoint los aporta ese addon.)'
+            )
+        )
     return None
 
 
 # -------------------------------------------------------------------------
 # DOCUMENTOS ENTRANTES — la parte que no depende de la importación UBL
 # -------------------------------------------------------------------------
+
 
 def _peppol_get_filetype(self, content):
     """≙ ``_peppol_get_filetype`` (``odoo19c: :320-321``) — verbatim."""
@@ -503,6 +535,7 @@ def _peppol_get_decoded_document(self, content):
 # -------------------------------------------------------------------------
 # ESTADO DEL PARTICIPANTE
 # -------------------------------------------------------------------------
+
 
 def _peppol_process_participant_status(self, proxy_user):
     """≙ ``_peppol_process_participant_status`` (``odoo19c: :417-433``).
@@ -528,8 +561,10 @@ def _peppol_process_participant_status(self, proxy_user):
         self.company_id.save(update_fields=['account_peppol_proxy_state'])
     else:
         _logger.warning(
-            "Estado Peppol desconocido '%s' para el usuario de proxy EDI id=%s",
-            proxy_user.get('peppol_state'), self.pk,
+            "Estado Peppol desconocido '%s' para el usuario de proxy EDI"
+            " id=%s",
+            proxy_user.get('peppol_state'),
+            self.pk,
         )
 
 
@@ -552,13 +587,19 @@ def _peppol_get_participant_status(self):
             self.active = False
             self.save(update_fields=['active'])
         else:
-            _logger.error('Error al actualizar el estado del participante Peppol: %s', e)
+            _logger.error(
+                'Error al actualizar el estado del participante Peppol: %s', e
+            )
         return
 
     if 'error' in proxy_user:
-        error_message = (proxy_user['error'].get('message')
-                         or proxy_user['error'].get('data', {}).get('message'))
-        _logger.error('Error al actualizar el estado del participante Peppol: %s', error_message)
+        error_message = proxy_user['error'].get('message') or proxy_user[
+            'error'
+        ].get('data', {}).get('message')
+        _logger.error(
+            'Error al actualizar el estado del participante Peppol: %s',
+            error_message,
+        )
         return
 
     self._peppol_process_participant_status(proxy_user)
@@ -567,6 +608,7 @@ def _peppol_get_participant_status(self):
 # -------------------------------------------------------------------------
 # ALTA Y BAJA DEL PARTICIPANTE
 # -------------------------------------------------------------------------
+
 
 def _peppol_register_sender_as_receiver(self):
     """≙ ``_peppol_register_sender_as_receiver`` (``odoo19c: :474-505``).
@@ -578,27 +620,43 @@ def _peppol_register_sender_as_receiver(self):
     company = self.company_id
 
     if company.account_peppol_proxy_state != 'sender':
-        etiquetas = dict(type(company)._meta.get_field(
-            'account_peppol_proxy_state',
-        ).choices)
-        raise UserError(_(
-            'No se puede registrar un usuario con una solicitud %s',
-            etiquetas.get(company.account_peppol_proxy_state,
-                          company.account_peppol_proxy_state),
-        ))
+        etiquetas = dict(
+            type(company)
+            ._meta.get_field(
+                'account_peppol_proxy_state',
+            )
+            .choices
+        )
+        raise UserError(
+            _(
+                'No se puede registrar un usuario con una solicitud %s',
+                etiquetas.get(
+                    company.account_peppol_proxy_state,
+                    company.account_peppol_proxy_state,
+                ),
+            )
+        )
 
-    edi_identification = type(self)._get_proxy_identification(company, 'peppol')
+    edi_identification = type(self)._get_proxy_identification(
+        company, 'peppol'
+    )
     peppol_info = company._get_company_info_on_peppol(edi_identification)
     if peppol_info['is_on_peppol']:
-        company.peppol_external_provider = peppol_info['external_provider'] or ''
+        company.peppol_external_provider = (
+            peppol_info['external_provider'] or ''
+        )
         company.save(update_fields=['peppol_external_provider'])
         raise UserError(peppol_info['error_msg'])
 
     self._call_peppol_proxy(
-        endpoint=self._get_peppol_proxy_endpoint('1/register_sender_as_receiver'),
+        endpoint=self._get_peppol_proxy_endpoint(
+            '1/register_sender_as_receiver'
+        ),
         params={
             'migration_key': company.account_peppol_migration_key,
-            'supported_identifiers': list(company._peppol_supported_document_types()),
+            'supported_identifiers': list(
+                company._peppol_supported_document_types()
+            ),
         },
     )
     # Una vez enviada la clave de migración ya no hace falta guardarla, pero el
@@ -606,11 +664,13 @@ def _peppol_register_sender_as_receiver(self):
     company.account_peppol_migration_key = ''
     company.account_peppol_proxy_state = 'smp_registration'
     company.peppol_external_provider = ''
-    company.save(update_fields=[
-        'account_peppol_migration_key',
-        'account_peppol_proxy_state',
-        'peppol_external_provider',
-    ])
+    company.save(
+        update_fields=[
+            'account_peppol_migration_key',
+            'account_peppol_proxy_state',
+            'peppol_external_provider',
+        ]
+    )
 
 
 def _peppol_deregister_participant(self):
@@ -638,7 +698,9 @@ def _peppol_deregister_participant(self):
         type(self)._cron_peppol_get_message_status()
         type(self)._cron_peppol_get_new_documents()
         self._call_peppol_proxy(
-            endpoint=self._get_peppol_proxy_endpoint('1/cancel_peppol_registration'),
+            endpoint=self._get_peppol_proxy_endpoint(
+                '1/cancel_peppol_registration'
+            ),
         )
 
     self.company_id._reset_peppol_configuration()
@@ -661,12 +723,15 @@ def _peppol_deregister_participant_to_sender(self):
 
 def _peppol_get_services(self):
     """≙ ``_peppol_get_services`` (``odoo19c: :580-584``)."""
-    return self._call_peppol_proxy(self._get_peppol_proxy_endpoint('2/get_services'))
+    return self._call_peppol_proxy(
+        self._get_peppol_proxy_endpoint('2/get_services')
+    )
 
 
 # -------------------------------------------------------------------------
 # WEBHOOK
 # -------------------------------------------------------------------------
+
 
 def _generate_webhook_token(cls, company):
     """≙ ``_generate_webhook_token`` (``odoo19c: :586-591``).
@@ -701,7 +766,9 @@ def _get_user_from_token(cls, token, url):
     if not url.startswith(endpoint):
         return None
 
-    company_model = AccountEdiProxyUser._meta.get_field('company_id').related_model
+    company_model = AccountEdiProxyUser._meta.get_field(
+        'company_id'
+    ).related_model
     company = company_model.objects.filter(pk=identifier).first()
     if company is not None and company.account_peppol_edi_user is not None:
         return company.account_peppol_edi_user
@@ -728,15 +795,20 @@ def apply_account_peppol_account_edi_proxy_user_extensions():
     por ``None`` que ``chain_method`` aplica por defecto.
     """
     _extend_selection_choices(
-        AccountEdiProxyUser, 'proxy_type', [('peppol', 'PEPPOL')],
+        AccountEdiProxyUser,
+        'proxy_type',
+        [('peppol', 'PEPPOL')],
     )
 
     chain_method(
-        AccountEdiProxyUser, '_get_proxy_urls',
-        _get_proxy_urls, combine=_merge_with_previous,
+        AccountEdiProxyUser,
+        '_get_proxy_urls',
+        _get_proxy_urls,
+        combine=_merge_with_previous,
     )
     chain_method(
-        AccountEdiProxyUser, '_get_proxy_identification',
+        AccountEdiProxyUser,
+        '_get_proxy_identification',
         classmethod(_get_proxy_identification),
     )
 
@@ -744,26 +816,51 @@ def apply_account_peppol_account_edi_proxy_user_extensions():
         ('_get_peppol_proxy_types', classmethod(_get_peppol_proxy_types)),
         ('_get_peppol_error_message', classmethod(_get_peppol_error_message)),
         ('_get_can_send_domain', classmethod(_get_can_send_domain)),
-        ('_cron_peppol_get_new_documents', classmethod(_cron_peppol_get_new_documents)),
-        ('_cron_peppol_get_message_status', classmethod(_cron_peppol_get_message_status)),
-        ('_cron_peppol_get_participant_status', classmethod(_cron_peppol_get_participant_status)),
-        ('_cron_peppol_webhook_keepalive', classmethod(_cron_peppol_webhook_keepalive)),
+        (
+            '_cron_peppol_get_new_documents',
+            classmethod(_cron_peppol_get_new_documents),
+        ),
+        (
+            '_cron_peppol_get_message_status',
+            classmethod(_cron_peppol_get_message_status),
+        ),
+        (
+            '_cron_peppol_get_participant_status',
+            classmethod(_cron_peppol_get_participant_status),
+        ),
+        (
+            '_cron_peppol_webhook_keepalive',
+            classmethod(_cron_peppol_webhook_keepalive),
+        ),
         ('_generate_webhook_token', classmethod(_generate_webhook_token)),
         ('_get_user_from_token', classmethod(_get_user_from_token)),
         ('_get_peppol_proxy_endpoint', _get_peppol_proxy_endpoint),
         ('_call_peppol_proxy', _call_peppol_proxy),
         ('_mark_connection_out_of_sync', _mark_connection_out_of_sync),
-        ('_peppol_out_of_sync_reconnect_this_database',
-         _peppol_out_of_sync_reconnect_this_database),
-        ('_peppol_out_of_sync_disconnect_this_database',
-         _peppol_out_of_sync_disconnect_this_database),
+        (
+            '_peppol_out_of_sync_reconnect_this_database',
+            _peppol_out_of_sync_reconnect_this_database,
+        ),
+        (
+            '_peppol_out_of_sync_disconnect_this_database',
+            _peppol_out_of_sync_disconnect_this_database,
+        ),
         ('_peppol_get_filetype', _peppol_get_filetype),
         ('_peppol_get_decoded_document', _peppol_get_decoded_document),
-        ('_peppol_process_participant_status', _peppol_process_participant_status),
+        (
+            '_peppol_process_participant_status',
+            _peppol_process_participant_status,
+        ),
         ('_peppol_get_participant_status', _peppol_get_participant_status),
-        ('_peppol_register_sender_as_receiver', _peppol_register_sender_as_receiver),
+        (
+            '_peppol_register_sender_as_receiver',
+            _peppol_register_sender_as_receiver,
+        ),
         ('_peppol_deregister_participant', _peppol_deregister_participant),
-        ('_peppol_deregister_participant_to_sender', _peppol_deregister_participant_to_sender),
+        (
+            '_peppol_deregister_participant_to_sender',
+            _peppol_deregister_participant_to_sender,
+        ),
         ('_peppol_get_services', _peppol_get_services),
         ('_peppol_reset_webhook', _peppol_reset_webhook),
     ):

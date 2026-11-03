@@ -6,6 +6,7 @@ del RFC 3986 de ``urllib.parse``: unión tipo ``base + '/' + extra``, query
 fusionada, rechazo de esquema/host ajenos, segmentos punto (también
 codificados ``%2e%2e``) y la guarda del prefijo backslash.
 """
+
 import pytest
 
 from tools.urls import _contains_dot_segments, urljoin
@@ -15,32 +16,42 @@ pytestmark = pytest.mark.unit
 
 # -- unión estricta (los ejemplos del docstring de la fuente) ----------------
 
+
 def test_joins_base_and_relative_path():
-    assert (urljoin('https://api.example.com/v1/?bar=fiz', '/users/42?bar=bob')
-            == 'https://api.example.com/v1/users/42?bar=bob')
+    assert (
+        urljoin('https://api.example.com/v1/?bar=fiz', '/users/42?bar=bob')
+        == 'https://api.example.com/v1/users/42?bar=bob'
+    )
 
 
 def test_merges_query_onto_base_path():
-    assert (urljoin('https://api.example.com/data/', '/?lang=fr')
-            == 'https://api.example.com/data/?lang=fr')
+    assert (
+        urljoin('https://api.example.com/data/', '/?lang=fr')
+        == 'https://api.example.com/data/?lang=fr'
+    )
 
 
 def test_collapses_duplicate_slashes():
     # La normalización foo//bar -> foo/bar de la fuente. (Un extra que
     # empiece con '//' no sirve aquí: urlsplit lo lee como netloc y la
     # fuente lo rechaza como host ajeno.)
-    assert (urljoin('https://example.com/a/', '/x//y')
-            == 'https://example.com/a/x/y')
+    assert (
+        urljoin('https://example.com/a/', '/x//y')
+        == 'https://example.com/a/x/y'
+    )
 
 
 def test_accepts_absolute_extra_matching_the_base():
     # Una ``extra`` absoluta se admite sólo si coincide esquema, host y
     # prefijo de path con la base.
-    assert (urljoin('https://example.com/foo', 'https://example.com/foo/bar')
-            == 'https://example.com/foo/bar')
+    assert (
+        urljoin('https://example.com/foo', 'https://example.com/foo/bar')
+        == 'https://example.com/foo/bar'
+    )
 
 
 # -- rechazo de esquema/host ajenos ------------------------------------------
+
 
 def test_rejects_foreign_scheme_or_host():
     with pytest.raises(ValueError):
@@ -58,6 +69,7 @@ def test_rejects_absolute_extra_outside_base_path():
 
 
 # -- segmentos punto ----------------------------------------------------------
+
 
 def test_rejects_dot_segments():
     with pytest.raises(ValueError):
@@ -77,6 +89,7 @@ def test_contains_dot_segments_decodes_first():
 
 # -- guarda del prefijo backslash ---------------------------------------------
 
+
 def test_strips_backslash_prefix():
     # urljoin('/', '\\example.com/') NO debe resolver absoluto a
     # '//example.com/' en un redirect de navegador — la guarda de la fuente.
@@ -91,6 +104,7 @@ def test_strips_control_character_prefix():
 
 
 # -- contrato de tipos (los asserts de la fuente) -----------------------------
+
 
 def test_non_string_inputs_are_rejected():
     with pytest.raises(AssertionError):

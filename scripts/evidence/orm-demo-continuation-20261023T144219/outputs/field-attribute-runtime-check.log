@@ -1,0 +1,7 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+OK: cada atributo responde lo que la fuente declara
+
+(alcance medido: 297 pares atributo-clase sobre 45 atributos instalados; 9 incumplidor(es), 9 en baseline)
+(fuera del alcance por construccion: One2many -> One2many — no desciende de models.Field, asi que el parche de clase no la alcanza)
+(fuera del alcance por forma: _column_type en Char, _column_type en Float — la fuente los resuelve con una property, y su valor depende de la instancia; ningun recorrido por AST puede decidirlos. Su control es de conducta: tests/unit/orm/test_field_class_attributes.py)
+(fuera del alcance por forma NUESTRA: _column_type en CharField — aqui la respuesta es una property, asi que sobre la clase devuelve el descriptor y no el valor. Mismo control de conducta)

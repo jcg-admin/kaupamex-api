@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="quotation_validity_days",
             field=models.IntegerField(
                 default=30,
-                help_text="Días entre la cotización y su vencimiento; 0 desactiva el vencimiento automático (Odoo quotation_validity_days, res_company.py:22-27).",
+                help_text=(
+                    "Días entre la cotización y su vencimiento; 0 desactiva el"
+                    " vencimiento automático (Odoo quotation_validity_days,"
+                    " res_company.py:22-27)."
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -23,7 +27,11 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(quotation_validity_days__gte=0),
                 name="sale_quotation_validity_days_check",
-                violation_error_message="No puede fijar un número negativo para la validez por defecto de la cotización. Déjelo vacío (o en 0) para desactivar el vencimiento automático de cotizaciones.",
+                violation_error_message=(
+                    "No puede fijar un número negativo para la validez por"
+                    " defecto de la cotización. Déjelo vacío (o en 0) para"
+                    " desactivar el vencimiento automático de cotizaciones."
+                ),
             ),
         ),
     ]

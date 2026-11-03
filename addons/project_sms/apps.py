@@ -10,6 +10,7 @@ en ``_EXTENSIONES``: ``project_stage.py`` y ``project_project.py`` dependen
 del modelo ``project.project.stage``, no portado por el addon local
 ``project`` (ver los docstrings de esos módulos).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -25,10 +26,12 @@ class ProjectSmsConfig(AppConfig):
     #: nombre de cada archivo espeja el de la referencia
     #: (``odoo19c: project_sms/models/*.py``).
     _EXTENSIONES = {
-        'addons.project_sms.models.project_task_type':
-            'apply_project_sms_project_task_type_extensions',
-        'addons.project_sms.models.project_task':
-            'apply_project_sms_project_task_extensions',
+        'addons.project_sms.models.project_task_type': (
+            'apply_project_sms_project_task_type_extensions'
+        ),
+        'addons.project_sms.models.project_task': (
+            'apply_project_sms_project_task_extensions'
+        ),
     }
 
     def ready(self):

@@ -1,0 +1,1736 @@
+[
+  {
+    "path": "odoo/orm/registry.py",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--jq",
+      ".sha"
+    ],
+    "exit_code": 0,
+    "git_blob": "afcf4b17300f55dc085b893c1b4c8501376403be",
+    "sha256": "b97c87be3c90948f3b28aed599863aa1b6480fcf65eeb17bc3e7c05c88092695",
+    "symbols": {
+      "Registry.new": {
+        "line": 113,
+        "end_line": 215,
+        "signature": "cls, db_name: str, *, update_module: bool=False, install_modules: Collection[str]=(), upgrade_modules: Collection[str]=(), reinit_modules: Collection[str]=(), new_db_demo: bool | None=None, models_to_check: set[str] | None=None",
+        "calls": [
+          {
+            "line": 146,
+            "call": "time.time"
+          },
+          {
+            "line": 147,
+            "call": "object.__new__"
+          },
+          {
+            "line": 148,
+            "call": "registry.init"
+          },
+          {
+            "line": 156,
+            "call": "cls.delete"
+          },
+          {
+            "line": 211,
+            "call": "bool"
+          },
+          {
+            "line": 212,
+            "call": "registry.signal_changes"
+          },
+          {
+            "line": 214,
+            "call": "_logger.info"
+          },
+          {
+            "line": 159,
+            "call": "registry.setup_signaling"
+          },
+          {
+            "line": 175,
+            "call": "ExitStack"
+          },
+          {
+            "line": 160,
+            "call": "registry.cursor"
+          },
+          {
+            "line": 169,
+            "call": "db.is_initialized"
+          },
+          {
+            "line": 183,
+            "call": "load_modules"
+          },
+          {
+            "line": 196,
+            "call": "exit_stack.close"
+          },
+          {
+            "line": 198,
+            "call": "_logger.error"
+          },
+          {
+            "line": 214,
+            "call": "time.time"
+          },
+          {
+            "line": 170,
+            "call": "cr.execute"
+          },
+          {
+            "line": 182,
+            "call": "exit_stack.enter_context"
+          },
+          {
+            "line": 193,
+            "call": "reset_modules_state"
+          },
+          {
+            "line": 182,
+            "call": "gc.disabling_gc"
+          }
+        ]
+      },
+      "Registry.init": {
+        "line": 217,
+        "end_line": 290,
+        "signature": "self, db_name: str",
+        "calls": [
+          {
+            "line": 223,
+            "call": "set"
+          },
+          {
+            "line": 225,
+            "call": "set"
+          },
+          {
+            "line": 236,
+            "call": "set"
+          },
+          {
+            "line": 237,
+            "call": "set"
+          },
+          {
+            "line": 240,
+            "call": "set"
+          },
+          {
+            "line": 242,
+            "call": "set"
+          },
+          {
+            "line": 245,
+            "call": "sql_db.db_connect"
+          },
+          {
+            "line": 252,
+            "call": "Collector"
+          },
+          {
+            "line": 253,
+            "call": "Collector"
+          },
+          {
+            "line": 256,
+            "call": "defaultdict"
+          },
+          {
+            "line": 261,
+            "call": "Collector"
+          },
+          {
+            "line": 264,
+            "call": "Collector"
+          },
+          {
+            "line": 267,
+            "call": "set"
+          },
+          {
+            "line": 282,
+            "call": "threading.local"
+          },
+          {
+            "line": 228,
+            "call": "OdooTestResult"
+          },
+          {
+            "line": 233,
+            "call": "LRU"
+          },
+          {
+            "line": 249,
+            "call": "sql_db.db_connect"
+          },
+          {
+            "line": 285,
+            "call": "closing"
+          },
+          {
+            "line": 286,
+            "call": "db.has_unaccent"
+          },
+          {
+            "line": 287,
+            "call": "db.has_trigram"
+          },
+          {
+            "line": 233,
+            "call": "_REGISTRY_CACHES.items"
+          },
+          {
+            "line": 285,
+            "call": "self.cursor"
+          }
+        ]
+      },
+      "Registry.load": {
+        "line": 350,
+        "end_line": 380,
+        "signature": "self, module: module_graph.ModuleNode",
+        "calls": [
+          {
+            "line": 365,
+            "call": "self.__caches.values"
+          },
+          {
+            "line": 368,
+            "call": "reset_cached_properties"
+          },
+          {
+            "line": 369,
+            "call": "self._field_trigger_trees.clear"
+          },
+          {
+            "line": 370,
+            "call": "self._is_modifying_relations.clear"
+          },
+          {
+            "line": 375,
+            "call": "models.MetaModel._module_to_models__.get"
+          },
+          {
+            "line": 366,
+            "call": "cache.clear"
+          },
+          {
+            "line": 377,
+            "call": "model_classes.add_to_registry"
+          },
+          {
+            "line": 378,
+            "call": "model_names.append"
+          }
+        ]
+      },
+      "Registry.check_signaling": {
+        "line": 1076,
+        "end_line": 1108,
+        "signature": "self, cr: BaseCursor | None=None",
+        "calls": [
+          {
+            "line": 1082,
+            "call": "self.get_sequences"
+          },
+          {
+            "line": 1080,
+            "call": "nullcontext"
+          },
+          {
+            "line": 1080,
+            "call": "closing"
+          },
+          {
+            "line": 1086,
+            "call": "_logger.info"
+          },
+          {
+            "line": 1087,
+            "call": "Registry.new"
+          },
+          {
+            "line": 1089,
+            "call": "_logger.isEnabledFor"
+          },
+          {
+            "line": 1094,
+            "call": "self.cache_sequences.items"
+          },
+          {
+            "line": 1107,
+            "call": "_logger.debug"
+          },
+          {
+            "line": 1080,
+            "call": "self.cursor"
+          },
+          {
+            "line": 1105,
+            "call": "_logger.info"
+          },
+          {
+            "line": 1102,
+            "call": "_logger.isEnabledFor"
+          },
+          {
+            "line": 1105,
+            "call": "sorted"
+          },
+          {
+            "line": 1099,
+            "call": "invalidated.append"
+          },
+          {
+            "line": 1100,
+            "call": "self.__caches[cache].clear"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "odoo/modules/module_graph.py",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/modules/module_graph.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--jq",
+      ".sha"
+    ],
+    "exit_code": 0,
+    "git_blob": "fc3d6334607656d1c4d725ea9431b5d7063cfa00",
+    "sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+    "symbols": {
+      "ModuleGraph.extend": {
+        "line": 230,
+        "end_line": 247,
+        "signature": "self, names: Collection[str]",
+        "calls": [
+          {
+            "line": 231,
+            "call": "self._modules.values"
+          },
+          {
+            "line": 245,
+            "call": "self._update_depends"
+          },
+          {
+            "line": 246,
+            "call": "self._update_depth"
+          },
+          {
+            "line": 247,
+            "call": "self._update_from_database"
+          },
+          {
+            "line": 232,
+            "call": "reset_cached_properties"
+          },
+          {
+            "line": 237,
+            "call": "ModuleNode"
+          },
+          {
+            "line": 238,
+            "call": "module.manifest.get"
+          },
+          {
+            "line": 240,
+            "call": "self._remove"
+          },
+          {
+            "line": 242,
+            "call": "_logger.warning"
+          },
+          {
+            "line": 243,
+            "call": "self._remove"
+          }
+        ]
+      },
+      "ModuleGraph._update_depends": {
+        "line": 257,
+        "end_line": 269,
+        "signature": "self, names: Iterable[str]",
+        "calls": [
+          {
+            "line": 259,
+            "call": "self._modules.get"
+          },
+          {
+            "line": 262,
+            "call": "OrderedSet"
+          },
+          {
+            "line": 265,
+            "call": "_logger.warning"
+          },
+          {
+            "line": 269,
+            "call": "self._remove"
+          },
+          {
+            "line": 267,
+            "call": "', '.join"
+          }
+        ]
+      },
+      "ModuleGraph._update_depth": {
+        "line": 271,
+        "end_line": 278,
+        "signature": "self, names: Iterable[str]",
+        "calls": [
+          {
+            "line": 273,
+            "call": "self._modules.get"
+          },
+          {
+            "line": 277,
+            "call": "_logger.warning"
+          },
+          {
+            "line": 278,
+            "call": "self._remove"
+          }
+        ]
+      },
+      "ModuleGraph._update_from_database": {
+        "line": 280,
+        "end_line": 309,
+        "signature": "self, names: Iterable[str]",
+        "calls": [
+          {
+            "line": 281,
+            "call": "tuple"
+          },
+          {
+            "line": 290,
+            "call": "self._cr.execute"
+          },
+          {
+            "line": 291,
+            "call": "self._cr.fetchall"
+          },
+          {
+            "line": 293,
+            "call": "_logger.warning"
+          },
+          {
+            "line": 294,
+            "call": "self._remove"
+          },
+          {
+            "line": 297,
+            "call": "_logger.info"
+          },
+          {
+            "line": 298,
+            "call": "self._remove"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "odoo/modules/loading.py",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/modules/loading.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--jq",
+      ".sha"
+    ],
+    "exit_code": 0,
+    "git_blob": "7be8669d7bba55c67d3bf71c09c8b7cbf0455d56",
+    "sha256": "9df2022f6f7e62eb7628736df4c334dc4fa1ab85154a8f6c80d9b8169fdf6e50",
+    "symbols": {
+      "load_modules": {
+        "line": 340,
+        "end_line": 608,
+        "signature": "registry: Registry, *, update_module: bool=False, upgrade_modules: Collection[str]=(), install_modules: Collection[str]=(), reinit_modules: Collection[str]=(), new_db_demo: bool=False, models_to_check: OrderedSet[str] | None=None",
+        "calls": [
+          {
+            "line": 363,
+            "call": "initialize_sys_path"
+          },
+          {
+            "line": 361,
+            "call": "OrderedSet"
+          },
+          {
+            "line": 365,
+            "call": "registry.cursor"
+          },
+          {
+            "line": 370,
+            "call": "cr.execute"
+          },
+          {
+            "line": 384,
+            "call": "ModuleGraph"
+          },
+          {
+            "line": 385,
+            "call": "graph.extend"
+          },
+          {
+            "line": 404,
+            "call": "api.Environment"
+          },
+          {
+            "line": 405,
+            "call": "load_module_graph"
+          },
+          {
+            "line": 414,
+            "call": "tools.config._cli_options.pop"
+          },
+          {
+            "line": 488,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 492,
+            "call": "Module.search_fetch"
+          },
+          {
+            "line": 504,
+            "call": "cr.execute"
+          },
+          {
+            "line": 510,
+            "call": "registry.finalize_constraints"
+          },
+          {
+            "line": 593,
+            "call": "env.values"
+          },
+          {
+            "line": 595,
+            "call": "env.flush_all"
+          },
+          {
+            "line": 598,
+            "call": "registry.check_null_constraints"
+          },
+          {
+            "line": 371,
+            "call": "modules_db.is_initialized"
+          },
+          {
+            "line": 375,
+            "call": "_logger.info"
+          },
+          {
+            "line": 376,
+            "call": "modules_db.initialize"
+          },
+          {
+            "line": 381,
+            "call": "cr.execute"
+          },
+          {
+            "line": 387,
+            "call": "_logger.critical"
+          },
+          {
+            "line": 388,
+            "call": "ImportError"
+          },
+          {
+            "line": 393,
+            "call": "tools.sql.table_exists"
+          },
+          {
+            "line": 395,
+            "call": "cr.execute"
+          },
+          {
+            "line": 396,
+            "call": "dict"
+          },
+          {
+            "line": 399,
+            "call": "odoo.tools.sql.column_exists"
+          },
+          {
+            "line": 417,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 420,
+            "call": "load_lang.split"
+          },
+          {
+            "line": 426,
+            "call": "_logger.info"
+          },
+          {
+            "line": 427,
+            "call": "Module.update_list"
+          },
+          {
+            "line": 429,
+            "call": "_check_module_names"
+          },
+          {
+            "line": 446,
+            "call": "env.flush_all"
+          },
+          {
+            "line": 447,
+            "call": "cr.execute"
+          },
+          {
+            "line": 448,
+            "call": "Module.invalidate_model"
+          },
+          {
+            "line": 457,
+            "call": "env.cr.execute"
+          },
+          {
+            "line": 461,
+            "call": "graph.extend"
+          },
+          {
+            "line": 462,
+            "call": "_logger.debug"
+          },
+          {
+            "line": 463,
+            "call": "len"
+          },
+          {
+            "line": 464,
+            "call": "load_module_graph"
+          },
+          {
+            "line": 474,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 477,
+            "call": "set"
+          },
+          {
+            "line": 485,
+            "call": "registry.init_models"
+          },
+          {
+            "line": 492,
+            "call": "Module._get_modules_to_load_domain"
+          },
+          {
+            "line": 495,
+            "call": "_logger.error"
+          },
+          {
+            "line": 499,
+            "call": "MigrationManager"
+          },
+          {
+            "line": 507,
+            "call": "_logger.error"
+          },
+          {
+            "line": 515,
+            "call": "cr.execute"
+          },
+          {
+            "line": 516,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 523,
+            "call": "env['ir.model.data']._process_end"
+          },
+          {
+            "line": 525,
+            "call": "env.ref"
+          },
+          {
+            "line": 530,
+            "call": "env.flush_all"
+          },
+          {
+            "line": 536,
+            "call": "cr.execute"
+          },
+          {
+            "line": 537,
+            "call": "dict"
+          },
+          {
+            "line": 567,
+            "call": "cr.execute"
+          },
+          {
+            "line": 568,
+            "call": "models_to_check.update"
+          },
+          {
+            "line": 572,
+            "call": "registry.init_models"
+          },
+          {
+            "line": 583,
+            "call": "registry._assertion_report.wasSuccessful"
+          },
+          {
+            "line": 584,
+            "call": "_logger.info"
+          },
+          {
+            "line": 586,
+            "call": "_logger.error"
+          },
+          {
+            "line": 594,
+            "call": "model._register_hook"
+          },
+          {
+            "line": 601,
+            "call": "cr.execute"
+          },
+          {
+            "line": 373,
+            "call": "_logger.error"
+          },
+          {
+            "line": 378,
+            "call": "registry._reinit_modules.add"
+          },
+          {
+            "line": 391,
+            "call": "odoo.modules.migration.exec_script"
+          },
+          {
+            "line": 396,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 400,
+            "call": "cr.execute"
+          },
+          {
+            "line": 421,
+            "call": "tools.translate.load_language"
+          },
+          {
+            "line": 429,
+            "call": "itertools.chain"
+          },
+          {
+            "line": 432,
+            "call": "Module.search"
+          },
+          {
+            "line": 437,
+            "call": "Module.search"
+          },
+          {
+            "line": 442,
+            "call": "Module.search"
+          },
+          {
+            "line": 444,
+            "call": "registry._reinit_modules.update"
+          },
+          {
+            "line": 462,
+            "call": "len"
+          },
+          {
+            "line": 467,
+            "call": "len"
+          },
+          {
+            "line": 479,
+            "call": "full_name.rsplit"
+          },
+          {
+            "line": 485,
+            "call": "list"
+          },
+          {
+            "line": 493,
+            "call": "modules.mapped"
+          },
+          {
+            "line": 501,
+            "call": "migrations.migrate_module"
+          },
+          {
+            "line": 505,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 507,
+            "call": "sorted"
+          },
+          {
+            "line": 528,
+            "call": "vacuum_cron._trigger"
+          },
+          {
+            "line": 537,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 539,
+            "call": "reversed"
+          },
+          {
+            "line": 548,
+            "call": "Module.browse(modules_to_remove.values()).module_uninstall"
+          },
+          {
+            "line": 551,
+            "call": "cr.commit"
+          },
+          {
+            "line": 552,
+            "call": "_logger.info"
+          },
+          {
+            "line": 553,
+            "call": "Registry.new"
+          },
+          {
+            "line": 434,
+            "call": "modules.button_install"
+          },
+          {
+            "line": 439,
+            "call": "modules.button_upgrade"
+          },
+          {
+            "line": 443,
+            "call": "modules.downstream_dependencies"
+          },
+          {
+            "line": 458,
+            "call": "env.cr.fetchall"
+          },
+          {
+            "line": 481,
+            "call": "registry[model_name]._fields.get"
+          },
+          {
+            "line": 518,
+            "call": "env[model]._check_removed_columns"
+          },
+          {
+            "line": 519,
+            "call": "_logger.isEnabledFor"
+          },
+          {
+            "line": 541,
+            "call": "pkg.manifest.get"
+          },
+          {
+            "line": 579,
+            "call": "View._validate_custom_views"
+          },
+          {
+            "line": 401,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 483,
+            "call": "_logger.debug"
+          },
+          {
+            "line": 484,
+            "call": "models_to_untranslate.add"
+          },
+          {
+            "line": 520,
+            "call": "_logger.runbot"
+          },
+          {
+            "line": 544,
+            "call": "getattr(py_module, uninstall_hook)"
+          },
+          {
+            "line": 545,
+            "call": "env.flush_all"
+          },
+          {
+            "line": 548,
+            "call": "Module.browse"
+          },
+          {
+            "line": 568,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 581,
+            "call": "_logger.warning"
+          },
+          {
+            "line": 432,
+            "call": "tuple"
+          },
+          {
+            "line": 437,
+            "call": "tuple"
+          },
+          {
+            "line": 442,
+            "call": "tuple"
+          },
+          {
+            "line": 444,
+            "call": "reinit_modules.mapped"
+          },
+          {
+            "line": 528,
+            "call": "datetime.datetime.now"
+          },
+          {
+            "line": 528,
+            "call": "datetime.timedelta"
+          },
+          {
+            "line": 544,
+            "call": "getattr"
+          },
+          {
+            "line": 548,
+            "call": "modules_to_remove.values"
+          }
+        ]
+      },
+      "load_module_graph": {
+        "line": 115,
+        "end_line": 323,
+        "signature": "env: Environment, graph: ModuleGraph, update_module: bool=False, report: OdooTestResult | None=None, models_to_check: OrderedSet[str] | None=None, install_demo: bool=True",
+        "calls": [
+          {
+            "line": 136,
+            "call": "isinstance"
+          },
+          {
+            "line": 137,
+            "call": "MigrationManager"
+          },
+          {
+            "line": 138,
+            "call": "len"
+          },
+          {
+            "line": 139,
+            "call": "_logger.info"
+          },
+          {
+            "line": 142,
+            "call": "time.time"
+          },
+          {
+            "line": 146,
+            "call": "set"
+          },
+          {
+            "line": 148,
+            "call": "enumerate"
+          },
+          {
+            "line": 319,
+            "call": "_logger.runbot"
+          },
+          {
+            "line": 133,
+            "call": "OrderedSet"
+          },
+          {
+            "line": 155,
+            "call": "time.time"
+          },
+          {
+            "line": 168,
+            "call": "_logger.log"
+          },
+          {
+            "line": 178,
+            "call": "load_openerp_module"
+          },
+          {
+            "line": 187,
+            "call": "registry.load"
+          },
+          {
+            "line": 305,
+            "call": "_logger.log"
+          },
+          {
+            "line": 320,
+            "call": "len"
+          },
+          {
+            "line": 182,
+            "call": "package.manifest.get"
+          },
+          {
+            "line": 190,
+            "call": "registry.descendants"
+          },
+          {
+            "line": 193,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 194,
+            "call": "registry.init_models"
+          },
+          {
+            "line": 211,
+            "call": "env['ir.module.module'].browse"
+          },
+          {
+            "line": 212,
+            "call": "module._check"
+          },
+          {
+            "line": 227,
+            "call": "env.cr.execute"
+          },
+          {
+            "line": 228,
+            "call": "module.invalidate_model"
+          },
+          {
+            "line": 230,
+            "call": "migrations.migrate_module"
+          },
+          {
+            "line": 234,
+            "call": "module._update_translations"
+          },
+          {
+            "line": 237,
+            "call": "registry._init_modules.add"
+          },
+          {
+            "line": 265,
+            "call": "registry.updated_modules.append"
+          },
+          {
+            "line": 267,
+            "call": "adapt_version"
+          },
+          {
+            "line": 269,
+            "call": "module.write"
+          },
+          {
+            "line": 272,
+            "call": "module.env.flush_all"
+          },
+          {
+            "line": 273,
+            "call": "module.env.cr.commit"
+          },
+          {
+            "line": 282,
+            "call": "loader.make_suite"
+          },
+          {
+            "line": 283,
+            "call": "suite.countTestCases"
+          },
+          {
+            "line": 302,
+            "call": "extras.append"
+          },
+          {
+            "line": 304,
+            "call": "extras.append"
+          },
+          {
+            "line": 313,
+            "call": "_logger.error"
+          },
+          {
+            "line": 321,
+            "call": "time.time"
+          },
+          {
+            "line": 174,
+            "call": "migrations.migrate_module"
+          },
+          {
+            "line": 176,
+            "call": "env.flush_all"
+          },
+          {
+            "line": 184,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 185,
+            "call": "getattr(py_module, pre_init)"
+          },
+          {
+            "line": 201,
+            "call": "registry.descendants"
+          },
+          {
+            "line": 217,
+            "call": "load_data"
+          },
+          {
+            "line": 222,
+            "call": "module.write"
+          },
+          {
+            "line": 224,
+            "call": "load_data"
+          },
+          {
+            "line": 241,
+            "call": "package.manifest.get"
+          },
+          {
+            "line": 250,
+            "call": "env.cr.execute"
+          },
+          {
+            "line": 286,
+            "call": "registry.check_null_constraints"
+          },
+          {
+            "line": 289,
+            "call": "loader.run_suite"
+          },
+          {
+            "line": 291,
+            "call": "report.update"
+          },
+          {
+            "line": 296,
+            "call": "env['ir.module.module'].browse"
+          },
+          {
+            "line": 307,
+            "call": "time.time"
+          },
+          {
+            "line": 312,
+            "call": "test_results.wasSuccessful"
+          },
+          {
+            "line": 173,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 185,
+            "call": "getattr"
+          },
+          {
+            "line": 219,
+            "call": "load_demo"
+          },
+          {
+            "line": 222,
+            "call": "module.get_values_from_terp"
+          },
+          {
+            "line": 226,
+            "call": "load_demo"
+          },
+          {
+            "line": 243,
+            "call": "getattr(py_module, post_init)"
+          },
+          {
+            "line": 246,
+            "call": "env['ir.ui.view']._validate_module_views"
+          },
+          {
+            "line": 263,
+            "call": "_logger.warning"
+          },
+          {
+            "line": 285,
+            "call": "registry._setup_models__"
+          },
+          {
+            "line": 288,
+            "call": "time.time"
+          },
+          {
+            "line": 292,
+            "call": "time.time"
+          },
+          {
+            "line": 243,
+            "call": "getattr"
+          },
+          {
+            "line": 253,
+            "call": "tuple"
+          },
+          {
+            "line": 254,
+            "call": "env.cr.fetchall"
+          },
+          {
+            "line": 261,
+            "call": "model.replace"
+          },
+          {
+            "line": 262,
+            "call": "lines.append"
+          },
+          {
+            "line": 263,
+            "call": "'\\n'.join"
+          },
+          {
+            "line": 310,
+            "call": "', '.join"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "odoo/modules/db.py",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/modules/db.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--jq",
+      ".sha"
+    ],
+    "exit_code": 0,
+    "git_blob": "d612bf445fe1f0890a5db40dbe126cd454cd582b",
+    "sha256": "0ed445039a82b9f76514d236c1a63e1741a42fbe5a2c3427078f95fa633091d5",
+    "symbols": {
+      "initialize": {
+        "line": 29,
+        "end_line": 124,
+        "signature": "cr: Cursor",
+        "calls": [
+          {
+            "line": 47,
+            "call": "odoo.modules.Manifest.all_addon_manifests"
+          },
+          {
+            "line": 86,
+            "call": "config.get"
+          },
+          {
+            "line": 38,
+            "call": "odoo.tools.misc.file_path"
+          },
+          {
+            "line": 44,
+            "call": "odoo.tools.misc.file_open"
+          },
+          {
+            "line": 45,
+            "call": "cr.execute"
+          },
+          {
+            "line": 49,
+            "call": "info['category'].split"
+          },
+          {
+            "line": 50,
+            "call": "create_categories"
+          },
+          {
+            "line": 57,
+            "call": "cr.execute"
+          },
+          {
+            "line": 69,
+            "call": "cr.fetchone"
+          },
+          {
+            "line": 72,
+            "call": "cr.execute"
+          },
+          {
+            "line": 88,
+            "call": "cr.execute"
+          },
+          {
+            "line": 95,
+            "call": "cr.execute"
+          },
+          {
+            "line": 112,
+            "call": "cr.execute"
+          },
+          {
+            "line": 120,
+            "call": "to_auto_install.extend"
+          },
+          {
+            "line": 124,
+            "call": "cr.execute"
+          },
+          {
+            "line": 41,
+            "call": "_logger.critical"
+          },
+          {
+            "line": 42,
+            "call": "OSError"
+          },
+          {
+            "line": 45,
+            "call": "base_sql_file.read"
+          },
+          {
+            "line": 79,
+            "call": "cr.execute"
+          },
+          {
+            "line": 62,
+            "call": "Json"
+          },
+          {
+            "line": 63,
+            "call": "Json"
+          },
+          {
+            "line": 68,
+            "call": "Json"
+          },
+          {
+            "line": 108,
+            "call": "cr.fetchall"
+          },
+          {
+            "line": 124,
+            "call": "tuple"
+          },
+          {
+            "line": 120,
+            "call": "cr.fetchall"
+          }
+        ]
+      },
+      "is_initialized": {
+        "line": 20,
+        "end_line": 26,
+        "signature": "cr: Cursor",
+        "calls": [
+          {
+            "line": 26,
+            "call": "odoo.tools.sql.table_exists"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "odoo/modules/module.py",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/modules/module.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--jq",
+      ".sha"
+    ],
+    "exit_code": 0,
+    "git_blob": "488a2a063d4c2ccde0b7bb80727880050c3ff2d0",
+    "sha256": "434e5c78595408ddc0f52ce11dd0d871bab4277cda69d4c2e6cae3276e7d3dcf",
+    "symbols": {
+      "load_manifest": {
+        "line": 399,
+        "end_line": 412,
+        "signature": "module: str, mod_path: str | None=None",
+        "calls": [
+          {
+            "line": 401,
+            "call": "warnings.warn"
+          },
+          {
+            "line": 412,
+            "call": "dict"
+          },
+          {
+            "line": 404,
+            "call": "Manifest._from_path"
+          },
+          {
+            "line": 407,
+            "call": "Manifest.for_addon"
+          },
+          {
+            "line": 409,
+            "call": "_logger.debug"
+          }
+        ]
+      },
+      "load_openerp_module": {
+        "line": 492,
+        "end_line": 535,
+        "signature": "module_name: str",
+        "calls": [
+          {
+            "line": 506,
+            "call": "__import__"
+          },
+          {
+            "line": 511,
+            "call": "Manifest.for_addon"
+          },
+          {
+            "line": 512,
+            "call": "manifest.get"
+          },
+          {
+            "line": 513,
+            "call": "getattr(sys.modules[qualname], post_load)"
+          },
+          {
+            "line": 516,
+            "call": "_logger.critical"
+          },
+          {
+            "line": 517,
+            "call": "traceback.format_exc"
+          },
+          {
+            "line": 518,
+            "call": "TYPED_FIELD_DEFINITION_RE.search"
+          },
+          {
+            "line": 534,
+            "call": "_logger.critical"
+          },
+          {
+            "line": 513,
+            "call": "getattr"
+          },
+          {
+            "line": 525,
+            "call": "AttributeError(f'{err}\\nTo avoid circular import for the the comodel use the annotation syntax:\\n    {field_name}: {field_type} = fields.{field_class}(...)\\nand add at the beggining of the file:\\n    from __future__ import annotations').with_traceback"
+          },
+          {
+            "line": 525,
+            "call": "AttributeError"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "path": "odoo/addons/base/models/ir_module.py",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/base/models/ir_module.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--jq",
+      ".sha"
+    ],
+    "exit_code": 0,
+    "git_blob": "175d9da4c0531d1246e877a6e17105ab2f883ecb",
+    "sha256": "70cae23d5b93e3b56af00da677d50512d9aa30e0bb5d48e700f6a5c86a03306c",
+    "symbols": {
+      "IrModuleModule.button_install": {
+        "line": 408,
+        "end_line": 474,
+        "signature": "self",
+        "calls": [
+          {
+            "line": 417,
+            "call": "frozenset"
+          },
+          {
+            "line": 437,
+            "call": "self.search"
+          },
+          {
+            "line": 458,
+            "call": "self.env['ir.module.category'].search"
+          },
+          {
+            "line": 474,
+            "call": "dict"
+          },
+          {
+            "line": 409,
+            "call": "self.env['res.company'].search"
+          },
+          {
+            "line": 427,
+            "call": "modules._state_update"
+          },
+          {
+            "line": 431,
+            "call": "config.get"
+          },
+          {
+            "line": 461,
+            "call": "category.search"
+          },
+          {
+            "line": 462,
+            "call": "install_mods.filtered"
+          },
+          {
+            "line": 434,
+            "call": "self.search(auto_domain).filtered"
+          },
+          {
+            "line": 466,
+            "call": "dict"
+          },
+          {
+            "line": 467,
+            "call": "UserError"
+          },
+          {
+            "line": 474,
+            "call": "_"
+          },
+          {
+            "line": 437,
+            "call": "list"
+          },
+          {
+            "line": 444,
+            "call": "UserError"
+          },
+          {
+            "line": 465,
+            "call": "any"
+          },
+          {
+            "line": 468,
+            "call": "_"
+          },
+          {
+            "line": 434,
+            "call": "self.search"
+          },
+          {
+            "line": 444,
+            "call": "_"
+          },
+          {
+            "line": 466,
+            "call": "self.fields_get"
+          },
+          {
+            "line": 468,
+            "call": "''.join"
+          },
+          {
+            "line": 465,
+            "call": "closure"
+          }
+        ]
+      },
+      "IrModuleModule.button_upgrade": {
+        "line": 704,
+        "end_line": 750,
+        "signature": "self",
+        "calls": [
+          {
+            "line": 708,
+            "call": "self.update_list"
+          },
+          {
+            "line": 710,
+            "call": "list"
+          },
+          {
+            "line": 737,
+            "call": "self.browse((module.id for module in todo)).write"
+          },
+          {
+            "line": 749,
+            "call": "self.browse(to_install).button_install"
+          },
+          {
+            "line": 750,
+            "call": "dict"
+          },
+          {
+            "line": 711,
+            "call": "self.mapped"
+          },
+          {
+            "line": 716,
+            "call": "todo.extend"
+          },
+          {
+            "line": 722,
+            "call": "len"
+          },
+          {
+            "line": 727,
+            "call": "self.get_module_info(module.name).get"
+          },
+          {
+            "line": 729,
+            "call": "Dependency.search"
+          },
+          {
+            "line": 716,
+            "call": "self.search"
+          },
+          {
+            "line": 726,
+            "call": "UserError"
+          },
+          {
+            "line": 728,
+            "call": "self.check_external_dependencies"
+          },
+          {
+            "line": 737,
+            "call": "self.browse"
+          },
+          {
+            "line": 741,
+            "call": "self.get_module_info(module.name).get"
+          },
+          {
+            "line": 749,
+            "call": "self.browse"
+          },
+          {
+            "line": 750,
+            "call": "_"
+          },
+          {
+            "line": 726,
+            "call": "_"
+          },
+          {
+            "line": 727,
+            "call": "self.get_module_info"
+          },
+          {
+            "line": 735,
+            "call": "todo.append"
+          },
+          {
+            "line": 745,
+            "call": "UserError"
+          },
+          {
+            "line": 741,
+            "call": "self.get_module_info"
+          },
+          {
+            "line": 745,
+            "call": "_"
+          },
+          {
+            "line": 747,
+            "call": "self.search"
+          }
+        ]
+      },
+      "IrModuleModule.button_uninstall": {
+        "line": 670,
+        "end_line": 681,
+        "signature": "self",
+        "calls": [
+          {
+            "line": 674,
+            "call": "any"
+          },
+          {
+            "line": 679,
+            "call": "self.downstream_dependencies"
+          },
+          {
+            "line": 680,
+            "call": "(self + deps).write"
+          },
+          {
+            "line": 681,
+            "call": "dict"
+          },
+          {
+            "line": 671,
+            "call": "set"
+          },
+          {
+            "line": 671,
+            "call": "set"
+          },
+          {
+            "line": 673,
+            "call": "UserError"
+          },
+          {
+            "line": 675,
+            "call": "UserError"
+          },
+          {
+            "line": 671,
+            "call": "self.mapped"
+          },
+          {
+            "line": 673,
+            "call": "_"
+          },
+          {
+            "line": 675,
+            "call": "_"
+          },
+          {
+            "line": 681,
+            "call": "_"
+          },
+          {
+            "line": 673,
+            "call": "', '.join"
+          },
+          {
+            "line": 674,
+            "call": "self.mapped"
+          }
+        ]
+      },
+      "IrModuleModule.module_uninstall": {
+        "line": 508,
+        "end_line": 517,
+        "signature": "self",
+        "calls": [
+          {
+            "line": 513,
+            "call": "self.mapped"
+          },
+          {
+            "line": 514,
+            "call": "self.env['ir.model.data']._module_data_uninstall"
+          },
+          {
+            "line": 516,
+            "call": "self.with_context(prefetch_fields=False).write"
+          },
+          {
+            "line": 516,
+            "call": "self.with_context"
+          }
+        ]
+      }
+    }
+  }
+]

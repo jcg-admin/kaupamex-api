@@ -1,0 +1,68 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/verify_snapshot_isolation.py", line 72, in <module>
+    ContentType.objects.db_manager(using).create(id=99001, app_label=label, model='metadata')
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 946, in save_base
+    pre_save.send(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py", line 209, in send
+    response = receiver(signal=self, sender=sender, **named)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/addons/base_automation/models/signals.py", line 92, in _capture_old_values
+    sender.objects.filter(pk=instance.pk).values().first())
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1145, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 390, in __iter__
+    self._fetch_all()
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 210, in __iter__
+    compiler = query.get_compiler(queryset.db)
+                                  ^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1887, in db
+    return self._db or router.db_for_read(self.model, **self._hints)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py", line 231, in _route_db
+    chosen_db = method(model, **hints)
+                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/routers.py", line 155, in db_for_read
+    return self._route(model)
+           ^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/routers.py", line 146, in _route
+    raise CompanyContextRequired(
+orm.routers.CompanyContextRequired: operacion de dominio contenttypes.contenttype sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

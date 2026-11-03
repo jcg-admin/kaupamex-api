@@ -57,10 +57,13 @@ Divergencias declaradas
 Sucesor: el porte de ``mail.activity.plan.template`` a ``addons/mail``
 (mismo DESCONOCIDO con condición de cierre que ``mail_activity_plan.py``).
 """
+
 from tools.translate import _
 
 
-def _get_closest_parent_user(employee, responsible, error_message, current_user=None):
+def _get_closest_parent_user(
+    employee, responsible, error_message, current_user=None
+):
     """El primer ancestro de ``responsible`` ligado a un usuario — ≙
     ``_get_closest_parent_user``
     (``odoo19c: hr/models/mail_activity_plan_template.py:26-54``).
@@ -113,8 +116,12 @@ def _determine_responsible(responsible_type, employee, current_user=None):
     result = {'error': '', 'warning': '', 'responsible': False}
     if responsible_type == 'coach':
         if not employee.coach_id:
-            result['error'] = _('El coach del empleado %s no está asignado.', employee.name)
-        result['responsible'] = employee.coach.user if employee.coach_id else None
+            result['error'] = _(
+                'El coach del empleado %s no está asignado.', employee.name
+            )
+        result['responsible'] = (
+            employee.coach.user if employee.coach_id else None
+        )
         if employee.coach_id and not result['responsible']:
             # Si el coach no está ligado a un usuario, se intenta con el
             # gerente del coach, subiendo hasta hallar uno con usuario; si
@@ -123,20 +130,26 @@ def _determine_responsible(responsible_type, employee, current_user=None):
                 employee=employee,
                 responsible=employee.coach.parent,
                 error_message=_(
-                    'El usuario del coach de %s no está asignado.', employee.name,
+                    'El usuario del coach de %s no está asignado.',
+                    employee.name,
                 ),
                 current_user=current_user,
             )
     elif responsible_type == 'manager':
         if not employee.parent_id:
-            result['error'] = _('El gerente del empleado %s no está asignado.', employee.name)
-        result['responsible'] = employee.parent.user if employee.parent_id else None
+            result['error'] = _(
+                'El gerente del empleado %s no está asignado.', employee.name
+            )
+        result['responsible'] = (
+            employee.parent.user if employee.parent_id else None
+        )
         if employee.parent_id and not result['responsible']:
             result = _get_closest_parent_user(
                 employee=employee,
                 responsible=employee.parent.parent,
                 error_message=_(
-                    'El gerente de %s debería estar ligado a un usuario.', employee.name,
+                    'El gerente de %s debería estar ligado a un usuario.',
+                    employee.name,
                 ),
                 current_user=current_user,
             )
@@ -147,7 +160,8 @@ def _determine_responsible(responsible_type, employee, current_user=None):
                 employee=employee,
                 responsible=employee.parent,
                 error_message=_(
-                    'El empleado %s debería estar ligado a un usuario.', employee.name,
+                    'El empleado %s debería estar ligado a un usuario.',
+                    employee.name,
                 ),
                 current_user=current_user,
             )

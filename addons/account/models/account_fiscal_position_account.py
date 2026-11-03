@@ -11,6 +11,7 @@ Fiel: ``position`` (FK cascade), ``company`` (Odoo
 único ``(position, account_src, account_dest)`` (Odoo
 ``_account_src_dest_uniq``).
 """
+
 import fields
 import models
 
@@ -18,22 +19,41 @@ import models
 class AccountFiscalPositionAccount(models.Model):
     """``account.fiscal.position.account`` — cuenta origen → cuenta destino."""
 
-    position     = fields.Many2one(
-        'account.AccountFiscalPosition', on_delete=models.CASCADE, related_name='account_ids',
-        help_text='Posición fiscal dueña de este mapeo (Odoo position_id, requerido).',
+    position = fields.Many2one(
+        'account.AccountFiscalPosition',
+        null=False, on_delete=models.CASCADE,
+        related_name='account_ids',
+        help_text=(
+            'Posición fiscal dueña de este mapeo (Odoo position_id,'
+            ' requerido).'
+        ),
     )
-    company       = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='fiscal_position_accounts',
-        help_text='Empresa (Odoo company_id, related=position_id.company_id, store=True).',
+        help_text=(
+            'Empresa (Odoo company_id, related=position_id.company_id,'
+            ' store=True).'
+        ),
     )
-    account_src    = fields.Many2one(
-        'account.AccountAccount', on_delete=models.CASCADE, related_name='fiscal_position_mappings_src',
-        help_text='Cuenta declarada en el producto (Odoo account_src_id, requerido).',
+    account_src = fields.Many2one(
+        'account.AccountAccount',
+        null=False, on_delete=models.CASCADE,
+        related_name='fiscal_position_mappings_src',
+        help_text=(
+            'Cuenta declarada en el producto (Odoo account_src_id, requerido).'
+        ),
     )
-    account_dest    = fields.Many2one(
-        'account.AccountAccount', on_delete=models.CASCADE, related_name='fiscal_position_mappings_dest',
-        help_text='Cuenta a usar en su lugar (Odoo account_dest_id, requerido).',
+    account_dest = fields.Many2one(
+        'account.AccountAccount',
+        null=False, on_delete=models.CASCADE,
+        related_name='fiscal_position_mappings_dest',
+        help_text=(
+            'Cuenta a usar en su lugar (Odoo account_dest_id, requerido).'
+        ),
     )
 
     class Meta:

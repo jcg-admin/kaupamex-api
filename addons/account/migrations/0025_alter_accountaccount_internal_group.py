@@ -25,7 +25,10 @@ class Migration(migrations.Migration):
                 ],
                 default="",
                 editable=False,
-                help_text="Grupo interno derivado de account_type (Odoo internal_group).",
+                help_text=(
+                    "Grupo interno derivado de account_type (Odoo"
+                    " internal_group)."
+                ),
                 max_length=16,
             ),
         ),

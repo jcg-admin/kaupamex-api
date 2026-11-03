@@ -1,0 +1,16 @@
+{
+  "source_revision": "dc9b4c53167891baccc4a04ca1db7c8563fc1fe8",
+  "published_offenders": [
+    "src/addons/base/models/ir_module.py::IrModule.category",
+    "src/addons/test_orm/models/test_orm.py::TestOrmCategory.parent",
+    "src/addons/test_orm/models/test_orm.py::TestOrmDiscussion.moderator"
+  ],
+  "working_offenders": [
+    "src/addons/base/models/ir_module.py::IrModule.category",
+    "src/addons/test_orm/models/test_orm.py::TestOrmCategory.parent",
+    "src/addons/test_orm/models/test_orm.py::TestOrmDiscussion.moderator"
+  ],
+  "classification": "BASELINE_FAILURE",
+  "baseline_modified": false,
+  "method": "Published checker and Git HEAD Python source via scoped Path.read_text; fixed reference unchanged."
+}

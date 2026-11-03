@@ -27,7 +27,8 @@ import sys
 # segunda fuente de verdad que su propio docstring prohibe (H-API-335).
 _SCRIPTS = pathlib.Path(__file__).resolve().parent.parent.parent
 _REFERENCE_SPEC = importlib.util.spec_from_file_location(
-    'reference_roots', _SCRIPTS / 'reference_roots.py')
+    'reference_roots', _SCRIPTS / 'reference_roots.py'
+)
 reference_roots = importlib.util.module_from_spec(_REFERENCE_SPEC)
 _REFERENCE_SPEC.loader.exec_module(reference_roots)
 
@@ -50,16 +51,22 @@ class Band:
 # Los limites no se solapan y no dejan hueco: `test_the_bands_leave_no_gap`
 # lo verifica encadenandolos, que es la unica forma de ver el hueco.
 BANDS: tuple[Band, ...] = (
-    Band('<=400', 0, 400,
-         'cat -n entero, siempre'),
-    Band('401-1500', 401, 1500,
-         'cat -n entero, siempre'),
-    Band('1501-4000', 1501, 4000,
-         'cat -n entero la PRIMERA vez que la sesion toca el archivo; '
-         'despues, ventana declarada'),
-    Band('>4000', 4001, 1 << 30,
-         'ventana obligatoria: simbolo + bases + llamadores + hermanos de '
-         'contrato, y el comando declara su corte'),
+    Band('<=400', 0, 400, 'cat -n entero, siempre'),
+    Band('401-1500', 401, 1500, 'cat -n entero, siempre'),
+    Band(
+        '1501-4000',
+        1501,
+        4000,
+        'cat -n entero la PRIMERA vez que la sesion toca el archivo; '
+        'despues, ventana declarada',
+    ),
+    Band(
+        '>4000',
+        4001,
+        1 << 30,
+        'ventana obligatoria: simbolo + bases + llamadores + hermanos de '
+        'contrato, y el comando declara su corte',
+    ),
 )
 
 
@@ -104,8 +111,9 @@ class FileSize:
 NESTED_POPULATIONS = {'odoo18c': ('enterprise',)}
 
 
-def measure_tree(root: pathlib.Path, pattern: str = '*.py',
-                 excluded: tuple[str, ...] = ()) -> list[FileSize]:
+def measure_tree(
+    root: pathlib.Path, pattern: str = '*.py', excluded: tuple[str, ...] = ()
+) -> list[FileSize]:
     """Mide cada archivo del arbol. Salta el que no se pueda leer.
 
     ``excluded`` son nombres de subarbol de primer nivel que quedan fuera; el
@@ -124,7 +132,8 @@ def measure_tree(root: pathlib.Path, pattern: str = '*.py',
         except OSError:
             continue
         measured.append(
-            FileSize(str(path.relative_to(root)), lines, path.stat().st_size))
+            FileSize(str(path.relative_to(root)), lines, path.stat().st_size)
+        )
     return measured
 
 
@@ -137,14 +146,17 @@ def summarize(sizes) -> dict[str, int]:
     return counts
 
 
-def report(label: str, measured: list[FileSize],
-           excluded: tuple[str, ...] = ()) -> dict:
+def report(
+    label: str, measured: list[FileSize], excluded: tuple[str, ...] = ()
+) -> dict:
     """El reporte de una poblacion, con su denominador junto a cada conteo."""
     total = len(measured)
     counts = summarize(measured)
     whole_file_ok = sum(
-        count for name, count in counts.items()
-        if band_of(next(b.low for b in BANDS if b.name == name)).high <= 1500)
+        count
+        for name, count in counts.items()
+        if band_of(next(b.low for b in BANDS if b.name == name)).high <= 1500
+    )
     return {
         'population': label,
         'files': total,
@@ -153,30 +165,45 @@ def report(label: str, measured: list[FileSize],
             {
                 'band': band.name,
                 'files': counts[band.name],
-                'share': round(counts[band.name] * 100 / total, 1) if total else 0.0,
+                'share': (
+                    round(counts[band.name] * 100 / total, 1) if total else 0.0
+                ),
                 'verdict': band.verdict,
             }
             for band in BANDS
         ],
         'whole_file_always': whole_file_ok,
-        'whole_file_always_share':
-            round(whole_file_ok * 100 / total, 1) if total else 0.0,
+        'whole_file_always_share': (
+            round(whole_file_ok * 100 / total, 1) if total else 0.0
+        ),
         'largest': [
             {'path': item.path, 'lines': item.lines, 'tokens': item.tokens}
-            for item in sorted(measured, key=lambda f: f.lines, reverse=True)[:5]
+            for item in sorted(measured, key=lambda f: f.lines, reverse=True)[
+                :5
+            ]
         ],
     }
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('roots', nargs='*', metavar='ETIQUETA=RUTA',
-                        help='poblaciones propias a medir, p. ej. api=src')
-    parser.add_argument('--reference', action='store_true',
-                        help='anadir los CUATRO alias de la referencia, con '
-                             'las raices que declara scripts/reference_roots.py')
-    parser.add_argument('--json', action='store_true',
-                        help='emitir el reporte como JSON')
+    parser.add_argument(
+        'roots',
+        nargs='*',
+        metavar='ETIQUETA=RUTA',
+        help='poblaciones propias a medir, p. ej. api=src',
+    )
+    parser.add_argument(
+        '--reference',
+        action='store_true',
+        help=(
+            'anadir los CUATRO alias de la referencia, con '
+            'las raices que declara scripts/reference_roots.py'
+        ),
+    )
+    parser.add_argument(
+        '--json', action='store_true', help='emitir el reporte como JSON'
+    )
     args = parser.parse_args(argv)
 
     reports = []
@@ -197,32 +224,48 @@ def main(argv: list[str] | None = None) -> int:
             root = reference_roots.require(alias)
             nested = NESTED_POPULATIONS.get(alias, ())
             reports.append(
-                report(alias, measure_tree(root, excluded=nested), nested))
+                report(alias, measure_tree(root, excluded=nested), nested)
+            )
             # Cada anidada se mide COMO POBLACION, no se descarta: sus addons
             # propios cambian veredictos de licencia (ver NESTED_POPULATIONS).
             for name in nested:
                 nested_root = root / name
                 if nested_root.is_dir():
                     reports.append(
-                        report(f'{alias}/{name} (sin alias)',
-                               measure_tree(nested_root)))
+                        report(
+                            f'{alias}/{name} (sin alias)',
+                            measure_tree(nested_root),
+                        )
+                    )
 
     if args.json:
         print(json.dumps(reports, indent=2, ensure_ascii=False))
         return 0
 
     for item in reports:
-        fuera = (f"  (sin {', '.join(item['excluded_subtrees'])}/, "
-                 f"que se mide aparte)"
-                 if item['excluded_subtrees'] else '')
-        print(f"=== {item['population']} — {item['files']} archivos .py{fuera}")
+        fuera = (
+            f"  (sin {', '.join(item['excluded_subtrees'])}/, "
+            "que se mide aparte)"
+            if item['excluded_subtrees']
+            else ''
+        )
+        print(
+            f"=== {item['population']} — {item['files']} archivos .py{fuera}"
+        )
         for band in item['bands']:
-            print(f"  {band['files']:5d}  {band['share']:5.1f} %  "
-                  f"{band['band']:12s} {band['verdict']}")
-        print(f"  cabe entero siempre: {item['whole_file_always']} "
-              f"({item['whole_file_always_share']} %)")
+            print(
+                f"  {band['files']:5d}  {band['share']:5.1f} %  "
+                f"{band['band']:12s} {band['verdict']}"
+            )
+        print(
+            f"  cabe entero siempre: {item['whole_file_always']} "
+            f"({item['whole_file_always_share']} %)"
+        )
         for big in item['largest']:
-            print(f"    {big['lines']:6d} lineas  ~{big['tokens']:6d} tok  {big['path']}")
+            print(
+                f"    {big['lines']:6d} lineas  ~{big['tokens']:6d} tok "
+                f" {big['path']}"
+            )
     return 0
 
 

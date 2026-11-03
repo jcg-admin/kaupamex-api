@@ -1,12 +1,16 @@
 """Modelo ``SaleOrderCoupon`` — addon ``sale_loyalty``.
 
 Adaptación del módulo Odoo ``sale_loyalty``, que puentea ``sale`` + ``loyalty``
-(programas/tarjetas/premios) añadiendo cupones/recompensas a ``sale.order``. Este
+(programas/tarjetas/premios) añadiendo cupones/recompensas a ``sale.order``.
+Este
 e-commerce usa el addon ``voucher`` (códigos de descuento) en vez del módulo
-``loyalty`` completo; la contribución de ``sale_loyalty`` se materializa como un
-**modelo relacionado** (OneToOne a ``sale.order``) que ata el ``voucher`` aplicado
+``loyalty`` completo; la contribución de ``sale_loyalty`` se materializa como
+un
+**modelo relacionado** (OneToOne a ``sale.order``) que ata el ``voucher``
+aplicado
 a la orden — misma forma de módulo-extensión que ``sale_stock``.
 """
+
 from decimal import Decimal
 
 import fields
@@ -48,24 +52,34 @@ def ensure_reward_product() -> Product:
     if product is not None:
         return product
     tmpl = ProductTemplate.objects.create(
-        name='Descuento', type=TYPE_SERVICE,
-        list_price=Decimal('0.00'), sale_ok=False, active=True,
+        name='Descuento',
+        type=TYPE_SERVICE,
+        list_price=Decimal('0.00'),
+        sale_ok=False,
+        active=True,
     )
     return Product.objects.create(
-        product_tmpl=tmpl, default_code=REWARD_SKU, active=True,
+        product_tmpl=tmpl,
+        default_code=REWARD_SKU,
+        active=True,
     )
 
 
 class SaleOrderCoupon(TimeStampedModel):
     """Cupón aplicado a una ``sale.order`` (paridad ``cart.voucher``)."""
 
-    order   = models.OneToOneField(
-        'sale.SaleOrder', on_delete=models.CASCADE, related_name='coupon',
+    order = models.OneToOneField(
+        'sale.SaleOrder',
+        on_delete=models.CASCADE,
+        related_name='coupon',
         help_text='Orden de venta (Odoo sale.order).',
     )
     voucher = fields.Many2one(
-        'loyalty.Voucher', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='sale_order_coupons',
+        'loyalty.Voucher',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='sale_order_coupons',
         help_text='Cupón aplicado (Odoo sale_loyalty coupon; = cart.voucher).',
     )
 
@@ -75,7 +89,10 @@ class SaleOrderCoupon(TimeStampedModel):
         verbose_name_plural = 'Cupones de órdenes de venta'
 
     def __str__(self) -> str:
-        return f'{self.order} → {self.voucher.code if self.voucher_id else "sin cupón"}'
+        return (
+            f'{self.order} →'
+            f' {self.voucher.code if self.voucher_id else "sin cupón"}'
+        )
 
     # Descuento del cupón sobre la orden. Reutiliza Voucher.calculate_discount
     # (voucher/models.py:154) igual que cart.get_discount (cart/models.py:61);
@@ -84,11 +101,14 @@ class SaleOrderCoupon(TimeStampedModel):
     # E1-bis — la base es el subtotal de **producto**: se excluyen las líneas
     # marcadoras (``is_delivery``/``is_reward``). Sin esa exclusión el orden en
     # que el llamador materializa las líneas cambiaría el descuento (un
-    # PERCENTAGE aplicado después del envío lo incluiría en la base, y la propia
+    # PERCENTAGE aplicado después del envío lo incluiría en la base, y
+    # la propia
     # línea de recompensa se realimentaría). Preserva la semántica del carrito
     # legacy, donde el descuento se calculaba sobre el subtotal de productos.
     def discount_base(self) -> Decimal:
-        lines = self.order.order_line.filter(is_delivery=False, is_reward=False)
+        lines = self.order.order_line.filter(
+            is_delivery=False, is_reward=False
+        )
         return sum((line.price_subtotal for line in lines), Decimal('0.00'))
 
     def discount_amount(self) -> Decimal:

@@ -1,4 +1,5 @@
-# Adaptado de Odoo Community `sale_purchase/__manifest__.py` (LGPL-3, odoo19c:) —
+# Adaptado de Odoo Community `sale_purchase/__manifest__.py` (LGPL-3,
+# odoo19c:) —
 # atribución y aviso de licencia preservados (DEC-KX-03).
 {
     'name': 'Pedido que dispara compra',
@@ -11,9 +12,9 @@
     # `depends` MEDIDO coincide con el de la referencia (['sale', 'purchase'])
     # más `base`, explícito aquí porque el import es de Python.
     'depends': [
-        'base',      # ResCompany
+        'base',  # ResCompany
         'purchase',  # PurchaseOrder — lo que el pedido lanza
-        'sale',      # SaleOrder — el disparador
+        'sale',  # SaleOrder — el disparador
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

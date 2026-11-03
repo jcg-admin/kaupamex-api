@@ -13,7 +13,8 @@ class Migration(migrations.Migration):
     dependencies = [
         ("base", "0030_rescompany_account_peppol_contact_email_and_more"),
         # 0010, no 0011: la 0011 de product AÑADE el FK inverso
-        # `productsupplierinfo.purchase_requisition_line` y por tanto depende de
+        # `productsupplierinfo.purchase_requisition_line` y por tanto
+        # depende de
         # esta migración. Apuntar a 0011 cierra el ciclo
         # (CircularDependencyError). Los modelos de aquí sólo necesitan las
         # tablas de product, que ya existen en 0010.
@@ -63,7 +64,10 @@ class Migration(migrations.Migration):
                     "name",
                     models.CharField(
                         default=addons.purchase_requisition.models.purchase_requisition._default_requisition_name,
-                        help_text="Referencia del acuerdo; la asigna la secuencia al crearlo (Odoo name, readonly + copy=False).",
+                        help_text=(
+                            "Referencia del acuerdo; la asigna la secuencia al"
+                            " crearlo (Odoo name, readonly + copy=False)."
+                        ),
                         max_length=64,
                         verbose_name="Acuerdo",
                     ),
@@ -72,7 +76,10 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Si se desmarca, el acuerdo se oculta sin borrarlo (Odoo active).",
+                        help_text=(
+                            "Si se desmarca, el acuerdo se oculta sin borrarlo"
+                            " (Odoo active)."
+                        ),
                     ),
                 ),
                 (
@@ -80,7 +87,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Referencia libre del acuerdo (Odoo reference).",
+                        help_text=(
+                            "Referencia libre del acuerdo (Odoo reference)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -92,7 +101,11 @@ class Migration(migrations.Migration):
                             ("purchase_template", "Plantilla de compra"),
                         ],
                         default="blanket_order",
-                        help_text="Pedido abierto (precio pactado) o plantilla de compra (lista que se copia) — Odoo requisition_type.",
+                        help_text=(
+                            "Pedido abierto (precio pactado) o plantilla de"
+                            " compra (lista que se copia) — Odoo"
+                            " requisition_type."
+                        ),
                         max_length=20,
                         verbose_name="Tipo de acuerdo",
                     ),
@@ -101,7 +114,10 @@ class Migration(migrations.Migration):
                     "date_start",
                     models.DateField(
                         blank=True,
-                        help_text="Odoo date_start. La referencia lo declara tracking=True; ver D-2 del docstring del módulo.",
+                        help_text=(
+                            "Odoo date_start. La referencia lo declara"
+                            " tracking=True; ver D-2 del docstring del módulo."
+                        ),
                         null=True,
                         verbose_name="Fecha de inicio",
                     ),
@@ -110,7 +126,10 @@ class Migration(migrations.Migration):
                     "date_end",
                     models.DateField(
                         blank=True,
-                        help_text="Odoo date_end (tracking=True en la referencia, D-2).",
+                        help_text=(
+                            "Odoo date_end (tracking=True en la referencia,"
+                            " D-2)."
+                        ),
                         null=True,
                         verbose_name="Fecha de fin",
                     ),
@@ -120,7 +139,9 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Descripción del acuerdo (Odoo description).",
+                        help_text=(
+                            "Descripción del acuerdo (Odoo description)."
+                        ),
                     ),
                 ),
                 (
@@ -133,7 +154,9 @@ class Migration(migrations.Migration):
                             ("cancel", "Cancelado"),
                         ],
                         default="draft",
-                        help_text="Odoo state (tracking=True en la referencia, D-2).",
+                        help_text=(
+                            "Odoo state (tracking=True en la referencia, D-2)."
+                        ),
                         max_length=16,
                         verbose_name="Estado",
                     ),
@@ -152,7 +175,11 @@ class Migration(migrations.Migration):
                     "currency",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Moneda del acuerdo (Odoo currency_id, compute+store con readonly=False). La calcula _compute_currency_id al guardar.",
+                        help_text=(
+                            "Moneda del acuerdo (Odoo currency_id,"
+                            " compute+store con readonly=False). La calcula"
+                            " _compute_currency_id al guardar."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="purchase_requisition_ids",
@@ -164,7 +191,10 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo user_id, con el usuario en curso por defecto.",
+                        help_text=(
+                            "Odoo user_id, con el usuario en curso por"
+                            " defecto."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="purchase_requisition_ids",
@@ -176,7 +206,10 @@ class Migration(migrations.Migration):
                     "vendor",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Proveedor con el que se pacta el acuerdo (Odoo vendor_id, check_company=True).",
+                        help_text=(
+                            "Proveedor con el que se pacta el acuerdo (Odoo"
+                            " vendor_id, check_company=True)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="purchase_requisition_ids",
@@ -211,7 +244,10 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=dict,
-                        help_text='Odoo analytic_distribution: {"id1,id2,...": porcentaje}.',
+                        help_text=(
+                            'Odoo analytic_distribution: {"id1,id2,...":'
+                            ' porcentaje}.'
+                        ),
                         null=True,
                         verbose_name="Distribución analítica",
                     ),
@@ -238,14 +274,20 @@ class Migration(migrations.Migration):
                     "price_unit",
                     models.FloatField(
                         default=0.0,
-                        help_text="Odoo price_unit (compute+store, readonly=False). Lo calcula _compute_price_unit al guardar.",
+                        help_text=(
+                            "Odoo price_unit (compute+store, readonly=False)."
+                            " Lo calcula _compute_price_unit al guardar."
+                        ),
                         verbose_name="Precio unitario",
                     ),
                 ),
                 (
                     "product",
                     models.ForeignKey(
-                        help_text="Odoo product_id, con domain [('purchase_ok', '=', True)].",
+                        help_text=(
+                            "Odoo product_id, con domain [('purchase_ok', '=',"
+                            " True)]."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="purchase_requisition_line_ids",
                         to="product.productproduct",
@@ -256,7 +298,11 @@ class Migration(migrations.Migration):
                     "product_uom",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo product_uom_id (compute+store, readonly=False). La calcula _compute_product_uom_id al guardar.",
+                        help_text=(
+                            "Odoo product_uom_id (compute+store,"
+                            " readonly=False). La calcula"
+                            " _compute_product_uom_id al guardar."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="purchase_requisition_line_ids",
@@ -267,7 +313,10 @@ class Migration(migrations.Migration):
                 (
                     "requisition",
                     models.ForeignKey(
-                        help_text="Odoo requisition_id (required, ondelete='cascade').",
+                        help_text=(
+                            "Odoo requisition_id (required,"
+                            " ondelete='cascade')."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="line_ids",
                         to="purchase_requisition.purchaserequisition",

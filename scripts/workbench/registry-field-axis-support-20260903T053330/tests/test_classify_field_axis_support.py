@@ -11,6 +11,7 @@ Se corre con el paquete del banco en la ruta::
     DJANGO_SETTINGS_MODULE=config.settings.testing PYTHONPATH=src \
         uv run pytest scripts/workbench/registry-field-axis-support-20260903T053330/tests -q
 """
+
 import importlib.util
 import pathlib
 import sys
@@ -19,7 +20,8 @@ import pytest
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 _spec = importlib.util.spec_from_file_location(
-    'classify_field_axis_support', HERE / 'classify_field_axis_support.py')
+    'classify_field_axis_support', HERE / 'classify_field_axis_support.py'
+)
 classify_field_axis_support = importlib.util.module_from_spec(_spec)
 sys.modules['classify_field_axis_support'] = classify_field_axis_support
 _spec.loader.exec_module(classify_field_axis_support)
@@ -55,18 +57,26 @@ class TestClassify:
 
     def test_an_installed_symbol_is_ready(self):
         symbol = Symbol(
-            name='fake_ready', reference='—', does='—',
+            name='fake_ready',
+            reference='—',
+            does='—',
             provider=('django', 'recorrido del arbol a dict'),
-            installed=('collections.defaultdict',), primitives=())
+            installed=('collections.defaultdict',),
+            primitives=(),
+        )
         verdict = classify(symbol)
         assert verdict.kind == 'READY'
         assert verdict.missing == ()
 
     def test_only_primitives_is_buildable(self):
         symbol = Symbol(
-            name='fake_buildable', reference='—', does='—',
+            name='fake_buildable',
+            reference='—',
+            does='—',
             provider=('cpython', 'contencion por bytecode'),
-            installed=(), primitives=('collections.defaultdict', 'warnings.warn'))
+            installed=(),
+            primitives=('collections.defaultdict', 'warnings.warn'),
+        )
         verdict = classify(symbol)
         assert verdict.kind == 'BUILDABLE'
         assert verdict.missing == ()
@@ -74,9 +84,13 @@ class TestClassify:
     def test_an_absent_primitive_blocks(self):
         """El control: sin esto, un clasificador constante pasaria todo."""
         symbol = Symbol(
-            name='fake_blocked', reference='—', does='—',
+            name='fake_blocked',
+            reference='—',
+            does='—',
             provider=('cpython', 'contencion por bytecode'),
-            installed=(), primitives=('collections.defaultdict', 'no.existe.nada'))
+            installed=(),
+            primitives=('collections.defaultdict', 'no.existe.nada'),
+        )
         verdict = classify(symbol)
         assert verdict.kind == 'BLOCKED'
         assert verdict.missing == ('no.existe.nada',)
@@ -84,10 +98,13 @@ class TestClassify:
     def test_an_absent_installed_symbol_is_not_ready(self):
         """Declarar ``installed`` no basta: tiene que resolver."""
         symbol = Symbol(
-            name='fake_claimed', reference='—', does='—',
+            name='fake_claimed',
+            reference='—',
+            does='—',
             provider=('django', 'recorrido del arbol a dict'),
             installed=('django.no_existe_este_nombre',),
-            primitives=('collections.defaultdict',))
+            primitives=('collections.defaultdict',),
+        )
         verdict = classify(symbol)
         assert verdict.kind == 'BUILDABLE'
 
@@ -104,12 +121,17 @@ class TestDeclaredPopulation:
 
     def test_every_symbol_cites_its_reference_line(self):
         for symbol in SYMBOLS:
-            assert symbol.reference.startswith('odoo19c: odoo/orm/registry.py:')
+            assert symbol.reference.startswith(
+                'odoo19c: odoo/orm/registry.py:'
+            )
 
     def test_no_declared_symbol_is_blocked(self):
         """Si alguno saliera BLOCKED, el porte tendria un bloqueo medido."""
-        bloqueados = [(v.name, v.missing) for v in map(classify, SYMBOLS)
-                      if v.kind == 'BLOCKED']
+        bloqueados = [
+            (v.name, v.missing)
+            for v in map(classify, SYMBOLS)
+            if v.kind == 'BLOCKED'
+        ]
         assert bloqueados == []
 
 

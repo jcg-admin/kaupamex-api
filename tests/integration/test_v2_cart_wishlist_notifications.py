@@ -9,6 +9,7 @@ Verifica que los endpoints /api/v2/ para el bloque F2 son funcionales:
 
 F2 no elimina v1; verifica coexistencia (doble-corrida).
 """
+
 import uuid
 import pytest
 from addons.sale.models import SaleOrder
@@ -22,25 +23,26 @@ from addons.website_sale_wishlist.models import WishlistItem
 pytestmark = pytest.mark.integration
 
 # ─── URLs v2 ────────────────────────────────────────────────────────────────
-V2_CART_URL        = '/api/v2/cart/'
-V2_CART_ITEMS_URL  = '/api/v2/cart/items/'
-V2_SNAPSHOTS_URL   = '/api/v2/cart/snapshots/'
-V2_MERGES_URL      = '/api/v2/cart/merges/'
-V2_WISHLIST_URL    = '/api/v2/wishlist/'
-V2_REFERRAL_URL    = '/api/v2/account/referral/'
+V2_CART_URL = '/api/v2/cart/'
+V2_CART_ITEMS_URL = '/api/v2/cart/items/'
+V2_SNAPSHOTS_URL = '/api/v2/cart/snapshots/'
+V2_MERGES_URL = '/api/v2/cart/merges/'
+V2_WISHLIST_URL = '/api/v2/wishlist/'
+V2_REFERRAL_URL = '/api/v2/account/referral/'
 V2_REDEMPTIONS_URL = '/api/v2/account/referral/redemptions/'
-V2_NOTIF_URL       = '/api/v2/notifications/'
+V2_NOTIF_URL = '/api/v2/notifications/'
 
 # ─── URLs v1 (dual-run) ──────────────────────────────────────────────────────
-V1_CART_SAVE_URL       = '/api/v2/cart/snapshots/'
-V1_CART_MERGE_URL      = '/api/v2/cart/merges/'
-V1_WISH_MOVE_URL       = '/api/v2/wishlist/{pk}/move-to-cart/'
+V1_CART_SAVE_URL = '/api/v2/cart/snapshots/'
+V1_CART_MERGE_URL = '/api/v2/cart/merges/'
+V1_WISH_MOVE_URL = '/api/v2/wishlist/{pk}/move-to-cart/'
 V1_REFERRAL_REDEEM_URL = '/api/v2/account/referral/redemptions/'
-V1_NOTIF_READ_ALL_URL  = '/api/v2/notifications/read-all/'
-V1_NOTIF_READ_URL      = '/api/v2/notifications/{pk}/read/'
+V1_NOTIF_READ_ALL_URL = '/api/v2/notifications/read-all/'
+V1_NOTIF_READ_URL = '/api/v2/notifications/{pk}/read/'
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def category_f2(db):
@@ -89,6 +91,7 @@ def _make_notification(user, **kwargs):
 
 # ─── Cart snapshots (v2) ─────────────────────────────────────────────────────
 
+
 class TestCartSnapshotsV2:
 
     def test_requires_auth(self, api_client, db):
@@ -100,19 +103,24 @@ class TestCartSnapshotsV2:
         res = auth_client.post(V2_SNAPSHOTS_URL)
         assert res.status_code == 400
 
-    def test_saves_cart_and_returns_200(self, auth_client, user, product_f2, cart_with_item, db):
+    def test_saves_cart_and_returns_200(
+        self, auth_client, user, product_f2, cart_with_item, db
+    ):
         res = auth_client.post(V2_SNAPSHOTS_URL)
         assert res.status_code == 200
         body = res.json()
         assert body['saved_count'] == 1
         assert 'detail' in body
 
-    def test_v1_save_still_works(self, auth_client, user, product_f2, cart_with_item, db):
+    def test_v1_save_still_works(
+        self, auth_client, user, product_f2, cart_with_item, db
+    ):
         res = auth_client.post(V1_CART_SAVE_URL)
         assert res.status_code == 200
 
 
 # ─── Cart merges (v2) ────────────────────────────────────────────────────────
+
 
 class TestCartMergesV2:
 
@@ -126,16 +134,21 @@ class TestCartMergesV2:
 
     def test_nonexistent_token_returns_user_cart(self, auth_client, db):
         token = str(uuid.uuid4())
-        res = auth_client.post(V2_MERGES_URL, {'cart_token': token}, format='json')
+        res = auth_client.post(
+            V2_MERGES_URL, {'cart_token': token}, format='json'
+        )
         assert res.status_code == 200
 
     def test_v1_merge_still_works(self, auth_client, db):
         token = str(uuid.uuid4())
-        res = auth_client.post(V1_CART_MERGE_URL, {'cart_token': token}, format='json')
+        res = auth_client.post(
+            V1_CART_MERGE_URL, {'cart_token': token}, format='json'
+        )
         assert res.status_code == 200
 
 
 # ─── Wishlist cart-transfers (v2) ────────────────────────────────────────────
+
 
 class TestWishlistCartTransfersV2:
 
@@ -146,7 +159,9 @@ class TestWishlistCartTransfersV2:
 
     def test_move_to_cart_returns_200(self, auth_client, wishlist_item, db):
         url = f'/api/v2/wishlist/{wishlist_item.pk}/cart-transfers/'
-        res = auth_client.post(url, {'remove_from_wishlist': False}, format='json')
+        res = auth_client.post(
+            url, {'remove_from_wishlist': False}, format='json'
+        )
         assert res.status_code == 200
 
     def test_unknown_item_returns_404(self, auth_client, db):
@@ -156,11 +171,14 @@ class TestWishlistCartTransfersV2:
 
     def test_v2_cart_transfers_works(self, auth_client, wishlist_item, db):
         url = f'/api/v2/wishlist/{wishlist_item.pk}/cart-transfers/'
-        res = auth_client.post(url, {'remove_from_wishlist': False}, format='json')
+        res = auth_client.post(
+            url, {'remove_from_wishlist': False}, format='json'
+        )
         assert res.status_code == 200
 
 
 # ─── Referral redemptions (v2) — Tier A ─────────────────────────────────────
+
 
 class TestReferralRedemptionsV2:
 
@@ -169,21 +187,27 @@ class TestReferralRedemptionsV2:
         assert res.status_code == 401
 
     def test_invalid_code_returns_error(self, auth_client, db):
-        res = auth_client.post(V2_REDEMPTIONS_URL, {'code': 'BOGUS'}, format='json')
+        res = auth_client.post(
+            V2_REDEMPTIONS_URL, {'code': 'BOGUS'}, format='json'
+        )
         assert res.status_code in (400, 404, 409, 422)
 
     def test_v1_redeem_still_works(self, auth_client, db):
-        res = auth_client.post(V1_REFERRAL_REDEEM_URL, {'code': 'BOGUS'}, format='json')
+        res = auth_client.post(
+            V1_REFERRAL_REDEEM_URL, {'code': 'BOGUS'}, format='json'
+        )
         assert res.status_code in (400, 404, 409, 422)
 
     def test_v2_referral_view_resolves(self, api_client, db):
         # ReferralView returns 401 for unauth (program enabled or not).
-        # Confirms URL resolution — if the path didn't exist, Django returns 404.
+        # Confirms URL resolution — if the path didn't exist, Django
+        # returns 404.
         res = api_client.get(V2_REFERRAL_URL)
         assert res.status_code == 401
 
 
 # ─── Notifications PATCH (v2) ────────────────────────────────────────────────
+
 
 class TestNotificationsBulkReadV2:
 
@@ -246,7 +270,9 @@ class TestNotificationMarkReadV2:
         assert res.status_code == 200
         assert res.json()['read'] is True
 
-    def test_other_user_notification_returns_404(self, auth_client, admin_user, db):
+    def test_other_user_notification_returns_404(
+        self, auth_client, admin_user, db
+    ):
         notif = _make_notification(admin_user)
         url = f'{V2_NOTIF_URL}{notif.pk}/'
         res = auth_client.patch(url)

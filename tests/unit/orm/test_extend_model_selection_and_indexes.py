@@ -1,4 +1,5 @@
-"""Los dos mecanismos que ``extend_model`` gana para portar ``sale/analytic.py``.
+"""
+Los dos mecanismos que ``extend_model`` gana para portar ``sale/analytic.py``.
 
 ``selection_add=`` y ``indexes=`` son lo que un addon necesita para ampliar un
 modelo **de otro addon** sin redeclararlo: el vocabulario de un campo y una
@@ -24,6 +25,7 @@ Los dos controles positivos del final miden el árbol vivo, no un modelo
 fabricado: el índice parcial y el valor de vocabulario que ``sale`` cuelga hoy
 sobre la familia ``analytic``.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models
@@ -81,11 +83,11 @@ def test_the_index_lands_in_meta(analytic_line, index_state_restored):
     index = models.Index(fields=['id'], name='probe_meta_only_idx')
     assert add_meta_index(analytic_line, index) is True
     assert 'probe_meta_only_idx' in {
-        i.name for i in analytic_line._meta.indexes}
+        i.name for i in analytic_line._meta.indexes
+    }
 
 
-def test_the_index_survives_model_state(analytic_line,
-                                       index_state_restored):
+def test_the_index_survives_model_state(analytic_line, index_state_restored):
     """La mitad que discrimina: el autodetector tiene que verlo.
 
     ``ModelState.from_model`` sólo copia ``_meta.indexes`` cuando el nombre
@@ -102,15 +104,17 @@ def test_the_index_survives_model_state(analytic_line,
     )
 
 
-def test_the_index_is_added_once_per_name(analytic_line,
-                                         index_state_restored):
+def test_the_index_is_added_once_per_name(analytic_line, index_state_restored):
     """Idempotente por nombre: ``ready()`` puede correr dos veces."""
     index = models.Index(fields=['id'], name='probe_idempotent_idx')
     twin = models.Index(fields=['id'], name='probe_idempotent_idx')
     assert add_meta_index(analytic_line, index) is True
     assert add_meta_index(analytic_line, twin) is False
-    how_many = sum(1 for i in analytic_line._meta.indexes
-                  if i.name == 'probe_idempotent_idx')
+    how_many = sum(
+        1
+        for i in analytic_line._meta.indexes
+        if i.name == 'probe_idempotent_idx'
+    )
     assert how_many == 1
 
 
@@ -124,8 +128,11 @@ def test_the_vocabulary_keeps_what_the_first_declarer_put(applicability):
     policies_before = dict(getattr(field, 'ondelete', None) or {})
     try:
         extend_selection_choices(
-            applicability, 'business_domain', [('probe_value', 'Sonda')],
-            ondelete={'probe_value': 'cascade'})
+            applicability,
+            'business_domain',
+            [('probe_value', 'Sonda')],
+            ondelete={'probe_value': 'cascade'},
+        )
         values = {v for v, _ in field.choices}
         assert 'probe_value' in values
         for value, _label in previous:
@@ -145,11 +152,17 @@ def test_the_same_value_is_not_added_twice(applicability):
     policies_before = dict(getattr(field, 'ondelete', None) or {})
     try:
         primera = extend_selection_choices(
-            applicability, 'business_domain', [('probe_twice', 'Sonda')],
-            ondelete={'probe_twice': 'cascade'})
+            applicability,
+            'business_domain',
+            [('probe_twice', 'Sonda')],
+            ondelete={'probe_twice': 'cascade'},
+        )
         segunda = extend_selection_choices(
-            applicability, 'business_domain', [('probe_twice', 'Sonda')],
-            ondelete={'probe_twice': 'cascade'})
+            applicability,
+            'business_domain',
+            [('probe_twice', 'Sonda')],
+            ondelete={'probe_twice': 'cascade'},
+        )
         assert primera == ['probe_twice']
         assert segunda == [], 'la segunda pasada no agrega nada'
         how_many = sum(1 for v, _ in field.choices if v == 'probe_twice')
@@ -167,9 +180,11 @@ def test_it_returns_only_what_it_actually_added(applicability):
     already_there = previous[0][0]
     try:
         added = extend_selection_choices(
-            applicability, 'business_domain',
+            applicability,
+            'business_domain',
             [(already_there, 'Etiqueta ignorada'), ('probe_new', 'Sonda')],
-            ondelete={'probe_new': 'cascade'})
+            ondelete={'probe_new': 'cascade'},
+        )
         assert added == ['probe_new']
     finally:
         field.choices = previous
@@ -194,6 +209,8 @@ def test_sale_adds_its_value_to_the_business_domain(applicability):
     field = applicability._meta.get_field('business_domain')
     values = {v for v, _ in field.choices}
     assert 'sale_order' in values
-    assert {'general', 'invoice', 'bill'} <= values, (
-        'los values que declaró analytic siguen ahí'
-    )
+    assert {
+        'general',
+        'invoice',
+        'bill',
+    } <= values, 'los values que declaró analytic siguen ahí'

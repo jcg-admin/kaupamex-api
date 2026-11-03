@@ -27,6 +27,7 @@ construirlo                  cadena punteada a la secuencia de objetos de
                              ``related_model``.
 ===========================  ==============================================
 """
+
 import contextlib
 import warnings
 
@@ -45,8 +46,9 @@ class DependsOwner(django_models.Model):
     _name = 'orm.depends.owner'
 
     label = fields.Char('Label', max_length=32, blank=True)
-    child_total = fields.Integer('Child Total',
-                                 compute='_compute_child_total', store=True)
+    child_total = fields.Integer(
+        'Child Total', compute='_compute_child_total', store=True
+    )
 
     class Meta:
         app_label = 'base'
@@ -65,11 +67,18 @@ class DependsChild(django_models.Model):
 
     source = fields.Integer('Source', default=0)
     owner = django_models.ForeignKey(
-        DependsOwner, on_delete=django_models.CASCADE,
-        related_name='children', null=True)
-    owner_label = fields.Char('Owner Label', max_length=32,
-                              compute='_compute_owner_label', store=True,
-                              blank=True)
+        DependsOwner,
+        on_delete=django_models.CASCADE,
+        related_name='children',
+        null=True,
+    )
+    owner_label = fields.Char(
+        'Owner Label',
+        max_length=32,
+        compute='_compute_owner_label',
+        store=True,
+        blank=True,
+    )
 
     class Meta:
         app_label = 'base'
@@ -87,10 +96,14 @@ class DependsWizard(TransientModel):
     _name = 'orm.depends.wizard'
 
     owner = django_models.ForeignKey(
-        DependsOwner, on_delete=django_models.CASCADE,
-        related_name='wizards', null=True)
-    echo = fields.Char('Echo', max_length=32, compute='_compute_echo',
-                       store=True, blank=True)
+        DependsOwner,
+        on_delete=django_models.CASCADE,
+        related_name='wizards',
+        null=True,
+    )
+    echo = fields.Char(
+        'Echo', max_length=32, compute='_compute_echo', store=True, blank=True
+    )
 
     class Meta:
         app_label = 'base'
@@ -109,8 +122,10 @@ def field_of(model, name):
 def resolved(model, name):
     """Las tuplas que ``model.name`` declara, como tuplas de nombres."""
     field = field_of(model, name)
-    return [tuple(step.name for step in path)
-            for path in field.resolve_depends(registry)]
+    return [
+        tuple(step.name for step in path)
+        for path in field.resolve_depends(registry)
+    ]
 
 
 @contextlib.contextmanager
@@ -145,7 +160,9 @@ class TestEveryPrefixIsEmitted:
 
     def test_a_two_step_dependency_emits_both_prefixes(self):
         assert resolved(DependsChild, 'owner_label') == [
-            ('owner',), ('owner', 'label')]
+            ('owner',),
+            ('owner', 'label'),
+        ]
 
     def test_a_one_step_dependency_emits_exactly_one_tuple(self):
         assert resolved(DependsChild, 'owner_label')[0] == ('owner',)
@@ -185,8 +202,9 @@ class TestAFieldDoesNotTriggerItself:
     def test_the_field_itself_as_first_step_is_skipped(self):
         field = field_of(DependsChild, 'owner_label')
         with declared_depends(field, ('owner_label.label',)):
-            assert ('owner_label',) not in resolved(DependsChild,
-                                                    'owner_label')
+            assert ('owner_label',) not in resolved(
+                DependsChild, 'owner_label'
+            )
 
 
 class TestAnUnknownNameIsRejected:
@@ -225,7 +243,9 @@ class TestARegularModelDoesNotTriggerATransient:
         corta de arriba no distingue «lo corto el transitorio» de «el
         recorrido nunca pasa del primer paso»."""
         assert resolved(DependsChild, 'owner_label') == [
-            ('owner',), ('owner', 'label')]
+            ('owner',),
+            ('owner', 'label'),
+        ]
 
 
 class TestTheRecursiveWarning:
@@ -260,8 +280,9 @@ class TestThePrecomputeWarning:
                     warnings.simplefilter('always')
                     list(field.resolve_depends(registry))
             assert field.precompute is False
-            assert any('cannot be precomputed' in str(w.message)
-                       for w in caught)
+            assert any(
+                'cannot be precomputed' in str(w.message) for w in caught
+            )
         finally:
             field.precompute = False
             target.compute = None
@@ -278,7 +299,8 @@ class TestThePrecomputeWarning:
                     warnings.simplefilter('always')
                     list(field.resolve_depends(registry))
             assert field.precompute is True
-            assert not any('cannot be precomputed' in str(w.message)
-                           for w in caught)
+            assert not any(
+                'cannot be precomputed' in str(w.message) for w in caught
+            )
         finally:
             field.precompute = False

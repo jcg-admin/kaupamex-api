@@ -1,0 +1,80 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+INSTRUMENT probe_descriptor_cost
+lecturas por caso: 300000
+atributo llano (sin descriptor)        25.2 ns/lectura
+descriptor de NO datos                 23.1 ns/lectura
+descriptor de DATOS (__set__)          84.5 ns/lectura
+
+NO datos contra llano : 0.92x
+DATOS   contra llano : 3.35x
+RESULT {"script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py", "exit": 0, "denied_database_attempts": 0}
+INSTRUMENT probe_orm_cache_outlives_environment
+env A  -> ['primero-7', 'primero-18']
+A is B                      : True
+transaccion A is B          : True
+env B (tras _insert_cache)  -> ['primero-7', 'primero-18']
+env B tras invalidate_all   -> ['SEGUNDO-7', 'SEGUNDO-18']
+RESULT {"script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py", "exit": 0, "denied_database_attempts": 0}
+INSTRUMENT probe_id_resolution_on_recordset
+Traceback (most recent call last):
+  File "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", line 45, in show
+    print(f'{title:<28} -> {thunk()!r}')
+                            ^^^^^^^
+  File "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", line 65, in <lambda>
+    show('rs.id', lambda: several.id)
+                          ^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/models.py", line 5333, in __get__
+    raise ValueError(f'Expected singleton: ids={ids!r}')
+ValueError: Expected singleton: ids=(7, 18, 33)
+Traceback (most recent call last):
+  File "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", line 45, in show
+    print(f'{title:<28} -> {thunk()!r}')
+                            ^^^^^^^
+  File "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", line 66, in <lambda>
+    show('rs.pk', lambda: several.pk)
+                          ^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 678, in _get_pk_val
+    return getattr(self, meta.pk.attname)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/models.py", line 5333, in __get__
+    raise ValueError(f'Expected singleton: ids={ids!r}')
+ValueError: Expected singleton: ids=(7, 18, 33)
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/models.py", line 4679, in ensure_one
+    _id, = self._ids
+    ^^^^
+ValueError: too many values to unpack (expected 1)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", line 45, in show
+    print(f'{title:<28} -> {thunk()!r}')
+                            ^^^^^^^
+  File "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", line 67, in <lambda>
+    show('rs.label', lambda: several.label)
+                             ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 1473, in __get__
+    instance.ensure_one()
+  File "/workspace/kaupamex-api/src/orm/models.py", line 4682, in ensure_one
+    raise ValueError("Expected singleton: %s" % self)
+ValueError: Expected singleton: orm.id.probe(7, 18, 33)
+--- singleton: un solo id en la terna ---
+rs.id                        -> 7
+rs.pk                        -> 7
+rs.label                     -> 'uno'
+
+--- tres ids en la terna ---
+rs.id                        -> ValueError: Expected singleton: ids=(7, 18, 33)
+rs.pk                        -> ValueError: Expected singleton: ids=(7, 18, 33)
+rs.label                     -> ValueError: Expected singleton: orm.id.probe(7, 18, 33)
+
+--- terna vacia ---
+rs.id                        -> False
+rs.label                     -> False
+
+--- que atributo de clase sirve cada nombre ---
+id       IdFromIds
+label    FieldDescriptor
+pk       NoneType
+RESULT {"script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py", "exit": 0, "denied_database_attempts": 0}

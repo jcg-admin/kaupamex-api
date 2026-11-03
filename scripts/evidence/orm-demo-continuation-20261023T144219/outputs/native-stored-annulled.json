@@ -1,0 +1,29 @@
+{
+  "head": "6e9aab72966d8e6f18a6cc52eded41c1e37a2272",
+  "index_tree": "8b2f11c67fa388361b1a3efdb0226e68fcf82f5d",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py"
+  },
+  "source_sha256": {
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.fields": "581891977cf888c0ffddb9ec21bff538918f0781179a5b547d8cdfeecb90a014"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_native_stored_compute_contract.py": "03739cb7633b5b2136daddab2f30b7b091c7242b9e065cd5bc317a6175d4e0ac"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": false,
+  "annul_canonical_scope": false,
+  "annul_record_sudo": false,
+  "keyword_only": false,
+  "batch_only": false,
+  "stored_only": true,
+  "annul_stored_guard": true,
+  "annul_native_batch": false,
+  "pytest_exit": 1,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}

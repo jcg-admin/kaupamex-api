@@ -1,0 +1,42 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF....F.                                                                [100%]
+=================================== FAILURES ===================================
+_____________ test_base_addons_route_to_the_selected_company[base] _____________
+tests/unit/orm/test_router_database_contract.py:28: in test_base_addons_route_to_the_selected_company
+    assert router.db_for_read(model(app)) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+____ test_base_addons_route_to_the_selected_company[base_address_extended] _____
+tests/unit/orm/test_router_database_contract.py:28: in test_base_addons_route_to_the_selected_company
+    assert router.db_for_read(model(app)) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+_______ test_base_addons_route_to_the_selected_company[base_geolocalize] _______
+tests/unit/orm/test_router_database_contract.py:28: in test_base_addons_route_to_the_selected_company
+    assert router.db_for_read(model(app)) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+_ test_bound_objects_from_different_databases_cannot_relate_under_one_context __
+tests/unit/orm/test_router_database_contract.py:42: in test_bound_objects_from_different_databases_cannot_relate_under_one_context
+    assert CompanyDatabaseRouter().allow_relation(model('base', 'default'),
+E   AssertionError: assert True is False
+E    +  where True = <bound method CompanyDatabaseRouter.allow_relation of <orm.routers.CompanyDatabaseRouter object at 0x7f07e2fa35f0>>(namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='default')), namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='company_5_db')))
+E    +    where <bound method CompanyDatabaseRouter.allow_relation of <orm.routers.CompanyDatabaseRouter object at 0x7f07e2fa35f0>> = <orm.routers.CompanyDatabaseRouter object at 0x7f07e2fa35f0>.allow_relation
+E    +      where <orm.routers.CompanyDatabaseRouter object at 0x7f07e2fa35f0> = CompanyDatabaseRouter()
+E    +    and   namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='default')) = model('base', 'default')
+E    +    and   namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='company_5_db')) = model('base', 'company_5_db')
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base]
+FAILED tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base_address_extended]
+FAILED tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base_geolocalize]
+FAILED tests/unit/orm/test_router_database_contract.py::test_bound_objects_from_different_databases_cannot_relate_under_one_context
+4 failed, 5 passed, 1 warning in 0.11s

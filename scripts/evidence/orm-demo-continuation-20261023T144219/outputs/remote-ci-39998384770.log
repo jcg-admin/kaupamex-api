@@ -1,0 +1,773 @@
+﻿2026-10-23T17:50:37.6603993Z Current runner version: '2.338.0'
+2026-10-23T17:50:37.6639744Z ##[group]Runner Image Provisioner
+2026-10-23T17:50:37.6641069Z Hosted Compute Agent
+2026-10-23T17:50:37.6642027Z Version: 20261012.601
+2026-10-23T17:50:37.6643085Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-23T17:50:37.6644230Z Build Date: 2026-10-12T17:48:21Z
+2026-10-23T17:50:37.6645309Z Worker ID: {8b645a15-277c-4a78-8d34-d4d963dac747}
+2026-10-23T17:50:37.6646415Z Region: northcentralus
+2026-10-23T17:50:37.6647329Z Cloud: Azure
+2026-10-23T17:50:37.6648220Z ##[endgroup]
+2026-10-23T17:50:37.6650591Z ##[group]Operating System
+2026-10-23T17:50:37.6651688Z Ubuntu
+2026-10-23T17:50:37.6652507Z 24.04.5
+2026-10-23T17:50:37.6653284Z LTS
+2026-10-23T17:50:37.6654225Z ##[endgroup]
+2026-10-23T17:50:37.6655181Z ##[group]Runner Image
+2026-10-23T17:50:37.6656204Z Image: ubuntu-24.04
+2026-10-23T17:50:37.6657125Z Version: 20261012.334.1
+2026-10-23T17:50:37.6659128Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-23T17:50:37.6662033Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-23T17:50:37.6663703Z ##[endgroup]
+2026-10-23T17:50:37.6665600Z ##[group]GITHUB_TOKEN Permissions
+2026-10-23T17:50:37.6668614Z Contents: read
+2026-10-23T17:50:37.6669713Z Metadata: read
+2026-10-23T17:50:37.6670798Z Packages: read
+2026-10-23T17:50:37.6671675Z ##[endgroup]
+2026-10-23T17:50:37.6674977Z Secret source: Actions
+2026-10-23T17:50:37.6676515Z Cache mode: write
+2026-10-23T17:50:37.6677659Z Prepare workflow directory
+2026-10-23T17:50:37.7425972Z Prepare all required actions
+2026-10-23T17:50:37.7497240Z Getting action download info
+2026-10-23T17:50:37.9950844Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-23T17:50:38.0994420Z Download action repository 'astral-sh/setup-uv@v5' (SHA:d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86)
+2026-10-23T17:50:38.5916717Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-23T17:50:38.8031688Z Complete job name: test
+2026-10-23T17:50:38.8512501Z ##[group]Checking docker version
+2026-10-23T17:50:38.8526364Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-10-23T17:50:38.9176313Z '1.48'
+2026-10-23T17:50:38.9193909Z Docker daemon API version: '1.48'
+2026-10-23T17:50:38.9194809Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-10-23T17:50:38.9367297Z '1.48'
+2026-10-23T17:50:38.9384348Z Docker client API version: '1.48'
+2026-10-23T17:50:38.9390492Z ##[endgroup]
+2026-10-23T17:50:38.9393140Z ##[group]Clean up resources from previous jobs
+2026-10-23T17:50:38.9398482Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=466ac2"
+2026-10-23T17:50:38.9547436Z ##[command]/usr/bin/docker network prune --force --filter "label=466ac2"
+2026-10-23T17:50:38.9683683Z ##[endgroup]
+2026-10-23T17:50:38.9684291Z ##[group]Create local container network
+2026-10-23T17:50:38.9694629Z ##[command]/usr/bin/docker network create --label 466ac2 github_network_a3adf93c7bc94400b3dc3f42c883b234
+2026-10-23T17:50:39.0220589Z cf2f4530bb4dfce5686e75c125d78ca27cbbd55f7c8c77fba5f4acc0e60ac112
+2026-10-23T17:50:39.0237476Z ##[endgroup]
+2026-10-23T17:50:39.0264797Z ##[group]Starting postgres service container
+2026-10-23T17:50:39.0287765Z ##[command]/usr/bin/docker pull postgres:16
+2026-10-23T17:50:39.4716492Z 16: Pulling from library/postgres
+2026-10-23T17:50:39.5896114Z f2be67225471: Pulling fs layer
+2026-10-23T17:50:39.5898432Z d9b4aee93490: Pulling fs layer
+2026-10-23T17:50:39.5901185Z 46109ed24d00: Pulling fs layer
+2026-10-23T17:50:39.5902927Z b1c4822f4553: Pulling fs layer
+2026-10-23T17:50:39.5904573Z 48eee0ea92d8: Pulling fs layer
+2026-10-23T17:50:39.5906453Z ef42abb17c7a: Pulling fs layer
+2026-10-23T17:50:39.5908039Z c85ce0e29e80: Pulling fs layer
+2026-10-23T17:50:39.5909772Z 9fbbdc3bcbff: Pulling fs layer
+2026-10-23T17:50:39.5911386Z c79a7210985e: Pulling fs layer
+2026-10-23T17:50:39.5913362Z e9da7c9f979b: Pulling fs layer
+2026-10-23T17:50:39.5914894Z 852f46917486: Pulling fs layer
+2026-10-23T17:50:39.5916473Z 393ce45a5829: Pulling fs layer
+2026-10-23T17:50:39.5918003Z 25140b6d6501: Pulling fs layer
+2026-10-23T17:50:39.5919655Z f2010d5c8971: Pulling fs layer
+2026-10-23T17:50:39.5921217Z 48eee0ea92d8: Waiting
+2026-10-23T17:50:39.5923047Z ef42abb17c7a: Waiting
+2026-10-23T17:50:39.5924798Z c85ce0e29e80: Waiting
+2026-10-23T17:50:39.5926589Z 9fbbdc3bcbff: Waiting
+2026-10-23T17:50:39.5928506Z b1c4822f4553: Waiting
+2026-10-23T17:50:39.5930488Z c79a7210985e: Waiting
+2026-10-23T17:50:39.5932573Z e9da7c9f979b: Waiting
+2026-10-23T17:50:39.5934427Z 852f46917486: Waiting
+2026-10-23T17:50:39.5936197Z 25140b6d6501: Waiting
+2026-10-23T17:50:39.5937997Z f2010d5c8971: Waiting
+2026-10-23T17:50:39.5939995Z 393ce45a5829: Waiting
+2026-10-23T17:50:39.6746169Z d9b4aee93490: Download complete
+2026-10-23T17:50:39.7112806Z 46109ed24d00: Verifying Checksum
+2026-10-23T17:50:39.7114975Z 46109ed24d00: Download complete
+2026-10-23T17:50:39.7735680Z b1c4822f4553: Verifying Checksum
+2026-10-23T17:50:39.7896318Z f2be67225471: Verifying Checksum
+2026-10-23T17:50:39.7898809Z f2be67225471: Download complete
+2026-10-23T17:50:39.8510078Z 48eee0ea92d8: Verifying Checksum
+2026-10-23T17:50:39.8512780Z 48eee0ea92d8: Download complete
+2026-10-23T17:50:39.8640149Z ef42abb17c7a: Verifying Checksum
+2026-10-23T17:50:39.8642026Z ef42abb17c7a: Download complete
+2026-10-23T17:50:39.8821778Z c85ce0e29e80: Download complete
+2026-10-23T17:50:39.9495407Z 9fbbdc3bcbff: Verifying Checksum
+2026-10-23T17:50:39.9497272Z 9fbbdc3bcbff: Download complete
+2026-10-23T17:50:39.9722994Z e9da7c9f979b: Download complete
+2026-10-23T17:50:40.0437565Z 852f46917486: Verifying Checksum
+2026-10-23T17:50:40.0440518Z 852f46917486: Download complete
+2026-10-23T17:50:40.0554367Z 393ce45a5829: Verifying Checksum
+2026-10-23T17:50:40.0557412Z 393ce45a5829: Download complete
+2026-10-23T17:50:40.1278465Z 25140b6d6501: Verifying Checksum
+2026-10-23T17:50:40.1281182Z 25140b6d6501: Download complete
+2026-10-23T17:50:40.1283517Z f2010d5c8971: Verifying Checksum
+2026-10-23T17:50:40.1285873Z f2010d5c8971: Download complete
+2026-10-23T17:50:40.3516430Z c79a7210985e: Verifying Checksum
+2026-10-23T17:50:40.3519402Z c79a7210985e: Download complete
+2026-10-23T17:50:40.9159662Z f2be67225471: Pull complete
+2026-10-23T17:50:41.1943114Z d9b4aee93490: Pull complete
+2026-10-23T17:50:41.3694975Z 46109ed24d00: Pull complete
+2026-10-23T17:50:41.4050951Z b1c4822f4553: Pull complete
+2026-10-23T17:50:41.6986095Z 48eee0ea92d8: Pull complete
+2026-10-23T17:50:41.7686289Z ef42abb17c7a: Pull complete
+2026-10-23T17:50:41.7747423Z c85ce0e29e80: Pull complete
+2026-10-23T17:50:41.7824358Z 9fbbdc3bcbff: Pull complete
+2026-10-23T17:50:44.8160259Z c79a7210985e: Pull complete
+2026-10-23T17:50:44.8276926Z e9da7c9f979b: Pull complete
+2026-10-23T17:50:44.8357133Z 852f46917486: Pull complete
+2026-10-23T17:50:44.8434859Z 393ce45a5829: Pull complete
+2026-10-23T17:50:44.8540528Z 25140b6d6501: Pull complete
+2026-10-23T17:50:44.8614910Z f2010d5c8971: Pull complete
+2026-10-23T17:50:44.8647249Z Digest: sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+2026-10-23T17:50:44.8657592Z Status: Downloaded newer image for postgres:16
+2026-10-23T17:50:44.8666343Z docker.io/library/postgres:16
+2026-10-23T17:50:44.8757070Z ##[command]/usr/bin/docker create --name 3ed48799219a440dac583003651f5846_postgres16_cf591b --label 466ac2 --network github_network_a3adf93c7bc94400b3dc3f42c883b234 --network-alias postgres -p 5432:5432 --health-cmd="pg_isready -U django_user -d kaupamex_ci_39998384770_1" --health-interval=10s --health-timeout=5s --health-retries=10 -e "POSTGRES_DB=kaupamex_ci_39998384770_1" -e "POSTGRES_USER=django_user" -e "POSTGRES_PASSWORD=django_pass" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+2026-10-23T17:50:44.8996847Z 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:44.9020944Z ##[command]/usr/bin/docker start 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:45.0992397Z 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:45.1038763Z ##[command]/usr/bin/docker ps --all --filter id=91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-10-23T17:50:45.1189149Z 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653 Up Less than a second (health: starting)
+2026-10-23T17:50:45.1209678Z ##[command]/usr/bin/docker port 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:45.1348853Z 5432/tcp -> 0.0.0.0:5432
+2026-10-23T17:50:45.1349731Z 5432/tcp -> [::]:5432
+2026-10-23T17:50:45.1402291Z ##[endgroup]
+2026-10-23T17:50:45.1412368Z ##[group]Waiting for all services to be ready
+2026-10-23T17:50:45.1429110Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:45.1583287Z starting
+2026-10-23T17:50:45.1611057Z postgres service is starting, waiting 2 seconds before checking again.
+2026-10-23T17:50:47.1616540Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:47.1765051Z starting
+2026-10-23T17:50:47.1778868Z postgres service is starting, waiting 3 seconds before checking again.
+2026-10-23T17:50:51.0337462Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:51.0471176Z starting
+2026-10-23T17:50:51.0484582Z postgres service is starting, waiting 7 seconds before checking again.
+2026-10-23T17:50:58.3200151Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:50:58.3327733Z healthy
+2026-10-23T17:50:58.3343498Z postgres service is healthy.
+2026-10-23T17:50:58.3344275Z ##[endgroup]
+2026-10-23T17:50:58.3623452Z ##[group]Run actions/checkout@v4
+2026-10-23T17:50:58.3623949Z with:
+2026-10-23T17:50:58.3624184Z   repository: jcg-admin/kaupamex-api
+2026-10-23T17:50:58.3626774Z   token: ***
+2026-10-23T17:50:58.3627000Z   ssh-strict: true
+2026-10-23T17:50:58.3627223Z   ssh-user: git
+2026-10-23T17:50:58.3627444Z   persist-credentials: true
+2026-10-23T17:50:58.3627697Z   clean: true
+2026-10-23T17:50:58.3627921Z   sparse-checkout-cone-mode: true
+2026-10-23T17:50:58.3628188Z   fetch-depth: 1
+2026-10-23T17:50:58.3628406Z   fetch-tags: false
+2026-10-23T17:50:58.3628623Z   show-progress: true
+2026-10-23T17:50:58.3628839Z   lfs: false
+2026-10-23T17:50:58.3629033Z   submodules: false
+2026-10-23T17:50:58.3629249Z   set-safe-directory: true
+2026-10-23T17:50:58.3629759Z   allow-unsafe-pr-checkout: false
+2026-10-23T17:50:58.3630289Z env:
+2026-10-23T17:50:58.3630527Z   DJANGO_SETTINGS_MODULE: config.settings.testing
+2026-10-23T17:50:58.3630860Z   PYTHONPATH: src
+2026-10-23T17:50:58.3631176Z   SECRET_KEY: ci-insecure-key-not-for-production
+2026-10-23T17:50:58.3631495Z   DB_QA_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:50:58.3631798Z   CI_DATABASE_DISPOSABLE: kaupamex_ci_39998384770_1
+2026-10-23T17:50:58.3632095Z   DB_QA_SOCKET: 
+2026-10-23T17:50:58.3632290Z   DB_SOCKET: 
+2026-10-23T17:50:58.3632493Z   DB_QA_USER: django_user
+2026-10-23T17:50:58.3632735Z   DB_QA_PASSWORD: django_pass
+2026-10-23T17:50:58.3632976Z   DB_QA_HOST: 127.0.0.1
+2026-10-23T17:50:58.3633208Z   DB_QA_PORT: 5432
+2026-10-23T17:50:58.3633422Z   DB_QA_SSL_MODE: disable
+2026-10-23T17:50:58.3633783Z   DB_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:50:58.3634068Z   DB_USER: django_user
+2026-10-23T17:50:58.3634291Z   DB_PASSWORD: django_pass
+2026-10-23T17:50:58.3634518Z   DB_HOST: 127.0.0.1
+2026-10-23T17:50:58.3634726Z   DB_PORT: 5432
+2026-10-23T17:50:58.3634943Z ##[endgroup]
+2026-10-23T17:50:58.4690586Z Syncing repository: jcg-admin/kaupamex-api
+2026-10-23T17:50:58.4692496Z ##[group]Getting Git version info
+2026-10-23T17:50:58.4692940Z Working directory is '/home/runner/work/kaupamex-api/kaupamex-api'
+2026-10-23T17:50:58.4693538Z [command]/usr/bin/git version
+2026-10-23T17:50:58.4738328Z git version 2.55.0
+2026-10-23T17:50:58.4759337Z ##[endgroup]
+2026-10-23T17:50:58.4775596Z Temporarily overriding HOME='/home/runner/work/_temp/dff28389-b570-40dd-bc89-6432848284aa' before making global git config changes
+2026-10-23T17:50:58.4777432Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-23T17:50:58.4782791Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/kaupamex-api/kaupamex-api
+2026-10-23T17:50:58.4836768Z Deleting the contents of '/home/runner/work/kaupamex-api/kaupamex-api'
+2026-10-23T17:50:58.4844384Z ##[group]Initializing the repository
+2026-10-23T17:50:58.4845050Z [command]/usr/bin/git init /home/runner/work/kaupamex-api/kaupamex-api
+2026-10-23T17:50:58.4920548Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-23T17:50:58.4924495Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-23T17:50:58.4925167Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-23T17:50:58.4925685Z hint: call:
+2026-10-23T17:50:58.4925980Z hint:
+2026-10-23T17:50:58.4926422Z hint: 	git config --global init.defaultBranch <name>
+2026-10-23T17:50:58.4926957Z hint:
+2026-10-23T17:50:58.4927400Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-23T17:50:58.4927918Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-23T17:50:58.4928300Z hint:
+2026-10-23T17:50:58.4928517Z hint: 	git branch -m <name>
+2026-10-23T17:50:58.4928750Z hint:
+2026-10-23T17:50:58.4929083Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-23T17:50:58.4930173Z Initialized empty Git repository in /home/runner/work/kaupamex-api/kaupamex-api/.git/
+2026-10-23T17:50:58.4935049Z [command]/usr/bin/git remote add origin https://github.com/jcg-admin/kaupamex-api
+2026-10-23T17:50:58.4981892Z ##[endgroup]
+2026-10-23T17:50:58.4982533Z ##[group]Disabling automatic garbage collection
+2026-10-23T17:50:58.4986920Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-23T17:50:58.5020045Z ##[endgroup]
+2026-10-23T17:50:58.5020939Z ##[group]Setting up auth
+2026-10-23T17:50:58.5029042Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-23T17:50:58.5065610Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-23T17:50:58.5418306Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-23T17:50:58.5463021Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-23T17:50:58.5727200Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-23T17:50:58.5768185Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-23T17:50:58.6011215Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-23T17:50:58.6055238Z ##[endgroup]
+2026-10-23T17:50:58.6055822Z ##[group]Fetching the repository
+2026-10-23T17:50:58.6063999Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +316928ac7ac8b3508b9bb77f0fa71cc3108e7d4f:refs/remotes/pull/109/merge
+2026-10-23T17:51:00.7289768Z From https://github.com/jcg-admin/kaupamex-api
+2026-10-23T17:51:00.7290733Z  * [new ref]         316928ac7ac8b3508b9bb77f0fa71cc3108e7d4f -> pull/109/merge
+2026-10-23T17:51:00.7294820Z ##[endgroup]
+2026-10-23T17:51:00.7295561Z ##[group]Determining the checkout info
+2026-10-23T17:51:00.7297943Z ##[endgroup]
+2026-10-23T17:51:00.7305376Z [command]/usr/bin/git sparse-checkout disable
+2026-10-23T17:51:00.7356409Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-23T17:51:00.7389207Z ##[group]Checking out the ref
+2026-10-23T17:51:00.7393528Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/109/merge
+2026-10-23T17:51:01.3401802Z Note: switching to 'refs/remotes/pull/109/merge'.
+2026-10-23T17:51:01.3402300Z 
+2026-10-23T17:51:01.3402618Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-23T17:51:01.3403359Z changes and commit them, and you can discard any commits you make in this
+2026-10-23T17:51:01.3404098Z state without impacting any branches by switching back to a branch.
+2026-10-23T17:51:01.3404650Z 
+2026-10-23T17:51:01.3404939Z If you want to create a new branch to retain commits you create, you may
+2026-10-23T17:51:01.3405669Z do so (now or later) by using -c with the switch command. Example:
+2026-10-23T17:51:01.3406082Z 
+2026-10-23T17:51:01.3406258Z   git switch -c <new-branch-name>
+2026-10-23T17:51:01.3406538Z 
+2026-10-23T17:51:01.3406693Z Or undo this operation with:
+2026-10-23T17:51:01.3406953Z 
+2026-10-23T17:51:01.3407083Z   git switch -
+2026-10-23T17:51:01.3407309Z 
+2026-10-23T17:51:01.3407647Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-23T17:51:01.3408142Z 
+2026-10-23T17:51:01.3408714Z HEAD is now at 316928a Merge 4ea6c30ea7442cd871a73c538ee5b1230c0e48d5 into ed55e6d5ff4879f0e7170ed1daf5fb90eff6154f
+2026-10-23T17:51:01.3436325Z ##[endgroup]
+2026-10-23T17:51:01.3487721Z [command]/usr/bin/git log -1 --format=%H
+2026-10-23T17:51:01.3518623Z 316928ac7ac8b3508b9bb77f0fa71cc3108e7d4f
+2026-10-23T17:51:01.3765620Z ##[group]Run astral-sh/setup-uv@v5
+2026-10-23T17:51:01.3765912Z with:
+2026-10-23T17:51:01.3768420Z   github-token: ***
+2026-10-23T17:51:01.3768667Z   enable-cache: auto
+2026-10-23T17:51:01.3768984Z   cache-dependency-glob: **/uv.lock
+**/requirements*.txt
+
+2026-10-23T17:51:01.3769322Z   prune-cache: true
+2026-10-23T17:51:01.3769724Z   ignore-nothing-to-cache: false
+2026-10-23T17:51:01.3770001Z   ignore-empty-workdir: false
+2026-10-23T17:51:01.3770265Z env:
+2026-10-23T17:51:01.3770550Z   DJANGO_SETTINGS_MODULE: config.settings.testing
+2026-10-23T17:51:01.3770871Z   PYTHONPATH: src
+2026-10-23T17:51:01.3771136Z   SECRET_KEY: ci-insecure-key-not-for-production
+2026-10-23T17:51:01.3771456Z   DB_QA_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:51:01.3771762Z   CI_DATABASE_DISPOSABLE: kaupamex_ci_39998384770_1
+2026-10-23T17:51:01.3772064Z   DB_QA_SOCKET: 
+2026-10-23T17:51:01.3772263Z   DB_SOCKET: 
+2026-10-23T17:51:01.3772481Z   DB_QA_USER: django_user
+2026-10-23T17:51:01.3772790Z   DB_QA_PASSWORD: django_pass
+2026-10-23T17:51:01.3773039Z   DB_QA_HOST: 127.0.0.1
+2026-10-23T17:51:01.3773266Z   DB_QA_PORT: 5432
+2026-10-23T17:51:01.3773484Z   DB_QA_SSL_MODE: disable
+2026-10-23T17:51:01.3773732Z   DB_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:51:01.3773996Z   DB_USER: django_user
+2026-10-23T17:51:01.3774225Z   DB_PASSWORD: django_pass
+2026-10-23T17:51:01.3774459Z   DB_HOST: 127.0.0.1
+2026-10-23T17:51:01.3774681Z   DB_PORT: 5432
+2026-10-23T17:51:01.3774892Z ##[endgroup]
+2026-10-23T17:51:01.5537869Z (node:2781) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-23T17:51:01.5539015Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-23T17:51:01.8435204Z Downloading uv from "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-x86_64-unknown-linux-gnu.tar.gz" ...
+2026-10-23T17:51:02.1031148Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/4a47092f-ccf2-47d0-a8f7-ba8b682468a0 -f /home/runner/work/_temp/b81dd6ab-5436-427f-8dc4-0c79e40e7eda
+2026-10-23T17:51:02.4345882Z Added /home/runner/.local/bin to the path
+2026-10-23T17:51:02.4349304Z Added /opt/hostedtoolcache/uv/0.13.5/x86_64 to the path
+2026-10-23T17:51:02.4369141Z Set UV_CACHE_DIR to /home/runner/work/_temp/setup-uv-cache
+2026-10-23T17:51:02.4369847Z Successfully installed uv version 0.13.5
+2026-10-23T17:51:02.4370314Z Searching files using cache dependency glob: **/uv.lock,**/requirements*.txt
+2026-10-23T17:51:02.9056348Z /home/runner/work/kaupamex-api/kaupamex-api/uv.lock
+2026-10-23T17:51:02.9076686Z Found 1 files to hash.
+2026-10-23T17:51:02.9748044Z Trying to restore uv cache from GitHub Actions cache with key: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-c4e36650f94c83c6b22a75b5223c3097b4ac49b8a49f96dc4282909b704426b9
+2026-10-23T17:51:03.0842629Z No GitHub Actions cache found for key: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-c4e36650f94c83c6b22a75b5223c3097b4ac49b8a49f96dc4282909b704426b9
+2026-10-23T17:51:03.1003743Z ##[group]Run sudo apt-get update -qq
+2026-10-23T17:51:03.1004136Z [36;1msudo apt-get update -qq[0m
+2026-10-23T17:51:03.1004532Z [36;1m# Las dos que declara src/tools/pdf/Makefile:16, NO libhpdf-dev.[0m
+2026-10-23T17:51:03.1005069Z [36;1m# libharu 2.4.6 va vendorizado en vendor/libharu, asi que el paquete[0m
+2026-10-23T17:51:03.1005553Z [36;1m# del distro no aporta nada: el compilador lee las fuentes del repo.[0m
+2026-10-23T17:51:03.1006001Z [36;1m# Lo que si hace falta es lo que ESAS fuentes incluyen —[0m
+2026-10-23T17:51:03.1006443Z [36;1m# hpdf_image_png.c:23 hace #include <png.h>— y lo que el enlace pide[0m
+2026-10-23T17:51:03.1006899Z [36;1m# (LDLIBS := -lpng -lz -lm). Sin ellas: "png.h: No such file".[0m
+2026-10-23T17:51:03.1007372Z [36;1msudo apt-get install -y -qq zlib1g-dev libpng-dev postgresql-client[0m
+2026-10-23T17:51:03.1198454Z shell: /usr/bin/bash -e {0}
+2026-10-23T17:51:03.1198731Z env:
+2026-10-23T17:51:03.1199067Z   DJANGO_SETTINGS_MODULE: config.settings.testing
+2026-10-23T17:51:03.1199405Z   PYTHONPATH: src
+2026-10-23T17:51:03.1199849Z   SECRET_KEY: ci-insecure-key-not-for-production
+2026-10-23T17:51:03.1200174Z   DB_QA_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:51:03.1200500Z   CI_DATABASE_DISPOSABLE: kaupamex_ci_39998384770_1
+2026-10-23T17:51:03.1200818Z   DB_QA_SOCKET: 
+2026-10-23T17:51:03.1225411Z   DB_SOCKET: 
+2026-10-23T17:51:03.1225676Z   DB_QA_USER: django_user
+2026-10-23T17:51:03.1225953Z   DB_QA_PASSWORD: django_pass
+2026-10-23T17:51:03.1226218Z   DB_QA_HOST: 127.0.0.1
+2026-10-23T17:51:03.1226460Z   DB_QA_PORT: 5432
+2026-10-23T17:51:03.1226679Z   DB_QA_SSL_MODE: disable
+2026-10-23T17:51:03.1226918Z   DB_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:51:03.1227192Z   DB_USER: django_user
+2026-10-23T17:51:03.1227424Z   DB_PASSWORD: django_pass
+2026-10-23T17:51:03.1227652Z   DB_HOST: 127.0.0.1
+2026-10-23T17:51:03.1227856Z   DB_PORT: 5432
+2026-10-23T17:51:03.1228109Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+2026-10-23T17:51:03.1228446Z ##[endgroup]
+2026-10-23T17:51:08.7655637Z (Reading database ... 
+2026-10-23T17:51:08.7656282Z (Reading database ... 5%
+2026-10-23T17:51:08.7656720Z (Reading database ... 10%
+2026-10-23T17:51:08.7657095Z (Reading database ... 15%
+2026-10-23T17:51:08.7657424Z (Reading database ... 20%
+2026-10-23T17:51:08.7657780Z (Reading database ... 25%
+2026-10-23T17:51:08.7658136Z (Reading database ... 30%
+2026-10-23T17:51:08.7658466Z (Reading database ... 35%
+2026-10-23T17:51:08.7658772Z (Reading database ... 40%
+2026-10-23T17:51:08.7659081Z (Reading database ... 45%
+2026-10-23T17:51:08.7659387Z (Reading database ... 50%
+2026-10-23T17:51:08.7700097Z (Reading database ... 55%
+2026-10-23T17:51:08.8549286Z (Reading database ... 60%
+2026-10-23T17:51:09.0455805Z (Reading database ... 65%
+2026-10-23T17:51:09.2499952Z (Reading database ... 70%
+2026-10-23T17:51:09.4526764Z (Reading database ... 75%
+2026-10-23T17:51:09.5530039Z (Reading database ... 80%
+2026-10-23T17:51:09.6970758Z (Reading database ... 85%
+2026-10-23T17:51:09.8280333Z (Reading database ... 90%
+2026-10-23T17:51:09.9972585Z (Reading database ... 95%
+2026-10-23T17:51:09.9973020Z (Reading database ... 100%
+2026-10-23T17:51:09.9973555Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-23T17:51:10.0021762Z Preparing to unpack .../zlib1g-dev_1%3a1.3.dfsg-3.1ubuntu2.3_amd64.deb ...
+2026-10-23T17:51:10.0055878Z Unpacking zlib1g-dev:amd64 (1:1.3.dfsg-3.1ubuntu2.3) over (1:1.3.dfsg-3.1ubuntu2.2) ...
+2026-10-23T17:51:10.0574982Z Preparing to unpack .../zlib1g_1%3a1.3.dfsg-3.1ubuntu2.3_amd64.deb ...
+2026-10-23T17:51:10.0684164Z Unpacking zlib1g:amd64 (1:1.3.dfsg-3.1ubuntu2.3) over (1:1.3.dfsg-3.1ubuntu2.2) ...
+2026-10-23T17:51:10.1066356Z Setting up zlib1g:amd64 (1:1.3.dfsg-3.1ubuntu2.3) ...
+2026-10-23T17:51:10.1310465Z Selecting previously unselected package libpng-dev:amd64.
+2026-10-23T17:51:10.1373496Z (Reading database ... 
+2026-10-23T17:51:10.1374311Z (Reading database ... 5%
+2026-10-23T17:51:10.1374712Z (Reading database ... 10%
+2026-10-23T17:51:10.1375518Z (Reading database ... 15%
+2026-10-23T17:51:10.1375839Z (Reading database ... 20%
+2026-10-23T17:51:10.1376069Z (Reading database ... 25%
+2026-10-23T17:51:10.1376294Z (Reading database ... 30%
+2026-10-23T17:51:10.1376533Z (Reading database ... 35%
+2026-10-23T17:51:10.1376753Z (Reading database ... 40%
+2026-10-23T17:51:10.1376981Z (Reading database ... 45%
+2026-10-23T17:51:10.1377220Z (Reading database ... 50%
+2026-10-23T17:51:10.1384578Z (Reading database ... 55%
+2026-10-23T17:51:10.1498916Z (Reading database ... 60%
+2026-10-23T17:51:10.1530147Z (Reading database ... 65%
+2026-10-23T17:51:10.1553029Z (Reading database ... 70%
+2026-10-23T17:51:10.1590456Z (Reading database ... 75%
+2026-10-23T17:51:10.1620686Z (Reading database ... 80%
+2026-10-23T17:51:10.1648666Z (Reading database ... 85%
+2026-10-23T17:51:10.1997546Z (Reading database ... 90%
+2026-10-23T17:51:10.2099148Z (Reading database ... 95%
+2026-10-23T17:51:10.2099675Z (Reading database ... 100%
+2026-10-23T17:51:10.2100163Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-23T17:51:10.2145708Z Preparing to unpack .../libpng-dev_1.6.43-5ubuntu0.7_amd64.deb ...
+2026-10-23T17:51:10.2153320Z Unpacking libpng-dev:amd64 (1.6.43-5ubuntu0.7) ...
+2026-10-23T17:51:10.2430896Z Selecting previously unselected package libpng-tools.
+2026-10-23T17:51:10.2559680Z Preparing to unpack .../libpng-tools_1.6.43-5ubuntu0.7_amd64.deb ...
+2026-10-23T17:51:10.2565477Z Unpacking libpng-tools (1.6.43-5ubuntu0.7) ...
+2026-10-23T17:51:10.2756991Z Selecting previously unselected package postgresql-client.
+2026-10-23T17:51:10.2886790Z Preparing to unpack .../postgresql-client_16+257build1.1_all.deb ...
+2026-10-23T17:51:10.2892485Z Unpacking postgresql-client (16+257build1.1) ...
+2026-10-23T17:51:10.3254362Z Setting up postgresql-client (16+257build1.1) ...
+2026-10-23T17:51:10.3270129Z Setting up libpng-tools (1.6.43-5ubuntu0.7) ...
+2026-10-23T17:51:10.3283413Z Setting up zlib1g-dev:amd64 (1:1.3.dfsg-3.1ubuntu2.3) ...
+2026-10-23T17:51:10.3297312Z Setting up libpng-dev:amd64 (1.6.43-5ubuntu0.7) ...
+2026-10-23T17:51:10.3313043Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-23T17:51:10.3584428Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-23T17:51:10.3601604Z Not building database; man-db/auto-update is not 'true'.
+2026-10-23T17:51:10.7528038Z 
+2026-10-23T17:51:10.7528631Z Running kernel seems to be up-to-date.
+2026-10-23T17:51:10.7528981Z 
+2026-10-23T17:51:10.7529129Z Restarting services...
+2026-10-23T17:51:10.8127004Z  systemctl restart packagekit.service php8.3-fpm.service polkit.service rsyslog.service udisks2.service
+2026-10-23T17:51:10.9870079Z 
+2026-10-23T17:51:10.9870707Z Service restarts being deferred:
+2026-10-23T17:51:10.9871222Z  systemctl restart ModemManager.service
+2026-10-23T17:51:10.9871759Z  systemctl restart networkd-dispatcher.service
+2026-10-23T17:51:10.9872282Z  systemctl restart walinuxagent.service
+2026-10-23T17:51:10.9872582Z 
+2026-10-23T17:51:10.9872748Z No containers need to be restarted.
+2026-10-23T17:51:10.9873057Z 
+2026-10-23T17:51:10.9873253Z No user sessions are running outdated binaries.
+2026-10-23T17:51:10.9873574Z 
+2026-10-23T17:51:10.9873886Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-23T17:51:12.0124854Z ##[group]Run make ci-verify
+2026-10-23T17:51:12.0125213Z [36;1mmake ci-verify[0m
+2026-10-23T17:51:12.0194421Z shell: /usr/bin/bash -e {0}
+2026-10-23T17:51:12.0194687Z env:
+2026-10-23T17:51:12.0194947Z   DJANGO_SETTINGS_MODULE: config.settings.testing
+2026-10-23T17:51:12.0195293Z   PYTHONPATH: src
+2026-10-23T17:51:12.0195555Z   SECRET_KEY: ci-insecure-key-not-for-production
+2026-10-23T17:51:12.0195925Z   DB_QA_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:51:12.0196253Z   CI_DATABASE_DISPOSABLE: kaupamex_ci_39998384770_1
+2026-10-23T17:51:12.0196564Z   DB_QA_SOCKET: 
+2026-10-23T17:51:12.0196770Z   DB_SOCKET: 
+2026-10-23T17:51:12.0196979Z   DB_QA_USER: django_user
+2026-10-23T17:51:12.0197225Z   DB_QA_PASSWORD: django_pass
+2026-10-23T17:51:12.0197478Z   DB_QA_HOST: 127.0.0.1
+2026-10-23T17:51:12.0197700Z   DB_QA_PORT: 5432
+2026-10-23T17:51:12.0197927Z   DB_QA_SSL_MODE: disable
+2026-10-23T17:51:12.0198176Z   DB_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:51:12.0198503Z   DB_USER: django_user
+2026-10-23T17:51:12.0198745Z   DB_PASSWORD: django_pass
+2026-10-23T17:51:12.0198978Z   DB_HOST: 127.0.0.1
+2026-10-23T17:51:12.0199189Z   DB_PORT: 5432
+2026-10-23T17:51:12.0199659Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+2026-10-23T17:51:12.0199983Z ##[endgroup]
+2026-10-23T17:51:12.0310599Z uv sync --frozen
+2026-10-23T17:51:12.0362140Z warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+2026-10-23T17:51:12.0810954Z Using CPython 3.12.3 interpreter at: /usr/bin/python3.12
+2026-10-23T17:51:12.0811569Z Creating virtual environment at: .venv
+2026-10-23T17:51:12.1661816Z Downloading babel (9.7MiB)
+2026-10-23T17:51:12.1827853Z Downloading python-stdnum (1.1MiB)
+2026-10-23T17:51:12.1832075Z Downloading psycopg-binary (4.9MiB)
+2026-10-23T17:51:12.1834669Z Downloading cryptography (4.5MiB)
+2026-10-23T17:51:12.1838302Z Downloading lxml (5.0MiB)
+2026-10-23T17:51:12.1839199Z Downloading djangorestframework (1.0MiB)
+2026-10-23T17:51:12.1848975Z Downloading pillow (6.8MiB)
+2026-10-23T17:51:12.1860433Z Downloading faker (1.9MiB)
+2026-10-23T17:51:12.1865318Z Downloading pynacl (1.3MiB)
+2026-10-23T17:51:12.1870955Z Downloading django (8.0MiB)
+2026-10-23T17:51:12.3980704Z  Downloaded pynacl
+2026-10-23T17:51:12.4040410Z  Downloaded djangorestframework
+2026-10-23T17:51:12.4228632Z  Downloaded python-stdnum
+2026-10-23T17:51:12.4620661Z  Downloaded psycopg-binary
+2026-10-23T17:51:12.4824579Z  Downloaded lxml
+2026-10-23T17:51:12.4861142Z  Downloaded cryptography
+2026-10-23T17:51:12.4947846Z  Downloaded pillow
+2026-10-23T17:51:12.5161233Z  Downloaded faker
+2026-10-23T17:51:12.6006757Z  Downloaded babel
+2026-10-23T17:51:12.7504181Z  Downloaded django
+2026-10-23T17:51:12.7506939Z Prepared 67 packages in 662ms
+2026-10-23T17:51:12.9854500Z Installed 67 packages in 234ms
+2026-10-23T17:51:12.9855536Z  + asgiref==3.11.1
+2026-10-23T17:51:12.9855913Z  + attrs==26.1.0
+2026-10-23T17:51:12.9856403Z  + babel==2.18.0
+2026-10-23T17:51:12.9856911Z  + bcrypt==5.0.0
+2026-10-23T17:51:12.9857504Z  + cbor2==5.9.0
+2026-10-23T17:51:12.9857966Z  + certifi==2026.5.20
+2026-10-23T17:51:12.9858314Z  + cffi==2.0.0
+2026-10-23T17:51:12.9858837Z  + charset-normalizer==3.4.7
+2026-10-23T17:51:12.9859410Z  + cryptography==48.0.0
+2026-10-23T17:51:12.9860048Z  + django==6.0.5
+2026-10-23T17:51:12.9860619Z  + django-cors-headers==4.9.0
+2026-10-23T17:51:12.9861207Z  + django-extensions==3.2.3
+2026-10-23T17:51:12.9861798Z  + djangorestframework==3.16.1
+2026-10-23T17:51:12.9862402Z  + djangorestframework-simplejwt==5.5.1
+2026-10-23T17:51:12.9862896Z  + drf-spectacular==0.29.0
+2026-10-23T17:51:12.9863298Z  + execnet==2.1.2
+2026-10-23T17:51:12.9863739Z  + factory-boy==3.3.0
+2026-10-23T17:51:12.9864260Z  + faker==40.20.0
+2026-10-23T17:51:12.9864954Z  + gunicorn==26.0.0
+2026-10-23T17:51:12.9865375Z  + idna==3.17
+2026-10-23T17:51:12.9865854Z  + inflection==0.5.1
+2026-10-23T17:51:12.9866372Z  + iniconfig==2.3.0
+2026-10-23T17:51:12.9866905Z  + invoke==3.0.3
+2026-10-23T17:51:12.9867847Z  + isodate==0.7.2
+2026-10-23T17:51:12.9868187Z  + jsonschema==4.26.0
+2026-10-23T17:51:12.9868701Z  + jsonschema-specifications==2025.9.1
+2026-10-23T17:51:12.9869213Z  + lxml==6.1.1
+2026-10-23T17:51:12.9869758Z  + markupsafe==3.0.3
+2026-10-23T17:51:12.9870152Z  + mercadopago==3.2.0
+2026-10-23T17:51:12.9870600Z  + packaging==26.2
+2026-10-23T17:51:12.9871109Z  + paramiko==5.0.0
+2026-10-23T17:51:12.9871518Z  + passlib==1.7.4
+2026-10-23T17:51:12.9872057Z  + pillow==12.2.0
+2026-10-23T17:51:12.9872538Z  + platformdirs==4.11.5
+2026-10-23T17:51:12.9873234Z  + pluggy==1.6.0
+2026-10-23T17:51:12.9873697Z  + psutil==7.2.2
+2026-10-23T17:51:12.9874273Z  + psycopg==3.3.4
+2026-10-23T17:51:12.9874795Z  + psycopg-binary==3.3.4
+2026-10-23T17:51:12.9875320Z  + pyasn1==0.6.4
+2026-10-23T17:51:12.9875891Z  + pyasn1-modules==0.4.2
+2026-10-23T17:51:12.9876322Z  + pycparser==3.0
+2026-10-23T17:51:12.9876869Z  + pyjwt==2.13.0
+2026-10-23T17:51:12.9877408Z  + pynacl==1.6.2
+2026-10-23T17:51:12.9877934Z  + pyopenssl==26.2.0
+2026-10-23T17:51:12.9878387Z  + pytest==7.4.4
+2026-10-23T17:51:12.9879011Z  + pytest-django==4.7.0
+2026-10-23T17:51:12.9879737Z  + pytest-xdist==3.6.1
+2026-10-23T17:51:12.9881546Z  + python-barcode==0.16.1
+2026-10-23T17:51:12.9882189Z  + python-dateutil==2.9.0.post0
+2026-10-23T17:51:12.9883343Z  + python-decouple==3.8
+2026-10-23T17:51:12.9883934Z  + python-stdnum==2.2
+2026-10-23T17:51:12.9884289Z  + pytz==2026.3.post1
+2026-10-23T17:51:12.9884658Z  + pyyaml==6.0.3
+2026-10-23T17:51:12.9885004Z  + qrcode==8.2
+2026-10-23T17:51:12.9885375Z  + referencing==0.37.0
+2026-10-23T17:51:12.9885716Z  + requests==2.34.2
+2026-10-23T17:51:12.9886065Z  + requests-file==3.0.1
+2026-10-23T17:51:12.9895946Z  + requests-toolbelt==1.0.0
+2026-10-23T17:51:12.9896614Z  + rpds-py==2026.5.1
+2026-10-23T17:51:12.9904938Z  + six==1.17.0
+2026-10-23T17:51:12.9905542Z  + sqlparse==0.5.5
+2026-10-23T17:51:12.9905921Z  + typing-extensions==4.15.0
+2026-10-23T17:51:12.9906303Z  + uritemplate==4.2.0
+2026-10-23T17:51:12.9906618Z  + urllib3==2.7.0
+2026-10-23T17:51:12.9906944Z  + webauthn==2.8.0
+2026-10-23T17:51:12.9907265Z  + xlsxwriter==3.2.9
+2026-10-23T17:51:12.9907563Z  + zeep==4.3.3
+2026-10-23T17:51:12.9946412Z uv run --frozen python scripts/check_ci_database.py
+2026-10-23T17:51:13.0001269Z warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+2026-10-23T17:51:13.8578908Z PASS: destino PostgreSQL desechable autorizado; QA compartida excluida.
+2026-10-23T17:51:13.9007363Z make pdf
+2026-10-23T17:51:13.9023864Z make[1]: Entering directory '/home/runner/work/kaupamex-api/kaupamex-api'
+2026-10-23T17:51:13.9024436Z make -C src/tools/pdf build
+2026-10-23T17:51:13.9041111Z make[2]: Entering directory '/home/runner/work/kaupamex-api/kaupamex-api/src/tools/pdf'
+2026-10-23T17:51:13.9055247Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_3dmeasure.c -o build/obj/hpdf_3dmeasure.o
+2026-10-23T17:51:14.0204127Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_annotation.c -o build/obj/hpdf_annotation.o
+2026-10-23T17:51:14.1982037Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_array.c -o build/obj/hpdf_array.o
+2026-10-23T17:51:14.2755473Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_binary.c -o build/obj/hpdf_binary.o
+2026-10-23T17:51:14.3181646Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_boolean.c -o build/obj/hpdf_boolean.o
+2026-10-23T17:51:14.3420630Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_catalog.c -o build/obj/hpdf_catalog.o
+2026-10-23T17:51:14.4114063Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_destination.c -o build/obj/hpdf_destination.o
+2026-10-23T17:51:14.4799676Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_dict.c -o build/obj/hpdf_dict.o
+2026-10-23T17:51:14.5739622Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_direct.c -o build/obj/hpdf_direct.o
+2026-10-23T17:51:14.6131258Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_doc.c -o build/obj/hpdf_doc.o
+2026-10-23T17:51:14.9743626Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_doc_png.c -o build/obj/hpdf_doc_png.o
+2026-10-23T17:51:15.0208265Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder.c -o build/obj/hpdf_encoder.o
+2026-10-23T17:51:15.1785543Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_cns.c -o build/obj/hpdf_encoder_cns.o
+2026-10-23T17:51:15.3715098Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_cnt.c -o build/obj/hpdf_encoder_cnt.o
+2026-10-23T17:51:15.4680651Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_jp.c -o build/obj/hpdf_encoder_jp.o
+2026-10-23T17:51:15.5942286Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_kr.c -o build/obj/hpdf_encoder_kr.o
+2026-10-23T17:51:15.7504990Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encoder_utf.c -o build/obj/hpdf_encoder_utf.o
+2026-10-23T17:51:15.8066657Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encrypt.c -o build/obj/hpdf_encrypt.o
+2026-10-23T17:51:15.9516064Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_encryptdict.c -o build/obj/hpdf_encryptdict.o
+2026-10-23T17:51:16.0076206Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_error.c -o build/obj/hpdf_error.o
+2026-10-23T17:51:16.0484984Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_exdata.c -o build/obj/hpdf_exdata.o
+2026-10-23T17:51:16.0833747Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_ext_gstate.c -o build/obj/hpdf_ext_gstate.o
+2026-10-23T17:51:16.1345612Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font.c -o build/obj/hpdf_font.o
+2026-10-23T17:51:16.1952054Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_cid.c -o build/obj/hpdf_font_cid.o
+2026-10-23T17:51:16.3778911Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_tt.c -o build/obj/hpdf_font_tt.o
+2026-10-23T17:51:16.4612944Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_font_type1.c -o build/obj/hpdf_font_type1.o
+2026-10-23T17:51:16.5437867Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef.c -o build/obj/hpdf_fontdef.o
+2026-10-23T17:51:16.5788791Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_base14.c -o build/obj/hpdf_fontdef_base14.o
+2026-10-23T17:51:16.6350720Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cid.c -o build/obj/hpdf_fontdef_cid.o
+2026-10-23T17:51:16.6847504Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cns.c -o build/obj/hpdf_fontdef_cns.o
+2026-10-23T17:51:16.7432407Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_cnt.c -o build/obj/hpdf_fontdef_cnt.o
+2026-10-23T17:51:16.7892480Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_jp.c -o build/obj/hpdf_fontdef_jp.o
+2026-10-23T17:51:16.8733969Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_kr.c -o build/obj/hpdf_fontdef_kr.o
+2026-10-23T17:51:16.9553928Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_tt.c -o build/obj/hpdf_fontdef_tt.o
+2026-10-23T17:51:16.9885217Z vendor/libharu/src/hpdf_fontdef_tt.c: In function ‘HPDF_TTFontDef_SaveFontData’:
+2026-10-23T17:51:16.9891536Z vendor/libharu/src/hpdf_fontdef_tt.c:2099:54: warning: comparison of integer expressions of different signedness: ‘HPDF_UINT’ {aka ‘unsigned int’} and ‘int’ [-Wsign-compare]
+2026-10-23T17:51:16.9892975Z  2099 |                 if (attr->glyph_tbl.flgs[j] == 1 || j==attr->num_h_metric-1) {
+2026-10-23T17:51:16.9893646Z       |                                                      ^~
+2026-10-23T17:51:17.3866554Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_fontdef_type1.c -o build/obj/hpdf_fontdef_type1.o
+2026-10-23T17:51:17.4862771Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_gstate.c -o build/obj/hpdf_gstate.o
+2026-10-23T17:51:17.5286983Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image.c -o build/obj/hpdf_image.o
+2026-10-23T17:51:17.6448735Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image_ccitt.c -o build/obj/hpdf_image_ccitt.o
+2026-10-23T17:51:17.7932887Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_image_png.c -o build/obj/hpdf_image_png.o
+2026-10-23T17:51:17.8265472Z vendor/libharu/src/hpdf_image_png.c: In function ‘LoadPngData’:
+2026-10-23T17:51:17.8267532Z vendor/libharu/src/hpdf_image_png.c:463:53: warning: cast between incompatible function types from ‘void (*)(png_struct *, png_byte *, png_uint_32)’ {aka ‘void (*)(struct png_struct_def *, unsigned char *, unsigned int)’} to ‘void (*)(png_struct *, png_byte *, size_t)’ {aka ‘void (*)(struct png_struct_def *, unsigned char *, long unsigned int)’} [-Wcast-function-type]
+2026-10-23T17:51:17.8269782Z   463 |         png_set_read_fn (png_ptr, (void *)png_data, (png_rw_ptr)&PngReadFunc);
+2026-10-23T17:51:17.8270357Z       |                                                     ^
+2026-10-23T17:51:17.9470243Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_info.c -o build/obj/hpdf_info.o
+2026-10-23T17:51:17.9971215Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_list.c -o build/obj/hpdf_list.o
+2026-10-23T17:51:18.0642006Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_mmgr.c -o build/obj/hpdf_mmgr.o
+2026-10-23T17:51:18.1104389Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_name.c -o build/obj/hpdf_name.o
+2026-10-23T17:51:18.1478870Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_namedict.c -o build/obj/hpdf_namedict.o
+2026-10-23T17:51:18.2257114Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_null.c -o build/obj/hpdf_null.o
+2026-10-23T17:51:18.2486424Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_number.c -o build/obj/hpdf_number.o
+2026-10-23T17:51:18.2735285Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_objects.c -o build/obj/hpdf_objects.o
+2026-10-23T17:51:18.3180617Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_outline.c -o build/obj/hpdf_outline.o
+2026-10-23T17:51:18.3840528Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_page_label.c -o build/obj/hpdf_page_label.o
+2026-10-23T17:51:18.4219005Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_page_operator.c -o build/obj/hpdf_page_operator.o
+2026-10-23T17:51:18.8418642Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_pages.c -o build/obj/hpdf_pages.o
+2026-10-23T17:51:19.1653215Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_pdfa.c -o build/obj/hpdf_pdfa.o
+2026-10-23T17:51:19.1840722Z vendor/libharu/src/hpdf_pdfa.c: In function ‘HPDF_PDFA_AddXmpMetadata’:
+2026-10-23T17:51:19.1842330Z vendor/libharu/src/hpdf_pdfa.c:298:28: warning: implicit conversion from ‘enum _HPDF_PDFA_TYPE’ to ‘HPDF_PDFVer’ {aka ‘enum _HPDF_PdfVer’} [-Wenum-conversion]
+2026-10-23T17:51:19.1843406Z   298 |         conformanceVersion = HPDF_PDFA_NON_PDFA;
+2026-10-23T17:51:19.1843862Z       |                            ^
+2026-10-23T17:51:19.2620860Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_real.c -o build/obj/hpdf_real.o
+2026-10-23T17:51:19.2999994Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_shading.c -o build/obj/hpdf_shading.o
+2026-10-23T17:51:19.3537440Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_streams.c -o build/obj/hpdf_streams.o
+2026-10-23T17:51:19.5904554Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_string.c -o build/obj/hpdf_string.o
+2026-10-23T17:51:19.6486416Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_u3d.c -o build/obj/hpdf_u3d.o
+2026-10-23T17:51:19.8079668Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_utils.c -o build/obj/hpdf_utils.o
+2026-10-23T17:51:19.9153512Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild -c vendor/libharu/src/hpdf_xref.c -o build/obj/hpdf_xref.o
+2026-10-23T17:51:19.9865348Z ar rcs build/libhpdf.a build/obj/hpdf_3dmeasure.o build/obj/hpdf_annotation.o build/obj/hpdf_array.o build/obj/hpdf_binary.o build/obj/hpdf_boolean.o build/obj/hpdf_catalog.o build/obj/hpdf_destination.o build/obj/hpdf_dict.o build/obj/hpdf_direct.o build/obj/hpdf_doc.o build/obj/hpdf_doc_png.o build/obj/hpdf_encoder.o build/obj/hpdf_encoder_cns.o build/obj/hpdf_encoder_cnt.o build/obj/hpdf_encoder_jp.o build/obj/hpdf_encoder_kr.o build/obj/hpdf_encoder_utf.o build/obj/hpdf_encrypt.o build/obj/hpdf_encryptdict.o build/obj/hpdf_error.o build/obj/hpdf_exdata.o build/obj/hpdf_ext_gstate.o build/obj/hpdf_font.o build/obj/hpdf_font_cid.o build/obj/hpdf_font_tt.o build/obj/hpdf_font_type1.o build/obj/hpdf_fontdef.o build/obj/hpdf_fontdef_base14.o build/obj/hpdf_fontdef_cid.o build/obj/hpdf_fontdef_cns.o build/obj/hpdf_fontdef_cnt.o build/obj/hpdf_fontdef_jp.o build/obj/hpdf_fontdef_kr.o build/obj/hpdf_fontdef_tt.o build/obj/hpdf_fontdef_type1.o build/obj/hpdf_gstate.o build/obj/hpdf_image.o build/obj/hpdf_image_ccitt.o build/obj/hpdf_image_png.o build/obj/hpdf_info.o build/obj/hpdf_list.o build/obj/hpdf_mmgr.o build/obj/hpdf_name.o build/obj/hpdf_namedict.o build/obj/hpdf_null.o build/obj/hpdf_number.o build/obj/hpdf_objects.o build/obj/hpdf_outline.o build/obj/hpdf_page_label.o build/obj/hpdf_page_operator.o build/obj/hpdf_pages.o build/obj/hpdf_pdfa.o build/obj/hpdf_real.o build/obj/hpdf_shading.o build/obj/hpdf_streams.o build/obj/hpdf_string.o build/obj/hpdf_u3d.o build/obj/hpdf_utils.o build/obj/hpdf_xref.o
+2026-10-23T17:51:20.6096857Z python3 gen_font_c.py build/pdf_fonts.c \
+2026-10-23T17:51:20.6097538Z     liberation_sans_regular=vendor/fonts/liberation-sans/LiberationSans-Regular.ttf \
+2026-10-23T17:51:20.6098122Z     liberation_sans_bold=vendor/fonts/liberation-sans/LiberationSans-Bold.ttf
+2026-10-23T17:51:20.8755849Z cc -O2 -Wall -Wextra -c build/pdf_fonts.c -o build/pdf_fonts.o
+2026-10-23T17:51:21.4908249Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild pdf_receipt.c build/pdf_fonts.o build/libhpdf.a -o pdf_receipt -lpng -lz -lm
+2026-10-23T17:51:21.7475745Z cc -O2 -Wall -Wextra -Ivendor-config -Ivendor/libharu/include -Ibuild pdf_report.c build/pdf_fonts.o build/libhpdf.a -o pdf_report -lpng -lz -lm
+2026-10-23T17:51:21.9547666Z make[2]: Leaving directory '/home/runner/work/kaupamex-api/kaupamex-api/src/tools/pdf'
+2026-10-23T17:51:21.9548927Z make[1]: Leaving directory '/home/runner/work/kaupamex-api/kaupamex-api'
+2026-10-23T17:51:21.9551562Z uv run --frozen pytest --create-db --maxfail=1 -q --junitxml=test-results/pytest.xml
+2026-10-23T17:51:21.9603440Z warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+2026-10-23T17:59:19.5928176Z ........................................................................ [  0%]
+2026-10-23T17:59:21.1560158Z .....E
+2026-10-23T17:59:21.1562172Z ==================================== ERRORS ====================================
+2026-10-23T17:59:21.1563008Z ____ ERROR at setup of TestCartSnapshotsV2.test_saves_cart_and_returns_200 _____
+2026-10-23T17:59:21.1563961Z tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item
+2026-10-23T17:59:21.1564649Z     add_item_to_draft(order, product_f2, quantity=1)
+2026-10-23T17:59:21.1565185Z addons/sale/services.py:125: in add_item_to_draft
+2026-10-23T17:59:21.1565675Z     'name': _line_snapshot_name(product),
+2026-10-23T17:59:21.1566158Z addons/sale/services.py:91: in _line_snapshot_name
+2026-10-23T17:59:21.1566626Z     return str(product)
+2026-10-23T17:59:21.1567060Z addons/product/models/product_product.py:178: in __str__
+2026-10-23T17:59:21.1567640Z     return f'[{self.default_code}] {self.display_name}' \
+2026-10-23T17:59:21.1568151Z src/orm/fields.py:1657: in __get__
+2026-10-23T17:59:21.1568539Z     raise ValueError(
+2026-10-23T17:59:21.1569114Z E   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name
+2026-10-23T17:59:21.1569980Z =============================== warnings summary ===============================
+2026-10-23T17:59:21.1570413Z .venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+2026-10-23T17:59:21.1571304Z   /home/runner/work/kaupamex-api/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+2026-10-23T17:59:21.1572133Z     from crypt import crypt as _crypt
+2026-10-23T17:59:21.1572327Z 
+2026-10-23T17:59:21.1572717Z tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_empty_cart_returns_400
+2026-10-23T17:59:21.1574462Z   /home/runner/work/kaupamex-api/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+2026-10-23T17:59:21.1575961Z     warnings.warn(
+2026-10-23T17:59:21.1576093Z 
+2026-10-23T17:59:21.1576421Z tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_empty_cart_returns_400
+2026-10-23T17:59:21.1578150Z   /home/runner/work/kaupamex-api/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+2026-10-23T17:59:21.1579817Z     warnings.warn(
+2026-10-23T17:59:21.1579938Z 
+2026-10-23T17:59:21.1580175Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2026-10-23T17:59:21.1580736Z - generated xml file: /home/runner/work/kaupamex-api/kaupamex-api/test-results/pytest.xml -
+2026-10-23T17:59:21.1581261Z =========================== short test summary info ============================
+2026-10-23T17:59:21.1584305Z ERROR tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_saves_cart_and_returns_200 - ValueError: Compute method failed to assign product.ProductProduct(1,).display_name
+2026-10-23T17:59:21.1585807Z !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+2026-10-23T17:59:21.1586397Z 77 passed, 1 skipped, 3 warnings, 1 error in 473.44s (0:07:53)
+2026-10-23T17:59:26.9913011Z make: *** [Makefile:147: ci-verify] Error 1
+2026-10-23T17:59:26.9931313Z ##[error]Process completed with exit code 2.
+2026-10-23T17:59:27.0020160Z ##[group]Run actions/upload-artifact@v4
+2026-10-23T17:59:27.0020465Z with:
+2026-10-23T17:59:27.0020678Z   name: api-tests-39998384770-1
+2026-10-23T17:59:27.0020941Z   path: test-results/
+2026-10-23T17:59:27.0021173Z   if-no-files-found: warn
+2026-10-23T17:59:27.0021405Z   retention-days: 14
+2026-10-23T17:59:27.0021627Z   compression-level: 6
+2026-10-23T17:59:27.0021847Z   overwrite: false
+2026-10-23T17:59:27.0022068Z   include-hidden-files: false
+2026-10-23T17:59:27.0022321Z env:
+2026-10-23T17:59:27.0022554Z   DJANGO_SETTINGS_MODULE: config.settings.testing
+2026-10-23T17:59:27.0022864Z   PYTHONPATH: src
+2026-10-23T17:59:27.0023116Z   SECRET_KEY: ci-insecure-key-not-for-production
+2026-10-23T17:59:27.0023435Z   DB_QA_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:59:27.0023729Z   CI_DATABASE_DISPOSABLE: kaupamex_ci_39998384770_1
+2026-10-23T17:59:27.0024026Z   DB_QA_SOCKET: 
+2026-10-23T17:59:27.0024220Z   DB_SOCKET: 
+2026-10-23T17:59:27.0024422Z   DB_QA_USER: django_user
+2026-10-23T17:59:27.0024701Z   DB_QA_PASSWORD: django_pass
+2026-10-23T17:59:27.0024943Z   DB_QA_HOST: 127.0.0.1
+2026-10-23T17:59:27.0025161Z   DB_QA_PORT: 5432
+2026-10-23T17:59:27.0025372Z   DB_QA_SSL_MODE: disable
+2026-10-23T17:59:27.0025603Z   DB_NAME: kaupamex_ci_39998384770_1
+2026-10-23T17:59:27.0025859Z   DB_USER: django_user
+2026-10-23T17:59:27.0026086Z   DB_PASSWORD: django_pass
+2026-10-23T17:59:27.0026317Z   DB_HOST: 127.0.0.1
+2026-10-23T17:59:27.0026529Z   DB_PORT: 5432
+2026-10-23T17:59:27.0026788Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+2026-10-23T17:59:27.0027101Z ##[endgroup]
+2026-10-23T17:59:27.1716726Z (node:4789) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-23T17:59:27.1718064Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-23T17:59:27.1800425Z With the provided path, there will be 1 file uploaded
+2026-10-23T17:59:27.1850044Z Artifact name is valid!
+2026-10-23T17:59:27.1850726Z Root directory input is valid!
+2026-10-23T17:59:27.4502986Z Beginning upload of artifact content to blob storage
+2026-10-23T17:59:27.4774380Z (node:4789) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-23T17:59:27.5839333Z Uploaded bytes 2187
+2026-10-23T17:59:27.6193346Z Finished uploading artifact content to blob storage!
+2026-10-23T17:59:27.6194517Z SHA256 digest of uploaded artifact zip is 26274fb844d8f1dc6e3868a2ae6453f4557ee4bff4ba0a3bbcfc8a80e17003e1
+2026-10-23T17:59:27.6196021Z Finalizing artifact upload
+2026-10-23T17:59:28.0851504Z Artifact api-tests-39998384770-1.zip successfully finalized. Artifact ID 12520189183
+2026-10-23T17:59:28.0852824Z Artifact api-tests-39998384770-1 has been successfully uploaded! Final size is 2187 bytes. Artifact ID is 12520189183
+2026-10-23T17:59:28.0859656Z Artifact download URL: https://github.com/jcg-admin/kaupamex-api/actions/runs/39998384770/artifacts/12520189183
+2026-10-23T17:59:28.1067349Z Post job cleanup.
+2026-10-23T17:59:28.1914864Z [command]/usr/bin/git version
+2026-10-23T17:59:28.1992453Z git version 2.55.0
+2026-10-23T17:59:28.2032977Z Temporarily overriding HOME='/home/runner/work/_temp/9cfbe983-6317-4d74-a1c1-992813b619cc' before making global git config changes
+2026-10-23T17:59:28.2034200Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-23T17:59:28.2039327Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/kaupamex-api/kaupamex-api
+2026-10-23T17:59:28.2080127Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-23T17:59:28.2118513Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-23T17:59:28.2400625Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-23T17:59:28.2428664Z http.https://github.com/.extraheader
+2026-10-23T17:59:28.2442523Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-23T17:59:28.2491555Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-23T17:59:28.2780788Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-23T17:59:28.2821212Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-23T17:59:28.3207927Z Print service container logs: 3ed48799219a440dac583003651f5846_postgres16_cf591b
+2026-10-23T17:59:28.3212739Z ##[command]/usr/bin/docker logs --details 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:59:28.3342937Z  The files belonging to this database system will be owned by user "postgres".
+2026-10-23T17:59:28.3344753Z  initdb: warning: enabling "trust" authentication for local connections
+2026-10-23T17:59:28.3345884Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-23T17:59:28.3347384Z  2026-10-23 17:50:46.052 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-23T17:59:28.3348576Z  2026-10-23 17:50:46.052 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-23T17:59:28.3349960Z  2026-10-23 17:50:46.052 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-23T17:59:28.3350801Z  2026-10-23 17:50:46.053 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-23T17:59:28.3351695Z  2026-10-23 17:50:46.055 UTC [64] LOG:  database system was shut down at 2026-10-23 17:50:45 UTC
+2026-10-23T17:59:28.3352504Z  2026-10-23 17:50:46.059 UTC [1] LOG:  database system is ready to accept connections
+2026-10-23T17:59:28.3353140Z  This user must also own the server process.
+2026-10-23T17:59:28.3353567Z  
+2026-10-23T17:59:28.3354052Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-10-23T17:59:28.3354764Z  The default database encoding has accordingly been set to "UTF8".
+2026-10-23T17:59:28.3355497Z  The default text search configuration will be set to "english".
+2026-10-23T17:59:28.3355958Z  
+2026-10-23T17:59:28.3356165Z  Data page checksums are disabled.
+2026-10-23T17:59:28.3356430Z  
+2026-10-23T17:59:28.3356736Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-10-23T17:59:28.3357149Z  creating subdirectories ... ok
+2026-10-23T17:59:28.3357481Z  selecting dynamic shared memory implementation ... posix
+2026-10-23T17:59:28.3358106Z  selecting default max_connections ... 100
+2026-10-23T17:59:28.3358604Z  selecting default shared_buffers ... 128MB
+2026-10-23T17:59:28.3359064Z  selecting default time zone ... Etc/UTC
+2026-10-23T17:59:28.3359440Z  creating configuration files ... ok
+2026-10-23T17:59:28.3359927Z  running bootstrap script ... ok
+2026-10-23T17:59:28.3360252Z  performing post-bootstrap initialization ... ok
+2026-10-23T17:59:28.3360573Z  syncing data to disk ... ok
+2026-10-23T17:59:28.3360814Z  
+2026-10-23T17:59:28.3360992Z  
+2026-10-23T17:59:28.3361235Z  Success. You can now start the database server using:
+2026-10-23T17:59:28.3361782Z  
+2026-10-23T17:59:28.3362033Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-10-23T17:59:28.3362340Z  
+2026-10-23T17:59:28.3363004Z  waiting for server to start....2026-10-23 17:50:45.743 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-23T17:59:28.3363877Z  2026-10-23 17:50:45.743 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-23T17:59:28.3364430Z  2026-10-23 17:50:45.746 UTC [51] LOG:  database system was shut down at 2026-10-23 17:50:45 UTC
+2026-10-23T17:59:28.3364926Z  2026-10-23 17:50:45.749 UTC [48] LOG:  database system is ready to accept connections
+2026-10-23T17:59:28.3365300Z   done
+2026-10-23T17:59:28.3365493Z  server started
+2026-10-23T17:59:28.3365709Z  CREATE DATABASE
+2026-10-23T17:59:28.3365917Z  
+2026-10-23T17:59:28.3366092Z  
+2026-10-23T17:59:28.3366434Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-23T17:59:28.3366837Z  
+2026-10-23T17:59:28.3367096Z  2026-10-23 17:50:45.930 UTC [48] LOG:  received fast shutdown request
+2026-10-23T17:59:28.3367818Z  waiting for server to shut down....2026-10-23 17:50:45.930 UTC [48] LOG:  aborting any active transactions
+2026-10-23T17:59:28.3368527Z  2026-10-23 17:50:45.933 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-10-23T17:59:28.3369064Z  2026-10-23 17:50:45.933 UTC [49] LOG:  shutting down
+2026-10-23T17:59:28.3369734Z  2026-10-23 17:50:45.934 UTC [49] LOG:  checkpoint starting: shutdown immediate
+2026-10-23T17:59:28.3371414Z  2026-10-23 17:50:45.948 UTC [49] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.012 s, sync=0.002 s, total=0.015 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F100, redo lsn=0/191F100
+2026-10-23T17:59:28.3372491Z  2026-10-23 17:50:45.954 UTC [48] LOG:  database system is shut down
+2026-10-23T17:59:28.3372832Z   done
+2026-10-23T17:59:28.3373021Z  server stopped
+2026-10-23T17:59:28.3373222Z  
+2026-10-23T17:59:28.3373472Z  PostgreSQL init process complete; ready for start up.
+2026-10-23T17:59:28.3373961Z  2026-10-23 17:51:43.613 UTC [111] ERROR:  database "kaupamex_ci_39998384770_1" already exists
+2026-10-23T17:59:28.3374479Z  2026-10-23 17:51:43.613 UTC [111] STATEMENT:  CREATE DATABASE "kaupamex_ci_39998384770_1" 
+2026-10-23T17:59:28.3374967Z  2026-10-23 17:51:43.614 UTC [62] LOG:  checkpoint starting: immediate force wait
+2026-10-23T17:59:28.3375966Z  2026-10-23 17:51:43.627 UTC [62] LOG:  checkpoint complete: wrote 43 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.014 s; sync files=12, longest=0.001 s, average=0.001 s; distance=239 kB, estimate=239 kB; lsn=0/195B010, redo lsn=0/195AFD8
+2026-10-23T17:59:28.3376917Z  2026-10-23 17:56:43.649 UTC [62] LOG:  checkpoint starting: time
+2026-10-23T17:59:28.3377239Z  
+2026-10-23T17:59:28.3382416Z Stop and remove container: 3ed48799219a440dac583003651f5846_postgres16_cf591b
+2026-10-23T17:59:28.3386860Z ##[command]/usr/bin/docker rm --force 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:59:28.4684980Z 91c5ea1600ea1dd597c2e984c6badbb00546ae1aefab19543e1be35367be6653
+2026-10-23T17:59:28.4715272Z Remove container network: github_network_a3adf93c7bc94400b3dc3f42c883b234
+2026-10-23T17:59:28.4720359Z ##[command]/usr/bin/docker network rm github_network_a3adf93c7bc94400b3dc3f42c883b234
+2026-10-23T17:59:28.5735143Z github_network_a3adf93c7bc94400b3dc3f42c883b234
+2026-10-23T17:59:28.5807022Z Cleaning up orphan processes
+2026-10-23T17:59:28.6189799Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4, astral-sh/setup-uv@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -5,17 +5,23 @@ base_module_install_request.py`` y los dos que el puerto declara con su
 arista de veto, más la acción
 de ``models/ir_module_module.py``.
 """
+
 import pytest
 
 from addons.base.models import IrModule, ResPartner, ResUsers
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.ir_module import IrModuleDependency
 from addons.base_install_request.data import (
-    INSTALL_REQUEST_TEMPLATE, INSTALL_REQUEST_TEMPLATE_MODULE,
-    INSTALL_REQUEST_TEMPLATE_XMLID)
+    INSTALL_REQUEST_TEMPLATE,
+    INSTALL_REQUEST_TEMPLATE_MODULE,
+    INSTALL_REQUEST_TEMPLATE_XMLID,
+)
 from addons.base_install_request.wizard.base_module_install_request import (
-    BaseModuleInstallRequest, BaseModuleInstallReview,
-    _auto_install_apps, render_modules_description)
+    BaseModuleInstallRequest,
+    BaseModuleInstallReview,
+    _auto_install_apps,
+    render_modules_description,
+)
 from exceptions import UserError
 
 pytestmark = pytest.mark.django_db
@@ -25,16 +31,23 @@ pytestmark = pytest.mark.django_db
 def sale():
     """Un módulo desinstalado, que es el dominio de los dos ``module_id``."""
     return IrModule.objects.create(
-        name='sale', shortdesc='Ventas', application=True,
-        state='uninstalled', icon='/sale/static/description/icon.png')
+        name='sale',
+        shortdesc='Ventas',
+        application=True,
+        state='uninstalled',
+        icon='/sale/static/description/icon.png',
+    )
 
 
 @pytest.fixture
 def product(sale):
     """Una dependencia de ``sale`` que también es aplicación."""
     dep = IrModule.objects.create(
-        name='product', shortdesc='Productos', application=True,
-        state='uninstalled')
+        name='product',
+        shortdesc='Productos',
+        application=True,
+        state='uninstalled',
+    )
     IrModuleDependency.objects.create(module=sale, name='product')
     return dep
 
@@ -44,14 +57,17 @@ class TestClassAttributes:
 
     def test_request_declares_name_description_and_rec_name(self):
         assert BaseModuleInstallRequest._name == 'base.module.install.request'
-        assert BaseModuleInstallRequest._description == (
-            'Module Activation Request')
+        assert (
+            BaseModuleInstallRequest._description
+            == 'Module Activation Request'
+        )
         assert BaseModuleInstallRequest._rec_name == 'module_id'
 
     def test_review_declares_name_description_and_rec_name(self):
         assert BaseModuleInstallReview._name == 'base.module.install.review'
-        assert BaseModuleInstallReview._description == (
-            'Module Activation Review')
+        assert (
+            BaseModuleInstallReview._description == 'Module Activation Review'
+        )
         assert BaseModuleInstallReview._rec_name == 'module_id'
 
     def test_the_table_name_derives_from_the_dotted_name(self):
@@ -61,16 +77,22 @@ class TestClassAttributes:
 
 
 class TestTheWizardHasATable:
-    """Un ``TransientModel`` de la fuente tiene tabla real (``_auto = True``)."""
+    """
+    Un ``TransientModel`` de la fuente tiene tabla real (``_auto = True``).
+    """
 
     def test_a_request_can_be_saved_and_read_back(self, sale):
         wizard = BaseModuleInstallRequest.objects.create(module_id=sale)
-        assert BaseModuleInstallRequest.objects.get(pk=wizard.pk).module_id_id \
+        assert (
+            BaseModuleInstallRequest.objects.get(pk=wizard.pk).module_id_id
             == sale.pk
+        )
 
     def test_str_uses_the_rec_name(self, sale):
-        assert str(BaseModuleInstallRequest.objects.create(
-            module_id=sale)) == 'Ventas'
+        assert (
+            str(BaseModuleInstallRequest.objects.create(module_id=sale))
+            == 'Ventas'
+        )
 
 
 class TestComputeUserIds:
@@ -83,9 +105,11 @@ class TestComputeUserIds:
         # ``name`` es una property que delega en el partner (``orm/inherits``):
         # el usuario se crea con su partner, no con el nombre suelto.
         partner = ResPartner.objects.create(
-            name='Sysadmin', email='sysadmin@example.test')
+            name='Sysadmin', email='sysadmin@example.test'
+        )
         member = ResUsers.objects.create(
-            login='sysadmin-install-request', partner=partner)
+            login='sysadmin-install-request', partner=partner
+        )
         member.group_ids.add(group)
         wizard = BaseModuleInstallRequest.objects.create(module_id=sale)
         assert member in wizard._compute_user_ids()
@@ -106,20 +130,23 @@ class TestActionSendRequest:
         assert action['tag'] == 'display_notification'
         assert action['params']['type'] == 'success'
         assert action['params']['next'] == {
-            'type': 'ir.actions.act_window_close'}
+            'type': 'ir.actions.act_window_close'
+        }
 
     def test_the_template_is_seeded_with_its_external_id(self):
         """La semilla de la migración: sin ella el envío no tiene plantilla."""
         template = IrModelData.ref(
-            '%s.%s' % (INSTALL_REQUEST_TEMPLATE_MODULE,
-                       INSTALL_REQUEST_TEMPLATE_XMLID))
+            '%s.%s'
+            % (INSTALL_REQUEST_TEMPLATE_MODULE, INSTALL_REQUEST_TEMPLATE_XMLID)
+        )
         assert template is not None
         assert template.name == INSTALL_REQUEST_TEMPLATE['name']
 
     def test_without_the_template_it_raises(self, sale, monkeypatch):
         """Control de anulación: sin plantilla la acción no calla, levanta."""
-        monkeypatch.setattr(IrModelData, 'ref',
-                            classmethod(lambda cls, *a, **k: None))
+        monkeypatch.setattr(
+            IrModelData, 'ref', classmethod(lambda cls, *a, **k: None)
+        )
         wizard = BaseModuleInstallRequest.objects.create(module_id=sale)
         with pytest.raises(UserError):
             wizard.action_send_request()
@@ -130,18 +157,22 @@ class TestRenderModulesDescription:
 
     def test_the_paragraph_appears_only_with_applications(self, sale):
         assert 'The following apps will be installed:' in (
-            render_modules_description([sale]))
+            render_modules_description([sale])
+        )
 
     def test_without_applications_there_is_no_paragraph(self):
         technical = IrModule.objects.create(
-            name='base_setup', shortdesc='Ajustes', application=False)
+            name='base_setup', shortdesc='Ajustes', application=False
+        )
         assert 'The following apps will be installed:' not in (
-            render_modules_description([technical]))
+            render_modules_description([technical])
+        )
 
     def test_a_non_application_gets_no_item(self):
         """``t-if="app.application"`` sobre cada ``<li>``."""
         technical = IrModule.objects.create(
-            name='base_vat', shortdesc='NIF', application=False)
+            name='base_vat', shortdesc='NIF', application=False
+        )
         assert '<li' not in render_modules_description([technical])
 
     def test_the_item_carries_the_icon_and_the_shortdesc(self, sale):
@@ -152,9 +183,12 @@ class TestRenderModulesDescription:
         assert 'Ventas' in markup
 
     def test_the_shortdesc_is_escaped(self):
-        """``t-esc`` escapa por definición; el ``shortdesc`` es de un tercero."""
+        """
+        ``t-esc`` escapa por definición; el ``shortdesc`` es de un tercero.
+        """
         hostile = IrModule.objects.create(
-            name='evil', shortdesc='<script>x</script>', application=True)
+            name='evil', shortdesc='<script>x</script>', application=True
+        )
         assert '<script>' not in render_modules_description([hostile])
 
 
@@ -167,8 +201,8 @@ class TestGetDependingApps:
 
     def test_an_installed_module_raises(self):
         installed = IrModule.objects.create(
-            name='already_installed', shortdesc='Instalado',
-            state='installed')
+            name='already_installed', shortdesc='Instalado', state='installed'
+        )
         with pytest.raises(UserError):
             BaseModuleInstallReview._get_depending_apps(installed)
 
@@ -204,7 +238,9 @@ class TestTheBlockedTwo:
 
     def test_action_install_module_declares_its_blockade(self, sale):
         review = BaseModuleInstallReview.objects.create(module_id=sale)
-        with pytest.raises(NotImplementedError, match='button_immediate_install'):
+        with pytest.raises(
+            NotImplementedError, match='button_immediate_install'
+        ):
             review.action_install_module()
 
     def test_auto_install_apps_declares_its_blockade(self):
@@ -213,7 +249,9 @@ class TestTheBlockedTwo:
 
 
 class TestActionOpenInstallRequest:
-    """≙ ``IrModuleModule.action_open_install_request`` — la acción de entrada."""
+    """
+    ≙ ``IrModuleModule.action_open_install_request`` — la acción de entrada.
+    """
 
     def test_it_returns_the_act_window_of_the_source(self, sale):
         action = sale.action_open_install_request()

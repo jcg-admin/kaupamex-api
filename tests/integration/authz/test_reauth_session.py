@@ -3,7 +3,8 @@
 Verifica el shape A de :ref:`analisis-diseno-reauth-sensibles-dec12`:
 
 - endpoint ``/api/v2/authz/reauth/`` (GET estado / POST abrir / DELETE cerrar);
-- el gate en ``HasCapability``: una **mutación sensible** (``PATCH`` de settings,
+- el gate en ``HasCapability``: una **mutación sensible** (``PATCH`` de
+  settings,
   ``settings.edit``) sin sesión reautenticada fresca devuelve **403
   REAUTH_REQUIRED**; tras re-autenticar, la misma mutación pasa;
 - **leer** datos sensibles NO exige re-auth;
@@ -15,6 +16,7 @@ Verifica el shape A de :ref:`analisis-diseno-reauth-sensibles-dec12`:
 Auth por sesión de servidor (``force_login``) — la ventana se ata al
 ``session_key`` de la sesión Django.
 """
+
 from datetime import timedelta
 
 import pytest
@@ -44,21 +46,26 @@ PASSWORD = 'ReauthPass123!'
 
 @pytest.fixture
 def seeded(db):
-    """Catálogo authz sembrado (incluye ``settings`` sensible + rol superadmin)."""
+    """
+    Catálogo authz sembrado (incluye ``settings`` sensible + rol superadmin).
+    """
     call_command('seed_authz')
 
 
 @pytest.fixture
 def superadmin(seeded):
     u = User.objects.create_user(
-        login='reauth-admin@kaupamex.mx', password=PASSWORD,
-        name='Reauth Admin')
+        login='reauth-admin@kaupamex.mx',
+        password=PASSWORD,
+        name='Reauth Admin',
+    )
     # ``EmployeeProfile`` no existe en la referencia: el empleado es el campo
     # booleano ``employee`` de ``res.partner``.
     u.partner.employee = True
     u.partner.save(update_fields=['employee'])
     role, _ = Role.objects.get_or_create(
-        code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'})
+        code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'}
+    )
     RoleAssignment.objects.get_or_create(user=u, role=role)
     return u
 
@@ -73,6 +80,7 @@ def client(superadmin):
 
 # ─── endpoint /authz/reauth/ ─────────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 def test_reauth_status_inactive_by_default(client):
     r = client.get(REAUTH_URL)
@@ -86,7 +94,8 @@ def test_reauth_wrong_password_400(client):
     assert r.status_code == 400
     assert r.data['codigo_error'] == 'REAUTH_INVALID_PASSWORD'
     assert AuthzEvent.objects.filter(
-        action=AuthzEvent.ACTION_DENY, capability_code='authz.reauth').exists()
+        action=AuthzEvent.ACTION_DENY, capability_code='authz.reauth'
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -97,7 +106,8 @@ def test_reauth_open_then_active(client):
     status = client.get(REAUTH_URL)
     assert status.data['active'] is True
     assert AuthzEvent.objects.filter(
-        action=AuthzEvent.ACTION_SENSITIVE_USE, capability_code='authz.reauth').exists()
+        action=AuthzEvent.ACTION_SENSITIVE_USE, capability_code='authz.reauth'
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -110,20 +120,24 @@ def test_reauth_close(client):
 
 # ─── gate en HasCapability sobre una mutación sensible real ──────────────────
 
+
 @pytest.mark.django_db
 def test_sensitive_mutation_without_reauth_403(client):
-    # PATCH settings (settings.edit, sensible) sin re-auth → 403 REAUTH_REQUIRED.
+    # PATCH settings (settings.edit, sensible) sin re-auth → 403
+    # REAUTH_REQUIRED.
     r = client.patch(SETTINGS_URL, {'min_stock_threshold': 7}, format='json')
     assert r.status_code == 403
     assert r.data['codigo_error'] == 'REAUTH_REQUIRED'
     assert r.data['reauth_url'] == REAUTH_URL
     assert AuthzEvent.objects.filter(
-        action=AuthzEvent.ACTION_DENY, capability_code='settings.edit').exists()
+        action=AuthzEvent.ACTION_DENY, capability_code='settings.edit'
+    ).exists()
 
 
 @pytest.mark.django_db
 def test_superadmin_not_exempt(client, superadmin):
-    # El actor ES superadmin (bypass de capacidad) y AUN ASI se le exige re-auth:
+    # El actor ES superadmin (bypass de capacidad) y AUN ASI se le exige
+    # re-auth:
     # confirmar identidad no es un privilegio, es una defensa.
     assert is_superadmin(superadmin) is True
     r = client.patch(SETTINGS_URL, {'min_stock_threshold': 3}, format='json')
@@ -133,7 +147,12 @@ def test_superadmin_not_exempt(client, superadmin):
 
 @pytest.mark.django_db
 def test_sensitive_mutation_passes_after_reauth(client):
-    assert client.post(REAUTH_URL, {'password': PASSWORD}, format='json').status_code == 200
+    assert (
+        client.post(
+            REAUTH_URL, {'password': PASSWORD}, format='json'
+        ).status_code
+        == 200
+    )
     r = client.patch(SETTINGS_URL, {'min_stock_threshold': 9}, format='json')
     assert r.status_code == 200
     assert r.data['min_stock_threshold'] == 9
@@ -151,7 +170,8 @@ def test_expired_window_re_triggers(client, superadmin):
     client.post(REAUTH_URL, {'password': PASSWORD}, format='json')
     # Envejecer la ventana: expira en el pasado.
     ReauthSession.objects.filter(user=superadmin).update(
-        expires_at=timezone.now() - timedelta(seconds=1))
+        expires_at=timezone.now() - timedelta(seconds=1)
+    )
     r = client.patch(SETTINGS_URL, {'min_stock_threshold': 4}, format='json')
     assert r.status_code == 403
     assert r.data['codigo_error'] == 'REAUTH_REQUIRED'
@@ -159,22 +179,47 @@ def test_expired_window_re_triggers(client, superadmin):
 
 # ─── regresión: mutación NO sensible nunca pide re-auth (resolver) ───────────
 
+
 @pytest.mark.django_db
 def test_code_requires_fresh_session_matrix(seeded):
     # Sustantivo sensible + mutación → True.
-    assert code_requires_fresh_session('settings.edit', unsafe_method=True) is True
-    assert code_requires_fresh_session('payments.edit', unsafe_method=True) is True
+    assert (
+        code_requires_fresh_session('settings.edit', unsafe_method=True)
+        is True
+    )
+    assert (
+        code_requires_fresh_session('payments.edit', unsafe_method=True)
+        is True
+    )
     # Sustantivo sensible pero lectura → False (no fricción para ver).
-    assert code_requires_fresh_session('payments.view', unsafe_method=False) is False
-    assert code_requires_fresh_session('payments.edit', unsafe_method=False) is False
+    assert (
+        code_requires_fresh_session('payments.view', unsafe_method=False)
+        is False
+    )
+    assert (
+        code_requires_fresh_session('payments.edit', unsafe_method=False)
+        is False
+    )
     # Sustantivo NO sensible + mutación → False.
-    assert code_requires_fresh_session('catalogue.edit', unsafe_method=True) is False
+    assert (
+        code_requires_fresh_session('catalogue.edit', unsafe_method=True)
+        is False
+    )
     # Acción nombrada sensible → True (intrínsecamente mutante).
-    assert code_requires_fresh_session('platform.provision', unsafe_method=True) is True
-    assert code_requires_fresh_session('inventory.adjust', unsafe_method=True) is True
+    assert (
+        code_requires_fresh_session('platform.provision', unsafe_method=True)
+        is True
+    )
+    assert (
+        code_requires_fresh_session('inventory.adjust', unsafe_method=True)
+        is True
+    )
     # Acción nombrada NO sensible → False. (Era ``reports.export``, capacidad
     # que dejó de existir al disolverse el módulo transversal de reportes.)
-    assert code_requires_fresh_session('account.orders', unsafe_method=True) is False
+    assert (
+        code_requires_fresh_session('account.orders', unsafe_method=True)
+        is False
+    )
     # Sin código → False.
     assert code_requires_fresh_session('', unsafe_method=True) is False
 
@@ -183,15 +228,20 @@ def test_code_requires_fresh_session_matrix(seeded):
 def test_has_active_reauth_session_expiry(superadmin):
     now = timezone.now()
     ReauthSession.objects.create(
-        user=superadmin, session_key='k', started_at=now,
-        expires_at=now + timedelta(seconds=60))
+        user=superadmin,
+        session_key='k',
+        started_at=now,
+        expires_at=now + timedelta(seconds=60),
+    )
     assert has_active_reauth_session(superadmin, 'k') is True
     ReauthSession.objects.filter(user=superadmin).update(
-        expires_at=now - timedelta(seconds=1))
+        expires_at=now - timedelta(seconds=1)
+    )
     assert has_active_reauth_session(superadmin, 'k') is False
 
 
 # ─── barrido de ventanas vencidas (H-API-767) ────────────────────────────────
+
 
 @pytest.mark.django_db
 def test_gc_sweeps_expired_and_keeps_fresh(superadmin):
@@ -204,15 +254,23 @@ def test_gc_sweeps_expired_and_keeps_fresh(superadmin):
     """
     now = timezone.now()
     ReauthSession.objects.create(
-        user=superadmin, session_key='vencida', started_at=now,
-        expires_at=now - timedelta(seconds=1))
+        user=superadmin,
+        session_key='vencida',
+        started_at=now,
+        expires_at=now - timedelta(seconds=1),
+    )
     ReauthSession.objects.create(
-        user=superadmin, session_key='vigente', started_at=now,
-        expires_at=now + timedelta(seconds=900))
+        user=superadmin,
+        session_key='vigente',
+        started_at=now,
+        expires_at=now + timedelta(seconds=900),
+    )
 
     assert ReauthSession._gc_reauth_sessions() == 1
 
-    assert list(ReauthSession.objects.values_list('session_key', flat=True)) == ['vigente']
+    assert list(
+        ReauthSession.objects.values_list('session_key', flat=True)
+    ) == ['vigente']
 
 
 @pytest.mark.django_db
@@ -227,6 +285,7 @@ def test_gc_is_registered_for_the_collector(superadmin):
 
 
 # ─── la propiedad sobre la que descansa la divergencia (H-API-767) ───────────
+
 
 @pytest.mark.django_db
 def test_window_holds_without_a_django_session(superadmin):
@@ -253,5 +312,7 @@ def test_window_holds_without_a_django_session(superadmin):
     # el efecto del accesor y no lo que la petición lleva.
     open_reauth_session(superadmin, '', None)
 
-    resp = client.patch(SETTINGS_URL, {'min_stock_threshold': 5}, format='json')
+    resp = client.patch(
+        SETTINGS_URL, {'min_stock_threshold': 5}, format='json'
+    )
     assert resp.status_code == 200

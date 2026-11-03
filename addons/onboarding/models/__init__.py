@@ -7,12 +7,15 @@ sus propias dependencias internas top-level (ver docstrings de
 real de imports para evitar ciclos: progress -> progress_step ->
 onboarding_step -> onboarding).
 """
+
 from .onboarding_onboarding import OnboardingOnboarding
 from .onboarding_onboarding_step import OnboardingOnboardingStep
 from .onboarding_progress import OnboardingProgress
 from .onboarding_progress_step import OnboardingProgressStep
 
 __all__ = [
-    'OnboardingOnboarding', 'OnboardingOnboardingStep',
-    'OnboardingProgress', 'OnboardingProgressStep',
+    'OnboardingOnboarding',
+    'OnboardingOnboardingStep',
+    'OnboardingProgress',
+    'OnboardingProgressStep',
 ]

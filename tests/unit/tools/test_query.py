@@ -13,6 +13,7 @@ Tres bloques:
 3. **El recorte de alias**, que es la razón por la que ``make_identifier``
    salió de la lista de ausentes de ``tools/sql.py``.
 """
+
 import ast
 import pathlib
 
@@ -42,11 +43,30 @@ def symbols_of(path):
 
 
 REFERENCE_SYMBOLS = (
-    '_sql_from_table', '_sql_from_join', '_generate_table_alias', 'Query',
-    '__init__', 'make_alias', 'add_table', 'add_join', 'add_where', 'join',
-    'left_join', 'order', 'table', 'from_clause', 'where_clause', 'is_empty',
-    'select', 'subselect', 'get_result_ids', 'set_result_ids',
-    '__str__', '__bool__', '__len__', '__iter__',
+    '_sql_from_table',
+    '_sql_from_join',
+    '_generate_table_alias',
+    'Query',
+    '__init__',
+    'make_alias',
+    'add_table',
+    'add_join',
+    'add_where',
+    'join',
+    'left_join',
+    'order',
+    'table',
+    'from_clause',
+    'where_clause',
+    'is_empty',
+    'select',
+    'subselect',
+    'get_result_ids',
+    'set_result_ids',
+    '__str__',
+    '__bool__',
+    '__len__',
+    '__iter__',
 )
 
 
@@ -81,15 +101,24 @@ class TestFromAndWhere:
         assert sql.code == '"res_partner" AS "p"'
 
     def test_select_defaults_to_the_id_of_the_main_table(self):
-        assert Query(None, 'res_partner').select().code == \
-            'SELECT "res_partner"."id" FROM "res_partner"'
+        assert (
+            Query(None, 'res_partner').select().code
+            == 'SELECT "res_partner"."id" FROM "res_partner"'
+        )
 
     def test_where_clauses_are_joined_with_and(self):
         query = Query(None, 'res_partner')
-        query.add_where(SQL("%s = %s", SQL.identifier('res_partner', 'active'), True))
-        query.add_where(SQL("%s IS NOT NULL", SQL.identifier('res_partner', 'name')))
-        assert query.where_clause.code == \
-            '"res_partner"."active" = %s AND "res_partner"."name" IS NOT NULL'
+        query.add_where(
+            SQL("%s = %s", SQL.identifier('res_partner', 'active'), True)
+        )
+        query.add_where(
+            SQL("%s IS NOT NULL", SQL.identifier('res_partner', 'name'))
+        )
+        assert (
+            query.where_clause.code
+            == '"res_partner"."active" = %s AND "res_partner"."name" IS NOT'
+            ' NULL'
+        )
         assert query.where_clause.params == [True]
 
     def test_the_main_table_is_the_first_of_the_from_clause(self):
@@ -103,37 +132,52 @@ class TestJoin:
     que ``Many2one.join`` de la referencia consume."""
 
     def test_make_alias_composes_source_and_link(self):
-        assert Query.make_alias('res_users', 'parent_id') == 'res_users__parent_id'
+        assert (
+            Query.make_alias('res_users', 'parent_id')
+            == 'res_users__parent_id'
+        )
 
     def test_join_emits_the_on_condition_of_the_reference(self):
         query = Query(None, 'res_users')
-        alias = query.join('res_users', 'partner_id', 'res_partner', 'id', 'partner')
+        alias = query.join(
+            'res_users', 'partner_id', 'res_partner', 'id', 'partner'
+        )
         assert alias == 'res_users__partner'
-        assert query.from_clause.code == (
-            '"res_users" JOIN "res_partner" AS "res_users__partner" '
+        assert (
+            query.from_clause.code
+            == '"res_users" JOIN "res_partner" AS "res_users__partner" '
             'ON ("res_users"."partner_id" = "res_users__partner"."id")'
         )
 
     def test_left_join_differs_only_in_the_kind(self):
         query = Query(None, 'res_users')
-        query.left_join('res_users', 'partner_id', 'res_partner', 'id', 'partner')
+        query.left_join(
+            'res_users', 'partner_id', 'res_partner', 'id', 'partner'
+        )
         assert 'LEFT JOIN "res_partner"' in query.from_clause.code
 
     def test_an_unknown_kind_of_join_is_refused(self):
         with pytest.raises(AssertionError):
-            Query(None, 'res_users').add_join('CROSS JOIN', 'x', 'y', SQL("TRUE"))
+            Query(None, 'res_users').add_join(
+                'CROSS JOIN', 'x', 'y', SQL("TRUE")
+            )
 
     def test_the_same_join_twice_is_idempotent_not_an_error(self):
         query = Query(None, 'res_users')
-        condition = SQL("%s = %s", SQL.identifier('res_users', 'partner_id'),
-                        SQL.identifier('a', 'id'))
+        condition = SQL(
+            "%s = %s",
+            SQL.identifier('res_users', 'partner_id'),
+            SQL.identifier('a', 'id'),
+        )
         query.add_join('JOIN', 'a', 'res_partner', condition)
         query.add_join('JOIN', 'a', 'res_partner', condition)
         assert len(query._joins) == 1
 
     def test_joining_from_an_unknown_alias_is_refused(self):
         with pytest.raises(AssertionError):
-            Query(None, 'res_users').join('otra', 'id', 'res_partner', 'id', 'p')
+            Query(None, 'res_users').join(
+                'otra', 'id', 'res_partner', 'id', 'p'
+            )
 
 
 class TestAliasFitsPostgres:
@@ -141,7 +185,9 @@ class TestAliasFitsPostgres:
     la lista de ausentes de ``tools/sql.py``."""
 
     def test_a_short_alias_is_left_alone(self):
-        assert make_identifier('res_users__partner_id') == 'res_users__partner_id'
+        assert (
+            make_identifier('res_users__partner_id') == 'res_users__partner_id'
+        )
 
     def test_a_long_alias_is_truncated_and_hashed_to_63_or_less(self):
         long_link = 'a' * 80
@@ -165,8 +211,10 @@ class TestSubselect:
     """``subselect`` — evita el ORDER BY cuando puede y va entre paréntesis."""
 
     def test_subselect_wraps_in_parentheses(self):
-        assert Query(None, 'res_partner').subselect().code == \
-            '(SELECT "res_partner"."id" FROM "res_partner")'
+        assert (
+            Query(None, 'res_partner').subselect().code
+            == '(SELECT "res_partner"."id" FROM "res_partner")'
+        )
 
     def test_a_known_empty_result_becomes_a_false_subquery(self):
         query = Query(None, 'res_partner')
@@ -191,7 +239,9 @@ class TestSubselect:
 
 
 class TestSetResultIds:
-    """``set_result_ids`` — con ``ordered`` la consulta respeta la secuencia."""
+    """
+    ``set_result_ids`` — con ``ordered`` la consulta respeta la secuencia.
+    """
 
     def test_ordered_ids_join_against_unnest_with_ordinality(self):
         query = Query(None, 'res_partner')
@@ -229,11 +279,13 @@ class TestExecution:
 
     def test_get_result_ids_returns_the_rows_of_the_table(self, partners):
         query = Query(None, ResPartner._meta.db_table)
-        query.add_where(SQL(
-            "%s = ANY(%s)",
-            SQL.identifier(ResPartner._meta.db_table, 'id'),
-            [p.pk for p in partners],
-        ))
+        query.add_where(
+            SQL(
+                "%s = ANY(%s)",
+                SQL.identifier(ResPartner._meta.db_table, 'id'),
+                [p.pk for p in partners],
+            )
+        )
         assert set(query.get_result_ids()) == {p.pk for p in partners}
 
     def test_the_result_is_memoized_and_iterating_reuses_it(self, partners):
@@ -245,18 +297,20 @@ class TestExecution:
         wanted = [partners[2].pk, partners[0].pk, partners[1].pk]
         query = Query(None, ResPartner._meta.db_table)
         query.set_result_ids(wanted)
-        query._ids = None                      # fuerza la ida a base
+        query._ids = None  # fuerza la ida a base
         assert list(query.get_result_ids()) == wanted
 
     def test_len_counts_without_fetching_the_ids(self, partners):
         query = Query(None, ResPartner._meta.db_table)
-        query.add_where(SQL(
-            "%s = ANY(%s)",
-            SQL.identifier(ResPartner._meta.db_table, 'id'),
-            [p.pk for p in partners],
-        ))
+        query.add_where(
+            SQL(
+                "%s = ANY(%s)",
+                SQL.identifier(ResPartner._meta.db_table, 'id'),
+                [p.pk for p in partners],
+            )
+        )
         assert len(query) == 3
-        assert query._ids is None              # `__len__` no memoriza
+        assert query._ids is None  # `__len__` no memoriza
 
     def test_a_join_resolves_against_the_real_schema(self, partners):
         # El JOIN que `Many2one.join` de la referencia emite, corrido de
@@ -265,6 +319,11 @@ class TestExecution:
         table = ResPartner._meta.db_table
         query = Query(None, table)
         alias = query.left_join(table, 'id', table, 'id', 'self')
-        query.add_where(SQL("%s = ANY(%s)", SQL.identifier(alias, 'id'),
-                            [p.pk for p in partners]))
+        query.add_where(
+            SQL(
+                "%s = ANY(%s)",
+                SQL.identifier(alias, 'id'),
+                [p.pk for p in partners],
+            )
+        )
         assert set(query.get_result_ids()) == {p.pk for p in partners}

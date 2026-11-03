@@ -1,9 +1,11 @@
 """Modelo ``CrmTag`` — addon ``sales_team``.
 
 Adaptación fiel de ``sales_team/models/crm_tag.py`` (``crm.tag``): etiqueta
-reutilizable para clasificar oportunidades/órdenes. ``sale.order`` la referencia
+reutilizable para clasificar oportunidades/órdenes. ``sale.order`` la
+referencia
 vía ``tag_ids`` (Many2many). Núcleo: ``name`` único + ``color``.
 """
+
 from random import randint
 
 import fields
@@ -36,8 +38,9 @@ class CrmTag(TimeStampedModel):
     _description = "CRM Tag"
 
     # Odoo crm.tag.name (crm_tag.py:15, required, translate, unique).
-    name  = fields.Char(
-        max_length=100, unique=True,
+    name = fields.Char(
+        max_length=100,
+        unique=True,
         help_text='Nombre de la etiqueta (Odoo crm.tag.name).',
     )
     # Odoo color (crm_tag.py:16).

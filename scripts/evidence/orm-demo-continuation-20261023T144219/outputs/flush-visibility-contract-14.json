@@ -1,0 +1,41 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/models.py BaseModel._flush -> browse(dirty IDs)._write_multi; provenance and resolver limit in flush-visibility-reference-and-write-path.json",
+  "behavior": "Physically existing dirty rows must not be silently discarded because a public manager hides them. Missing physical rows remain skipped; read/write errors propagate",
+  "execution_flow": "Existing dirty-field pop and ID collection -> base-manager physical lookup -> unchanged scalar setattr/save or M2M manager.set -> existing transaction commit/clear",
+  "inputs_outputs": "Rows31/32 exist but public manager exposes31. Before: only31 relation persisted and all dirty state cleared. Candidate: both31/32 persisted. Unit controls distinguish hidden, absent, query error and write denial",
+  "side_effects": "Existing dirty/cache state and actual writes only for requested persisted IDs. No migrations, schema/runtime configuration, roles, routing, access checks or signal implementation changed",
+  "dependencies": [
+    "TASK-API-0397 native1167/session168b0fdf-bfe4-590b-b6c0-b6be124c124a/in_progress/ownerVM-b501",
+    "Qualified native stored cache/readback and default-environment commit path, TASK-GEN-0558",
+    "Existing Django base manager, save and M2M manager.set/signal paths",
+    "TASK-GEN-0348 completed preserved; TASK-API-0282 ownerNULL preserved, not auto-selected"
+  ],
+  "consumers": [
+    "Existing BaseModel/QuerySet flush_model path",
+    "Stored scalar Django fixture rows",
+    "Actual native M2M cache-only commit fixture with public visibility filter"
+  ],
+  "installed_mechanism": "Reuse existing _flush and Django _base_manager. Native Thyrox TaskGet/claims/node_frontier admission; existing SourceSnapshot verifier expanded to include models, no second coordinator or TaskStore",
+  "existing_adaptation": "Django supplies physical row transport and actual writers. Only manager selection changes; executable AST of full module equal after normalizing this one attribute. Existing counterpart resolver returns no automatic module-to-class pair; explicit source and observed flow recorded without claiming global equivalence",
+  "verification": {
+    "before": "2FAIL2PASS; actual filtered SQL commit writes only31 while32 exists, dirty/cache cleared",
+    "final": "113PASS exact source/test/index provenance in flush-visibility-final.json",
+    "annulment": "2expectedFAIL2PASS, physical selector alone restored to public manager",
+    "actual_SQL": "native-stored-flush-postgresql-filtered-candidate.json PASS; candidate modelsSHA/index agree with unit proof; links31->131 and32->132 committed",
+    "flush_writer_negative": "Actual SQL no-op _flush_m2m control leaves join empty, proving cache-to-commit writer path",
+    "style": "flush-visibility-style-final.json PASS; targeted wrapping preserves AST",
+    "write_denial": "Existing save AccessError propagates, no success reported",
+    "resources": "Owned PostgreSQL containers removed; public tables0",
+    "actual_SQL_selector_annulment": "native-stored-flush-postgresql-filtered-candidate-annulled.json restores only31 link, loses32 despite physical existence; index unchanged, expected exit1, own container removed"
+  },
+  "equivalence": "Bounded physical dirty-ID lookup/flush contract; not complete _flush batching, routing, all permissions or BaseModel equivalence",
+  "limitations": "Logical fixture UID is not authentication. Complete record-rule/ACL and tenant routing acceptance remain unqualified. Public-user fallback bootstrap lacks fixture in separate test. Global CI/style failure and independent QA remain separate; no global denominator",
+  "integration": {
+    "functional_commit": "52e29264febd2d2f6e1bc6a78653dbf7cfd4575d",
+    "hooks": "PASS ordinary hooks; one existing write-axis indeterminate remains, no global compliance claim",
+    "publication": "Normal feature push recorded separately",
+    "merge": "not performed",
+    "acceptance": "not_verified"
+  }
+}

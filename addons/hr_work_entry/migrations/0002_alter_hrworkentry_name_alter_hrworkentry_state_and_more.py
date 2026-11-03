@@ -32,7 +32,10 @@ class Migration(migrations.Migration):
             model_name="hrworkentrytype",
             name="code",
             field=models.CharField(
-                help_text="Careful, the Code is used in many references, changing it could lead to unwanted changes.",
+                help_text=(
+                    "Careful, the Code is used in many references, changing it"
+                    " could lead to unwanted changes."
+                ),
                 verbose_name="Payroll Code",
             ),
         ),
@@ -48,6 +51,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="hrworkentrytype",
             name="name",
-            field=models.CharField(help_text="Odoo name (required, translate)."),
+            field=models.CharField(
+                help_text="Odoo name (required, translate)."
+            ),
         ),
     ]

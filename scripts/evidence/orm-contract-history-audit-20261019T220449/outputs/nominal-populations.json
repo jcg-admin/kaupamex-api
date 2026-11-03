@@ -1,0 +1,18 @@
+{
+  "nominal_stack": {
+    "declarations": 21,
+    "unique_names": 19
+  },
+  "attached": {
+    "declarations": 14,
+    "unique_names": 14
+  },
+  "absent": {
+    "declarations": 159,
+    "unique_names": 155
+  },
+  "blind_spot_BaseModel": {
+    "declarations": 31,
+    "unique_names": 27
+  }
+}

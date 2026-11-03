@@ -29,17 +29,25 @@ class ModulePrice(TimeStampedModel):
         ANNUAL = 'annual', 'Anual'
 
     module = fields.Many2one(
-        'authz.Module', on_delete=models.PROTECT, related_name='prices',
+        'authz.Module',
+        null=False, on_delete=models.PROTECT,
+        related_name='prices',
         verbose_name='Módulo',
     )
     billing_cycle = fields.Selection(
-        max_length=8, choices=BillingCycle.choices, verbose_name='Ciclo de cobro',
+        max_length=8,
+        choices=BillingCycle.choices,
+        verbose_name='Ciclo de cobro',
     )
-    price = fields.Monetary(max_digits=10, decimal_places=2, verbose_name='Precio')
+    price = fields.Monetary(
+        max_digits=10, decimal_places=2, verbose_name='Precio'
+    )
     currency = fields.Char(max_length=3, default='MXN', verbose_name='Moneda')
     effective_from = fields.Datetime(verbose_name='Vigente desde')
     effective_to = fields.Datetime(
-        null=True, blank=True, verbose_name='Vigente hasta',
+        null=True,
+        blank=True,
+        verbose_name='Vigente hasta',
     )
 
     class Meta:
@@ -66,10 +74,15 @@ class ModulePrice(TimeStampedModel):
         if at is None:
             at = timezone.now()
         return (
-            cls.objects
-            .filter(module=module, billing_cycle=billing_cycle,
-                    effective_from__lte=at)
-            .filter(models.Q(effective_to__isnull=True) | models.Q(effective_to__gt=at))
+            cls.objects.filter(
+                module=module,
+                billing_cycle=billing_cycle,
+                effective_from__lte=at,
+            )
+            .filter(
+                models.Q(effective_to__isnull=True)
+                | models.Q(effective_to__gt=at)
+            )
             .order_by('-effective_from')
             .first()
         )

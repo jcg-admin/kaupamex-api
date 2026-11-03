@@ -5,17 +5,19 @@
     'name': 'Puente Contabilidad ↔ Flota (account_fleet)',
     'version': '1.0',
     'category': 'Accounting/Accounting',
-    'summary': 'Vincula facturas de proveedor con vehículos: crea el '
-               'servicio de flota "Vendor Bill" al postear una línea con '
-               'vehículo, y expone bill_count/account_move_ids en '
-               'fleet.vehicle.',
+    'summary': (
+        'Vincula facturas de proveedor con vehículos: crea el '
+        'servicio de flota "Vendor Bill" al postear una línea con '
+        'vehículo, y expone bill_count/account_move_ids en '
+        'fleet.vehicle.'
+    ),
     # `depends` MEDIDO contra los imports reales de este addon (los 4 modelos
     # que cuelga: account.AccountMove, account.AccountMoveLine,
     # fleet.FleetVehicle, fleet.FleetVehicleLogServices), no copiado de la
     # referencia (que declara sólo `fleet` + `account` — igual que aquí).
     'depends': [
-        'account',   # AccountMove, AccountMoveLine
-        'fleet',     # FleetVehicle, FleetVehicleLogServices, FleetServiceType
+        'account',  # AccountMove, AccountMoveLine
+        'fleet',  # FleetVehicle, FleetVehicleLogServices, FleetServiceType
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `account_fleet` en Odoo

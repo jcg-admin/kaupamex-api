@@ -10,7 +10,8 @@ Premisa verificada
 
 La referencia hereda seis mixins además de ``utm.mixin``:
 ``mail.thread.cc``, ``mail.thread.main.attachment``, ``mail.thread.blacklist``,
-``mail.thread.phone``, ``mail.activity.mixin``, ``mail.tracking.duration.mixin``.
+``mail.thread.phone``, ``mail.activity.mixin``,
+``mail.tracking.duration.mixin``.
 Medido: ``grep -n "^class Mail" addons/mail/models/*.py`` → sólo
 ``MailThread`` y ``MailActivityMixin`` existen; los otros cuatro dan **0
 hits**. Se hereda lo que existe (``MailThread``, ``MailActivityMixin``,
@@ -53,6 +54,7 @@ clase; resumen: **26 portados**, **6 con divergencia declarada**,
 **13 BLOQUEADOS** (framework de acciones cliente Odoo — familia (b);
 mixins ausentes; pasarela de correo entrante ausente).
 """
+
 from datetime import datetime
 
 from django.apps import apps
@@ -98,98 +100,191 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
     _description = 'Applicant'
     _rec_name = 'partner_name'
 
-    sequence = fields.Integer(default=10, db_index=True, verbose_name='Secuencia')
+    sequence = fields.Integer(
+        default=10, db_index=True, verbose_name='Secuencia'
+    )
     active = fields.Boolean(default=True, db_index=True, verbose_name='Activo')
 
     partner = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='applicant_ids', db_index=True, verbose_name='Contacto',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicant_ids',
+        db_index=True,
+        verbose_name='Contacto',
     )
-    partner_name = fields.Char(blank=True, default='', verbose_name='Nombre del candidato')
-    email_from = fields.Char(max_length=128, blank=True, default='', db_index=True, verbose_name='Correo')
+    partner_name = fields.Char(
+        blank=True, default='', verbose_name='Nombre del candidato'
+    )
+    email_from = fields.Char(
+        max_length=128,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name='Correo',
+    )
     email_normalized = fields.Char(blank=True, default='', db_index=True)
-    partner_phone = fields.Char(max_length=32, blank=True, default='', verbose_name='Teléfono')
-    partner_phone_sanitized = fields.Char(blank=True, default='', db_index=True)
-    linkedin_profile = fields.Char(blank=True, default='', verbose_name='Perfil de LinkedIn')
-    type = fields.Many2one(
-        'hr_recruitment.HrRecruitmentDegree', on_delete=models.SET_NULL, null=True,
-        blank=True, related_name='applicants', verbose_name='Grado académico',
+    partner_phone = fields.Char(
+        max_length=32, blank=True, default='', verbose_name='Teléfono'
     )
-    availability = fields.Date(null=True, blank=True, verbose_name='Disponibilidad')
+    partner_phone_sanitized = fields.Char(
+        blank=True, default='', db_index=True
+    )
+    linkedin_profile = fields.Char(
+        blank=True, default='', verbose_name='Perfil de LinkedIn'
+    )
+    type = fields.Many2one(
+        'hr_recruitment.HrRecruitmentDegree',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicants',
+        verbose_name='Grado académico',
+    )
+    availability = fields.Date(
+        null=True, blank=True, verbose_name='Disponibilidad'
+    )
     color = fields.Integer(default=0, verbose_name='Índice de color')
     # Odoo employee_id — el reverso lo consume hr_recruitment/models/
     # hr_employee.py (``portado sin código``, related_name='applicant_ids').
     employee = fields.Many2one(
-        'hr.HrEmployee', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='applicant_ids', db_index=True, verbose_name='Empleado',
+        'hr.HrEmployee',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicant_ids',
+        db_index=True,
+        verbose_name='Empleado',
     )
     probability = fields.Float(default=0, verbose_name='Probabilidad')
     stage = fields.Many2one(
-        'hr_recruitment.HrRecruitmentStage', on_delete=models.PROTECT,
-        null=True, blank=True, related_name='applicants', db_index=True,
+        'hr_recruitment.HrRecruitmentStage',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='applicants',
+        db_index=True,
         verbose_name='Etapa',
     )
     last_stage = fields.Many2one(
-        'hr_recruitment.HrRecruitmentStage', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='+', verbose_name='Última etapa',
+        'hr_recruitment.HrRecruitmentStage',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name='Última etapa',
     )
     categs = fields.Many2many(
-        'hr_recruitment.HrApplicantCategory', related_name='applicants',
-        blank=True, verbose_name='Etiquetas',
+        'hr_recruitment.HrApplicantCategory',
+        related_name='applicants',
+        blank=True,
+        verbose_name='Etiquetas',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='applicants', db_index=True, verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicants',
+        db_index=True,
+        verbose_name='Empresa',
     )
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='recruited_applicants', db_index=True, verbose_name='Reclutador',
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recruited_applicants',
+        db_index=True,
+        verbose_name='Reclutador',
     )
-    date_closed = fields.Datetime(null=True, blank=True, verbose_name='Fecha de contratación')
-    date_open = fields.Datetime(null=True, blank=True, verbose_name='Fecha de asignación')
+    date_closed = fields.Datetime(
+        null=True, blank=True, verbose_name='Fecha de contratación'
+    )
+    date_open = fields.Datetime(
+        null=True, blank=True, verbose_name='Fecha de asignación'
+    )
     date_last_stage_update = fields.Datetime(
-        null=True, blank=True, db_index=True, default=timezone.now,
+        null=True,
+        blank=True,
+        db_index=True,
+        default=timezone.now,
         verbose_name='Última actualización de etapa',
     )
-    priority = fields.Selection(choices=AVAILABLE_PRIORITIES, default='0', verbose_name='Evaluación')
-    job = fields.Many2one(
-        'hr.HrJob', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='applications', db_index=True, verbose_name='Puesto',
+    priority = fields.Selection(
+        choices=AVAILABLE_PRIORITIES, default='0', verbose_name='Evaluación'
     )
-    salary_proposed_extra = fields.Char(blank=True, default='', verbose_name='Extra propuesto')
-    salary_expected_extra = fields.Char(blank=True, default='', verbose_name='Extra esperado')
+    job = fields.Many2one(
+        'hr.HrJob',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applications',
+        db_index=True,
+        verbose_name='Puesto',
+    )
+    salary_proposed_extra = fields.Char(
+        blank=True, default='', verbose_name='Extra propuesto'
+    )
+    salary_expected_extra = fields.Char(
+        blank=True, default='', verbose_name='Extra esperado'
+    )
     salary_proposed = fields.Float(default=0, verbose_name='Salario propuesto')
     salary_expected = fields.Float(default=0, verbose_name='Salario esperado')
     department = fields.Many2one(
-        'hr.HrDepartment', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='applicants', verbose_name='Departamento',
+        'hr.HrDepartment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicants',
+        verbose_name='Departamento',
     )
-    delay_close = fields.Float(null=True, blank=True, verbose_name='Demora al cierre')
+    delay_close = fields.Float(
+        null=True, blank=True, verbose_name='Demora al cierre'
+    )
     kanban_state = fields.Selection(
-        choices=KANBAN_STATES, default='normal',
+        choices=KANBAN_STATES,
+        default='normal',
         verbose_name='Estado kanban',
     )
     refuse_reason = fields.Many2one(
-        'hr_recruitment.HrApplicantRefuseReason', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='applicants', verbose_name='Motivo de rechazo',
+        'hr_recruitment.HrApplicantRefuseReason',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applicants',
+        verbose_name='Motivo de rechazo',
     )
     interviewers = fields.Many2many(
-        'base.ResUsers', related_name='interviewing_applicants', blank=True,
-        db_index=True, verbose_name='Entrevistadores',
+        'base.ResUsers',
+        related_name='interviewing_applicants',
+        blank=True,
+        db_index=True,
+        verbose_name='Entrevistadores',
     )
     applicant_properties = fields.Properties(
-        null=True, blank=True, verbose_name='Propiedades del candidato',
+        null=True,
+        blank=True,
+        verbose_name='Propiedades del candidato',
         definition='job.applicant_properties_definition',
     )
     applicant_notes = fields.Html(blank=True, default='', verbose_name='Notas')
-    refuse_date = fields.Datetime(null=True, blank=True, verbose_name='Fecha de rechazo')
+    refuse_date = fields.Datetime(
+        null=True, blank=True, verbose_name='Fecha de rechazo'
+    )
     # Odoo talent_pool_ids: sin nombre de tabla explícito en la referencia,
     # así que resuelve a la MISMA junction que hr.talent.pool.talent_ids —
     # ver el comentario de campo en hr_talent_pool.py. El reverso Django lo
     # da ``related_name='talent_pools'`` declarado allá; no se redeclara.
     pool_applicant = fields.Many2one(
-        'self', on_delete=models.SET_NULL, null=True, blank=True,
-        db_index=True, related_name='pool_copies', verbose_name='Candidato de la bolsa',
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='pool_copies',
+        verbose_name='Candidato de la bolsa',
     )
 
     class Meta:
@@ -202,7 +297,8 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
             # ``WHERE active IS TRUE`` parcial — Django CheckConstraint de
             # índice parcial exige `condition=`, que sí se declara aquí.
             models.Index(
-                fields=['job', 'stage'], name='hr_applicant_job_stage_idx',
+                fields=['job', 'stage'],
+                name='hr_applicant_job_stage_idx',
                 condition=Q(active=True),
             ),
         ]
@@ -217,9 +313,15 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         invocar antes de ``save()`` cuando cambien ``talent_pools``/
         ``pool_applicant`` (sin motor de constraints declarativo en este
         ORM, se llama explícito — mismo criterio que el resto del árbol)."""
-        if self.pool_applicant_id == self.pk and not self.talent_pools.exists():
+        if (
+            self.pool_applicant_id == self.pk
+            and not self.talent_pools.exists()
+        ):
             raise ValidationError(
-                _('El talento debe pertenecer al menos a una bolsa de talento.'),
+                _(
+                    'El talento debe pertenecer al menos a una bolsa de'
+                    ' talento.'
+                ),
             )
 
     # === Cómputos puros (sin @depends — se invocan explícitos) =============
@@ -246,17 +348,29 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
             return
         if not self.partner_id:
             if not self.partner_name:
-                raise UserError(_('Debes indicar un nombre de contacto para este candidato.'))
-            partner = ResPartner.objects.filter(email__iexact=email_normalized).first()
+                raise UserError(
+                    _(
+                        'Debes indicar un nombre de contacto para este'
+                        ' candidato.'
+                    )
+                )
+            partner = ResPartner.objects.filter(
+                email__iexact=email_normalized
+            ).first()
             if partner is None:
                 partner = ResPartner.objects.create(
-                    name=self.partner_name, email=self.email_from, is_company=False,
+                    name=self.partner_name,
+                    email=self.email_from,
+                    is_company=False,
                 )
             self.partner = partner
         if self.partner_name and self.partner_name != self.partner.name:
             self.partner.name = self.partner_name
             self.partner.save(update_fields=['name'])
-        if email_normalized and email_normalized != (self.partner.email or '').strip().lower():
+        if (
+            email_normalized
+            and email_normalized != (self.partner.email or '').strip().lower()
+        ):
             self.partner.email = self.email_from
             self.partner.save(update_fields=['email'])
         if self.partner_phone and self.partner_phone != self.partner.phone:
@@ -279,7 +393,11 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         """≙ ``_compute_delay`` (``odoo19c: :476-482``) — asigna
         ``self.delay_close``; se invoca explícito tras tocar las fechas."""
         day_open, day_close = self.day_open(), self.day_close()
-        self.delay_close = (day_close - day_open) if (self.date_open and day_close is not None) else None
+        self.delay_close = (
+            (day_close - day_open)
+            if (self.date_open and day_close is not None)
+            else None
+        )
         return self.delay_close
 
     def user_email(self):
@@ -300,7 +418,9 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         polimórfico (``res_model``/``res_id``), mismo patrón que
         ``hr.job.document_ids``."""
         IrAttachment = apps.get_model('base', 'IrAttachment')
-        return IrAttachment.objects.filter(res_model='hr.applicant', res_id=self.pk)
+        return IrAttachment.objects.filter(
+            res_model='hr.applicant', res_id=self.pk
+        )
 
     def attachment_number(self):
         """≙ ``_get_attachment_number`` (``odoo19c: :745-750``)."""
@@ -326,10 +446,17 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
             self.stage = None
             return self.stage
         if not self.stage_id:
-            HrRecruitmentStage = apps.get_model('hr_recruitment', 'HrRecruitmentStage')
-            self.stage = HrRecruitmentStage.objects.filter(
-                Q(jobs__isnull=True) | Q(jobs=self.job),
-            ).exclude(fold=True).order_by('sequence').first()
+            HrRecruitmentStage = apps.get_model(
+                'hr_recruitment', 'HrRecruitmentStage'
+            )
+            self.stage = (
+                HrRecruitmentStage.objects.filter(
+                    Q(jobs__isnull=True) | Q(jobs=self.job),
+                )
+                .exclude(fold=True)
+                .order_by('sequence')
+                .first()
+            )
         return self.stage
 
     def compute_department(self):
@@ -411,7 +538,12 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         """≙ ``_compute_application_count`` (``odoo19c: :678-707``) —
         aplicaciones que comparten correo/teléfono/linkedin/bolsa con
         ``self``, sin contarse doble."""
-        return max(0, self.get_similar_applicants(ignore_talent=False).exclude(pk=self.pk).count())
+        return max(
+            0,
+            self.get_similar_applicants(ignore_talent=False)
+            .exclude(pk=self.pk)
+            .count(),
+        )
 
     def is_pool_applicant(self):
         """≙ ``_compute_is_pool`` (``odoo19c: :709-712``)."""
@@ -424,7 +556,11 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         ``get_similar_applicants(only_talent=True)`` ya cubre)."""
         if self.talent_pools.exists() or self.pool_applicant_id:
             return True
-        return self.get_similar_applicants(only_talent=True).exclude(pk=self.pk).exists()
+        return (
+            self.get_similar_applicants(only_talent=True)
+            .exclude(pk=self.pk)
+            .exists()
+        )
 
     def talent_pool_count(self):
         """≙ ``_compute_talent_pool_count`` (``odoo19c: :154-215``, forma
@@ -437,7 +573,11 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
 
     def link_applicant_to_talent(self):
         """≙ ``link_applicant_to_talent`` (``odoo19c: :836-839``)."""
-        talent = self.get_similar_applicants(only_talent=True).exclude(pk=self.pk).first()
+        talent = (
+            self.get_similar_applicants(only_talent=True)
+            .exclude(pk=self.pk)
+            .first()
+        )
         self.pool_applicant = talent
         return talent
 
@@ -459,30 +599,65 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         """
         is_new = self.pk is None
         previous_interviewer_pks = (
-            set(self.interviewers.values_list('pk', flat=True)) if not is_new else set()
+            set(self.interviewers.values_list('pk', flat=True))
+            if not is_new
+            else set()
         )
         if not is_new:
             self.date_last_stage_update = timezone.now()
         result = super().save(*args, **kwargs)
-        new_interviewer_pks = set(self.interviewers.values_list('pk', flat=True))
+        new_interviewer_pks = set(
+            self.interviewers.values_list('pk', flat=True)
+        )
         ResUsersModel = apps.get_model('base', 'ResUsers')
-        create_fn = getattr(ResUsersModel, '_create_recruitment_interviewers', None)
-        remove_fn = getattr(ResUsersModel, '_remove_recruitment_interviewers', None)
-        if create_fn is not None and new_interviewer_pks - previous_interviewer_pks:
-            create_fn(ResUsersModel.objects.filter(pk__in=new_interviewer_pks - previous_interviewer_pks))
-        if remove_fn is not None and previous_interviewer_pks - new_interviewer_pks:
-            remove_fn(ResUsersModel.objects.filter(pk__in=previous_interviewer_pks - new_interviewer_pks))
+        create_fn = getattr(
+            ResUsersModel, '_create_recruitment_interviewers', None
+        )
+        remove_fn = getattr(
+            ResUsersModel, '_remove_recruitment_interviewers', None
+        )
+        if (
+            create_fn is not None
+            and new_interviewer_pks - previous_interviewer_pks
+        ):
+            create_fn(
+                ResUsersModel.objects.filter(
+                    pk__in=new_interviewer_pks - previous_interviewer_pks
+                )
+            )
+        if (
+            remove_fn is not None
+            and previous_interviewer_pks - new_interviewer_pks
+        ):
+            remove_fn(
+                ResUsersModel.objects.filter(
+                    pk__in=previous_interviewer_pks - new_interviewer_pks
+                )
+            )
         current_user = get_current_user()
         new_interviewers_to_notify = ResUsersModel.objects.filter(
             pk__in=new_interviewer_pks - previous_interviewer_pks,
         )
         if current_user is not None:
-            new_interviewers_to_notify = new_interviewers_to_notify.exclude(pk=current_user.pk)
+            new_interviewers_to_notify = new_interviewers_to_notify.exclude(
+                pk=current_user.pk
+            )
         for interviewer in new_interviewers_to_notify:
             self.message_notify(
-                partners=[interviewer.partner] if getattr(interviewer, 'partner_id', None) else [],
-                subject=_('Fuiste asignado como entrevistador de %(name)s', name=str(self)),
-                body=_('Fuiste asignado como entrevistador del candidato %(name)s', name=self.partner_name or ''),
+                partners=(
+                    [interviewer.partner]
+                    if getattr(interviewer, 'partner_id', None)
+                    else []
+                ),
+                subject=_(
+                    'Fuiste asignado como entrevistador de %(name)s',
+                    name=str(self),
+                ),
+                body=_(
+                    'Fuiste asignado como entrevistador del candidato'
+                    ' %(name)s',
+                    name=self.partner_name or '',
+                ),
             )
         return result
 
@@ -495,18 +670,30 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
     def check_interviewer_access(self):
         """≙ ``_check_interviewer_access`` (``odoo19c: :1049-1051``)."""
         user = get_current_user()
-        if user is not None and user.has_group('hr_recruitment.group_hr_recruitment_interviewer') \
-                and not user.has_group('hr_recruitment.group_hr_recruitment_user'):
+        if (
+            user is not None
+            and user.has_group(
+                'hr_recruitment.group_hr_recruitment_interviewer'
+            )
+            and not user.has_group('hr_recruitment.group_hr_recruitment_user')
+        ):
             raise UserError(_('No tienes permiso para realizar esta acción.'))
 
     def reset_applicant(self):
         """≙ ``reset_applicant`` (``odoo19c: :1074-1087``) — reingresa al
         candidato en la primera etapa de su puesto."""
         if self.job_id:
-            HrRecruitmentStage = apps.get_model('hr_recruitment', 'HrRecruitmentStage')
-            default_stage = HrRecruitmentStage.objects.filter(
-                Q(jobs__isnull=True) | Q(jobs=self.job),
-            ).exclude(fold=True).order_by('sequence').first()
+            HrRecruitmentStage = apps.get_model(
+                'hr_recruitment', 'HrRecruitmentStage'
+            )
+            default_stage = (
+                HrRecruitmentStage.objects.filter(
+                    Q(jobs__isnull=True) | Q(jobs=self.job),
+                )
+                .exclude(fold=True)
+                .order_by('sequence')
+                .first()
+            )
             self.stage = default_stage
         self.refuse_reason = None
         self.save(update_fields=['stage', 'refuse_reason'])
@@ -523,7 +710,10 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         self.ensure_partner()
         address = self.partner
         return {
-            'name': self.partner_name or (address.name if address is not None else ''),
+            'name': (
+                self.partner_name
+                or (address.name if address is not None else '')
+            ),
             'work_contact': address,
             'job': self.job,
             'department': self.department,
@@ -539,9 +729,13 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         if self.partner_id:
             return self.partner
         if not self.partner_name:
-            raise UserError(_('Debes indicar un nombre de contacto para este candidato.'))
+            raise UserError(
+                _('Debes indicar un nombre de contacto para este candidato.')
+            )
         self.partner = ResPartner.objects.create(
-            name=self.partner_name, email=self.email_from, is_company=False,
+            name=self.partner_name,
+            email=self.email_from,
+            is_company=False,
         )
         self.save(update_fields=['partner'])
         return self.partner

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""lint_agents.py — delega en el gate de thyrox; aquí no vive una segunda copia.
+"""
+lint_agents.py — delega en el gate de thyrox; aquí no vive una segunda copia.
 
 Este archivo **era un fork** del gate. Su `PROHIBITED_FIELDS` incluía `model`,
 y `model-selection-subagents.md` —siempre cargada— **exige** `model` con un
@@ -13,7 +14,8 @@ proveedor: `thyrox/src/verify/lint_agents.py`, cuyo esquema sombra de 20 claves
 admite `model` y sí rechaza lo que el cliente ignora.
 
 Sin thyrox alcanzable **NO se emite un veredicto**: se rehúsa con exit 2. Un 0
-aquí no distinguiría «ninguna definición incumple» de «no pude medir», que es el
+aquí no distinguiría «ninguna definición incumple» de «no pude medir», que es
+el
 sub-patrón D de `metrica-decide-la-conclusion.md`.
 """
 import os
@@ -40,11 +42,22 @@ def gate_de_thyrox():
 def main(argv):
     gate = gate_de_thyrox()
     if gate is None:
-        print('FATAL: no se encontró thyrox/src/verify/lint_agents.py.', file=sys.stderr)
-        print('       Declara THYROX_ROOT o clona thyrox como hermano.', file=sys.stderr)
-        print('       NO se emite veredicto: un 0 aquí sería un verde falso.', file=sys.stderr)
+        print(
+            'FATAL: no se encontró thyrox/src/verify/lint_agents.py.',
+            file=sys.stderr,
+        )
+        print(
+            '       Declara THYROX_ROOT o clona thyrox como hermano.',
+            file=sys.stderr,
+        )
+        print(
+            '       NO se emite veredicto: un 0 aquí sería un verde falso.',
+            file=sys.stderr,
+        )
         return 2
-    objetivos = argv[1:] or [str(pathlib.Path(__file__).resolve().parents[1] / 'agents')]
+    objetivos = argv[1:] or [
+        str(pathlib.Path(__file__).resolve().parents[1] / 'agents')
+    ]
     return subprocess.call([sys.executable, str(gate), *objetivos])
 
 

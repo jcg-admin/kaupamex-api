@@ -14,11 +14,14 @@ Regla de negocio (DEC-ENV-03):
 La función es pura salvo por ``timezone.now()`` cuando ``now`` es None; para
 tests, pasar un ``now`` explícito.
 """
+
 from datetime import date, timedelta
 
 from django.utils import timezone
 
-DELIVERY_CUTOFF_HOUR = 11  # 11:00 local; configurable a futuro vía SiteSettings
+DELIVERY_CUTOFF_HOUR = (
+    11  # 11:00 local; configurable a futuro vía SiteSettings
+)
 _SUNDAY = 6  # date.weekday(): lunes=0 … domingo=6
 
 
@@ -65,8 +68,10 @@ def estimate_delivery_window(zone, now=None, cutoff_hour=DELIVERY_CUTOFF_HOUR):
 def delivery_estimate_dict(zone, now=None):
     """Proyección serializable de la ventana de entrega para el storefront.
 
-    ``{'from': 'YYYY-MM-DD', 'to': 'YYYY-MM-DD', 'same_day': bool}`` o None si la
-    zona no tiene ventana. El etiquetado ("Recíbelo el 10–14 jul") se hace en el
+    ``{'from': 'YYYY-MM-DD', 'to': 'YYYY-MM-DD', 'same_day': bool}`` o None si
+    la
+    zona no tiene ventana. El etiquetado ("Recíbelo el 10–14 jul") se hace en
+    el
     front (i18n)."""
     date_min, date_max = estimate_delivery_window(zone, now=now)
     if date_min is None:

@@ -1,4 +1,5 @@
 """AppConfig del addon ``website``."""
+
 import importlib
 
 from django.apps import AppConfig, apps
@@ -35,7 +36,8 @@ class WebsiteConfig(AppConfig):
         registro aún no está listo. Mismo patrón que ``WebsiteSaleConfig``.
         """
         view_module = importlib.import_module(
-            'addons.website.models.ir_ui_view')
+            'addons.website.models.ir_ui_view'
+        )
         view_module.apply_website_ir_ui_view_extensions()
 
         # ``ensure_inherits()`` cablea la delegacion de todo modelo registrado

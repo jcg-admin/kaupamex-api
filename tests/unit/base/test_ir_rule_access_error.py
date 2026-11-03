@@ -1,4 +1,5 @@
-"""``_make_access_error`` de ``ir.rule`` — el mensaje rico del rechazo por fila.
+"""
+``_make_access_error`` de ``ir.rule`` — el mensaje rico del rechazo por fila.
 
 ≙ ``odoo19c: addons/base/models/ir_rule.py:208-268``, más las cuatro piezas
 que aquí se extraen de su cuerpo (``_may_see_the_detail``,
@@ -47,6 +48,7 @@ que cae es el del campo inexistente. Esa mitad **no era opcional**: medido,
 
 En los dos casos el cuerpo se restauró y ``git diff`` lo confirma.
 """
+
 import pytest
 
 from django.core.exceptions import ValidationError
@@ -66,19 +68,23 @@ MODEL = 'base.ResCompany'
 
 @pytest.fixture
 def companies(db):
-    return [ResCompany.objects.create(code=code, name=code.title())
-            for code in ('uno', 'dos', 'tres')]
+    return [
+        ResCompany.objects.create(code=code, name=code.title())
+        for code in ('uno', 'dos', 'tres')
+    ]
 
 
 def _user(login, **kwargs):
     """Un usuario con su partner: ``res.users`` delega en ``res.partner``."""
     return ResUsers.objects.create(
-        login=login, partner=ResPartner.objects.create(name=login), **kwargs)
+        login=login, partner=ResPartner.objects.create(name=login), **kwargs
+    )
 
 
 def _rule(name, domain='', groups=()):
     rule = IrRule.objects.create(
-        name=name, model_name=MODEL, domain_force=domain)
+        name=name, model_name=MODEL, domain_force=domain
+    )
     if groups:
         rule.groups.set(groups)
     return rule
@@ -89,13 +95,17 @@ def _all():
 
 
 class TestFailingRules:
-    """Qué reglas concretas fallan — la mitad de ``_get_failing`` que nombra."""
+    """
+    Qué reglas concretas fallan — la mitad de ``_get_failing`` que nombra.
+    """
 
     def test_a_global_rule_that_filters_is_named(self, companies):
         rule = _rule('sólo uno', "[('code', '=', 'uno')]")
         assert IrRule._failing_rules(_all(), mode='read') == [rule]
 
-    def test_a_global_rule_that_lets_everything_through_is_not(self, companies):
+    def test_a_global_rule_that_lets_everything_through_is_not(
+        self, companies
+    ):
         _rule('todas', "[(1, '=', 1)]")
         assert IrRule._failing_rules(_all(), mode='read') == []
 
@@ -118,13 +128,19 @@ class TestMakeAccessError:
     def test_it_is_an_access_error(self, companies):
         _rule('sólo uno', "[('code', '=', 'uno')]")
         fallan = IrRule._get_failing(_all(), mode='read')
-        assert isinstance(IrRule._make_access_error('read', fallan),
-                          AccessError)
+        assert isinstance(
+            IrRule._make_access_error('read', fallan), AccessError
+        )
 
-    @pytest.mark.parametrize('operation,verbo', [
-        ('read', 'consultar'), ('write', 'modificar'),
-        ('create', 'crear'), ('unlink', 'borrar'),
-    ])
+    @pytest.mark.parametrize(
+        'operation,verbo',
+        [
+            ('read', 'consultar'),
+            ('write', 'modificar'),
+            ('create', 'crear'),
+            ('unlink', 'borrar'),
+        ],
+    )
     def test_it_names_the_operation(self, companies, operation, verbo):
         """Los cuatro verbos, no sólo el que se probó primero.
 
@@ -143,7 +159,8 @@ class TestMakeAccessError:
     def test_it_prefers_the_description_of_ir_model(self, companies):
         """≙ ``self.env['ir.model']._get(model).name or model`` (``:214``)."""
         IrModel.objects.update_or_create(
-            model=MODEL, defaults={'name': 'Empresa'})
+            model=MODEL, defaults={'name': 'Empresa'}
+        )
         _rule('sólo uno', "[('code', '=', 'uno')]")
         fallan = IrRule._get_failing(_all(), mode='read')
         assert 'Empresa' in str(IrRule._make_access_error('read', fallan))
@@ -163,8 +180,9 @@ class TestMakeAccessError:
         assert 'Dos' not in mensaje
         assert 'sólo uno' not in mensaje
 
-    def test_the_detailed_branch_lists_rows_and_rules(self, companies,
-                                                      monkeypatch):
+    def test_the_detailed_branch_lists_rows_and_rules(
+        self, companies, monkeypatch
+    ):
         """La otra rama — ``:258-262``.
 
         Se fuerza la guarda porque en este árbol ``base.group_no_one`` no
@@ -173,8 +191,9 @@ class TestMakeAccessError:
         jamás y su primer uso real sería su primera ejecución.
         """
         rule = _rule('sólo uno', "[('code', '=', 'uno')]")
-        monkeypatch.setattr(IrRule, '_may_see_the_detail',
-                            staticmethod(lambda user: True))
+        monkeypatch.setattr(
+            IrRule, '_may_see_the_detail', staticmethod(lambda user: True)
+        )
         fallan = IrRule._get_failing(_all(), mode='read')
         mensaje = str(IrRule._make_access_error('read', fallan))
         assert 'Dos' in mensaje
@@ -265,7 +284,9 @@ class TestConstraints:
     """Los dos ``@api.constrains`` y el ``CHECK`` de la fuente."""
 
     def test_a_rule_on_the_rules_model_is_rejected(self, db):
-        """``:58-62`` — sería recursiva: leer la regla exigiría leer la regla."""
+        """
+        ``:58-62`` — sería recursiva: leer la regla exigiría leer la regla.
+        """
         with pytest.raises(ValidationError):
             IrRule.objects.create(name='recursiva', model_name='ir.rule')
 
@@ -279,9 +300,12 @@ class TestConstraints:
         Desactivar es la vía de la fuente para desarmar una regla sin borrarla;
         validarla igual la haría imposible de guardar.
         """
-        rule = IrRule(name='rota pero apagada', model_name=MODEL,
-                      domain_force="[('no_existe_este_campo', '=', 1)]",
-                      active=False)
+        rule = IrRule(
+            name='rota pero apagada',
+            model_name=MODEL,
+            domain_force="[('no_existe_este_campo', '=', 1)]",
+            active=False,
+        )
         rule.save()
         assert rule.pk is not None
 
@@ -303,8 +327,11 @@ class TestComputeDomainCacheInvalidation:
         assert _all().filter(IrRule._compute_domain(MODEL)).count() == 1
         rule.domain_force = "[('code', '=', 'dos')]"
         rule.save()
-        assert set(_all().filter(IrRule._compute_domain(MODEL))
-                   .values_list('code', flat=True)) == {'dos'}
+        assert set(
+            _all()
+            .filter(IrRule._compute_domain(MODEL))
+            .values_list('code', flat=True)
+        ) == {'dos'}
 
     def test_deleting_a_rule_takes_effect_immediately(self, companies):
         rule = _rule('sólo uno', "[('code', '=', 'uno')]")
@@ -320,11 +347,19 @@ class TestComputeDomainCacheInvalidation:
         — y el «al revés» concede.
         """
         IrRule.objects.create(
-            name='sólo lectura', model_name=MODEL,
+            name='sólo lectura',
+            model_name=MODEL,
             domain_force="[('code', '=', 'uno')]",
-            perm_write=False, perm_create=False, perm_unlink=False)
-        assert _all().filter(IrRule._compute_domain(MODEL, 'read')).count() == 1
-        assert _all().filter(IrRule._compute_domain(MODEL, 'write')).count() == 3
+            perm_write=False,
+            perm_create=False,
+            perm_unlink=False,
+        )
+        assert (
+            _all().filter(IrRule._compute_domain(MODEL, 'read')).count() == 1
+        )
+        assert (
+            _all().filter(IrRule._compute_domain(MODEL, 'write')).count() == 3
+        )
 
 
 class TestTheUnderscoreIsBack:
@@ -336,24 +371,47 @@ class TestTheUnderscoreIsBack:
     compromete a este puerto a sostener una firma que allá nunca se expuso.
     """
 
-    @pytest.mark.parametrize('name', [
-        '_get_rules', '_eval_context', '_compute_domain', '_get_failing',
-        '_make_access_error', '_compute_domain_keys',
-        '_compute_domain_context_values', '_build_domain',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            '_get_rules',
+            '_eval_context',
+            '_compute_domain',
+            '_get_failing',
+            '_make_access_error',
+            '_compute_domain_keys',
+            '_compute_domain_context_values',
+            '_build_domain',
+        ],
+    )
     def test_the_private_name_is_the_one_declared(self, name):
         assert hasattr(IrRule, name)
 
-    @pytest.mark.parametrize('name', [
-        'get_rules', 'eval_context', 'compute_domain', 'get_failing',
-        'build_domain',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            'get_rules',
+            'eval_context',
+            'compute_domain',
+            'get_failing',
+            'build_domain',
+        ],
+    )
     def test_the_public_name_is_gone(self, name):
         assert not hasattr(IrRule, name)
 
-    @pytest.mark.parametrize('name', [
-        '_name', '_description', '_order', '_MODES', '_allow_sudo_commands',
-    ])
+    @pytest.mark.parametrize(
+        'name',
+        [
+            '_name',
+            '_description',
+            '_order',
+            '_MODES',
+            '_allow_sudo_commands',
+        ],
+    )
     def test_the_five_class_attributes_of_the_source(self, name):
-        """``atributos-de-clase-de-modelo.md``: se portan TODOS los que declare."""
+        """
+        ``atributos-de-clase-de-modelo.md``: se portan TODOS los que declare.
+        """
         assert name in IrRule.__dict__

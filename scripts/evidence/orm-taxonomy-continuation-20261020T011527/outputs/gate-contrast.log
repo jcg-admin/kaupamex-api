@@ -1,0 +1,25 @@
+{
+  "basename_alias_and_files_instead_of_dirs_accepted": [],
+  "jsonl_history_hides_valid_json": [
+    {
+      "key": "question",
+      "problem": "question: ausente o vacía"
+    },
+    {
+      "key": "instrument",
+      "problem": "instrument: ausente o vacía"
+    },
+    {
+      "key": "metric",
+      "problem": "metric: ausente o vacía"
+    },
+    {
+      "key": "blind_to",
+      "problem": "blind_to: ausente o vacía"
+    },
+    {
+      "key": "destination",
+      "problem": "destination: ausente o vacía"
+    }
+  ]
+}

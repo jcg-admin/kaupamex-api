@@ -1,0 +1,51 @@
+{
+  "kind": "Bounded evidence delta to existing contractual population, not another master plan/TaskStore",
+  "at": "2026-11-01T12:02:00.373758-06:00",
+  "existing_population": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "existing_population_sha256": "557b5b205a7573285563bdf5e72e7c4edc7e27d484b5c5476796de8db7969bec",
+  "descriptor_count_unchanged": 33,
+  "global_contract_denominator": "not established; includes compound/candidate consumer obligations and bounded refinements",
+  "relations": [
+    {
+      "descriptor": "cache_across_user_environments",
+      "bounded_units": [
+        "TASK-GEN-0633.uid_privilege_cache_key",
+        "TASK-API-0397.record_attached_field_context"
+      ],
+      "evidence": [
+        "record-env-uid-contract-14.json",
+        "record-env-contract-14.json"
+      ],
+      "verified": "Selected uid/context/privilege bucket observables only; no full parent equivalence",
+      "parent_acceptance": "not_verified",
+      "integration": "PR109 pending, no merge"
+    },
+    {
+      "descriptor": "protected_compute_scope",
+      "bounded_units": [
+        "TASK-API-0397.record_attached_field_context"
+      ],
+      "evidence": [
+        "record-env-contract-14.json"
+      ],
+      "verified": "Selected callback elevation, assignment channel and scope restoration; native stored test fixture/persistence not accepted",
+      "parent_acceptance": "not_verified",
+      "integration": "PR109 pending, no merge"
+    },
+    {
+      "descriptor": "recompute_dependent_record_discovery",
+      "bounded_units": [
+        "TASK-API-0424.class_declared_virtual_relation_delete"
+      ],
+      "evidence": [
+        "nonstored-delete-contract-14.json"
+      ],
+      "verified": "Dependency warnings classified with actual Consumer lifecycle difference; class-body delete is an adjacent verified adaptation, not complete reverse record discovery",
+      "parent_acceptance": "not_verified",
+      "integration": "PR109 pending, no merge"
+    }
+  ],
+  "historical_population_not_rewritten": true,
+  "reference_corpus": "Same pinned existing roots; no new global file inventory or native Odoo execution",
+  "acceptance": "not_verified"
+}

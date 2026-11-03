@@ -1,0 +1,5 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.....                                                                    [100%]
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/exists-manager-final.junit.xml -
+5 passed in 0.05s
+{"head": "9ffbdbd91bf2701769f72633615f25150be4be3c", "index_tree": "cdd583b5f361b33b5ad5bb0d0297225504d46da5", "source_sha256": "2b0866622bae770a6c5099b8f385f5d8862b4ebb07fc4a58d083768a23a08367", "test_sha256": "84e66483ecfcb7e297b2379ee5a0b34072326e49fee632e8b3bd349842e9edd7", "annulled_manager": false, "pytest_exit_code": 0, "provenance_unchanged": true, "baseline": false, "scope": "Declared model source, native manager metadata, mocked query transport; SQL prohibited; not acceptance"}

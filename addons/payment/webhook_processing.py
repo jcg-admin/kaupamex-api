@@ -6,13 +6,13 @@ Lógica compartida post-aprobación que en Odoo vive en el framework
 webhook de cada provider (``payment_mercado_pago``/``payment_paypal``) la
 consumen; no pertenece a ningún provider concreto.
 """
+
 import logging
 from decimal import Decimal
 
 from django.db import transaction
 
 from addons.payment.models import Payment
-
 
 logger = logging.getLogger('apps')
 
@@ -40,8 +40,7 @@ def _process_payment_approval(
 
     with transaction.atomic():
         payment = (
-            Payment.objects
-            .select_for_update()
+            Payment.objects.select_for_update()
             .select_related('sale_order')
             .filter(gateway_payment_id=gateway_payment_id, gateway=gateway)
             .first()
@@ -49,12 +48,17 @@ def _process_payment_approval(
         if not payment:
             logger.warning(
                 'Webhook %s: no se encontró Payment con gateway_payment_id=%s',
-                gateway, gateway_payment_id,
+                gateway,
+                gateway_payment_id,
             )
             return None, False
 
         if payment.status == Payment.STATUS_APPROVED:
-            logger.info('Webhook %s: pago %s ya estaba APPROVED — idempotente', gateway, gateway_payment_id)
+            logger.info(
+                'Webhook %s: pago %s ya estaba APPROVED — idempotente',
+                gateway,
+                gateway_payment_id,
+            )
             return payment, False
 
         payment.status = Payment.STATUS_APPROVED
@@ -67,8 +71,8 @@ def _process_payment_approval(
         # ya no se escribe (V5d la retira).
         logger.info(
             'Orden %s → PAID (proyectado) tras pago aprobado (%s)',
-            payment.sale_order.name, gateway,
+            payment.sale_order.name,
+            gateway,
         )
 
     return payment, True
-

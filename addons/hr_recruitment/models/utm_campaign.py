@@ -24,6 +24,7 @@ conserva como método normal que quien orqueste el borrado invoca antes de
 ``delete()`` (mismo patrón que ``hr/models/res_partner.py::
 _unlink_contact_rel_employee``).
 """
+
 from django.apps import apps
 
 from exceptions import UserError
@@ -35,13 +36,17 @@ def check_utm_campaign_job_not_deleted(campaigns):
     11-19``) — se invoca antes de borrar ``campaigns``."""
     IrModelData = apps.get_model('base', 'IrModelData')
     utm_campaign_job = IrModelData.ref(
-        'hr_recruitment.utm_campaign_job', raise_if_not_found=False,
+        'hr_recruitment.utm_campaign_job',
+        raise_if_not_found=False,
     )
     if utm_campaign_job is not None and utm_campaign_job in list(campaigns):
-        raise UserError(_(
-            'No puedes eliminar la campaña UTM "%(name)s" porque se usa '
-            'en el proceso de reclutamiento.', name=utm_campaign_job.name,
-        ))
+        raise UserError(
+            _(
+                'No puedes eliminar la campaña UTM "%(name)s" porque se usa '
+                'en el proceso de reclutamiento.',
+                name=utm_campaign_job.name,
+            )
+        )
 
 
 __all__ = ['check_utm_campaign_job_not_deleted']

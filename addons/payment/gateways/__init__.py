@@ -1,4 +1,7 @@
-"""Abstracción de providers del framework de pagos (``payment.provider`` de Odoo)."""
+"""
+Abstracción de providers del framework de pagos (``payment.provider`` de Odoo).
+"""
+
 from .base import (
     BaseGateway,
     PreferenceResult,
@@ -9,6 +12,10 @@ from .base import (
 )
 
 __all__ = [
-    'BaseGateway', 'PreferenceResult', 'InstallmentPlan',
-    'PaymentVerification', 'RefundResult', 'PaymentResult',
+    'BaseGateway',
+    'PreferenceResult',
+    'InstallmentPlan',
+    'PaymentVerification',
+    'RefundResult',
+    'PaymentResult',
 ]

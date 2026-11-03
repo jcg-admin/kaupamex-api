@@ -1,0 +1,46 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "integration": "Working tree only; no commit, merge or full-head acceptance",
+  "source_revision": "dc9b4c53167891baccc4a04ca1db7c8563fc1fe8",
+  "reference_symbol": {
+    "path": "odoo19c:addons/account/models/account_analytic_distribution_model.py",
+    "qualified_symbol": "AccountAnalyticDistributionModel.prefix_placeholder",
+    "sha256": "493effce5095ae11e078f7dab6a8d85140e9e953219061f5b049d91e2881c2d9",
+    "declaration": [
+      "prefix_placeholder = fields.Char(compute='_compute_prefix_placeholder')"
+    ]
+  },
+  "behavior": "Virtual field remains discoverable without becoming a migration-state column.",
+  "execution_flow": "Existing private field -> native ModelState -> criterion and negative control; no SQL.",
+  "inputs_outputs": "Virtual field excluded; persistent positive controls included; injected persistent same-name field rejected.",
+  "side_effects": "Copied Options restored by monkeypatch; no connection or schema mutations.",
+  "dependencies": [
+    "TASK-GEN-0633 native1203 pending owner codex-module-lifecycle",
+    "TASK-API-0305 native520 in_progress owner null; business implementation excluded"
+  ],
+  "consumers": [
+    "Existing test_prefix_placeholder_creates_no_column node",
+    "Django migration state",
+    "Required CI"
+  ],
+  "installed_mechanism": "Existing private field, native ModelState, pytest, Thyrox TaskGet/claimsCommand",
+  "existing_adaptation": "Private non-concrete field, column=None. No analytic product implementation changed.",
+  "verification": {
+    "red": {
+      "passed": 5,
+      "failed": 2,
+      "exit": 1,
+      "junit": "analytic-schema-criterion-red.junit.xml"
+    },
+    "green": {
+      "passed": 7,
+      "exit": 0,
+      "junit": "analytic-schema-criterion-green.junit.xml"
+    },
+    "connection_opened": false,
+    "database_tests": "NOT_EVALUATED",
+    "current_full_gate": "FAIL: style debt remains"
+  },
+  "equivalence": "Bounded metadata/migration-state contract verified; physical database and compute not_verified.",
+  "limitations": "Nine database cases not rerun. Original64 unchanged. Global formatting not globally accepted. No TASK state changes."
+}

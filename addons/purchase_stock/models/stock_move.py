@@ -6,7 +6,8 @@ Adaptación de Odoo ``purchase_stock/models/stock_move.py``
 — atribución y aviso de licencia preservados (DEC-KX-03).
 
 Qué añade: el enlace en los dos sentidos entre un movimiento de inventario y la
-línea de compra que lo originó. ``purchase_line_id`` es «esta recepción viene de
+línea de compra que lo originó. ``purchase_line_id`` es «esta recepción viene
+de
 esta línea»; ``created_purchase_line_ids`` es «este movimiento hizo que se
 crearan estas líneas» (el caso *make-to-order*: la salida pendiente disparó la
 compra). Con ese enlace, el movimiento sabe de dónde salió, quién es el
@@ -117,7 +118,8 @@ proveedor enlazada a la línea de compra. Medido sobre ``addons/`` + ``src/``:
     grep -rn "def _get_value_from_quotation"    addons/ src/ → 0
 
 ``_get_value_from_account_move`` y ``_get_value_from_quotation`` encadenan un
-``super()`` que ``stock_account`` declararía; el ``stock_account`` de este árbol
+``super()`` que ``stock_account`` declararía; el ``stock_account`` de este
+árbol
 tiene dos archivos y ninguno toca ``stock.move``. Los otros cuatro son sus
 ayudantes: sin el método que los llama son código muerto. Instalarlos sería el
 defecto de ``H-API-733``.
@@ -125,7 +127,8 @@ defecto de ``H-API-733``.
 Nota sobre ``_is_purchase_return`` — el XML ID que falta
 ==========================================================
 
-Su segunda rama compara contra ``env.ref('stock.stock_location_inter_company')``.
+Su segunda rama compara contra
+``env.ref('stock.stock_location_inter_company')``.
 Ese XML ID **no está sembrado** en este árbol — es la misma ausencia que
 ``addons/stock/models/stock_replenish_mixin.py`` ya declara y que la tarea
 **#330** cubre. El método se porta **con** la rama: cuando la ubicación no se
@@ -139,7 +142,8 @@ Nota sobre los dos ``chain_method`` que ACUMULAN
 
 ``_prepare_merge_moves_distinct_fields`` y su hermano devuelven **listas que se
 suman**, no valores que se relevan. Con el relevo por defecto de
-``chain_method`` (``result if result is not None else previous(...)``) el puerto
+``chain_method`` (``result if result is not None else previous(...)``) el
+puerto
 devolvería sólo los dos campos nuevos y **perdería los doce anteriores** — una
 fusión de movimientos que ignora ``product`` o ``location``. Por eso van con
 ``combine=extend_list``, igual que ``account_qr_code_emv`` hizo con
@@ -150,6 +154,7 @@ res_bank.py:523-524``).
 lleva su propio ``combine`` (``_merge_vals``): el ``extend_list`` genérico no
 sirve y el relevo perdería todos los valores del ``super()``.
 """
+
 from collections import deque
 
 from django.apps import apps
@@ -175,11 +180,13 @@ def _merge_vals(new, previous):
 
 # --- métodos portados ------------------------------------------------------
 
+
 def _prepare_merge_moves_distinct_fields(self, merge_extra=False):
     """≙ ``_prepare_merge_moves_distinct_fields`` (``odoo19c: :22-26``).
 
     Sólo aporta los dos campos nuevos; ``combine=extend_list`` los suma a los
-    que el ``super()`` ya devolvía. La fuente hace ``distinct_fields += [...]``,
+    que el ``super()`` ya devolvía. La fuente hace ``distinct_fields +=
+    [...]``,
     que es exactamente eso.
 
     Los nombres se dan **sin** el sufijo ``_id``/``_ids`` de la fuente porque
@@ -221,8 +228,11 @@ def _should_ignore_pol_price(self):
     fuente es la comprobación de que hay producto, que aquí es ``product_id``
     (la columna del FK).
     """
-    return bool(self.origin_returned_move_id) or not self.purchase_line_id \
+    return (
+        bool(self.origin_returned_move_id)
+        or not self.purchase_line_id
         or not self.product_id
+    )
 
 
 def _prepare_move_split_vals(self, qty, force_split_uom=None):
@@ -237,10 +247,13 @@ def _prepare_move_split_vals(self, qty, force_split_uom=None):
     le añade estas claves.
     """
     vals = {'purchase_line': self.purchase_line}
-    if self.procure_method == self.PROCURE_MAKE_TO_ORDER \
-            and self.created_purchase_line_ids.exists():
+    if (
+        self.procure_method == self.PROCURE_MAKE_TO_ORDER
+        and self.created_purchase_line_ids.exists()
+    ):
         vals['created_purchase_line_ids'] = list(
-            self.created_purchase_line_ids.all())
+            self.created_purchase_line_ids.all()
+        )
     return vals
 
 
@@ -290,8 +303,12 @@ def _is_purchase_return(self):
         return False
     ir_model_data = apps.get_model('base', 'IrModelData')
     inter_company = ir_model_data.objects.filter(
-        module='stock', name='stock_location_inter_company').first()
-    if inter_company is not None and self.location_dest_id == inter_company.res_id:
+        module='stock', name='stock_location_inter_company'
+    ).first()
+    if (
+        inter_company is not None
+        and self.location_dest_id == inter_company.res_id
+    ):
         return True
     return source_move.location_usage == 'supplier'
 
@@ -315,11 +332,14 @@ def _get_purchase_line_and_partner_from_chain(self):
         current_move = moves_to_check.popleft()
         if current_move.purchase_line_id:
             picking = current_move.picking
-            return (current_move.purchase_line_id,
-                    picking.partner_id if picking is not None else None)
+            return (
+                current_move.purchase_line_id,
+                picking.partner_id if picking is not None else None,
+            )
         seen_moves.add(current_move.pk)
         moves_to_check.extend(
-            move for move in current_move.move_orig_ids.all()
+            move
+            for move in current_move.move_orig_ids.all()
             if move.pk not in seen_moves
             and all(move.pk != pending.pk for pending in moves_to_check)
         )
@@ -334,45 +354,68 @@ def _install_methods(model):
     instalar el relevo por ``None``. Mismo criterio que
     ``addons/account_qr_code_emv/models/res_bank.py:523``.
     """
-    chain_method(model, '_prepare_merge_moves_distinct_fields',
-                 _prepare_merge_moves_distinct_fields, combine=extend_list)
-    chain_method(model, '_prepare_merge_negative_moves_excluded_distinct_fields',
-                 _prepare_merge_negative_moves_excluded_distinct_fields,
-                 combine=extend_list)
-    chain_method(model, '_prepare_move_split_vals',
-                 _prepare_move_split_vals, combine=_merge_vals)
+    chain_method(
+        model,
+        '_prepare_merge_moves_distinct_fields',
+        _prepare_merge_moves_distinct_fields,
+        combine=extend_list,
+    )
+    chain_method(
+        model,
+        '_prepare_merge_negative_moves_excluded_distinct_fields',
+        _prepare_merge_negative_moves_excluded_distinct_fields,
+        combine=extend_list,
+    )
+    chain_method(
+        model,
+        '_prepare_move_split_vals',
+        _prepare_move_split_vals,
+        combine=_merge_vals,
+    )
     chain_method(model, '_get_description', _get_description)
     chain_method(model, '_clean_merged', _clean_merged)
     chain_method(model, '_get_source_document', _get_source_document)
     chain_method(model, '_should_ignore_pol_price', _should_ignore_pol_price)
     chain_method(model, '_is_purchase_return', _is_purchase_return)
-    chain_method(model, '_get_purchase_line_and_partner_from_chain',
-                 _get_purchase_line_and_partner_from_chain)
+    chain_method(
+        model,
+        '_get_purchase_line_and_partner_from_chain',
+        _get_purchase_line_and_partner_from_chain,
+    )
 
 
 def apply_purchase_stock_stock_move_extensions():
     """Cuelga sobre ``stock.StockMove`` lo que ``purchase_stock`` le añade —
     ≙ ``_inherit``."""
     extend_model(
-        'stock', 'StockMove',
+        'stock',
+        'StockMove',
         campos={
             'purchase_line': fields.Many2one(
-                'purchase.PurchaseOrderLine', null=True, blank=True,
-                on_delete=models.SET_NULL, db_index=True,
+                'purchase.PurchaseOrderLine',
+                null=True,
+                blank=True,
+                on_delete=models.SET_NULL,
+                db_index=True,
                 related_name='move_ids',
-                help_text='Línea de compra que originó este movimiento '
-                          '(Odoo purchase_line_id). El inverso es '
-                          '``line.move_ids``.',
+                help_text=(
+                    'Línea de compra que originó este movimiento '
+                    '(Odoo purchase_line_id). El inverso es '
+                    '``line.move_ids``.'
+                ),
             ),
             'created_purchase_line_ids': fields.Many2many(
-                'purchase.PurchaseOrderLine', blank=True,
+                'purchase.PurchaseOrderLine',
+                blank=True,
                 related_name='move_dest_ids',
                 db_table='stock_move_created_purchase_line_rel',
-                help_text='Líneas de compra que este movimiento hizo crear '
-                          '(Odoo created_purchase_line_ids, caso '
-                          'make-to-order). El inverso es '
-                          '``line.move_dest_ids``, el nombre que la referencia '
-                          'le da a la otra mitad (purchase_order_line.py:30).',
+                help_text=(
+                    'Líneas de compra que este movimiento hizo crear '
+                    '(Odoo created_purchase_line_ids, caso '
+                    'make-to-order). El inverso es '
+                    '``line.move_dest_ids``, el nombre que la referencia '
+                    'le da a la otra mitad (purchase_order_line.py:30).'
+                ),
             ),
         },
         luego=_install_methods,

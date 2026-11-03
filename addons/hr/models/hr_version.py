@@ -12,7 +12,8 @@ paquete Django nuevo (con su propio ``apps.py``/``__manifest__.py`` en
 ``INSTALLED_APPS``). Medido antes de escribir una sola línea:
 
 - ``find $ODOO19C/addons -maxdepth 1 -iname "*hr_version*"`` → **0 hits**, en
-  Community 19, Enterprise 19 (``odoo19pro-main``) y Enterprise 18/Community 18.
+  Community 19, Enterprise 19 (``odoo19pro-main``) y Enterprise 18/Community
+  18.
 - ``grep -rl "hr_version" $ODOO19C/addons/hr/`` → hr/models/hr_version.py,
   hr/models/__init__.py, hr/models/hr_employee.py, hr/tests/test_hr_version.py.
 
@@ -40,7 +41,8 @@ ausencia. Este archivo cierra esa ausencia. No cambia la premisa de
 delegado y conecta el subconjunto de campos que ``hr_employee.py`` ya nombró
 como bloqueados por él.
 
-Medido por AST sobre la referencia (``odoo19c: addons/hr/models/hr_version.py``,
+Medido por AST sobre la referencia (``odoo19c:
+addons/hr/models/hr_version.py``,
 712 líneas): 1 clase, 7 atributos de clase (5 simples + 2 objetos de tabla:
 ``Constraint`` + ``UniqueIndex``), 63 campos, 46 métodos.
 
@@ -65,6 +67,7 @@ Desenlace de este porte (NÚCLEO, no exhaustivo — ver hallazgo)
   mixins (mismo patrón que ``hr_employee.py``); los dos objetos de tabla
   (``Constraint``, ``UniqueIndex``) → ``Meta.constraints``.
 """
+
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -99,7 +102,8 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         Sucesor: tarea **#558** — señales ``pre_save`` que repliquen
         estos seis cómputos.
     (b) **Sesión/usuario activo (``self.env.user``/``self.env.company``),
-        ausente a nivel de modelo.** Afecta a: ``_get_valid_employee_for_user``,
+        ausente a nivel de modelo.** Afecta a:
+        ``_get_valid_employee_for_user``,
         ``_compute_part_of_department``, ``_search_part_of_department``,
         ``_get_default_address_id``, ``_get_hr_responsible_domain``.
         Sucesor: tarea **#559** — pasar el usuario/compañía activos por
@@ -133,13 +137,18 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         OTHER = 'other', 'Otro'
 
     class DistanceUnit(models.TextChoices):
-        """≙ el ``Selection`` inline de ``distance_home_work_unit`` (``:102-105``)."""
+        """
+        ≙ el ``Selection`` inline de ``distance_home_work_unit``
+        (``:102-105``).
+        """
 
         KM = 'kilometers', 'km'
         MILES = 'miles', 'mi'
 
     class MaritalStatus(models.TextChoices):
-        """≙ ``_get_marital_status_selection`` (``:656-663``), fijo (ver métodos)."""
+        """
+        ≙ ``_get_marital_status_selection`` (``:656-663``), fijo (ver métodos).
+        """
 
         SINGLE = 'single', 'Soltero(a)'
         MARRIED = 'married', 'Casado(a)'
@@ -159,94 +168,159 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
 
     # --- identidad de la versión ------------------------------------------
     employee = fields.Many2one(
-        'hr.HrEmployee', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='versions', verbose_name='Empleado',
-        help_text='Odoo employee_id — el "dueño" de la versión. Un empleado '
-                  'tiene N versiones (historial de carrera); '
-                  'hr.HrEmployee.version apunta a la vigente.',
+        'hr.HrEmployee',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='versions',
+        verbose_name='Empleado',
+        help_text=(
+            'Odoo employee_id — el "dueño" de la versión. Un empleado '
+            'tiene N versiones (historial de carrera); '
+            'hr.HrEmployee.version apunta a la vigente.'
+        ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Empresa',
-        help_text='Odoo company_id (compute+store, default=env.company). '
-                  'El auto-sync desde employee.company está '
-                  'BLOQUEADO por ``api.depends`` — sin trigger de recómputo, '
-                  'lo asigna quien escribe (familia (a)).',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Empresa',
+        help_text=(
+            'Odoo company_id (compute+store, default=env.company). '
+            'El auto-sync desde employee.company está '
+            'BLOQUEADO por ``api.depends`` — sin trigger de recómputo, '
+            'lo asigna quien escribe (familia (a)).'
+        ),
     )
     name = fields.Char(blank=True, default='', verbose_name='Nombre')
     active = fields.Boolean(default=True, verbose_name='Activa')
     date_version = fields.Date(verbose_name='Fecha de versión')
     last_modified_by = fields.Many2one(
-        ResUsers, on_delete=models.SET_NULL, null=True, blank=True,
+        ResUsers,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='hr_versions_last_modified',
         verbose_name='Modificado por última vez por',
-        help_text='Odoo last_modified_uid. DIVERGENCIA: sin default=env.uid '
-                  '(usuario de sesión, ausente a nivel de modelo — familia b).',
+        help_text=(
+            'Odoo last_modified_uid. DIVERGENCIA: sin default=env.uid '
+            '(usuario de sesión, ausente a nivel de modelo — familia b).'
+        ),
     )
     last_modified_at = fields.Datetime(
-        null=True, blank=True, verbose_name='Modificado por última vez el',
+        null=True,
+        blank=True,
+        verbose_name='Modificado por última vez el',
         help_text='Odoo last_modified_date.',
     )
 
     # --- información personal ----------------------------------------------
     country = fields.Many2one(
-        ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions_nationality', verbose_name='Nacionalidad',
+        ResCountry,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions_nationality',
+        verbose_name='Nacionalidad',
         help_text='Odoo country_id — "Nationality (Country)".',
     )
     identification_no = fields.Char(
-        blank=True, default='', verbose_name='No. de identificación',
+        blank=True,
+        default='',
+        verbose_name='No. de identificación',
         help_text='Odoo identification_id.',
     )
     ssn = fields.Char(
-        blank=True, default='', verbose_name='No. de seguridad social',
+        blank=True,
+        default='',
+        verbose_name='No. de seguridad social',
         help_text='Odoo ssnid.',
     )
     passport_no = fields.Char(
-        blank=True, default='', verbose_name='No. de pasaporte',
+        blank=True,
+        default='',
+        verbose_name='No. de pasaporte',
         help_text='Odoo passport_id.',
     )
-    passport_expiration_date = fields.Date(null=True, blank=True, verbose_name='Vencimiento de pasaporte')
+    passport_expiration_date = fields.Date(
+        null=True, blank=True, verbose_name='Vencimiento de pasaporte'
+    )
     sex = fields.Selection(
-        choices=Sex.choices, blank=True, default='', verbose_name='Sexo',
+        choices=Sex.choices,
+        blank=True,
+        default='',
+        verbose_name='Sexo',
     )
-    private_street = fields.Char(blank=True, default='', verbose_name='Calle (privada)')
-    private_street2 = fields.Char(blank=True, default='', verbose_name='Calle 2 (privada)')
-    private_city = fields.Char(blank=True, default='', verbose_name='Ciudad (privada)')
+    private_street = fields.Char(
+        blank=True, default='', verbose_name='Calle (privada)'
+    )
+    private_street2 = fields.Char(
+        blank=True, default='', verbose_name='Calle 2 (privada)'
+    )
+    private_city = fields.Char(
+        blank=True, default='', verbose_name='Ciudad (privada)'
+    )
     private_state = fields.Many2one(
-        ResCountryState, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions_private', verbose_name='Estado (privado)',
+        ResCountryState,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions_private',
+        verbose_name='Estado (privado)',
     )
-    private_zip = fields.Char(blank=True, default='', verbose_name='C.P. (privado)')
+    private_zip = fields.Char(
+        blank=True, default='', verbose_name='C.P. (privado)'
+    )
     private_country = fields.Many2one(
-        ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions_private', verbose_name='País (privado)',
+        ResCountry,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions_private',
+        verbose_name='País (privado)',
     )
-    distance_home_work = fields.Integer(default=0, verbose_name='Distancia casa-trabajo')
+    distance_home_work = fields.Integer(
+        default=0, verbose_name='Distancia casa-trabajo'
+    )
     distance_home_work_unit = fields.Selection(
-        choices=DistanceUnit.choices, default=DistanceUnit.KM,
+        choices=DistanceUnit.choices,
+        default=DistanceUnit.KM,
         verbose_name='Unidad de distancia',
     )
     marital = fields.Selection(
-        choices=MaritalStatus.choices, default=MaritalStatus.SINGLE,
+        choices=MaritalStatus.choices,
+        default=MaritalStatus.SINGLE,
         verbose_name='Estado civil',
-        help_text='DIVERGENCIA: la referencia resuelve las opciones vía '
-                  '_get_marital_status_selection (método, se porta abajo); '
-                  'aquí son fijas (TextChoices), mismo criterio que Certificate '
-                  'en hr_employee.py.',
+        help_text=(
+            'DIVERGENCIA: la referencia resuelve las opciones vía '
+            '_get_marital_status_selection (método, se porta abajo); '
+            'aquí son fijas (TextChoices), mismo criterio que Certificate '
+            'en hr_employee.py.'
+        ),
     )
-    spouse_complete_name = fields.Char(blank=True, default='', verbose_name='Nombre del cónyuge')
-    spouse_birthdate = fields.Date(null=True, blank=True, verbose_name='Fecha de nacimiento del cónyuge')
+    spouse_complete_name = fields.Char(
+        blank=True, default='', verbose_name='Nombre del cónyuge'
+    )
+    spouse_birthdate = fields.Date(
+        null=True, blank=True, verbose_name='Fecha de nacimiento del cónyuge'
+    )
     children = fields.Integer(default=0, verbose_name='Hijos dependientes')
 
     # --- información laboral ------------------------------------------------
     employee_type = fields.Selection(
-        choices=EmployeeType.choices, default=EmployeeType.EMPLOYEE,
+        choices=EmployeeType.choices,
+        default=EmployeeType.EMPLOYEE,
         verbose_name='Tipo de empleado',
     )
     department = fields.Many2one(
-        'hr.HrDepartment', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Departamento',
+        'hr.HrDepartment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Departamento',
     )
     # member_of_department (``odoo19c: addons/hr/models/hr_version.py:128``):
     # BLOQUEADO por ``_get_valid_employee_for_user`` — el cómputo compara el
@@ -256,82 +330,151 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
     # hay valor que persistir ni property que derivar. Sucesor: el mismo de
     # la familia (b).
     job = fields.Many2one(
-        'hr.HrJob', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Puesto',
+        'hr.HrJob',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Puesto',
     )
     job_title = fields.Char(
-        blank=True, default='', verbose_name='Título del puesto',
-        help_text='Odoo job_title (compute+inverse+store). BLOQUEADO por '
-                  '``el motor de compute+inverse+store`` — el auto-sync desde '
-                  'job.name lo exige; se asigna directo. Familia (a).',
+        blank=True,
+        default='',
+        verbose_name='Título del puesto',
+        help_text=(
+            'Odoo job_title (compute+inverse+store). BLOQUEADO por '
+            '``el motor de compute+inverse+store`` — el auto-sync desde '
+            'job.name lo exige; se asigna directo. Familia (a).'
+        ),
     )
     is_custom_job_title = fields.Boolean(
-        default=False, verbose_name='Título de puesto personalizado',
-        help_text='Odoo is_custom_job_title (compute+store). BLOQUEADO por '
-                  '``el motor de compute+store`` — el auto-sync lo exige. '
-                  'Familia (a).',
+        default=False,
+        verbose_name='Título de puesto personalizado',
+        help_text=(
+            'Odoo is_custom_job_title (compute+store). BLOQUEADO por '
+            '``el motor de compute+store`` — el auto-sync lo exige. '
+            'Familia (a).'
+        ),
     )
     address = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions_work_address', verbose_name='Dirección de trabajo',
-        help_text='Odoo address_id. DIVERGENCIA: sin default (la referencia '
-                  'usa self.env.company.partner_id.address_get([\'default\']) '
-                  '— sesión, familia b, ver _get_default_address_id, BLOQUEADO por ``la sesión de la referencia`` — su default lee self.env.company).',
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions_work_address',
+        verbose_name='Dirección de trabajo',
+        help_text=(
+            'Odoo address_id. DIVERGENCIA: sin default (la referencia usa'
+            ' self.env.company.partner_id.address_get([\'default\']) — sesión,'
+            ' familia b, ver _get_default_address_id, BLOQUEADO por ``la'
+            ' sesión de la referencia`` — su default lee self.env.company).'
+        ),
     )
     work_location = fields.Many2one(
-        'hr.HrWorkLocation', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Lugar de trabajo',
+        'hr.HrWorkLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Lugar de trabajo',
     )
     departure_reason = fields.Many2one(
-        'hr.HrDepartureReason', on_delete=models.PROTECT, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Motivo de baja',
+        'hr.HrDepartureReason',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Motivo de baja',
     )
-    departure_description = fields.Html(blank=True, default='', verbose_name='Información adicional de baja')
-    departure_date = fields.Date(null=True, blank=True, verbose_name='Fecha de baja')
+    departure_description = fields.Html(
+        blank=True, default='', verbose_name='Información adicional de baja'
+    )
+    departure_date = fields.Date(
+        null=True, blank=True, verbose_name='Fecha de baja'
+    )
 
     resource_calendar = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Horario de trabajo',
-        help_text='Odoo resource_calendar_id (inverse=_inverse_resource_calendar_id). '
-                  'BLOQUEADO por ``el motor de inverse`` — '
-                  '_inverse_resource_calendar_id sincroniza '
-                  'employee.resource.calendar cuando esta versión es la '
-                  'vigente. Familia (a).',
+        'resource.ResourceCalendar',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Horario de trabajo',
+        help_text=(
+            'Odoo resource_calendar_id'
+            ' (inverse=_inverse_resource_calendar_id). BLOQUEADO por ``el'
+            ' motor de inverse`` — _inverse_resource_calendar_id sincroniza'
+            ' employee.resource.calendar cuando esta versión es la vigente.'
+            ' Familia (a).'
+        ),
     )
 
     # --- contrato -------------------------------------------------------
-    contract_date_start = fields.Date(null=True, blank=True, verbose_name='Inicio de contrato')
-    contract_date_end = fields.Date(null=True, blank=True, verbose_name='Fin de contrato')
-    trial_date_end = fields.Date(null=True, blank=True, verbose_name='Fin de periodo de prueba')
+    contract_date_start = fields.Date(
+        null=True, blank=True, verbose_name='Inicio de contrato'
+    )
+    contract_date_end = fields.Date(
+        null=True, blank=True, verbose_name='Fin de contrato'
+    )
+    trial_date_end = fields.Date(
+        null=True, blank=True, verbose_name='Fin de periodo de prueba'
+    )
     contract_template = fields.Many2one(
-        'self', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions_using_template', verbose_name='Plantilla de contrato',
-        help_text='Odoo contract_template_id — otra hr.version sin employee_id.',
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions_using_template',
+        verbose_name='Plantilla de contrato',
+        help_text=(
+            'Odoo contract_template_id — otra hr.version sin employee_id.'
+        ),
     )
     structure_type = fields.Many2one(
-        'hr.HrPayrollStructureType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Tipo de estructura salarial',
-        help_text='Odoo structure_type_id (compute+store, default='
-                  '_default_salary_structure). DIVERGENCIA: sin default de '
-                  'campo — se porta _default_salary_structure_for_company como '
-                  'helper explícito (ver métodos); BLOQUEADO por ``el motor '
-                  'de compute+store`` — _compute_structure_type_id lo exige. '
-                  'Familia (a).',
+        'hr.HrPayrollStructureType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Tipo de estructura salarial',
+        help_text=(
+            'Odoo structure_type_id (compute+store, default='
+            '_default_salary_structure). DIVERGENCIA: sin default de '
+            'campo — se porta _default_salary_structure_for_company como '
+            'helper explícito (ver métodos); BLOQUEADO por ``el motor '
+            'de compute+store`` — _compute_structure_type_id lo exige. '
+            'Familia (a).'
+        ),
     )
     wage = fields.Monetary(
-        max_digits=14, decimal_places=2, default=Decimal('0.00'),
-        verbose_name='Salario', help_text='Odoo wage — salario mensual bruto.',
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Salario',
+        help_text='Odoo wage — salario mensual bruto.',
     )
     contract_type = fields.Many2one(
-        'hr.HrContractType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions', verbose_name='Tipo de contrato',
+        'hr.HrContractType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions',
+        verbose_name='Tipo de contrato',
     )
-    additional_note = fields.Text(blank=True, default='', verbose_name='Nota adicional')
+    additional_note = fields.Text(
+        blank=True, default='', verbose_name='Nota adicional'
+    )
     hr_responsible = fields.Many2one(
-        ResUsers, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_versions_responsible', verbose_name='Responsable de RH',
-        help_text='Odoo hr_responsible_id. DIVERGENCIA: sin default=env.user '
-                  'ni domain dinámico (_get_hr_responsible_domain, familia b).',
+        ResUsers,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_versions_responsible',
+        verbose_name='Responsable de RH',
+        help_text=(
+            'Odoo hr_responsible_id. DIVERGENCIA: sin default=env.user '
+            'ni domain dinámico (_get_hr_responsible_domain, familia b).'
+        ),
     )
 
     class Meta:
@@ -351,7 +494,8 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
             # la misma fecha efectiva.
             models.UniqueConstraint(
                 fields=['employee', 'date_version'],
-                condition=models.Q(active=True) & models.Q(employee__isnull=False),
+                condition=models.Q(active=True)
+                & models.Q(employee__isnull=False),
                 name='hr_version_unique_active_date_version',
             ),
         ]
@@ -397,7 +541,8 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def allowed_country_states(self):
-        """≙ ``allowed_country_state_ids`` (``_compute_allowed_country_state_ids``
+        """
+        ≙ ``allowed_country_state_ids`` (``_compute_allowed_country_state_ids``
         ``:230-237``; campo ``:90``) — filtro de UI."""
         if self.private_country_id:
             return self.private_country.state_ids.all()
@@ -422,9 +567,14 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         """
         if not self.employee_id or not self.date_version:
             return self.contract_date_end
-        next_version = HrVersion.objects.filter(
-            employee_id=self.employee_id, date_version__gt=self.date_version,
-        ).order_by('date_version').first()
+        next_version = (
+            HrVersion.objects.filter(
+                employee_id=self.employee_id,
+                date_version__gt=self.date_version,
+            )
+            .order_by('date_version')
+            .first()
+        )
         date_version_end = None
         if next_version:
             date_version_end = next_version.date_version - timedelta(days=1)
@@ -461,15 +611,21 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def is_fully_flexible(self):
-        """≙ ``_is_fully_flexible`` (``:431-434``) — sin calendario asignado."""
+        """
+        ≙ ``_is_fully_flexible`` (``:431-434``) — sin calendario asignado.
+        """
         return not self.resource_calendar_id
 
     @property
     def is_flexible(self):
-        """≙ mitad ``is_flexible`` de ``_compute_is_flexible`` (``:436-440``)."""
+        """
+        ≙ mitad ``is_flexible`` de ``_compute_is_flexible`` (``:436-440``).
+        """
         if self.is_fully_flexible:
             return True
-        return bool(self.resource_calendar_id and self.resource_calendar.flexible_hours)
+        return bool(
+            self.resource_calendar_id and self.resource_calendar.flexible_hours
+        )
 
     @property
     def tz(self):
@@ -478,22 +634,31 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def active_employee(self):
-        """≙ ``active_employee`` (``related='employee_id.active'``, ``:176``)."""
+        """
+        ≙ ``active_employee`` (``related='employee_id.active'``, ``:176``).
+        """
         return bool(self.employee_id and self.employee.active)
 
     @property
     def currency(self):
-        """≙ ``currency_id`` (``related='company_id.currency_id'``, ``:177``)."""
+        """
+        ≙ ``currency_id`` (``related='company_id.currency_id'``, ``:177``).
+        """
         return self.company.currency if self.company_id else None
 
     @property
     def company_country(self):
-        """≙ ``company_country_id`` (``related='company_id.country_id'``, ``:182-183``)."""
+        """
+        ≙ ``company_country_id`` (``related='company_id.country_id'``,
+        ``:182-183``).
+        """
         return self.company.country if self.company_id else None
 
     @property
     def country_code(self):
-        """≙ ``country_code`` (``related='company_country_id.code'``, ``:184``)."""
+        """
+        ≙ ``country_code`` (``related='company_country_id.code'``, ``:184``).
+        """
         company_country = self.company_country
         return company_country.code if company_country else ''
 
@@ -581,8 +746,13 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
     def _get_whitelist_fields_from_template(cls):
         """≙ ``_get_whitelist_fields_from_template`` (``:442-446``)."""
         return [
-            'job', 'department', 'contract_type', 'structure_type', 'wage',
-            'resource_calendar', 'hr_responsible',
+            'job',
+            'department',
+            'contract_type',
+            'structure_type',
+            'wage',
+            'resource_calendar',
+            'hr_responsible',
         ]
 
     def get_values_from_contract_template(self, contract_template):
@@ -598,8 +768,10 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
             return {}
         whitelist = self._get_whitelist_fields_from_template()
         return {
-            field: getattr(contract_template, f'{field}_id', None)
-            or getattr(contract_template, field)
+            field: (
+                getattr(contract_template, f'{field}_id', None)
+                or getattr(contract_template, field)
+            )
             for field in whitelist
         }
 
@@ -613,10 +785,14 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         ``default=`` de campo (familia b).
         """
         country = getattr(company, 'country', None)
-        structure = HrPayrollStructureType.objects.filter(country=country).first()
+        structure = HrPayrollStructureType.objects.filter(
+            country=country
+        ).first()
         if structure:
             return structure
-        return HrPayrollStructureType.objects.filter(country__isnull=True).first()
+        return HrPayrollStructureType.objects.filter(
+            country__isnull=True
+        ).first()
 
     def _check_ssnid(self):
         """≙ ``_check_ssnid`` (``:501-505``) — no-op en la referencia.

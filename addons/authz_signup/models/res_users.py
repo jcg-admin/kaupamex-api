@@ -5,7 +5,8 @@ leído completo). Funciones sobre el usuario (Django no permite ``_inherit``).
 
 Métodos de la referencia → aquí:
 
-- ``signup`` → ``signup``: el corazón. Con token → resuelve el partner, invalida
+- ``signup`` → ``signup``: el corazón. Con token → resuelve el partner,
+  invalida
   el token (borra el ``SignupRequest``) y, si el usuario existe, le fija la
   contraseña (set-password); si no, crea el usuario invitado. Sin token →
   alta externa (sólo si el signup público está abierto).
@@ -27,7 +28,8 @@ Métodos de la referencia → aquí:
   compara ``!= 'b2c'`` — un enum de dos valores usado como bandera. El nombre
   cambia con la codificación: ``_get_signup_invitation_scope`` prometería
   devolver un ámbito.
-- ``state`` (new/active) / ``web_create_users`` / ``send_unregistered_user_reminder``
+- ``state`` (new/active) / ``web_create_users`` /
+  ``send_unregistered_user_reminder``
   / la invitación automática en ``create`` → NO portados: son la UI de
   usuarios del backoffice y un cron de recordatorio; el alta automática por
   correo se dispara explícitamente (``_action_reset_password``), no en cada
@@ -43,6 +45,7 @@ Métodos de la referencia → aquí:
   cuando el invitado se conecta, y ese canal no está construido (DEC-AF-06, la
   misma causa que ``authz_timeout/models/ir_websocket.py``). Sucesor: **#87**.
 """
+
 import logging
 
 from django.apps import apps as django_apps
@@ -85,7 +88,8 @@ def signup(values, token=None):
         partner = partner_svc._get_partner_from_token(token)
         if partner is None:
             raise UserError(
-                "Signup token '%s' is not valid or expired" % token)
+                "Signup token '%s' is not valid or expired" % token
+            )
         # invalidar el token: borrar el SignupRequest (≙ signup_type=False).
         partner_svc.signup_cancel(partner)
         user = partner.users.first()
@@ -98,7 +102,8 @@ def signup(values, token=None):
         # el usuario no existe: alta del invitado.
         login = values.get('login') or partner.email
         user = ResUsers.objects.create_user(
-            login=login, password=values.get('password'), partner=partner)
+            login=login, password=values.get('password'), partner=partner
+        )
         return (user.login, values.get('password'))
 
     # sin token: alta externa (b2c) — sólo si el signup público está abierto.
@@ -114,10 +119,13 @@ def _signup_create_user(values):
     login = values.get('login') or values.get('email')
     if login and ResUsers.objects.filter(login__iexact=login).exists():
         raise UserError(
-            'Another user is already registered using this email address.')
+            'Another user is already registered using this email address.'
+        )
     user = ResUsers.objects.create_user(
-        login=login, password=values.get('password'),
-        name=values.get('name', ''))
+        login=login,
+        password=values.get('password'),
+        name=values.get('name', ''),
+    )
     return (user.login, values.get('password'))
 
 
@@ -130,7 +138,9 @@ def reset_password(login):
         raise UserError('No account found for this login')
     if len(users) > 1:
         raise UserError('Multiple accounts found for this login')
-    return _action_reset_password(users[0], signup_type=SignupRequest.TYPE_RESET)
+    return _action_reset_password(
+        users[0], signup_type=SignupRequest.TYPE_RESET
+    )
 
 
 def _action_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
@@ -140,23 +150,32 @@ def _action_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
         raise UserError('You cannot perform this action on an archived user.')
     if not user.login:
         raise UserError(
-            'Cannot send email: user %s has no email address.' % user)
+            'Cannot send email: user %s has no email address.' % user
+        )
     partner_svc.signup_prepare(user.partner, signup_type=signup_type)
     token = partner_svc._generate_signup_token(user.partner)
-    base = str(SystemParameter.get_param(
-        PARAM_SET_PASSWORD_URL, '/account/set-password'))
+    base = str(
+        SystemParameter.get_param(
+            PARAM_SET_PASSWORD_URL, '/account/set-password'
+        )
+    )
     link = '%s?token=%s' % (base, token)
 
-    tmpl_name = (TEMPLATE_RESET_PASSWORD
-                 if signup_type == SignupRequest.TYPE_RESET
-                 else TEMPLATE_SET_PASSWORD)
+    tmpl_name = (
+        TEMPLATE_RESET_PASSWORD
+        if signup_type == SignupRequest.TYPE_RESET
+        else TEMPLATE_SET_PASSWORD
+    )
     template = MailTemplate.objects.filter(name=tmpl_name).first()
     if template is None:
         raise UserError('Signup mail template %r is not seeded.' % tmpl_name)
     rendered = template.render(user, extra_context={'link': link})
     dispatch_email(
-        rendered['subject'], rendered['body_html'],
-        rendered['email_from'] or None, [user.login])
+        rendered['subject'],
+        rendered['body_html'],
+        rendered['email_from'] or None,
+        [user.login],
+    )
     _logger.info('%s email sent for user <%s>', signup_type, user.login)
     return token
 
@@ -180,30 +199,39 @@ def send_verification_email(user):
     """
     if not user.login:
         raise UserError(
-            'Cannot send email: user %s has no email address.' % user)
+            'Cannot send email: user %s has no email address.' % user
+        )
     if user.active:
         raise UserError('This account is already verified.')
     if user.deactivated_reason not in (
-            user.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL):
+        user.DEACTIVATION_REASONS_REACTIVABLE_BY_EMAIL
+    ):
         # Suspendida por un administrador: reactivarla por correo sería
         # saltarse la decisión del administrador (UC-AUTH-14).
         raise UserError('This account cannot be reactivated by email.')
     partner_svc.signup_prepare(
-        user.partner, signup_type=SignupRequest.TYPE_VERIFY)
+        user.partner, signup_type=SignupRequest.TYPE_VERIFY
+    )
     token = partner_svc._generate_signup_token(user.partner)
-    base = str(SystemParameter.get_param(
-        PARAM_VERIFY_EMAIL_URL, '/account/verify-email'))
+    base = str(
+        SystemParameter.get_param(
+            PARAM_VERIFY_EMAIL_URL, '/account/verify-email'
+        )
+    )
     link = '%s?token=%s' % (base, token)
 
-    template = MailTemplate.objects.filter(
-        name=TEMPLATE_VERIFY_EMAIL).first()
+    template = MailTemplate.objects.filter(name=TEMPLATE_VERIFY_EMAIL).first()
     if template is None:
         raise UserError(
-            'Signup mail template %r is not seeded.' % TEMPLATE_VERIFY_EMAIL)
+            'Signup mail template %r is not seeded.' % TEMPLATE_VERIFY_EMAIL
+        )
     rendered = template.render(user, extra_context={'link': link})
     dispatch_email(
-        rendered['subject'], rendered['body_html'],
-        rendered['email_from'] or None, [user.login])
+        rendered['subject'],
+        rendered['body_html'],
+        rendered['email_from'] or None,
+        [user.login],
+    )
     _logger.info('verify email sent for user <%s>', user.login)
     return token
 
@@ -232,8 +260,14 @@ def verify_email(token):
     user.active = True
     user.deactivated_reason = None
     user.deactivated_at = None
-    user.save(update_fields=[
-        'active', 'deactivated_reason', 'deactivated_at', 'updated_at'])
+    user.save(
+        update_fields=[
+            'active',
+            'deactivated_reason',
+            'deactivated_at',
+            'updated_at',
+        ]
+    )
     partner_svc.signup_cancel(partner)
     _logger.info('email verified for user <%s>', user.login)
     return user

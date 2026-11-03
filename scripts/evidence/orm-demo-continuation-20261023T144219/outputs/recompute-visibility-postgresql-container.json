@@ -1,0 +1,222 @@
+{
+  "container_id": "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+  "label": {
+    "org.kaupamex.orm-recompute": "b31cb11d18c54e009798071270a38093"
+  },
+  "removed": true,
+  "results": {
+    "baseline": 1,
+    "candidate": 0
+  },
+  "commands": [
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "run",
+        "--rm",
+        "-d",
+        "--name",
+        "orm-recompute-b31cb11d18c5",
+        "--label",
+        "org.kaupamex.orm-recompute=b31cb11d18c54e009798071270a38093",
+        "--tmpfs",
+        "/var/lib/postgresql/data:rw,nosuid,size=192m",
+        "-e",
+        "POSTGRES_HOST_AUTH_METHOD=trust",
+        "-p",
+        "127.0.0.1::5432",
+        "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222"
+      ],
+      "exit_code": 0,
+      "stdout": "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "pg_isready",
+        "-U",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "pg_isready",
+        "-U",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "pg_isready",
+        "-U",
+        "postgres"
+      ],
+      "exit_code": 0,
+      "stdout": "/var/run/postgresql:5432 - accepting connections\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "output_projection": {
+        "Id": "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "Image": "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222",
+        "labels": {
+          "org.kaupamex.orm-recompute": "b31cb11d18c54e009798071270a38093"
+        },
+        "ports": {
+          "5432/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "32779"
+            }
+          ]
+        },
+        "state": "running"
+      }
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--offline",
+        "--frozen",
+        "python",
+        "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_native_pending_postgresql.py",
+        "--recompute-visibility-only"
+      ],
+      "exit_code": 1,
+      "log": "recompute-visibility-postgresql-baseline.log"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--offline",
+        "--frozen",
+        "python",
+        "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_native_pending_postgresql.py",
+        "--recompute-visibility-only",
+        "--index-models"
+      ],
+      "exit_code": 0,
+      "log": "recompute-visibility-postgresql-candidate.log"
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "output_projection": {
+        "Id": "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "Image": "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222",
+        "labels": {
+          "org.kaupamex.orm-recompute": "b31cb11d18c54e009798071270a38093"
+        },
+        "ports": {
+          "5432/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "32779"
+            }
+          ]
+        },
+        "state": "running"
+      }
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "stop",
+        "--time",
+        "3",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9"
+      ],
+      "exit_code": 0,
+      "stdout": "Flag --time has been deprecated, use --timeout instead\nc2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "output_projection": {
+        "Id": "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "Image": "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222",
+        "labels": {
+          "org.kaupamex.orm-recompute": "b31cb11d18c54e009798071270a38093"
+        },
+        "ports": {},
+        "state": "removing"
+      }
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "output_projection": {
+        "Id": "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9",
+        "Image": "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222",
+        "labels": {
+          "org.kaupamex.orm-recompute": "b31cb11d18c54e009798071270a38093"
+        },
+        "ports": {},
+        "state": "removing"
+      }
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9"
+      ],
+      "exit_code": 1,
+      "stdout": "[]\n",
+      "stderr": "Error: No such object: c2182b8094a7be3a2c64e9bdbaad11b7ac68f04f867254bd53059a5c1dd266c9\n"
+    }
+  ],
+  "probe_sha256": "851f548aa648d9f7af6ea2e9936c3b276efd4795b8ed3f0a4f195981d31ee6f6",
+  "scope": "Owned loopback-only PostgreSQL TEMP fixture, trust auth only for this disposable server; no authentication acceptance",
+  "full_local_output": "/tmp/recompute-visibility-postgresql-harness-full.json"
+}

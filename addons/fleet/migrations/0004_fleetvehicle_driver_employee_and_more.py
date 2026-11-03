@@ -17,7 +17,12 @@ class Migration(migrations.Migration):
             name="driver_employee",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo driver_employee_id (compute+store; su índice btree_not_null no se fabrica — divergencia 2). El related_name conserva el nombre del One2many car_ids de la referencia (hr_fleet/employee.py).",
+                help_text=(
+                    "Odoo driver_employee_id (compute+store; su índice"
+                    " btree_not_null no se fabrica — divergencia 2). El"
+                    " related_name conserva el nombre del One2many car_ids de"
+                    " la referencia (hr_fleet/employee.py)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="car_ids",
@@ -44,7 +49,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo mobility_card (compute+store — lo refresca el receptor pre_save de hr_fleet).",
+                help_text=(
+                    "Odoo mobility_card (compute+store — lo refresca el"
+                    " receptor pre_save de hr_fleet)."
+                ),
                 max_length=64,
                 verbose_name="Tarjeta de movilidad",
             ),
@@ -54,7 +62,11 @@ class Migration(migrations.Migration):
             name="driver_employee",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo driver_employee_id (compute+store, readonly=False — lo deriva el receptor pre_save cuando el llamador no lo fija).",
+                help_text=(
+                    "Odoo driver_employee_id (compute+store, readonly=False —"
+                    " lo deriva el receptor pre_save cuando el llamador no lo"
+                    " fija)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="fleet_assignation_logs",
@@ -67,7 +79,10 @@ class Migration(migrations.Migration):
             name="purchaser_employee",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo purchaser_employee_id (compute+store, readonly=False — lo rellena sync_defaults).",
+                help_text=(
+                    "Odoo purchaser_employee_id (compute+store, readonly=False"
+                    " — lo rellena sync_defaults)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="fleet_service_logs_as_employee",

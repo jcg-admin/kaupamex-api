@@ -1,0 +1,10 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+...................................................                      [100%]
+=============================== warnings summary ===============================
+tests/unit/scripts/test_check_escape_sequences.py:22
+  /workspace/kaupamex-api/tests/unit/scripts/test_check_escape_sequences.py:22: PytestUnknownMarkWarning: Unknown pytest.mark.unit - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.unit]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--- generated xml file: /workspace/pep8-review/import-guard-green.junit.xml ----
+51 passed, 1 warning in 9.60s

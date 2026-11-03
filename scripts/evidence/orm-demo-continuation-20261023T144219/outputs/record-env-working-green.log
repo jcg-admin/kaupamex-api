@@ -1,0 +1,18 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+....F...                                                                 [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:113: assert False is True
+=============================== warnings summary ===============================
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+  /workspace/kaupamex-api/src/orm/fields.py:4515: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+  /workspace/kaupamex-api/src/orm/fields.py:4515: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/record-env-working-green.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_sudo_bucket_and_channel_do_not_leak_to_the_ambient_record
+1 failed, 7 passed, 2 warnings in 0.16s

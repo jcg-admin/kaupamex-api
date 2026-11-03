@@ -34,8 +34,10 @@ Uso:
     python3 scripts/check_escape_sequences.py                # todo el árbol
     python3 scripts/check_escape_sequences.py <archivos>     # sólo esos
 """
+import io
 import pathlib
 import sys
+import tokenize
 import warnings
 
 #: Directorios que no son código del proyecto.
@@ -59,8 +61,17 @@ def find_invalid_escapes(path):
             compile(source, str(path), 'exec')
         except SyntaxError:
             return []
+        literals = [token for token in tokenize.generate_tokens(
+            io.StringIO(source).readline) if token.type == tokenize.STRING]
         return [
-            (w.lineno, str(w.message))
+            (
+                next(
+                    (token.start[0] for token in literals
+                     if token.start[0] <= w.lineno <= token.end[0]),
+                    w.lineno,
+                ),
+                str(w.message),
+            )
             for w in caught
             if 'escape sequence' in str(w.message)
         ]
@@ -71,7 +82,8 @@ def collect(argv):
     if argv:
         return [pathlib.Path(a) for a in argv if a.endswith('.py')]
     return sorted(
-        p for p in pathlib.Path('.').rglob('*.py')
+        p
+        for p in pathlib.Path('.').rglob('*.py')
         if not EXCLUDED & set(p.parts)
     )
 
@@ -86,21 +98,29 @@ def main(argv):
         )
 
     scope = (
-        f'{len(files)} archivos pedidos por ruta' if argv
+        f'{len(files)} archivos pedidos por ruta'
+        if argv
         else f'{len(files)} archivos del árbol'
     )
 
     if not findings:
-        print(f'OK: sin secuencias de escape inválidas (alcance medido: {scope}).')
+        print(
+            'OK: sin secuencias de escape inválidas (alcance medido:'
+            f' {scope}).'
+        )
         return 0
 
-    print(f'ERROR: {len(findings)} secuencia(s) de escape inválida(s):',
-          file=sys.stderr)
+    print(
+        f'ERROR: {len(findings)} secuencia(s) de escape inválida(s):',
+        file=sys.stderr,
+    )
     for path, lineno, message in findings:
         print(f'  {path}:{lineno} — {message}', file=sys.stderr)
     print('', file=sys.stderr)
-    print('Arreglo: prefijo r en la cadena (r"""..."""), NO duplicar la barra.',
-          file=sys.stderr)
+    print(
+        'Arreglo: prefijo r en la cadena (r"""..."""), NO duplicar la barra.',
+        file=sys.stderr,
+    )
     print(f'(alcance medido: {scope})', file=sys.stderr)
     return 1
 

@@ -1,4 +1,6 @@
-"""``ir.attachment`` extendido por ``bus`` — emite en el canal del usuario que actúa.
+"""
+``ir.attachment`` extendido por ``bus`` — emite en el canal del usuario que
+actúa.
 
 Adaptación de ``addons/bus/models/ir_attachment.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, 11 líneas): ``_bus_channel`` devuelve
@@ -21,6 +23,7 @@ Hubo una versión que lo recibía como segundo parámetro del resolutor. Cubría
 este caso ensanchando el contrato de **todos** los ``_bus_channel``, y con ello
 la firma del mixin dejaba de coincidir con la de la referencia. Ver H-API-277.
 """
+
 from addons.bus.models.bus_listener_mixin import register_channel
 from orm.environments import get_current_user
 

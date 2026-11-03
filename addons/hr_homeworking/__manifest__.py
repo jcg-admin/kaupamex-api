@@ -14,7 +14,7 @@
     # addons.base.models), así que `base` se declara explícito aunque `hr`
     # ya lo arrastre transitivamente.
     'depends': [
-        'hr',    # HrEmployee, HrEmployeePublic, HrWorkLocation
+        'hr',  # HrEmployee, HrEmployeePublic, HrWorkLocation
         'base',  # ResUsers, ResPartner (extensiones directas)
     ],
     # `data`/`assets` de la referencia (security XML/CSV, vistas, JS) son

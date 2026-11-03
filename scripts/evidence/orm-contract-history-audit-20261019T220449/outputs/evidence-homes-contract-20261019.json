@@ -1,0 +1,187 @@
+[
+  {
+    "repo": "kaupamex-api",
+    "kind": "workbench",
+    "interface": "workbench.paths.workbench_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/kaupamex-api/scripts/workbench",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 355,
+    "untracked_count": 0,
+    "ignored_count": 5,
+    "tracked_sample": [
+      "scripts/workbench/README.md",
+      "scripts/workbench/analogue-in-the-client-20260830T192922/manifest.json",
+      "scripts/workbench/analogue-in-the-client-20260830T192922/outputs/client-mechanism-20260830T192922.txt",
+      "scripts/workbench/analogue-in-the-client-20260830T192922/outputs/counts-20260830T192922.txt",
+      "scripts/workbench/any-con-permiso-concedido-20260830T235423/control-s1-sin-la-elevacion.txt"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [
+      "scripts/workbench/orm-root-census-20260902T203712/__pycache__/census_orm_root.cpython-312.pyc",
+      "scripts/workbench/orm-root-census-20260902T203712/tests/__pycache__/test_census_orm_root.cpython-312-pytest-7.4.4.pyc",
+      "scripts/workbench/orm-signature-parity-20260904T162214/__pycache__/signature_parity.cpython-312.pyc",
+      "scripts/workbench/orm-signature-parity-20260904T162214/tests/__pycache__/conftest.cpython-312-pytest-7.4.4.pyc",
+      "scripts/workbench/orm-signature-parity-20260904T162214/tests/__pycache__/test_signature_parity.cpython-312-pytest-7.4.4.pyc"
+    ],
+    "last_commit": "5905a9ebc5e348f038f2bcdc4a27e262e038140d 2026-10-19T18:59:02Z Contrasta el almacenamiento de campos traducibles"
+  },
+  {
+    "repo": "kaupamex-api",
+    "kind": "jobs",
+    "interface": "session.job_runs.jobs_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/kaupamex-api/scripts/evidence",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 412,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [
+      "scripts/evidence/211-control-indice-empresa-2026-09-03T09-09-29.txt",
+      "scripts/evidence/211-control-vista-dependiente-2026-09-03T08-15-37.txt",
+      "scripts/evidence/211-conversion-suite-completa.log",
+      "scripts/evidence/311-determine-inverse/suite-20260902T175440.log",
+      "scripts/evidence/331-controles-por-neutralizacion.log"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": "7b9ad7b4456e445a434e8753dc720558bc48b4b5 2026-09-14T02:29:20Z Record full pytest baseline against fresh PostgreSQL DB"
+  },
+  {
+    "repo": "kaupamex-api",
+    "kind": "cache",
+    "interface": "cache.paths.cache_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/kaupamex-api/.claude/cache",
+    "exists": false,
+    "inside_owner": true
+  },
+  {
+    "repo": "kaupamex-docs",
+    "kind": "workbench",
+    "interface": "workbench.paths.workbench_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/kaupamex-docs/.claude/eventos",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 15487,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [
+      ".claude/eventos/.ultimo-porte-sale",
+      ".claude/eventos/README.md",
+      ".claude/eventos/acl-como-puerta-20260827T194322/README.md",
+      ".claude/eventos/acl-como-puerta-20260827T194322/manifiesto.json",
+      ".claude/eventos/acl-como-puerta-20260827T194322/salidas/citas-rotas.txt"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": "c5f67acd4607b720bf8c170fd80396c416f16764 2026-10-19T21:13:13Z Audit ORM architecture before further construction"
+  },
+  {
+    "repo": "kaupamex-docs",
+    "kind": "jobs",
+    "interface": "session.job_runs.jobs_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/kaupamex-docs/.claude/jobs",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 34,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [
+      ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/README.md",
+      ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/manifest.json",
+      ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/outputs/pid",
+      ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/outputs/salida.log",
+      ".claude/jobs/census-open-docs-20260912T100327/README.md"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": "83bb03a809c507d0530b9d0e0ca37516822091cc 2026-09-29T05:38:43Z Record the job that committed the ADR rename"
+  },
+  {
+    "repo": "kaupamex-docs",
+    "kind": "cache",
+    "interface": "cache.paths.cache_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/kaupamex-docs/.claude/cache",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 0,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": ""
+  },
+  {
+    "repo": "thyrox",
+    "kind": "workbench",
+    "interface": "workbench.paths.workbench_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/thyrox/.claude/workbench",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 55609,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [
+      ".claude/workbench/.all-tsconfigs-current",
+      ".claude/workbench/accepted-task-population-20261005T065345/README.md",
+      ".claude/workbench/accepted-task-population-20261005T065345/RECORD.md",
+      ".claude/workbench/accepted-task-population-20261005T065345/outputs/discriminates-0964-retry.tsv",
+      ".claude/workbench/accepted-task-population-20261005T065345/outputs/discriminates-overlay.tsv"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": "ef8b090d39b377c59ea2cb6eae0c9d4c0091c133 2026-10-18T00:07:50Z Correct the write time of the carrier record"
+  },
+  {
+    "repo": "thyrox",
+    "kind": "jobs",
+    "interface": "session.job_runs.jobs_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/thyrox/.claude/jobs",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 14086,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [
+      ".claude/jobs/--label-20260918T021702/README.md",
+      ".claude/jobs/--label-20260918T021702/manifest.jsonl",
+      ".claude/jobs/--label-20260918T021702/outputs/pid",
+      ".claude/jobs/--label-20260918T021702/outputs/salida.log",
+      ".claude/jobs/--label-20260919T015311/README.md"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": "e937d1a0152fde5a4f4f59f1998a0ed69a699f5e 2026-10-17T23:53:36Z Specify id allocation from leased per-node blocks"
+  },
+  {
+    "repo": "thyrox",
+    "kind": "cache",
+    "interface": "cache.paths.cache_dir",
+    "readonly_unwrapped": true,
+    "resolved_path": "/workspace/thyrox/.claude/cache",
+    "exists": true,
+    "inside_owner": true,
+    "tracked_count": 354,
+    "untracked_count": 0,
+    "ignored_count": 0,
+    "tracked_sample": [
+      ".claude/cache/bound-the-task-pool-by-available-memory-40adef36/README.md",
+      ".claude/cache/bound-the-task-pool-by-available-memory-40adef36/pool-derived-suites.txt",
+      ".claude/cache/clean-code-3-c-extraction/README.md",
+      ".claude/cache/clean-code-3-c-extraction/clean-code-3-c.txt",
+      ".claude/cache/control-idioma/README.md"
+    ],
+    "untracked_sample": [],
+    "ignored_sample": [],
+    "last_commit": "3d1e030bdc9b6a34f88ad954a636ed8faf53e1df 2026-10-12T09:46:06Z Record u4a r1 of resolve_import, timed out"
+  }
+]

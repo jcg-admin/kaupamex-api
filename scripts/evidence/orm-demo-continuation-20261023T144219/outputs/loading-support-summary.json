@@ -1,0 +1,154 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "code_commit": "56c6d4eab2426e93a4af86f24383f92044c93278",
+  "native_task": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737/TASK-API-0382",
+  "owner": "codex-module-lifecycle",
+  "official_status": "pending",
+  "official_state_changes": false,
+  "contracts": [
+    "_check_module_names",
+    "reset_modules_state"
+  ],
+  "focused": {
+    "before_names": {
+      "exit": 1,
+      "failed": 6
+    },
+    "before_reset": {
+      "exit": 1,
+      "failed": 4
+    },
+    "final": {
+      "exit": 0,
+      "passed": 26
+    }
+  },
+  "actual_postgresql": {
+    "names": {
+      "exit": 0,
+      "catalogue_cases": 16,
+      "scope": "Two schemas in one own DB, not productive multi-database acceptance"
+    },
+    "reset": {
+      "exit": 0,
+      "pinned_state_mapping": true,
+      "versions_preserved": true,
+      "committed_second_connection": true,
+      "both_updates_rollback_on_second_failure": true,
+      "missing_table_noop": true,
+      "nested_transaction_refused": true
+    }
+  },
+  "negative_controls": {
+    "names_noop_exit": 1,
+    "reset_noop_exit": 1,
+    "expected": true
+  },
+  "adaptation_failure": {
+    "first_pg_exit": 1,
+    "cause": "psycopg3 tuple IN adaptation; fixed with parameterized ANY(list)",
+    "not_hidden": true
+  },
+  "ci": {
+    "earlier_during_implementation": {
+      "exit": 2,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 508.87
+    },
+    "exact_code_revision": {
+      "revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
+      "state": "completed",
+      "make_exit": 2,
+      "pytest_exit": 1,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 482.36,
+      "first_failure": "ProductProduct.display_name",
+      "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED",
+      "junit": "outputs/loading-support-ci.junit.xml",
+      "log": "outputs/loading-support-ci.log"
+    }
+  },
+  "remote_baseline": {
+    "run": 39977965965,
+    "head": "5dad5f65",
+    "status": "completed",
+    "conclusion": "failure",
+    "exit": 2,
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "seconds": 476.44,
+    "first_failure": "ProductProduct.display_name",
+    "full_log": "outputs/remote-ci-39977965965.log"
+  },
+  "integration": {
+    "published": true,
+    "merged": false,
+    "acceptance": "not_verified",
+    "code_remote_verified": "56c6d4eab2426e93a4af86f24383f92044c93278",
+    "pr": 109
+  },
+  "pending": [
+    "Full productive company provisioning and metadata/session placement authority",
+    "Existing automation alias defect and ownership",
+    "Effective per-database Registry/model composition",
+    "force_demo and load_modules",
+    "Outer loader caller integration including bounded reset recovery",
+    "Hooks, installed version finalization, registry invalidation and N>1 acceptance",
+    "Global CI beyond first baseline error; actual compute ownership unresolved",
+    "Thyrox managed local model proposal/execution/independent verification/integration qualification"
+  ],
+  "provider_limit": "13 unchanged source interfaces; own_owner(node)=vm-<node> differs from codex-module-lifecycle. Full-ledger selection before native conflict-checked claim, no identity/ledger filtering. No new generic coordination.",
+  "compute_ownership": {
+    "historical_triage": "TASK-GEN-0633",
+    "triage_status": "pending",
+    "triage_owner": null,
+    "related": [
+      "TASK-API-0415 completed",
+      "TASK-API-0416 completed",
+      "TASK-API-0418 pending owner NULL",
+      "TASK-API-0417 in_progress owner NULL"
+    ],
+    "current_observation": "ProductProduct._compute_display_name returns text, descriptor requires assignment; historical triage explicitly covers return-versus-assignment. No sole-owner equivalence or automatic admission asserted.",
+    "active_claims_on_fields_product_registry": "none observed; absence of claim is not ownership",
+    "action": "No compute/registry production edits or new TASK"
+  },
+  "current_existing_population": {
+    "authority": "Existing62-task AS IS, not a new inventory",
+    "native_identities_verified": 62,
+    "owners": {
+      "NULL": 60,
+      "codex-module-lifecycle": 2
+    },
+    "owned_tasks": [
+      "TASK-API-0382 pending",
+      "TASK-API-0383 pending"
+    ],
+    "limit": "No NULL task auto-admitted; this is not the entire global goal population"
+  },
+  "provider_global_admission_block": {
+    "task": "TASK-THYROX-1072",
+    "status": "pending",
+    "owner": null,
+    "source_unchanged": true,
+    "known_limitation": "task_source projection omits owner and emits empty blockedBy; existing correction reserved vm-r",
+    "claims": "outputs/provider-current-path-claims.json",
+    "no_provider_edits": true
+  },
+  "cleanup": {
+    "owned_databases_remaining": 0,
+    "owned_roles_remaining": 0,
+    "all_local_verifiers_completed": true
+  },
+  "commit_hook_recovery": {
+    "first_exit": 1,
+    "cause": "Commit process lacked venv PATH and reference alias; no code gate bypass",
+    "final_exit": 0,
+    "normal_hooks_passed": true
+  }
+}

@@ -9,6 +9,7 @@ Escrita a mano (no generada por ``makemigrations``): este addon no está en
 paquete), así que Django no puede descubrir la app para generarla. Los
 campos coinciden 1:1 con los tres modelos de ``models/``.
 """
+
 import django.db.models.deletion
 from django.db import migrations, models
 
@@ -29,7 +30,9 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                         verbose_name='ID',
                     ),
                 ),
@@ -38,20 +41,26 @@ class Migration(migrations.Migration):
                 (
                     'layout',
                     models.CharField(
-                        choices=[('disabled', 'Ninguno')], default='disabled',
-                        help_text='Formato del papel donde se imprimen los '
-                        'cheques. "Ninguno" desactiva la impresión (Odoo '
-                        'account_check_printing_layout).',
-                        max_length=64, verbose_name='Diseño de cheque',
+                        choices=[('disabled', 'Ninguno')],
+                        default='disabled',
+                        help_text=(
+                            'Formato del papel donde se imprimen los '
+                            'cheques. "Ninguno" desactiva la impresión (Odoo '
+                            'account_check_printing_layout).'
+                        ),
+                        max_length=64,
+                        verbose_name='Diseño de cheque',
                     ),
                 ),
                 (
                     'date_label',
                     models.BooleanField(
                         default=True,
-                        help_text='Imprime la etiqueta de fecha según CPA. '
-                        'Desactivar si el talonario preimpreso ya la trae '
-                        '(Odoo account_check_printing_date_label).',
+                        help_text=(
+                            'Imprime la etiqueta de fecha según CPA. '
+                            'Desactivar si el talonario preimpreso ya la trae '
+                            '(Odoo account_check_printing_date_label).'
+                        ),
                         verbose_name='Imprimir etiqueta de fecha',
                     ),
                 ),
@@ -59,9 +68,11 @@ class Migration(migrations.Migration):
                     'multi_stub',
                     models.BooleanField(
                         default=False,
-                        help_text='Permite que el detalle del talón use '
-                        'varias páginas si no cabe en una sola (Odoo '
-                        'account_check_printing_multi_stub).',
+                        help_text=(
+                            'Permite que el detalle del talón use '
+                            'varias páginas si no cabe en una sola (Odoo '
+                            'account_check_printing_multi_stub).'
+                        ),
                         verbose_name='Talón de cheque en varias páginas',
                     ),
                 ),
@@ -69,8 +80,10 @@ class Migration(migrations.Migration):
                     'margin_top',
                     models.FloatField(
                         default=0.25,
-                        help_text='Ajusta el margen del cheque generado, '
-                        'en pulgadas (Odoo account_check_printing_margin_top).',
+                        help_text=(
+                            'Ajusta el margen del cheque generado, en pulgadas'
+                            ' (Odoo account_check_printing_margin_top).'
+                        ),
                         verbose_name='Margen superior',
                     ),
                 ),
@@ -95,13 +108,16 @@ class Migration(migrations.Migration):
                     models.OneToOneField(
                         help_text='Empresa (Odoo _inherit res.company).',
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name='check_printing_settings', to='base.rescompany',
+                        related_name='check_printing_settings',
+                        to='base.rescompany',
                     ),
                 ),
             ],
             options={
                 'verbose_name': 'Ajustes de impresión de cheques (empresa)',
-                'verbose_name_plural': 'Ajustes de impresión de cheques (empresas)',
+                'verbose_name_plural': (
+                    'Ajustes de impresión de cheques (empresas)'
+                ),
                 'db_table': 'account_check_printing_company_settings',
             },
         ),
@@ -111,7 +127,9 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                         verbose_name='ID',
                     ),
                 ),
@@ -121,18 +139,24 @@ class Migration(migrations.Migration):
                     'manual_sequencing',
                     models.BooleanField(
                         default=False,
-                        help_text='Marcar si los cheques preimpresos no '
-                        'vienen numerados (Odoo check_manual_sequencing).',
+                        help_text=(
+                            'Marcar si los cheques preimpresos no '
+                            'vienen numerados (Odoo check_manual_sequencing).'
+                        ),
                         verbose_name='Numeración manual',
                     ),
                 ),
                 (
                     'layout',
                     models.CharField(
-                        blank=True, default='',
-                        help_text='Vacío = usa el de la empresa (Odoo '
-                        'bank_check_printing_layout).',
-                        max_length=64, verbose_name='Diseño de cheque',
+                        blank=True,
+                        default='',
+                        help_text=(
+                            'Vacío = usa el de la empresa (Odoo '
+                            'bank_check_printing_layout).'
+                        ),
+                        max_length=64,
+                        verbose_name='Diseño de cheque',
                     ),
                 ),
                 (
@@ -148,16 +172,22 @@ class Migration(migrations.Migration):
                     'sequence',
                     models.ForeignKey(
                         blank=True,
-                        help_text='Secuencia de numeración de cheques de '
-                        'este diario (Odoo check_sequence_id).',
-                        null=True, on_delete=django.db.models.deletion.SET_NULL,
-                        related_name='+', to='base.irsequence',
+                        help_text=(
+                            'Secuencia de numeración de cheques de '
+                            'este diario (Odoo check_sequence_id).'
+                        ),
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='+',
+                        to='base.irsequence',
                     ),
                 ),
             ],
             options={
                 'verbose_name': 'Ajustes de impresión de cheques (diario)',
-                'verbose_name_plural': 'Ajustes de impresión de cheques (diarios)',
+                'verbose_name_plural': (
+                    'Ajustes de impresión de cheques (diarios)'
+                ),
                 'db_table': 'account_check_printing_journal_settings',
             },
         ),
@@ -167,7 +197,9 @@ class Migration(migrations.Migration):
                 (
                     'id',
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                         verbose_name='ID',
                     ),
                 ),
@@ -176,9 +208,13 @@ class Migration(migrations.Migration):
                 (
                     'check_number',
                     models.CharField(
-                        blank=True, db_index=True, default='',
-                        help_text='Número de cheque impreso o asignado a '
-                        'este pago (Odoo check_number).',
+                        blank=True,
+                        db_index=True,
+                        default='',
+                        help_text=(
+                            'Número de cheque impreso o asignado a '
+                            'este pago (Odoo check_number).'
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -186,11 +222,13 @@ class Migration(migrations.Migration):
                     'is_sent',
                     models.BooleanField(
                         default=False,
-                        help_text='Marca que el cheque ya se imprimió — '
-                        'evita reimprimirlo (Odoo is_sent, campo genérico '
-                        'de account.payment que este núcleo tampoco '
-                        'declara; se porta aquí porque sólo esta '
-                        'funcionalidad lo necesita).',
+                        help_text=(
+                            'Marca que el cheque ya se imprimió — '
+                            'evita reimprimirlo (Odoo is_sent, campo genérico '
+                            'de account.payment que este núcleo tampoco '
+                            'declara; se porta aquí porque sólo esta '
+                            'funcionalidad lo necesita).'
+                        ),
                         verbose_name='Cheque impreso',
                     ),
                 ),
@@ -199,7 +237,8 @@ class Migration(migrations.Migration):
                     models.OneToOneField(
                         help_text='Pago (Odoo _inherit account.payment).',
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name='check_printing_info', to='account.accountpayment',
+                        related_name='check_printing_info',
+                        to='account.accountpayment',
                     ),
                 ),
             ],

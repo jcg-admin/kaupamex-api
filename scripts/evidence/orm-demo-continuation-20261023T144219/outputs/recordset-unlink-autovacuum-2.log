@@ -1,0 +1,87 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FFF.                                                                    [100%]
+=================================== FAILURES ===================================
+______ TestTheSweepYieldsAfterEachMethod.test_it_commits_once_per_method _______
+tests/integration/base/test_ir_autovacuum_commits_progress.py:59: in test_it_commits_once_per_method
+    assert len(counted_commits) == 3
+E   assert 0 == 3
+E    +  where 0 = len([])
+------------------------------ Captured log call -------------------------------
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:211 Falló <class 'object'>.probe_0()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 185, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func(model)
+TypeError: TestTheSweepYieldsAfterEachMethod.test_it_commits_once_per_method.<locals>.<lambda>() takes 0 positional arguments but 1 was given
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:211 Falló <class 'object'>.probe_2()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 185, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func(model)
+TypeError: TestTheSweepYieldsAfterEachMethod.test_it_commits_once_per_method.<locals>.<lambda>() takes 0 positional arguments but 1 was given
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:211 Falló <class 'object'>.probe_1()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 185, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func(model)
+TypeError: TestTheSweepYieldsAfterEachMethod.test_it_commits_once_per_method.<locals>.<lambda>() takes 0 positional arguments but 1 was given
+_ TestTheSweepYieldsAfterEachMethod.test_a_method_that_raises_does_not_commit_its_own_work _
+tests/integration/base/test_ir_autovacuum_commits_progress.py:80: in test_a_method_that_raises_does_not_commit_its_own_work
+    assert len(counted_commits) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+------------------------------ Captured log call -------------------------------
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:211 Falló <class 'object'>.probe_1()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 185, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func(model)
+TypeError: TestTheSweepYieldsAfterEachMethod.test_a_method_that_raises_does_not_commit_its_own_work.<locals>.<lambda>() takes 0 positional arguments but 1 was given
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:211 Falló <class 'object'>.probe_0()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 185, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func(model)
+TypeError: TestTheSweepYieldsAfterEachMethod.test_a_method_that_raises_does_not_commit_its_own_work.<locals>.boom() takes 0 positional arguments but 1 was given
+_ TestTheSweepYieldsAfterEachMethod.test_a_method_that_asks_for_another_turn_commits_each_time _
+tests/integration/base/test_ir_autovacuum_commits_progress.py:97: in test_a_method_that_asks_for_another_turn_commits_each_time
+    assert len(counted_commits) == 2
+E   assert 0 == 2
+E    +  where 0 = len([])
+------------------------------ Captured log call -------------------------------
+ERROR    addons.base.models.ir_autovacuum:ir_autovacuum.py:211 Falló <class 'object'>.probe_0()
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 185, in _run_vacuum_cleaner
+    result = _call_vacuum_method(model, func)
+  File "/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/base/models/ir_autovacuum.py", line 105, in _call_vacuum_method
+    return func(model)
+TypeError: TestTheSweepYieldsAfterEachMethod.test_a_method_that_asks_for_another_turn_commits_each_time.<locals>.<lambda>() takes 0 positional arguments but 1 was given
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmAutovacuumed.expire_at received a naive datetime (2026-10-18 15:15:44.005805) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmAutovacuumed.expire_at received a naive datetime (2026-11-01 15:15:44) while time zone support is active.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_ir_autovacuum_commits_progress.py::TestTheSweepYieldsAfterEachMethod::test_it_commits_once_per_method
+FAILED tests/integration/base/test_ir_autovacuum_commits_progress.py::TestTheSweepYieldsAfterEachMethod::test_a_method_that_raises_does_not_commit_its_own_work
+FAILED tests/integration/base/test_ir_autovacuum_commits_progress.py::TestTheSweepYieldsAfterEachMethod::test_a_method_that_asks_for_another_turn_commits_each_time
+3 failed, 2 passed, 4 warnings in 7.85s

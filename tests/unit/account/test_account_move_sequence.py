@@ -7,6 +7,7 @@ forma ``{prefijo}/{código-diario}/{año}/{consecutivo}``, único por
 (diario, move_type, año). Análogo a Odoo ``account.move._get_last_sequence`` /
 ``_set_next_sequence``.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -29,20 +30,34 @@ def company(db):
 @pytest.fixture
 def setup(db, company):
     journal = AccountJournal.objects.create(
-        name='Ventas', code='VEN', type='sale', company=company)
+        name='Ventas', code='VEN', type='sale', company=company
+    )
     receivable = AccountAccount.objects.create(
-        code='105', name='Clientes', account_type='asset_receivable',
-        company=company)
+        code='105',
+        name='Clientes',
+        account_type='asset_receivable',
+        company=company,
+    )
     income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company)
+        code='401', name='Ventas', account_type='income', company=company
+    )
     return company, journal, receivable, income
 
 
-def _balanced(company, journal, receivable, income,
-              move_type='out_invoice', amount=Decimal('100.00')):
+def _balanced(
+    company,
+    journal,
+    receivable,
+    income,
+    move_type='out_invoice',
+    amount=Decimal('100.00'),
+):
     move = AccountMove.objects.create(
-        move_type=move_type, date=timezone.now().date(),
-        journal=journal, company=company)
+        move_type=move_type,
+        date=timezone.now().date(),
+        journal=journal,
+        company=company,
+    )
     AccountMoveLine.objects.create(move=move, account=receivable, debit=amount)
     AccountMoveLine.objects.create(move=move, account=income, credit=amount)
     return move
@@ -96,7 +111,8 @@ class TestAccountMoveSequence:
 
 @pytest.mark.django_db
 class TestDominioDeLaSerie:
-    """Qué filas cuentan como "la serie" — el hook ``get_last_sequence_domain``.
+    """
+    Qué filas cuentan como "la serie" — el hook ``get_last_sequence_domain``.
 
     Es la pieza que el mixin dejaba decorativa: existía el hook pero ningún
     lector pasaba por él. Estos tests fijan las tres decisiones del dominio.
@@ -107,7 +123,7 @@ class TestDominioDeLaSerie:
 
         Si entrara, descartar un borrador dejaría un hueco en la serie.
         """
-        _balanced(*setup)                      # se queda en borrador
+        _balanced(*setup)  # se queda en borrador
         publicado = _balanced(*setup)
         publicado.post()
         publicado.refresh_from_db()
@@ -163,8 +179,11 @@ class TestLimiteDeCincoDigitos:
             name=name,
             sequence_prefix=f'INV/{journal.code}/{timezone.now().year}/',
             sequence_number=numero,
-            move_type='out_invoice', date=timezone.now().date(),
-            journal=journal, company=company, state='posted',
+            move_type='out_invoice',
+            date=timezone.now().date(),
+            journal=journal,
+            company=company,
+            state='posted',
         )
 
     def test_el_siguiente_de_100000_es_100001(self, setup):
@@ -191,11 +210,15 @@ class TestLimiteDeCincoDigitos:
         anio = timezone.now().year
         self._numerado(company, journal, f'INV/VEN/{anio}/99999', 99999)
         self._numerado(company, journal, f'INV/VEN/{anio}/100000', 100000)
-        por_cadena = (AccountMove.objects
-                      .filter(name__startswith=f'INV/VEN/{anio}/')
-                      .order_by('-name').first())
-        por_entero = (AccountMove.objects
-                      .filter(sequence_prefix=f'INV/VEN/{anio}/')
-                      .order_by('-sequence_number').first())
-        assert por_cadena.sequence_number == 99999    # el viejo se equivoca
-        assert por_entero.sequence_number == 100000   # el nuevo acierta
+        por_cadena = (
+            AccountMove.objects.filter(name__startswith=f'INV/VEN/{anio}/')
+            .order_by('-name')
+            .first()
+        )
+        por_entero = (
+            AccountMove.objects.filter(sequence_prefix=f'INV/VEN/{anio}/')
+            .order_by('-sequence_number')
+            .first()
+        )
+        assert por_cadena.sequence_number == 99999  # el viejo se equivoca
+        assert por_entero.sequence_number == 100000  # el nuevo acierta

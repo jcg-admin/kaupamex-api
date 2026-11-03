@@ -1,0 +1,12 @@
+{
+  "model": "base.ResCompany",
+  "field": "country",
+  "null": false,
+  "concrete": false,
+  "store": false,
+  "compute": "_compute_address",
+  "attname": "country_id",
+  "accessor": "ForwardManyToOneDescriptor",
+  "id_descriptor": "ComputedFieldDescriptor",
+  "scope": "metadata only; no data read or inference"
+}

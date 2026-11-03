@@ -1,5 +1,6 @@
 """``ir.logging`` — log de aplicación fiel a Odoo (DEC-08, slice 2 de la
-disolución de ``core/``, iniciativa ``adoptar-arquitectura-server-service-odoo``).
+disolución de ``core/``, iniciativa
+``adoptar-arquitectura-server-service-odoo``).
 
 Portación fiel de ``IrLogging``
 (``scratchpad/odoo19x/odoo/addons/base/models/ir_logging.py``, Odoo 19): el
@@ -50,7 +51,8 @@ a Odoo o al ``AppLog`` previo se documenta explícitamente):
   hasta DEC-AF-11; retirado ese modelo, es una de las dos columnas que la
   partición pierde (la otra es ``view_name``), porque el ``access_log`` del
   proxy no las conoce.
-- ``create_date`` / ``write_date`` (Datetime) -> ``created_at`` / ``updated_at``
+- ``create_date`` / ``write_date`` (Datetime) -> ``created_at`` /
+  ``updated_at``
   (heredados de ``AppendOnlyModel``/``TimeStampedModel``, DEC-09).
 
 Columnas propias (NO existen en Odoo ``ir.logging``, necesarias para el
@@ -74,6 +76,7 @@ permitido, UPDATE/DELETE de instancia bloqueados (``PermissionError``); la
 purga por retención (``purge_logs``) usa ``QuerySet.delete()`` en bulk, que no
 pasa por el guard de instancia.
 """
+
 from datetime import timedelta
 
 from django.db import models
@@ -108,9 +111,14 @@ class IrLogging(AppendOnlyModel):
 
     name = models.CharField(max_length=255, db_index=True)
     type = models.CharField(
-        max_length=8, choices=TYPE_CHOICES, default=TYPE_SERVER, db_index=True)
-    dbname = models.CharField(max_length=255, blank=True, default='', db_index=True)
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, db_index=True)
+        max_length=8, choices=TYPE_CHOICES, default=TYPE_SERVER, db_index=True
+    )
+    dbname = models.CharField(
+        max_length=255, blank=True, default='', db_index=True
+    )
+    level = models.CharField(
+        max_length=20, choices=LEVEL_CHOICES, db_index=True
+    )
     message = models.TextField(blank=True, default='')
     path = models.CharField(max_length=255, blank=True, default='')
     func = models.CharField(max_length=255, blank=True, default='')
@@ -118,7 +126,9 @@ class IrLogging(AppendOnlyModel):
 
     # Columnas propias (no presentes en Odoo ir.logging) — ver docstring del
     # módulo, sección "Columnas propias" (DEC-LOG-07).
-    correlation_id = models.CharField(max_length=32, db_index=True, blank=True, default='')
+    correlation_id = models.CharField(
+        max_length=32, db_index=True, blank=True, default=''
+    )
     trace = models.TextField(blank=True, default='')
 
     class Meta:
@@ -127,7 +137,9 @@ class IrLogging(AppendOnlyModel):
         verbose_name = 'Logging'
         verbose_name_plural = 'Logging'
         indexes = [
-            models.Index(fields=['-created_at'], name='ir_logging_created_idx'),
+            models.Index(
+                fields=['-created_at'], name='ir_logging_created_idx'
+            ),
         ]
 
     def __str__(self):
@@ -140,9 +152,9 @@ class IrLogging(AppendOnlyModel):
     # Ventanas de DEC-LOG-05. Los niveles altos se conservan seis veces más
     # que los bajos: un ERROR sigue siendo útil para diagnosticar meses
     # después; un DEBUG de hace dos semanas ya no.
-    LOW_LEVEL_DAYS = 14      # DEBUG / INFO
-    HIGH_LEVEL_DAYS = 90     # WARNING / ERROR / CRITICAL que NO son un 4xx
-    ACCESS_LEVEL_DAYS = 30   # el 4xx — la ventana que DEC-LOG-05 dio al acceso
+    LOW_LEVEL_DAYS = 14  # DEBUG / INFO
+    HIGH_LEVEL_DAYS = 90  # WARNING / ERROR / CRITICAL que NO son un 4xx
+    ACCESS_LEVEL_DAYS = 30  # el 4xx — la ventana que DEC-LOG-05 dio al acceso
     _LOW_LEVELS = [LEVEL_DEBUG, LEVEL_INFO]
     _HIGH_LEVELS = [LEVEL_WARNING, LEVEL_ERROR, LEVEL_CRITICAL]
 
@@ -161,7 +173,8 @@ class IrLogging(AppendOnlyModel):
     #   core/handlers/asgi.py:298   logger.warning(..., status_code=400)
     #   core/handlers/base.py:66,129 · los únicos otros emisores del canal, y
     #                        los dos son DEBUG (MiddlewareNotUsed, adaptación)
-    #   exception_handling.py:88   nuestro handler: ERROR si >=500, WARNING si no
+    # exception_handling.py:88   nuestro handler: ERROR si >=500,
+    # WARNING si no
     #
     # Es decir: en los cuatro emisores del árbol, WARNING sobre este logger
     # implica 4xx y nada más. Si un quinto emisor rompiera esa implicación, la
@@ -202,10 +215,12 @@ class IrLogging(AppendOnlyModel):
 
         low_qs = cls.objects.filter(
             level__in=cls._LOW_LEVELS,
-            created_at__lt=ahora - timedelta(days=cls.LOW_LEVEL_DAYS))
+            created_at__lt=ahora - timedelta(days=cls.LOW_LEVEL_DAYS),
+        )
         access_qs = cls.objects.filter(
             cuatro_xx,
-            created_at__lt=ahora - timedelta(days=cls.ACCESS_LEVEL_DAYS))
+            created_at__lt=ahora - timedelta(days=cls.ACCESS_LEVEL_DAYS),
+        )
         high_qs = cls.objects.filter(
             level__in=cls._HIGH_LEVELS,
             created_at__lt=ahora - timedelta(days=cls.HIGH_LEVEL_DAYS),

@@ -1,0 +1,33 @@
+{
+  "postgres_readonly_observation": [
+    {
+      "database": "kaupamex_core",
+      "exit_code": 0,
+      "result": "kaupamex_core|django_user|t|t|0|pg_trgm,unaccent"
+    },
+    {
+      "database": "kaupamex_core_qa",
+      "exit_code": 0,
+      "result": "kaupamex_core_qa|django_user|t|t|0|pg_trgm,unaccent"
+    }
+  ],
+  "roots": {
+    "kaupamex-api": {
+      "revision": "4538cee5c81763fae0dfa0444f96c2a4fa19acd0",
+      "workbench": "/workspace/kaupamex-api/scripts/workbench",
+      "jobs": "/workspace/kaupamex-api/scripts/evidence"
+    },
+    "kaupamex-docs": {
+      "revision": "946156ceb812fe7d291f2c7366b3af8c4bded4db",
+      "workbench": "/workspace/kaupamex-docs/.claude/eventos",
+      "jobs": "/workspace/kaupamex-docs/.claude/jobs"
+    },
+    "thyrox": {
+      "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+      "workbench": "/workspace/thyrox/.claude/workbench",
+      "jobs": "/workspace/thyrox/.claude/jobs"
+    }
+  },
+  "container_owner": "Codex Cloud infrastructure, not Thyrox execution",
+  "writes_or_migrations": false
+}

@@ -1,4 +1,5 @@
-"""Tests — ``db.backup`` y ``db.backup.details``, la forma de ``app_auto_backup``.
+"""
+Tests — ``db.backup`` y ``db.backup.details``, la forma de ``app_auto_backup``.
 
 Adaptación de ``app_auto_backup`` (``odoo-tools@622ddc2a``,
 ``18.x/app-odoo-18.0``, **LGPL-3**). La fuente **no trae suite**: medido,
@@ -17,6 +18,7 @@ Cubre lo que el porte añadió y lo que corrigió:
   fuente enmascara el error real con un ``NameError`` (:ref:`h-api-764`);
 - el ciclo de vida del archivo en ``DbBackupDetails.delete()``.
 """
+
 import os
 from unittest import mock
 
@@ -35,11 +37,15 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def config(db, tmp_path):
     """Una configuración de respaldo apuntando a un directorio temporal."""
-    return DbBackup.objects.create(name='kaupamex_core_qa', folder=str(tmp_path))
+    return DbBackup.objects.create(
+        name='kaupamex_core_qa', folder=str(tmp_path)
+    )
 
 
 class TestHeader:
-    """Los atributos de clase que la fuente declara — ``:28-29``, ``:10-12``."""
+    """
+    Los atributos de clase que la fuente declara — ``:28-29``, ``:10-12``.
+    """
 
     def test_db_backup_declares_name_and_description(self):
         assert DbBackup._name == 'db.backup'
@@ -53,8 +59,9 @@ class TestHeader:
     def test_the_table_derives_from_name(self):
         """``_table = _name.replace('.', '_')`` — ``model_classes.py:266``."""
         assert DbBackup._meta.db_table == DbBackup._name.replace('.', '_')
-        assert (DbBackupDetails._meta.db_table
-                == DbBackupDetails._name.replace('.', '_'))
+        assert DbBackupDetails._meta.db_table == DbBackupDetails._name.replace(
+            '.', '_'
+        )
 
     def test_meta_ordering_derives_from_order(self):
         assert DbBackupDetails._meta.ordering == ['-id']
@@ -64,7 +71,10 @@ class TestDefaults:
     """Los ``default=`` de la fuente — ``:31-47``."""
 
     def test_name_default_is_the_current_database(self, db):
-        assert _get_db_name() == connections[DEFAULT_DB_ALIAS].settings_dict['NAME']
+        assert (
+            _get_db_name()
+            == connections[DEFAULT_DB_ALIAS].settings_dict['NAME']
+        )
 
     def test_the_defaults_of_the_source(self, db):
         rec = DbBackup.objects.create(folder='/tmp/kaupamex-test')
@@ -119,6 +129,7 @@ class TestScheduleBackup:
     def _fake_dump(self, content=b'DUMP'):
         def _write(self_, db_name, stream, model, backup_format='zip'):
             stream.write(content)
+
         return _write
 
     def test_creates_the_detail_row_linked_to_its_config(self, config):
@@ -143,7 +154,9 @@ class TestScheduleBackup:
 
     def test_creates_the_folder_if_missing(self, db, tmp_path):
         destination = tmp_path / 'no' / 'existe'
-        DbBackup.objects.create(name='kaupamex_core_qa', folder=str(destination))
+        DbBackup.objects.create(
+            name='kaupamex_core_qa', folder=str(destination)
+        )
         with mock.patch.object(DbBackup, '_take_dump', self._fake_dump()):
             DbBackup.schedule_backup()
         assert destination.is_dir()
@@ -166,13 +179,17 @@ class TestScheduleBackup:
                 raise RuntimeError('bad database administrator password')
             stream.write(b'DUMP')
 
-        with mock.patch.object(DbBackup, '_take_dump', _sometimes, create=False):
+        with mock.patch.object(
+            DbBackup, '_take_dump', _sometimes, create=False
+        ):
             DbBackup.schedule_backup()
 
         ok = DbBackupDetails.objects.get(status=DbBackupDetails.STATUS_OK)
         assert ok.name.endswith('_sana.zip')
 
-        failed = DbBackupDetails.objects.get(status=DbBackupDetails.STATUS_ERROR)
+        failed = DbBackupDetails.objects.get(
+            status=DbBackupDetails.STATUS_ERROR
+        )
         assert failed.name.endswith('_rota.zip')
         assert 'bad database administrator password' in failed.error_detail
         assert DbBackupDetails.objects.count() == 2
@@ -183,16 +200,20 @@ class TestScheduleBackup:
         assert DbBackupDetails.objects.count() == 0
 
     def test_does_not_touch_the_remote_when_sftp_write_is_off(self, config):
-        with mock.patch.object(DbBackup, '_take_dump', self._fake_dump()), \
-             mock.patch.object(DbBackup, '_copy_to_sftp') as copy_mock:
+        with (
+            mock.patch.object(DbBackup, '_take_dump', self._fake_dump()),
+            mock.patch.object(DbBackup, '_copy_to_sftp') as copy_mock,
+        ):
             DbBackup.schedule_backup()
         copy_mock.assert_not_called()
 
     def test_copies_to_the_remote_when_sftp_write_is_on(self, config):
         config.sftp_write = True
         config.save(update_fields=['sftp_write'])
-        with mock.patch.object(DbBackup, '_take_dump', self._fake_dump()), \
-             mock.patch.object(DbBackup, '_copy_to_sftp') as copy_mock:
+        with (
+            mock.patch.object(DbBackup, '_take_dump', self._fake_dump()),
+            mock.patch.object(DbBackup, '_copy_to_sftp') as copy_mock,
+        ):
             DbBackup.schedule_backup()
         copy_mock.assert_called_once()
 
@@ -219,8 +240,10 @@ class TestAuthorizationGuard:
         IrCron.objects.filter(
             ir_actions_server__model_name=CRON_BACKUP['model_name'],
         ).update(user=None)
-        with mock.patch('addons.auto_backup.models.db_backup.get_current_uid',
-                        return_value=None):
+        with mock.patch(
+            'addons.auto_backup.models.db_backup.get_current_uid',
+            return_value=None,
+        ):
             with pytest.raises(AccessDenied):
                 config._take_dump(config.name, None, 'db.backup')
 
@@ -254,18 +277,24 @@ class TestSftpConnection:
         Con ``SSHClient()`` reventando, allá el ``NameError`` sustituye al
         error real. Aquí sale el mensaje verdadero. Ver :ref:`h-api-764`.
         """
-        with mock.patch('addons.auto_backup.models.db_backup.paramiko.SSHClient',
-                        side_effect=OSError('no hay transporte')):
+        with mock.patch(
+            'addons.auto_backup.models.db_backup.paramiko.SSHClient',
+            side_effect=OSError('no hay transporte'),
+        ):
             with pytest.raises(ValidationError) as exc:
                 config.test_sftp_connection()
         assert 'no hay transporte' in str(exc.value)
         assert 'NameError' not in str(exc.value)
 
     def test_success_also_raises(self, config):
-        """El idioma de la fuente: las dos ramas levantan ``ValidationError``."""
+        """
+        El idioma de la fuente: las dos ramas levantan ``ValidationError``.
+        """
         client = mock.MagicMock()
-        with mock.patch('addons.auto_backup.models.db_backup.paramiko.SSHClient',
-                        return_value=client):
+        with mock.patch(
+            'addons.auto_backup.models.db_backup.paramiko.SSHClient',
+            return_value=client,
+        ):
             with pytest.raises(ValidationError) as exc:
                 config.test_sftp_connection()
         assert 'Succeeded' in str(exc.value)
@@ -277,7 +306,10 @@ class TestDetailLifecycle:
 
     def test_the_download_descriptor_matches_the_source(self, db):
         detail = DbBackupDetails.objects.create(
-            name='x.zip', file_path='/tmp/x.zip', url='/dbbackup/download//tmp/x.zip')
+            name='x.zip',
+            file_path='/tmp/x.zip',
+            url='/dbbackup/download//tmp/x.zip',
+        )
         assert detail.action_download_file() == {
             'type': 'ir.actions.act_url',
             'url': '/dbbackup/download//tmp/x.zip',
@@ -293,15 +325,19 @@ class TestDetailLifecycle:
         backup_file = tmp_path / 'x.zip'
         backup_file.write_bytes(b'DUMP')
         detail = DbBackupDetails.objects.create(
-            name='x.zip', file_path=str(backup_file))
+            name='x.zip', file_path=str(backup_file)
+        )
         detail.action_remove_file()
         assert not backup_file.exists()
         assert DbBackupDetails.objects.count() == 0
 
-    def test_an_already_deleted_file_does_not_block_row_removal(self, db, tmp_path):
+    def test_an_already_deleted_file_does_not_block_row_removal(
+        self, db, tmp_path
+    ):
         """El ``except`` ancho de la fuente — un borrado a mano no bloquea."""
         detail = DbBackupDetails.objects.create(
-            name='x.zip', file_path=str(tmp_path / 'no-existe.zip'))
+            name='x.zip', file_path=str(tmp_path / 'no-existe.zip')
+        )
         detail.action_remove_file()
         assert DbBackupDetails.objects.count() == 0
 

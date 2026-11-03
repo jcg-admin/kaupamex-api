@@ -5,6 +5,7 @@ bypass), existencias (quant on-hand/available), el ciclo del movimiento
 (confirm → assign/reservar → done/aplicar quants), la transferencia
 (picking validate) y las reglas de aprovisionamiento (rule.run MTS/MTO).
 """
+
 from decimal import Decimal
 
 import pytest
@@ -34,21 +35,29 @@ def _product(price='100.00'):
 
 
 def _internal(name='WH/Stock'):
-    return StockLocation.objects.create(name=name, usage=StockLocation.USAGE_INTERNAL)
+    return StockLocation.objects.create(
+        name=name, usage=StockLocation.USAGE_INTERNAL
+    )
 
 
 def _supplier():
-    return StockLocation.objects.create(name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
+    return StockLocation.objects.create(
+        name='Vendors', usage=StockLocation.USAGE_SUPPLIER
+    )
 
 
 def _customer():
-    return StockLocation.objects.create(name='Customers', usage=StockLocation.USAGE_CUSTOMER)
+    return StockLocation.objects.create(
+        name='Customers', usage=StockLocation.USAGE_CUSTOMER
+    )
 
 
 def test_location_complete_name_and_bypass(db):
     parent = _internal('WH')
     child = StockLocation.objects.create(
-        name='Stock', usage=StockLocation.USAGE_INTERNAL, location=parent,
+        name='Stock',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=parent,
     )
     # ``complete_name`` es CAMPO almacenado, como en la referencia
     # (``odoo19c: stock_location.py:29`` — ``compute=…, store=True``); lo
@@ -66,7 +75,9 @@ def test_quant_on_hand_and_available(db):
     StockQuant.set_on_hand(product, loc, Decimal('10.00'))
     assert StockQuant.available_qty(product, loc) == Decimal('10.00')
     # Ubicación no-interna: disponibilidad "infinita" (bypass).
-    assert StockQuant.available_qty(product, _supplier()) == Decimal('999999999.00')
+    assert StockQuant.available_qty(product, _supplier()) == Decimal(
+        '999999999.00'
+    )
 
 
 def test_move_confirm_assign_done_updates_quants(db):
@@ -75,8 +86,10 @@ def test_move_confirm_assign_done_updates_quants(db):
     dest = _customer()
     StockQuant.set_on_hand(product, src, Decimal('5.00'))
     move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('3.00'),
-        location=src, location_dest=dest,
+        product=product,
+        product_uom_qty=Decimal('3.00'),
+        location=src,
+        location_dest=dest,
     )
     # draft → confirmed (sin orígenes pendientes).
     move._action_confirm()
@@ -85,7 +98,8 @@ def test_move_confirm_assign_done_updates_quants(db):
     move._action_assign()
     assert move.state == StockMove.STATE_ASSIGNED
     assert move.quantity == Decimal('3.00')
-    # assigned → done: descuenta del origen interno; destino cliente es sumidero.
+    # assigned → done: descuenta del origen interno; destino cliente es
+    # sumidero.
     move._action_done()
     assert move.state == StockMove.STATE_DONE
     assert StockQuant.available_qty(product, src) == Decimal('2.00')
@@ -97,8 +111,10 @@ def test_move_partial_reservation_stays_confirmed(db):
     dest = _customer()
     StockQuant.set_on_hand(product, src, Decimal('2.00'))
     move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('5.00'),
-        location=src, location_dest=dest,
+        product=product,
+        product_uom_qty=Decimal('5.00'),
+        location=src,
+        location_dest=dest,
     )
     move._action_confirm()
     move._action_assign()
@@ -118,10 +134,16 @@ def test_move_mto_chaining_waiting(db):
     dest = _customer()
     # Movimiento origen (proveedor → interno) que abastece al destino.
     orig = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('4.00'), location=src, location_dest=mid,
+        product=product,
+        product_uom_qty=Decimal('4.00'),
+        location=src,
+        location_dest=mid,
     )
     dest_move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('4.00'), location=mid, location_dest=dest,
+        product=product,
+        product_uom_qty=Decimal('4.00'),
+        location=mid,
+        location_dest=dest,
     )
     dest_move.move_orig_ids.add(orig)
     dest_move._action_confirm()
@@ -136,8 +158,11 @@ def test_picking_validate_cascades_moves(db):
     StockQuant.set_on_hand(product, src, Decimal('8.00'))
     picking = StockPicking.objects.create(location=src, location_dest=dest)
     move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('6.00'),
-        location=src, location_dest=dest, picking=picking,
+        product=product,
+        product_uom_qty=Decimal('6.00'),
+        location=src,
+        location_dest=dest,
+        picking=picking,
     )
     picking.action_confirm()
     assert picking.name.startswith('WH/')
@@ -172,8 +197,14 @@ def _procurement(product, location, qty, **values):
     """
     values.setdefault('date_planned', timezone.now())
     return StockRule.Procurement(
-        product, qty, product.uom or _uom(), location,
-        product.name, 'test', get_current_company(), values,
+        product,
+        qty,
+        product.uom or _uom(),
+        location,
+        product.name,
+        'test',
+        get_current_company(),
+        values,
     )
 
 
@@ -192,8 +223,12 @@ def test_run_pull_make_to_stock(db):
     src = _internal('WH/Stock')
     dest = _customer()
     rule = StockRule.objects.create(
-        name='Entrega', action=StockRule.ACTION_PULL, route=_route(),
-        location_src=src, location_dest=dest, procure_method=StockRule.PROCURE_MTS,
+        name='Entrega',
+        action=StockRule.ACTION_PULL,
+        route=_route(),
+        location_src=src,
+        location_dest=dest,
+        procure_method=StockRule.PROCURE_MTS,
     )
     StockRule._run_pull([(_procurement(product, dest, Decimal('7.00')), rule)])
 
@@ -214,11 +249,15 @@ def test_run_pull_without_source_location_raises(db):
     product = _product()
     dest = _customer()
     rule = StockRule.objects.create(
-        name='Sin origen', action=StockRule.ACTION_PULL, route=_route(),
+        name='Sin origen',
+        action=StockRule.ACTION_PULL,
+        route=_route(),
         location_dest=dest,
     )
     with pytest.raises(ProcurementException) as exc:
-        StockRule._run_pull([(_procurement(product, dest, Decimal('2.00')), rule)])
+        StockRule._run_pull(
+            [(_procurement(product, dest, Decimal('2.00')), rule)]
+        )
     assert 'Sin origen' in exc.value.procurement_exceptions[0][1]
 
 
@@ -228,7 +267,10 @@ def test_move_cancel_zeroes_reservation(db):
     dest = _customer()
     StockQuant.set_on_hand(product, src, Decimal('5.00'))
     move = StockMove.objects.create(
-        product=product, product_uom_qty=Decimal('3.00'), location=src, location_dest=dest,
+        product=product,
+        product_uom_qty=Decimal('3.00'),
+        location=src,
+        location_dest=dest,
     )
     move._action_confirm()
     move._action_assign()

@@ -1,0 +1,38 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/fields.py Field.recompute recursive_compute; Environment.remove_to_compute live OrderedSet",
+  "behavior": "A recursive Django compute callback can consume another queued row; that row must not be invoked again by the outer recursive loop",
+  "execution_flow": "Initial pending intersection -> per-row recursive callback -> nested compute_value removes another ID from same live queue -> outer membership recheck skips consumed work",
+  "inputs_outputs": "Rows31/32; callback31 explicitly computes32; recursive observed calls32,31, not32,31,32; newly queued33 outside input remains pending; nested AccessError restores31/32 and clears protection",
+  "side_effects": "Existing pending/cache/dirty/protection only; no SQL, schema, migration or new task state; nonrecursive Django and native recordset branches unchanged",
+  "dependencies": [
+    "TASK-GEN-0558/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/native306/pending/VM-b501 revalidated via TaskGet",
+    "Existing compute_value removal/restoration, Environment.remove_to_compute mutating captured OrderedSet and prior native batch qualification",
+    "Native claims and node_frontier selected bounded unit; managed local inference not used"
+  ],
+  "consumers": "Recursive Django-row recompute adapter; native recordsets retain separately qualified batching/retry/recursive behavior",
+  "installed_mechanism": "One membership condition in existing recursive loop; existing staged-source verifier extended by explicit optional mode; no scheduler or store introduced",
+  "existing_adaptation": "Django legacy callbacks remain per row. Source review refuted overbroad initial nonrecursive expectation; compatibility control preserves previous nonrecursive callback sequence without claiming Odoo batch equivalence",
+  "verification": {
+    "initial_hypothesis": "2FAIL2PASS preserved separately; expectation refined against pinned source before implementation",
+    "baseline": "1FAIL3PASS",
+    "candidate": "125PASS12 inherited warnings; exact snapshots in recompute-reentry-integrated-final.json",
+    "annulment": "1expectedFAIL3PASS; guard-only removal restores base executable AST",
+    "storage": "New queue mechanism itself SQL-prohibited; separate PostgreSQL compatibility of physical ordered path under exact new source recorded in recompute-reentry-postgresql-compatibility.json",
+    "source_sha256": {
+      "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+      "orm.fields": "e83d72b52679bc6a7a413706fbd1655ffae89ce345b32376e6e366ce1cf1eb42",
+      "orm.models": "613032ef6b8cbbb579dad80d4be81f90768b398239d6c73b67db53461f9e84db"
+    },
+    "fixture": "tests/unit/orm/test_recompute_reentry_contract.py"
+  },
+  "equivalence": "Bounded recursive queue coalescence; no full Field, legacy nonrecursive batching, persistence, prefetch or ORM acceptance",
+  "limitations": "Virtual-row identity scenarios, full routing/access, native inference, global contract population, independent QA, integration and acceptance remain not_verified",
+  "integration": {
+    "functional_commit": "e7258f5f320c6d2975ae2d48eba95cce06daa0f6",
+    "pr": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+    "publication": "Normal feature push observed fed0529e..e7258f5f",
+    "merge": "not_performed",
+    "acceptance": "not_verified"
+  }
+}

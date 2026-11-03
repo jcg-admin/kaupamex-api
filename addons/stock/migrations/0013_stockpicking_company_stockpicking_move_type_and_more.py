@@ -19,7 +19,9 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa (Odoo company_id, related del tipo de operación).",
+                help_text=(
+                    "Empresa (Odoo company_id, related del tipo de operación)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="stock_pickings",
@@ -35,7 +37,10 @@ class Migration(migrations.Migration):
                     ("one", "Cuando todos los productos estén listos"),
                 ],
                 default="direct",
-                help_text="Parcial o todo junto (Odoo move_type). Sale del tipo de operación y se puede sobreescribir por albarán.",
+                help_text=(
+                    "Parcial o todo junto (Odoo move_type). Sale del tipo de"
+                    " operación y se puede sobreescribir por albarán."
+                ),
                 max_length=8,
                 verbose_name="Política de envío",
             ),
@@ -45,7 +50,11 @@ class Migration(migrations.Migration):
             name="partner",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Contacto del albarán (Odoo partner_id). Lo borra ``_assign_picking_values`` cuando el albarán agrupa movimientos de contactos distintos.",
+                help_text=(
+                    "Contacto del albarán (Odoo partner_id). Lo borra"
+                    " ``_assign_picking_values`` cuando el albarán agrupa"
+                    " movimientos de contactos distintos."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="pickings",
@@ -58,7 +67,10 @@ class Migration(migrations.Migration):
             name="printed",
             field=models.BooleanField(
                 default=False,
-                help_text="El albarán ya se imprimió (Odoo printed). Un albarán impreso no recibe movimientos nuevos por asignación.",
+                help_text=(
+                    "El albarán ya se imprimió (Odoo printed). Un albarán"
+                    " impreso no recibe movimientos nuevos por asignación."
+                ),
                 verbose_name="Impreso",
             ),
         ),

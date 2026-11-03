@@ -1,4 +1,6 @@
-"""Qué eje de la FK consume DRF, y por qué ``db_column`` no toca el contrato (#141).
+"""
+Qué eje de la FK consume DRF, y por qué ``db_column`` no toca el contrato
+(#141).
 
 ≙ ADR-029. Es la mitad de arriba del stack: ``test_fk_three_axes.py`` mide que
 Django separa símbolo / ``attname`` / columna y qué cuesta cada uno; aquí se
@@ -34,6 +36,7 @@ rompe. Un caso que sólo comprobara ``'model_id' in data`` sería verde con y
 sin ``db_column`` — por eso el primero afirma también el **valor**, que es lo
 que un cambio de eje sí movería.
 """
+
 import pytest
 from rest_framework import serializers
 
@@ -66,8 +69,11 @@ class TestDrfSpeaksTheSymbol:
 
     def test_the_serialized_key_and_value_are_the_symbol_and_its_pk(self):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResCompany', defaults={'name': 'Empresa'})
-        automation = BaseAutomation.objects.create(name='A', model_id=model_row)
+            model='base.ResCompany', defaults={'name': 'Empresa'}
+        )
+        automation = BaseAutomation.objects.create(
+            name='A', model_id=model_row
+        )
 
         data = _AutomationSerializer(automation).data
 
@@ -90,10 +96,12 @@ class TestDrfSpeaksTheSymbol:
 
     def test_writing_binds_the_object_under_the_symbol(self):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResCurrency', defaults={'name': 'Moneda'})
+            model='base.ResCurrency', defaults={'name': 'Moneda'}
+        )
 
         serializer = _AutomationSerializer(
-            data={'name': 'Nueva', 'model_id': model_row.pk})
+            data={'name': 'Nueva', 'model_id': model_row.pk}
+        )
 
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['model_id'] == model_row
@@ -104,14 +112,18 @@ class TestThePkOnlyOptimizationLivesOffTheSplit:
     """``PKOnlyObject`` depende de que exista un ``attname`` separado."""
 
     def test_serializing_the_relation_costs_no_extra_query(
-            self, django_assert_num_queries):
+        self, django_assert_num_queries
+    ):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResGroups', defaults={'name': 'Grupo'})
+            model='base.ResGroups', defaults={'name': 'Grupo'}
+        )
         BaseAutomation.objects.create(name='C', model_id=model_row)
         fresh = BaseAutomation.objects.get(name='C')
 
         with django_assert_num_queries(0):
-            assert _AutomationSerializer(fresh).data['model_id'] == model_row.pk
+            assert (
+                _AutomationSerializer(fresh).data['model_id'] == model_row.pk
+            )
 
     def test_the_optimization_is_declared_by_the_field_itself(self):
         field = _AutomationSerializer().fields['model_id']

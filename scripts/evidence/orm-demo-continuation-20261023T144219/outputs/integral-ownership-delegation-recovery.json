@@ -1,0 +1,32 @@
+{
+  "kind": "Recovered existing delegation, not a new assignment policy",
+  "source_sha256": {
+    "original": "938d8b9889ebe25ff13e720f6e39ecbf28174cf95113f97d008a13b8aeb06811",
+    "clarification": "c84036f58a1c9a77d236939aecf08911e1504d86ff5fbfd76bdc41f279e287d0",
+    "current": "03b39f222eea56740ec1fb096cc8791e8e562749e30df4668c37006ed48d1dc7"
+  },
+  "source_names": {
+    "original": "VM-b501 \u2014 Gobierno adaptativo BABOK, trazabilidad contractual y continuaci\u00f3n verificable del ORM.txt",
+    "clarification": "VM-b501 \u2014 Continuaci\u00f3n de gobierno adaptativo BABOK, responsabilidades funcionales e integraci\u00f3n contractual del ORM.txt",
+    "current": "VM-b501 \u2014 Restablecimiento de la asignaci\u00f3n autom\u00e1tica autorizada, reconciliaci\u00f3n de responsabilidades y continuaci\u00f3n contractual de `completar-raiz-orm`.txt"
+  },
+  "exact_clarification_section7": "### 7. Pol\u00edtica de asignaci\u00f3n autom\u00e1tica\n\nCorrige expresamente la interpretaci\u00f3n restrictiva de la secci\u00f3n 17 de la instrucci\u00f3n anterior.\n\n**No est\u00e1 prohibido asignar autom\u00e1ticamente una TASK. Est\u00e1 prohibido hacerlo mediante una identidad inventada, sin permiso o sin respetar el contrato vigente.**\n\nSi el ejecutor est\u00e1 autorizado y la TASK cumple los criterios de admisi\u00f3n, utiliza la asignaci\u00f3n operativa permitida por los mecanismos existentes.\n\nNo solicites autorizaci\u00f3n humana adicional para una operaci\u00f3n ya comprendida en las facultades de ejecuci\u00f3n previamente otorgadas.\n\nLa asignaci\u00f3n no demuestra autom\u00e1ticamente aceptaci\u00f3n, integraci\u00f3n ni aprobaci\u00f3n del cambio.",
+  "current_reaffirmation": "Current addendum sections10-13 and final mandate: recover existing delegation, do not request permission again, verify each native task separately; no blind batch",
+  "precedent": {
+    "source": "../kaupamex-docs/.claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/trazabilidad-20261027/outputs/babok-continuation-assignment-and-claims.jsonl",
+    "sha256": "f9826bd75ecfa098b1126e04ae451a05abfabf20e23248391b0173460cdcb4fe",
+    "identity": {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "487",
+      "citation_id": "TASK-API-0283"
+    },
+    "operative_owner": "VM-b501",
+    "role": "backend",
+    "native_before_after_recorded": true
+  },
+  "regression_cause": "Treated later authority verification as a fresh permission requirement; relied on an earlier restrictive proposal and failed to recover the later section7 clarification. No revocation of conditional automatic assignment was found in current instructions.",
+  "correction": "Apply existing conditional delegation to an individually verified Consumer backend TASK using validated VM-b501 identity; preserve existing owners, QA independence, identities, states and dependencies. Assignment does not grant execution admission or acceptance.",
+  "scope": "Current nine backend candidates are assessed individually through native interfaces; no unconditional batch, Provider reassignment, new role registry or TaskStore migration",
+  "prior_policy_proposal": "Not approved and not used as authorization; superseded by recovered authority and per-TASK decisions",
+  "new_approval_requested": false
+}

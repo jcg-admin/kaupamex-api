@@ -33,7 +33,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Odoo name (required, translate) — nombre del digest.",
+                        help_text=(
+                            "Odoo name (required, translate) — nombre del"
+                            " digest."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -55,7 +58,10 @@ class Migration(migrations.Migration):
                     "next_run_date",
                     models.DateField(
                         blank=True,
-                        help_text="Se calcula en save() si no se da explícitamente (Odoo create()).",
+                        help_text=(
+                            "Se calcula en save() si no se da explícitamente"
+                            " (Odoo create())."
+                        ),
                         null=True,
                         verbose_name="Próximo envío",
                     ),
@@ -76,7 +82,10 @@ class Migration(migrations.Migration):
                     "kpi_res_users_connected",
                     models.BooleanField(
                         default=False,
-                        help_text="KPI base: cuenta filas de ResUsersLog (accesos) en el periodo.",
+                        help_text=(
+                            "KPI base: cuenta filas de ResUsersLog (accesos)"
+                            " en el periodo."
+                        ),
                         verbose_name="Usuarios conectados",
                     ),
                 ),
@@ -84,7 +93,10 @@ class Migration(migrations.Migration):
                     "kpi_mail_message_total",
                     models.BooleanField(
                         default=False,
-                        help_text="KPI base: cuenta MailMessage creados en el periodo.",
+                        help_text=(
+                            "KPI base: cuenta MailMessage creados en el"
+                            " periodo."
+                        ),
                         verbose_name="Mensajes enviados",
                     ),
                 ),
@@ -93,7 +105,10 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         blank=True,
                         default=orm.environments.get_current_company,
-                        help_text="Odoo company_id (default=env.company.id → get_current_company()).",
+                        help_text=(
+                            "Odoo company_id (default=env.company.id →"
+                            " get_current_company())."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="digests",
@@ -105,7 +120,11 @@ class Migration(migrations.Migration):
                     "user_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Odoo user_ids (domain share=False en la referencia — no enforced a nivel de columna, ver action_subscribe).",
+                        help_text=(
+                            "Odoo user_ids (domain share=False en la"
+                            " referencia — no enforced a nivel de columna, ver"
+                            " action_subscribe)."
+                        ),
                         related_name="digests",
                         to=settings.AUTH_USER_MODEL,
                         verbose_name="Destinatarios",
@@ -137,14 +156,19 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=1,
-                        help_text="Odoo sequence — orden de despliegue en el correo.",
+                        help_text=(
+                            "Odoo sequence — orden de despliegue en el correo."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", max_length=255, verbose_name="Nombre"
+                        blank=True,
+                        default="",
+                        max_length=255,
+                        verbose_name="Nombre",
                     ),
                 ),
                 (
@@ -157,7 +181,10 @@ class Migration(migrations.Migration):
                     "user_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Odoo user_ids — usuarios que ya recibieron este tip.",
+                        help_text=(
+                            "Odoo user_ids — usuarios que ya recibieron este"
+                            " tip."
+                        ),
                         related_name="seen_digest_tips",
                         to=settings.AUTH_USER_MODEL,
                         verbose_name="Ya lo vieron",

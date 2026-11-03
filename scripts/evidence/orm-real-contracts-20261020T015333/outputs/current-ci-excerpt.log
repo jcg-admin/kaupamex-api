@@ -1,0 +1,55 @@
+test	Run tests	2026-10-20T01:44:10.3988891Z EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE [ 99%]
+test	Run tests	2026-10-20T01:44:19.2231376Z EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE              [100%]
+test	Run tests	2026-10-20T01:44:19.2232603Z ==================================== ERRORS ====================================
+test	Run tests	2026-10-20T01:44:19.2233699Z _ ERROR at setup of TestTimeStampedModelHerencia.test_todos_los_modelos_heredan_de_timestampedmodel _
+test	Run tests	2026-10-20T01:44:19.2234981Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+test	Run tests	2026-10-20T01:44:19.2235846Z     return self.cursor.execute(sql)
+test	Run tests	2026-10-20T01:44:19.2236555Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+test	Run tests	2026-10-20T01:44:19.2237915Z     raise ex.with_traceback(None)
+test	Run tests	2026-10-20T01:44:19.2238705Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+test	Run tests	2026-10-20T01:44:19.2239239Z 
+test	Run tests	2026-10-20T01:44:19.2239571Z The above exception was the direct cause of the following exception:
+test	Run tests	2026-10-20T01:44:19.2240563Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+test	Run tests	2026-10-20T01:44:19.2241365Z     db_cfg = setup_databases(
+test	Run tests	2026-10-20T01:44:19.2242043Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+test	Run tests	2026-10-20T01:44:19.2242834Z     connection.creation.create_test_db(
+test	Run tests	2026-10-20T01:44:19.2244043Z .venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+test	Run tests	2026-10-20T01:44:19.2244902Z     call_command(
+test	Run tests	2026-10-20T01:44:19.2245603Z .venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+test	Run tests	2026-10-20T01:44:19.2246477Z     return command.execute(*args, **defaults)
+test	Run tests	2026-10-20T01:44:19.2247522Z .venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+test	Run tests	2026-10-20T01:44:19.2248509Z     output = self.handle(*args, **options)
+test	Run tests	2026-10-20T01:44:19.2249287Z .venv/lib/python3.12/site-packages/django/core/management/base.py:111: in wrapper
+test	Run tests	2026-10-20T01:44:19.2250072Z     res = handle_func(*args, **kwargs)
+test	Run tests	2026-10-20T01:44:19.2250887Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+test	Run tests	2026-10-20T01:44:19.2251882Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+test	Run tests	2026-10-20T01:44:19.2252881Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+test	Run tests	2026-10-20T01:44:19.2253457Z     with connection.schema_editor() as editor:
+test	Run tests	2026-10-20T01:44:19.2254075Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+test	Run tests	2026-10-20T01:44:19.2254861Z     self.execute(sql, None)
+test	Run tests	2026-10-20T01:44:19.2255451Z .venv/lib/python3.12/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+test	Run tests	2026-10-20T01:44:19.2256036Z     return super().execute(sql, params)
+test	Run tests	2026-10-20T01:44:19.2256749Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:205: in execute
+test	Run tests	2026-10-20T01:44:19.2257733Z     cursor.execute(sql, params)
+test	Run tests	2026-10-20T01:44:19.2258383Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+test	Run tests	2026-10-20T01:44:19.2259095Z     return self._execute_with_wrappers(
+test	Run tests	2026-10-20T01:44:19.2259866Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+test	Run tests	2026-10-20T01:44:19.2260892Z     return executor(sql, params, many, context)
+test	Run tests	2026-10-20T01:44:19.2261310Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+test	Run tests	2026-10-20T01:44:19.2261718Z     with self.db.wrap_database_errors:
+test	Run tests	2026-10-20T01:44:19.2262076Z .venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+test	Run tests	2026-10-20T01:44:19.2262500Z     raise dj_exc_value.with_traceback(traceback) from exc_value
+test	Run tests	2026-10-20T01:44:19.2263032Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+test	Run tests	2026-10-20T01:44:19.2263777Z     return self.cursor.execute(sql)
+test	Run tests	2026-10-20T01:44:19.2264389Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+test	Run tests	2026-10-20T01:44:19.2264837Z     raise ex.with_traceback(None)
+test	Run tests	2026-10-20T01:44:19.2265198Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+test	Run tests	2026-10-20T01:44:19.2265680Z ---------------------------- Captured stderr setup -----------------------------
+test	Run tests	2026-10-20T01:44:19.2266163Z Got an error creating the test database: database "kaupamex_qa" already exists
+test	Run tests	2026-10-20T01:44:19.2266707Z _ ERROR at setup of TestTimeStampedModelHerencia.test_timestampedmodel_es_abstracto _
+test	Run tests	2026-10-20T01:44:19.2267495Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+test	Run tests	2026-10-20T01:44:28.9667177Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Caf\xe9 Org\xe1nico] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+test	Run tests	2026-10-20T01:44:28.9669014Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Camisa Azul] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+test	Run tests	2026-10-20T01:44:28.9670712Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_both_come_from_the_ported_slugify - django.db.utils.ProgrammingError: relation "res_users" does not exist
+test	Run tests	2026-10-20T01:44:28.9671724Z 26 skipped, 1 xfailed, 18 warnings, 10617 errors in 1310.63s (0:21:50)
+test	Run tests	2026-10-20T01:44:28.9681776Z ##[error]Process completed with exit code 1.

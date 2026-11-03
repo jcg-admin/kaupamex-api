@@ -20,7 +20,8 @@ Porte símbolo por símbolo — 3 símbolos, los 3 bloqueados
      - BLOQUEADO — añade a la plantilla del portal la lista de códigos EAS
        disponibles (``available_peppol_eas``), campo de
        ``account_edi_ubl_cii`` (0 hits medidos aquí). Además es contexto de
-       una plantilla QWeb del portal, y ``IrTemplateExpressions.render`` de este árbol
+       una plantilla QWeb del portal, y ``IrTemplateExpressions.render`` de
+       este árbol
        levanta ``NotImplementedError`` a propósito
        (``src/addons/base/models/ir_template_expressions.py:261``).
    * - ``_get_mandatory_billing_address_fields`` (``:25-32``)

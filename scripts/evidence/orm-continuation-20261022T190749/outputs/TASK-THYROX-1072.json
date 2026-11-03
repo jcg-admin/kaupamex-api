@@ -1,0 +1,19 @@
+{
+  "sessionId": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "input": {
+    "task_id": "140"
+  },
+  "task": {
+    "task_id": "140",
+    "citation_id": "TASK-THYROX-1072",
+    "subject": "Read the task universe from the store in task_source",
+    "description": "task_source.records_from_store(store, layer) + load_records(.sqlite3); ids = citation number per layer; blocked_by ordinals resolved within the row's session; no prose edges from store rows. implementation_order unchanged. RED: tests/task/test_task_source_store.py (12 fallos), includes 1067 not re-proposed and 1065 rejected kept pending.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

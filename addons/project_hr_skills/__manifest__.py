@@ -6,9 +6,11 @@
     'version': '1.0',
     'category': 'Services/Project',
     'summary': 'Project skills',
-    'description': """
+    'description': (
+        """
         Search project tasks according to the assignees' skills
-    """,
+    """
+    ),
     # `depends` MEDIDO contra los imports reales de este addon:
     # - project   → destino de la extensión ('project', 'ProjectTask').
     # - hr_skills → HrEmployeeSkill (las habilidades que se exponen).

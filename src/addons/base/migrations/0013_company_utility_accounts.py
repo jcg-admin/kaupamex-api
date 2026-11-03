@@ -17,10 +17,15 @@ class Migration(migrations.Migration):
             name="account_journal_early_pay_discount_gain_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de ganancia por descuento por pronto pago (Odoo account_journal_early_pay_discount_gain_account_id).",
+                help_text=(
+                    "Cuenta de ganancia por descuento por pronto pago (Odoo"
+                    " account_journal_early_pay_discount_gain_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="company_account_journal_early_pay_discount_gain_account",
+                related_name=(
+                    "company_account_journal_early_pay_discount_gain_account"
+                ),
                 to="account.accountaccount",
             ),
         ),
@@ -29,10 +34,15 @@ class Migration(migrations.Migration):
             name="account_journal_early_pay_discount_loss_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de pérdida por descuento por pronto pago (Odoo account_journal_early_pay_discount_loss_account_id).",
+                help_text=(
+                    "Cuenta de pérdida por descuento por pronto pago (Odoo"
+                    " account_journal_early_pay_discount_loss_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="company_account_journal_early_pay_discount_loss_account",
+                related_name=(
+                    "company_account_journal_early_pay_discount_loss_account"
+                ),
                 to="account.accountaccount",
             ),
         ),
@@ -41,7 +51,10 @@ class Migration(migrations.Migration):
             name="account_journal_suspense_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta transitoria de banco (Odoo account_journal_suspense_account_id).",
+                help_text=(
+                    "Cuenta transitoria de banco (Odoo"
+                    " account_journal_suspense_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="company_account_journal_suspense_account",
@@ -53,7 +66,10 @@ class Migration(migrations.Migration):
             name="bank_account_code_prefix",
             field=models.CharField(
                 blank=True,
-                help_text="Prefijo de código de las cuentas bancarias (Odoo bank_account_code_prefix).",
+                help_text=(
+                    "Prefijo de código de las cuentas bancarias (Odoo"
+                    " bank_account_code_prefix)."
+                ),
                 max_length=64,
                 null=True,
             ),
@@ -63,7 +79,10 @@ class Migration(migrations.Migration):
             name="cash_account_code_prefix",
             field=models.CharField(
                 blank=True,
-                help_text="Prefijo de código de las cuentas de efectivo (Odoo cash_account_code_prefix).",
+                help_text=(
+                    "Prefijo de código de las cuentas de efectivo (Odoo"
+                    " cash_account_code_prefix)."
+                ),
                 max_length=64,
                 null=True,
             ),
@@ -73,7 +92,10 @@ class Migration(migrations.Migration):
             name="default_cash_difference_expense_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de faltante de efectivo (Odoo default_cash_difference_expense_account_id).",
+                help_text=(
+                    "Cuenta de faltante de efectivo (Odoo"
+                    " default_cash_difference_expense_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="company_default_cash_difference_expense_account",
@@ -85,7 +107,10 @@ class Migration(migrations.Migration):
             name="default_cash_difference_income_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de sobrante de efectivo (Odoo default_cash_difference_income_account_id).",
+                help_text=(
+                    "Cuenta de sobrante de efectivo (Odoo"
+                    " default_cash_difference_income_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="company_default_cash_difference_income_account",
@@ -97,7 +122,10 @@ class Migration(migrations.Migration):
             name="transfer_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de transferencia de liquidez (Odoo transfer_account_id).",
+                help_text=(
+                    "Cuenta de transferencia de liquidez (Odoo"
+                    " transfer_account_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="company_transfer_account",
@@ -109,7 +137,10 @@ class Migration(migrations.Migration):
             name="transfer_account_code_prefix",
             field=models.CharField(
                 blank=True,
-                help_text="Prefijo de código de las cuentas de transferencia (Odoo transfer_account_code_prefix).",
+                help_text=(
+                    "Prefijo de código de las cuentas de transferencia (Odoo"
+                    " transfer_account_code_prefix)."
+                ),
                 max_length=64,
                 null=True,
             ),

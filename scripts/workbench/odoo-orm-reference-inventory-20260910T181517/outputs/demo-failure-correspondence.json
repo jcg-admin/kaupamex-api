@@ -1,0 +1,218 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_file": "odoo/addons/base/models/ir_demo_failure.py",
+  "reference_sha256": "d789f3622a19ba6d8ddf75d26183153ce993b214fc5902a5eb941b91e6c54f83",
+  "reference_inventory": {
+    "name": "ir_demo_failure.py",
+    "lines": 32,
+    "classes": [
+      {
+        "name": "IrDemo_Failure",
+        "lineno": 4,
+        "decorators": [],
+        "methods": []
+      },
+      {
+        "name": "IrDemo_FailureWizard",
+        "lineno": 15,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrDemo_FailureWizard",
+            "name": "_compute_failures_count",
+            "lineno": 26,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "api.depends('failure_ids')"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrDemo_FailureWizard",
+            "name": "done",
+            "lineno": 30,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      }
+    ],
+    "functions": [],
+    "raw": 4,
+    "unique": 4
+  },
+  "reference_named_declarations": [
+    {
+      "kind": "class",
+      "owner": null,
+      "name": "IrDemo_Failure",
+      "lineno": 4,
+      "signature": null,
+      "body": "substantive",
+      "decorators": []
+    },
+    {
+      "kind": "class",
+      "owner": null,
+      "name": "IrDemo_FailureWizard",
+      "lineno": 15,
+      "signature": null,
+      "body": "substantive",
+      "decorators": []
+    },
+    {
+      "kind": "method",
+      "owner": "IrDemo_FailureWizard",
+      "name": "_compute_failures_count",
+      "lineno": 26,
+      "signature": {
+        "params": [],
+        "has_default": [],
+        "vararg": null,
+        "kwonly": [],
+        "kwarg": null
+      },
+      "body": "substantive",
+      "decorators": [
+        "api.depends('failure_ids')"
+      ]
+    },
+    {
+      "kind": "method",
+      "owner": "IrDemo_FailureWizard",
+      "name": "done",
+      "lineno": 30,
+      "signature": {
+        "params": [],
+        "has_default": [],
+        "vararg": null,
+        "kwonly": [],
+        "kwarg": null
+      },
+      "body": "substantive",
+      "decorators": []
+    }
+  ],
+  "consumer_file": "src/addons/base/models/ir_demo_failure.py",
+  "consumer_sha256": "ed4952b829ad8322e15d43e105fb606ab639470cf412cbae680c83e9312cffa5",
+  "consumer_inventory": {
+    "name": "ir_demo_failure.py",
+    "lines": 87,
+    "classes": [
+      {
+        "name": "IrDemoFailureWizard",
+        "lineno": 45,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrDemoFailureWizard",
+            "name": "failures_count",
+            "lineno": 55,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "property"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrDemoFailureWizard",
+            "name": "__str__",
+            "lineno": 59,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      },
+      {
+        "name": "IrDemoFailure",
+        "lineno": 63,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrDemoFailure",
+            "name": "__str__",
+            "lineno": 86,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      }
+    ],
+    "functions": [],
+    "raw": 5,
+    "unique": 4
+  },
+  "contract_records": [
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "IrDemo_Failure.error",
+      "source_location": 11,
+      "owner": "odoo.addons.base.models.ir_demo_failure.IrDemo_Failure",
+      "symbol_kind": "field",
+      "behavior": "Store complete demo exception text without declared size truncation",
+      "execution_flow": "load_demo captures traceback.format_exc and creates optional failure record after data rollback",
+      "inputs_outputs": "Complete Unicode traceback in; identical stored string out",
+      "side_effects": "Failure record column write and base0089 column widening; old stored strings unchanged",
+      "dependencies": [
+        "ir.module.module foreign key",
+        "Django field and PostgreSQL type",
+        "Existing textual conversion truncates only when model explicitly declares max_length"
+      ],
+      "consumers": [
+        "load_demo reporting",
+        "IrDemoFailureWizard.failure_ids and failures_count"
+      ],
+      "installed_mechanism": "IrDemoFailure.error Char without max_length; actual AlterField with explicit guard against narrowing while long data exists",
+      "existing_adaptation": "Persistent Django model retains preexisting divergence from native TransientModel; no change to generic descriptor or taxonomy",
+      "verification": "Real PG red storage mismatch -> green exact roundtrip; historical short row survives migration; long row prevents reverse before loss; negative length255 fails",
+      "equivalence": "Complete error storage bounded contract verified; native Odoo not executed",
+      "limitations": "Historical already-truncated contents cannot be reconstructed; no backfill guessed; wizard done() and transient cleanup not accepted",
+      "integration": {
+        "task": "TASK-API-0382",
+        "acceptance": "not_verified for full model/task",
+        "merge": false
+      }
+    }
+  ],
+  "supplemental_field_scope": "Named-declaration extractor does not cover every field/constant; error attribute manually reviewed with exact source line. No new AST extractor.",
+  "other_obligations": "Wizard count property existing but not reverified; done/next integration and transient cleanup pending; canonical model registry naming unchanged.",
+  "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219"
+}

@@ -52,14 +52,26 @@ el modelo lo enciende, que es lo que la fuente hace en ``write`` (``:4516``) y
 guardado— y **no genera migración**: el mixin no declara ningún campo, igual
 que ``DefaultGetMixin``.
 """
+
 from django.db import models
 
-from orm.models import (BaseUrlMixin, CheckCompanyMixin, DisplayNameMixin,
-                        OrderMixin, RecordLoaderMixin)
+from orm.models import (
+    BaseUrlMixin,
+    CheckCompanyMixin,
+    DisplayNameMixin,
+    OrderMixin,
+    RecordLoaderMixin,
+)
 
 
-class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin, OrderMixin,
-                       CheckCompanyMixin, BaseUrlMixin, models.Model):
+class TimeStampedModel(
+    RecordLoaderMixin,
+    DisplayNameMixin,
+    OrderMixin,
+    CheckCompanyMixin,
+    BaseUrlMixin,
+    models.Model,
+):
     """
     Clase base abstracta que provee created_at y updated_at a todos
     los modelos que hereden de ella.
@@ -69,6 +81,7 @@ class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin, OrderMixin,
     No incluye db_index en created_at — los modelos que requieren
     índice por volumen (inventario, órdenes) lo declaran directamente.
     """
+
     #: Las cuatro formas de permiso NO se declaran aquí — y el intento está
     #: medido. ``check_access``, ``has_access``, ``_check_access`` y
     #: ``_filtered_access`` cuelgan de ``BaseModel``
@@ -96,5 +109,5 @@ class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin, OrderMixin,
     )
 
     class Meta:
-        abstract      = True
+        abstract = True
         get_latest_by = 'created_at'

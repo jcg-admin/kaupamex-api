@@ -66,15 +66,29 @@ PORTED_METHODS = [
 #: ``save`` queda fuera: lo ocupa ``Model.save`` de Django, que no es el
 #: ``save`` del editor de la fuente (``odoo19c: :484-507``).
 BLOCKED_METHODS = [
-    'create', 'write', 'unlink', '_load_records_write_on_cow',
-    '_create_all_specific_views', '_create_website_specific_pages_for_view',
-    '_compute_display_name', 'get_related_views',
-    '_view_get_inherited_children', '_get_inheriting_views_domain',
-    '_get_inheriting_views', '_get_template_minimal_cache_keys',
-    'render_public_asset', '_render_template', 'get_default_lang_code',
-    '_read_template_keys', '_update_field_translations', '_get_base_lang',
-    '_save_oe_structure_hook', '_snippet_save_view_values_hook',
-    '_get_allowed_root_attrs', '_set_noupdate', '_get_filter_xmlid_query',
+    'create',
+    'write',
+    'unlink',
+    '_load_records_write_on_cow',
+    '_create_all_specific_views',
+    '_create_website_specific_pages_for_view',
+    '_compute_display_name',
+    'get_related_views',
+    '_view_get_inherited_children',
+    '_get_inheriting_views_domain',
+    '_get_inheriting_views',
+    '_get_template_minimal_cache_keys',
+    'render_public_asset',
+    '_render_template',
+    'get_default_lang_code',
+    '_read_template_keys',
+    '_update_field_translations',
+    '_get_base_lang',
+    '_save_oe_structure_hook',
+    '_snippet_save_view_values_hook',
+    '_get_allowed_root_attrs',
+    '_set_noupdate',
+    '_get_filter_xmlid_query',
 ]
 
 #: El mecanismo del framework: allá vive en ``BaseModel``, aquí viaja por
@@ -89,15 +103,17 @@ FRAMEWORK_MODULE = 'orm.'
 #: ``ir.ui.view`` lo pone el porte fiel de ``html_editor``, que sí tiene
 #: cuerpo. Confundirlo con un stub haría fallar un porte correcto.
 HTML_EDITOR_PROVIDER = 'addons.html_editor.models.ir_ui_view'
-PROVIDED_BY_HTML_EDITOR = frozenset([
-    'get_related_views',
-    '_view_get_inherited_children',
-    'get_default_lang_code',
-    '_save_oe_structure_hook',
-    '_snippet_save_view_values_hook',
-    '_get_allowed_root_attrs',
-    '_set_noupdate',
-])
+PROVIDED_BY_HTML_EDITOR = frozenset(
+    [
+        'get_related_views',
+        '_view_get_inherited_children',
+        'get_default_lang_code',
+        '_save_oe_structure_hook',
+        '_snippet_save_view_values_hook',
+        '_get_allowed_root_attrs',
+        '_set_noupdate',
+    ]
+)
 
 
 def defining_modules(owner, name):
@@ -124,9 +140,14 @@ def defining_modules(owner, name):
 
 def foreign_providers(name, modules):
     """Los módulos que no pueden justificar ese nombre — los stubs."""
-    permitted = {HTML_EDITOR_PROVIDER} if name in PROVIDED_BY_HTML_EDITOR else set()
-    return [m for m in modules
-            if not m.startswith(FRAMEWORK_MODULE) and m not in permitted]
+    permitted = (
+        {HTML_EDITOR_PROVIDER} if name in PROVIDED_BY_HTML_EDITOR else set()
+    )
+    return [
+        m
+        for m in modules
+        if not m.startswith(FRAMEWORK_MODULE) and m not in permitted
+    ]
 
 
 #: Los cuatro campos de la fuente que aquí viven en la fila lateral (D-1).
@@ -137,8 +158,9 @@ class TestPortedSurface:
     """Lo portado está colgado sobre ``ir.ui.view``, sin base de datos."""
 
     def test_the_twelve_methods_are_installed(self):
-        missing = [name for name in PORTED_METHODS
-                   if not hasattr(IrUiView, name)]
+        missing = [
+            name for name in PORTED_METHODS if not hasattr(IrUiView, name)
+        ]
         assert missing == []
 
     def test_the_underscore_prefix_is_preserved(self):
@@ -148,12 +170,14 @@ class TestPortedSurface:
         assert len(private) == 10
         for name in private:
             assert not hasattr(IrUiView, name[1:]), (
-                'existe la forma pública de %s' % name)
+                'existe la forma pública de %s' % name
+            )
 
     def test_the_side_table_fields_are_readable_from_the_view(self):
         for name in SIDE_TABLE_FIELDS:
             assert isinstance(getattr(IrUiView, name), property), (
-                '%s debería ser propiedad de lectura (D-1)' % name)
+                '%s debería ser propiedad de lectura (D-1)' % name
+            )
 
     def test_the_password_display_is_a_read_write_property(self):
         # ``visibility_password_display`` es el par compute/inverse de la
@@ -210,7 +234,9 @@ class TestBlockedSurface:
         for name in BLOCKED_METHODS:
             foreign = foreign_providers(name, defining_modules(IrUiView, name))
             if foreign:
-                stubbed.append('%s (definido en %s)' % (name, ', '.join(foreign)))
+                stubbed.append(
+                    '%s (definido en %s)' % (name, ', '.join(foreign))
+                )
         assert stubbed == []
 
     def test_a_stub_from_website_would_be_caught(self):
@@ -233,7 +259,8 @@ class TestBlockedSurface:
         # Y cae aunque se instale DEBAJO de un porte legítimo — el orden no
         # decide el veredicto.
         assert foreign_providers(
-            '_set_noupdate', [HTML_EDITOR_PROVIDER, website_module])
+            '_set_noupdate', [HTML_EDITOR_PROVIDER, website_module]
+        )
         # Los dos orígenes que sí lo justifican.
         assert foreign_providers('write', ['orm.models']) == []
         assert foreign_providers('_set_noupdate', [HTML_EDITOR_PROVIDER]) == []
@@ -255,9 +282,11 @@ class TestBlockedSurface:
         # ``website.page.view``, portado por #104. Un segundo One2many
         # duplicaría la relación.
         assert hasattr(IrUiView, 'page_ids')
-        related = {f.get_accessor_name()
-                   for f in IrUiView._meta.get_fields()
-                   if f.auto_created and not f.concrete}
+        related = {
+            f.get_accessor_name()
+            for f in IrUiView._meta.get_fields()
+            if f.auto_created and not f.concrete
+        }
         assert 'page_ids' in related
 
 
@@ -282,7 +311,10 @@ class TestChainedTemplateHooks:
     def test_the_order_puts_the_website_first(self):
         # ≙ ``f"website_id asc, {super()}"``: el sitio delante del orden base.
         assert IrUiView._get_template_order() == (
-            'website_info__website_id', 'priority', 'id')
+            'website_info__website_id',
+            'priority',
+            'id',
+        )
 
     def test_the_template_domain_narrows_to_the_generic_without_context(self):
         query = str(IrUiView._get_template_domain(['website.algo']))
@@ -298,14 +330,20 @@ class TestChainedTemplateHooks:
 
 
 def _make_website(slug='p565'):
-    """Sitio mínimo — ``company`` y ``user`` son NOT NULL (B1 de website.py)."""
+    """
+    Sitio mínimo — ``company`` y ``user`` son NOT NULL (B1 de website.py).
+    """
     company = ResCompany.objects.create(name='Kaupamex %s QA' % slug)
     login = '%s@kaupamex.test' % slug
-    user = (ResUsers.objects.filter(login=login).first()
-            or ResUsers.objects.create_user(login=login))
-    website = Website(name=slug.upper(),
-                      domain='https://%s.example.test' % slug,
-                      company=company, user=user)
+    user = ResUsers.objects.filter(
+        login=login
+    ).first() or ResUsers.objects.create_user(login=login)
+    website = Website(
+        name=slug.upper(),
+        domain='https://%s.example.test' % slug,
+        company=company,
+        user=user,
+    )
     website.save()
     return website
 
@@ -336,7 +374,8 @@ class TestSideTableDefaults:
         view = _make_view()
         website = _make_website('p565a')
         info = WebsiteViewInfo.objects.create(
-            view=view, website=website, track=True, visibility='connected')
+            view=view, website=website, track=True, visibility='connected'
+        )
         assert info.view_id == view.pk
         # La vista los lee por sus propiedades.
         view.refresh_from_db()
@@ -394,7 +433,8 @@ class TestVisibilityInvariant:
         group = ResGroups.objects.create(name='Grupo 565')
         view.groups.add(group)
         info = WebsiteViewInfo.objects.create(
-            view=view, visibility='restricted_group')
+            view=view, visibility='restricted_group'
+        )
         assert view.groups.count() == 1
 
         info.visibility = ''
@@ -489,14 +529,23 @@ class TestHierarchyAndFirstPage:
         assert [node['id'] for node in children] == [child.pk]
 
     def test_the_datastructure_carries_the_seven_keys_of_the_source(self):
-        node = _make_view(key='website.nodo-565')._build_hierarchy_datastructure()
+        node = _make_view(
+            key='website.nodo-565'
+        )._build_hierarchy_datastructure()
         assert set(node) == {
-            'id', 'name', 'inherit_children', 'arch_updated',
-            'website_name', 'active', 'key',
+            'id',
+            'name',
+            'inherit_children',
+            'arch_updated',
+            'website_name',
+            'active',
+            'key',
         }
 
     def test_a_generic_view_reports_no_website_name(self):
-        node = _make_view(key='website.nodo-565b')._build_hierarchy_datastructure()
+        node = _make_view(
+            key='website.nodo-565b'
+        )._build_hierarchy_datastructure()
         assert node['website_name'] is False
 
     def test_a_specific_view_reports_its_website_name(self):
@@ -512,7 +561,8 @@ class TestHierarchyAndFirstPage:
         assert view._compute_first_page_id() is None
 
         page = WebsitePage.objects.create(
-            url='/pagina-565', view=view, website=website)
+            url='/pagina-565', view=view, website=website
+        )
         assert view._compute_first_page_id() == page
 
 

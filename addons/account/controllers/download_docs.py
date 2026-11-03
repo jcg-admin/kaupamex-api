@@ -50,6 +50,7 @@ Divergencias declaradas:
 - ``attachments.check_access('read')`` ≙ la capa DRF (capacidad
   ``invoices``, fail-closed) al cablear la vista — no ACL por registro.
 """
+
 import io
 import zipfile
 from itertools import chain
@@ -80,8 +81,9 @@ def _build_zip_from_data(docs_data):
     """≙ ``_build_zip_from_data`` — verbatim: un zip DEFLATE con un archivo
     por dict ``{'filename', 'content'}``."""
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, 'w',
-                         compression=zipfile.ZIP_DEFLATED) as zipfile_obj:
+    with zipfile.ZipFile(
+        buffer, 'w', compression=zipfile.ZIP_DEFLATED
+    ) as zipfile_obj:
         for doc_data in docs_data:
             zipfile_obj.writestr(doc_data['filename'], doc_data['content'])
     return buffer.getvalue()
@@ -112,30 +114,38 @@ class AccountDocumentDownloadController:
         """≙ ``GET /account/download_invoice_attachments/<attachments>`` —
         un adjunto directo, o el zip de varios (parcial declarado — ver el
         docstring del módulo)."""
-        attachments = list(IrAttachment.objects.filter(
-            pk__in=list(attachment_ids)))
-        assert all(attachment.res_id
-                   and attachment.res_model == 'account.move'
-                   for attachment in attachments)
+        attachments = list(
+            IrAttachment.objects.filter(pk__in=list(attachment_ids))
+        )
+        assert all(
+            attachment.res_id and attachment.res_model == 'account.move'
+            for attachment in attachments
+        )
         if len(attachments) == 1:
             attachment = attachments[0]
             content = _attachment_raw(attachment)
-            headers = _get_headers(attachment.name, attachment.mimetype,
-                                   content)
+            headers = _get_headers(
+                attachment.name, attachment.mimetype, content
+            )
             return _make_response(content, headers)
         # ≙ la rama multi-adjunto: el nombre por factura única
         # (_get_invoice_report_filename) no está portado — fallback.
         filename = _('invoices') + '.zip'
-        content = _build_zip_from_data([
-            {'filename': attachment.name,
-             'content': _attachment_raw(attachment)}
-            for attachment in attachments
-        ])
+        content = _build_zip_from_data(
+            [
+                {
+                    'filename': attachment.name,
+                    'content': _attachment_raw(attachment),
+                }
+                for attachment in attachments
+            ]
+        )
         headers = _get_headers(filename, 'zip', content)
         return _make_response(content, headers)
 
-    def download_invoice_documents_filetype(self, request, invoice_ids,
-                                             filetype, allow_fallback=True):
+    def download_invoice_documents_filetype(
+        self, request, invoice_ids, filetype, allow_fallback=True
+    ):
         """≙ ``GET /account/download_invoice_documents/<invoices>/<filetype>``
         — delegación bloqueada por ``_get_invoice_legal_documents``/``_all``
         de ``account.move`` (ver la tabla del módulo); la mecánica de
@@ -143,17 +153,26 @@ class AccountDocumentDownloadController:
         invoices = list(AccountMove.objects.filter(pk__in=list(invoice_ids)))
         docs_data = []
         for invoice in invoices:
-            if filetype == 'all' and (doc_data := invoice._get_invoice_legal_documents_all(allow_fallback=allow_fallback)):
+            if filetype == 'all' and (
+                doc_data := invoice._get_invoice_legal_documents_all(
+                    allow_fallback=allow_fallback
+                )
+            ):
                 docs_data += doc_data
-            elif doc_data := invoice._get_invoice_legal_documents(filetype, allow_fallback=allow_fallback):
+            elif doc_data := invoice._get_invoice_legal_documents(
+                filetype, allow_fallback=allow_fallback
+            ):
                 if (errors := doc_data.get('errors')) and len(invoices) == 1:
-                    raise UserError(_('Error while creating XML:\n- %s')
-                                    % '\n- '.join(errors))
+                    raise UserError(
+                        _('Error while creating XML:\n- %s')
+                        % '\n- '.join(errors)
+                    )
                 docs_data.append(doc_data)
         if len(docs_data) == 1:
             doc_data = docs_data[0]
-            headers = _get_headers(doc_data['filename'],
-                                   doc_data['filetype'], doc_data['content'])
+            headers = _get_headers(
+                doc_data['filename'], doc_data['filetype'], doc_data['content']
+            )
             return _make_response(doc_data['content'], headers)
         if len(docs_data) > 1:
             zip_content = _build_zip_from_data(docs_data)
@@ -177,14 +196,18 @@ class AccountDocumentDownloadController:
                     seen[name] += 1
                     base, *ext = name.rsplit('.', 1)
                     new_name = f"{base} ({seen[name]})" + (
-                        f".{ext[0]}" if ext else "")
+                        f".{ext[0]}" if ext else ""
+                    )
                     doc["filename"] = new_name
                     seen[new_name] = 0
             return docs
 
         moves = list(AccountMove.objects.filter(pk__in=list(move_ids)))
-        if docs_data := list(chain.from_iterable(
-                move._get_move_zip_export_docs() for move in moves)):
+        if docs_data := list(
+            chain.from_iterable(
+                move._get_move_zip_export_docs() for move in moves
+            )
+        ):
             docs_data = rename_duplicates(docs_data)
             zip_content = _build_zip_from_data(docs_data)
             headers = _get_headers(_('Invoices') + '.zip', 'zip', zip_content)

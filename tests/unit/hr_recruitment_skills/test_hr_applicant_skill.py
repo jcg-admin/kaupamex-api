@@ -10,12 +10,15 @@ objeto y el llamador indexaba por pk entera: la clave nunca calzaba y el
 
 Toca DB → django_db.
 """
+
 import datetime
 
 import pytest
 
 from addons.hr_recruitment.models.hr_applicant import HrApplicant
-from addons.hr_recruitment_skills.models.hr_applicant_skill import HrApplicantSkill
+from addons.hr_recruitment_skills.models.hr_applicant_skill import (
+    HrApplicantSkill,
+)
 from addons.hr_skills.models.hr_skill import HrSkill
 from addons.hr_skills.models.hr_skill_level import HrSkillLevel
 from addons.hr_skills.models.hr_skill_type import HrSkillType
@@ -24,7 +27,9 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
 def _skill_type(name='General', is_certification=False):
-    return HrSkillType.objects.create(name=name, is_certification=is_certification)
+    return HrSkillType.objects.create(
+        name=name, is_certification=is_certification
+    )
 
 
 def _skill(skill_type, name='Python'):
@@ -33,7 +38,8 @@ def _skill(skill_type, name='Python'):
 
 def _skill_level(skill_type, name='Nivel', progress=50):
     return HrSkillLevel.objects.create(
-        skill_type=skill_type, name=name, level_progress=progress)
+        skill_type=skill_type, name=name, level_progress=progress
+    )
 
 
 class TestGetCurrentSkillsByApplicant:
@@ -50,12 +56,15 @@ class TestGetCurrentSkillsByApplicant:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
         applicant_skill = HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
             skill_level=level,
         )
 
         result = HrApplicantSkill._get_current_skills_by_applicant(
-            HrApplicantSkill.objects.all())
+            HrApplicantSkill.objects.all()
+        )
 
         assert result[applicant.pk] == [applicant_skill]
 
@@ -66,12 +75,21 @@ class TestGetCurrentSkillsByApplicant:
         a1 = HrApplicant.objects.create()
         a2 = HrApplicant.objects.create()
         s1 = HrApplicantSkill.objects.create(
-            applicant_id=a1, skill=skill, skill_type=skill_type, skill_level=level)
+            applicant_id=a1,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+        )
         s2 = HrApplicantSkill.objects.create(
-            applicant_id=a2, skill=skill, skill_type=skill_type, skill_level=level)
+            applicant_id=a2,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+        )
 
         result = HrApplicantSkill._get_current_skills_by_applicant(
-            HrApplicantSkill.objects.all())
+            HrApplicantSkill.objects.all()
+        )
 
         assert result[a1.pk] == [s1]
         assert result[a2.pk] == [s2]
@@ -82,12 +100,16 @@ class TestGetCurrentSkillsByApplicant:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
-            skill_level=level, valid_to=datetime.date(2000, 1, 1),
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+            valid_to=datetime.date(2000, 1, 1),
         )
 
         result = HrApplicantSkill._get_current_skills_by_applicant(
-            HrApplicantSkill.objects.all())
+            HrApplicantSkill.objects.all()
+        )
 
         assert result[applicant.pk] == []
 
@@ -97,16 +119,23 @@ class TestGetCurrentSkillsByApplicant:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
         older = HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
-            skill_level=level, valid_to=datetime.date(2000, 1, 1),
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+            valid_to=datetime.date(2000, 1, 1),
         )
         newer = HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
-            skill_level=level, valid_to=datetime.date(2001, 1, 1),
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+            valid_to=datetime.date(2001, 1, 1),
         )
 
         result = HrApplicantSkill._get_current_skills_by_applicant(
-            HrApplicantSkill.objects.all())
+            HrApplicantSkill.objects.all()
+        )
 
         assert result[applicant.pk] == [newer]
         assert older not in result[applicant.pk]
@@ -117,15 +146,22 @@ class TestGetCurrentSkillsByApplicant:
         level = _skill_level(skill_type)
         applicant = HrApplicant.objects.create()
         HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
-            skill_level=level, valid_to=datetime.date(2000, 1, 1),
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+            valid_to=datetime.date(2000, 1, 1),
         )
         current = HrApplicantSkill.objects.create(
-            applicant_id=applicant, skill=skill, skill_type=skill_type,
-            skill_level=level, valid_to=None,
+            applicant_id=applicant,
+            skill=skill,
+            skill_type=skill_type,
+            skill_level=level,
+            valid_to=None,
         )
 
         result = HrApplicantSkill._get_current_skills_by_applicant(
-            HrApplicantSkill.objects.all())
+            HrApplicantSkill.objects.all()
+        )
 
         assert result[applicant.pk] == [current]

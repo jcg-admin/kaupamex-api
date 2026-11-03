@@ -1,0 +1,35 @@
+{
+  "observed_at": "2026-10-31T23:38:44.642566-06:00",
+  "authority": "Existing completar-raiz-orm initiative and native TASKs; this is evidence, not another scheduler or master plan",
+  "implemented_this_lot": [
+    "TASK-API-0305 prefix_placeholder assignment-compute contract, published60c9557c",
+    "TASK-API-0397 exists physical manager subset, publishedbf468b93;5PASS,4expectedFAIL/1PASS; actual PostgreSQL16.15PASS"
+  ],
+  "ownership": "Recovered existing section7 delegation; nine owner-only assignments executed and revalidated; no repeated approval needed",
+  "next_bounded_verification": {
+    "task": "TASK-API-0397",
+    "contract": "BaseModel.exists multi-database routing and filtered custom-base-manager compatibility, using existing Consumer routing authority",
+    "prerequisites": [
+      "Inspect existing router/Environment database contract and Consumer tests before identifying a defect",
+      "Reuse qualified native TASK/claims/resource interfaces",
+      "Do not infer all exists security and routing obligations from this default-database test"
+    ],
+    "resource_status": "Bounded default-database PostgreSQL verification nowPASS; owned server removed, proof in exists-manager-postgresql.json; multi-database routing not_verified"
+  },
+  "independent_pending": [
+    "GEN0558 batched compute and prefetch: actual recordset protocol present; row-based dispatcher consumer compatibility needs proof before broad change",
+    "API0418 class removal: NonStored still exists; native dependencies and all descriptor consumers need qualification",
+    "API0424 searchable dependency/delete collector verdict needs current class-body fixture",
+    "34 active unassigned TASKs in scoped projection require individual role/authority checks; not automatically unavailable or unauthorized",
+    "Complete structural/functional denominator and historical migrations remain unqualified, not zero",
+    "Global style and required CI remain FAIL; no merge or acceptance"
+  ],
+  "reused_not_reimplemented": [
+    "API0420 JSON8aca3900",
+    "API0419 bounded relational reconstruction6c11ddde",
+    "GEN0559 bounded missing-record retries3ffa958e"
+  ],
+  "provider": "Native selection/tasks/claims interfaces used at9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f; no managed local-model inference claimed",
+  "global_exhaustion": false,
+  "initiative_complete": false
+}

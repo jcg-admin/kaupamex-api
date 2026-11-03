@@ -6,7 +6,8 @@ Adaptación de Odoo ``purchase_requisition/models/product.py``
 LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
 Qué añade: el enlace que cierra el círculo del **pedido abierto**. Confirmar un
-acuerdo crea tarifas de proveedor (``PurchaseRequisitionLine._create_supplier_info``);
+acuerdo crea tarifas de proveedor
+(``PurchaseRequisitionLine._create_supplier_info``);
 este archivo es el campo que recuerda **de qué línea de acuerdo** salió cada
 tarifa. Sin él, cancelar el acuerdo no sabría qué tarifas retirar.
 
@@ -59,10 +60,12 @@ Divergencia declarada
 ======================
 
 **``purchase_requisition_id`` es ``property``.** La fuente lo declara
-``related='purchase_requisition_line_id.requisition_id'`` **sin** ``store``, así
+``related='purchase_requisition_line_id.requisition_id'`` **sin** ``store``,
+así
 que tampoco tiene columna allá: es la navegación de dos saltos desde la tarifa
 hasta el acuerdo. Aquí es exactamente eso.
 """
+
 import fields
 import models
 from orm.model_classes import extend_model
@@ -88,16 +91,22 @@ def apply_purchase_requisition_product_extensions():
     módulo.
     """
     extend_model(
-        'product', 'ProductSupplierinfo',
+        'product',
+        'ProductSupplierinfo',
         campos={
             'purchase_requisition_line': fields.Many2one(
                 'purchase_requisition.PurchaseRequisitionLine',
-                null=True, blank=True, on_delete=models.CASCADE,
-                db_index=True, related_name='supplier_info_ids',
+                null=True,
+                blank=True,
+                on_delete=models.CASCADE,
+                db_index=True,
+                related_name='supplier_info_ids',
                 verbose_name='Línea de acuerdo',
-                help_text='Línea del acuerdo de compra que creó esta tarifa '
-                          '(Odoo purchase_requisition_line_id). El inverso es '
-                          '``line.supplier_info_ids``.',
+                help_text=(
+                    'Línea del acuerdo de compra que creó esta tarifa '
+                    '(Odoo purchase_requisition_line_id). El inverso es '
+                    '``line.supplier_info_ids``.'
+                ),
             ),
         },
         propiedades={'purchase_requisition': purchase_requisition},

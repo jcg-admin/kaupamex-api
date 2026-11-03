@@ -1,0 +1,19 @@
+BEGIN
+ current_database |         current_setting         | has_res_users 
+------------------+---------------------------------+---------------
+ kaupamex_core_qa | 16.15 (Debian 16.15-1.pgdg12+2) | f
+(1 row)
+
+CREATE TABLE
+INSERT 0 1
+ roundtrip_preserves_content 
+-----------------------------
+ t
+(1 row)
+
+ROLLBACK
+ temporary_table_removed 
+-------------------------
+ t
+(1 row)
+

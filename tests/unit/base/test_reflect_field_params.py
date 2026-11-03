@@ -8,10 +8,10 @@ clases con ``_inherit = 'ir.model.fields'``.
 Aquí el recorrido inverso ya existía (``_reflect_fields``) con el diccionario
 en línea, así que el enganche no tenía dónde engancharse.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModel, IrModelFields
-
 
 pytestmark = pytest.mark.django_db
 
@@ -28,8 +28,17 @@ def test_it_returns_the_columns_of_the_row():
     assert values['model_id'] == row
     assert values['ttype'] == 'char'
     assert set(values) == {
-        'model', 'model_id', 'ttype', 'field_description', 'help',
-        'required', 'index', 'store', 'state', 'relation', 'size',
+        'model',
+        'model_id',
+        'ttype',
+        'field_description',
+        'help',
+        'required',
+        'index',
+        'store',
+        'state',
+        'relation',
+        'size',
     }
 
 

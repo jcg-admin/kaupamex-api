@@ -13,6 +13,7 @@ modelo **histórico** vía ``apps.get_model``.
 Idempotente y ``noupdate`` como el XML de la referencia: nunca pisa un valor
 que ya exista.
 """
+
 from django.db import migrations
 
 from addons.mail.data import CANONICAL_SUBTYPES
@@ -24,7 +25,8 @@ def sembrar(apps, schema_editor):
     alias = schema_editor.connection.alias
     for spec in CANONICAL_SUBTYPES:
         MailMessageSubtype.objects.using(alias).update_or_create(
-            name=spec['name'], res_model='',
+            name=spec['name'],
+            res_model='',
             defaults={k: v for k, v in spec.items() if k != 'name'},
         )
 

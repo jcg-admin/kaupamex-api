@@ -1,0 +1,10 @@
+{
+  "environment_get_method": false,
+  "environment_call": true,
+  "environment_context_manager": true,
+  "demo_failure_canonical_registry_key": false,
+  "demo_failure_registered_names": [],
+  "demo_error_max_length": 255,
+  "scope": "Runtime class/interface read only. No demo execution, database write or capability acceptance.",
+  "registry_limit": "Registry was not constructed/loaded for a database in this class-only probe. Empty mapping is NOT evidence that initialized-registry resolution fails; resolution remains not_verified."
+}

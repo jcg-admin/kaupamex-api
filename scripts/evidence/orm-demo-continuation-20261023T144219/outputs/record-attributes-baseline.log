@@ -1,0 +1,194 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [  6%]
+........................................................................ [ 12%]
+...................................................................F.... [ 18%]
+........................................................................ [ 24%]
+........................................................................ [ 31%]
+........................................................................ [ 37%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+...................................F.................................... [ 55%]
+........................................................................ [ 62%]
+........................................................................ [ 68%]
+...........................................................F............ [ 74%]
+..F........................................................FFF.......... [ 80%]
+....x..............................F.................................... [ 86%]
+........................................................................ [ 93%]
+........................................................................ [ 99%]
+....FF..E                                                                [100%]
+==================================== ERRORS ====================================
+_ ERROR at teardown of TestARecordRejectsUndeclaredAttributes.test_private_names_stay_admitted_for_django_state _
+.venv/lib/python3.13/site-packages/django/db/transaction.py:263: in __exit__
+    connection.commit()
+src/orm/environments.py:712: in cut
+    current.flush()
+src/orm/environments.py:526: in flush
+    public_user = environment.ref('base.public_user')
+src/orm/environments.py:1483: in ref
+    return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
+src/addons/base/models/ir_model.py:3107: in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3076: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3064: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: base.public_user
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/base.py:475: in _set_autocommit
+    self.connection.autocommit = autocommit
+.venv/lib/python3.13/site-packages/psycopg/_connection_base.py:186: in autocommit
+    self._set_autocommit(value)
+.venv/lib/python3.13/site-packages/psycopg/connection.py:497: in _set_autocommit
+    self.set_autocommit(value)
+.venv/lib/python3.13/site-packages/psycopg/connection.py:502: in set_autocommit
+    self.wait(self._set_autocommit_gen(value))
+.venv/lib/python3.13/site-packages/psycopg/connection.py:484: in wait
+    return waiting.wait(gen, self.pgconn.socket, interval=interval)
+psycopg_binary/_psycopg/waiting.pyx:219: in psycopg_binary._psycopg.wait_c
+    ???
+.venv/lib/python3.13/site-packages/psycopg/_connection_base.py:192: in _set_autocommit_gen
+    yield from self._check_intrans_gen("autocommit")
+.venv/lib/python3.13/site-packages/psycopg/_connection_base.py:264: in _check_intrans_gen
+    raise e.ProgrammingError(
+E   psycopg.ProgrammingError: can't change 'autocommit' now: connection in transaction status INTRANS
+
+The above exception was the direct cause of the following exception:
+tests/unit/orm/test_field_setup_phase.py:84: in tables
+    with connection.schema_editor() as editor:
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:172: in __exit__
+    self.atomic.__exit__(exc_type, exc_value, traceback)
+.venv/lib/python3.13/site-packages/django/db/transaction.py:307: in __exit__
+    connection.set_autocommit(True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/base.py:484: in set_autocommit
+    self._set_autocommit(autocommit)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/base.py:474: in _set_autocommit
+    with self.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/base.py:475: in _set_autocommit
+    self.connection.autocommit = autocommit
+.venv/lib/python3.13/site-packages/psycopg/_connection_base.py:186: in autocommit
+    self._set_autocommit(value)
+.venv/lib/python3.13/site-packages/psycopg/connection.py:497: in _set_autocommit
+    self.set_autocommit(value)
+.venv/lib/python3.13/site-packages/psycopg/connection.py:502: in set_autocommit
+    self.wait(self._set_autocommit_gen(value))
+.venv/lib/python3.13/site-packages/psycopg/connection.py:484: in wait
+    return waiting.wait(gen, self.pgconn.socket, interval=interval)
+psycopg_binary/_psycopg/waiting.pyx:219: in psycopg_binary._psycopg.wait_c
+    ???
+.venv/lib/python3.13/site-packages/psycopg/_connection_base.py:192: in _set_autocommit_gen
+    yield from self._check_intrans_gen("autocommit")
+.venv/lib/python3.13/site-packages/psycopg/_connection_base.py:264: in _check_intrans_gen
+    raise e.ProgrammingError(
+E   django.db.utils.ProgrammingError: can't change 'autocommit' now: connection in transaction status INTRANS
+---------------------------- Captured log teardown -----------------------------
+WARNING  orm.environments:environments.py:525 Missing default_env, flushing as public user
+=================================== FAILURES ===================================
+_____ TestARelatedReadResolvesByContent.test_two_hops_on_a_base_model_row ______
+tests/unit/orm/test_field_setup_phase.py:128: in test_two_hops_on_a_base_model_row
+    assert row.partner_name == 'Ada'
+src/orm/fields.py:5094: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1661: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4950: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4867: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2257: in determine
+    return needle(records, *args)
+src/orm/fields.py:3770: in _field_compute_related
+    _end_of_chain(value, self.related_field), get_environment())
+src/orm/fields.py:3712: in _end_of_chain
+    return value[related_field.name]
+E   TypeError: 'int' object is not subscriptable
+_____________ TestFieldsRegistry.test_it_maps_concrete_field_names _____________
+tests/unit/orm/test_field_to_sql.py:117: in test_it_maps_concrete_field_names
+    assert set(definition._fields) == {
+E   AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}
+E     Extra items in the left set:
+E     'properties_field_id'
+E     Use -v to get more diff
+___________ TestUniversalAdoption.test_no_model_of_ours_is_left_out ____________
+tests/unit/orm/test_access_manager.py:71: in test_no_model_of_ours_is_left_out
+    assert offenders() == []
+E   AssertionError: assert ['contenttype...ManagerProbe'] == []
+E     Left contains one more item: 'contenttypes.ExistsManagerProbe'
+E     Use -v to get more diff
+__ TestTheGateDiscriminates.test_it_names_a_model_rebased_to_a_plain_manager ___
+tests/unit/orm/test_access_manager.py:209: in test_it_names_a_model_rebased_to_a_plain_manager
+    assert offenders() == []
+E   AssertionError: assert ['contenttype...ManagerProbe'] == []
+E     Left contains one more item: 'contenttypes.ExistsManagerProbe'
+E     Use -v to get more diff
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[compute] _
+tests/unit/orm/test_declared_source_vocabulary.py:202: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'compute' in {'declared_keys': frozenset(), 'store': True}
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[inverse] _
+tests/unit/orm/test_declared_source_vocabulary.py:202: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'inverse' in {'declared_keys': frozenset(), 'store': True}
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[precompute] _
+tests/unit/orm/test_declared_source_vocabulary.py:202: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'precompute' in {'declared_keys': frozenset(), 'store': True}
+_ TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat.test_every_offender_measured_today_is_in_the_baseline _
+tests/unit/scripts/test_check_fk_naming.py:123: in test_every_offender_measured_today_is_in_the_baseline
+    assert fresh == []
+E   AssertionError: assert ['src/addons/...on.moderator'] == []
+E     Left contains 3 more items, first extra item: 'src/addons/base/models/ir_module.py::IrModule.category'
+E     Use -v to get more diff
+_ TestARecordRejectsUndeclaredAttributes.test_a_recordset_rejects_an_unknown_public_name _
+tests/unit/orm/test_base_model_recordset.py:528: in test_a_recordset_rejects_an_unknown_public_name
+    with pytest.raises(AttributeError):
+E   Failed: DID NOT RAISE <class 'AttributeError'>
+_ TestARecordRejectsUndeclaredAttributes.test_a_django_row_rejects_an_unknown_public_name _
+tests/unit/orm/test_base_model_recordset.py:533: in test_a_django_row_rejects_an_unknown_public_name
+    with pytest.raises(AttributeError):
+E   Failed: DID NOT RAISE <class 'AttributeError'>
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:109
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:109: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TimeStampedModel):
+
+tests/integration/base/test_res_partner_field_registry.py::TestTheRegistryHoldsEveryDeclaredField::test_it_holds_the_columns
+tests/unit/base/test_ir_rule_access_error.py::TestFailingRules::test_a_global_rule_that_filters_is_named
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_descriptor_self_keyword_remains_compatible[write]
+tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_a_declared_field_is_still_assignable
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_res_partner_field_registry.py::TestTheRegistryHoldsEveryDeclaredField::test_it_holds_the_columns
+tests/unit/base/test_ir_rule_access_error.py::TestFailingRules::test_a_global_rule_that_filters_is_named
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_descriptor_self_keyword_remains_compatible[write]
+tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_a_declared_field_is_still_assignable
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_field_setup_phase.py::TestARelatedReadResolvesByContent::test_two_hops_on_a_base_model_row
+FAILED tests/unit/orm/test_field_to_sql.py::TestFieldsRegistry::test_it_maps_concrete_field_names
+FAILED tests/unit/orm/test_access_manager.py::TestUniversalAdoption::test_no_model_of_ours_is_left_out
+FAILED tests/unit/orm/test_access_manager.py::TestTheGateDiscriminates::test_it_names_a_model_rebased_to_a_plain_manager
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[compute]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[inverse]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[precompute]
+FAILED tests/unit/scripts/test_check_fk_naming.py::TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat::test_every_offender_measured_today_is_in_the_baseline
+FAILED tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_a_recordset_rejects_an_unknown_public_name
+FAILED tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_a_django_row_rejects_an_unknown_public_name
+ERROR tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_private_names_stay_admitted_for_django_state
+10 failed, 1149 passed, 1 xfailed, 11 warnings, 1 error in 44.55s

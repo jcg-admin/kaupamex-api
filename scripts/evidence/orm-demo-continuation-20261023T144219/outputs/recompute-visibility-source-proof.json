@@ -1,0 +1,11 @@
+{
+  "base_revision": "918ac836fdd3344866a1aa3534cfa2109c7a0f53",
+  "old_source_sha256": "cc6fad58ff6c9f7e879da6ec2a6347fd0c013e60dd260c0927864877bbf0836b",
+  "candidate_source_sha256": "613032ef6b8cbbb579dad80d4be81f90768b398239d6c73b67db53461f9e84db",
+  "only_module_ast_change": "_recompute_field physical lookup and stable requested-ID reconstruction; same missing-group cleanup and compute entry",
+  "working_changes_preserved": true,
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_behavior": "BaseModel._recompute_field browses explicit pending persisted IDs without public search predicate",
+  "security_limit": "No public query manager, compute adapter, write path or ACL policy changed; full routing/security acceptance not inferred",
+  "order_discrimination": "Intermediate physical-selector-only candidate2FAIL6PASS on requested recursive order and repeated IDs"
+}

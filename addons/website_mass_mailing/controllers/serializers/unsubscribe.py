@@ -1,4 +1,5 @@
 """``UnsubscribeSerializer`` — baja pública por token firmado (UC-NEW-02)."""
+
 from rest_framework import serializers
 
 

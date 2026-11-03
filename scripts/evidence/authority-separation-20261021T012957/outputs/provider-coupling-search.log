@@ -1,0 +1,66 @@
+src/agents/agent_store.py:41:cualquier repo, en ``kaupamex-docs/scripts/`` — docs es de donde salen
+src/agents/agent_store.py:56:(ruta relativa, hermanos de ``kaupamex-docs`` bajo el mismo padre) o por
+src/agents/agent_store.py:2734:    H-THYROX-271, medido sobre `hallazgo-H-DOCS-492-…` en kaupamex-docs.
+src/agents/definitions/workbench-instrumenter.md:3:description: "Agente que construye una pieza de scripts/workbench/ de kaupamex-api: un manifest.jsonl con question/instrument/metric/blind_to/destination, un test o sonda escrito ANTES del instrumento, un control que discrimina (neutralize_and_measure.sh cuando aplica), y su conclusion persistida como analisis u hallazgo en docs. Usalo cuando ya haya una pregunta concreta que exige construir algo para responderla — no genera la pregunta, la recibe. NO corre pytest si el orquestador lo despacha junto a otros agentes de workbench sobre el mismo arbol (bash-background-tasks.md: la base de pruebas es compartida). NUNCA restaura con git checkout. NO cierra la tarea: eso lo hace el ejecutor (I-011)."
+src/agents/definitions/workbench-instrumenter.md:20:Eres el **instrumentador** de una pieza de `kaupamex-api/scripts/workbench/`.
+src/agents/definitions/workbench-instrumenter.md:56:cd /home/user/kaupamex-api
+src/agents/definitions/workbench-instrumenter.md:196:cd /home/user/kaupamex-api
+src/agents/definitions/workbench-instrumenter.md:234:edita código de `kaupamex-api`, por la misma razón que rige a
+src/agents/definitions/prueba-palancas.md:25:1. `ls /home/user/kaupamex-api/src/addons/ | head -3`
+src/agents/definitions/prueba-palancas.md:26:2. `ls /home/user/kaupamex-api/src/addons/ | wc -l`
+src/agents/definitions/prueba-palancas.md:27:3. `ls /home/user/kaupamex-api/scripts/ | head -3`
+src/agents/definitions/prueba-palancas.md:28:4. `cat /home/user/kaupamex-api/pyproject.toml | head -5`
+src/agents/definitions/packaging-porter-low.md:3:description: "Agente de porte del directorio de empaquetado debian/ de la referencia Odoo a kaupamex-api. Variante de esfuerzo low del experimento de la tarea #950. Escribe sólo en su directorio de salida; no toca kaupamex-api ni commitea."
+src/agents/definitions/packaging-porter-low.md:16:# Portador de empaquetado — `debian/` de la referencia a `kaupamex-api`
+src/agents/definitions/packaging-porter-low.md:59:nombra en el prompt de la tarea. **NO escribes en `/home/user/kaupamex-api`**
+src/agents/definitions/packaging-porter-low.md:85:ls /home/user/kaupamex-api/kaupamex-bin                 # el entrypoint
+src/agents/definitions/packaging-porter-low.md:86:sed -n '1,40p' /home/user/kaupamex-api/kaupamex-bin     # sus subcomandos
+src/agents/definitions/packaging-porter-low.md:87:grep -n 'dependencies' -A40 /home/user/kaupamex-api/pyproject.toml
+src/agents/definitions/packaging-porter-low.md:88:ls /home/user/kaupamex-api/setup/ 2>/dev/null           # unidades ya escritas
+src/agents/definitions/packaging-porter-low.md:89:cat /home/user/kaupamex-api/setup/kaupamex.service 2>/dev/null
+src/agents/definitions/packaging-porter-low.md:90:cat /home/user/kaupamex-api/setup/gunicorn.conf.py 2>/dev/null
+src/agents/definitions/packaging-porter-high.md:3:description: "Agente de porte del directorio de empaquetado debian/ de la referencia Odoo a kaupamex-api. Variante de esfuerzo high del experimento de la tarea #950. Escribe sólo en su directorio de salida; no toca kaupamex-api ni commitea."
+src/agents/definitions/packaging-porter-high.md:16:# Portador de empaquetado — `debian/` de la referencia a `kaupamex-api`
+src/agents/definitions/packaging-porter-high.md:59:nombra en el prompt de la tarea. **NO escribes en `/home/user/kaupamex-api`**
+src/agents/definitions/packaging-porter-high.md:85:ls /home/user/kaupamex-api/kaupamex-bin                 # el entrypoint
+src/agents/definitions/packaging-porter-high.md:86:sed -n '1,40p' /home/user/kaupamex-api/kaupamex-bin     # sus subcomandos
+src/agents/definitions/packaging-porter-high.md:87:grep -n 'dependencies' -A40 /home/user/kaupamex-api/pyproject.toml
+src/agents/definitions/packaging-porter-high.md:88:ls /home/user/kaupamex-api/setup/ 2>/dev/null           # unidades ya escritas
+src/agents/definitions/packaging-porter-high.md:89:cat /home/user/kaupamex-api/setup/kaupamex.service 2>/dev/null
+src/agents/definitions/packaging-porter-high.md:90:cat /home/user/kaupamex-api/setup/gunicorn.conf.py 2>/dev/null
+src/agents/definitions/migration-porter.md:3:description: "Agente de migración/porte de un archivo de la referencia Odoo al árbol de kaupamex-api. Úsalo cuando haya que portar o completar un archivo concreto (modelo, controller, helper) desde odoo-tools. Descubre la forma leyendo la referencia — nunca de conocimiento de dominio asumido —, porta TODOS los símbolos o declara su cobertura, y cierra contra los gates estáticos del repo más el subconjunto derivado de pytest. NO cierra la tarea: eso lo hace el ejecutor (I-011). Persiste su análisis y su hallazgo en docs antes de resumir."
+src/agents/definitions/migration-porter.md:20:Eres el **portador** de un archivo de la referencia al árbol de kaupamex-api.
+src/agents/definitions/migration-porter.md:37:| `ARCHIVO_DESTINO` | ruta en `kaupamex-api`, p. ej. `addons/stock/models/stock_move.py` |
+src/agents/definitions/migration-porter.md:44:cd /home/user/kaupamex-api
+src/agents/definitions/migration-porter.md:194:cd /home/user/kaupamex-docs
+src/agents/definitions/migration-porter.md:198:Compone los ocho gates de `kaupamex-api` y **declara el alcance de cada uno en
+src/agents/definitions/migration-porter.md:202:Sin el árbol de `kaupamex-api` rehúsa con exit 2 y **sin emitir conteo** — un 0
+src/agents/definitions/migration-porter.md:266:<destino>ruta en kaupamex-api</destino>
+src/task/task_ids.py:897:    nacio en ``api`` porque su descripcion habla de ``kaupamex-api``, y sus dos
+src/task/snapshot-tasks.sh:101:# desde este arbol se deriva del hermano `kaupamex-docs` o de lo declarado.
+src/task/refresh-board.sh:61:# consumidor, derivada del hermano kaupamex-docs -- nada de aritmetica fija.
+src/task/layer_signals.tsv:30:api	\bkaupamex-api\b
+src/task/layer_signals.tsv:35:db	\bkaupamex-db\b
+src/task/layer_signals.tsv:39:docs	\bkaupamex-docs\b
+src/task/layer_signals.tsv:43:server	\bkaupamex-server\b
+src/task/layer_signals.tsv:47:ui	\bkaupamex-ui\b
+src/task/agrupar_tareas_por_familia.py:4:Separa el trabajo de **implementación** (portar la referencia a `kaupamex-api`)
+src/task/agrupar_tareas_por_familia.py:133:    print(f'IMPLEMENTACIÓN odoo-tools → kaupamex-api: {len(impl)} tareas abiertas\n')
+src/session/user_wiring.py:10:`kaupamex-docs/.claude/packages/agent/bin/preModelSwitch.ts`, AUSENTE — el real
+src/session/user_wiring.py:14:Una segunda ruta ausente —`kaupamex-docs/.claude/scripts/session/`— vive en el
+src/session/user_wiring.py:167:       `<padre>/kaupamex-docs`: dominio del producto dentro del proveedor, y
+src/session/user_wiring.py:225:    # `kaupamex-docs/.claude/hooks/`, que era verdad cuando el mecanismo vivia
+src/task/__init__.py:1:"""Mudado desde ``kaupamex-docs: .claude/scripts/task/`` — el mecanismo vive aquí."""
+src/session/task_pool.py:3:Adaptación de ``run-task-pool.sh`` (``kaupamex-docs:
+src/task/census_open_tasks.py:4:Porte de ``kaupamex-docs: .claude/eventos/close-open-docs-tasks-20260912T100232/
+src/session/sync_local_settings.py:95:REPO_ROOT = pathlib.Path('/home/user/kaupamex-docs')
+src/session/sync_local_settings.py:184:                    "command": "python3 %%PROVEEDOR%%/src/session/sync_local_settings.py --repo /home/user/kaupamex-docs/.claude/settings.json --viva /home/user/.claude/settings.local.json --base /home/user/kaupamex-docs/.claude/agent-results/settings_local.base.json --aplicar --direccion viva"
+src/session/sync_local_settings.py:195:                    "command": "python3 %%PROVEEDOR%%/src/session/sync_local_settings.py --registrar-vigilancia --repo /home/user/kaupamex-docs/.claude/settings.json"
+src/session/sync_local_settings.py:205:                    "command": "python3 %%PROVEEDOR%%/src/session/sync_local_settings.py --repo /home/user/kaupamex-docs/.claude/settings.json --viva /home/user/.claude/settings.local.json --base /home/user/kaupamex-docs/.claude/agent-results/settings_local.base.json --aplicar --direccion repositorio"
+src/session/sync_local_settings.py:216:                    "command": "python3 %%PROVEEDOR%%/src/session/sync_local_settings.py --repo /home/user/kaupamex-docs/.claude/settings.json --viva /home/user/.claude/settings.local.json --base /home/user/kaupamex-docs/.claude/agent-results/settings_local.base.json --aplicar --direccion repositorio"
+src/session/sync_local_settings.py:226:                    "command": "python3 %%PROVEEDOR%%/src/session/sync_local_settings.py --repo /home/user/kaupamex-docs/.claude/settings.json --viva /home/user/.claude/settings.local.json --base /home/user/kaupamex-docs/.claude/agent-results/settings_local.base.json --aplicar --direccion viva"
+src/session/clone_bootstrap.py:59:#: guion vivía en `kaupamex-docs`: el parámetro se había filtrado al nombre del
+src/session/bg.sh:68:#   BG_DIR=/home/user/kaupamex-docs/build-logs/<slug> bg.sh start suite -- …
+src/session/job_runs.py:70:#:   ``API_URL`` y ``API_PROXY_TARGET`` de ``kaupamex-ui`` nombran el backend
+src/session/job_ledger.py:4:Adaptación del ledger, ``verdict()`` y ``cmd_wait`` de ``kaupamex-docs:
+src/session/job_ledger.py:6:viaja está en ``kaupamex-docs: source/gestion/pm/docs/iniciativas/

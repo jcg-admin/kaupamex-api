@@ -1,6 +1,7 @@
 """Siembra de registros ``ir.cron`` — helper compartido por los addons.
 
-La referencia declara cada tarea programada como un ``<record model="ir.cron">``
+La referencia declara cada tarea programada como un ``<record
+model="ir.cron">``
 en el ``data/ir_cron_data.xml`` de su addon, con ``noupdate="1"`` para que una
 actualización no pise lo que el operador haya ajustado (``odoo19c: mail/data/
 ir_cron_data.xml:3``, ``odoo-tools@622ddc2a``). Aquí el equivalente es una
@@ -14,13 +15,17 @@ oportunidades de que una diverja.
 **Idempotencia.** La clave natural es ``(model_name, method_name)``: la
 identidad de un job es *qué ejecuta*, no cómo se llama en la interfaz. Un
 segundo pase no duplica ni pisa el intervalo — si el operador cambió la
-periodicidad, se respeta, que es lo que ``noupdate`` garantiza en la referencia.
+periodicidad, se respeta, que es lo que ``noupdate`` garantiza en la
+referencia.
 """
+
 from django.apps import apps as apps_vivos
 
 
 def sembrar_cron(apps, alias, spec):
-    """Crea (o respeta) el par acción + cron de ``spec``. Devuelve ``(cron, creado)``.
+    """
+    Crea (o respeta) el par acción + cron de ``spec``. Devuelve ``(cron,
+    creado)``.
 
     ``spec`` lleva: ``name``, ``model_name``, ``method_name``,
     ``interval_number``, ``interval_type`` y ``priority``.

@@ -1,0 +1,11 @@
+[
+  {
+    "citation_id": "TASK-API-0379",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "729",
+    "subject": "Portar el usuario público: AllowAny deja AnonymousUser, no un actor (H-API-774)",
+    "status": "pending",
+    "owner": null,
+    "description": "La referencia declara `auth='public'` como un NIVEL que sustituye el actor, no como un permiso: `_auth_method_public` hace `request.update_env(user=env.ref('base.public_user').id)` (`odoo19c: odoo/addons/base/models/ir_http.py:265-269`). Así una ruta pública sigue corriendo COMO un usuario y las record rules se aplican por el mismo camino que en una ruta autenticada.\n\nAquí `AllowAny` deja `AnonymousUser`. Medido 2026-08-21: 0 menciones de `public_user` en `src/addons/base/`; 62 usos de `AllowAny` en 27 archivos, cada uno acotando sus filas a mano o sin acotarlas. `website.is_public_user()` compara contra `website.user_id` — el campo existe y no hay usuario sembrado detrás.\n\nAlcance: sembrar el usuario público en `base` (external ID `base.public_user`), decidir si se sustituye el actor por middleware/permission class o por vista, y medir qué cambia en las 62 rutas. Hermana de #133 (row-scoping L1 ad hoc). No confundir con #490, que es `auth='bearer'` (claves de API).\n\nOrigen: pregunta del ejecutor 2026-08-21 sobre el docstring de `authz_totp/controllers/main.py`, que justificaba nuestro `AllowAny` citando `auth='public'` sin declarar que el mecanismo no está portado entero."
+  }
+]

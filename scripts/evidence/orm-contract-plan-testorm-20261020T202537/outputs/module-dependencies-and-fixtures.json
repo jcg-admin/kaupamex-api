@@ -1,0 +1,2664 @@
+{
+  "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "manifest": {
+    "name": "Test ORM",
+    "version": "1.0",
+    "category": "Hidden/Tests",
+    "description": "A module to test the ORM.",
+    "depends": [
+      "base",
+      "web",
+      "web_tour"
+    ],
+    "installable": true,
+    "data": [
+      "security/ir.model.access.csv",
+      "security/test_orm_security.xml",
+      "views/test_orm_views.xml",
+      "data/test_orm_data.xml"
+    ],
+    "assets": {
+      "web.assets_tests": [
+        "test_orm/static/tests/tours/constraint.js",
+        "test_orm/static/tests/tours/x2many.js"
+      ]
+    },
+    "author": "Odoo S.A.",
+    "license": "LGPL-3"
+  },
+  "dependencies": [
+    {
+      "name": "base",
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/base/__manifest__.py",
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/base/__manifest__.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+      ],
+      "exit_code": 0,
+      "git_blob": "5250c85200522dd16459e5b845a8017bb958a1c1",
+      "manifest": {
+        "name": "Base",
+        "version": "1.3",
+        "category": "Hidden",
+        "description": "\nThe kernel of Odoo, needed for all installation.\n===================================================\n",
+        "data": [
+          "data/res_bank.xml",
+          "data/res.lang.csv",
+          "data/res_lang_data.xml",
+          "data/res_partner_data.xml",
+          "data/res_currency_data.xml",
+          "data/res_company_data.xml",
+          "data/res_users_data.xml",
+          "data/report_paperformat_data.xml",
+          "data/res_country_data.xml",
+          "data/ir_demo_data.xml",
+          "security/base_groups.xml",
+          "security/base_security.xml",
+          "wizard/wizard_ir_model_menu_create_views.xml",
+          "views/base_menus.xml",
+          "views/decimal_precision_views.xml",
+          "views/res_config_views.xml",
+          "data/res.country.state.csv",
+          "views/ir_actions_views.xml",
+          "views/ir_asset_views.xml",
+          "views/ir_config_parameter_views.xml",
+          "views/ir_cron_views.xml",
+          "views/ir_cron_trigger_views.xml",
+          "views/ir_filters_views.xml",
+          "views/ir_mail_server_views.xml",
+          "views/ir_model_views.xml",
+          "views/ir_attachment_views.xml",
+          "views/ir_rule_views.xml",
+          "views/ir_sequence_views.xml",
+          "views/ir_ui_menu_views.xml",
+          "views/ir_ui_view_views.xml",
+          "views/ir_default_views.xml",
+          "data/ir_config_parameter_data.xml",
+          "data/ir_cron_data.xml",
+          "report/ir_model_report.xml",
+          "report/ir_model_templates.xml",
+          "views/ir_logging_views.xml",
+          "views/ir_qweb_widget_templates.xml",
+          "views/ir_module_views.xml",
+          "data/ir_module_category_data.xml",
+          "data/ir_module_module.xml",
+          "report/ir_module_reports.xml",
+          "report/ir_module_report_templates.xml",
+          "wizard/base_module_update_views.xml",
+          "wizard/base_language_install_views.xml",
+          "wizard/base_import_language_views.xml",
+          "wizard/base_module_upgrade_views.xml",
+          "wizard/base_module_uninstall_views.xml",
+          "wizard/base_export_language_views.xml",
+          "wizard/base_partner_merge_views.xml",
+          "data/ir_demo_failure_data.xml",
+          "views/ir_profile_views.xml",
+          "views/res_company_views.xml",
+          "views/res_lang_views.xml",
+          "views/res_partner_views.xml",
+          "views/res_bank_views.xml",
+          "views/res_country_views.xml",
+          "views/res_currency_views.xml",
+          "views/res_groups_views.xml",
+          "views/res_users_views.xml",
+          "views/res_users_apikeys_views.xml",
+          "views/res_device_views.xml",
+          "views/res_users_identitycheck_views.xml",
+          "views/res_config_settings_views.xml",
+          "views/report_paperformat_views.xml",
+          "security/ir.model.access.csv"
+        ],
+        "demo": [
+          "data/res_users_demo.xml",
+          "data/res_partner_bank_demo.xml",
+          "data/res_currency_demo.xml",
+          "data/res_currency_rate_demo.xml",
+          "data/res_bank_demo.xml",
+          "data/res_partner_demo.xml",
+          "data/res_partner_image_demo.xml"
+        ],
+        "assets": {
+          "web.assets_tests": [
+            "base/static/tests/**/*"
+          ]
+        },
+        "installable": true,
+        "auto_install": true,
+        "post_init_hook": "post_init",
+        "author": "Odoo S.A.",
+        "license": "LGPL-3"
+      },
+      "consumer_paths_present": [
+        "/workspace/kaupamex-api/src/addons/base"
+      ]
+    },
+    {
+      "name": "web",
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/web/__manifest__.py",
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/web/__manifest__.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+      ],
+      "exit_code": 0,
+      "git_blob": "72f3f25791583968056ca4a42ab3e9cd13db9e93",
+      "manifest": {
+        "name": "Web",
+        "category": "Hidden",
+        "version": "1.0",
+        "description": "\nOdoo Web core module.\n========================\n\nThis module provides the core of the Odoo Web Client.\n",
+        "depends": [
+          "base"
+        ],
+        "auto_install": true,
+        "data": [
+          "security/ir.model.access.csv",
+          "security/web_security.xml",
+          "views/webclient_templates.xml",
+          "views/report_templates.xml",
+          "views/base_document_layout_views.xml",
+          "views/partner_view.xml",
+          "views/speedscope_template.xml",
+          "views/memory_template.xml",
+          "views/speedscope_config_wizard.xml",
+          "views/neutralize_views.xml",
+          "views/ir_ui_view_views.xml",
+          "data/ir_attachment.xml",
+          "data/report_layout.xml"
+        ],
+        "assets": {
+          "web.assets_emoji": [
+            "web/static/src/core/emoji_picker/emoji_data.js"
+          ],
+          "web.assets_backend": [
+            [
+              "include",
+              "web._assets_helpers"
+            ],
+            [
+              "include",
+              "web._assets_backend_helpers"
+            ],
+            "web/static/src/scss/pre_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables-dark.scss",
+            "web/static/lib/bootstrap/scss/_maps.scss",
+            [
+              "include",
+              "web._assets_bootstrap_backend"
+            ],
+            [
+              "include",
+              "web._assets_core"
+            ],
+            "web/static/src/libs/fontawesome/css/font-awesome.css",
+            "web/static/lib/odoo_ui_icons/*",
+            "web/static/src/webclient/navbar/navbar.scss",
+            "web/static/src/scss/animation.scss",
+            "web/static/src/scss/fontawesome_overridden.scss",
+            "web/static/src/scss/mimetypes.scss",
+            "web/static/src/scss/ui.scss",
+            "web/static/src/views/fields/translation_dialog.scss",
+            "web/static/src/polyfills/**/*.js",
+            "web/static/lib/popper/popper.js",
+            "web/static/lib/bootstrap/js/dist/util/index.js",
+            "web/static/lib/bootstrap/js/dist/dom/data.js",
+            "web/static/lib/bootstrap/js/dist/dom/event-handler.js",
+            "web/static/lib/bootstrap/js/dist/dom/manipulator.js",
+            "web/static/lib/bootstrap/js/dist/dom/selector-engine.js",
+            "web/static/lib/bootstrap/js/dist/util/config.js",
+            "web/static/lib/bootstrap/js/dist/util/component-functions.js",
+            "web/static/lib/bootstrap/js/dist/util/backdrop.js",
+            "web/static/lib/bootstrap/js/dist/util/focustrap.js",
+            "web/static/lib/bootstrap/js/dist/util/sanitizer.js",
+            "web/static/lib/bootstrap/js/dist/util/scrollbar.js",
+            "web/static/lib/bootstrap/js/dist/util/swipe.js",
+            "web/static/lib/bootstrap/js/dist/util/template-factory.js",
+            "web/static/lib/bootstrap/js/dist/base-component.js",
+            "web/static/lib/bootstrap/js/dist/alert.js",
+            "web/static/lib/bootstrap/js/dist/button.js",
+            "web/static/lib/bootstrap/js/dist/carousel.js",
+            "web/static/lib/bootstrap/js/dist/collapse.js",
+            "web/static/lib/bootstrap/js/dist/dropdown.js",
+            "web/static/lib/bootstrap/js/dist/modal.js",
+            "web/static/lib/bootstrap/js/dist/offcanvas.js",
+            "web/static/lib/bootstrap/js/dist/tooltip.js",
+            "web/static/lib/bootstrap/js/dist/popover.js",
+            "web/static/lib/bootstrap/js/dist/scrollspy.js",
+            "web/static/lib/bootstrap/js/dist/tab.js",
+            "web/static/lib/bootstrap/js/dist/toast.js",
+            "web/static/src/libs/bootstrap.js",
+            "web/static/lib/dompurify/DOMpurify.js",
+            "base/static/src/css/modules.css",
+            "web/static/src/core/utils/transitions.scss",
+            "web/static/src/model/**/*",
+            "web/static/src/search/**/*",
+            "web/static/src/webclient/icons.scss",
+            "web/static/src/views/**/*",
+            [
+              "remove",
+              "web/static/src/views/graph/**"
+            ],
+            [
+              "remove",
+              "web/static/src/views/pivot/**"
+            ],
+            "web/static/src/webclient/**/*",
+            [
+              "remove",
+              "web/static/src/webclient/clickbot/clickbot.js"
+            ],
+            [
+              "remove",
+              "web/static/src/views/form/button_box/*.scss"
+            ],
+            [
+              "remove",
+              "web/static/src/webclient/actions/reports/**/*"
+            ],
+            "web/static/src/webclient/actions/reports/*.js",
+            "web/static/src/webclient/actions/reports/*.xml",
+            "web/static/src/scss/ace.scss",
+            "web/static/src/scss/base_document_layout.scss",
+            "base/static/src/scss/res_partner.scss",
+            "base/static/src/scss/res_users.scss",
+            "web/static/src/views/form/button_box/*.scss",
+            [
+              "remove",
+              "web/static/src/**/*.dark.scss"
+            ]
+          ],
+          "web.assets_backend_lazy": [
+            [
+              "include",
+              "web._assets_helpers"
+            ],
+            [
+              "include",
+              "web._assets_backend_helpers"
+            ],
+            "web/static/src/scss/pre_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables-dark.scss",
+            "web/static/lib/bootstrap/scss/_maps.scss",
+            "web/static/src/views/graph/**",
+            "web/static/src/views/pivot/**"
+          ],
+          "web.assets_backend_lazy_dark": [
+            [
+              "include",
+              "web.assets_backend_lazy"
+            ]
+          ],
+          "web.assets_web": [
+            [
+              "include",
+              "web.assets_backend"
+            ],
+            "web/static/src/main.js",
+            "web/static/src/start.js"
+          ],
+          "web.assets_frontend_minimal": [
+            "web/static/src/polyfills/object.js",
+            "web/static/src/polyfills/array.js",
+            "web/static/src/polyfills/promise.js",
+            "web/static/src/module_loader.js",
+            "web/static/src/polyfills/set.js",
+            "web/static/src/session.js",
+            "web/static/src/core/browser/cookie.js",
+            "web/static/src/core/utils/ui.js",
+            "web/static/src/legacy/js/public/minimal_dom.js",
+            "web/static/src/legacy/js/public/lazyloader.js"
+          ],
+          "web.assets_frontend": [
+            [
+              "include",
+              "web._assets_helpers"
+            ],
+            [
+              "include",
+              "web._assets_frontend_helpers"
+            ],
+            "web/static/src/scss/pre_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables-dark.scss",
+            "web/static/lib/bootstrap/scss/_maps.scss",
+            "web/static/lib/luxon/luxon.js",
+            [
+              "include",
+              "web._assets_bootstrap_frontend"
+            ],
+            "web/static/src/libs/fontawesome/css/font-awesome.css",
+            "web/static/lib/odoo_ui_icons/*",
+            "web/static/src/webclient/navbar/navbar.scss",
+            "web/static/src/scss/animation.scss",
+            "web/static/src/scss/base_frontend.scss",
+            "web/static/src/scss/fontawesome_overridden.scss",
+            "web/static/src/scss/mimetypes.scss",
+            "web/static/src/scss/ui.scss",
+            "web/static/src/views/fields/translation_dialog.scss",
+            "web/static/src/views/fields/signature/signature_field.scss",
+            [
+              "include",
+              "web.assets_frontend_minimal"
+            ],
+            "web/static/lib/owl/owl.js",
+            "web/static/lib/owl/odoo_module.js",
+            "web/static/lib/jquery/jquery.js",
+            "web/static/lib/popper/popper.js",
+            "web/static/lib/bootstrap/js/dist/util/index.js",
+            "web/static/lib/bootstrap/js/dist/dom/data.js",
+            "web/static/lib/bootstrap/js/dist/dom/event-handler.js",
+            "web/static/lib/bootstrap/js/dist/dom/manipulator.js",
+            "web/static/lib/bootstrap/js/dist/dom/selector-engine.js",
+            "web/static/lib/bootstrap/js/dist/util/config.js",
+            "web/static/lib/bootstrap/js/dist/util/component-functions.js",
+            "web/static/lib/bootstrap/js/dist/util/backdrop.js",
+            "web/static/lib/bootstrap/js/dist/util/focustrap.js",
+            "web/static/lib/bootstrap/js/dist/util/sanitizer.js",
+            "web/static/lib/bootstrap/js/dist/util/scrollbar.js",
+            "web/static/lib/bootstrap/js/dist/util/swipe.js",
+            "web/static/lib/bootstrap/js/dist/util/template-factory.js",
+            "web/static/lib/bootstrap/js/dist/base-component.js",
+            "web/static/lib/bootstrap/js/dist/alert.js",
+            "web/static/lib/bootstrap/js/dist/button.js",
+            "web/static/lib/bootstrap/js/dist/carousel.js",
+            "web/static/lib/bootstrap/js/dist/collapse.js",
+            "web/static/lib/bootstrap/js/dist/dropdown.js",
+            "web/static/lib/bootstrap/js/dist/modal.js",
+            "web/static/lib/bootstrap/js/dist/offcanvas.js",
+            "web/static/lib/bootstrap/js/dist/tooltip.js",
+            "web/static/lib/bootstrap/js/dist/popover.js",
+            "web/static/lib/bootstrap/js/dist/scrollspy.js",
+            "web/static/lib/bootstrap/js/dist/tab.js",
+            "web/static/lib/bootstrap/js/dist/toast.js",
+            "web/static/src/libs/bootstrap.js",
+            "web/static/src/legacy/js/libs/jquery.js",
+            "web/static/src/legacy/js/core/class.js",
+            "web/static/src/env.js",
+            "web/static/src/core/utils/transitions.scss",
+            "web/static/src/core/**/*",
+            [
+              "remove",
+              "web/static/src/core/commands/**/*"
+            ],
+            [
+              "remove",
+              "web/static/src/core/debug/debug_menu.js"
+            ],
+            [
+              "remove",
+              "web/static/src/core/file_viewer/file_viewer.dark.scss"
+            ],
+            [
+              "remove",
+              "web/static/src/core/emoji_picker/emoji_data.js"
+            ],
+            "web/static/src/core/commands/default_providers.js",
+            "web/static/src/core/commands/command_palette.js",
+            "web/static/src/public/**/*.js",
+            "web/static/src/public/**/*.xml",
+            [
+              "remove",
+              "web/static/src/public/database_manager.js"
+            ],
+            "web/static/src/legacy/js/public/public_root.js",
+            "web/static/src/legacy/js/public/public_root_instance.js",
+            "web/static/src/legacy/js/public/public_widget.js"
+          ],
+          "web.assets_frontend_lazy": [
+            [
+              "include",
+              "web.assets_frontend"
+            ],
+            [
+              "remove",
+              "web/static/src/module_loader.js"
+            ],
+            [
+              "remove",
+              "web/static/src/session.js"
+            ],
+            [
+              "remove",
+              "web/static/src/core/browser/cookie.js"
+            ],
+            [
+              "remove",
+              "web/static/src/core/utils/ui.js"
+            ],
+            [
+              "remove",
+              "web/static/src/legacy/js/public/minimal_dom.js"
+            ],
+            [
+              "remove",
+              "web/static/src/legacy/js/public/lazyloader.js"
+            ]
+          ],
+          "web.report_assets_common": [
+            "web/static/src/scss/functions.scss",
+            "web/static/src/scss/utils.scss",
+            [
+              "include",
+              "web._assets_primary_variables"
+            ],
+            [
+              "include",
+              "web._assets_secondary_variables"
+            ],
+            "web/static/src/webclient/actions/reports/bootstrap_overridden_report.scss",
+            [
+              "include",
+              "web._assets_helpers"
+            ],
+            [
+              "include",
+              "web._assets_backend_helpers"
+            ],
+            "web/static/src/scss/pre_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables.scss",
+            "web/static/lib/bootstrap/scss/_variables-dark.scss",
+            "web/static/lib/bootstrap/scss/_maps.scss",
+            [
+              "include",
+              "web._assets_bootstrap_backend"
+            ],
+            [
+              "remove",
+              "web/static/src/scss/utilities_custom_backend.scss"
+            ],
+            [
+              "remove",
+              "web/static/src/scss/bootstrap_review_backend.scss"
+            ],
+            [
+              "after",
+              "web/static/src/scss/utilities_custom.scss",
+              "web/static/src/webclient/actions/reports/utilities_custom_report.scss"
+            ],
+            "web/static/lib/popper/popper.js",
+            "web/static/lib/bootstrap/js/dist/util/index.js",
+            "web/static/lib/bootstrap/js/dist/dom/data.js",
+            "web/static/lib/bootstrap/js/dist/dom/event-handler.js",
+            "web/static/lib/bootstrap/js/dist/dom/manipulator.js",
+            "web/static/lib/bootstrap/js/dist/dom/selector-engine.js",
+            "web/static/lib/bootstrap/js/dist/util/config.js",
+            "web/static/lib/bootstrap/js/dist/util/component-functions.js",
+            "web/static/lib/bootstrap/js/dist/util/backdrop.js",
+            "web/static/lib/bootstrap/js/dist/util/focustrap.js",
+            "web/static/lib/bootstrap/js/dist/util/sanitizer.js",
+            "web/static/lib/bootstrap/js/dist/util/scrollbar.js",
+            "web/static/lib/bootstrap/js/dist/util/swipe.js",
+            "web/static/lib/bootstrap/js/dist/util/template-factory.js",
+            "web/static/lib/bootstrap/js/dist/base-component.js",
+            "web/static/lib/bootstrap/js/dist/alert.js",
+            "web/static/lib/bootstrap/js/dist/button.js",
+            "web/static/lib/bootstrap/js/dist/carousel.js",
+            "web/static/lib/bootstrap/js/dist/collapse.js",
+            "web/static/lib/bootstrap/js/dist/dropdown.js",
+            "web/static/lib/bootstrap/js/dist/modal.js",
+            "web/static/lib/bootstrap/js/dist/offcanvas.js",
+            "web/static/lib/bootstrap/js/dist/tooltip.js",
+            "web/static/lib/bootstrap/js/dist/popover.js",
+            "web/static/lib/bootstrap/js/dist/scrollspy.js",
+            "web/static/lib/bootstrap/js/dist/tab.js",
+            "web/static/lib/bootstrap/js/dist/toast.js",
+            "base/static/src/css/description.css",
+            "web/static/src/libs/fontawesome/css/font-awesome.css",
+            "web/static/src/scss/fontawesome_overridden.scss",
+            "web/static/lib/odoo_ui_icons/*",
+            "web/static/fonts/fonts.scss",
+            "web/static/src/webclient/actions/reports/bootstrap_review_report.scss",
+            "web/static/src/webclient/actions/reports/report.scss",
+            "web/static/src/webclient/actions/reports/report_tables.scss",
+            "web/static/src/webclient/actions/reports/layout_assets/layout_*.scss",
+            "web/static/asset_styles_company_report.scss"
+          ],
+          "web.report_assets_pdf": [
+            "web/static/src/webclient/actions/reports/reset.min.css"
+          ],
+          "web.ace_lib": [
+            "web/static/lib/ace/ace.js",
+            "web/static/lib/ace/mode-javascript.js",
+            "web/static/lib/ace/mode-xml.js",
+            "web/static/lib/ace/mode-qweb.js",
+            "web/static/lib/ace/mode-python.js",
+            "web/static/lib/ace/mode-scss.js",
+            "web/static/lib/ace/mode-json.js",
+            "web/static/lib/ace/theme-monokai.js"
+          ],
+          "web.assets_web_print": [
+            "web/static/src/scss/functions.scss",
+            "web/static/src/scss/primary_variables_print.scss",
+            "web/static/src/**/*.print_variables.scss",
+            [
+              "include",
+              "web.assets_backend"
+            ]
+          ],
+          "web.assets_web_dark": [
+            [
+              "include",
+              "web.assets_web"
+            ],
+            "web/static/src/**/*.dark.scss"
+          ],
+          "web._assets_core": [
+            "web/static/src/module_loader.js",
+            "web/static/lib/luxon/luxon.js",
+            "web/static/lib/owl/owl.js",
+            "web/static/lib/owl/odoo_module.js",
+            "web/static/src/env.js",
+            "web/static/src/session.js",
+            "web/static/src/core/utils/transitions.scss",
+            "web/static/src/core/**/*",
+            [
+              "remove",
+              "web/static/src/core/emoji_picker/emoji_data.js"
+            ]
+          ],
+          "web._assets_primary_variables": [
+            "web/static/src/scss/primary_variables.scss",
+            "web/static/src/**/*.variables.scss"
+          ],
+          "web._assets_secondary_variables": [
+            "web/static/src/scss/secondary_variables.scss"
+          ],
+          "web._assets_helpers": [
+            "web/static/lib/bootstrap/scss/_functions.scss",
+            "web/static/lib/bootstrap/scss/_mixins.scss",
+            "web/static/src/scss/functions.scss",
+            "web/static/src/scss/mixins_forwardport.scss",
+            "web/static/src/scss/bs_mixins_overrides.scss",
+            "web/static/src/scss/utils.scss",
+            [
+              "include",
+              "web._assets_primary_variables"
+            ],
+            [
+              "include",
+              "web._assets_secondary_variables"
+            ]
+          ],
+          "web._assets_jquery": [
+            "web/static/lib/jquery/jquery.js",
+            "web/static/src/legacy/js/libs/jquery.js"
+          ],
+          "web._assets_bootstrap": [
+            "web/static/src/scss/import_bootstrap.scss",
+            "web/static/src/scss/utilities_custom.scss",
+            "web/static/lib/bootstrap/scss/utilities/_api.scss",
+            "web/static/src/scss/bootstrap_review.scss"
+          ],
+          "web._assets_bootstrap_backend": [
+            [
+              "include",
+              "web._assets_bootstrap"
+            ],
+            [
+              "after",
+              "web/static/src/scss/utilities_custom.scss",
+              "web/static/src/scss/utilities_custom_backend.scss"
+            ],
+            "web/static/src/scss/bootstrap_review_backend.scss"
+          ],
+          "web._assets_bootstrap_frontend": [
+            [
+              "include",
+              "web._assets_bootstrap"
+            ],
+            "web/static/src/scss/bootstrap_review_frontend.scss"
+          ],
+          "web._assets_backend_helpers": [
+            "web/static/src/scss/bootstrap_overridden.scss",
+            "web/static/src/scss/bs_mixins_overrides_backend.scss"
+          ],
+          "web._assets_frontend_helpers": [
+            "web/static/src/scss/bootstrap_overridden_frontend.scss"
+          ],
+          "web.assets_tests": [
+            "web/static/tests/legacy/helpers/cleanup.js",
+            "web/static/tests/legacy/helpers/utils.js",
+            "web/static/tests/legacy/utils.js",
+            "web/static/tests/tours/**/*"
+          ],
+          "web.__assets_tests_call__": [
+            "web/static/tests/legacy/ignore_missing_deps_start.js",
+            [
+              "include",
+              "web.assets_tests"
+            ],
+            "web/static/tests/legacy/ignore_missing_deps_stop.js"
+          ],
+          "web.assets_unit_tests_setup": [
+            "web/static/src/module_loader.js",
+            "web/static/lib/owl/owl.js",
+            "web/static/lib/owl/odoo_module.js",
+            "web/static/lib/hoot/**/*",
+            "web/static/lib/hoot-dom/**/*",
+            [
+              "remove",
+              "web/static/lib/hoot/ui/hoot_style.css"
+            ],
+            [
+              "remove",
+              "web/static/lib/hoot/tests/**/*"
+            ],
+            "web/static/tests/_framework/hoot_module_loader.js",
+            [
+              "include",
+              "web.assets_backend"
+            ],
+            [
+              "include",
+              "web.assets_backend_lazy"
+            ],
+            "web/static/src/polyfills/set.js",
+            "web/static/src/public/**/*.js",
+            "web/static/src/public/**/*.xml",
+            "web/static/tests/public/**/*.xml",
+            [
+              "remove",
+              "web/static/src/public/database_manager.js"
+            ],
+            [
+              "remove",
+              "web/static/src/public/error_notifications.js"
+            ],
+            "web/static/src/webclient/clickbot/clickbot.js"
+          ],
+          "web.assets_unit_tests_setup_ui": [
+            "web/static/lib/diff_match_patch/diff_match_patch.js",
+            "web/static/lib/prismjs/prism.js"
+          ],
+          "web.assets_unit_tests": [
+            "web/static/tests/**/*",
+            [
+              "remove",
+              "web/static/tests/tours/**/*"
+            ],
+            [
+              "remove",
+              "web/static/tests/legacy/**/*"
+            ]
+          ],
+          "web.tests_assets": [
+            [
+              "include",
+              "web.assets_backend"
+            ],
+            [
+              "include",
+              "web.assets_backend_lazy"
+            ],
+            "web/static/tests/legacy/patch_translations.js",
+            "web/static/lib/qunit/qunit-2.9.1.css",
+            "web/static/lib/qunit/qunit-2.9.1.js",
+            "web/static/tests/legacy/legacy_tests/helpers/**/*",
+            [
+              "remove",
+              "web/static/tests/legacy/legacy_tests/helpers/test_utils_tests.js"
+            ],
+            [
+              "include",
+              "web._assets_jquery"
+            ],
+            "web/static/lib/fullcalendar/core/index.global.js",
+            "web/static/lib/fullcalendar/interaction/index.global.js",
+            "web/static/lib/fullcalendar/daygrid/index.global.js",
+            "web/static/lib/fullcalendar/timegrid/index.global.js",
+            "web/static/lib/fullcalendar/list/index.global.js",
+            "web/static/lib/fullcalendar/luxon3/index.global.js",
+            "web/static/lib/zxing-library/zxing-library.js",
+            "web/static/lib/ace/ace.js",
+            "web/static/lib/ace/mode-python.js",
+            "web/static/lib/ace/mode-xml.js",
+            "web/static/lib/ace/mode-javascript.js",
+            "web/static/lib/ace/mode-qweb.js",
+            "web/static/lib/ace/theme-monokai.js",
+            "web/static/lib/stacktracejs/stacktrace.js",
+            [
+              "include",
+              "web.chartjs_lib"
+            ],
+            "web/static/lib/signature_pad/signature_pad.umd.js",
+            "web/static/tests/legacy/helpers/**/*.js",
+            "web/static/tests/legacy/views/helpers.js",
+            "web/static/tests/legacy/search/helpers.js",
+            "web/static/tests/legacy/views/calendar/helpers.js",
+            "web/static/tests/legacy/webclient/**/helpers.js",
+            "web/static/tests/legacy/qunit.js",
+            "web/static/tests/legacy/main.js",
+            "web/static/tests/legacy/mock_server_tests.js",
+            "web/static/tests/legacy/setup.js",
+            "web/static/tests/legacy/utils.js",
+            "web/static/src/webclient/clickbot/clickbot.js"
+          ],
+          "web.qunit_suite_tests": [
+            "web/static/src/legacy/js/core/class.js",
+            "web/static/src/legacy/js/public/minimal_dom.js",
+            "web/static/src/legacy/js/public/public_widget.js",
+            "web/static/tests/legacy/core/**/*.js",
+            "web/static/tests/legacy/search/**/*.js",
+            [
+              "remove",
+              "web/static/tests/legacy/search/helpers.js"
+            ],
+            "web/static/tests/legacy/views/**/*.js",
+            [
+              "remove",
+              "web/static/tests/legacy/views/helpers.js"
+            ],
+            [
+              "remove",
+              "web/static/tests/legacy/views/calendar/helpers.js"
+            ],
+            "web/static/tests/legacy/webclient/**/*.js",
+            [
+              "remove",
+              "web/static/tests/legacy/webclient/**/helpers.js"
+            ],
+            "web/static/tests/legacy/public/**/*.js",
+            "web/static/tests/legacy/legacy_tests/**/*.js",
+            [
+              "remove",
+              "web/static/tests/legacy/legacy_tests/helpers/**/*.js"
+            ]
+          ],
+          "web.assets_clickbot": [
+            "web/static/src/webclient/clickbot/clickbot.js"
+          ],
+          "web.chartjs_lib": [
+            "/web/static/lib/Chart/Chart.js",
+            "/web/static/lib/chartjs-adapter-luxon/chartjs-adapter-luxon.js"
+          ],
+          "web.fullcalendar_lib": [
+            "/web/static/lib/fullcalendar/core/index.global.js",
+            "/web/static/lib/fullcalendar/core/locales-all.global.js",
+            "/web/static/lib/fullcalendar/interaction/index.global.js",
+            "/web/static/lib/fullcalendar/daygrid/index.global.js",
+            "/web/static/lib/fullcalendar/luxon3/index.global.js",
+            "/web/static/lib/fullcalendar/timegrid/index.global.js",
+            "/web/static/lib/fullcalendar/list/index.global.js"
+          ]
+        },
+        "bootstrap": true,
+        "author": "Odoo S.A.",
+        "license": "LGPL-3"
+      },
+      "consumer_paths_present": [
+        "/workspace/kaupamex-api/addons/web"
+      ]
+    },
+    {
+      "name": "web_tour",
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/web_tour/__manifest__.py",
+      "command": [
+        "gh",
+        "api",
+        "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/web_tour/__manifest__.py?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+      ],
+      "exit_code": 0,
+      "git_blob": "5945c1565cf76b2ec760a3c7a0e90e26e072b5f2",
+      "manifest": {
+        "name": "Tours",
+        "category": "Hidden",
+        "description": "\nOdoo Web tours.\n========================\n\n",
+        "version": "1.0",
+        "depends": [
+          "web"
+        ],
+        "data": [
+          "security/ir.model.access.csv",
+          "views/tour_views.xml"
+        ],
+        "assets": {
+          "web.assets_backend": [
+            "web_tour/static/src/scss/**/*",
+            "web_tour/static/src/js/tour_pointer/**/*",
+            "web_tour/static/src/js/utils/**/*",
+            "web_tour/static/src/js/tour_state.js",
+            "web_tour/static/src/js/tour_service.js",
+            "web_tour/static/src/js/tour_recorder/tour_recorder_state.js",
+            "web_tour/static/src/tour_utils.js",
+            "web_tour/static/src/js/onboarding_item.xml",
+            "web_tour/static/src/views/**/*",
+            "web_tour/static/src/widgets/**/*"
+          ],
+          "web.assets_frontend": [
+            "web_tour/static/src/scss/**/*",
+            "web_tour/static/src/js/tour_pointer/**/*",
+            "web_tour/static/src/js/utils/**/*",
+            "web_tour/static/src/js/tour_state.js",
+            "web_tour/static/src/js/tour_service.js",
+            "web_tour/static/src/js/tour_recorder/tour_recorder_state.js",
+            "web_tour/static/src/tour_utils.js",
+            "web_tour/static/src/js/onboarding_item.xml"
+          ],
+          "web.assets_unit_tests": [
+            [
+              "include",
+              "web_tour.recorder"
+            ],
+            [
+              "include",
+              "web_tour.automatic"
+            ],
+            [
+              "include",
+              "web_tour.interactive"
+            ],
+            "web_tour/static/tests/*.test.js"
+          ],
+          "web.assets_tests": [
+            "web_tour/static/src/js/tour_automatic/tour_helpers.js",
+            [
+              "include",
+              "web_tour.automatic"
+            ]
+          ],
+          "web_tour.common": [
+            "web/static/lib/hoot-dom/**/*",
+            "web_tour/static/src/js/tour_step.js"
+          ],
+          "web_tour.interactive": [
+            [
+              "include",
+              "web_tour.common"
+            ],
+            "web_tour/static/src/js/tour_interactive/**/*"
+          ],
+          "web_tour.automatic": [
+            [
+              "include",
+              "web_tour.common"
+            ],
+            "web_tour/static/src/js/tour_automatic/**/*"
+          ],
+          "web_tour.recorder": [
+            [
+              "include",
+              "web_tour.common"
+            ],
+            "web_tour/static/src/js/tour_recorder/**/*",
+            "web_tour/static/src/views/**/*",
+            "web_tour/static/src/widgets/**/*"
+          ]
+        },
+        "auto_install": true,
+        "author": "Odoo S.A.",
+        "license": "LGPL-3"
+      },
+      "consumer_paths_present": []
+    }
+  ],
+  "imports_and_classes": [
+    {
+      "path": "__init__.py",
+      "imports": [
+        "from . import models"
+      ],
+      "classes": []
+    },
+    {
+      "path": "__manifest__.py",
+      "imports": [],
+      "classes": []
+    },
+    {
+      "path": "models/__init__.py",
+      "imports": [
+        "from . import test_orm, test_performance, test_unity_read"
+      ],
+      "classes": []
+    },
+    {
+      "path": "models/test_orm.py",
+      "imports": [
+        "import datetime",
+        "import logging",
+        "from odoo import api, fields, models",
+        "from odoo.exceptions import AccessError, ValidationError",
+        "from odoo.fields import Command",
+        "from odoo.tools import SQL",
+        "from odoo.tools.float_utils import float_round",
+        "from odoo.tools.translate import html_translate",
+        "import itertools"
+      ],
+      "classes": [
+        {
+          "name": "TestOrmCategory",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmDiscussion",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMessage",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmEmailmessage",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPartner",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMulti",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMultiLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMultiLine2",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMultiTag",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCreativeworkEdition",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCreativeworkBook",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCreativeworkMovie",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMixed",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "DomainBool",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmFoo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmBar",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated_Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated_Bar",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated_Inherits",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeReadonly",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeInverse",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeSudo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMulti_Compute_Inverse",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMove",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMove_Line",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPayment",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmOrder",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmOrderLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCompany",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCompanyAttr",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRecursive",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRecursiveTree",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRecursiveOrder",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRecursiveLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRecursiveTask",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCascade",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeReadwrite",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeOnchange",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeOnchangeLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeDynamicDepends",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeUnassigned",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmOne2many",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmOne2manyLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputedInverseOne2many",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TesOrmComputedInverseOne2manyLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Binary",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Image",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmBinary_Svg",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMonetary_Base",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMonetary_Related",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMonetary_Custom",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMonetary_Inherits",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMonetary_Order",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMonetary_Order_Line",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmField_With_Caps",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmSelection",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmReq_M2o",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmReq_M2o_Transient",
+          "bases": [
+            "models.TransientModel"
+          ]
+        },
+        {
+          "name": "TestOrmTransient_Model",
+          "bases": [
+            "models.TransientModel"
+          ]
+        },
+        {
+          "name": "TestOrmAttachment",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmAttachmentHost",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "DecimalPrecisionTest",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_A",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_B",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Parent",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Child",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Child_Nocheck",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmDisplay",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmMixin",
+          "bases": [
+            "models.AbstractModel"
+          ]
+        },
+        {
+          "name": "TestOrmDisplay",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Active_Field",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Many2one_Reference",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmInverse_M2o_Ref",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Child_M2o",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Parent_M2o",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCountry",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCity",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmState_Mixin",
+          "bases": [
+            "models.AbstractModel"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Base",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Base",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Base",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Related",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Related_Updatable",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Non_Stored",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required_For_Write_Override",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Selection_Required_For_Write_Override",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "SelectionCompanyDependent",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "SelectionCompanyDependent",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Shared_Cache_Compute_Parent",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Shared_Cache_Compute_Line",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeContainer",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeMember",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeCreator",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputeCreated",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmUser",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmGroup",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModelNo_Access",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModelAll_Access",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModelSome_Access",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel2Some_Access",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel3Some_Access",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmComputedModifier",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCompute_Editable",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCompute_EditableLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModel_Constrained_Unlinks",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmTriggerLeft",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmTriggerMiddle",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmTriggerRight",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCrew",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmShip",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPirate",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrisoner",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecompute",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecomputeLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecomputeCombo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecomputeEditable",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecomputeReadonly",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecomputeRequired",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrecomputeMonetary",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrefetch",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPrefetchLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModified",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmModifiedLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated_Translation_1",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated_Translation_2",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmRelated_Translation_3",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmIndexed_Translation",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmEmpty_Char",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmEmpty_Int",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmTeam",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmTeamMember",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmUnsearchableO2m",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmAnyParent",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmAnyChild",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmAnyTag",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmHierarchyHead",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmHierarchyNode",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCustomView",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCustomTable_Query",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCustomTable_Query_Sql",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmAutovacuumed",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmSharedCompute",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_New_ViewStrId",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCreatePerformance",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmCreatePerformanceLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "OnchangePartialView",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "BinaryTest",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "CalendarTest",
+          "bases": [
+            "models.Model"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "models/test_performance.py",
+      "imports": [
+        "from odoo import api, fields, models"
+      ],
+      "classes": [
+        {
+          "name": "Test_PerformanceBase",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_PerformanceLine",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_PerformanceTag",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_PerformanceBacon",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_PerformanceEggs",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_PerformanceMozzarella",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Test_PerformanceSimpleMinded",
+          "bases": [
+            "models.Model"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "models/test_unity_read.py",
+      "imports": [
+        "from odoo import fields, models"
+      ],
+      "classes": [
+        {
+          "name": "TestOrmCourse",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmLesson",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPerson",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmEmployer",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "TestOrmPersonAccount",
+          "bases": [
+            "models.Model"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/__init__.py",
+      "imports": [
+        "from . import test_attributes, test_autovacuum, test_company_checks, test_domain, test_fields, test_index_method, test_indexed_translation, test_json_field, test_many2many, test_onchange, test_one2many, test_performance, test_properties, test_qweb_float, test_related_translation, test_schema, test_search, test_sort, test_timeit, test_ui, test_unity_read, test_views, test_web_save"
+      ],
+      "classes": []
+    },
+    {
+      "path": "tests/test_attributes.py",
+      "imports": [
+        "from odoo.tests import common"
+      ],
+      "classes": [
+        {
+          "name": "TestAttributes",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_autovacuum.py",
+      "imports": [
+        "from datetime import datetime, timedelta",
+        "from odoo.tests import common"
+      ],
+      "classes": [
+        {
+          "name": "TestAutovacuum",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_company_checks.py",
+      "imports": [
+        "from odoo import Command",
+        "from odoo.exceptions import AccessError, UserError",
+        "from odoo.tests import common, patch",
+        "from odoo.tools import frozendict"
+      ],
+      "classes": [
+        {
+          "name": "TestCompanyCheck",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_domain.py",
+      "imports": [
+        "from datetime import date, datetime",
+        "from freezegun import freeze_time",
+        "from itertools import combinations",
+        "from unittest.mock import patch",
+        "from odoo.fields import Command, Domain",
+        "from odoo.tests import TransactionCase, users",
+        "from odoo.tools import SQL, OrderedSet",
+        "from odoo.addons.base.tests.test_expression import TransactionExpressionCase"
+      ],
+      "classes": [
+        {
+          "name": "TestDomain",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        },
+        {
+          "name": "TestDomainComplement",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        },
+        {
+          "name": "TestDomainOptimize",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_fields.py",
+      "imports": [
+        "import base64",
+        "import io",
+        "import threading",
+        "from collections import OrderedDict",
+        "from datetime import date, datetime",
+        "from unittest.mock import patch",
+        "import psycopg2",
+        "from PIL import Image",
+        "from odoo import Command, fields, models",
+        "from odoo.exceptions import AccessError, MissingError, UserError, ValidationError",
+        "from odoo.fields import Domain",
+        "from odoo.tests import Form, TransactionCase, tagged, users",
+        "from odoo.tools import float_repr, mute_logger",
+        "from odoo.tools.image import image_data_uri",
+        "from odoo.addons.base.tests.common import TransactionCaseWithUserDemo",
+        "from odoo.addons.base.tests.test_expression import TransactionExpressionCase",
+        "from odoo.addons.base.tests.test_mimetypes import ZIP",
+        "from odoo.addons.base.tests.test_mimetypes import SVG",
+        "from odoo.addons.base.tests.test_mimetypes import SVG",
+        "from odoo.addons.base.tests.test_mimetypes import SVG",
+        "from odoo.addons.base.tests.test_mimetypes import SVG",
+        "from odoo.orm.model_classes import add_to_registry",
+        "from odoo.orm.model_classes import add_to_registry",
+        "from odoo.orm.model_classes import add_to_registry",
+        "from odoo.orm.model_classes import add_to_registry",
+        "from odoo.orm.model_classes import add_to_registry",
+        "from odoo.orm.model_classes import add_to_registry",
+        "from odoo.addons.base.models.ir_model import MODULE_UNINSTALL_FLAG",
+        "from odoo.orm.model_classes import add_to_registry"
+      ],
+      "classes": [
+        {
+          "name": "TestFields",
+          "bases": [
+            "TransactionCaseWithUserDemo",
+            "TransactionExpressionCase"
+          ]
+        },
+        {
+          "name": "TestX2many",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        },
+        {
+          "name": "TestHtmlField",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestMagicFields",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestParentStore",
+          "bases": [
+            "TransactionCaseWithUserDemo"
+          ]
+        },
+        {
+          "name": "TestRequiredMany2one",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestRequiredMany2oneTransient",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestMany2oneReference",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        },
+        {
+          "name": "TestSelectionDeleteUpdate",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSelectionUpdates",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSelectionManualRelatedUpdate",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSelectionOndelete",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSelectionOndeleteAdvanced",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestFieldParametersValidation",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestComputeQueries",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestComputeSudo",
+          "bases": [
+            "TransactionCaseWithUserDemo"
+          ]
+        },
+        {
+          "name": "test_shared_cache",
+          "bases": [
+            "TransactionCaseWithUserDemo"
+          ]
+        },
+        {
+          "name": "TestUnlinkConstraints",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestWrongRelatedError",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestPrecomputeModel",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestPrecompute",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestModifiedPerformance",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        },
+        {
+          "name": "Foo",
+          "bases": [
+            "models.Model"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_index_method.py",
+      "imports": [
+        "from odoo.tests import TransactionCase, tagged",
+        "from odoo.tools import sql"
+      ],
+      "classes": [
+        {
+          "name": "TestIndexMethodMigration",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_indexed_translation.py",
+      "imports": [
+        "import odoo.tests",
+        "from odoo.addons.base.tests.test_expression import TransactionExpressionCase",
+        "from odoo.addons.base.tests.test_translate import SPECIAL_CHARACTERS"
+      ],
+      "classes": [
+        {
+          "name": "TestIndexedTranslation",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_json_field.py",
+      "imports": [
+        "from odoo.tests.common import TransactionCase"
+      ],
+      "classes": [
+        {
+          "name": "JsonFieldTest",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_many2many.py",
+      "imports": [
+        "from unittest.mock import patch",
+        "from odoo.fields import Command, Domain",
+        "from odoo.tests.common import TransactionCase, new_test_user"
+      ],
+      "classes": [
+        {
+          "name": "Many2manyCase",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_onchange.py",
+      "imports": [
+        "from unittest.mock import patch",
+        "from odoo import Command",
+        "from odoo.tests import Form, TransactionCase",
+        "from odoo.tools.misc import submap",
+        "from odoo.addons.base.tests.common import SavepointCaseWithUserDemo"
+      ],
+      "classes": [
+        {
+          "name": "TestOnchange",
+          "bases": [
+            "SavepointCaseWithUserDemo"
+          ]
+        },
+        {
+          "name": "TestComputeOnchange2",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_one2many.py",
+      "imports": [
+        "from odoo import Command",
+        "from odoo.exceptions import MissingError, UserError",
+        "from odoo.addons.base.tests.test_expression import TransactionExpressionCase"
+      ],
+      "classes": [
+        {
+          "name": "One2manyCase",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_performance.py",
+      "imports": [
+        "import logging",
+        "from odoo.addons.base.tests.common import SavepointCaseWithUserDemo",
+        "from odoo.tests.common import TransactionCase, users, warmup, tagged",
+        "from odoo.tools import mute_logger, sql",
+        "from odoo import Command"
+      ],
+      "classes": [
+        {
+          "name": "TestPerformance",
+          "bases": [
+            "SavepointCaseWithUserDemo"
+          ]
+        },
+        {
+          "name": "TestIrPropertyOptimizations",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestMapped",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestIncrementFieldsSkipLock",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_properties.py",
+      "imports": [
+        "import datetime",
+        "import json",
+        "import psycopg2",
+        "import unittest",
+        "from collections import abc",
+        "from unittest.mock import patch",
+        "import babel.dates",
+        "from odoo.addons.base.tests.test_expression import TransactionExpressionCase",
+        "from odoo.exceptions import AccessError, UserError, ValidationError",
+        "from odoo.fields import Command, Domain",
+        "from odoo.tests import Form, TransactionCase, users",
+        "from odoo.tools import get_lang, mute_logger"
+      ],
+      "classes": [
+        {
+          "name": "TestPropertiesMixin",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "PropertiesCase",
+          "bases": [
+            "TestPropertiesMixin"
+          ]
+        },
+        {
+          "name": "PropertiesSearchCase",
+          "bases": [
+            "TransactionExpressionCase",
+            "TestPropertiesMixin"
+          ]
+        },
+        {
+          "name": "PropertiesGroupByCase",
+          "bases": [
+            "TestPropertiesMixin"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_qweb_float.py",
+      "imports": [
+        "from odoo.tests import common"
+      ],
+      "classes": [
+        {
+          "name": "TestFloatExport",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_related_translation.py",
+      "imports": [
+        "import io",
+        "import odoo.tests",
+        "from odoo.tools.translate import TranslationImporter"
+      ],
+      "classes": [
+        {
+          "name": "TestRelatedTranslation",
+          "bases": [
+            "odoo.tests.TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_schema.py",
+      "imports": [
+        "from odoo.fields import Domain",
+        "from odoo.tests import common",
+        "from odoo.tools.translate import FIELD_TRANSLATE",
+        "from odoo.addons.base.models.ir_model import field_xmlid, model_xmlid, selection_xmlid"
+      ],
+      "classes": [
+        {
+          "name": "TestReflection",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSchema",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_search.py",
+      "imports": [
+        "from odoo.addons.base.tests.test_expression import TransactionExpressionCase",
+        "from odoo.fields import Command, Domain",
+        "from odoo.tests import TransactionCase"
+      ],
+      "classes": [
+        {
+          "name": "TestSubqueries",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSearchRelated",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestSearchAny",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestFlushSearch",
+          "bases": [
+            "TransactionCase"
+          ]
+        },
+        {
+          "name": "TestDatePartNumber",
+          "bases": [
+            "TransactionExpressionCase"
+          ]
+        },
+        {
+          "name": "TestNonIntId",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_sort.py",
+      "imports": [
+        "from odoo.api import NewId",
+        "from odoo.fields import Command",
+        "from odoo.tests import TransactionCase"
+      ],
+      "classes": [
+        {
+          "name": "TestSort",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_timeit.py",
+      "imports": [
+        "import logging",
+        "import time",
+        "import timeit",
+        "from typing import Literal",
+        "from odoo import Command",
+        "from odoo.models import BaseModel",
+        "from odoo.tests.common import TransactionCase"
+      ],
+      "classes": [
+        {
+          "name": "TestPerformanceTimeit",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_ui.py",
+      "imports": [
+        "import odoo.tests",
+        "from odoo.tools import mute_logger",
+        "from odoo.addons.base.tests.common import HttpCaseWithUserDemo"
+      ],
+      "classes": [
+        {
+          "name": "TestUi",
+          "bases": [
+            "HttpCaseWithUserDemo"
+          ]
+        },
+        {
+          "name": "TestUiTranslation",
+          "bases": [
+            "odoo.tests.HttpCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_unity_read.py",
+      "imports": [
+        "from dateutil.relativedelta import relativedelta",
+        "from odoo import Command, fields",
+        "from odoo.exceptions import AccessError",
+        "from odoo.tests.common import TransactionCase, new_test_user"
+      ],
+      "classes": [
+        {
+          "name": "TestUnityRead",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_views.py",
+      "imports": [
+        "from lxml import etree",
+        "from odoo.exceptions import ValidationError",
+        "from odoo.tests import Form, common",
+        "from odoo.addons.base.tests.test_views import ViewCase"
+      ],
+      "classes": [
+        {
+          "name": "TestDefaultView",
+          "bases": [
+            "common.TransactionCase"
+          ]
+        },
+        {
+          "name": "TestViewGroups",
+          "bases": [
+            "ViewCase"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "tests/test_web_save.py",
+      "imports": [
+        "from odoo.tests.common import TransactionCase",
+        "from odoo.addons.base.tests.test_mimetypes import JPG, SVG"
+      ],
+      "classes": [
+        {
+          "name": "TestWebSave",
+          "bases": [
+            "TransactionCase"
+          ]
+        }
+      ]
+    }
+  ],
+  "data_and_rule_fixtures": [
+    {
+      "path": "data/test_orm_data.xml",
+      "content": "<odoo>\n    <data>\n        <record id=\"category_0\" model=\"test_orm.category\">\n            <field name=\"name\">Chat</field>\n        </record>\n        <record id=\"category_0_0\" model=\"test_orm.category\">\n            <field name=\"name\">Foolish</field>\n            <field name=\"parent\" ref=\"category_0\"/>\n        </record>\n\n        <record id=\"discussion_0\" model=\"test_orm.discussion\">\n            <field name=\"name\">Stuff</field>\n            <field name=\"participants\" eval=\"[Command.link(ref('base.user_root'))]\"/>\n        </record>\n\n        <record id=\"message_0_0\" model=\"test_orm.message\">\n            <field name=\"discussion\" ref=\"discussion_0\"/>\n            <field name=\"body\">Hey dude!</field>\n            <field name=\"label\">hello</field>\n        </record>\n        <record id=\"message_0_1\" model=\"test_orm.message\">\n            <field name=\"discussion\" ref=\"discussion_0\"/>\n            <field name=\"body\">What's up?</field>\n        </record>\n        <record id=\"message_0_2\" model=\"test_orm.message\">\n            <field name=\"discussion\" ref=\"discussion_0\"/>\n            <field name=\"body\">This is a much longer message</field>\n        </record>\n\n        <record id=\"emailmessage_0_0\" model=\"test_orm.emailmessage\">\n            <field name=\"message\" ref=\"message_0_0\"/>\n            <field name=\"email_to\">first@example.localhost</field>\n        </record>\n\n        <record id=\"bool_1\" model=\"domain.bool\">\n            <field name=\"bool_true\" eval=\"True\"/>\n        </record>\n        <record id=\"bool_2\" model=\"domain.bool\">\n            <field name=\"bool_false\" eval=\"True\"/>\n        </record>\n        <record id=\"bool_3\" model=\"domain.bool\">\n            <field name=\"bool_undefined\" eval=\"True\"/>\n        </record>\n        <record id=\"bool_4\" model=\"domain.bool\">\n            <field name=\"bool_undefined\" eval=\"False\"/>\n        </record>\n\n        <record id=\"decimal_orm_number\" model=\"decimal.precision\">\n            <field name=\"name\">ORM Precision</field>\n            <field name=\"digits\" eval=\"3\"/>\n        </record>\n\n    </data>\n</odoo>\n"
+    },
+    {
+      "path": "security/test_orm_security.xml",
+      "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<odoo>\n    <data noupdate=\"1\">\n        <record id=\"ir_rule_test_orm_model_shared_cache_compute_line\" model=\"ir.rule\">\n            <field name=\"name\">model_shared_cache_compute_line: See own lines</field>\n            <field name=\"model_id\" ref=\"test_orm.model_test_orm_model_shared_cache_compute_line\"/>\n            <field name=\"domain_force\">[('user_id', '=', user.id)]</field>\n            <field name=\"groups\" eval=\"[Command.link(ref('base.group_user'))]\"/>\n        </record>\n    </data>\n</odoo>\n"
+    }
+  ],
+  "native_execution": "NOT_EVALUATED: requires Odoo registry, database, base/web/web_tour and imported infrastructure; presence of manifests is not installability",
+  "consumer_conformance": "not_verified; Django test fixture must be adapted/isolated, native Odoo imports not production dependencies",
+  "declared_resources_present": {
+    "security/ir.model.access.csv": true,
+    "security/test_orm_security.xml": true,
+    "views/test_orm_views.xml": true,
+    "data/test_orm_data.xml": true
+  },
+  "assets_present": {
+    "test_orm/static/tests/tours/constraint.js": true,
+    "test_orm/static/tests/tours/x2many.js": true
+  }
+}

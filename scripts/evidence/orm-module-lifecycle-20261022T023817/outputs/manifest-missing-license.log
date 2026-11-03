@@ -1,0 +1,8 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-lifecycle-20261022T023817/probes/manifest_contract.py", line 19, in <module>
+    observed = load_manifest('fixture', directory)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/modules/module.py", line 198, in load_manifest
+    raise ValueError(f'{module}: faltan claves obligatorias en el manifest: {missing}')
+ValueError: fixture: faltan claves obligatorias en el manifest: ['license']

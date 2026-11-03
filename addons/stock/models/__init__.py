@@ -13,12 +13,16 @@ del mismo paquete en su cuerpo. Por eso los que se citan entre sí lo hacen por
 ``apps.get_model('stock', 'X')`` — una llamada, no un ``import`` (ver
 ``.claude/rules/no-lazy-imports.md``, excepción #4 y su mismo criterio).
 """
+
 from addons.stock.models.stock_storage_category import (
     StockStorageCategory,
     StockStorageCategoryCapacity,
 )
 from addons.stock.models.stock_package_type import StockPackageType
-from addons.stock.models.product_strategy import ProductRemoval, StockPutawayRule
+from addons.stock.models.product_strategy import (
+    ProductRemoval,
+    StockPutawayRule,
+)
 from addons.stock.models.stock_location import StockLocation, StockRoute
 from addons.stock.models.stock_package import StockPackage
 from addons.stock.models.stock_package_history import StockPackageHistory

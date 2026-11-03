@@ -1,0 +1,31 @@
+{
+  "index": "/tmp/increment-activation/graph-formatted.index",
+  "files": [
+    {
+      "path": "src/modules/module_graph.py",
+      "format_hunks": 3,
+      "executable_ast_unchanged": true,
+      "blob": "6233d47dc257705dba275ef5bd9df7fec9ba46e6",
+      "working_sha256": "19cd47248783c8bce0e2120cb47f04bd17886a8a2c77241e4826bcbee26a2882",
+      "verified_executable_ast_equal": true
+    },
+    {
+      "path": "tests/unit/modules/test_module_graph.py",
+      "format_hunks": 10,
+      "executable_ast_unchanged": true,
+      "blob": "fa62cf8eb995f2197771a8a44185012ed2c54e1c",
+      "working_sha256": "83abf6a3871ea239d9beeaf8e90917d8b8b8892739a49b969617d1233dad79d5",
+      "verified_executable_ast_equal": true
+    }
+  ],
+  "reused_junit": {
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/graph-diagnostics-green.junit.xml": {
+      "cases": 22,
+      "sha256": "ae0fee15f95e6b7c502c07964e4e26149011d7a526493f73c50a0c4722c8af1c"
+    },
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/graph-diagnostics-neighbors.junit.xml": {
+      "cases": 48,
+      "sha256": "0a23601eff2e910d3d2893b171087ae9967a47f0ed8d03d82a4b4014b8bc5341"
+    }
+  }
+}

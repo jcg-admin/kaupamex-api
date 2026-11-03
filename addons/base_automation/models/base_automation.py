@@ -344,7 +344,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     )
     description = fields.Html(blank=True, default='', verbose_name='Descripción')
     model_id = fields.Many2one(
-        IrModel, on_delete=models.CASCADE, db_index=True,
+        IrModel, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='base_automations', verbose_name='Modelo',
         help_text='Modelo objetivo (Odoo model_id, domain abstract=False).',
         db_column='model_id',

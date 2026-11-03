@@ -1,55 +1,12 @@
-"""El descriptor del campo — ``Field.__get__`` y ``Field.__set__`` (tarea #211).
+"""Contrato del descriptor y de la asignación sin volcado SQL.
 
-Los dos ultimos simbolos ausentes del contrato de ``Field``:
-
-===============  ==========================================
-Simbolo          ``odoo19c: odoo/orm/fields.py``
-===============  ==========================================
-``__get__``      ``:1642-1804``
-``__set__``      ``:1807-1841``
-===============  ==========================================
-
-**El descriptor NO es el campo.** La fuente hace del propio ``Field`` su
-descriptor; Django coloca en el atributo de clase un objeto DISTINTO, que el
-campo instala via ``descriptor_class``. Medido sobre ``res.partner``:
-``name`` y ``active`` llevan un ``DeferredAttribute``, ``barcode`` un
-``_CompanyDependentAttribute`` y ``parent_id`` un
-``ForeignKeyDeferredAttribute``. Colgar ``__get__`` de ``models.Field`` seria
-codigo muerto, igual que lo era ``__set_name__`` (:ref:`h-api-1067`). El
-cuerpo se porta al descriptor, que es el enganche vivo.
-
-**Sobre TODO campo — y el eje no es «con o sin descriptor».** Esta seccion
-decia *«por que solo sobre el campo calculado»*, y el puerto revirtio esa
-decision midiendo: la fuente consulta ``env.cache`` para todo campo
-(``odoo19c: :1667``), asi que instalarlo solo sobre el calculado dejaba al
-arbol con DOS cachés y un lector que consultaba la que no era —``_insert_cache``
-escribia en la del ORM y una lectura llana caia al ``DeferredAttribute`` de
-Django, que emite ``refresh_from_db``.
-
-El eje real es **descriptor de datos contra descriptor de NO datos**, y ese
-reparto lo decide ``compute``:
-
-- sin ``compute`` -> :class:`FieldDescriptor`, **sin** ``__set__``. Al no ser
-  de datos, ``instance.__dict__`` gana por el orden de busqueda del lenguaje y
-  el ``__get__`` solo se consulta cuando el valor falta — que es justo cuando
-  el recordset, con el ``__dict__`` vacio, necesita la cache del ORM. Medido
-  sobre 300 000 lecturas: **1.00x** el atributo llano.
-- con ``compute`` -> :class:`ComputedFieldDescriptor`, **con** ``__set__``,
-  que es descriptor de datos y cuesta **3.24x**. Ahi ese coste es despreciable
-  frente a la llamada al metodo de computo.
-
-La cifra de **3.12x** que esta seccion citaba medía el descriptor **de datos**
-y se leia como coste de tener descriptor: el sub-patron A de
-``metrica-decide-la-conclusion.md`` — un rotulo sobre dos metricas mezcladas.
-Banco: ``scripts/workbench/two-caches-descriptor-20260911T053450/``.
-
-**El control que discrimina** es
-``test_a_plain_column_gets_the_non_data_descriptor``, con su gemelo
-``test_a_computed_field_gets_the_data_descriptor``: los dos juntos fijan el
-reparto. Una implementacion que colgara ``ComputedFieldDescriptor`` de todo
-campo pasaria el segundo y caeria el primero; una que no colgara ninguno
-caeria el primero tambien, porque exige que el descriptor ESTE.
+Referencia fijada: Odoo19Community Field.__get__/__set__. Las pruebas de
+caché, protección y escritura conservan sus responsabilidades históricas.
+La expectativa de ausencia de setter en columnas ordinarias se reconcilia
+con el fallo medido de invalidación de TASK-GEN-0633; los nuevos casos
+PostgreSQL prueban el efecto, no sólo la presencia de un método.
 """
+
 import pytest
 from django.db import connection, models
 from django.db.models.query_utils import DeferredAttribute
@@ -89,36 +46,26 @@ class TestTheDescriptorIsInstalledWhereItHasWork:
         descriptor = descriptor_of(partner_model, 'commercial_company_name')
 
         assert isinstance(descriptor, ComputedFieldDescriptor)
-        assert '__set__' in type(descriptor).__dict__
+        assert hasattr(descriptor, '__set__')
 
-    def test_a_plain_column_gets_the_non_data_descriptor(self, partner_model):
-        """EL CONTROL: el reparto por ``compute`` decide QUIEN ESCRIBE.
-
-        ``name`` no declara ``compute``. Su descriptor tiene que ESTAR —la
-        fuente consulta la cache para todo campo, y sin el una lectura llana
-        sobre un recordset cae al ``refresh_from_db`` de Django— pero **sin**
-        ``__set__``: al no ser descriptor de datos, ``instance.__dict__`` sigue
-        ganando y el camino caliente de Django no paga nada (medido 1.00x).
-
-        Cae de dos maneras distintas, que es lo que lo hace control: si alguien
-        cuelga ``ComputedFieldDescriptor`` de todo campo, falla la tercera
-        asercion; si alguien retira el descriptor del campo llano, falla la
-        segunda.
-        """
+    def test_a_plain_column_has_the_dependency_notifying_setter(
+        self, partner_model
+    ):
+        """Una columna ordinaria también puede alimentar un cómputo."""
         descriptor = descriptor_of(partner_model, 'name')
-
         assert isinstance(descriptor, DeferredAttribute)
         assert isinstance(descriptor, FieldDescriptor)
         assert not isinstance(descriptor, ComputedFieldDescriptor)
-        assert '__set__' not in type(descriptor).__dict__
-        assert not hasattr(descriptor, '__set__')
+        assert hasattr(descriptor, '__set__')
 
 
 class TestGetOnTheClass:
     """``:1644-1645`` — ``if record is None: return self``."""
 
     def test_class_level_access_returns_the_descriptor(self, partner_model):
-        assert isinstance(partner_model.commercial_company_name, FieldDescriptor)
+        assert isinstance(
+            partner_model.commercial_company_name, FieldDescriptor
+        )
 
 
 class TestGetGoesThroughTheEnvironmentCache:
@@ -164,7 +111,10 @@ class TestSetPartitionsTheRecordAsTheSourceDoes:
         with environment.protecting([field], record):
             record.commercial_company_name = 'Escrito bajo proteccion'
 
-        assert field._get_cache(environment)[record.pk] == 'Escrito bajo proteccion'
+        assert (
+            field._get_cache(environment)[record.pk]
+            == 'Escrito bajo proteccion'
+        )
 
     def test_a_real_record_is_not_flushed_on_assignment(self, partner_model):
         """La divergencia de mecanismo, medida y declarada en el modulo.
@@ -188,18 +138,27 @@ class TestSetPartitionsTheRecordAsTheSourceDoes:
         record = partner_model.objects.create(name='Real')
         field = model_field_registry(partner_model)['commercial_company_name']
         stored_before = partner_model.objects.values_list(
-            'commercial_company_name', flat=True).get(pk=record.pk)
+            'commercial_company_name', flat=True
+        ).get(pk=record.pk)
 
         with CaptureQueriesContext(connection) as capturadas:
             record.commercial_company_name = 'Asignado'
 
-        escrituras = [q['sql'] for q in capturadas
-                      if q['sql'].lstrip().upper().startswith(
-                          ('UPDATE', 'INSERT', 'DELETE'))]
+        escrituras = [
+            q['sql']
+            for q in capturadas
+            if q['sql']
+            .lstrip()
+            .upper()
+            .startswith(('UPDATE', 'INSERT', 'DELETE'))
+        ]
         assert escrituras == []
-        assert partner_model.objects.values_list(
-            'commercial_company_name', flat=True).get(
-                pk=record.pk) == stored_before
+        assert (
+            partner_model.objects.values_list(
+                'commercial_company_name', flat=True
+            ).get(pk=record.pk)
+            == stored_before
+        )
         assert field._get_cache(record_environment())[record.pk] == 'Asignado'
 
 

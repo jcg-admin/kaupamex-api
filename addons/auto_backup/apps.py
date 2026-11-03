@@ -1,4 +1,5 @@
 """AppConfig — addons.auto_backup (UC-ADM-05, Odoo app_auto_backup)."""
+
 from django.apps import AppConfig
 
 

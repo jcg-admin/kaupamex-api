@@ -22,6 +22,7 @@ payment_provider`` ya usa para su propio ``@api.ondelete``.
 de documentos EDI vinculados se hace sin elevar privilegios (sin ACL a nivel
 de campo en este puerto, ver ``account_edi_document.py``).
 """
+
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
@@ -31,8 +32,11 @@ from exceptions import UserError
 from tools.translate import _
 
 
-@receiver(pre_delete, sender=IrAttachment,
-          dispatch_uid='account_edi.unlink_except_government_document')
+@receiver(
+    pre_delete,
+    sender=IrAttachment,
+    dispatch_uid='account_edi.unlink_except_government_document',
+)
 def _unlink_except_government_document(sender, instance, **kwargs):
     """≙ ``_unlink_except_government_document`` (``odoo19c: account_edi/
     models/ir_attachment.py:8-15``): no se borra un adjunto que sea un
@@ -45,9 +49,12 @@ def _unlink_except_government_document(sender, instance, **kwargs):
         d for d in linked_documents if d.edi_format_id._needs_web_services()
     ]
     if linked_with_web_services:
-        raise UserError(_(
-            "You can't unlink an attachment being an EDI document sent to "
-            "the government."))
+        raise UserError(
+            _(
+                "You can't unlink an attachment being an EDI document sent to "
+                "the government."
+            )
+        )
 
 
 def apply_account_edi_extensions():

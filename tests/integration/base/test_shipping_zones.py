@@ -9,6 +9,7 @@ resolver de Django, 0 rutas). Lo unico vivo es la lista publica
 (``ShippingZoneListPublicView``, montada en ``config/urls.py`` como
 ``/api/v2/shipping-zones/``) — eso es lo que este archivo cubre ahora.
 """
+
 import pytest
 from decimal import Decimal
 
@@ -34,8 +35,12 @@ def _tabla_zonas_vacia(db):
 @pytest.fixture
 def zona(db):
     return ShippingZone.objects.create(
-        name='Guadalajara', zip_code_prefix='44', is_active=True,
-        estimated_days_min=2, estimated_days_max=4, cost=Decimal('89.00'),
+        name='Guadalajara',
+        zip_code_prefix='44',
+        is_active=True,
+        estimated_days_min=2,
+        estimated_days_max=4,
+        cost=Decimal('89.00'),
     )
 
 
@@ -43,12 +48,18 @@ class TestShippingZonesPublic:
 
     def test_publico_lista_solo_activas(self, api_client, zona, db):
         ShippingZone.objects.create(
-            name='Inactiva', zip_code_prefix='77', is_active=False,
+            name='Inactiva',
+            zip_code_prefix='77',
+            is_active=False,
         )
         r = api_client.get(PUBLIC_URL)
         assert r.status_code == 200
         body = r.json()
-        rows = body['results'] if isinstance(body, dict) and 'results' in body else body
+        rows = (
+            body['results']
+            if isinstance(body, dict) and 'results' in body
+            else body
+        )
         prefixes = [z['zip_code_prefix'] for z in rows]
         assert '44' in prefixes
         assert '77' not in prefixes

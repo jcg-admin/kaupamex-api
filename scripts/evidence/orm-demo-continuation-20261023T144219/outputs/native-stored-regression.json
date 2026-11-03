@@ -1,0 +1,37 @@
+{
+  "head": "6e9aab72966d8e6f18a6cc52eded41c1e37a2272",
+  "index_tree": "8b2f11c67fa388361b1a3efdb0226e68fcf82f5d",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py"
+  },
+  "source_sha256": {
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.fields": "dd113098dbea1a1e27dd3fe989948ced14ae69bea2278f0c2e635185070a36b4"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_uid_cache_key_contract.py": "3c7bddba9df9d9520c42ebecc731c30a3b592a6e35c224c63996e3af379f69f1",
+    "tests/unit/orm/test_native_compute_batch_dispatch.py": "67e4a819e5ebdd0d66bf09710581ca91bc99e3700b5f8e2add62d18a88909f78",
+    "tests/unit/orm/test_environments_cache.py": "e2520e7a005a9bfe743aa5f40f4d8a8b6d550ec1e3002003a5205ac383df77f1",
+    "tests/unit/orm/test_environments_channels.py": "e110212b30a34d79d0f587d1ef1bf5222a358791a6a213f45a720aefc0912b9f",
+    "tests/unit/orm/test_native_stored_compute_contract.py": "03739cb7633b5b2136daddab2f30b7b091c7242b9e065cd5bc317a6175d4e0ac",
+    "tests/unit/account/test_analytic_prefix_compute_contract.py": "6f6f9732e2333ef18a3d80577f5d10d5f2ec0acfb2749e89a73032c91f4355d0",
+    "tests/unit/orm/test_field_cache.py": "133e1c759ae881e3a3fd6f004be5dd55b6398d0a0c29a7925253329ff5eb23e6",
+    "tests/unit/orm/test_nonstored_compute_dispatch.py": "07d043d7ddf7d2e9052add76f218a3b26031293a09ac3ab270de50a9d0e05bc4",
+    "tests/unit/orm/test_record_environment_field_contract.py": "1545ed23a7f1bed52f463977f4e22ee3cf14581365dca8be1c482540c3464baf"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": true,
+  "annul_canonical_scope": false,
+  "annul_record_sudo": false,
+  "keyword_only": false,
+  "batch_only": false,
+  "stored_only": true,
+  "annul_stored_guard": false,
+  "annul_native_batch": false,
+  "pytest_exit": 0,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}

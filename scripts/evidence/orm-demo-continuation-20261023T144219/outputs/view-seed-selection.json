@@ -1,0 +1,27 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "uv run --offline --frozen --project /workspace/thyrox python with full actual ledger",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.view_seed_coherence",
+      "taskId": "TASK-API-0383",
+      "prompt": "Complete existing base0070 canonical view-type mapping for two late historical app-owned report seeds, preserving recorder/history/model/identity and avoiding reversed core-to-addon dependencies",
+      "verify": "Historical-model selected-alias forward repair, preserve all non-type metadata and unrelated rows, idempotence, original PDF pipeline and fresh/historical migration execution; no enum/schema redefinition",
+      "route": "local",
+      "owned": [
+        "addons/sale/migrations/0013_align_report_template_type.py",
+        "addons/sale_stock/migrations/0004_align_report_template_type.py",
+        "tests/unit/base/test_report_template_seed_migrations.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 453,
+  "states": {},
+  "selected": [
+    "TASK-API-0383.view_seed_coherence"
+  ],
+  "admission": "Native738 owner/pending verified; base0070 literal mapping and two late seed bodies inspected; actual838CI failure/pipeline/SQL type mismatch proved; no dependency state invented",
+  "scope": "Bounded bootstrap coherence, not whole loader/N>1/Task acceptance or managed local-model execution"
+}

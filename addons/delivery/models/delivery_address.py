@@ -19,6 +19,7 @@ divergencia es deliberada; converger exigiría versionar el contacto.
 La FK al espejo desapareció con el addon ``orders``: sólo queda ``sale_order``,
 ahora obligatoria.
 """
+
 from django.db import models
 
 from addons.base.models import TimeStampedModel
@@ -27,20 +28,21 @@ from addons.base.models import TimeStampedModel
 class DeliveryAddress(TimeStampedModel):
     """Snapshot de la dirección de envío al momento del checkout. BR-005."""
 
-    sale_order     = models.OneToOneField(
-        'sale.SaleOrder', on_delete=models.CASCADE,
+    sale_order = models.OneToOneField(
+        'sale.SaleOrder',
+        on_delete=models.CASCADE,
         related_name='delivery_address',
     )
     recipient_name = models.CharField(max_length=200)
-    street         = models.CharField(max_length=255)
-    city           = models.CharField(max_length=100)
-    state          = models.CharField(max_length=100)
-    zip_code       = models.CharField(max_length=10)
-    country        = models.CharField(max_length=2, default='MX')
-    phone          = models.CharField(max_length=20, blank=True, default='')
+    street = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    zip_code = models.CharField(max_length=10)
+    country = models.CharField(max_length=2, default='MX')
+    phone = models.CharField(max_length=20, blank=True, default='')
 
     class Meta:
-        db_table     = 'delivery_address'
+        db_table = 'delivery_address'
         verbose_name = 'Dirección de entrega'
 
     def __str__(self):

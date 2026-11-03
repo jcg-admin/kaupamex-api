@@ -1,0 +1,32 @@
+import hashlib,json,subprocess
+from pathlib import Path
+root=Path.cwd();old=root/'scripts/evidence/orm-as-is-substantive-20261021T194156/outputs';run=root/'scripts/evidence/orm-bootstrap-compute-20261021T210528';label=str(run.relative_to(root));head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+paths=['task-assessments.json','task-assessments.md','contractual-assessments.json','implementation-assessments.md']
+(run/'outputs/as-is-input-hashes.json').write_text(json.dumps({name:hashlib.sha256((old/name).read_bytes()).hexdigest() for name in paths},indent=2)+'\n')
+notes={
+'TASK-API-0415':('El despacho histórico completed se conserva. Incremento actual: ResGroups asigna full_name y declara dependencias como Odoo; el descriptor informa falta de asignación sin invocar __str__.126casos focalizados PASS y controles negativos Consumer/diagnóstico/bucket/clave discriminan por separado. No se restaura la fábrica NonStored.','Aceptar sólo el delta acotado tras revisión/CI; subsiste reutilización entre contextos de un objeto Django sin pk (GEN0579), no equivalencia total.'),
+'TASK-API-0417':('in_progress oficial conservado. Corrección de composición Consumer/FieldDescriptor/Environment en8b6ea823: asignación explícita, diagnóstico estable, buckets de id estable y dependencias de contexto derivadas. Las nueve pruebas históricas se reconcilian por responsabilidad y contrato actual, sin exigir retorno de compute ni fábrica retirada.','Revisión/CI e integración autorizada pendientes. GEN0576 completed tiene una divergencia de clave contextual corregida sin reabrir su estado. GEN0579 sigue dependencia para objetos virtuales entre contextos.'),
+'TASK-GEN-0559':('3ffa958e y2f01be1b preservados, sin modificar sus cuerpos de recompute/_recompute_field.16PostgreSQLPASS de regresión tras cambios materiales en lectura/caché. CI39669997683/headb1b6 terminóFAILURE por10636res_users+38transacción, sin otras firmas de setup.','No reimplementar retry. No aceptación global ni integración por PR109 abierto. La migración nueva se verifica como unidad0312/H1120, no se atribuye su deuda a0559.'),
+'TASK-API-0416':('Estado histórico conservado.19casos de colección ya pasaban; los dos antes bloqueados requieren la segunda preparación pytest-Django de este lote. Resultado definitivo en native-pytest-bootstrap.log, no se declara PASS antes de terminar.','Consultar el resultado de la prueba PG de bootstrap y aceptar separadamente del porte completo de las fachadas.')}
+for name in ['task-assessments.json','contractual-assessments.json']:
+ p=old/name;data=json.loads(p.read_text())
+ for row in data['tasks']:
+  if row['citation'] in notes:
+   observation,next_action=notes[row['citation']]
+   row['observed_conclusion']=f'Incremento {head} ({label}): {observation} Observación histórica conservada: '+row['observed_conclusion']
+   row['next_action']=next_action
+   row['verification_and_acceptance']=f'Ver {label}/outputs para comandos/resultados y limitaciones. La observación histórica de campos fuente/PR sigue ligada a su revisión original; no representa integración actual.'
+ if name=='contractual-assessments.json':
+  for row in data['source_groups']:
+   if 'ResGroups.full_name' in row['specific_finding']:
+    row['specific_finding']=f'Actualización {label}: recursión y falta de asignación corregidas para Consumer probado;126casos PASS, controles independientes discriminan. Bucket y clave por metadata derivada funcionan con id estable. Objeto sin pk entre contextos mantiene fallo delimitado GEN0579; no se acepta todo el grupo. Histórico: '+row['specific_finding']
+  for row in data['descriptors']:
+   if row['descriptor'] in ['cache_across_user_environments','record_attribute_boundary','protected_compute_scope']:
+    row['specific_finding']=f'Incremento {label}: Consumer real y diagnóstico sin recursión probados; clave contextual derivada y bucket de id estable corregidos. No prueba toda separación por uid ni objeto virtual sin pk; limitación explícita en virtual-context-limitation.log. Histórico: '+row['specific_finding']
+ p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+for name in ['task-assessments.md','implementation-assessments.md']:
+ with (old/name).open('a') as f:
+  f.write('\n## Incremento bootstrap/compute — 2026-10-21\n\nEsta sección actualiza las conclusiones históricas afectadas sin regenerar la población. Detalle verificable: '+label+'/README.md y outputs.\n\n')
+  for citation,(observation,next_action) in notes.items():f.write('### '+citation+'\n\n'+observation+'\n\nContinuación: '+next_action+'\n\n')
+  f.write('Relaciones nativas adicionales: GEN0312/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/local60 (migración inicial de dos modelos registrados) y GEN0576/misma sesión/local324 (clave de contexto derivada). No nuevas TASK, estados o inventario. Los datos completos e identidad verificada están en admission-and-provenance.json. No se da por cerrado el porte de test_orm ni todas las13funciones de Environment.\n')
+print('Only four affected TASK conclusions and contextual contract groups updated; original snapshots remain in Git')

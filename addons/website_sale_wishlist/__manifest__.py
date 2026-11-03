@@ -14,11 +14,11 @@
     # inversión que el manifiesto de `website_sale` registra (allí el código
     # mide la arista contraria).
     'depends': [
-        'base',           # ResPartner — el dueño de la lista
-        'product',        # Product — lo que se guarda
-        'stock',          # la disponibilidad que se muestra en la lista
-        'sale',           # SaleOrder — el destino al pasar al carrito
-        'website_sale',   # la tienda de la que este addon es satélite
+        'base',  # ResPartner — el dueño de la lista
+        'product',  # Product — lo que se guarda
+        'stock',  # la disponibilidad que se muestra en la lista
+        'sale',  # SaleOrder — el destino al pasar al carrito
+        'website_sale',  # la tienda de la que este addon es satélite
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

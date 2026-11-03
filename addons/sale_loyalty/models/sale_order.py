@@ -10,6 +10,7 @@ Envío y descuento comparten mecanismo por decisión del ejecutor
 borrar-y-recrear, mismos dos hogares separados — cada addon contribuye lo
 suyo.
 """
+
 from decimal import Decimal
 
 from addons.sale.models import SaleOrderLine
@@ -60,6 +61,7 @@ def amount_reward(order):
     las superficies de salida presentan el descuento como cantidad positiva
     (igual que hacía ``OrderValue.discount``), así que aquí se invierte.
     """
-    return -sum((line.price_total
-                 for line in order.order_line.filter(is_reward=True)),
-                Decimal('0.00'))
+    return -sum(
+        (line.price_total for line in order.order_line.filter(is_reward=True)),
+        Decimal('0.00'),
+    )

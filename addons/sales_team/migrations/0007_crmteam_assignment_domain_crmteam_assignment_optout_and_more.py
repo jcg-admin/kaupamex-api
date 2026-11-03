@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo assignment_domain ("Assignment Domain"): filtro adicional al buscar iniciativas sin asignar.',
+                help_text=(
+                    'Odoo assignment_domain ("Assignment Domain"): filtro'
+                    ' adicional al buscar iniciativas sin asignar.'
+                ),
                 max_length=255,
                 verbose_name="Dominio de asignación",
             ),
@@ -35,7 +38,10 @@ class Migration(migrations.Migration):
             name="lead_properties_definition",
             field=models.JSONField(
                 blank=True,
-                help_text='Odoo lead_properties_definition ("Lead Properties"): define las propiedades libres de crm.lead.',
+                help_text=(
+                    'Odoo lead_properties_definition ("Lead Properties"):'
+                    ' define las propiedades libres de crm.lead.'
+                ),
                 null=True,
                 verbose_name="Propiedades de iniciativa",
             ),
@@ -45,7 +51,10 @@ class Migration(migrations.Migration):
             name="use_leads",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo use_leads ("Leads"): calificar las peticiones entrantes antes de convertirlas en oportunidad.',
+                help_text=(
+                    'Odoo use_leads ("Leads"): calificar las peticiones'
+                    ' entrantes antes de convertirlas en oportunidad.'
+                ),
                 verbose_name="Iniciativas",
             ),
         ),

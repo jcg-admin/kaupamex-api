@@ -4,6 +4,7 @@ Adaptación de ``odoo19c: odoo/tools/image.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03). Las imágenes de prueba se
 fabrican con Pillow en memoria: no hay fixtures binarias en el repo.
 """
+
 import base64
 import io
 
@@ -12,11 +13,22 @@ from PIL import Image, ImageDraw
 
 from exceptions import UserError
 from tools.image import (
-    IMAGE_MAX_RESOLUTION, ImageProcess, average_dominant_color,
-    base64_to_image, binary_to_image, get_lightness, get_saturation,
-    get_webp_size, hex_to_rgb, image_apply_opt, image_fix_orientation,
-    image_guess_size_from_field_name, image_process, image_to_base64,
-    is_image_size_above, rgb_to_hex,
+    IMAGE_MAX_RESOLUTION,
+    ImageProcess,
+    average_dominant_color,
+    base64_to_image,
+    binary_to_image,
+    get_lightness,
+    get_saturation,
+    get_webp_size,
+    hex_to_rgb,
+    image_apply_opt,
+    image_fix_orientation,
+    image_guess_size_from_field_name,
+    image_process,
+    image_to_base64,
+    is_image_size_above,
+    rgb_to_hex,
 )
 
 
@@ -31,7 +43,10 @@ def _png_with_ellipse(width=640, height=360):
     image = Image.new('RGB', (width, height), (30, 60, 200))
     ImageDraw.Draw(image).ellipse(
         [(100, 20), (width - 100, height - 20)],
-        fill=(250, 220, 30), outline=(240, 25, 40), width=10)
+        fill=(250, 220, 30),
+        outline=(240, 25, 40),
+        width=10,
+    )
     stream = io.BytesIO()
     image.save(stream, format='PNG')
     return stream.getvalue()
@@ -40,7 +55,8 @@ def _png_with_ellipse(width=640, height=360):
 def _jpeg(width=64, height=32):
     stream = io.BytesIO()
     Image.new('RGB', (width, height), (10, 200, 10)).save(
-        stream, format='JPEG', quality=90)
+        stream, format='JPEG', quality=90
+    )
     return stream.getvalue()
 
 
@@ -110,9 +126,9 @@ class TestCropResize:
         # sólo blanco.
         canvas = Image.new('RGB', (10, 20), (0, 0, 0))
         canvas.paste((255, 255, 255), (0, 0, 10, 10))
-        stream = io.BytesIO(); canvas.save(stream, format='PNG')
-        image = ImageProcess(stream.getvalue()).crop_resize(
-            10, 10, center_y=0)
+        stream = io.BytesIO()
+        canvas.save(stream, format='PNG')
+        image = ImageProcess(stream.getvalue()).crop_resize(10, 10, center_y=0)
         assert image.image.getpixel((5, 5)) == (255, 255, 255)
         assert image.image.getpixel((5, 9)) == (255, 255, 255)
 
@@ -183,8 +199,10 @@ class TestImageProcessEntryPoint:
 class TestFixOrientation:
     def test_orientation_six_rotates_the_image(self):
         canvas = Image.new('RGB', (40, 20))
-        exif = canvas.getexif(); exif[0x112] = 6
-        stream = io.BytesIO(); canvas.save(stream, format='JPEG', exif=exif)
+        exif = canvas.getexif()
+        exif[0x112] = 6
+        stream = io.BytesIO()
+        canvas.save(stream, format='JPEG', exif=exif)
         fixed = image_fix_orientation(Image.open(stream))
         assert fixed.size == (20, 40)
 
@@ -251,19 +269,28 @@ class TestSizeComparison:
 
 
 class TestGuessSizeFromFieldName:
-    @pytest.mark.parametrize('name, size', [
-        ('image', (1024, 1024)), ('image_128', (128, 128)),
-        ('image_1920', (1920, 1920)), ('x_image_512', (0, 0)),
-        ('image_8', (0, 0)), ('avatar', (0, 0)),
-    ])
+    @pytest.mark.parametrize(
+        'name, size',
+        [
+            ('image', (1024, 1024)),
+            ('image_128', (128, 128)),
+            ('image_1920', (1920, 1920)),
+            ('x_image_512', (0, 0)),
+            ('image_8', (0, 0)),
+            ('avatar', (0, 0)),
+        ],
+    )
     def test_the_suffix_is_the_size(self, name, size):
         assert image_guess_size_from_field_name(name) == size
 
 
 class TestColorMaths:
     def test_average_dominant_color_groups_close_colors(self):
-        colors = [(50, (200, 10, 10, 255)), (40, (210, 20, 20, 255)),
-                  (5, (10, 10, 200, 255))]
+        colors = [
+            (50, (200, 10, 10, 255)),
+            (40, (210, 20, 20, 255)),
+            (5, (10, 10, 200, 255)),
+        ]
         dominant, remaining = average_dominant_color(colors)
         assert remaining == [(5, (10, 10, 200, 255))]
         # promedio ponderado de las dos rojas, mitigado a 175 en la banda alta

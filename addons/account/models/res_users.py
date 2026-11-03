@@ -1,4 +1,6 @@
-r"""``res.groups`` extendido por ``account`` — dos métodos, uno bloqueado, uno adaptado.
+r"""
+``res.groups`` extendido por ``account`` — dos métodos, uno bloqueado, uno
+adaptado.
 
 Adaptación de ``addons/account/models/res_users.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 38 líneas) — atribución y
@@ -38,7 +40,8 @@ Porte símbolo por símbolo — 2 de 2, con desenlaces distintos
 
 1. **En este árbol**: ``ResGroups`` (``src/addons/base/models/res_groups.py``)
    no declara ``get_application_groups`` — medido:
-   ``grep -n "def get_application_groups" src/addons/base/models/res_groups.py``
+   ``grep -n "def get_application_groups"
+   src/addons/base/models/res_groups.py``
    → 0 hits.
 2. **En la propia referencia Community**: el método base al que la
    referencia le hace ``super().get_application_groups(domain)`` **tampoco
@@ -84,6 +87,7 @@ dato, no código); se porta igual porque su lógica es correcta y
 autocontenida — un ``ir.model.data`` ausente resuelve a ``None`` y el método
 no hace nada, sin lanzar.
 """
+
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 
@@ -130,4 +134,6 @@ def apply_account_extensions():
     finja una base inexistente.
     """
     if not hasattr(ResGroups, '_activate_group_account_secured'):
-        ResGroups._activate_group_account_secured = _activate_group_account_secured
+        ResGroups._activate_group_account_secured = (
+            _activate_group_account_secured
+        )

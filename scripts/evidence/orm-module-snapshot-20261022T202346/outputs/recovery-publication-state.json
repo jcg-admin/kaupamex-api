@@ -1,0 +1,34 @@
+{
+  "kaupamex-api": {
+    "exit_code": 0,
+    "pr": {
+      "base": "develop",
+      "head": "3504014a9e016b6c99846fd26ad914d5465dc189",
+      "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+      "mergeable": true,
+      "merged": false,
+      "number": 109,
+      "state": "open"
+    },
+    "remote": {
+      "exit_code": 0,
+      "ref": "3504014a9e016b6c99846fd26ad914d5465dc189\trefs/heads/feature/codex-workspace-bootstrap"
+    }
+  },
+  "kaupamex-docs": {
+    "exit_code": 0,
+    "pr": {
+      "base": "develop",
+      "head": "1aca4914a72d05a804f0a6a169e5495a52d7bd1a",
+      "html_url": "https://github.com/jcg-admin/kaupamex-docs/pull/154",
+      "mergeable": true,
+      "merged": false,
+      "number": 154,
+      "state": "open"
+    },
+    "remote": {
+      "exit_code": 0,
+      "ref": "1aca4914a72d05a804f0a6a169e5495a52d7bd1a\trefs/heads/feature/codex-workspace-bootstrap"
+    }
+  }
+}

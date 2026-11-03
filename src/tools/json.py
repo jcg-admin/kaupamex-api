@@ -8,7 +8,8 @@ Dos piezas con papeles distintos:
   a nivel JSON (``<`` → ``\\u003c``), que el parser deshace sin diferencia en
   el resultado. Se porta con su razonamiento, que es el contrato.
 - **``stringify_keys``** — normaliza las claves de un mapa a cadena antes de
-  serializar. Su consumidor es ``IrActionsServer._compute_webhook_sample_payload``,
+  serializar. Su consumidor es
+  ``IrActionsServer._compute_webhook_sample_payload``,
   cuya carga puede traer mapas con claves que no son cadena.
 
 Cobertura medida
@@ -33,7 +34,7 @@ Rama                         De dónde sale su pieza aquí
                              instala como atributo (``:440``, ``:451``).
 ``lazy``                     portada en ``tools/func.py`` por esta tarea
 ``ReadonlyDict``             portada en ``tools/misc.py`` por esta tarea
-``Domain``                   ``orm.domains.Domain``, ya existente
+``Domain``                   ``orm.domains.Domain``, registrado por ese módulo
 ``bytes`` / resto            stdlib
 ===========================  ==================================================
 
@@ -57,6 +58,7 @@ opción: ``orm/fields.py`` deliberadamente **no** lo re-exporta —a diferencia
 de la fuente, que sí (``odoo/orm/fields.py:24``)— porque aquí la dirección de
 dependencia entre campo y dominio está invertida (``orm/fields.py:1975-1976``).
 """
+
 import json as json_
 import re
 from collections.abc import Mapping
@@ -64,7 +66,6 @@ from datetime import date, datetime
 
 import markupsafe
 
-from orm.domains import Domain
 from orm.fields_temporal import Date, Datetime
 from tools.func import lazy
 from tools.misc import ReadonlyDict
@@ -88,11 +89,13 @@ class _ScriptSafe(str):
     """≙ ``_ScriptSafe`` (``json.py:18-27``) — la cadena que sabe escaparse."""
 
     def __html__(self):
-        return markupsafe.Markup(re.sub(
-            r'[<>&\u2028\u2029]',
-            lambda m: JSON_SCRIPTSAFE_MAPPER[m[0]],
-            self,
-        ))
+        return markupsafe.Markup(
+            re.sub(
+                r'[<>&\u2028\u2029]',
+                lambda m: JSON_SCRIPTSAFE_MAPPER[m[0]],
+                self,
+            )
+        )
 
 
 class JSON:
@@ -102,7 +105,8 @@ class JSON:
         return json_.loads(*args, **kwargs)
 
     def dumps(self, *args, **kwargs):
-        """Serializa dejando la cadena lista para incrustarse en un ``<script>``.
+        """
+        Serializa dejando la cadena lista para incrustarse en un ``<script>``.
 
         Un ``<script>`` es un contexto especial: sólo espera ``</script>`` y no
         interpreta nada más, así que el escapado HTML estándar no sirve —rompe
@@ -125,6 +129,21 @@ class JSON:
 
 #: ≙ ``scriptsafe = JSON()`` (``json.py:60``).
 scriptsafe = JSON()
+
+
+#: Los tipos que se serializan como su lista — ``Domain`` (``json.py:74``).
+#: Lo registra ``orm.domains`` al cargarse: este módulo no puede importarlo,
+#: porque ``orm.domains`` arrastra ``orm.fields`` y éste a ``orm.fields_misc``,
+#: que serializa con :func:`json_default`. El registro invierte esa arista en
+#: vez de diferir el import.
+_DOMAIN_TYPES = ()
+
+
+def register_domain_type(domain_type):
+    """Declara un tipo que :func:`json_default` entrega como lista."""
+    global _DOMAIN_TYPES
+    if domain_type not in _DOMAIN_TYPES:
+        _DOMAIN_TYPES = (*_DOMAIN_TYPES, domain_type)
 
 
 def json_default(obj):
@@ -154,7 +173,7 @@ def json_default(obj):
         return dict(obj)
     if isinstance(obj, bytes):
         return obj.decode()
-    if isinstance(obj, Domain):
+    if isinstance(obj, _DOMAIN_TYPES):
         return list(obj)
     return str(obj)
 

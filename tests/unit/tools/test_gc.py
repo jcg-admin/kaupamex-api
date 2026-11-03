@@ -10,10 +10,17 @@ que puede fallar: si el gestor de contexto encendiera el recolector al salir,
 apagaría la intención de quien lo había apagado antes. Un caso que sólo mirara
 el camino feliz no distinguiría las dos implementaciones.
 """
+
 import gc
 
 from tools import gc as gc_tools
-from tools.gc import _timing_gc_callback, _to_ms, disabling_gc, gc_info, gc_set_timing
+from tools.gc import (
+    _timing_gc_callback,
+    _to_ms,
+    disabling_gc,
+    gc_info,
+    gc_set_timing,
+)
 
 
 def _timing_off():
@@ -71,7 +78,12 @@ def test_the_report_declares_whether_it_measured_anything():
     _timing_off()
     unmeasured = gc_info()
     assert unmeasured['time'] == ()
-    assert set(unmeasured) == {'cumulative_time', 'time', 'count', 'thresholds'}
+    assert set(unmeasured) == {
+        'cumulative_time',
+        'time',
+        'count',
+        'thresholds',
+    }
     assert len(unmeasured['count']) == 3
     assert len(unmeasured['thresholds']) == 2
 

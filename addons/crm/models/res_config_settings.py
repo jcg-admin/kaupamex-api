@@ -78,6 +78,7 @@ Divergencia declarada
 resultado, y ``dateutil`` no es dependencia del proyecto (mismo criterio que
 ``digest``, ``resource_calendar_leaves`` y ``certificate``).
 """
+
 import datetime
 
 from django.utils import timezone
@@ -90,8 +91,9 @@ from tools.translate import _
 INTERVAL_UNITS = ('minutes', 'hours', 'days', 'weeks')
 
 
-def _get_crm_auto_assignmment_run_datetime(run_datetime, run_interval,
-                                           run_interval_number):
+def _get_crm_auto_assignmment_run_datetime(
+    run_datetime, run_interval, run_interval_number
+):
     """≙ ``_get_crm_auto_assignmment_run_datetime`` (``:164-169``).
 
     El nombre conserva la errata de la fuente (``assignmment``, con tres emes):
@@ -103,7 +105,8 @@ def _get_crm_auto_assignmment_run_datetime(run_datetime, run_interval,
     if run_interval == 'manual':
         return run_datetime if run_datetime else False
     return timezone.now() + datetime.timedelta(
-        **{run_interval: run_interval_number})
+        **{run_interval: run_interval_number}
+    )
 
 
 def action_crm_assign_leads():
@@ -129,5 +132,9 @@ def apply_crm_extensions():
     return None
 
 
-__all__ = ['INTERVAL_UNITS', '_get_crm_auto_assignmment_run_datetime',
-           'action_crm_assign_leads', 'apply_crm_extensions']
+__all__ = [
+    'INTERVAL_UNITS',
+    '_get_crm_auto_assignmment_run_datetime',
+    'action_crm_assign_leads',
+    'apply_crm_extensions',
+]

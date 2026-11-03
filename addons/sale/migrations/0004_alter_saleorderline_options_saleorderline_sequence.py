@@ -23,7 +23,9 @@ class Migration(migrations.Migration):
             field=models.IntegerField(
                 db_index=True,
                 default=10,
-                help_text="Orden de la línea dentro de la orden (Odoo sequence).",
+                help_text=(
+                    "Orden de la línea dentro de la orden (Odoo sequence)."
+                ),
             ),
         ),
     ]

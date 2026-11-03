@@ -11,6 +11,7 @@ Diseño (heredado de payments/webhooks.py):
   - Idempotencia por unique(gateway_payment_id) en BD.
   - SaleOrder.status → PAID cuando pago aprobado (via webhook_processing).
 """
+
 import json
 import logging
 from decimal import Decimal
@@ -23,10 +24,18 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from mercadopago.webhook import WebhookSignatureValidator, InvalidWebhookSignatureError
+from mercadopago.webhook import (
+    WebhookSignatureValidator,
+    InvalidWebhookSignatureError,
+)
 from django.db import IntegrityError, transaction
 
-from addons.payment.models import Payment, PaymentGatewayEvent, WebhookEvent, Chargeback
+from addons.payment.models import (
+    Payment,
+    PaymentGatewayEvent,
+    WebhookEvent,
+    Chargeback,
+)
 from addons.payment.webhook_processing import _process_payment_approval
 from addons.payment.models import PaymentGateway as PGModel
 from addons.payment_mercado_pago.gateway import MercadoPagoGateway
@@ -35,16 +44,19 @@ logger = logging.getLogger('apps')
 
 
 def _get_mp_client_secret() -> str | None:
-    """Lee el client_secret de MercadoPago para verificar firmas de webhooks."""
+    """
+    Lee el client_secret de MercadoPago para verificar firmas de webhooks.
+    """
     try:
-        gw    = PGModel.objects.get(gateway='MERCADOPAGO', is_active=True)
+        gw = PGModel.objects.get(gateway='MERCADOPAGO', is_active=True)
         creds = gw.get_credentials()
         return creds.get('client_secret')
     except Exception:
         # Loud-log: si no podemos leer el secret, todos los webhooks
         # MP seran rechazados con 401. Operaciones debe verlo. DEC-DOC-008.
         logger.error(
-            'MP webhook: cannot read client_secret', exc_info=True,
+            'MP webhook: cannot read client_secret',
+            exc_info=True,
         )
         return None
 
@@ -54,12 +66,14 @@ def _verify_mp_signature(request, data_id: str) -> bool:
     Verifica la firma del webhook de MercadoPago con el validador oficial del
     SDK (``mercadopago.webhook.WebhookSignatureValidator``). FR-PAY-03.01.
 
-    El validador arma el manifest ``id:{data.id};request-id:{x-request-id};ts:{ts}``
+    El validador arma el manifest
+    ``id:{data.id};request-id:{x-request-id};ts:{ts}``
     con las reglas correctas de MP: toma el ``data.id`` del **query param**, lo
     pasa a minúsculas, y **omite** los segmentos ausentes antes del HMAC
     (F-WH-01/02/03). Comparación en tiempo constante (anti-timing).
 
-    ``data_id``: se toma del query param ``data.id`` (spec de MP); si no viene en
+    ``data_id``: se toma del query param ``data.id`` (spec de MP); si no viene
+    en
     el query, se usa el valor recibido (body) como respaldo.
 
     NOTA (F-WH-07): NO se pasa ``tolerance_seconds`` a propósito — MP reintenta
@@ -67,29 +81,33 @@ def _verify_mp_signature(request, data_id: str) -> bool:
     corta rechazaría reintentos legítimos. El replay lo neutralizan el dedup
     (``WebhookEvent``) y ``verify_payment``.
     """
-    x_signature  = request.META.get('HTTP_X_SIGNATURE')
+    x_signature = request.META.get('HTTP_X_SIGNATURE')
     x_request_id = request.META.get('HTTP_X_REQUEST_ID')
-    data_id_q    = request.GET.get('data.id') or data_id
+    data_id_q = request.GET.get('data.id') or data_id
 
     secret = _get_mp_client_secret()
     if not secret:
         # DEC-BC-01 (2026-05-21): fail-closed. Sin secret, rechazar todo webhook
         # (la rama histórica "return True" abría fraude). El system check
         # payments.E001 bloquea el deploy si DEBUG=False y falta el secret.
-        logger.error('MP webhook: client_secret no configurado — rechazando webhook')
+        logger.error(
+            'MP webhook: client_secret no configurado — rechazando webhook'
+        )
         return False
 
     try:
-        WebhookSignatureValidator.validate(x_signature, x_request_id, data_id_q, secret)
+        WebhookSignatureValidator.validate(
+            x_signature, x_request_id, data_id_q, secret
+        )
         return True
     except InvalidWebhookSignatureError:
         return False
 
 
-
 # =============================================================================
 # UC-PAY-03 — Webhook de MercadoPago
 # =============================================================================
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class MercadoPagoWebhookView(APIView):
@@ -103,16 +121,17 @@ class MercadoPagoWebhookView(APIView):
       - Siempre responde 200 para que MP no reintente (paso 4 del flujo).
       - Procesamiento idempotente por gateway_payment_id.
     """
+
     permission_classes = [AllowAny]
     serializer_class = serializers.Serializer
 
     @extend_schema(
         summary='Webhook de MercadoPago',
         description=(
-            'Recibe notificaciones de pago de MercadoPago. '
-            'Verifica la firma HMAC-SHA256 antes de procesar. '
-            'Idempotente: el mismo evento procesado dos veces no cambia el estado. '
-            'Siempre retorna 200 para que MP no reintente la entrega.'
+            'Recibe notificaciones de pago de MercadoPago. Verifica la firma'
+            ' HMAC-SHA256 antes de procesar. Idempotente: el mismo evento'
+            ' procesado dos veces no cambia el estado. Siempre retorna 200'
+            ' para que MP no reintente la entrega.'
         ),
         responses={200: OpenApiResponse(description='Evento recibido.')},
         tags=['payments-webhooks'],
@@ -130,15 +149,18 @@ class MercadoPagoWebhookView(APIView):
             return Response({'status': 'invalid_json'}, status=400)
 
         # Solo procesar notificaciones de tipo 'payment' o 'chargebacks'
-        event_type   = data.get('type', '')
-        resource_id  = str(data.get('data', {}).get('id', ''))
-        request_id   = request.META.get('HTTP_X_REQUEST_ID', '')
+        event_type = data.get('type', '')
+        resource_id = str(data.get('data', {}).get('id', ''))
+        request_id = request.META.get('HTTP_X_REQUEST_ID', '')
 
         if event_type == 'chargebacks' and resource_id:
             # F-WH-08: verificar la firma también en contracargos ANTES de
             # procesar (antes se procesaba sin autenticar → webhook forjable).
             if not _verify_mp_signature(request, resource_id):
-                logger.warning('MP webhook: firma inválida para chargeback=%s', resource_id)
+                logger.warning(
+                    'MP webhook: firma inválida para chargeback=%s',
+                    resource_id,
+                )
                 return Response({'status': 'invalid_signature'}, status=401)
             return self._handle_chargeback(data, resource_id)
 
@@ -148,10 +170,12 @@ class MercadoPagoWebhookView(APIView):
         # el mismo camino; solo cambia la consulta al gateway (verify_order vs
         # verify_payment) y el lookup del Payment (mp_order_id vs
         # gateway_payment_id).
-        is_order   = event_type == 'order'
+        is_order = event_type == 'order'
         payment_id = resource_id
         if event_type not in ('payment', 'order') or not payment_id:
-            return Response({'status': 'ignored', 'type': event_type}, status=200)
+            return Response(
+                {'status': 'ignored', 'type': event_type}, status=200
+            )
 
         # H-CICLO22-01: verificar firma ANTES del dedup.
         # El orden anterior (dedup → firma) permitía que un atacante con un
@@ -162,7 +186,9 @@ class MercadoPagoWebhookView(APIView):
         # Solución: rechazar con 401 cualquier webhook con firma inválida
         # ANTES de persistir el evento en la tabla de dedup.
         if not _verify_mp_signature(request, payment_id):
-            logger.warning('MP webhook: firma inválida para payment_id=%s', payment_id)
+            logger.warning(
+                'MP webhook: firma inválida para payment_id=%s', payment_id
+            )
             return Response({'status': 'invalid_signature'}, status=401)
 
         # DEC-BC-04: dedup via WebhookEvent solo después de validar la firma.
@@ -177,7 +203,10 @@ class MercadoPagoWebhookView(APIView):
                     raw_body=raw_body,
                 )
         except IntegrityError:
-            logger.info('MP webhook: evento duplicado payment_id=%s — 200 idempotente', payment_id)
+            logger.info(
+                'MP webhook: evento duplicado payment_id=%s — 200 idempotente',
+                payment_id,
+            )
             return Response({'status': 'already_processed'}, status=200)
 
         # Consultar estado definitivo al gateway (paso 6 del flujo).
@@ -185,7 +214,11 @@ class MercadoPagoWebhookView(APIView):
         # verify_payment(payment_id) legacy.
         try:
             gw = MercadoPagoGateway()
-            gw_result = gw.verify_order(payment_id) if is_order else gw.verify_payment(payment_id)
+            gw_result = (
+                gw.verify_order(payment_id)
+                if is_order
+                else gw.verify_payment(payment_id)
+            )
         except Exception as exc:
             # DEC-BC-06: 503 (Service Unavailable) indica gateway externo
             # caido. MP hace exponential backoff en 5xx y reintenta el
@@ -195,16 +228,22 @@ class MercadoPagoWebhookView(APIView):
 
         # Para orders, el ``data.id`` es la ORD; el PAY (para matchear el
         # Payment y procesar la aprobación) sale de la consulta a Orders.
-        pay_gpi = (gw_result.gateway_payment_id or payment_id) if is_order else payment_id
+        pay_gpi = (
+            (gw_result.gateway_payment_id or payment_id)
+            if is_order
+            else payment_id
+        )
 
         # Registrar evento de auditoría
         payment = (
-            Payment.objects
-            .filter(preference_id__isnull=False, gateway='MERCADOPAGO')
+            Payment.objects.filter(
+                preference_id__isnull=False, gateway='MERCADOPAGO'
+            )
             .filter(sale_order__name=data.get('external_reference', ''))
             .first()
         )
-        # Si no encontramos por order_number: en orders buscamos por mp_order_id
+        # Si no encontramos por order_number: en orders buscamos por
+        # mp_order_id
         # (ORD), en legacy por gateway_payment_id (payment id).
         if not payment and is_order:
             payment = Payment.objects.filter(
@@ -255,7 +294,8 @@ class MercadoPagoWebhookView(APIView):
         elif gw_result.status in ('rejected', 'cancelled'):
             # 'cancelled' ocurre cuando el voucher de un método no-tarjeta
             # (OXXO, Paycash, cajero, SPEI) vence sin haber sido pagado.
-            # Tratamos como FAILED para que la orden quede disponible para retry.
+            # Tratamos como FAILED para que la orden quede disponible
+            # para retry.
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
@@ -263,10 +303,12 @@ class MercadoPagoWebhookView(APIView):
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
-                        raw_body=json.dumps({
-                            'gateway_payment_id': payment_id,
-                            'mp_status': gw_result.status,
-                        }),
+                        raw_body=json.dumps(
+                            {
+                                'gateway_payment_id': payment_id,
+                                'mp_status': gw_result.status,
+                            }
+                        ),
                     )
 
         return Response({'status': 'processed'}, status=200)
@@ -282,45 +324,56 @@ class MercadoPagoWebhookView(APIView):
             cb_data = MercadoPagoGateway().get_chargeback(chargeback_id)
             cb_resp = cb_data.get('response', {})
         except Exception as exc:
-            logger.error('MP chargeback webhook: error consultando chargeback %s: %s', chargeback_id, exc)
+            logger.error(
+                'MP chargeback webhook: error consultando chargeback %s: %s',
+                chargeback_id,
+                exc,
+            )
             return Response({'status': 'gateway_error'}, status=200)
 
         payment = Payment.objects.filter(
-            gateway_payment_id=gateway_payment_id, gateway='MERCADOPAGO',
+            gateway_payment_id=gateway_payment_id,
+            gateway='MERCADOPAGO',
         ).first()
 
         status_map = {
-            'pending':   Chargeback.STATUS_PENDING,
-            'lost':      Chargeback.STATUS_LOST,
-            'won':       Chargeback.STATUS_WON,
+            'pending': Chargeback.STATUS_PENDING,
+            'lost': Chargeback.STATUS_LOST,
+            'won': Chargeback.STATUS_WON,
             'cancelled': Chargeback.STATUS_CANCELLED,
-            'closed':    Chargeback.STATUS_CLOSED,
+            'closed': Chargeback.STATUS_CLOSED,
         }
-        mp_status    = cb_resp.get('status', 'pending')
-        cb_status    = status_map.get(mp_status, Chargeback.STATUS_PENDING)
-        amount       = cb_resp.get('amount', 0)
-        reason_code  = cb_resp.get('reason_code', '')
-        description  = cb_resp.get('description', '')
-        gw_payment   = str(cb_resp.get('payment_id', gateway_payment_id))
+        mp_status = cb_resp.get('status', 'pending')
+        cb_status = status_map.get(mp_status, Chargeback.STATUS_PENDING)
+        amount = cb_resp.get('amount', 0)
+        reason_code = cb_resp.get('reason_code', '')
+        description = cb_resp.get('description', '')
+        gw_payment = str(cb_resp.get('payment_id', gateway_payment_id))
 
         with transaction.atomic():
             cb, created = Chargeback.objects.get_or_create(
                 gateway_chargeback_id=chargeback_id,
                 defaults={
-                    'payment':            payment,
+                    'payment': payment,
                     'gateway_payment_id': gw_payment,
-                    'amount':             amount,
-                    'status':             cb_status,
-                    'reason_code':        reason_code,
-                    'description':        description,
+                    'amount': amount,
+                    'status': cb_status,
+                    'reason_code': reason_code,
+                    'description': description,
                 },
             )
             if not created:
-                cb.status      = cb_status
+                cb.status = cb_status
                 cb.description = description
                 cb.save(update_fields=['status', 'description', 'updated_at'])
 
         action = 'created' if created else 'updated'
-        logger.info('MP chargeback webhook: %s chargeback_id=%s status=%s', action, chargeback_id, cb_status)
-        return Response({'status': 'processed', 'chargeback': action}, status=200)
-
+        logger.info(
+            'MP chargeback webhook: %s chargeback_id=%s status=%s',
+            action,
+            chargeback_id,
+            cb_status,
+        )
+        return Response(
+            {'status': 'processed', 'chargeback': action}, status=200
+        )

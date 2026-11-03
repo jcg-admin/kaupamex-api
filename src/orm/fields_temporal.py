@@ -53,9 +53,15 @@ declaran.
 
 **Corregido 2026-08-29.** Esta declaración decía *«``pytz``, que no está
 instalado aquí —medido—»*, y esa medición caducó en el mismo pase que la
-invalidó: ``pytz`` **sí** está instalado desde el porte de ``tools/safe_eval`` —la fuente lo expone a toda expresión almacenada (``safe_eval.py:498``) y sin él ese porte no cierra—, pero **no** es el mecanismo de husos de este árbol: Django 6 lo abandonó y su propio ``django.utils.timezone`` resuelve por ``zoneinfo``, que lee la misma base de datos IANA. La decisión no cambia; su razón sí, y una razón
+invalidó: ``pytz`` **sí** está instalado desde el porte de ``tools/safe_eval``
+—la fuente lo expone a toda expresión almacenada (``safe_eval.py:498``) y sin
+él ese porte no cierra—, pero **no** es el mecanismo de husos de este árbol:
+Django 6 lo abandonó y su propio ``django.utils.timezone`` resuelve por
+``zoneinfo``, que lee la misma base de datos IANA. La decisión no cambia; su
+razón sí, y una razón
 falsa se cita como si fuera medida.
 """
+
 import logging
 from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo, available_timezones
@@ -86,6 +92,7 @@ DATETIME_LENGTH = len(datetime.now().strftime(DATETIME_FORMAT))
 # === BaseDate — las propiedades comunes de Date y Datetime ==================
 # ≙ ``BaseDate`` (``odoo19c: fields_temporal.py:27-101``).
 
+
 def _base_date_expression_getter(self, field_expr):
     """``expression_getter`` — ≙ ``BaseDate.expression_getter`` (``:35-41``).
 
@@ -101,7 +108,8 @@ def _base_date_expression_getter(self, field_expr):
 
     get_property = self._expression_property_getter(property_name)
     return lambda record: (
-        (value := getattr(record, self.name)) and get_property(value))
+        (value := getattr(record, self.name)) and get_property(value)
+    )
 
 
 def _base_date_expression_property_getter(self, property_name):
@@ -136,20 +144,24 @@ def _base_date_expression_property_getter(self, property_name):
         case 'hour_number' | 'minute_number' | 'second_number':
             # para las fechas siempre es 0
             return lambda value: 0
-    assert property_name not in READ_GROUP_NUMBER_GRANULARITY, \
-        f"Property not implemented {property_name}"
+    assert (
+        property_name not in READ_GROUP_NUMBER_GRANULARITY
+    ), f"Property not implemented {property_name}"
     raise ValueError(
         f"Error when processing the granularity {property_name} is not "
-        f"supported. Only "
-        f"{', '.join(READ_GROUP_NUMBER_GRANULARITY.keys())} are supported")
+        "supported. Only "
+        f"{', '.join(READ_GROUP_NUMBER_GRANULARITY.keys())} are supported"
+    )
 
 
-def _base_date_property_to_sql(self, field_sql, property_name, model=None,
-                               alias=None, query=None):
+def _base_date_property_to_sql(
+    self, field_sql, property_name, model=None, alias=None, query=None
+):
     """``property_to_sql`` — ≙ ``:80-95``. La expresión SQL de la granularidad.
 
     La fuente lee la zona de ``model.env.context``; aquí el contexto es de
-    proceso (``orm.environments.get_context``). ``model``, ``alias`` y ``query``
+    proceso (``orm.environments.get_context``). ``model``, ``alias`` y
+    ``query``
     se conservan en la firma —el llamador de la fuente los pasa
     posicionalmente— y quedan sin uso.
     """
@@ -157,24 +169,29 @@ def _base_date_property_to_sql(self, field_sql, property_name, model=None,
     if self.type == 'datetime' and (tz_name := get_context().get('tz')):
         # sólo se usa la zona que viene del contexto
         if tz_name in available_timezones():
-            sql_expr = SQL("timezone(%s, timezone('UTC', %s))",
-                           tz_name, sql_expr)
+            sql_expr = SQL(
+                "timezone(%s, timezone('UTC', %s))", tz_name, sql_expr
+            )
         else:
-            _logger.warning("Grouping in unknown / legacy timezone %r", tz_name)
+            _logger.warning(
+                "Grouping in unknown / legacy timezone %r", tz_name
+            )
     if property_name == 'tz':
         # sólo se fija la zona
         return sql_expr
     if property_name not in READ_GROUP_NUMBER_GRANULARITY:
         raise ValueError(
             f'Error when processing the granularity {property_name} is not '
-            f'supported. Only '
-            f'{", ".join(READ_GROUP_NUMBER_GRANULARITY.keys())} are supported')
+            'supported. Only '
+            f'{", ".join(READ_GROUP_NUMBER_GRANULARITY.keys())} are supported'
+        )
     granularity = READ_GROUP_NUMBER_GRANULARITY[property_name]
     return SQL('date_part(%s, %s)', granularity, sql_expr)
 
 
-def _base_date_convert_to_column(self, value, record, values=None,
-                                 validate=True):
+def _base_date_convert_to_column(
+    self, value, record, values=None, validate=True
+):
     """``convert_to_column`` — ≙ ``:97-101``.
 
     psycopg escribe ``date``/``datetime`` directamente; la excepción es el
@@ -191,6 +208,7 @@ def _base_date_convert_to_column(self, value, record, values=None,
 # ≙ ``Date`` (``odoo19c: fields_temporal.py:104-190``). La fuente los declara
 # ``@staticmethod`` dentro de la clase; aquí viven en el módulo y se adjuntan
 # tanto al despachador como a la clase de Django.
+
 
 def _date_today(*args):
     """``Date.today`` — ≙ ``:113-118``. El día en curso, en formato del ORM.
@@ -213,7 +231,8 @@ def _date_context_today(record=None, timestamp=None):
     """
     today = timestamp or datetime.now()
     tz = get_current_tz()
-    today_utc = today.replace(tzinfo=timezone.utc)  # UTC = sin horario de verano
+    # UTC = sin horario de verano
+    today_utc = today.replace(tzinfo=timezone.utc)
     return today_utc.astimezone(tz).date()
 
 
@@ -267,6 +286,7 @@ def _date_convert_to_display_name(self, value, record):
 # === Datetime ===============================================================
 # ≙ ``Datetime`` (``odoo19c: fields_temporal.py:191-300``).
 
+
 def _datetime_now(*args):
     """``Datetime.now`` — ≙ ``:198-204``. Día y hora en formato del ORM.
 
@@ -301,7 +321,9 @@ def _datetime_context_timestamp(record, timestamp):
 
 
 def _datetime_to_datetime(value):
-    """``Datetime.to_datetime`` — ≙ ``:230-249``. Convierte a :class:`datetime`."""
+    """
+    ``Datetime.to_datetime`` — ≙ ``:230-249``. Convierte a :class:`datetime`.
+    """
     if not value:
         return None
     if isinstance(value, date):
@@ -339,7 +361,7 @@ def _datetime_to_datetime(value):
     # ``convert_to_column``: ``'2020-01-01T00:00:00Z'`` reventó el ``save()``
     # de ``loyalty.voucher``.
     try:
-        return datetime.strptime(value, DATETIME_FORMAT[:len(value) - 2])
+        return datetime.strptime(value, DATETIME_FORMAT[: len(value) - 2])
     except ValueError:
         parsed = parse_datetime(value)
         if parsed is None:
@@ -348,7 +370,8 @@ def _datetime_to_datetime(value):
 
 
 def _datetime_to_string(value):
-    """``Datetime.to_string`` — ≙ ``:255-264``. De ``datetime``/``date`` a cadena.
+    """
+    ``Datetime.to_string`` — ≙ ``:255-264``. De ``datetime``/``date`` a cadena.
 
     Si ``value`` es un ``date``, la parte horaria queda a medianoche.
     """
@@ -399,6 +422,7 @@ def _datetime_convert_to_display_name(self, value, record):
 
 # === Adjuntar: el equivalente exacto de declarar el método en la clase ======
 
+
 def _attach_base_date(field_class, type_name, column_type):
     """Cuelga de ``field_class`` lo que la fuente declara en ``BaseDate``.
 
@@ -421,8 +445,9 @@ def _attach_base_date(field_class, type_name, column_type):
     field_class.add = staticmethod(date_utils.add)
     field_class.subtract = staticmethod(date_utils.subtract)
     field_class.expression_getter = _base_date_expression_getter
-    field_class._expression_property_getter = \
+    field_class._expression_property_getter = (
         _base_date_expression_property_getter
+    )
     field_class.property_to_sql = _base_date_property_to_sql
     field_class.convert_to_column = _base_date_convert_to_column
 
@@ -444,7 +469,8 @@ models.DateField.convert_to_display_name = _date_convert_to_display_name
 models.DateTimeField.now = staticmethod(_datetime_now)
 models.DateTimeField.today = staticmethod(_datetime_today)
 models.DateTimeField.context_timestamp = staticmethod(
-    _datetime_context_timestamp)
+    _datetime_context_timestamp
+)
 models.DateTimeField.to_datetime = staticmethod(_datetime_to_datetime)
 #: Ídem ``Date.from_string`` — obsoleto, conservado (``:251-253``).
 models.DateTimeField.from_string = staticmethod(_datetime_to_datetime)
@@ -452,7 +478,9 @@ models.DateTimeField.to_string = staticmethod(_datetime_to_string)
 models.DateTimeField.expression_getter = _datetime_expression_getter
 models.DateTimeField.convert_to_cache = _datetime_convert_to_cache
 models.DateTimeField.convert_to_export = _datetime_convert_to_export
-models.DateTimeField.convert_to_display_name = _datetime_convert_to_display_name
+models.DateTimeField.convert_to_display_name = (
+    _datetime_convert_to_display_name
+)
 
 
 Date = make_dispatcher('Date', 'date', models.DateField)

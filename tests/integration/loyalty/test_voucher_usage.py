@@ -7,6 +7,7 @@ Verifica:
   - test_current_uses_increments_atomic: current_uses se incrementa en el
     checkout dentro de la transaccion atomica.
 """
+
 import pytest
 from decimal import Decimal
 from django.utils import timezone
@@ -28,8 +29,8 @@ VOUCHER_APPLY_URL = '/api/v2/cart/voucher/'
 # no hay ningún POST que "cree" un pedido. Por eso ``POST /api/v2/orders/``
 # responde 405: ``OrderListView`` es el historial (GET), y ese 405 es la
 # respuesta correcta, no un hueco. Ver H-API-282 para el mismo patrón.
-CHECKOUT_URL      = '/api/v2/checkout/express/'
-ITEMS_URL         = '/api/v2/cart/items/'
+CHECKOUT_URL = '/api/v2/checkout/express/'
+ITEMS_URL = '/api/v2/cart/items/'
 
 
 def _future(**kw):
@@ -39,7 +40,8 @@ def _future(**kw):
 @pytest.fixture
 def zone_cdmx(db):
     zone, _ = ShippingZone.objects.get_or_create(
-        zip_code_prefix='06', defaults={'name': 'Ciudad de México', 'is_active': True}
+        zip_code_prefix='06',
+        defaults={'name': 'Ciudad de México', 'is_active': True},
     )
     return zone
 
@@ -66,8 +68,11 @@ def cat_vou(db):
 @pytest.fixture
 def product_vou(db, cat_vou):
     return make_product(
-        name='Producto Voucher', default_code='VOU-001',
-        price=Decimal('200.00'), stock=10, categ=cat_vou,
+        name='Producto Voucher',
+        default_code='VOU-001',
+        price=Decimal('200.00'),
+        stock=10,
+        categ=cat_vou,
     )
 
 
@@ -82,16 +87,24 @@ class TestVoucherAlreadyApplied:
         con VOUCHER_ALREADY_APPLIED en el segundo intento.
         """
         # Agregar un item para que el carrito tenga subtotal
-        auth_client.post(ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1})
+        auth_client.post(
+            ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1}
+        )
 
         # Primera aplicacion → 200
-        res1 = auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
-        assert res1.status_code == 200, f'Primera aplicacion debio ser 200; {res1.data}'
+        res1 = auth_client.post(
+            VOUCHER_APPLY_URL, {'code': voucher_single.code}
+        )
+        assert (
+            res1.status_code == 200
+        ), f'Primera aplicacion debio ser 200; {res1.data}'
 
         # Segunda aplicacion (misma sesion, mismo carrito) → 409
-        res2 = auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
+        res2 = auth_client.post(
+            VOUCHER_APPLY_URL, {'code': voucher_single.code}
+        )
         assert res2.status_code == 409, (
-            f'Segunda aplicacion debio ser 409 VOUCHER_ALREADY_APPLIED; '
+            'Segunda aplicacion debio ser 409 VOUCHER_ALREADY_APPLIED; '
             f'status={res2.status_code}, data={res2.data}'
         )
         assert res2.data.get('codigo_error') == 'VOUCHER_ALREADY_APPLIED'
@@ -101,7 +114,14 @@ class TestVoucherUsageCreatedOnCheckout:
     """DEC-BC-10: current_uses + VoucherUsage al hacer checkout."""
 
     def test_current_uses_increments_atomic(
-        self, api_client, auth_client, user, voucher_single, product_vou, zone_cdmx, db
+        self,
+        api_client,
+        auth_client,
+        user,
+        voucher_single,
+        product_vou,
+        zone_cdmx,
+        db,
     ):
         """
         Hacer checkout con voucher aplicado incrementa current_uses
@@ -109,14 +129,20 @@ class TestVoucherUsageCreatedOnCheckout:
         """
 
         # Agregar item y aplicar voucher
-        auth_client.post(ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1})
+        auth_client.post(
+            ITEMS_URL, {'product_id': product_vou.pk, 'quantity': 1}
+        )
         auth_client.post(VOUCHER_APPLY_URL, {'code': voucher_single.code})
 
         initial_uses = Voucher.objects.get(pk=voucher_single.pk).current_uses
 
         # DEC-BC-25: el checkout exige un método de envío activo.
         ship = ShippingMethod.objects.create(
-            name='Estándar', cost=Decimal('0.00'), estimated_days=5, is_active=True)
+            name='Estándar',
+            cost=Decimal('0.00'),
+            estimated_days=5,
+            is_active=True,
+        )
 
         checkout_data = {
             'address': {
@@ -131,8 +157,12 @@ class TestVoucherUsageCreatedOnCheckout:
         }
 
         # Mock InventoryService para no depender de stock
-        with patch.object(InventoryService, 'check_availability', return_value=[]), \
-             patch.object(InventoryService, 'decrement', return_value=None):
+        with (
+            patch.object(
+                InventoryService, 'check_availability', return_value=[]
+            ),
+            patch.object(InventoryService, 'decrement', return_value=None),
+        ):
             res = auth_client.post(CHECKOUT_URL, checkout_data, format='json')
 
         assert res.status_code == 201, f'Checkout fallo: {res.data}'
@@ -145,5 +175,7 @@ class TestVoucherUsageCreatedOnCheckout:
         )
 
         # VoucherUsage debe existir
-        exists = VoucherUsage.objects.filter(user=user, voucher=voucher_single).exists()
+        exists = VoucherUsage.objects.filter(
+            user=user, voucher=voucher_single
+        ).exists()
         assert exists, 'VoucherUsage no fue creado en checkout'

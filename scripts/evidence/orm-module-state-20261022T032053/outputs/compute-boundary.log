@@ -1,0 +1,39 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "generic_display_name": {
+    "returned": "contract.fixture",
+    "read_status": "FAIL",
+    "exception": "ValueError",
+    "message": "Compute method failed to assign base.SystemParameter(1,).display_name",
+    "assignment_control": {
+      "status": "PASS",
+      "value": "contract.fixture"
+    }
+  },
+  "product_display_name": {
+    "returned": "Contract Fixture",
+    "read_status": "FAIL",
+    "exception": "ValueError",
+    "message": "Compute method failed to assign product.ProductProduct(1,).display_name",
+    "assignment_control": {
+      "status": "PASS",
+      "value": "Contract Fixture"
+    }
+  },
+  "classification": "Generic DisplayNameMixin and the ProductProduct override both return instead of assigning. Field descriptor enforces assignment. Not an isolated product-only defect; no production fix in this probe."
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

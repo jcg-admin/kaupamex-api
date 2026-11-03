@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="9" time="5.168" timestamp="2026-10-25T15:22:38.440085" hostname="c8a29a030cff"><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_empty_computed_relation_does_not_look_up_a_false_primary_key" time="4.617"><failure message="addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.">.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'country'
+
+During handling of the above exception, another exception occurred:
+tests/integration/base/test_computed_many2one_absence.py:22: in test_empty_computed_relation_does_not_look_up_a_false_primary_key
+    assert company.country is None
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.</failure></testcase><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_computed_foreign_key_id_preserves_django_absence" time="0.034"><failure message="assert False is None&#10; +  where False = &lt;ResCompany: Computed country contract&gt;.country_id">tests/integration/base/test_computed_many2one_absence.py:29: in test_computed_foreign_key_id_preserves_django_absence
+    assert company.country_id is None
+E   assert False is None
+E    +  where False = &lt;ResCompany: Computed country contract&gt;.country_id</failure></testcase><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_related_code_of_an_empty_country_returns_the_field_empty_value" time="0.037"><failure message="addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.">.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'country'
+
+During handling of the above exception, another exception occurred:
+tests/integration/base/test_computed_many2one_absence.py:35: in test_related_code_of_an_empty_country_returns_the_field_empty_value
+    assert company.country_code is False
+src/orm/fields.py:1625: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4863: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4783: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2190: in determine
+    return needle(records, *args)
+src/orm/fields.py:3696: in _field_compute_related
+    values = [_first_record(element[name]) for element in values]
+src/orm/models.py:3579: in _model_getitem
+    return getattr(self, key)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.</failure></testcase><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_explicit_constructor_none_is_readable_without_another_field_access" time="0.005"><failure message="addons.base.models.res_company.ResCompany.country.RelatedObjectDoesNotExist: ResCompany has no country.. Did you mean: 'country_id'?">tests/integration/base/test_computed_many2one_absence.py:45: in test_explicit_constructor_none_is_readable_without_another_field_access
+    assert record.country is None
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:267: in __get__
+    raise self.RelatedObjectDoesNotExist(
+E   addons.base.models.res_company.ResCompany.country.RelatedObjectDoesNotExist: ResCompany has no country.. Did you mean: 'country_id'?</failure></testcase><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_valid_computed_reference_and_related_value_are_preserved" time="0.036" /><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_real_missing_reference_still_raises_the_target_error" time="0.034" /><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_raw_computed_id_change_invalidates_the_cached_relation" time="0.034"><failure message="assert 254 == 255&#10; +  where 254 = &lt;ResCountry: First country&gt;.pk&#10; +    where &lt;ResCountry: First country&gt; = &lt;ResCompany: Computed country contract&gt;.country&#10; +  and   255 = &lt;ResCountry: Second country&gt;.pk">tests/integration/base/test_computed_many2one_absence.py:75: in test_raw_computed_id_change_invalidates_the_cached_relation
+    assert company.country.pk == second.pk
+E   assert 254 == 255
+E    +  where 254 = &lt;ResCountry: First country&gt;.pk
+E    +    where &lt;ResCountry: First country&gt; = &lt;ResCompany: Computed country contract&gt;.country
+E    +  and   255 = &lt;ResCountry: Second country&gt;.pk</failure></testcase><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_stored_required_relation_keeps_its_django_constraint" time="0.002" /><testcase classname="tests.integration.base.test_computed_many2one_absence" name="test_wrong_comodel_assignment_is_not_suppressed" time="0.036" /></testsuite></testsuites>

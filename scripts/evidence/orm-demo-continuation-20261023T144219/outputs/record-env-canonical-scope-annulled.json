@@ -1,0 +1,23 @@
+{
+  "head": "f17fca957391868e9194a98fbe4ffc8d384758d6",
+  "index_tree": "4bcd3163a33d4a8d9fa6ca70b7de0cfba1f30264",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py"
+  },
+  "source_sha256": {
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.fields": "19267dd67d9235e36a6a20c4e51f04138293d12eb2a5d8f290f30360022c2184"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_record_environment_field_contract.py": "f61d5e69a979c8b7ceeee7eef23fa227b811738699334b8334571ab5b46b634a"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": false,
+  "annul_canonical_scope": true,
+  "pytest_exit": 1,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}

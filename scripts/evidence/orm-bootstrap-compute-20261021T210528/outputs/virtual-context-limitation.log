@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"scope": "Unsaved Django object, pk=None, reused across contexts; not an Odoo NewId recordset", "first": "Admin / Operations", "short": "Admin / Operations", "expected_short": "Operations", "outcome": "CONTRACT_LIMITATION", "related_existing_task": "TASK-GEN-0579", "not_full_compute_acceptance": true}

@@ -1,0 +1,5 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+export ODOO18C=/home/user/odoo-tools/18.x/odoo-18
+export ODOO18E=/home/user/odoo-tools/18.x/odoo.enterprise
+export ODOO19C=/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0
+export ODOO19E=/home/user/odoo-tools/19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main

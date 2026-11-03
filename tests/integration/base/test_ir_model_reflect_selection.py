@@ -34,11 +34,16 @@ Que haria fallar a cada control
     CONTROL POSITIVO del sitio: los objetos de tabla viven en ``Meta`` y no en
     un ``_table_objects``, y de ahi salen su nombre, su tipo y su definicion.
 """
+
 import pytest
 
 from addons.base.models.ir_model import (
-    IrModel, IrModelConstraint, IrModelData, IrModelFields,
-    IrModelFieldsSelection)
+    IrModel,
+    IrModelConstraint,
+    IrModelData,
+    IrModelFields,
+    IrModelFieldsSelection,
+)
 from addons.base.models.ir_module import IrModule
 from exceptions import AccessError, UserError
 from orm.environments import sudo
@@ -50,20 +55,27 @@ MODEL_LABEL = 'base.IrModelData'
 
 def _module(name):
     row, _ = IrModule.objects.get_or_create(
-        name=name, defaults={'shortdesc': name, 'state': 'installed'})
+        name=name, defaults={'shortdesc': name, 'state': 'installed'}
+    )
     return row
 
 
 def _model_row(label=MODEL_LABEL):
     row, _ = IrModel.objects.get_or_create(
-        model=label, defaults={'name': 'Dato de modelo'})
+        model=label, defaults={'name': 'Dato de modelo'}
+    )
     return row
 
 
 def _field_row(name='x_estado'):
     return IrModelFields.objects.create(
-        model=MODEL_LABEL, name=name, field_description='Estado',
-        ttype='selection', state='manual', model_id=_model_row())
+        model=MODEL_LABEL,
+        name=name,
+        field_description='Estado',
+        ttype='selection',
+        state='manual',
+        model_id=_model_row(),
+    )
 
 
 class TestUpdateSelection:
@@ -72,45 +84,57 @@ class TestUpdateSelection:
     def test_the_index_in_the_list_becomes_the_sequence(self, db):
         _field_row()
         rows = IrModelFieldsSelection._update_selection(
-            MODEL_LABEL, 'x_estado', [('a', 'Alfa'), ('b', 'Beta')])
+            MODEL_LABEL, 'x_estado', [('a', 'Alfa'), ('b', 'Beta')]
+        )
         assert rows['a']['sequence'] == 0
         assert rows['b']['sequence'] == 1
 
     def test_a_row_that_already_says_the_same_is_left_alone(self, db):
         _field_row()
         IrModelFieldsSelection._update_selection(
-            MODEL_LABEL, 'x_estado', [('a', 'Alfa')])
+            MODEL_LABEL, 'x_estado', [('a', 'Alfa')]
+        )
         before = IrModelFieldsSelection.objects.get(value='a').pk
         IrModelFieldsSelection._update_selection(
-            MODEL_LABEL, 'x_estado', [('a', 'Alfa')])
+            MODEL_LABEL, 'x_estado', [('a', 'Alfa')]
+        )
         assert IrModelFieldsSelection.objects.get(value='a').pk == before
 
     def test_a_value_missing_from_the_new_list_is_removed(self, db):
         _field_row()
         IrModelFieldsSelection._update_selection(
-            MODEL_LABEL, 'x_estado', [('a', 'Alfa'), ('b', 'Beta')])
+            MODEL_LABEL, 'x_estado', [('a', 'Alfa'), ('b', 'Beta')]
+        )
         rows = IrModelFieldsSelection._update_selection(
-            MODEL_LABEL, 'x_estado', [('a', 'Alfa')])
+            MODEL_LABEL, 'x_estado', [('a', 'Alfa')]
+        )
         assert set(rows) == {'a'}
         assert not IrModelFieldsSelection.objects.filter(value='b').exists()
 
     def test_a_field_that_is_not_registered_is_refused_by_name(self, db):
         with pytest.raises(ValueError, match='no_registrado'):
             IrModelFieldsSelection._update_selection(
-                MODEL_LABEL, 'no_registrado', [('a', 'Alfa')])
+                MODEL_LABEL, 'no_registrado', [('a', 'Alfa')]
+            )
 
 
 class TestGetSelection:
-    """≙ ``_get_selection`` y ``_get_selection_data`` (``odoo19c: :1527-1541``)."""
+    """
+    ≙ ``_get_selection`` y ``_get_selection_data`` (``odoo19c: :1527-1541``).
+    """
 
     def test_it_returns_the_pairs_in_sequence_order(self, db):
         field = _field_row()
         IrModelFieldsSelection.objects.create(
-            field_id=field, value='b', name='Beta', sequence=20)
+            field_id=field, value='b', name='Beta', sequence=20
+        )
         IrModelFieldsSelection.objects.create(
-            field_id=field, value='a', name='Alfa', sequence=10)
+            field_id=field, value='a', name='Alfa', sequence=10
+        )
         assert IrModelFieldsSelection._get_selection(field.pk) == [
-            ('a', 'Alfa'), ('b', 'Beta')]
+            ('a', 'Alfa'),
+            ('b', 'Beta'),
+        ]
 
 
 class TestUnlinkGuard:
@@ -119,7 +143,8 @@ class TestUnlinkGuard:
     def test_a_value_of_a_base_field_is_not_deleted_by_hand(self, db):
         field = _field_row()
         row = IrModelFieldsSelection.objects.create(
-            field_id=field, value='a', name='Alfa')
+            field_id=field, value='a', name='Alfa'
+        )
         # El campo pasa a base DESPUES de crear el valor: la guarda de
         # :meth:`save` cierra el alta, y este caso mide la de :meth:`delete`.
         IrModelFields.objects.filter(pk=field.pk).update(state='base')
@@ -135,8 +160,8 @@ class TestReflectConstraint:
         _module('prueba_cons_a')
         _model_row()
         row = IrModelConstraint._reflect_constraint(
-            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)',
-            'prueba_cons_a')
+            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)', 'prueba_cons_a'
+        )
         assert row.name == 'x_prueba_uniq'
         assert row.definition == 'UNIQUE (name)'
         assert row.type == 'u'
@@ -145,31 +170,40 @@ class TestReflectConstraint:
         _module('prueba_cons_b')
         _model_row()
         IrModelConstraint._reflect_constraint(
-            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)',
-            'prueba_cons_b')
+            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)', 'prueba_cons_b'
+        )
         again = IrModelConstraint._reflect_constraint(
-            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)',
-            'prueba_cons_b')
+            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)', 'prueba_cons_b'
+        )
         assert again is None
 
     def test_a_changed_definition_returns_the_row(self, db):
         _module('prueba_cons_c')
         _model_row()
         IrModelConstraint._reflect_constraint(
-            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)',
-            'prueba_cons_c')
+            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)', 'prueba_cons_c'
+        )
         changed = IrModelConstraint._reflect_constraint(
-            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name, module)',
-            'prueba_cons_c')
+            IrModelData,
+            'x_prueba_uniq',
+            'u',
+            'UNIQUE (name, module)',
+            'prueba_cons_c',
+        )
         assert changed is not None
         assert changed.definition == 'UNIQUE (name, module)'
 
     def test_without_a_module_nothing_is_recorded(self, db):
         _model_row()
-        assert IrModelConstraint._reflect_constraint(
-            IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)', '') is None
+        assert (
+            IrModelConstraint._reflect_constraint(
+                IrModelData, 'x_prueba_uniq', 'u', 'UNIQUE (name)', ''
+            )
+            is None
+        )
         assert not IrModelConstraint.objects.filter(
-            name='x_prueba_uniq').exists()
+            name='x_prueba_uniq'
+        ).exists()
 
 
 class TestReflectModel:
@@ -199,11 +233,21 @@ class TestModuleDataUninstall:
         _model_row()
         with sudo():
             IrModelConstraint._reflect_constraint(
-                IrModelData, 'x_compartida', 'u', 'UNIQUE (name)',
-                'prueba_cons_d')
+                IrModelData,
+                'x_compartida',
+                'u',
+                'UNIQUE (name)',
+                'prueba_cons_d',
+            )
             IrModelConstraint._reflect_constraint(
-                IrModelData, 'x_compartida', 'u', 'UNIQUE (name)',
-                'prueba_cons_e')
+                IrModelData,
+                'x_compartida',
+                'u',
+                'UNIQUE (name)',
+                'prueba_cons_e',
+            )
             dropped = IrModelConstraint._module_data_uninstall([mine])
         assert dropped == []
-        assert IrModelConstraint.objects.filter(name='x_compartida').count() == 2
+        assert (
+            IrModelConstraint.objects.filter(name='x_compartida').count() == 2
+        )

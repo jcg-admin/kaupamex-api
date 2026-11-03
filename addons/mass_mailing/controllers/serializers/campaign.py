@@ -1,4 +1,5 @@
 """Serializers de campaña (UC-NEW-04) — request y schema de respuesta."""
+
 from rest_framework import serializers
 
 # Estados de negocio del suscriptor (ex-``newsletter.SubscriberStatus``).

@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
             name="user",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Vendedor: el usuario interno a cargo de este contacto (Odoo user_id). store=True con compute y readonly=False: se hereda del padre al crear y se reescribe a mano.",
+                help_text=(
+                    "Vendedor: el usuario interno a cargo de este contacto"
+                    " (Odoo user_id). store=True con compute y readonly=False:"
+                    " se hereda del padre al crear y se reescribe a mano."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",

@@ -4,6 +4,7 @@ Adaptación de Odoo certificate/models/key.py (odoo-tools@622ddc2a, odoo19c:,
 LGPL-3). Cubre el cómputo (``_compute_pem_key``), firma/verificación,
 descifrado y las tres factories de generación (EC/RSA/Ed25519).
 """
+
 import base64
 
 import pytest
@@ -23,10 +24,12 @@ def _company(code):
 
 def _rsa_private_pem(key_size=2048, password=None):
     private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=key_size)
+        public_exponent=65537, key_size=key_size
+    )
     encryption = (
         serialization.BestAvailableEncryption(password.encode())
-        if password else serialization.NoEncryption()
+        if password
+        else serialization.NoEncryption()
     )
     return private_key, private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -61,7 +64,8 @@ class TestGenerateRsaPrivateKey:
         Char; aquí se persiste el string original."""
         acme = _company('acme-key-rsa-4')
         key = CertificateKey._generate_rsa_private_key(
-            acme, password='hunter2')
+            acme, password='hunter2'
+        )
         assert key.password == 'hunter2'
         assert isinstance(key.password, str)
 
@@ -121,7 +125,8 @@ class TestComputePemKey:
         acme = _company('acme-key-pwd-1')
         _priv, pem = _rsa_private_pem(password='s3cr3t')
         key = CertificateKey(
-            name='pwd', company=acme, content=pem, password='s3cr3t')
+            name='pwd', company=acme, content=pem, password='s3cr3t'
+        )
         key.save()
         assert key.public is False
         assert key.loading_error == ''
@@ -130,7 +135,8 @@ class TestComputePemKey:
         acme = _company('acme-key-pwd-2')
         _priv, pem = _rsa_private_pem(password='s3cr3t')
         key = CertificateKey(
-            name='pwd-bad', company=acme, content=pem, password='incorrecta')
+            name='pwd-bad', company=acme, content=pem, password='incorrecta'
+        )
         key.save()
         assert key.public is None
         assert key.loading_error != ''
@@ -139,7 +145,9 @@ class TestComputePemKey:
 class TestSignAndVerify:
     def test_sign_with_private_key_and_verify_with_matching_public_key(self):
         acme = _company('acme-key-sign-rsa-2')
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048
+        )
         priv_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -150,25 +158,38 @@ class TestSignAndVerify:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         priv_row = CertificateKey.objects.create(
-            name='priv', company=acme, content=priv_pem)
+            name='priv', company=acme, content=priv_pem
+        )
         pub_row = CertificateKey.objects.create(
-            name='pub', company=acme, content=pub_pem)
+            name='pub', company=acme, content=pub_pem
+        )
 
         signature = priv_row._sign(b'documento firmado')
-        assert pub_row._verify(
-            b'documento firmado', base64.decodebytes(signature)) is True
-        assert pub_row._verify(
-            b'documento alterado', base64.decodebytes(signature)) is False
+        assert (
+            pub_row._verify(
+                b'documento firmado', base64.decodebytes(signature)
+            )
+            is True
+        )
+        assert (
+            pub_row._verify(
+                b'documento alterado', base64.decodebytes(signature)
+            )
+            is False
+        )
 
     def test_sign_raises_user_error_when_key_is_public(self):
         acme = _company('acme-key-sign-pub-1')
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048
+        )
         pub_pem = private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         pub_row = CertificateKey.objects.create(
-            name='pub-only', company=acme, content=pub_pem)
+            name='pub-only', company=acme, content=pub_pem
+        )
         with pytest.raises(UserError):
             pub_row._sign(b'x')
 
@@ -182,33 +203,40 @@ class TestSignAndVerify:
 class TestDecrypt:
     def test_rsa_decrypt_roundtrip_with_oaep(self):
         acme = _company('acme-key-decrypt-1')
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048
+        )
         priv_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption(),
         )
         priv_row = CertificateKey.objects.create(
-            name='priv-decrypt', company=acme, content=priv_pem)
+            name='priv-decrypt', company=acme, content=priv_pem
+        )
 
         ciphertext = private_key.public_key().encrypt(
             b'mensaje secreto',
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(), label=None,
+                algorithm=hashes.SHA256(),
+                label=None,
             ),
         )
         assert priv_row._decrypt(ciphertext) == 'mensaje secreto'
 
     def test_decrypt_raises_on_public_key(self):
         acme = _company('acme-key-decrypt-2')
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048
+        )
         pub_pem = private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         pub_row = CertificateKey.objects.create(
-            name='pub-decrypt', company=acme, content=pub_pem)
+            name='pub-decrypt', company=acme, content=pub_pem
+        )
         with pytest.raises(UserError):
             pub_row._decrypt(b'x')
 
@@ -217,7 +245,8 @@ class TestMeta:
     def test_str_returns_name(self):
         acme = _company('acme-key-str-1')
         key = CertificateKey.objects.create(
-            name='mi-llave', company=acme,
+            name='mi-llave',
+            company=acme,
             content=_rsa_private_pem()[1],
         )
         assert str(key) == 'mi-llave'
@@ -225,6 +254,8 @@ class TestMeta:
     def test_active_defaults_to_true(self):
         acme = _company('acme-key-active-1')
         key = CertificateKey.objects.create(
-            name='k', company=acme, content=_rsa_private_pem()[1],
+            name='k',
+            company=acme,
+            content=_rsa_private_pem()[1],
         )
         assert key.active is True

@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``newsletter`` — ``mass_mailing`` dueña campañas y suscriptores.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

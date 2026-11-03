@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="9" time="2.401" timestamp="2026-10-24T19:43:00.268116" hostname="c8a29a030cff"><testcase classname="tests.integration.base.test_display_name_assignment" name="test_generic_named_compute_assigns_and_preserves_direct_return" time="2.075"><failure message="KeyError: 'display_name'">tests/integration/base/test_display_name_assignment.py:17: in test_generic_named_compute_assigns_and_preserves_direct_return
+    assert parameter.__dict__['display_name'] == 'fixture.assignment.label'
+E   KeyError: 'display_name'</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_generic_nameless_record_assigns_its_technical_identity" time="0.028"><failure message="ValueError: Compute method failed to assign purchase_requisition.PurchaseOrderGroup(1,).display_name">tests/integration/base/test_display_name_assignment.py:24: in test_generic_nameless_record_assigns_its_technical_identity
+    assert group.display_name == f'purchase.order.group,{group.pk}'
+src/orm/fields.py:1657: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign purchase_requisition.PurchaseOrderGroup(1,).display_name</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_generic_label_is_invalidated_when_its_name_changes" time="0.004"><failure message="ValueError: Compute method failed to assign base.SystemParameter(17,).display_name">tests/integration/base/test_display_name_assignment.py:31: in test_generic_label_is_invalidated_when_its_name_changes
+    assert parameter.display_name == 'fixture.assignment.before'
+src/orm/fields.py:1657: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.SystemParameter(17,).display_name</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_partner_compute_assigns_and_preserves_direct_return" time="0.035"><failure message="KeyError: 'display_name'">tests/integration/base/test_display_name_assignment.py:41: in test_partner_compute_assigns_and_preserves_direct_return
+    assert partner.__dict__['display_name'] == 'Etiqueta asignada'
+E   KeyError: 'display_name'</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_partner_same_record_uses_each_context_bucket" time="0.007"><failure message="ValueError: Compute method failed to assign base.ResPartner(2,).display_name">tests/integration/base/test_display_name_assignment.py:48: in test_partner_same_record_uses_each_context_bucket
+    assert partner.display_name == 'Contacto'
+src/orm/fields.py:1657: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartner(2,).display_name</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_partner_label_is_invalidated_after_email_change" time="0.008"><failure message="ValueError: Compute method failed to assign base.ResPartner(3,).display_name">tests/integration/base/test_display_name_assignment.py:61: in test_partner_label_is_invalidated_after_email_change
+    assert partner.display_name == 'Contacto &lt;before@example.test&gt;'
+src/orm/fields.py:1657: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartner(3,).display_name</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_partner_company_visibility_has_its_own_context_bucket" time="0.012"><failure message="ValueError: Compute method failed to assign base.ResPartner(5,).display_name">tests/integration/base/test_display_name_assignment.py:71: in test_partner_company_visibility_has_its_own_context_bucket
+    assert partner.display_name == 'Empresa, Contacto'
+src/orm/fields.py:1657: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartner(5,).display_name</failure></testcase><testcase classname="tests.integration.base.test_display_name_assignment" name="test_return_without_assignment_is_still_rejected" time="0.007" /><testcase classname="tests.integration.base.test_display_name_assignment" name="test_compute_exception_is_not_silenced" time="0.007" /></testsuite></testsuites>

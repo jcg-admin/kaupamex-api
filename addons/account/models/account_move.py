@@ -6,6 +6,7 @@ Portación fiel de ``account_move.py`` (Odoo 18/19). Campos núcleo: ``name``,
 ``amount_total``. Se porta la invariante de doble entrada (Odoo
 ``_check_balanced``): al postear, la suma de debe == suma de haber.
 """
+
 from contextlib import contextmanager
 from decimal import Decimal
 
@@ -14,7 +15,9 @@ from django.conf import settings
 from django.db.models import Q
 import fields
 import models
-from addons.account.models.account_partial_reconcile import AccountPartialReconcile
+from addons.account.models.account_partial_reconcile import (
+    AccountPartialReconcile,
+)
 from addons.account.models.sequence_mixin import SequenceMixin
 from exceptions import UserError
 from orm.environments import get_current_user
@@ -22,7 +25,8 @@ from tools.translate import _
 
 
 class AccountMove(SequenceMixin, models.Model):
-    """``account.move`` — asiento contable (o factura si ``move_type`` != entry).
+    """
+    ``account.move`` — asiento contable (o factura si ``move_type`` != entry).
 
     Hereda ``SequenceMixin`` igual que la referencia lo declara en su
     ``_inherit`` (``odoo19c: account_move.py:74``), con
@@ -71,7 +75,8 @@ class AccountMove(SequenceMixin, models.Model):
         ('in_receipt', 'Recibo de compra'),
     ]
     # Prefijo de secuencia por move_type (Odoo deriva el nombre de la secuencia
-    # del diario; aquí un prefijo estable por tipo, único con el código de diario).
+    # del diario; aquí un prefijo estable por tipo, único con el código
+    # de diario).
     SEQUENCE_PREFIXES = {
         'out_invoice': 'INV',
         'out_refund': 'RINV',
@@ -82,132 +87,189 @@ class AccountMove(SequenceMixin, models.Model):
         'entry': 'MISC',
     }
 
-    name         = fields.Char(
-        max_length=255, blank=True, default='/',
+    name = fields.Char(
+        max_length=255,
+        blank=True,
+        default='/',
         help_text='Número del asiento (Odoo name; "/" hasta postear).',
     )
     # `sequence_prefix` y `sequence_number` los declara SequenceMixin — no se
     # repiten aquí. Son las dos mitades consultables de `name`; ver H-API-339.
-    ref          = fields.Char(
-        max_length=255, blank=True, default='',
+    ref = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Referencia (Odoo ref).',
     )
-    date         = fields.Date(
+    date = fields.Date(
         help_text='Fecha contable (Odoo date, requerido).',
     )
-    state        = fields.Selection(
-        max_length=8, choices=STATES, default='draft',
+    state = fields.Selection(
+        max_length=8,
+        choices=STATES,
+        default='draft',
         help_text='Estado (Odoo state).',
     )
     payment_state = fields.Selection(
-        max_length=17, choices=PAYMENT_STATES, blank=True, default='not_paid',
-        help_text='Estado de pago (Odoo payment_state). Se recalcula con '
-                   'compute_payment_state() al registrar o revertir una '
-                   'conciliación — no se deriva automáticamente en save().',
+        max_length=17,
+        choices=PAYMENT_STATES,
+        blank=True,
+        default='not_paid',
+        help_text=(
+            'Estado de pago (Odoo payment_state). Se recalcula con '
+            'compute_payment_state() al registrar o revertir una '
+            'conciliación — no se deriva automáticamente en save().'
+        ),
     )
-    move_type    = fields.Selection(
-        max_length=16, choices=MOVE_TYPES, default='entry',
+    move_type = fields.Selection(
+        max_length=16,
+        choices=MOVE_TYPES,
+        default='entry',
         help_text='Tipo de asiento (Odoo move_type).',
     )
-    journal      = fields.Many2one(
-        'account.AccountJournal', on_delete=models.PROTECT, related_name='moves',
+    journal = fields.Many2one(
+        'account.AccountJournal',
+        null=False, on_delete=models.PROTECT,
+        related_name='moves',
         help_text='Diario (Odoo journal_id, requerido).',
     )
-    partner      = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+    partner = fields.Many2one(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='account_moves',
         help_text='Contacto (Odoo partner_id → res.partner ≡ party).',
     )
-    currency     = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+    currency = fields.Many2one(
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='moves',
         help_text='Moneda (Odoo currency_id).',
     )
-    company      = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='moves',
+    company = fields.Many2one(
+        'base.ResCompany',
+        on_delete=models.CASCADE, null=True, blank=True,
+        related_name='moves',
         help_text='Empresa (Odoo company_id).',
     )
     posted_before = fields.Boolean(
         default=False,
-        help_text='Verdadero desde la primera vez que el asiento se publica, '
-                  'y ya no vuelve a False (Odoo posted_before, '
-                  'account_move.py:321). Es lo que distingue un borrador que '
-                  'nunca existió contablemente de uno que sí — la guarda del '
-                  'rastro de auditoría restringido sólo protege el segundo. '
-                  'El copy=False de la fuente no tiene análogo: este ORM no '
-                  'tiene copia de registro (mismo desenlace que '
-                  'sale_timesheet/sale_order_line.py).',
+        help_text=(
+            'Verdadero desde la primera vez que el asiento se publica, '
+            'y ya no vuelve a False (Odoo posted_before, '
+            'account_move.py:321). Es lo que distingue un borrador que '
+            'nunca existió contablemente de uno que sí — la guarda del '
+            'rastro de auditoría restringido sólo protege el segundo. '
+            'El copy=False de la fuente no tiene análogo: este ORM no '
+            'tiene copia de registro (mismo desenlace que '
+            'sale_timesheet/sale_order_line.py).'
+        ),
     )
     amount_total = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
-        help_text='Total del asiento (Odoo amount_total, computado de líneas).',
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=(
+            'Total del asiento (Odoo amount_total, computado de líneas).'
+        ),
     )
 
     # ------------------------------------------------------------------
     # Las seis columnas que ``account.invoice.report`` lee de este asiento
-    # (tarea #989). Su forma sale de ``odoo19c: account/models/account_move.py``
+    # (tarea #989). Su forma sale de ``odoo19c:
+    # account/models/account_move.py``
     # (LGPL-3: copia + adaptacion con atribucion). El nombre pierde el sufijo
     # ``_id`` porque Django lo repone en la columna: ``invoice_user`` escribe
     # ``invoice_user_id``, que es lo que la vista consulta.
     # ------------------------------------------------------------------
     invoice_date = fields.Date(
-        null=True, blank=True, db_index=True,
+        null=True,
+        blank=True,
+        db_index=True,
         verbose_name='Fecha de factura',
-        help_text='Odoo invoice_date ("Invoice/Bill Date", account_move.py:374). '
-                  'Fecha del documento comercial, distinta de la fecha contable. '
-                  'El copy=False de la fuente no tiene analogo: este ORM no '
-                  'tiene copia de registro.',
+        help_text=(
+            'Odoo invoice_date ("Invoice/Bill Date", account_move.py:374). '
+            'Fecha del documento comercial, distinta de la fecha contable. '
+            'El copy=False de la fuente no tiene analogo: este ORM no '
+            'tiene copia de registro.'
+        ),
     )
     invoice_date_due = fields.Date(
-        null=True, blank=True, db_index=True,
+        null=True,
+        blank=True,
+        db_index=True,
         verbose_name='Fecha de vencimiento',
-        help_text='Odoo invoice_date_due ("Due Date", account_move.py:379). '
-                  'La calcula compute_invoice_date_due(), que save() invoca.',
+        help_text=(
+            'Odoo invoice_date_due ("Due Date", account_move.py:379). '
+            'La calcula compute_invoice_date_due(), que save() invoca.'
+        ),
     )
     invoice_user_id = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='invoiced_moves',
         verbose_name='Vendedor',
         db_column='invoice_user_id',
-        help_text='Odoo invoice_user_id ("Salesperson", account_move.py:678). '
-                  'El tracking=True de la fuente no aplica: este asiento no es '
-                  'un hilo de mail.thread en este arbol.',
+        help_text=(
+            'Odoo invoice_user_id ("Salesperson", account_move.py:678). '
+            'El tracking=True de la fuente no aplica: este asiento no es '
+            'un hilo de mail.thread en este arbol.'
+        ),
     )
     commercial_partner_id = fields.Many2one(
-        'base.ResPartner', on_delete=models.PROTECT, null=True, blank=True,
+        'base.ResPartner',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='commercial_moves',
         verbose_name='Entidad comercial',
         db_column='commercial_partner_id',
-        help_text='Odoo commercial_partner_id ("Commercial Entity", '
-                  'account_move.py:430). La entidad que factura de verdad '
-                  'cuando el contacto es una direccion de una matriz. La '
-                  'calcula compute_commercial_partner().',
+        help_text=(
+            'Odoo commercial_partner_id ("Commercial Entity", '
+            'account_move.py:430). La entidad que factura de verdad '
+            'cuando el contacto es una direccion de una matriz. La '
+            'calcula compute_commercial_partner().'
+        ),
     )
     fiscal_position_id = fields.Many2one(
-        'account.AccountFiscalPosition', on_delete=models.PROTECT,
-        null=True, blank=True, related_name='moves',
+        'account.AccountFiscalPosition',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='moves',
         verbose_name='Posicion fiscal',
         db_column='fiscal_position_id',
-        help_text='Odoo fiscal_position_id ("Fiscal Position", '
-                  'account_move.py:456). Adapta impuestos y cuentas para un '
-                  'cliente o pedido concreto; su valor por omision viene del '
-                  'cliente.',
+        help_text=(
+            'Odoo fiscal_position_id ("Fiscal Position", '
+            'account_move.py:456). Adapta impuestos y cuentas para un '
+            'cliente o pedido concreto; su valor por omision viene del '
+            'cliente.'
+        ),
     )
     invoice_currency_rate = fields.Float(
         default=0.0,
         verbose_name='Tipo de cambio',
-        help_text='Odoo invoice_currency_rate ("Currency Rate", '
-                  'account_move.py:531). Tipo de cambio de la moneda de la '
-                  'empresa a la del documento. digits=0 en la fuente significa '
-                  'precision plena, que es lo que FloatField da aqui.',
+        help_text=(
+            'Odoo invoice_currency_rate ("Currency Rate", '
+            'account_move.py:531). Tipo de cambio de la moneda de la '
+            'empresa a la del documento. digits=0 en la fuente significa '
+            'precision plena, que es lo que FloatField da aqui.'
+        ),
     )
     direction_sign = fields.Integer(
         default=1,
         verbose_name='Signo de direccion',
-        help_text='Odoo direction_sign (account_move.py:541). Multiplicador '
-                  'segun el tipo de documento, para convertir un precio en un '
-                  'saldo. La calcula compute_direction_sign(), que save() '
-                  'invoca.',
+        help_text=(
+            'Odoo direction_sign (account_move.py:541). Multiplicador '
+            'segun el tipo de documento, para convertir un precio en un '
+            'saldo. La calcula compute_direction_sign(), que save() '
+            'invoca.'
+        ),
     )
 
     class Meta:
@@ -234,7 +296,12 @@ class AccountMove(SequenceMixin, models.Model):
             # el primero sirve al «cuál es el último de este prefijo», el
             # segundo al «cuál fue el último prefijo usado en este diario».
             models.Index(
-                fields=['journal', '-sequence_prefix', '-sequence_number', 'name'],
+                fields=[
+                    'journal',
+                    '-sequence_prefix',
+                    '-sequence_number',
+                    'name',
+                ],
                 name='account_move_sequence_idx',
             ),
             models.Index(
@@ -250,20 +317,24 @@ class AccountMove(SequenceMixin, models.Model):
     def is_balanced(self):
         """Suma de debe == suma de haber (Odoo ``_check_balanced``)."""
         agg = self.line_ids.aggregate(
-            d=models.Sum('debit'), c=models.Sum('credit'))
+            d=models.Sum('debit'), c=models.Sum('credit')
+        )
         debit = agg['d'] or Decimal('0')
         credit = agg['c'] or Decimal('0')
         return debit == credit
 
     def compute_amount_total(self):
-        """Total = suma del debe de las líneas (Odoo amount_total simplificado)."""
+        """
+        Total = suma del debe de las líneas (Odoo amount_total simplificado).
+        """
         agg = self.line_ids.aggregate(d=models.Sum('debit'))
         self.amount_total = agg['d'] or Decimal('0.00')
         return self.amount_total
 
     # -- payment_state / amount_residual (UC-PAY-14, H-API-408) ------------
     def _receivable_totals(self):
-        """``(saldo original, saldo pendiente)`` de las líneas por cobrar/pagar.
+        """
+        ``(saldo original, saldo pendiente)`` de las líneas por cobrar/pagar.
 
         Sin multi-moneda: ``account.move.line`` no porta ``amount_currency``
         (DEFERIDO, declarado en ``account_move_line.py`` — depende de que
@@ -283,22 +354,27 @@ class AccountMove(SequenceMixin, models.Model):
         ya usa para decidir si un apunte quedó saldado.
         """
         line_ids = list(
-            self.line_ids.filter(account__account_type__in=self._RESIDUAL_ACCOUNT_TYPES)
-            .values_list('pk', flat=True)
+            self.line_ids.filter(
+                account__account_type__in=self._RESIDUAL_ACCOUNT_TYPES
+            ).values_list('pk', flat=True)
         )
         if not line_ids:
             return Decimal('0.00'), Decimal('0.00')
         total = self.line_ids.filter(pk__in=line_ids).aggregate(
-            s=models.Sum('balance'))['s'] or Decimal('0.00')
+            s=models.Sum('balance')
+        )['s'] or Decimal('0.00')
         debit_matched = AccountPartialReconcile.objects.filter(
-            debit_move__in=line_ids).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
+            debit_move__in=line_ids
+        ).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
         credit_matched = AccountPartialReconcile.objects.filter(
-            credit_move__in=line_ids).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
+            credit_move__in=line_ids
+        ).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
         residual = total - debit_matched + credit_matched
         return total, residual
 
     def get_amount_residual(self):
-        """Saldo pendiente del asiento — ≙ Odoo ``amount_residual`` simplificado.
+        """
+        Saldo pendiente del asiento — ≙ Odoo ``amount_residual`` simplificado.
 
         Ver ``_receivable_totals`` para la derivación y la divergencia de
         multi-moneda declarada. Es lo que UC-PAY-14 (PARTE 9, H-API-408)
@@ -344,7 +420,8 @@ class AccountMove(SequenceMixin, models.Model):
 
     @api.constrains('line_ids')
     def _check_balanced(self):
-        """Invariante de doble entrada (Odoo ``_check_balanced``): debe == haber.
+        """
+        Invariante de doble entrada (Odoo ``_check_balanced``): debe == haber.
 
         Odoo lanza ``UserError`` si el asiento no cuadra; se replica.
         """
@@ -394,7 +471,8 @@ class AccountMove(SequenceMixin, models.Model):
            la referencia, que separa la serie de notas de crédito de la de
            facturas. **Aunque el tipo ya está dentro del prefijo, hace falta
            aquí**: el prefijo de la serie se deduce de la fila más reciente del
-           dominio, así que sin este filtro la primera nota de crédito heredaría
+           dominio, así que sin este filtro la primera nota de crédito
+           heredaría
            el prefijo de la última factura y seguiría *su* numeración;
         4. en modo estricto, la ventana de fechas del periodo, deducida del
            nombre de un asiento de referencia — el último con fecha anterior o
@@ -416,9 +494,15 @@ class AccountMove(SequenceMixin, models.Model):
             queryset = queryset.exclude(pk=self.pk)
         if relaxed:
             return queryset
-        reference = (queryset.filter(date__lte=self.date).order_by('-date').first()
-                     or queryset.order_by('date').first())
-        reset = self.deduce_sequence_number_reset(reference.name) if reference else 'year'
+        reference = (
+            queryset.filter(date__lte=self.date).order_by('-date').first()
+            or queryset.order_by('date').first()
+        )
+        reset = (
+            self.deduce_sequence_number_reset(reference.name)
+            if reference
+            else 'year'
+        )
         start, end = self.get_sequence_date_range(reset)
         return queryset.filter(date__gte=start, date__lte=end)
 
@@ -435,7 +519,8 @@ class AccountMove(SequenceMixin, models.Model):
         """Publica el asiento (Odoo ``_post``): exige doble entrada balanceada.
 
         Rechaza postear un asiento vacío o desbalanceado. Recalcula
-        ``amount_total`` y, si el ``name`` sigue en ``'/'`` (borrador), asigna la
+        ``amount_total`` y, si el ``name`` sigue en ``'/'`` (borrador), asigna
+        la
         secuencia del diario (Odoo asigna el número al postear).
         """
         if not self.line_ids.exists():
@@ -456,10 +541,16 @@ class AccountMove(SequenceMixin, models.Model):
         # debe quedar marcado como que alguna vez lo estuvo.
         self.posted_before = True
         self.constrains_date_sequence()
-        self.save(update_fields=[
-            'name', 'sequence_prefix', 'sequence_number', 'state',
-            'posted_before', 'amount_total',
-        ])
+        self.save(
+            update_fields=[
+                'name',
+                'sequence_prefix',
+                'sequence_number',
+                'state',
+                'posted_before',
+                'amount_total',
+            ]
+        )
         return True
 
     def button_cancel(self):
@@ -485,11 +576,14 @@ class AccountMove(SequenceMixin, models.Model):
 
         Ese desnivel es el eje que la tarea **#142** tiene abierto -- unificar
         el eje partner de ``account``. Mientras dure, este metodo es el unico
-        sitio donde el rodeo esta escrito, y su correccion sera borrar un salto.
+        sitio donde el rodeo esta escrito, y su correccion sera borrar un
+        salto.
         """
         user = self.partner
         party = getattr(user, 'partner', None) if user is not None else None
-        self.commercial_partner_id = getattr(party, 'commercial_partner_id', None) or party
+        self.commercial_partner_id = (
+            getattr(party, 'commercial_partner_id', None) or party
+        )
 
     def _compute_invoice_date_due(self):
         """La fecha de vencimiento -- ≙ ``odoo19c: :1077-1084``.
@@ -503,14 +597,17 @@ class AccountMove(SequenceMixin, models.Model):
         La rama de respaldo si corre, y es la que la fuente ejecuta cuando el
         documento no tiene plazos: ``move.invoice_date_due or today``.
         """
-        self.invoice_date_due = self.invoice_date_due or fields.Date.context_today(self)
+        self.invoice_date_due = (
+            self.invoice_date_due or fields.Date.context_today(self)
+        )
 
     def _compute_invoice_default_sale_person(self):
         """El vendedor por omision -- ≙ ``odoo19c: :803-817``.
 
         DESBLOQUEADO por el porte de ``is_sale_document`` en este mismo pase.
         El predicado que le faltaba ya esta declarado, asi que las dos ramas de
-        la fuente vuelven a distinguirse: un documento de venta hereda vendedor,
+        la fuente vuelven a distinguirse: un documento de venta hereda
+        vendedor,
         y uno que no lo es lo pierde.
 
         El recorrido ``partner_id.user_id`` de la fuente pasa aqui por la
@@ -524,7 +621,9 @@ class AccountMove(SequenceMixin, models.Model):
         if self.partner_id is None:
             return
         party = getattr(self.partner, 'partner', None)
-        commercial_party = getattr(party, 'commercial_partner_id', None) if party else None
+        commercial_party = (
+            getattr(party, 'commercial_partner_id', None) if party else None
+        )
         self.invoice_user_id = (
             self.invoice_user_id
             or getattr(party, 'user', None)
@@ -544,7 +643,8 @@ class AccountMove(SequenceMixin, models.Model):
         raise NotImplementedError(
             'AccountMove._compute_fiscal_position_id esta BLOQUEADO por '
             '``_get_fiscal_position`` -- el resolutor de posicion fiscal por '
-            'contacto y direccion de entrega no existe aqui. Sucesor: #142.')
+            'contacto y direccion de entrega no existe aqui. Sucesor: #142.'
+        )
 
     def _compute_invoice_currency_rate(self):
         """El tipo de cambio del documento -- ≙ ``odoo19c: :1137-1141``.
@@ -557,7 +657,8 @@ class AccountMove(SequenceMixin, models.Model):
         raise NotImplementedError(
             'AccountMove._compute_invoice_currency_rate esta BLOQUEADO por '
             '``expected_currency_rate`` -- la tasa esperada del documento no '
-            'se resuelve en este arbol. Sucesor: tarea #114.')
+            'se resuelve en este arbol. Sucesor: tarea #114.'
+        )
 
     # ------------------------------------------------------------------
     # Los once predicados de ``move_type`` -- ≙ ``odoo19c: :6468-6506``.
@@ -569,39 +670,55 @@ class AccountMove(SequenceMixin, models.Model):
     @classmethod
     def get_sale_types(cls, include_receipts=False):
         """Los tipos de documento de venta -- ≙ ``:6481-6482``."""
-        return ['out_invoice', 'out_refund'] + (include_receipts and ['out_receipt'] or [])
+        return ['out_invoice', 'out_refund'] + (
+            include_receipts and ['out_receipt'] or []
+        )
 
     @classmethod
     def get_purchase_types(cls, include_receipts=False):
         """Los tipos de documento de compra -- ≙ ``:6488-6489``."""
-        return ['in_invoice', 'in_refund'] + (include_receipts and ['in_receipt'] or [])
+        return ['in_invoice', 'in_refund'] + (
+            include_receipts and ['in_receipt'] or []
+        )
 
     @classmethod
     def get_invoice_types(cls, include_receipts=False):
         """Venta mas compra -- ≙ ``:6468-6469``."""
-        return cls.get_sale_types(include_receipts) + cls.get_purchase_types(include_receipts)
+        return cls.get_sale_types(include_receipts) + cls.get_purchase_types(
+            include_receipts
+        )
 
     @classmethod
     def get_inbound_types(cls, include_receipts=True):
         """Los que hacen entrar dinero -- ≙ ``:6495-6496``."""
-        return ['out_invoice', 'in_refund'] + (include_receipts and ['out_receipt'] or [])
+        return ['out_invoice', 'in_refund'] + (
+            include_receipts and ['out_receipt'] or []
+        )
 
     @classmethod
     def get_outbound_types(cls, include_receipts=True):
         """Los que hacen salir dinero -- ≙ ``:6502-6503``."""
-        return ['in_invoice', 'out_refund'] + (include_receipts and ['in_receipt'] or [])
+        return ['in_invoice', 'out_refund'] + (
+            include_receipts and ['in_receipt'] or []
+        )
 
     def is_sale_document(self, include_receipts=False, move_type=False):
         """≙ ``:6484-6485``."""
-        return (move_type or self.move_type) in self.get_sale_types(include_receipts)
+        return (move_type or self.move_type) in self.get_sale_types(
+            include_receipts
+        )
 
     def is_purchase_document(self, include_receipts=False, move_type=False):
         """≙ ``:6491-6492``."""
-        return (move_type or self.move_type) in self.get_purchase_types(include_receipts)
+        return (move_type or self.move_type) in self.get_purchase_types(
+            include_receipts
+        )
 
     def is_invoice(self, include_receipts=False):
         """≙ ``:6471-6472``."""
-        return self.is_sale_document(include_receipts) or self.is_purchase_document(include_receipts)
+        return self.is_sale_document(
+            include_receipts
+        ) or self.is_purchase_document(include_receipts)
 
     def is_entry(self):
         """≙ ``:6474-6475``."""
@@ -617,7 +734,9 @@ class AccountMove(SequenceMixin, models.Model):
 
     def _compute_direction_sign(self):
         """El multiplicador de direccion -- ≙ ``odoo19c: :1144-1149``."""
-        self.direction_sign = 1 if (self.move_type == 'entry' or self.is_outbound()) else -1
+        self.direction_sign = (
+            1 if (self.move_type == 'entry' or self.is_outbound()) else -1
+        )
 
     # ------------------------------------------------------------------
     # Los ganchos de envío, cancelación y anticipo -- ≙ ``odoo19c:
@@ -645,7 +764,8 @@ class AccountMove(SequenceMixin, models.Model):
         """
 
     def _is_ready_to_be_sent(self):
-        """¿El asiento está listo para enviarse por correo? -- ≙ ``:7228-7234``.
+        """
+        ¿El asiento está listo para enviarse por correo? -- ≙ ``:7228-7234``.
 
         La fuente devuelve ``True`` siempre; quien tenga una condición la
         introduce reemplazando este método (el EDI, por ejemplo).

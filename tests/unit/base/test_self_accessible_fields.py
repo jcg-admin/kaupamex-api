@@ -48,11 +48,13 @@ conjuntos congelados.
 serializer con su ``Meta.fields`` explícito y la capacidad (DEC-11). Estos
 símbolos son el punto de enganche, no su aplicación.
 """
+
 import pytest
 
 from addons.base.models.res_users import ResUsers
 from addons.hr.models.res_users import (
-    HR_READABLE_FIELDS, HR_WRITABLE_FIELDS,
+    HR_READABLE_FIELDS,
+    HR_WRITABLE_FIELDS,
     SELF_READABLE_FIELDS as hr_readable,
 )
 
@@ -71,7 +73,9 @@ def test_writeable_is_not_derived_from_readable(db):
 
 
 def test_login_is_readable_but_not_writeable(db):
-    """El caso que hace la distinción concreta (``odoo19c: :180`` vs ``:192``)."""
+    """
+    El caso que hace la distinción concreta (``odoo19c: :180`` vs ``:192``).
+    """
     user = ResUsers()
     assert 'login' in user.SELF_READABLE_FIELDS
     assert 'login' not in user.SELF_WRITEABLE_FIELDS

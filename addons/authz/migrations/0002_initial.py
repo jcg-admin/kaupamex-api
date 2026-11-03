@@ -94,7 +94,11 @@ class Migration(migrations.Migration):
             name="role",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Rol al que aplica la regla; **nulo = regla global** (obligatoria, se combina con AND). Paridad ``ir.rule.groups``.",
+                help_text=(
+                    "Rol al que aplica la regla; **nulo = regla global**"
+                    " (obligatoria, se combina con AND). Paridad"
+                    " ``ir.rule.groups``."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="access_rules",
@@ -168,25 +172,29 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="directentitlement",
             index=models.Index(
-                fields=["user", "capability"], name="authz_direc_user_id_ec8311_idx"
+                fields=["user", "capability"],
+                name="authz_direc_user_id_ec8311_idx",
             ),
         ),
         migrations.AddConstraint(
             model_name="directentitlement",
             constraint=models.UniqueConstraint(
-                fields=("user", "capability"), name="uq_authz_direct_entitlement"
+                fields=("user", "capability"),
+                name="uq_authz_direct_entitlement",
             ),
         ),
         migrations.AddIndex(
             model_name="entitlementrevocation",
             index=models.Index(
-                fields=["user", "capability"], name="authz_entit_user_id_47dd02_idx"
+                fields=["user", "capability"],
+                name="authz_entit_user_id_47dd02_idx",
             ),
         ),
         migrations.AddConstraint(
             model_name="entitlementrevocation",
             constraint=models.UniqueConstraint(
-                fields=("user", "capability"), name="uq_authz_entitlement_revocation"
+                fields=("user", "capability"),
+                name="uq_authz_entitlement_revocation",
             ),
         ),
         migrations.AddIndex(

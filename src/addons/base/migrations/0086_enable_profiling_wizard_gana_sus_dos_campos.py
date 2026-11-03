@@ -32,7 +32,10 @@ class Migration(migrations.Migration):
                             ("days_1", "1 Day"),
                             ("months_1", "1 Month"),
                         ],
-                        help_text="Cuanto dura el permiso de perfilado (Odoo ``duration``, ``odoo19c: ir_profile.py:234``).",
+                        help_text=(
+                            "Cuanto dura el permiso de perfilado (Odoo"
+                            " ``duration``, ``odoo19c: ir_profile.py:234``)."
+                        ),
                         max_length=16,
                         null=True,
                         verbose_name="Enable profiling for",
@@ -43,7 +46,14 @@ class Migration(migrations.Migration):
                     models.DateTimeField(
                         blank=True,
                         editable=False,
-                        help_text="Instante en que caduca el permiso (Odoo ``expiration``, ``odoo19c: ir_profile.py:240``). La fuente lo declara ``readonly=False``: el computo propone y quien llena el formulario puede sobrescribir, que aqui es el ``blank=True`` del campo.",
+                        help_text=(
+                            "Instante en que caduca el permiso (Odoo"
+                            " ``expiration``, ``odoo19c: ir_profile.py:240``)."
+                            " La fuente lo declara ``readonly=False``: el"
+                            " computo propone y quien llena el formulario"
+                            " puede sobrescribir, que aqui es el"
+                            " ``blank=True`` del campo."
+                        ),
                         null=True,
                         verbose_name="Enable profiling until",
                     ),
@@ -51,7 +61,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Asistente de habilitacion de perfilado",
-                "verbose_name_plural": "Asistentes de habilitacion de perfilado",
+                "verbose_name_plural": (
+                    "Asistentes de habilitacion de perfilado"
+                ),
                 "db_table": "base_enable_profiling_wizard",
             },
         ),

@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             name="account_purchase_tax",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Impuesto de compra por defecto de la empresa (Odoo account_purchase_tax_id, company.py:127).",
+                help_text=(
+                    "Impuesto de compra por defecto de la empresa (Odoo"
+                    " account_purchase_tax_id, company.py:127)."
+                ),
                 limit_choices_to={"type_tax_use": "purchase"},
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
@@ -30,7 +33,11 @@ class Migration(migrations.Migration):
             name="account_sale_tax",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Impuesto de venta por defecto de la empresa. Lo hereda todo producto nuevo que no declare el suyo (Odoo account_sale_tax_id, company.py:126).",
+                help_text=(
+                    "Impuesto de venta por defecto de la empresa. Lo hereda"
+                    " todo producto nuevo que no declare el suyo (Odoo"
+                    " account_sale_tax_id, company.py:126)."
+                ),
                 limit_choices_to={"type_tax_use": "sale"},
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,

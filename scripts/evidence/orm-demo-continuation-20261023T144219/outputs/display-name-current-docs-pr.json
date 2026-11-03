@@ -1,0 +1,23 @@
+{
+  "command": [
+    "gh",
+    "pr",
+    "view",
+    "154",
+    "--repo",
+    "jcg-admin/kaupamex-docs",
+    "--json",
+    "number,state,headRefOid,baseRefName,mergeStateStatus,statusCheckRollup,url"
+  ],
+  "exit_code": 0,
+  "result": {
+    "baseRefName": "develop",
+    "headRefOid": "9ca48016d4449bd33a20677be35b971cf86d342e",
+    "mergeStateStatus": "CLEAN",
+    "number": 154,
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154"
+  },
+  "stderr": ""
+}

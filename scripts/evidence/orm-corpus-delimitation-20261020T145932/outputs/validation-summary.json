@@ -1,0 +1,27 @@
+{
+  "contract_entries": 5,
+  "required_analytical_headings": [
+    "reference_revision",
+    "reference_symbol",
+    "behavior",
+    "execution_flow",
+    "inputs_outputs",
+    "side_effects",
+    "dependencies",
+    "consumers",
+    "installed_mechanism",
+    "existing_adaptation",
+    "verification",
+    "equivalence",
+    "limitations",
+    "integration"
+  ],
+  "all_present_and_nonempty": true,
+  "scope": "Completeness of analytical entries only;not proof of behavioral conformance",
+  "checkWorkbench": {
+    "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "exit_code": 0,
+    "problems": []
+  },
+  "source_or_product_changes": false
+}

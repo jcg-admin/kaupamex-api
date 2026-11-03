@@ -1,0 +1,42 @@
+{
+  "head": "fed0529eec295d78b35e31eefba5dc11e42730a5",
+  "index_tree": "ec004fe8438d581f869114713efea17152c19b18",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py",
+    "orm.models": ":src/orm/models.py"
+  },
+  "source_sha256": {
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9",
+    "orm.models": "613032ef6b8cbbb579dad80d4be81f90768b398239d6c73b67db53461f9e84db"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_recompute_reentry_contract.py": "e3e414c3b5026072d1b23fb96bddf7820ce73500d6e98a027fc198d95f7b19f0"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": false,
+  "annul_canonical_scope": false,
+  "annul_record_sudo": false,
+  "keyword_only": false,
+  "batch_only": false,
+  "stored_only": false,
+  "pending_only": false,
+  "flush_only": false,
+  "recompute_visibility_only": false,
+  "annul_recompute_visibility": false,
+  "annul_recompute_order": false,
+  "reentry_only": true,
+  "annul_reentry": false,
+  "annul_flush_visibility": false,
+  "annul_native_pending": false,
+  "annul_django_absence": false,
+  "annul_stored_guard": false,
+  "annul_m2m_readback": false,
+  "annul_native_batch": false,
+  "pytest_exit": 1,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}

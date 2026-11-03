@@ -1,0 +1,3 @@
+{"kind": "launch", "instrument": "Existing router/registry/module interfaces; isolated PostgreSQL and installed-stack contract probes", "started_at": "2026-10-22T02:38:17+00:00"}
+{"kind": "declaration", "question": "Which existing mechanisms satisfy database-specific module lifecycle and effective registry contracts?", "instrument": "Existing Consumer tests and installed-stack probes against fixed Odoo 19 Community", "metric": "Contract obligations and discriminating results, not file counts", "blind_to": "Global ORM acceptance, product addon correctness, native Odoo runtime acceptance", "destination": "Existing completar-raiz-orm AS IS and Docs authorities"}
+{"kind": "settle", "exit_code": 2, "finished_at": "2026-10-22T03:16:14+00:00", "duration_seconds": 2277.903724}

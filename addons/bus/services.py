@@ -6,7 +6,8 @@ coincidir en la clave del canal, y si divergen los mensajes se pierden en
 silencio.
 """
 
-#: Prefijo del canal privado de un usuario. Un modelo que emita hacia un usuario
+#: Prefijo del canal privado de un usuario. Un modelo que emita hacia un
+#: usuario
 #: concreto debe construir su ``bus_channel_key()`` con esta misma función.
 USER_CHANNEL_PREFIX = 'user'
 

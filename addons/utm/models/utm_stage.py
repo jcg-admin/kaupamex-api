@@ -4,6 +4,7 @@ Adaptación fiel de Odoo ``utm/models/utm_stage.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3). La fuente declara **0 métodos**: es sólo dos campos y
 su orden. Se porta tal cual.
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -18,12 +19,14 @@ class UtmStage(TimeStampedModel):
 
     # ≙ ``name`` (requerido, traducible en la referencia).
     name = fields.Char(
-        max_length=255, verbose_name='Nombre',
+        max_length=255,
+        verbose_name='Nombre',
         help_text='Nombre de la etapa.',
     )
     # ≙ ``sequence``.
     sequence = fields.Integer(
-        default=1, verbose_name='Secuencia',
+        default=1,
+        verbose_name='Secuencia',
         help_text='Orden de presentación.',
     )
 

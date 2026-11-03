@@ -1,0 +1,34 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "actual_postgresql": true,
+  "source_differential": true,
+  "states": {
+    "installed": "installed",
+    "uninstalled": "uninstalled",
+    "uninstallable": "uninstallable",
+    "to install": "uninstalled",
+    "to upgrade": "installed",
+    "to remove": "installed"
+  },
+  "version_preserved": true,
+  "committed_visible_from_independent_connection": true,
+  "second_update_failure_rolls_back_both": true,
+  "missing_table_noop": true,
+  "nested_transaction_refused": true,
+  "limits": "Bounded recovery stage, no outer-loader caller integration or TASK acceptance"
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

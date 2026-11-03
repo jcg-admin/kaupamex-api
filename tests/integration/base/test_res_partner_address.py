@@ -43,6 +43,7 @@ Qué haría fallar a cada control
 ``TestAddressGet.test_it_does_not_cross_into_another_company``
     CONTROL de la frontera: es la mitad que un recorrido ingenuo se salta.
 """
+
 import pytest
 
 from addons.base.models.res_country import ResCountry, ResCountryState
@@ -79,14 +80,16 @@ def japon(db):
 def jalisco(mexico):
     """Un estado propio — el seed no trae ninguno (medido: 0 filas)."""
     state, _ = ResCountryState.objects.get_or_create(
-        country=mexico, code='JAL', defaults={'name': 'Jalisco'})
+        country=mexico, code='JAL', defaults={'name': 'Jalisco'}
+    )
     return state
 
 
 @pytest.fixture
 def osaka(japon):
     state, _ = ResCountryState.objects.get_or_create(
-        country=japon, code='27', defaults={'name': 'Osaka'})
+        country=japon, code='27', defaults={'name': 'Osaka'}
+    )
     return state
 
 
@@ -112,7 +115,10 @@ class TestStreetSplit:
 
     def test_an_empty_street_gives_three_empty_strings(self):
         assert street_split('') == {
-            'street_name': '', 'street_number': '', 'street_number2': ''}
+            'street_name': '',
+            'street_number': '',
+            'street_number2': '',
+        }
 
     def test_none_is_treated_as_empty(self):
         """CONTROL — la fuente hace ``street or ''`` antes de casar."""
@@ -123,15 +129,22 @@ class TestDisplayAddress:
     """≙ ``_display_address`` — la plantilla la pone el país."""
 
     def _partner(self, **extra):
-        data = dict(name='Cliente', street='Av. Vallarta 1300',
-                    street2='Piso 4', zip='44100', city='Guadalajara')
+        data = dict(
+            name='Cliente',
+            street='Av. Vallarta 1300',
+            street2='Piso 4',
+            zip='44100',
+            city='Guadalajara',
+        )
         data.update(extra)
         return ResPartner.objects.create(**data)
 
     def test_the_country_template_governs_the_order(self, jalisco, mexico):
         who = self._partner(country=mexico, state=jalisco)
-        assert who._display_address() == (
-            'Av. Vallarta 1300\nPiso 4\n44100 Guadalajara, JAL\nMexico')
+        assert (
+            who._display_address()
+            == 'Av. Vallarta 1300\nPiso 4\n44100 Guadalajara, JAL\nMexico'
+        )
 
     def test_the_SAME_data_comes_out_inverted_in_japan(self, osaka, japon):
         """El eje, en su forma discriminante: mismos datos, otro orden.
@@ -142,14 +155,18 @@ class TestDisplayAddress:
         error que no se ve hasta que hay un cliente allá.
         """
         who = self._partner(country=japon, state=osaka)
-        assert who._display_address() == (
-            '44100\nOsaka Guadalajara\nAv. Vallarta 1300\nPiso 4\nJapan')
+        assert (
+            who._display_address()
+            == '44100\nOsaka Guadalajara\nAv. Vallarta 1300\nPiso 4\nJapan'
+        )
 
     def test_without_country_it_falls_back_to_the_default(self, db):
         """CONTROL — sin país no hay plantilla; la fuente trae una."""
         who = self._partner()
-        assert who._display_address() == (
-            'Av. Vallarta 1300\nPiso 4\nGuadalajara  44100\n')
+        assert (
+            who._display_address()
+            == 'Av. Vallarta 1300\nPiso 4\nGuadalajara  44100\n'
+        )
 
     def test_a_missing_field_becomes_an_empty_string(self, mexico):
         """La fuente usa ``defaultdict(str)``: nada revienta por ausencia."""
@@ -157,18 +174,17 @@ class TestDisplayAddress:
         assert 'None' not in who._display_address()
 
     def test_the_company_name_goes_on_top(self, mexico):
-        parent = ResPartner.objects.create(name='Kaupamex SA',
-                                           is_company=True)
+        parent = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
         who = self._partner(country=mexico, parent=parent)
         assert who._display_address().startswith('Kaupamex SA\n')
 
     def test_without_company_drops_it(self, mexico):
         """CONTROL del argumento — sin él la bandera sería decorativa."""
-        parent = ResPartner.objects.create(name='Kaupamex SA',
-                                           is_company=True)
+        parent = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
         who = self._partner(country=mexico, parent=parent)
         assert not who._display_address(without_company=True).startswith(
-            'Kaupamex SA')
+            'Kaupamex SA'
+        )
 
     def test_the_dependency_list_names_the_address_fields(self, db):
         depends = ResPartner._display_address_depends()
@@ -193,15 +209,21 @@ class TestAllAddr:
 
     def test_it_returns_one_entry_with_the_country_code(self, mexico):
         who = ResPartner.objects.create(
-            name='Cliente', street='Av. Vallarta 1300', zip='44100',
-            city='Guadalajara', country=mexico)
-        assert who._get_all_addr() == [{
-            'contact_type': 'Av. Vallarta 1300',
-            'street': 'Av. Vallarta 1300',
-            'zip': '44100',
-            'city': 'Guadalajara',
-            'country': 'MX',
-        }]
+            name='Cliente',
+            street='Av. Vallarta 1300',
+            zip='44100',
+            city='Guadalajara',
+            country=mexico,
+        )
+        assert who._get_all_addr() == [
+            {
+                'contact_type': 'Av. Vallarta 1300',
+                'street': 'Av. Vallarta 1300',
+                'zip': '44100',
+                'city': 'Guadalajara',
+                'country': 'MX',
+            }
+        ]
 
 
 class TestAddressGet:
@@ -214,7 +236,8 @@ class TestAddressGet:
     def test_it_finds_the_child_of_the_asked_type(self, db):
         company = ResPartner.objects.create(name='Empresa', is_company=True)
         delivery = ResPartner.objects.create(
-            name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY)
+            name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY
+        )
         assert company.address_get(['delivery'])['delivery'] == delivery.pk
 
     def test_it_descends_two_levels(self, db):
@@ -222,7 +245,8 @@ class TestAddressGet:
         company = ResPartner.objects.create(name='Empresa', is_company=True)
         middle = ResPartner.objects.create(name='Sucursal', parent=company)
         deep = ResPartner.objects.create(
-            name='Bodega', parent=middle, type=ResPartner.TYPE_DELIVERY)
+            name='Bodega', parent=middle, type=ResPartner.TYPE_DELIVERY
+        )
         assert company.address_get(['delivery'])['delivery'] == deep.pk
 
     def test_it_does_not_cross_into_another_company(self, db):
@@ -230,17 +254,18 @@ class TestAddressGet:
         un recorrido ingenuo."""
         company = ResPartner.objects.create(name='Empresa', is_company=True)
         other = ResPartner.objects.create(
-            name='Filial', parent=company, is_company=True)
+            name='Filial', parent=company, is_company=True
+        )
         ResPartner.objects.create(
-            name='Bodega ajena', parent=other,
-            type=ResPartner.TYPE_DELIVERY)
+            name='Bodega ajena', parent=other, type=ResPartner.TYPE_DELIVERY
+        )
         assert company.address_get(['delivery'])['delivery'] == company.pk
 
     def test_it_climbs_to_the_parent_when_it_is_a_child(self, db):
         company = ResPartner.objects.create(name='Empresa', is_company=True)
         invoice = ResPartner.objects.create(
-            name='Facturación', parent=company,
-            type=ResPartner.TYPE_INVOICE)
+            name='Facturación', parent=company, type=ResPartner.TYPE_INVOICE
+        )
         contact = ResPartner.objects.create(name='Ana', parent=company)
         assert contact.address_get(['invoice'])['invoice'] == invoice.pk
 

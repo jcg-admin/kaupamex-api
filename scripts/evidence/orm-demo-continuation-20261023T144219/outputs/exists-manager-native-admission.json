@@ -1,0 +1,25 @@
+{
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input": [
+    {
+      "id": "TASK-API-0397.exists_physical_rows",
+      "taskId": "TASK-API-0397",
+      "prompt": "Qualify physical existence independently of a filtered public manager; retain record ordering, NewId, missing-id removal and errors",
+      "verify": "Actual BaseModel with two native managers, mocked query transport and prohibited SQL; exact candidate and annulment controls",
+      "route": "local",
+      "owned": [
+        "src/orm/models.py",
+        "tests/unit/orm/test_exists_manager_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0397.exists_physical_rows"
+  ],
+  "claims_count": 608,
+  "native_task": "integral-native-assignment-revalidation.json:0397 native1167 in_progress ownerVM-b501",
+  "dependencies": "BaseModel._from_ids/browse/Environment/NewId and both Django managers already exist. Bounded query transport is mocked; persistence/routing/permissions acceptance excluded. Source Odoo exists uses Query plus id IN rather than visibility search.",
+  "managed_inference": false
+}

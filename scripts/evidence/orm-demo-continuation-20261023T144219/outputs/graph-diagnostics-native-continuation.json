@@ -1,0 +1,11 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "command": "Existing four input rows; full actual ledger; states={}, exposed=set(), node=b501",
+  "claims_count": 499,
+  "selected": [
+    "TASK-API-0382.incremental_graph_snapshot"
+  ],
+  "population": "Bounded existing inputs only; not global eligibility or exhaustion",
+  "limits": "No accepted state fabricated; same pending graph unit remains selected. Imported provenance and full loader acceptance not qualified. No managed inference."
+}

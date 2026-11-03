@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="lock_timeout",
             field=models.IntegerField(
                 default=0,
-                help_text='Odoo lock_timeout ("Session timeout") — minutos tras los cuales se vuelve a exigir identidad, haya o no actividad.',
+                help_text=(
+                    'Odoo lock_timeout ("Session timeout") — minutos tras los'
+                    ' cuales se vuelve a exigir identidad, haya o no'
+                    ' actividad.'
+                ),
                 verbose_name="Caducidad de sesión",
             ),
         ),
@@ -24,7 +28,11 @@ class Migration(migrations.Migration):
             name="lock_timeout_inactivity",
             field=models.IntegerField(
                 default=0,
-                help_text='Odoo lock_timeout_inactivity ("Inactivity timeout") — minutos de inactividad tras los cuales se vuelve a exigir identidad.',
+                help_text=(
+                    'Odoo lock_timeout_inactivity ("Inactivity timeout") —'
+                    ' minutos de inactividad tras los cuales se vuelve a'
+                    ' exigir identidad.'
+                ),
                 verbose_name="Caducidad por inactividad",
             ),
         ),
@@ -33,7 +41,10 @@ class Migration(migrations.Migration):
             name="lock_timeout_inactivity_mfa",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo lock_timeout_inactivity_mfa ("Require MFA on inactivity timeout").',
+                help_text=(
+                    'Odoo lock_timeout_inactivity_mfa ("Require MFA on'
+                    ' inactivity timeout").'
+                ),
                 verbose_name="Exigir MFA al caducar por inactividad",
             ),
         ),
@@ -42,7 +53,9 @@ class Migration(migrations.Migration):
             name="lock_timeout_mfa",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo lock_timeout_mfa ("Require MFA on session timeout").',
+                help_text=(
+                    'Odoo lock_timeout_mfa ("Require MFA on session timeout").'
+                ),
                 verbose_name="Exigir MFA al caducar la sesión",
             ),
         ),

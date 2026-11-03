@@ -1,5 +1,6 @@
 """
-Tests — Returns endpoints (UC-RET-01..06): retirado, la superficie REST no existe.
+Tests — Returns endpoints (UC-RET-01..06): retirado, la superficie REST no
+existe.
 
 Probaba ``/api/v2/returns/`` (comprador) y ``/api/v2/admin/returns/``
 (cola admin: aprobar/rechazar/pedir info/recepción/reembolso). La familia

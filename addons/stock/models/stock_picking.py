@@ -1001,12 +1001,12 @@ class PickingTypeFavoriteUserRel(models.Model):
     """
 
     picking_type = fields.Many2one(
-        StockPickingType, on_delete=models.CASCADE,
+        StockPickingType, null=False, on_delete=models.CASCADE,
         db_column='picking_type_id', related_name='+',
         verbose_name='Tipo de operación',
     )
     user = fields.Many2one(
-        ResUsers, on_delete=models.CASCADE, db_column='user_id',
+        ResUsers, null=False, on_delete=models.CASCADE, db_column='user_id',
         related_name='+', verbose_name='Usuario',
     )
 

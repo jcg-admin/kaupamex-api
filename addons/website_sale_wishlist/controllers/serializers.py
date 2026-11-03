@@ -21,6 +21,7 @@ Los campos planos (``product_name``/``image_url``/…) son el contrato que
 de e-commerce (viven en ``website_sale`` en la referencia — llegarán con
 esa familia) ni un eje orisha.
 """
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers as drf_serializers
@@ -66,12 +67,20 @@ class WishlistItemSerializer(ModelSerializer):
     class Meta:
         model = WishlistItem
         fields = [
-            'id', 'product',
-            'price_at_add', 'current_price',
-            'price_dropped', 'price_drop_percent',
-            'availability', 'created_at',
-            'product_name', 'image_url', 'category_name',
-            'orisha_name', 'is_available', 'stock',
+            'id',
+            'product',
+            'price_at_add',
+            'current_price',
+            'price_dropped',
+            'price_drop_percent',
+            'availability',
+            'created_at',
+            'product_name',
+            'image_url',
+            'category_name',
+            'orisha_name',
+            'is_available',
+            'stock',
         ]
 
     @extend_schema_field(OpenApiTypes.STR)

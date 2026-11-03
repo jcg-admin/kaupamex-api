@@ -1,0 +1,58 @@
+{
+  "scope": "Actual installed Consumer metadata/dependency traversal, SQL prohibited; no native Odoo runtime",
+  "fields": [
+    {
+      "field": "company_country_code",
+      "related": "company_id.country.code",
+      "transient_model": false,
+      "resolved_paths": [
+        [
+          "base_setup.SiteConfigSettings.company_id"
+        ],
+        [
+          "base_setup.SiteConfigSettings.company_id",
+          "base.ResCompany.country"
+        ],
+        [
+          "base_setup.SiteConfigSettings.company_id",
+          "base.ResCompany.country",
+          "base.ResCountry.code"
+        ]
+      ],
+      "warnings": [
+        "Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency."
+      ]
+    },
+    {
+      "field": "company_country_group_codes",
+      "related": "company_id.country.country_group_codes",
+      "transient_model": false,
+      "resolved_paths": [
+        [
+          "base_setup.SiteConfigSettings.company_id"
+        ],
+        [
+          "base_setup.SiteConfigSettings.company_id",
+          "base.ResCompany.country"
+        ],
+        [
+          "base_setup.SiteConfigSettings.company_id",
+          "base.ResCompany.country",
+          "base.ResCountry.country_group_codes"
+        ]
+      ],
+      "warnings": [
+        "Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency."
+      ]
+    }
+  ],
+  "company_country": {
+    "compute": "_compute_address",
+    "store": false,
+    "search": null,
+    "searchable": false,
+    "declared_ondelete": "restrict",
+    "django_on_delete": "DO_NOTHING"
+  },
+  "interpretation": "Warnings remain visible where the existing native resolve_depends rules produce them; no search method added to silence a warning"
+}

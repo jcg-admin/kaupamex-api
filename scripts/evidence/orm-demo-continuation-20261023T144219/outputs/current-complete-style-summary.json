@@ -1,0 +1,23 @@
+{
+  "command": "make check-style",
+  "make_exit": 2,
+  "pycodestyle_exit": 1,
+  "counts": {
+    "E501": 5381,
+    "E122": 69,
+    "E126": 32,
+    "E202": 73,
+    "E125": 8,
+    "E123": 5,
+    "E131": 22,
+    "E201": 14,
+    "W504": 11,
+    "E128": 17,
+    "E124": 5,
+    "E121": 6,
+    "E127": 3,
+    "E402": 323
+  },
+  "static_import_gate": "NOT_EVALUATED in this fail-fast run; pycodestyle failed first",
+  "note": "Documentation restoration preserves RST; E501 remains pending. No baseline or suppression added."
+}

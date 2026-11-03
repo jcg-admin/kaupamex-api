@@ -1,0 +1,14 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "session.record_environment.main(event),no --force",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv PYTHONPATH=/workspace/thyrox/src RECORD_ENVIRONMENT_EXECUTABLE=/workspace/kaupamex-api/.venv/bin/python uv run --frozen python -m session.record_environment scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs",
+  "cwd": "/workspace/kaupamex-api",
+  "first_exit_code": 0,
+  "second_exit_code": 1,
+  "second_exit_expected": true,
+  "before_sha256": "2bf037a2598d29c546a000043d44a1e1b5779040d0f5e48137ba18f5b1eca436",
+  "after_sha256": "2bf037a2598d29c546a000043d44a1e1b5779040d0f5e48137ba18f5b1eca436",
+  "result": "Existing environment manifest preserved;negative overwrite control passes",
+  "scope": "Selected actual API Python binary,not Claude/Codex inference or Odoo source identity",
+  "initial_run_settlement": "Run extended after initial settlement to characterize existing capture guard;final native settlement appended preserving history"
+}

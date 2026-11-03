@@ -1,0 +1,128 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interfaces": {
+    "src/session/task_continuation.py": {
+      "HEAD": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30"
+    },
+    "src/task/task_source.py": {
+      "HEAD": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c": "793987dba93a1de3229e70bf7df3d6c72f01f172"
+    },
+    "src/packages/tools/src/tasks.ts": {
+      "HEAD": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c": "bd142a148c7a0b790d6ffcd211a802aafddcc549"
+    },
+    "src/packages/cli/src/commands/claims.ts": {
+      "HEAD": "3efc933c94cad25deb6d02c3503a2f6c44c6a6ad",
+      "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c": "3efc933c94cad25deb6d02c3503a2f6c44c6a6ad"
+    }
+  },
+  "same_source": true,
+  "foreign_source_claims": [
+    {
+      "id": "c-844ca00b-019b-4297-a19f-39d1a7b4a6a0",
+      "op": "claim",
+      "path": "src/task/task_source.py",
+      "owner": "vm-r",
+      "branch": "feature/vm-r-impl",
+      "at": "2026-10-09T04:45:40.641Z",
+      "task": "TASK-THYROX-1072"
+    },
+    {
+      "id": "c-35920a1e-f3fe-49e7-a5e4-0b18d3bedd55",
+      "op": "claim",
+      "path": "src/session/task_continuation.py",
+      "owner": "vm-r",
+      "branch": "feature/vm-r-impl",
+      "at": "2026-10-17T06:23:55.096Z",
+      "task": "TASK-THYROX-1069"
+    },
+    {
+      "id": "c-8362bf46-91bf-41b8-9712-6fe9ce461b59",
+      "op": "claim",
+      "path": "src/session/task_continuation.py",
+      "owner": "vm-a",
+      "branch": "feature/fresh-clone-bootstrap",
+      "at": "2026-10-17T22:32:46.481Z",
+      "task": "TASK-THYROX-1065"
+    }
+  ],
+  "inference": "not_invoked_not_qualified",
+  "store_or_state_updates": false,
+  "complete_prior_interface_revalidation": [
+    {
+      "path": "src/session/task_continuation.py",
+      "blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/continuation_frontier.py",
+      "blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/node_next_task.py",
+      "blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/claim_fold.py",
+      "blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/in_flight.py",
+      "blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "unchanged": true
+    },
+    {
+      "path": "src/task/task_source.py",
+      "blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "unchanged": true
+    },
+    {
+      "path": "src/task/implementation_order.py",
+      "blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/local_plan.py",
+      "blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/resource_admission.py",
+      "blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/model_coordinator.sh",
+      "blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/pool_integrate.sh",
+      "blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "unchanged": true
+    },
+    {
+      "path": "src/packages/tools/src/tasks.ts",
+      "blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "unchanged": true
+    },
+    {
+      "path": "src/packages/observability/src/store.ts",
+      "blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "unchanged": true
+    }
+  ],
+  "qualification_limits": "Unchanged source preserves bounded prior verifications, not present model/runtime/resource readiness. TaskSource still omits owner and emits empty blockedBy; global discovery/admission blocked and source reserved by vm-r. Managed model execution not invoked.",
+  "runtime_observations": {
+    "bun_executable": "/workspace/.cache/toolchains/bin/bun",
+    "bun_version": "1.4.0",
+    "provider_python_executable": "/workspace/thyrox/.venv/bin/python",
+    "provider_python_version": "Python 3.12.14",
+    "scope": "Native read-only task/selector and claim interfaces only; no managed execution qualification"
+  }
+}

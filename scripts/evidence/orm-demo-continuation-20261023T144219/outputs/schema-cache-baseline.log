@@ -1,0 +1,104 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+EE                                                                       [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_get_column_update_reads_the_cache_of_the_transaction __
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_server_cursor.py:98: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_module_module.category does not exist
+E   LINE 1: ...dule_module"."to_buy", "ir_module_module"."demo", "ir_module...
+E                                                                ^
+E   HINT:  Perhaps you meant to reference the column "ir_module_module.category_id".
+
+The above exception was the direct cause of the following exception:
+../../kaupamex-api/.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/test/utils.py:241: in setup_databases
+    serialize_connection.creation.serialize_db_to_string()
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:164: in serialize_db_to_string
+    serializers.serialize("json", get_objects(), indent=None, stream=out)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/core/serializers/__init__.py:134: in serialize
+    s.serialize(queryset, **options)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/core/serializers/base.py:109: in serialize
+    for count, obj in enumerate(queryset, start=1):
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:160: in get_objects
+    yield from queryset.iterator(chunk_size=chunk_size)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py:508: in _iterator
+    yield from iterable
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_server_cursor.py:98: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_module_module.category does not exist
+E   LINE 1: ...dule_module"."to_buy", "ir_module_module"."demo", "ir_module...
+E                                                                ^
+E   HINT:  Perhaps you meant to reference the column "ir_module_module.category_id".
+_ ERROR at setup of test_get_column_update_refuses_when_the_value_is_not_cached _
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_server_cursor.py:98: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_module_module.category does not exist
+E   LINE 1: ...dule_module"."to_buy", "ir_module_module"."demo", "ir_module...
+E                                                                ^
+E   HINT:  Perhaps you meant to reference the column "ir_module_module.category_id".
+
+The above exception was the direct cause of the following exception:
+../../kaupamex-api/.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/test/utils.py:241: in setup_databases
+    serialize_connection.creation.serialize_db_to_string()
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:164: in serialize_db_to_string
+    serializers.serialize("json", get_objects(), indent=None, stream=out)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/core/serializers/__init__.py:134: in serialize
+    s.serialize(queryset, **options)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/core/serializers/base.py:109: in serialize
+    for count, obj in enumerate(queryset, start=1):
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:160: in get_objects
+    yield from queryset.iterator(chunk_size=chunk_size)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py:508: in _iterator
+    yield from iterable
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/_server_cursor.py:98: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_module_module.category does not exist
+E   LINE 1: ...dule_module"."to_buy", "ir_module_module"."demo", "ir_module...
+E                                                                ^
+E   HINT:  Perhaps you meant to reference the column "ir_module_module.category_id".
+=============================== warnings summary ===============================
+../../kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-cache-baseline.junit.xml -
+=========================== short test summary info ============================
+ERROR tests/unit/orm/test_field_conversion.py::test_get_column_update_reads_the_cache_of_the_transaction
+ERROR tests/unit/orm/test_field_conversion.py::test_get_column_update_refuses_when_the_value_is_not_cached
+1 warning, 2 errors in 1.89s

@@ -1,0 +1,39 @@
+{
+  "baseline": "b1b6f59b1034d94c26aafd4c3ef623d69f8cf64b",
+  "functions_and_files": [
+    {
+      "path": "src/orm/fields.py",
+      "symbol": "recompute",
+      "unchanged_ast": true,
+      "body_sha256": "f857df2a453b42b4419cfb0a66072004c1b17d2adf4669371df474bdbd6f7264"
+    },
+    {
+      "path": "src/orm/models.py",
+      "symbol": "_recompute_field",
+      "unchanged_ast": true,
+      "body_sha256": "e43d145ff417ac99f62b6a8333939bb87363b2eab838aeb368fd009aec6839ce"
+    },
+    {
+      "path": "src/orm/fields_misc.py",
+      "unchanged_bytes": true,
+      "sha256": "dcf0335929df92b62c3b71ec490ddda41413229bc5a8ae735849deabc759fbfc"
+    },
+    {
+      "path": "src/orm/fields_relational.py",
+      "unchanged_bytes": true,
+      "sha256": "013816a040d03f1d64f691b3738b714e405efe17b8724ec1ca00922a974b2c0e"
+    },
+    {
+      "path": "tests/unit/orm/test_json_defaults.py",
+      "unchanged_bytes": true,
+      "sha256": "5066d0ff96633905bddf0648dabfabbe3ba81ce49a71ccaf614166695f673972"
+    },
+    {
+      "path": "tests/unit/orm/test_relational_field_reconstruction.py",
+      "unchanged_bytes": true,
+      "sha256": "963927003c525cede9119003db41c52beb3b540ba252e77020e4aa98cdc44b70"
+    }
+  ],
+  "recompute_regression": "16PGPASS because descriptor/cache changed materially; no reimplementation or replay of previous admission/negativecontrols",
+  "relations_json": "Historical PostgreSQL/negative evidence retained; these unchanged mechanisms not reexecuted without cause"
+}

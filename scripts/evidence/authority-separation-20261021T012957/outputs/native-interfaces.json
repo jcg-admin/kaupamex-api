@@ -1,0 +1,104 @@
+[
+  {
+    "interface": "paths.reach.thyrox_root/agent_store_path(create=False)",
+    "source": "src/paths/reach.py:879,1136",
+    "contract": "Generic declared root + default Provider store; KAUPAMEX_AGENT_STORE is compatibility fallback",
+    "command_or_inspection": "controls.py",
+    "result": "PASS bounded root control, no E2E",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "consumer_root;workbench_dir;cache_dir;jobs_dir",
+    "source": "src/paths/reach.py:1029;src/workbench/paths.py:215;src/cache/paths.py:52;src/session/job_runs.py:jobs_dir",
+    "contract": "THYROX_CONSUMER official literal; clone families are generated, not restricted to API/Docs",
+    "command_or_inspection": "controls.py",
+    "result": "PASS explicit homes for arbitrary/multiple Consumers; legacy global declaration hazard observed",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "agent_store.resolve_store_dir/connect_readonly",
+    "source": "src/agents/agent_store.py:461,1696",
+    "contract": "Default store no Docs; document_root separately defaults docs; connect() migrates/resyncs and is prohibited here",
+    "command_or_inspection": "read_state.py",
+    "result": "23 selected rows +14 migration versions read; DB SHA256 unchanged",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "task_ids.mapping_from_store/lookup",
+    "source": "src/task/task_ids.py:578,411",
+    "contract": "Stable citation \u2194 (session_id,task_id); no renumbering",
+    "command_or_inspection": "read_state.py;transfer_reader.py checkpoint-fixture.json",
+    "result": "Fresh process resolves four known identities;0406 is negative census, not UI",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "task_source.records_from_store",
+    "source": "src/task/task_source.py:110",
+    "contract": "Projection must preserve raw dependencies; prior loss under unchanged Provider revision",
+    "command_or_inspection": "Reused previous records-from-store evidence, no experiment repeated",
+    "result": "Known unqualified dependency projection; TASK1072 claim vm-r preserved",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "implementation_order.build_edges;continuation_frontier.runnable_items",
+    "source": "src/task/implementation_order.py:119;src/session/continuation_frontier.py:93",
+    "contract": "Declared dependencies only; no declaration is not proof of independence; hierarchy/DAG limits retained",
+    "command_or_inspection": "Source inspection + reused previous planning contracts",
+    "result": "Present, not live functional admission",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "node_next_task.next_for_node;claim_fold.active_claims",
+    "source": "src/session/node_next_task.py:18;src/session/claim_fold.py:20",
+    "contract": "Lane, accepted predecessor and foreign claims; not functional ownership or resource admission",
+    "command_or_inspection": "controls.py;transfer_reader.py",
+    "result": "PASS positive/blocked/foreign-claim controls in fixtures",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "session.job_runs;workbench.manifest",
+    "source": "src/session/job_runs.py;src/workbench/manifest.py",
+    "contract": "Run metadata, settle and hashes; destination metadata is not output interception",
+    "command_or_inspection": "Native scaffold_run/declare_workbench for this run",
+    "result": "Used native run; incomplete old manifest does not establish running worker",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "session.record_environment",
+    "source": "src/session/record_environment.py",
+    "contract": "Explicit executable measured; does not capture all isolation or qualify inference",
+    "command_or_inspection": "RECORD_ENVIRONMENT_EXECUTABLE=API/.venv/bin/python uv run --frozen python -m session.record_environment outputs",
+    "result": "PASS record environment; Python executable scope, not Codex/local model acceptance",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "verify.tree_fingerprint;session.snapshot_store",
+    "source": "src/verify/tree_fingerprint.py;src/session/snapshot_store.py",
+    "contract": "Fingerprint src/tests/bin scope; native snapshot writes refs/manifests and has generation checks",
+    "command_or_inspection": "Source inspection; unchanged earlier negative controls reused; git bundle verify recovered bundle",
+    "result": "Snapshot runtime not invoked; bundle verify0; no migration or fabricated runtime snapshot",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "session.document_intent.validate_intent;documentation_publisher",
+    "source": "src/session/document_intent.py:112;src/session/documentation_publisher.py",
+    "contract": "Generic named consumer but canonical RST management layout required; checks blob/generation/placement and can commit/push",
+    "command_or_inspection": "Pure intent validation only",
+    "result": "PASS canonical intent; expected rejection docs/ path. Publisher/aggregation E2E not executed",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  },
+  {
+    "interface": "user_wiring.resolve_consumer; sync_local_settings.rendered_sync_hooks",
+    "source": "src/session/user_wiring.py:153;src/session/sync_local_settings.py:148",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "command_or_inspection": "Pure projection explicit Consumer vs legacy defaults; see hook-projection-control.json",
+    "result": "PASS explicit no Docs literal; default retains Docs; no hooks/settings writes"
+  },
+  {
+    "interface": "snapshot-tasks.sh/refresh-board.sh",
+    "source": "src/task/snapshot-tasks.sh:104;src/task/refresh-board.sh:62",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "command_or_inspection": "Source inspection only; not invoked because they render/snapshot operational board",
+    "result": "Present scoped Docs publication coupling; no generic runtime independence claim"
+  }
+]

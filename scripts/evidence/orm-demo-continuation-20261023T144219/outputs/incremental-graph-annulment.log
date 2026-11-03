@@ -1,0 +1,21 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_incremental_graph.py", line 68, in <module>
+    assert 'child' not in first, 'uninstalled child was incorrectly selected'
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: uninstalled child was incorrectly selected
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

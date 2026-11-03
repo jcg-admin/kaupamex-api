@@ -65,10 +65,12 @@ Las mediciones, verbatim
    atributo no existe.
 2. ``line._eligible_for_stock_account()`` — el filtro de qué línea de factura
    participa en la valoración. Lo declara ``stock_account`` en la referencia;
-   el ``stock_account`` de este árbol tiene dos archivos (``product_costing.py``,
+   el ``stock_account`` de este árbol tiene dos archivos
+   (``product_costing.py``,
    ``stock_valuation_layer.py``) y ninguno toca ``account.move.line``.
 3. ``product.categ_id.property_price_difference_account_id`` — **la cuenta
-   contable donde aterriza la diferencia**. Sin ella el método no tiene destino;
+   contable donde aterriza la diferencia**. Sin ella el método no tiene
+   destino;
    la fuente misma hace ``continue`` cuando falta (``:55-56``), así que un
    puerto sin esa cuenta sería un método que nunca produce una línea. Eso es
    una superficie muerta, no un porte.
@@ -115,7 +117,8 @@ funcionó (el gate de porte compara nombres literales y sería ciego a eso,
 ``_stock_account_get_last_step_stock_moves`` — el eslabón base falta
 -----------------------------------------------------------------------
 
-Su primera línea es ``rslt = super()._stock_account_get_last_step_stock_moves()``
+Su primera línea es ``rslt =
+super()._stock_account_get_last_step_stock_moves()``
 y el ``super()`` lo declara ``stock_account`` allá. Aquí ese método no existe
 en ningún archivo (0 hits). Instalar el segundo eslabón de una cadena sin
 primer eslabón es el defecto de ``H-API-733``.
@@ -129,7 +132,8 @@ encadenadas: el campo destino en ``account.move`` (0 hits en
 ``addons/account/``), ``purchase_line_id`` en ``account.move.line`` (lo declara
 ``purchase``, que no lo tiene), y el ``super()`` que la primera línea encadena.
 
-**El campo origen SÍ se porta en este pase**: ``PurchaseOrder.incoterm_location``,
+**El campo origen SÍ se porta en este pase**:
+``PurchaseOrder.incoterm_location``,
 en ``purchase_order.py`` de este mismo addon. Lo que falta es el otro extremo
 del puente, no el puente entero — por eso el desenlace es *bloqueado*, no
 *divergencia*.

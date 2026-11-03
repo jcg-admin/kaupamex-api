@@ -198,7 +198,7 @@ class BaseModuleInstallRequest(TransientModel):
     _rec_name = 'module_id'
 
     module_id = fields.Many2one(
-        'base.IrModule', on_delete=models.CASCADE, db_column='module_id',
+        'base.IrModule', null=False, on_delete=models.CASCADE, db_column='module_id',
         limit_choices_to={'state': STATE_UNINSTALLED},
         related_name='install_requests', verbose_name='Module',
         help_text='Módulo cuya activación se solicita (Odoo module_id).')
@@ -279,7 +279,7 @@ class BaseModuleInstallReview(TransientModel):
     _rec_name = 'module_id'
 
     module_id = fields.Many2one(
-        'base.IrModule', on_delete=models.CASCADE, db_column='module_id',
+        'base.IrModule', null=False, on_delete=models.CASCADE, db_column='module_id',
         limit_choices_to={'state': STATE_UNINSTALLED},
         related_name='install_reviews', verbose_name='Module',
         help_text='Módulo bajo revisión (Odoo module_id).')

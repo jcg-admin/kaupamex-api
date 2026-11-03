@@ -1,0 +1,52 @@
+{
+  "interpretation": "Every failure remains a failure. Negative controls expected to fail; no acceptance from process completion. Commands require repo root, PYTHONPATH=<Consumer>/src:<Provider>/src, UV_CACHE_DIR and declared QA variables. No secret values recorded.",
+  "observations": [
+    {
+      "command": "uv run --frozen python probes/scoped_postgresql_context.py",
+      "exit_code": 0,
+      "result": "312PASS/1XFAIL",
+      "log": "scoped-tests.log"
+    },
+    {
+      "command": "uv run --frozen python probes/scoped_postgresql_context.py --incremental",
+      "exit_code": 1,
+      "result": "29PASS/7FAIL/2fixtureERROR",
+      "log": "incremental-tests.log"
+    },
+    {
+      "command": "uv run --frozen python probes/scoped_postgresql_context.py --consumer-probe",
+      "exit_code": 1,
+      "result": "Real ResGroups.full_name RecursionError",
+      "log": "nonstored-consumer.log"
+    },
+    {
+      "command": "uv run --frozen python probes/scoped_postgresql_context.py --xfail-probe",
+      "exit_code": 1,
+      "result": "Database access blocked, stale xfail not missing constructor triple proof",
+      "log": "xfail-probe.log"
+    },
+    {
+      "command": "uv run --frozen python probes/recompute_postgresql.py",
+      "exit_code": 0,
+      "result": "16PASS",
+      "log": "retry-final.log"
+    },
+    {
+      "command": "uv run --frozen python probes/recompute_postgresql.py --retry-baseline --retry-only",
+      "exit_code": 1,
+      "result": "7of8 retry cases fail; AccessError control passes",
+      "log": "retry-final-negative.log"
+    },
+    {
+      "command": "uv run --frozen python probes/recompute_postgresql.py --without-record-alias --alias-only",
+      "exit_code": 1,
+      "result": "1ERROR proves alias binding is discriminating",
+      "log": "retry-alias-negative.log"
+    },
+    {
+      "command": "alias control first invocation without PYTHONPATH",
+      "exit_code": 1,
+      "result": "ModuleNotFoundError orm before tests; temporary role/HBA removed. Corrected invocation retained separately; not functional baseline."
+    }
+  ]
+}

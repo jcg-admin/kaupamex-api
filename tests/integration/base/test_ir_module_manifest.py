@@ -9,6 +9,7 @@ de ``get_values_from_terp`` (``:752-768``), cuyo análogo puro vive en
 Ninguno de los cuatro necesita el instalador — leen el árbol y el catálogo.
 Qué haría fallar a cada uno se declara en su caso.
 """
+
 import pytest
 
 from addons.authz.declaration import values_from_manifest
@@ -23,11 +24,24 @@ class TestValuesFromManifest:
     #: Las catorce que la fuente devuelve. Se enumeran a mano y no se derivan
     #: del propio return: derivarlas haría que el caso pasara siempre, que es
     #: exactamente el verde que no discrimina.
-    KEYS_OF_THE_SOURCE = frozenset({
-        'description', 'shortdesc', 'author', 'maintainer', 'contributors',
-        'website', 'license', 'sequence', 'application', 'auto_install',
-        'icon', 'summary', 'url', 'to_buy',
-    })
+    KEYS_OF_THE_SOURCE = frozenset(
+        {
+            'description',
+            'shortdesc',
+            'author',
+            'maintainer',
+            'contributors',
+            'website',
+            'license',
+            'sequence',
+            'application',
+            'auto_install',
+            'icon',
+            'summary',
+            'url',
+            'to_buy',
+        }
+    )
 
     def test_the_fourteen_keys_of_the_source_are_covered(self):
         """CONTROL de cobertura — el caso que la versión de nueve claves
@@ -58,7 +72,10 @@ class TestValuesFromManifest:
         guardaría un dato falso para un addon propio.
         """
         assert values_from_manifest({})['author'] == ''
-        assert values_from_manifest({'author': 'Kaupamex'})['author'] == 'Kaupamex'
+        assert (
+            values_from_manifest({'author': 'Kaupamex'})['author']
+            == 'Kaupamex'
+        )
 
     def test_the_contributor_list_is_flattened_with_commas(self):
         values = values_from_manifest({'contributors': ['Ana', 'Beto']})
@@ -68,27 +85,40 @@ class TestValuesFromManifest:
         assert values_from_manifest({})['contributors'] == ''
 
     def test_the_url_falls_back_to_the_live_test_url(self):
-        """La fuente lo hace con ``or``, así que un ``url`` vacío también cae."""
-        assert values_from_manifest(
-            {'live_test_url': 'https://demo'})['url'] == 'https://demo'
-        assert values_from_manifest(
-            {'url': '', 'live_test_url': 'https://demo'})['url'] == 'https://demo'
+        """
+        La fuente lo hace con ``or``, así que un ``url`` vacío también cae.
+        """
+        assert (
+            values_from_manifest({'live_test_url': 'https://demo'})['url']
+            == 'https://demo'
+        )
+        assert (
+            values_from_manifest({'url': '', 'live_test_url': 'https://demo'})[
+                'url'
+            ]
+            == 'https://demo'
+        )
 
     def test_the_url_wins_over_the_live_test_url_when_present(self):
         """CONTROL de la dirección contraria — sin él, un mapeo que SIEMPRE
         devolviera ``live_test_url`` pasaría el caso anterior.
         """
-        assert values_from_manifest(
-            {'url': 'https://real', 'live_test_url': 'https://demo'}
-        )['url'] == 'https://real'
+        assert (
+            values_from_manifest(
+                {'url': 'https://real', 'live_test_url': 'https://demo'}
+            )['url']
+            == 'https://real'
+        )
 
     def test_the_description_is_dedented(self):
         """``dedent`` de la fuente: el manifest suele traer un literal
         triple-comilla indentado, y guardarlo con su sangría rompe el render.
         """
         crudo = '\n    primera\n    segunda\n'
-        assert values_from_manifest(
-            {'description': crudo})['description'] == '\nprimera\nsegunda\n'
+        assert (
+            values_from_manifest({'description': crudo})['description']
+            == '\nprimera\nsegunda\n'
+        )
 
     def test_auto_install_of_a_list_is_true(self):
         """La fuente compara ``is not False``, no la verdad del valor.
@@ -96,9 +126,13 @@ class TestValuesFromManifest:
         Un manifest declara ``auto_install`` como lista de condiciones; una
         lista vacía es falsa en Python y aun así significa "sí, automático".
         """
-        assert values_from_manifest({'auto_install': []})['auto_install'] is True
-        assert values_from_manifest(
-            {'auto_install': False})['auto_install'] is False
+        assert (
+            values_from_manifest({'auto_install': []})['auto_install'] is True
+        )
+        assert (
+            values_from_manifest({'auto_install': False})['auto_install']
+            is False
+        )
 
 
 class TestGetModuleInfo:
@@ -113,7 +147,9 @@ class TestGetModuleInfo:
         assert IrModule.get_module_info('no_existe_este_addon') == {}
 
     def test_a_dict_is_returned_as_it_stands(self):
-        """La segunda forma de la fuente: un manifest ya resuelto pasa entero."""
+        """
+        La segunda forma de la fuente: un manifest ya resuelto pasa entero.
+        """
         ya_resuelto = {'name': 'Ya resuelto', 'version': '9.9'}
         assert IrModule.get_module_info(ya_resuelto) is ya_resuelto
 
@@ -137,8 +173,10 @@ class TestGetLatestVersion:
         """
         row = IrModule.objects.create(name='base', version='0.0.0-falsa')
         assert row._get_latest_version() != '0.0.0-falsa'
-        assert row._get_latest_version() == IrModule.get_module_info(
-            'base')['version']
+        assert (
+            row._get_latest_version()
+            == IrModule.get_module_info('base')['version']
+        )
 
     def test_an_addon_without_manifest_falls_back_to_one_dot_zero(self, db):
         row = IrModule.objects.create(name='no_existe_este_addon')

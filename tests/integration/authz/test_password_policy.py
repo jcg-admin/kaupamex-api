@@ -1,7 +1,9 @@
-"""authz_password_policy — política de contraseña configurable en caliente (L2).
+"""
+authz_password_policy — política de contraseña configurable en caliente (L2).
 
 Adaptación nativa de ``authz_password_policy`` de Odoo: la longitud mínima vive
-en ``SystemParameter`` (``authz.password_minlength``), editable en runtime, y se
+en ``SystemParameter`` (``authz.password_minlength``), editable en runtime, y
+se
 aplica vía la API nativa ``AUTH_PASSWORD_VALIDATORS`` (por lo que corre en el
 registro y el cambio de contraseña, que ya llaman ``validate_password``).
 
@@ -9,8 +11,10 @@ Verifica:
 - el valor NO está cableado: se lee de L2 (sembrado a 8 por la migración);
 - cambiar el ``SystemParameter`` cambia el enforcement en caliente;
 - si la clave se borra, la política se deshabilita (fallback 0, fiel a Odoo);
-- integración con ``django.contrib.auth.password_validation.validate_password``.
+- integración con
+``django.contrib.auth.password_validation.validate_password``.
 """
+
 import pytest
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -64,7 +68,9 @@ def test_policy_is_hot_editable_via_systemparameter():
 
 
 def test_absent_param_disables_policy_like_reference():
-    """Borrar la clave L2 deshabilita el enforcement (fallback 0, fiel a Odoo)."""
+    """
+    Borrar la clave L2 deshabilita el enforcement (fallback 0, fiel a Odoo).
+    """
     SystemParameter.set_param('authz.password_minlength', None)  # delete
     v = ConfigurablePasswordPolicyValidator()
     assert v.validate('a') is None  # 1 char pasa: política off

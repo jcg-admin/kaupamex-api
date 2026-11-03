@@ -22,22 +22,26 @@ Uso:
     python3 scripts/check_inherits_delegation.py --strict
     ODOO19C=/ruta/al/arbol python3 scripts/check_inherits_delegation.py
 """
+
 import ast
 import os
 import pathlib
 import re
 import sys
+import sys as _s
+import os.path as _op
+import sys as _sys
+import os as _os
+from reference_roots import addons_de as _addons_de, tree as _tree
+from addons_roots import py_files
+
 
 # Raíz de la referencia. La convención la fija
-# docs: source/normativa/.../convencion-cita-referencia-odoo.rst (alias odoo19c:).
-import sys as _s, os.path as _op
-_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import addons_de as _addons_de, tree as _tree
+# docs: source/normativa/.../convencion-cita-referencia-odoo.rst (alias
+# odoo19c:).
+
 
 DEFAULT_REFERENCE_19C = str(_tree('odoo19c'))
-import sys as _sys, os as _os
-_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from addons_roots import py_files
 
 
 def clase_esperada(model_name):
@@ -73,11 +77,16 @@ def pares_inherits(raiz):
                 destino = st.targets[0]
                 if not isinstance(destino, ast.Name):
                     continue
-                if destino.id == '_name' and isinstance(st.value, ast.Constant):
+                if destino.id == '_name' and isinstance(
+                    st.value, ast.Constant
+                ):
                     hijo = st.value.value
-                elif destino.id == '_inherits' and isinstance(st.value, ast.Dict):
+                elif destino.id == '_inherits' and isinstance(
+                    st.value, ast.Dict
+                ):
                     padres = [
-                        k.value for k in st.value.keys
+                        k.value
+                        for k in st.value.keys
                         if isinstance(k, ast.Constant)
                     ]
             if padres:
@@ -104,7 +113,10 @@ def declara_fk(ruta_clase, clase_padre):
             if not (isinstance(st, ast.Call) and st.args):
                 continue
             f = st.func
-            if getattr(getattr(f, 'value', None), 'id', None) not in ('fields', 'models'):
+            if getattr(getattr(f, 'value', None), 'id', None) not in (
+                'fields',
+                'models',
+            ):
                 continue
             arg = st.args[0]
             if isinstance(arg, ast.Name) and arg.id == clase_padre:
@@ -130,7 +142,10 @@ def main():
     estricto = '--strict' in sys.argv
     raiz = pathlib.Path(os.environ.get('ODOO19C', DEFAULT_REFERENCE_19C))
     if not raiz.is_dir():
-        print(f'check_inherits_delegation: referencia ausente ({raiz}) — gate omitido.')
+        print(
+            f'check_inherits_delegation: referencia ausente ({raiz}) — gate'
+            ' omitido.'
+        )
         return 0
 
     pares = pares_inherits(raiz)
@@ -141,8 +156,9 @@ def main():
         hijo = localizar(hijo_cls)
         padre = localizar(padre_cls)
         if not hijo or not padre:
-            sin_medir.append((hijo_modelo, padre_modelo,
-                              'hijo' if not hijo else 'padre'))
+            sin_medir.append(
+                (hijo_modelo, padre_modelo, 'hijo' if not hijo else 'padre')
+            )
             continue
         (ok if declara_fk(hijo, padre_cls) else aplanados).append(
             (hijo_modelo, padre_modelo, hijo[0])
@@ -151,7 +167,10 @@ def main():
     print(f'_inherits en la referencia: {len(pares)} (sin módulos de test)')
     print(f'  delegación declarada : {len(ok)}')
     print(f'  APLANADOS            : {len(aplanados)}')
-    print(f'  no medibles          : {len(sin_medir)} (falta uno de los dos modelos)')
+    print(
+        f'  no medibles          : {len(sin_medir)} (falta uno de los dos'
+        ' modelos)'
+    )
     for hijo, padre, motivo in sin_medir:
         print(f'    · {hijo} → {padre} (falta el {motivo})')
     for hijo, padre, archivo in aplanados:

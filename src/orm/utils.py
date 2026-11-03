@@ -6,7 +6,8 @@ nombre (``check_object_name``, ``check_pg_name``, ``parse_field_expr``) son
 **puro Python, sin dependencia del motor**, así que se portan fieles.
 
 ``SUPERUSER_ID = 1`` es el id hard-coded del super-usuario (root / OdooBot); en
-Django el equivalente es ``is_superuser`` en el modelo de usuario, pero el **id**
+Django el equivalente es ``is_superuser`` en el modelo de usuario, pero el
+**id**
 1 se preserva como constante fiel para paridad con seeds y referencias Odoo.
 
 ``SQL_OPERATORS`` **se porta**, y su omisión anterior era estado incorrecto
@@ -18,6 +19,7 @@ Un fragmento con espacios a los lados no es plumbing de un compilador ajeno: es
 el vocabulario con que se arma un ``WHERE`` compuesto, y quien lo necesite ya
 no tiene que escribirlo a mano en cada sitio.
 """
+
 import re
 import warnings
 from collections.abc import Set as AbstractSet
@@ -80,10 +82,13 @@ READ_GROUP_NUMBER_GRANULARITY = {
 #: una granularidad pedida existe. Se declara como unión y no como literal por
 #: la misma razón que la fuente: una granularidad añadida a cualquiera de los
 #: dos dicts entra aquí sola, y una escrita a mano se olvidaría.
-READ_GROUP_ALL_TIME_GRANULARITY = READ_GROUP_TIME_GRANULARITY | READ_GROUP_NUMBER_GRANULARITY
+READ_GROUP_ALL_TIME_GRANULARITY = (
+    READ_GROUP_TIME_GRANULARITY | READ_GROUP_NUMBER_GRANULARITY
+)
 
 
-#: ≙ ``SQL_OPERATORS`` (``odoo19c: odoo/orm/utils.py:47-67``). El operador de un
+#: ≙ ``SQL_OPERATORS`` (``odoo19c: odoo/orm/utils.py:47-67``). El
+#: operador de un
 #: dominio → su fragmento SQL, **con espacios a los lados**, listo para
 #: concatenar entre el lado izquierdo y el derecho de una condición.
 #:
@@ -118,7 +123,8 @@ SQL_OPERATORS = {
 
 
 #: ≙ ``regex_private`` (``odoo19c: odoo/orm/utils.py:14``). El nombre reservado
-#: del despacho remoto: el prefijo de guion bajo **y** ``init``, que no lo lleva
+#: del despacho remoto: el prefijo de guion bajo **y** ``init``, que no
+#: lo lleva
 #: y es igual de interno.
 regex_private = re.compile(r'^(_.*|init)$')
 
@@ -126,7 +132,8 @@ regex_private = re.compile(r'^(_.*|init)$')
 def check_method_name(name):
     """Levanta ``AccessError`` si ``name`` es un nombre de método privado.
 
-    ≙ ``check_method_name`` (``odoo19c: odoo/orm/utils.py:69-73``). Docstring de
+    ≙ ``check_method_name`` (``odoo19c: odoo/orm/utils.py:69-73``). Docstring
+    de
     la fuente, verbatim: *"Raise an ``AccessError`` if ``name`` is a private
     method name"*.
 
@@ -136,15 +143,18 @@ def check_method_name(name):
     no una— así que quien llame a ésta está midiendo un eje de los cinco.
     Retirar el aviso dejaría de decírselo.
     """
-    warnings.warn("Since 19.0, use service.model.get_public_method",
-                  DeprecationWarning)
+    warnings.warn(
+        "Since 19.0, use service.model.get_public_method", DeprecationWarning
+    )
     if regex_private.match(name):
         raise AccessError(
-            'Private methods (such as %s) cannot be called remotely.' % name)
+            'Private methods (such as %s) cannot be called remotely.' % name
+        )
 
 
 class OriginIds:
-    """Los ids de origen de una colección de ids, recorrible en los dos sentidos.
+    """
+    Los ids de origen de una colección de ids, recorrible en los dos sentidos.
 
     ≙ ``OriginIds`` (``odoo19c: odoo/orm/utils.py:129-146``). Docstring de la
     fuente, verbatim: *"A reversible iterable returning the origin ids of a
@@ -181,7 +191,8 @@ class OriginIds:
                 yield id_
 
 
-#: ≙ ``origin_ids`` (``odoo19c: odoo/orm/utils.py:149``). El alias en minúsculas
+#: ≙ ``origin_ids`` (``odoo19c: odoo/orm/utils.py:149``). El alias en
+#: minúsculas
 #: de la clase de arriba. Es el **mismo objeto**, no una subclase ni un
 #: envoltorio: ``origin_ids is OriginIds``.
 #:
@@ -191,7 +202,8 @@ class OriginIds:
 #: (``odoo19c: odoo/orm/fields_binary.py:338,342``) son una **variable local**
 #: de ``_compute_related_full``: ese archivo no importa nada de ``utils``.
 #:
-#: Se porta igual, por fidelidad: el alias existe en el contrato del módulo y un
+#: Se porta igual, por fidelidad: el alias existe en el contrato del
+#: módulo y un
 #: consumidor externo puede depender de él. Lo que no se hace es inventarle un
 #: uso — una primera redacción de esta nota afirmaba que la fuente lo invoca
 #: así, y era un ejemplo fabricado (:ref:`h-api-829`).
@@ -229,7 +241,9 @@ regex_alphanumeric = re.compile(r'^[a-z0-9_]+$')
 
 
 def parse_field_expr(field_expr: str) -> tuple[str, str | None]:
-    """Separa ``field.property`` en ``(field, property|None)``. Fiel a Odoo 19."""
+    """
+    Separa ``field.property`` en ``(field, property|None)``. Fiel a Odoo 19.
+    """
     if (property_index := field_expr.find(".")) >= 0:
         property_name = field_expr[property_index + 1:]
         field_expr = field_expr[:property_index]
@@ -294,8 +308,7 @@ def record_ids(records):
     if isinstance(records, models.QuerySet):
         return tuple(records.values_list('pk', flat=True))
     return tuple(
-        item.pk if isinstance(item, models.Model) else item
-        for item in records
+        item.pk if isinstance(item, models.Model) else item for item in records
     )
 
 
@@ -315,6 +328,14 @@ def as_record_list(records):
     """
     if records is None:
         return []
+    # Un recordset de ``BaseModel`` ES una instancia de modelo y puede portar
+    # N ids; tratarlo como una fila devolvía ``[recordset]`` y el consumidor
+    # moría al pedirle ``pk`` (*Expected singleton*). Iterarlo da sus filas,
+    # una por id, como en la fuente. Mismo orden que :func:`record_ids`: la
+    # terna gana sobre la instancia.
+    own_ids = getattr(records, '_ids', None)
+    if own_ids is not None and len(own_ids) != 1:
+        return list(records)
     if isinstance(records, models.Model):
         return [records]
     return list(records)
@@ -325,7 +346,8 @@ def model_of(records):
 
     Tercera pieza de la misma adaptación que :func:`record_ids` y
     :func:`browse`, y por la misma razón: en la fuente un recordset **es** una
-    instancia de la clase de registro del modelo, así que ``records.browse(...)``
+    instancia de la clase de registro del modelo, así que
+    ``records.browse(...)``
     y ``records._name`` salen gratis. Aquí un conjunto de filas es una
     instancia de modelo o un ``QuerySet``, y ninguno de los dos responde
     ``browse``; hace falta llegar a la clase para pasársela a :func:`browse`.
@@ -385,8 +407,10 @@ def browse(model, ids=()):
     if not ids:
         return model.objects.none()
     given_order = models.Case(
-        *[models.When(pk=pk, then=models.Value(position))
-          for position, pk in enumerate(ids)],
+        *[
+            models.When(pk=pk, then=models.Value(position))
+            for position, pk in enumerate(ids)
+        ],
         output_field=models.IntegerField(),
     )
     return model.objects.filter(pk__in=ids).order_by(given_order)
@@ -445,8 +469,11 @@ def model_field_registry(model):
     # ganar. Medido hoy sobre el árbol entero: **895** attnames distintos del
     # nombre y **0** choques
     # (``scripts/evidence/censo-attname-2026-09-12T*-001.log``).
-    registry = {field.attname: field for field in fields
-                if getattr(field, 'attname', None)}
+    registry = {
+        field.attname: field
+        for field in fields
+        if getattr(field, 'attname', None)
+    }
     registry.update({field.name: field for field in fields})
     registry.update(non_stored_fields(model))
     return registry
@@ -471,7 +498,9 @@ class FieldRegistryDescriptor:
 
     def __get__(self, instance, owner=None):
         """El mapa del modelo, venga el acceso de la clase o de una fila."""
-        return model_field_registry(owner if instance is None else type(instance))
+        return model_field_registry(
+            owner if instance is None else type(instance)
+        )
 
 
 def model_of_field(field, registry_module):
@@ -485,13 +514,15 @@ def model_of_field(field, registry_module):
     declarado, asi que preguntar solo por el dejaria fuera a todo campo ligado
     por Django, que son todos.
 
-    ``registry_module`` se recibe en vez de importarse: ``orm.registry`` importa
+    ``registry_module`` se recibe en vez de importarse: ``orm.registry``
+    importa
     de aqui, y este modulo es la capa de abajo. Es el mismo motivo por el que
     ``model_field_registry`` recibe la clase y no la busca.
 
     Vive aqui y no en ``orm/fields.py`` —donde nacio como ``_model_of``— porque
     tiene un segundo consumidor que no puede importar aquel archivo:
-    ``Environment._recompute_all`` y ``flush_all`` lo necesitan para resolver el
+    ``Environment._recompute_all`` y ``flush_all`` lo necesitan para resolver
+    el
     modelo de un campo sucio, y ``orm/fields.py`` importa ``orm.environments``.
     Copiar las tres lineas seria la segunda fuente de verdad que
     ``calibration-verified-numbers.md`` prohibe.

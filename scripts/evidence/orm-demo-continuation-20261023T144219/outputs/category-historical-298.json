@@ -1,0 +1,20 @@
+{
+  "interface": "taskTools.TaskGet.run",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "tasks": [
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "result": {
+        "content": "{\"task_id\":\"298\",\"citation_id\":\"TASK-GEN-0550\",\"subject\":\"Cerrar los tres bloqueos medidos que quedan en base_import_module\",\"description\":null,\"status\":\"pending\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+        "isError": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "result": {
+        "content": "{\"task_id\":\"298\",\"citation_id\":\"TASK-GEN-0058\",\"subject\":\"Ola 1 · portar odoo/modules/db.py (6 símbolos) — núcleo de módulos\",\"description\":\"Iniciativa completar-nucleo-modules. Portar odoo19c: odoo/modules/db.py entero: initialize, is_initialized, create_categories, has_trigram, has_unaccent, FunctionStatus (200 líneas, LGPL-3). No depende de nada del núcleo y desbloquea la detección de extensiones de PostgreSQL que #96 (GIN) y #98 (unaccent real) dan por hecha. Medido 2026-08-13 sobre odoo-tools@622ddc2a: el archivo NO existe en api/src/modules/. Criterio: porte completo o desenlace declarado por símbolo (porte-completo-no-parcial.md) + prueba en tests/unit con control positivo.\",\"status\":\"pending\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+        "isError": false
+      }
+    }
+  ]
+}

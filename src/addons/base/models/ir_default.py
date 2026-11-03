@@ -16,7 +16,8 @@ Las dos adaptaciones de forma, y por qué
 **1. ``field_id`` (FK a ``ir.model.fields``) se guarda como ``model`` +
 ``field`` (Char).** La fuente modela el campo objetivo con
 ``field_id = fields.Many2one('ir.model.fields', ...)``. Aquí el objetivo se
-almacena como dos columnas de texto, mismo criterio que ``ir_filters.model_id``,
+almacena como dos columnas de texto, mismo criterio que
+``ir_filters.model_id``,
 ``ir_attachment.res_model``/``res_field`` e ``ir_cron.model_name``.
 
 ``ir.model.fields`` **sí existe** en este árbol desde el porte de
@@ -34,8 +35,10 @@ por otra vía. Es lo que hacen ``_check_json_format``, ``discard_records`` y
 
 **2. ``json_value`` es ``Text``, no ``Char``.** La fuente declara
 ``fields.Char(...)`` **sin** ``size``, que en PostgreSQL es una columna sin
-límite. ``CharField`` de Django exige ``max_length``, y uno acotado truncaría en
-silencio un JSON de estructura grande. Mismo criterio que ``ir_filters.domain``.
+límite. ``CharField`` de Django exige ``max_length``, y uno acotado truncaría
+en
+silencio un JSON de estructura grande. Mismo criterio que
+``ir_filters.domain``.
 
 La precedencia se resuelve en Python, y ya no por el motor
 ==========================================================
@@ -87,6 +90,7 @@ Cross-app: ``user`` → ``settings.AUTH_USER_MODEL`` (Odoo ``user_id``, NULL =
 default para todos los usuarios). ``company`` → ``base.ResCompany`` (Odoo
 ``company_id``, NULL = default para todas las empresas).
 """
+
 import json
 
 from django.apps import apps
@@ -138,7 +142,10 @@ class IrDefault(models.Model):
         ),
     )
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='ir_defaults',
         help_text=(
             'Usuario al que aplica el default (Odoo user_id). NULL = default '
@@ -146,7 +153,10 @@ class IrDefault(models.Model):
         ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='ir_defaults',
         help_text=(
             'Empresa a la que aplica el default (Odoo company_id). NULL = '
@@ -154,7 +164,9 @@ class IrDefault(models.Model):
         ),
     )
     condition = fields.Char(
-        max_length=256, blank=True, default='',
+        max_length=256,
+        blank=True,
+        default='',
         help_text=(
             'Condición opcional que acota la aplicabilidad del default '
             '(Odoo condition — string opaco para este modelo de control).'
@@ -220,7 +232,8 @@ class IrDefault(models.Model):
             value = json.loads(self.json_value)
         except (TypeError, json.JSONDecodeError):
             raise ValidationError(
-                'Formato JSON inválido en el valor por defecto.')
+                'Formato JSON inválido en el valor por defecto.'
+            )
 
         target_field = self._target_field()
         if target_field is None:
@@ -233,9 +246,10 @@ class IrDefault(models.Model):
             target_field.to_python(value)
         except (ValidationError, TypeError, ValueError):
             raise ValidationError(
-                f'Valor inválido en el campo de valor por defecto. Se '
+                'Valor inválido en el campo de valor por defecto. Se '
                 f'esperaba el tipo {type(target_field).__name__!r} para '
-                f'{self.model}.{self.field}.')
+                f'{self.model}.{self.field}.'
+            )
 
     def _check_accessible_field_id(self):
         """Quien escribe el default tiene que poder escribir el campo.
@@ -321,8 +335,15 @@ class IrDefault(models.Model):
     # === la API de lectura y escritura de defaults =========================
 
     @classmethod
-    def set(cls, model_name, field_name, value, user=None, company=None,
-            condition=''):
+    def set(
+        cls,
+        model_name,
+        field_name,
+        value,
+        user=None,
+        company=None,
+        condition='',
+    ):
         """Fija el valor por defecto de ``model.field`` — ≙ ``set`` (``:79``).
 
         Cualquier entrada para el mismo alcance ``(campo, usuario, empresa,
@@ -336,8 +357,12 @@ class IrDefault(models.Model):
         condition = condition or ''
         json_value = json.dumps(value, ensure_ascii=False)
         default, _created = cls.objects.update_or_create(
-            model=model_name, field=field_name, user=user, company=company,
-            condition=condition, defaults={'json_value': json_value},
+            model=model_name,
+            field=field_name,
+            user=user,
+            company=company,
+            condition=condition,
+            defaults={'json_value': json_value},
         )
         # ``save`` ya invalidó; se repite aquí porque ``update_or_create`` con
         # una fila existente y el mismo valor puede no llamar a ``save``.
@@ -345,8 +370,9 @@ class IrDefault(models.Model):
         return default
 
     @classmethod
-    def _get(cls, model_name, field_name, user=None, company=None,
-             condition=''):
+    def _get(
+        cls, model_name, field_name, user=None, company=None, condition=''
+    ):
         """El valor por defecto, o ``None`` — ≙ ``_get`` (``:139``).
 
         Precedencia (más específico gana): usuario+empresa > usuario >
@@ -369,7 +395,9 @@ class IrDefault(models.Model):
 
         for scope in scopes:
             default = cls.objects.filter(
-                model=model_name, field=field_name, condition=condition,
+                model=model_name,
+                field=field_name,
+                condition=condition,
                 **scope,
             ).first()
             if default is not None:
@@ -377,10 +405,22 @@ class IrDefault(models.Model):
         return None
 
     @classmethod
-    @ormcache('model_name', 'condition', 'user_id', 'company_id', 'using',
-              cache='default')
-    def _get_model_defaults(cls, model_name, condition=False, user_id=None,
-                            company_id=None, using=DEFAULT_DB_ALIAS):
+    @ormcache(
+        'model_name',
+        'condition',
+        'user_id',
+        'company_id',
+        'using',
+        cache='default',
+    )
+    def _get_model_defaults(
+        cls,
+        model_name,
+        condition=False,
+        user_id=None,
+        company_id=None,
+        using=DEFAULT_DB_ALIAS,
+    ):
         """Todos los defaults de un modelo, como dict ``campo -> valor``.
 
         ≙ ``_get_model_defaults`` (``:170-203``). La fuente hace **una**
@@ -392,16 +432,26 @@ class IrDefault(models.Model):
         allá el ``Registry`` es por base y esa dimensión va implícita en él.
         """
         condition = condition or ''
-        rows = cls.objects.using(using).filter(
-            model=model_name, condition=condition,
-        ).filter(
-            models.Q(user__isnull=True) | models.Q(user_id=user_id),
-        ).filter(
-            models.Q(company__isnull=True) | models.Q(company_id=company_id),
-        ).values_list('field', 'json_value', 'user_id', 'company_id', 'id')
+        rows = (
+            cls.objects.using(using)
+            .filter(
+                model=model_name,
+                condition=condition,
+            )
+            .filter(
+                models.Q(user__isnull=True) | models.Q(user_id=user_id),
+            )
+            .filter(
+                models.Q(company__isnull=True)
+                | models.Q(company_id=company_id),
+            )
+            .values_list('field', 'json_value', 'user_id', 'company_id', 'id')
+        )
 
         def priority(row):
-            """Más específico primero — el orden que la fuente pide al motor."""
+            """
+            Más específico primero — el orden que la fuente pide al motor.
+            """
             _field, _value, row_user, row_company, row_id = row
             return (row_user is None, row_company is None, row_id)
 
@@ -447,7 +497,8 @@ class IrDefault(models.Model):
         for model_label, field_name in pairs:
             condition |= models.Q(model=model_label, field=field_name)
         deleted, _detail = cls.objects.filter(
-            condition, json_value__in=json_values).delete()
+            condition, json_value__in=json_values
+        ).delete()
         registry.clear_cache('default')
         return deleted
 
@@ -469,8 +520,10 @@ class IrDefault(models.Model):
             label = model._meta.label
             for field in model._meta.get_fields():
                 if getattr(field, 'company_dependent', False):
-                    if getattr(field, 'company_dependent_comodel',
-                               None) == target_label:
+                    if (
+                        getattr(field, 'company_dependent_comodel', None)
+                        == target_label
+                    ):
                         pairs.append((label, field.name))
                     continue
                 if not getattr(field, 'many_to_one', False):
@@ -482,17 +535,19 @@ class IrDefault(models.Model):
 
     @classmethod
     def discard_values(cls, model_name, field_name, values):
-        """Descarta los defaults de un campo que valgan alguno de estos valores.
+        """
+        Descarta los defaults de un campo que valgan alguno de estos valores.
 
         ≙ ``discard_values`` (``:215-220``). Su llamador es el retiro de una
         opción de un ``Selection``: el default que la nombraba ya no es
         elegible.
         """
-        json_values = [json.dumps(value, ensure_ascii=False)
-                       for value in values]
+        json_values = [
+            json.dumps(value, ensure_ascii=False) for value in values
+        ]
         deleted, _detail = cls.objects.filter(
-            model=model_name, field=field_name,
-            json_value__in=json_values).delete()
+            model=model_name, field=field_name, json_value__in=json_values
+        ).delete()
         registry.clear_cache('default')
         return deleted
 
@@ -517,15 +572,19 @@ class IrDefault(models.Model):
         Company = apps.get_model('base', 'ResCompany')
         company_ids = list(Company.objects.values_list('id', flat=True))
         fallbacks = {
-            str(company_id): cls._get_model_defaults(
-                model_name, company_id=company_id).get(field_name)
+            str(company_id): (
+                cls._get_model_defaults(model_name, company_id=company_id).get(
+                    field_name
+                )
+            )
             for company_id in company_ids
         }
         return json.dumps(fallbacks, ensure_ascii=False)
 
     @classmethod
-    def _evaluate_condition_with_fallback(cls, model_name, field_expr,
-                                          operator, value):
+    def _evaluate_condition_with_fallback(
+        cls, model_name, field_expr, operator, value
+    ):
         """¿El respaldo del campo satisface la condición? — ≙ ``:236-252``.
 
         Devuelve ``True``, ``False``, o ``None`` cuando no se puede decidir.
@@ -567,7 +626,8 @@ class IrDefault(models.Model):
             setattr(record, field_name, fallback)
 
         try:
-            return bool(filtered_domain(
-                [record], Domain(field_expr, operator, value)))
+            return bool(
+                filtered_domain([record], Domain(field_expr, operator, value))
+            )
         except ValueError:
             return None

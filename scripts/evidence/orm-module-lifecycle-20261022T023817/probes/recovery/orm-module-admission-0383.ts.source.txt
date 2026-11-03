@@ -1,0 +1,16 @@
+import {taskTools} from '/workspace/thyrox/src/packages/tools/src/tasks.ts'
+import {storePath} from '/workspace/thyrox/src/packages/observability/src/store.ts'
+import {writeFileSync} from 'node:fs'
+const sessionId='168b0fdf-bfe4-590b-b6c0-b6be124c124a'
+const tools=taskTools({dbPath:storePath(),sessionId})
+const ctx={cwd:'/workspace/kaupamex-api',sessionId,abort:new AbortController().signal,messages:[]}
+const before=await tools.find(t=>t.name==='TaskGet')!.run({task_id:'738'},ctx)
+if(before.isError)throw new Error(before.content)
+const task=JSON.parse(before.content)
+if(task.owner && task.owner!=='codex-module-lifecycle')throw new Error('Foreign owner')
+if(task.blocked_by.length)throw new Error('Declared blockers need reconciliation')
+const result=await tools.find(t=>t.name==='TaskUpdate')!.run({task_id:'738',owner:'codex-module-lifecycle'},ctx)
+if(result.isError)throw new Error(result.content)
+const after=await tools.find(t=>t.name==='TaskGet')!.run({task_id:'738'},ctx)
+writeFileSync('/workspace/kaupamex-api/scripts/evidence/orm-module-lifecycle-20261022T023817/outputs/admission-0383.json',JSON.stringify({provider_revision:'9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f',interface:'taskTools({dbPath:storePath(),sessionId}).TaskGet/TaskUpdate.run',sessionId,before:task,input:{task_id:'738',owner:'codex-module-lifecycle'},result,after:JSON.parse(after.content),authority:'User explicitly requested implementing the attached module-lifecycle batch. Existing task 0383 implements accepted DEC-AISL-05. Derived prerequisite 0264/443 completed and accepted decision verified; no declared blockers. Two exclusive PostgreSQL databases demonstrated base routing to default and a cross-database relation accepted. Admit only bounded routing/migration-roster correction; full migrate and old fixture reactivation remain acceptance obligations. No eligibility inferred from owner null or empty graph. Ownership assigned natively before implementation; no status transition.'},null,2)+'\n')
+console.log(after.content)

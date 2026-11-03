@@ -1,9 +1,11 @@
-"""``hr.resume.line.type`` — categoría de una línea de CV (curso, experiencia…).
+"""
+``hr.resume.line.type`` — categoría de una línea de CV (curso, experiencia…).
 
 Adaptación fiel de Odoo hr_skills/models/hr_resume_line_type.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3) — atribución y aviso de licencia
 preservados (DEC-KX-03). Porte completo — 4 de 4 campos, sin métodos.
 """
+
 import fields
 
 from addons.base.models import TimeStampedModel
@@ -17,15 +19,21 @@ class HrResumeLineType(TimeStampedModel):
     _order = 'sequence'
 
     name = fields.Char(
-        required=True, translate=True, verbose_name='Nombre',
+        required=True,
+        translate=True,
+        verbose_name='Nombre',
     )
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     is_course = fields.Boolean(default=False, verbose_name='Curso')
     resume_line_type_properties_definition = fields.PropertiesDefinition(
-        null=True, blank=True, verbose_name='Propiedades de sección',
-        help_text='Odoo resume_line_type_properties_definition — esquema de '
-                  'propiedades dinámicas para las líneas de este tipo '
-                  '(JSON en este árbol; src/orm/fields_properties.py).',
+        null=True,
+        blank=True,
+        verbose_name='Propiedades de sección',
+        help_text=(
+            'Odoo resume_line_type_properties_definition — esquema de '
+            'propiedades dinámicas para las líneas de este tipo '
+            '(JSON en este árbol; src/orm/fields_properties.py).'
+        ),
     )
 
     class Meta:

@@ -17,6 +17,7 @@ materializaba el espejo ``orders.Order`` desapareció con el addon (SOL-098,
 ``api@77bd1f0``); pagos, logística y post-venta consumen la canónica
 directamente.
 """
+
 import logging
 from decimal import Decimal
 from uuid import uuid4
@@ -34,9 +35,12 @@ from addons.stock.models import StockPicking
 from addons.mail.models.notification_service import notify_order_status_changed
 from .status_projection import STATUS_CANCELLED, order_status
 from .models import SaleOrder, SaleOrderLine
-from .signals import (draft_discount_requested, order_cancelled,
-                      draft_voucher_requested, order_confirmed)
-
+from .signals import (
+    draft_discount_requested,
+    order_cancelled,
+    draft_voucher_requested,
+    order_confirmed,
+)
 
 logger = logging.getLogger('apps')
 
@@ -64,20 +68,30 @@ def get_or_create_draft_order(user=None, cart_token=None):
     Retorna ``(order, created)``.
     """
     if user is not None and getattr(user, 'is_authenticated', False):
-        draft = (SaleOrder.objects
-                 .filter(partner=user, state=SaleOrder.STATE_DRAFT)
-                 .order_by('-created_at')
-                 .first())
+        draft = (
+            SaleOrder.objects.filter(partner=user, state=SaleOrder.STATE_DRAFT)
+            .order_by('-created_at')
+            .first()
+        )
         if draft is not None:
             return draft, False
-        return SaleOrder.objects.create(
-            partner=user, state=SaleOrder.STATE_DRAFT), True
+        return (
+            SaleOrder.objects.create(
+                partner=user, state=SaleOrder.STATE_DRAFT
+            ),
+            True,
+        )
 
     if cart_token is None:
-        return SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=uuid4()), True
+        return (
+            SaleOrder.objects.create(
+                state=SaleOrder.STATE_DRAFT, cart_token=uuid4()
+            ),
+            True,
+        )
     order, created = SaleOrder.objects.get_or_create(
-        cart_token=cart_token, defaults={'state': SaleOrder.STATE_DRAFT})
+        cart_token=cart_token, defaults={'state': SaleOrder.STATE_DRAFT}
+    )
     return order, created
 
 
@@ -131,11 +145,14 @@ def add_item_to_draft(order, product, quantity=1):
             new_qty = line.product_uom_qty + quantity
             avail = InventoryService.available_quantity(product)
             if new_qty > avail:
-                raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
+                raise DraftOrderError(
+                    'Stock insuficiente.', 'INSUFFICIENT_STOCK'
+                )
             line.product_uom_qty = new_qty
             line.price_unit = unit_price
-            line.save(update_fields=['product_uom_qty', 'price_unit',
-                                     'updated_at'])
+            line.save(
+                update_fields=['product_uom_qty', 'price_unit', 'updated_at']
+            )
     return line, created
 
 
@@ -164,7 +181,8 @@ def _draft_extra_discount(order, subtotal):
     ``sale_loyalty`` extiende ``sale.order`` sin que ``sale`` lo declare.
     """
     respuestas = draft_discount_requested.send(
-        sender=SaleOrder, order=order, subtotal=subtotal)
+        sender=SaleOrder, order=order, subtotal=subtotal
+    )
     return sum(
         (value for _receptor, value in respuestas if value),
         Decimal('0.00'),
@@ -179,13 +197,14 @@ def get_draft_totals(order):
     y el descuento los sigue); ``confirm_draft_order`` lo congela en el
     espejo legacy.
     """
-    iva_rate  = get_setting('iva_rate')
+    iva_rate = get_setting('iva_rate')
     threshold = get_setting('free_shipping_threshold')
     threshold = threshold if threshold > 0 else None
 
-    lines    = list(order.order_line.all())
-    subtotal = sum((l.price_unit * l.product_uom_qty for l in lines),
-                   Decimal('0.00'))
+    lines = list(order.order_line.all())
+    subtotal = sum(
+        (item.price_unit * item.product_uom_qty for item in lines),
+        Decimal('0.00'))
     discount = Decimal('0.00')
     if order.state == SaleOrder.STATE_DRAFT:
         discount = _draft_extra_discount(order, subtotal)
@@ -194,20 +213,22 @@ def get_draft_totals(order):
     free_remaining = (
         max(Decimal('0.00'), threshold - subtotal_net) if threshold else None
     )
-    amount_tax = sum((l.price_tax for l in lines), Decimal('0.00'))
+    amount_tax = sum((item.price_tax for item in lines), Decimal('0.00'))
     return {
-        'subtotal':                str(subtotal),
-        'discount':                str(discount),
-        'subtotal_net':            str(subtotal_net),
-        'tax_included':            str(tax),
-        'shipping_cost':           None,
-        'total':                   str(subtotal_net),
+        'subtotal': str(subtotal),
+        'discount': str(discount),
+        'subtotal_net': str(subtotal_net),
+        'tax_included': str(tax),
+        'shipping_cost': None,
+        'total': str(subtotal_net),
         'free_shipping_threshold': str(threshold) if threshold else None,
-        'free_shipping_remaining': str(free_remaining) if free_remaining else None,
-        'free_shipping_applied':   bool(threshold and subtotal_net >= threshold),
+        'free_shipping_remaining': (
+            str(free_remaining) if free_remaining else None
+        ),
+        'free_shipping_applied': bool(threshold and subtotal_net >= threshold),
         'amount_untaxed': str(subtotal - amount_tax),
-        'amount_tax':     str(amount_tax),
-        'amount_total':   str(subtotal),
+        'amount_tax': str(amount_tax),
+        'amount_total': str(subtotal),
         'item_count': len(lines),
     }
 
@@ -250,12 +271,15 @@ def merge_draft_orders(user, cart_token):
     intacto.
     """
     auth_order, _ = get_or_create_draft_order(user=user)
-    anon_order = (SaleOrder.objects
-                  .filter(cart_token=cart_token,
-                          state=SaleOrder.STATE_DRAFT,
-                          partner__isnull=True)
-                  .exclude(pk=auth_order.pk)
-                  .first())
+    anon_order = (
+        SaleOrder.objects.filter(
+            cart_token=cart_token,
+            state=SaleOrder.STATE_DRAFT,
+            partner__isnull=True,
+        )
+        .exclude(pk=auth_order.pk)
+        .first()
+    )
     if anon_order is None:
         return auth_order, []
 
@@ -264,21 +288,31 @@ def merge_draft_orders(user, cart_token):
         for anon_line in anon_order.order_line.select_related('product').all():
             available = InventoryService.available_quantity(anon_line.product)
             if available <= 0:
-                skipped.append({'product_id': anon_line.product_id,
-                                'product_name': anon_line.name,
-                                'reason': 'OUT_OF_STOCK'})
+                skipped.append(
+                    {
+                        'product_id': anon_line.product_id,
+                        'product_name': anon_line.name,
+                        'reason': 'OUT_OF_STOCK',
+                    }
+                )
                 continue
 
             existing = auth_order.order_line.filter(
-                product=anon_line.product).first()
+                product=anon_line.product
+            ).first()
             if existing:
                 new_qty = existing.product_uom_qty + anon_line.product_uom_qty
                 if new_qty > available:
                     new_qty = available
                 existing.product_uom_qty = new_qty
                 existing.price_unit = anon_line.price_unit
-                existing.save(update_fields=['product_uom_qty', 'price_unit',
-                                             'updated_at'])
+                existing.save(
+                    update_fields=[
+                        'product_uom_qty',
+                        'price_unit',
+                        'updated_at',
+                    ]
+                )
             else:
                 merge_qty = anon_line.product_uom_qty
                 if merge_qty > available:
@@ -293,8 +327,14 @@ def merge_draft_orders(user, cart_token):
     return auth_order, skipped
 
 
-def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
-                        shipping_cost=Decimal('0.00')):
+def confirm_draft_order(
+    order,
+    *,
+    address_data,
+    guest_email=None,
+    notes='',
+    shipping_cost=Decimal('0.00'),
+):
     """Confirma el carrito: la transición nativa ``sale.order.action_confirm``
     (draft → sale: acuña ``name`` S-XXXX, fija ``date_order``).
 
@@ -326,17 +366,21 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
     # precio 0 del producto de servicio, borrando el importe— y no cruzan al
     # espejo legacy, cuyos ``SaleOrderLine`` son de producto por contrato.
     # Un carrito con sólo líneas marcadoras está vacío.
-    lines = list(order.order_line.filter(is_delivery=False, is_reward=False)
-                 .select_related('product'))
+    lines = list(
+        order.order_line.filter(
+            is_delivery=False, is_reward=False
+        ).select_related('product')
+    )
     if not lines:
         raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
 
-    check_items = [{'product': l.product,
-                    'quantity': l.product_uom_qty} for l in lines]
+    check_items = [{'product': item.product,
+                    'quantity': item.product_uom_qty} for item in lines]
     insufficient = InventoryService.check_availability(check_items)
     if insufficient:
-        err = DraftOrderError('Stock insuficiente para algunos items.',
-                              'INSUFFICIENT_STOCK')
+        err = DraftOrderError(
+            'Stock insuficiente para algunos items.', 'INSUFFICIENT_STOCK'
+        )
         err.items = insufficient
         raise err
 
@@ -350,40 +394,50 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         subtotal = Decimal('0.00')
         for line in lines:
             live_price = line.current_price()
-            subtotal  += live_price * line.product_uom_qty
+            subtotal += live_price * line.product_uom_qty
             line.price_unit = live_price
             line.name = _line_snapshot_name(line.product)
             line.save(update_fields=['price_unit', 'name', 'updated_at'])
 
-        voucher_discount = (voucher.calculate_discount(subtotal)
-                            if voucher else Decimal('0.00'))
-        net   = subtotal - voucher_discount
-        tax   = (net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
+        voucher_discount = (
+            voucher.calculate_discount(subtotal)
+            if voucher
+            else Decimal('0.00')
+        )
+        net = subtotal - voucher_discount
+        tax = (net * iva_rate / (1 + iva_rate)).quantize(Decimal('0.01'))
         total = net + shipping_cost
 
         if voucher is not None:
-            voucher_locked = (Voucher.objects.select_for_update()
-                              .get(pk=voucher.pk))
-            if (voucher_locked.max_uses is not None
-                    and voucher_locked.current_uses >= voucher_locked.max_uses):
+            voucher_locked = Voucher.objects.select_for_update().get(
+                pk=voucher.pk
+            )
+            if (
+                voucher_locked.max_uses is not None
+                and voucher_locked.current_uses >= voucher_locked.max_uses
+            ):
                 raise DraftOrderError(
                     f'Voucher {voucher_locked.code} agotado: '
                     f'{voucher_locked.current_uses}/{voucher_locked.max_uses}.',
-                    'VOUCHER_EXHAUSTED')
+                    'VOUCHER_EXHAUSTED',
+                )
             Voucher.objects.filter(pk=voucher.pk).update(
                 current_uses=F('current_uses') + 1,
                 updated_at=timezone.now(),
             )
             if order.partner_id:
-                VoucherUsage.objects.create(user=order.partner, voucher=voucher)
+                VoucherUsage.objects.create(
+                    user=order.partner, voucher=voucher
+                )
 
         # Transición nativa + campos del comprador + liberación del token.
         order.notes = notes or order.notes
         if guest_email and not order.partner_id:
             order.guest_email = guest_email
         order.cart_token = None
-        order.save(update_fields=['notes', 'guest_email', 'cart_token',
-                                  'updated_at'])
+        order.save(
+            update_fields=['notes', 'guest_email', 'cart_token', 'updated_at']
+        )
         order.action_confirm()
 
         # Sub-estado de fulfillment (V5b — analisis-unificar-orders-sale,
@@ -393,7 +447,8 @@ def confirm_draft_order(order, *, address_data, guest_email=None, notes='',
         # depender del enum monolítico ``SaleOrder.status``. Additivo: modelos
         # dormidos, ningún lector vivo depende de ellos todavía.
         picking = StockPicking.objects.create(
-            sale_order=order, state=StockPicking.STATE_CONFIRMED)
+            sale_order=order, state=StockPicking.STATE_CONFIRMED
+        )
         picking.action_assign()
         # Los satélites reaccionan a la confirmación (T-034): ``sale_stock``
         # abre el seguimiento de entrega. El núcleo no los nombra.
@@ -427,8 +482,15 @@ def track_sale_state(order, previous, new, author, note=''):
     de la **venta**: ``delivery`` depende de ``sale``, nunca al revés.
     """
     order._message_track(
-        [{'field': 'state', 'field_desc': 'Estado', 'field_type': 'char',
-          'old': previous, 'new': new}],
+        [
+            {
+                'field': 'state',
+                'field_desc': 'Estado',
+                'field_type': 'char',
+                'old': previous,
+                'new': new,
+            }
+        ],
         author=author,
     )
     if note:
@@ -440,7 +502,9 @@ def track_sale_state(order, previous, new, author, note=''):
 CANCELABLE_STATUSES = ['PENDING', 'PAID']
 
 
-def cancel_order(order, reason='', cancelled_by=None, cancelable_statuses=None):
+def cancel_order(
+    order, reason='', cancelled_by=None, cancelable_statuses=None
+):
     """Cancela una venta de forma atómica (UC-ORD-04).
 
     Cuatro pasos en una sola transacción: validar que el estado proyectado sea
@@ -454,8 +518,11 @@ def cancel_order(order, reason='', cancelled_by=None, cancelable_statuses=None):
     :raises ValueError: si la orden no es cancelable.
     :raises RuntimeError: si el gateway de reembolso falla (revierte todo).
     """
-    allowed = (cancelable_statuses if cancelable_statuses is not None
-               else CANCELABLE_STATUSES)
+    allowed = (
+        cancelable_statuses
+        if cancelable_statuses is not None
+        else CANCELABLE_STATUSES
+    )
     if order_status(order) not in allowed:
         raise ValueError(
             f'La orden {order.name} no se puede cancelar '
@@ -470,45 +537,57 @@ def cancel_order(order, reason='', cancelled_by=None, cancelable_statuses=None):
         if order_status(order) not in allowed:
             raise ValueError(
                 f'La orden {order.name} ya no es cancelable '
-                f'(cancelada por una petición concurrente).'
+                '(cancelada por una petición concurrente).'
             )
 
         previous_status = order_status(order)
         order.cancellation_reason = reason
-        order.cancelled_at        = timezone.now()
-        order.save(update_fields=['cancellation_reason', 'cancelled_at',
-                                  'updated_at'])
+        order.cancelled_at = timezone.now()
+        order.save(
+            update_fields=['cancellation_reason', 'cancelled_at', 'updated_at']
+        )
 
         if order.state != SaleOrder.STATE_CANCEL and not order.locked:
             order.action_cancel()
 
-        track_sale_state(order, previous_status, STATUS_CANCELLED,
-                         cancelled_by, note=reason)
+        track_sale_state(
+            order, previous_status, STATUS_CANCELLED, cancelled_by, note=reason
+        )
         notify_order_status_changed(order, STATUS_CANCELLED)
 
         # Restaurar stock — sólo las líneas de producto: las marcadoras de
         # envío y descuento no reservaron nada que devolver.
         stock_items = [
             {'product': line.product, 'quantity': line.product_uom_qty}
-            for line in (order.order_line
-                         .filter(is_delivery=False, is_reward=False)
-                         .select_related('product'))
+            for line in (
+                order.order_line.filter(
+                    is_delivery=False, is_reward=False
+                ).select_related('product')
+            )
             if line.product_id
         ]
         if stock_items:
             InventoryService.restore(
-                items=stock_items, reference=order.name,
+                items=stock_items,
+                reference=order.name,
                 created_by=cancelled_by,
             )
-            logger.info('Stock restaurado para la orden cancelada %s — %d líneas',
-                        order.name, len(stock_items))
+            logger.info(
+                'Stock restaurado para la orden cancelada %s — %d líneas',
+                order.name,
+                len(stock_items),
+            )
 
         # El reembolso lo hace ``payments`` al escuchar la señal: el núcleo
         # no puede importarlo (``Payment`` tiene FK a ``SaleOrder``). Si el
         # gateway falla, el receptor levanta y revierte la transacción entera
         # — cancelar sin devolver el dinero dejaría al comprador pagado y sin
         # orden.
-        order_cancelled.send(sender=SaleOrder, order=order, reason=reason,
-                             cancelled_by=cancelled_by)
+        order_cancelled.send(
+            sender=SaleOrder,
+            order=order,
+            reason=reason,
+            cancelled_by=cancelled_by,
+        )
 
     return order

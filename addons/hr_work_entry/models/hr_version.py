@@ -107,6 +107,7 @@ Divergencias declaradas
    ESTE árbol (``resource_calendar``, ``work_entry_source``) — los ``_id``
    de la fuente son la forma Odoo de los mismos campos.
 """
+
 from datetime import datetime, time, timezone as dt_timezone
 
 import fields
@@ -117,7 +118,9 @@ from addons.hr_work_entry.models.hr_work_entry_type import (
     ATTENDANCE_TYPE_CODE,
     HrWorkEntryType,
 )
-from addons.resource.models.resource_calendar_leaves import ResourceCalendarLeaves
+from addons.resource.models.resource_calendar_leaves import (
+    ResourceCalendarLeaves,
+)
 from django.utils import timezone
 from orm.environments import get_current_companies
 from orm.method_chain import chain_method, extend_list
@@ -146,36 +149,46 @@ def _generation_boundary_today():
 # Property — compute sin store
 # ---------------------------------------------------------------------------
 
+
 def _compute_work_entry_source_calendar_invalid(self):
     """≙ ``work_entry_source_calendar_invalid`` /
     ``_compute_work_entry_source_calendar_invalid`` (``odoo19c:
     hr_work_entry/models/hr_version.py:34-42``)."""
-    return self.work_entry_source == 'calendar' and not self.resource_calendar_id
+    return (
+        self.work_entry_source == 'calendar' and not self.resource_calendar_id
+    )
 
 
 # ---------------------------------------------------------------------------
 # Métodos portados
 # ---------------------------------------------------------------------------
 
+
 def _get_default_work_entry_type_id(self):
     """≙ ``_get_default_work_entry_type_id`` (``:44-47``) — D-2, D-3."""
     return (
         HrWorkEntryType.objects.filter(code=ATTENDANCE_TYPE_CODE)
-        .values_list('pk', flat=True).first()
+        .values_list('pk', flat=True)
+        .first()
         or False
     )
 
 
 def _get_default_work_entry_type_overtime_id(self):
-    """≙ ``_get_default_work_entry_type_overtime_id`` (``:49-52``) — D-2, D-3."""
+    """
+    ≙ ``_get_default_work_entry_type_overtime_id`` (``:49-52``) — D-2, D-3.
+    """
     return (
         HrWorkEntryType.objects.filter(code=OVERTIME_TYPE_CODE)
-        .values_list('pk', flat=True).first()
+        .values_list('pk', flat=True)
+        .first()
         or False
     )
 
 
-def _get_leave_work_entry_type_dates(self, leave, date_from, date_to, employee):
+def _get_leave_work_entry_type_dates(
+    self, leave, date_from, date_to, employee
+):
     """≙ ``_get_leave_work_entry_type_dates`` (``:54-55``)."""
     return self._get_leave_work_entry_type(leave)
 
@@ -203,7 +216,9 @@ def _get_bypassing_work_entry_type_codes(self):
     return []
 
 
-def _get_interval_leave_work_entry_type(self, interval, leaves, bypassing_codes):
+def _get_interval_leave_work_entry_type(
+    self, interval, leaves, bypassing_codes
+):
     """≙ ``_get_interval_leave_work_entry_type`` (``:71-82``) — el tipo de la
     ausencia que cubre el intervalo completo; el fallback ``env.ref(
     work_entry_type_leave)`` es la búsqueda por ``code`` (D-3)."""
@@ -216,16 +231,18 @@ def _get_interval_leave_work_entry_type(self, interval, leaves, bypassing_codes)
                 interval[1].astimezone(dt_timezone.utc).replace(tzinfo=None)
             )
             return self._get_leave_work_entry_type_dates(
-                leave[2], interval_start, interval_stop, self.employee,
+                leave[2],
+                interval_start,
+                interval_stop,
+                self.employee,
             )
     return HrWorkEntryType.objects.filter(code=LEAVE_TYPE_CODE).first()
 
 
 def _get_sub_leave_domain(self):
     """≙ ``_get_sub_leave_domain`` (``:84-85``) — ``Domain`` → ``Q`` (D-4)."""
-    return (
-        models.Q(calendar__isnull=True)
-        | models.Q(calendar_id=self.resource_calendar_id)
+    return models.Q(calendar__isnull=True) | models.Q(
+        calendar_id=self.resource_calendar_id
     )
 
 
@@ -234,14 +251,17 @@ def _get_leave_domain(self, start_dt, end_dt):
     ``env.companies`` → ``get_current_companies`` (mismo canal)."""
     resource_id = (
         self.employee.resource_id
-        if self.employee_id and self.employee.resource_id else None
+        if self.employee_id and self.employee.resource_id
+        else None
     )
     domain = (
         (models.Q(resource__isnull=True) | models.Q(resource_id=resource_id))
         & models.Q(date_from__lte=end_dt)
         & models.Q(date_to__gte=start_dt)
-        & (models.Q(company__isnull=True)
-           | models.Q(company_id__in=get_current_companies() or ()))
+        & (
+            models.Q(company__isnull=True)
+            | models.Q(company_id__in=get_current_companies() or ())
+        )
     )
     return domain & self._get_sub_leave_domain()
 
@@ -261,7 +281,7 @@ def _get_interval_work_entry_type(self, interval):
     records = interval[2]
     if records is not None and not hasattr(records, '__iter__'):
         records = [records]
-    for record in (records or []):
+    for record in records or []:
         work_entry_type = getattr(record, 'work_entry_type', None)
         if work_entry_type is not None:
             return work_entry_type
@@ -293,19 +313,40 @@ def _get_real_attendance_work_entry_vals(self, intervals):
         work_entry_type = self._get_interval_work_entry_type(interval)
         # Todos los beneficios generados aquí usan datetimes convertidos
         # desde la zona horaria del empleado (comentario verbatim, :161).
-        vals += [dict([
-            ('name', '%s: %s' % (
-                work_entry_type.name if work_entry_type else '', employee.name,
-            )),
-            ('date_start',
-             interval[0].astimezone(dt_timezone.utc).replace(tzinfo=None)),
-            ('date_stop',
-             interval[1].astimezone(dt_timezone.utc).replace(tzinfo=None)),
-            ('work_entry_type_id', work_entry_type.pk if work_entry_type else None),
-            ('employee_id', employee.pk),
-            ('version_id', self.pk),
-            ('company_id', self.company_id),
-        ] + self._get_more_vals_attendance_interval(interval))]
+        vals += [
+            dict(
+                [
+                    (
+                        'name',
+                        '%s: %s'
+                        % (
+                            work_entry_type.name if work_entry_type else '',
+                            employee.name,
+                        ),
+                    ),
+                    (
+                        'date_start',
+                        interval[0]
+                        .astimezone(dt_timezone.utc)
+                        .replace(tzinfo=None),
+                    ),
+                    (
+                        'date_stop',
+                        interval[1]
+                        .astimezone(dt_timezone.utc)
+                        .replace(tzinfo=None),
+                    ),
+                    (
+                        'work_entry_type_id',
+                        work_entry_type.pk if work_entry_type else None,
+                    ),
+                    ('employee_id', employee.pk),
+                    ('version_id', self.pk),
+                    ('company_id', self.company_id),
+                ]
+                + self._get_more_vals_attendance_interval(interval)
+            )
+        ]
     return vals
 
 
@@ -332,26 +373,38 @@ def _remove_work_entries(self):
     (guard de validadas replicado antes del ``delete()`` de queryset)."""
     to_unlink = HrWorkEntry.objects.none()
     date_start = self.date_start
-    if date_start and self.date_generated_from is not None \
-            and self.date_generated_from.date() < date_start:
+    if (
+        date_start
+        and self.date_generated_from is not None
+        and self.date_generated_from.date() < date_start
+    ):
         before_start = HrWorkEntry.objects.filter(
-            date__lt=date_start, version=self,
+            date__lt=date_start,
+            version=self,
         )
         if before_start.exists():
             self.date_generated_from = datetime.combine(
-                date_start, time.min, tzinfo=dt_timezone.utc,
+                date_start,
+                time.min,
+                tzinfo=dt_timezone.utc,
             )
             self.save(update_fields=['date_generated_from'])
             to_unlink = to_unlink | before_start
     date_end = self.date_end
-    if date_end and self.date_generated_to is not None \
-            and self.date_generated_to.date() > date_end:
+    if (
+        date_end
+        and self.date_generated_to is not None
+        and self.date_generated_to.date() > date_end
+    ):
         after_end = HrWorkEntry.objects.filter(
-            date__gt=date_end, version=self,
+            date__gt=date_end,
+            version=self,
         )
         if after_end.exists():
             self.date_generated_to = datetime.combine(
-                date_end, time.max, tzinfo=dt_timezone.utc,
+                date_end,
+                time.max,
+                tzinfo=dt_timezone.utc,
             )
             self.save(update_fields=['date_generated_to'])
             to_unlink = to_unlink | after_end
@@ -370,7 +423,8 @@ def _cancel_work_entries(self):
     if not date_start:
         return
     entries = HrWorkEntry.objects.filter(
-        version=self, date__gte=date_start,
+        version=self,
+        date__gte=date_start,
     ).exclude(state='validated')
     if self.date_end:
         entries = entries.filter(date__lte=self.date_end)
@@ -387,11 +441,13 @@ def _get_fields_that_recompute_we(self):
 # Cableado
 # ---------------------------------------------------------------------------
 
+
 def _wire_whitelist_chain(model):
     """Encadena ``_get_whitelist_fields_from_template`` (classmethod en la
     base) con ``combine=extend_list`` — ≙ ``super() + [...]`` (``:151``)."""
     chain_method(
-        model, '_get_whitelist_fields_from_template',
+        model,
+        '_get_whitelist_fields_from_template',
         classmethod(_get_whitelist_fields_from_template),
         combine=extend_list,
     )
@@ -401,59 +457,83 @@ def apply_hr_work_entry_hr_version_extensions():
     """Cuelga sobre ``hr.version`` lo que ``hr_work_entry`` le añade — ≙
     ``_inherit``."""
     extend_model(
-        'hr', 'HrVersion',
+        'hr',
+        'HrVersion',
         campos={
             'date_generated_from': fields.Datetime(
                 verbose_name='Generated From',
                 default=_generation_boundary_today,
-                help_text='Odoo date_generated_from (required, readonly, '
-                          'groups=hr.group_hr_user, tracking — D-1).',
+                help_text=(
+                    'Odoo date_generated_from (required, readonly, '
+                    'groups=hr.group_hr_user, tracking — D-1).'
+                ),
             ),
             'date_generated_to': fields.Datetime(
                 verbose_name='Generated To',
                 default=_generation_boundary_today,
-                help_text='Odoo date_generated_to (required, readonly, '
-                          'groups=hr.group_hr_user, tracking — D-1).',
+                help_text=(
+                    'Odoo date_generated_to (required, readonly, '
+                    'groups=hr.group_hr_user, tracking — D-1).'
+                ),
             ),
             'last_generation_date': fields.Date(
-                null=True, blank=True, verbose_name='Last Generation Date',
-                help_text='Odoo last_generation_date (readonly, '
-                          'groups=hr.group_hr_user, tracking — D-1).',
+                null=True,
+                blank=True,
+                verbose_name='Last Generation Date',
+                help_text=(
+                    'Odoo last_generation_date (readonly, '
+                    'groups=hr.group_hr_user, tracking — D-1).'
+                ),
             ),
             'work_entry_source': fields.Selection(
-                choices=WORK_ENTRY_SOURCES, default='calendar',
-                help_text='Defines the source for work entries generation. '
-                          'Working Schedule: Work entries will be generated '
-                          'from the working hours below. Attendances/Planning '
-                          'los añaden sus addons puente (no portados).',
+                choices=WORK_ENTRY_SOURCES,
+                default='calendar',
+                help_text=(
+                    'Defines the source for work entries generation. '
+                    'Working Schedule: Work entries will be generated '
+                    'from the working hours below. Attendances/Planning '
+                    'los añaden sus addons puente (no portados).'
+                ),
             ),
         },
         propiedades={
-            'work_entry_source_calendar_invalid':
-                _compute_work_entry_source_calendar_invalid,
+            'work_entry_source_calendar_invalid': (
+                _compute_work_entry_source_calendar_invalid
+            ),
         },
         metodos={
             '_get_default_work_entry_type_id': _get_default_work_entry_type_id,
-            '_get_default_work_entry_type_overtime_id':
-                _get_default_work_entry_type_overtime_id,
-            '_get_leave_work_entry_type_dates': _get_leave_work_entry_type_dates,
+            '_get_default_work_entry_type_overtime_id': (
+                _get_default_work_entry_type_overtime_id
+            ),
+            '_get_leave_work_entry_type_dates': (
+                _get_leave_work_entry_type_dates
+            ),
             '_get_leave_work_entry_type': _get_leave_work_entry_type,
-            '_get_more_vals_attendance_interval': _get_more_vals_attendance_interval,
+            '_get_more_vals_attendance_interval': (
+                _get_more_vals_attendance_interval
+            ),
             '_get_more_vals_leave_interval': _get_more_vals_leave_interval,
-            '_get_bypassing_work_entry_type_codes':
-                _get_bypassing_work_entry_type_codes,
-            '_get_interval_leave_work_entry_type':
-                _get_interval_leave_work_entry_type,
+            '_get_bypassing_work_entry_type_codes': (
+                _get_bypassing_work_entry_type_codes
+            ),
+            '_get_interval_leave_work_entry_type': (
+                _get_interval_leave_work_entry_type
+            ),
             '_get_sub_leave_domain': _get_sub_leave_domain,
             '_get_leave_domain': _get_leave_domain,
             '_get_resource_calendar_leaves': _get_resource_calendar_leaves,
             '_get_interval_work_entry_type': _get_interval_work_entry_type,
             '_get_valid_leave_intervals': _get_valid_leave_intervals,
-            '_get_real_attendance_work_entry_vals':
-                _get_real_attendance_work_entry_vals,
+            '_get_real_attendance_work_entry_vals': (
+                _get_real_attendance_work_entry_vals
+            ),
             'has_static_work_entries': has_static_work_entries,
-            '_generate_work_entries_postprocess_adapt_to_calendar':
-                classmethod(_generate_work_entries_postprocess_adapt_to_calendar),
+            '_generate_work_entries_postprocess_adapt_to_calendar': (
+                classmethod(
+                    _generate_work_entries_postprocess_adapt_to_calendar
+                )
+            ),
             '_remove_work_entries': _remove_work_entries,
             '_cancel_work_entries': _cancel_work_entries,
             '_get_fields_that_recompute_we': _get_fields_that_recompute_we,

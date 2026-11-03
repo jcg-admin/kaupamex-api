@@ -1,11 +1,14 @@
 """Servicios TOTP — addons.authz_totp (DEC-01, ~ auth_totp de Odoo).
 
-Adaptado de ``auth_totp/models/res_users.py`` (``_totp_check`` / ``_totp_try_setting``)
+Adaptado de ``auth_totp/models/res_users.py`` (``_totp_check`` /
+``_totp_try_setting``)
 y del wizard (``auth_totp_wizard.py``, generación del secreto + URI de
-aprovisionamiento). La verificación usa ``TOTP.match`` verbatim de Odoo: compara
+aprovisionamiento). La verificación usa ``TOTP.match`` verbatim de Odoo:
+compara
 ``hotp(key, counter) == code`` con ``code`` como ``int`` (maneja ceros a la
 izquierda: ``hotp`` devuelve el entero, ``int('012345') == 12345``).
 """
+
 import base64
 import hashlib
 import logging
@@ -17,7 +20,13 @@ from django.utils import timezone
 
 from addons.base.models import SystemParameter
 from addons.authz_totp.models import TotpRecoveryCode, TotpSecret
-from addons.authz_totp.models.totp import ALGORITHM, DIGITS, TIMESTEP, TOTP, TOTP_SECRET_SIZE
+from addons.authz_totp.models.totp import (
+    ALGORITHM,
+    DIGITS,
+    TIMESTEP,
+    TOTP,
+    TOTP_SECRET_SIZE,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -34,7 +43,9 @@ def _issuer():
 
 
 def _recovery_count():
-    """Nº de códigos de recuperación a generar (L2, fallback 10 = default Odoo)."""
+    """
+    Nº de códigos de recuperación a generar (L2, fallback 10 = default Odoo).
+    """
     try:
         n = int(SystemParameter.get_param(PARAM_RECOVERY_COUNT, '10'))
     except (TypeError, ValueError):
@@ -43,7 +54,9 @@ def _recovery_count():
 
 
 def _hash_recovery(code):
-    """SHA-256 hex del código normalizado (sin espacios/guiones, minúsculas)."""
+    """
+    SHA-256 hex del código normalizado (sin espacios/guiones, minúsculas).
+    """
     norm = ''.join(str(code or '').split()).replace('-', '').lower()
     return hashlib.sha256(norm.encode('utf-8')).hexdigest()
 
@@ -57,19 +70,24 @@ def generate_recovery_codes(user):
         # 10 hex chars agrupados 'xxxxx-xxxxx' (fácil de leer/teclear).
         raw = secrets.token_hex(5)
         codes.append(f'{raw[:5]}-{raw[5:]}')
-    TotpRecoveryCode.objects.bulk_create([
-        TotpRecoveryCode(user_id=user.pk, code_hash=_hash_recovery(c))
-        for c in codes
-    ])
+    TotpRecoveryCode.objects.bulk_create(
+        [
+            TotpRecoveryCode(user_id=user.pk, code_hash=_hash_recovery(c))
+            for c in codes
+        ]
+    )
     return codes
 
 
 def count_recovery_codes(user):
-    """Nº de códigos de recuperación aún válidos (no consumidos) del usuario."""
+    """
+    Nº de códigos de recuperación aún válidos (no consumidos) del usuario.
+    """
     if not getattr(user, 'is_authenticated', False) or user.pk is None:
         return 0
     return TotpRecoveryCode.objects.filter(
-        user_id=user.pk, used_at__isnull=True,
+        user_id=user.pk,
+        used_at__isnull=True,
     ).count()
 
 
@@ -84,7 +102,9 @@ def consume_recovery_code(user, code):
     if not norm:
         return False
     row = TotpRecoveryCode.objects.filter(
-        user_id=user.pk, code_hash=_hash_recovery(code), used_at__isnull=True,
+        user_id=user.pk,
+        code_hash=_hash_recovery(code),
+        used_at__isnull=True,
     ).first()
     if row is None:
         return False
@@ -94,21 +114,27 @@ def consume_recovery_code(user, code):
 
 
 def generate_secret():
-    """Secreto base32 de 160 bits (RFC 4226 R6, como Odoo ``TOTP_SECRET_SIZE``)."""
+    """
+    Secreto base32 de 160 bits (RFC 4226 R6, como Odoo ``TOTP_SECRET_SIZE``).
+    """
     return base64.b32encode(os.urandom(TOTP_SECRET_SIZE // 8)).decode('ascii')
 
 
 def provisioning_uri(email, secret):
-    """URI ``otpauth://`` para el QR (Key-Uri-Format de Google Authenticator)."""
+    """
+    URI ``otpauth://`` para el QR (Key-Uri-Format de Google Authenticator).
+    """
     issuer = _issuer()
     label = quote(f'{issuer}:{email}')
-    params = urlencode({
-        'secret': secret,
-        'issuer': issuer,
-        'algorithm': ALGORITHM.upper(),
-        'digits': DIGITS,
-        'period': TIMESTEP,
-    })
+    params = urlencode(
+        {
+            'secret': secret,
+            'issuer': issuer,
+            'algorithm': ALGORITHM.upper(),
+            'digits': DIGITS,
+            'period': TIMESTEP,
+        }
+    )
     return f'otpauth://totp/{label}?{params}'
 
 
@@ -122,7 +148,8 @@ def _matching_counter(secret, code):
 
     ``match`` recorre ``[t-window, t+window]`` con ``window = TIMESTEP``, así
     que un mismo código casa durante ~90 s. Sin el contador no hay forma de
-    distinguir *"otro código del mismo minuto"* de *"el mismo código otra vez"*.
+    distinguir *"otro código del mismo minuto"* de *"el mismo código otra
+    vez"*.
     """
     code = str(code or '').strip()
     if not code.isdigit():
@@ -175,9 +202,12 @@ def begin_setup(user):
     if totp_enabled(user):
         return None
     secret = generate_secret()
-    # ≙ ``_inverse_token`` (``:227-228``), que pone ``totp_last_counter = False``
-    # al cambiar el secreto: el contador es del secreto viejo y con otro secreto
-    # no significa nada. Sin este reinicio, un alta nueva heredaría el umbral de
+    # ≙ ``_inverse_token`` (``:227-228``), que pone ``totp_last_counter
+    # = False``
+    # al cambiar el secreto: el contador es del secreto viejo y con otro
+    # secreto
+    # no significa nada. Sin este reinicio, un alta nueva heredaría el
+    # umbral de
     # la anterior y rechazaría códigos legítimos hasta alcanzarlo.
     TotpSecret.objects.update_or_create(
         user_id=user.pk,
@@ -194,7 +224,8 @@ def confirm_setup(user, code):
     o no hay alta pendiente.
 
     Asienta el contador del código de alta — ≙ ``self.sudo().totp_last_counter
-    = match`` de ``_totp_try_setting`` (``:110``). No es contabilidad: es lo que
+    = match`` de ``_totp_try_setting`` (``:110``). No es contabilidad: es lo
+    que
     impide que el **mismo** código que acaba de activar el 2FA sirva además
     para el primer login, que ocurre segundos después y cae en la misma
     ventana."""
@@ -211,16 +242,22 @@ def confirm_setup(user, code):
 
 
 def disable(user, code):
-    """Desactiva el 2FA si ``code`` es válido (confirma identidad). Devuelve bool.
+    """
+    Desactiva el 2FA si ``code`` es válido (confirma identidad). Devuelve bool.
 
-    Acepta un código TOTP actual **o** un código de recuperación válido — así un
+    Acepta un código TOTP actual **o** un código de recuperación válido — así
+    un
     usuario que perdió el authenticator todavía puede apagar el 2FA. Borra el
     secreto y todos los códigos de recuperación."""
     row = TotpSecret.objects.filter(user_id=user.pk, confirmed=True).first()
     if row is None:
         return False
     counter = _matching_counter(row.secret, code)
-    reused = counter is not None and row.last_counter is not None and counter <= row.last_counter
+    reused = (
+        counter is not None
+        and row.last_counter is not None
+        and counter <= row.last_counter
+    )
     if (counter is None or reused) and not consume_recovery_code(user, code):
         return False
     row.delete()

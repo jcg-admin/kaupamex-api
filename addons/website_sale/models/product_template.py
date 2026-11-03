@@ -49,6 +49,7 @@ declara como divergencia de plataforma.
 Lo que **sí** se preserva es lo que importa para SRP y Open/Closed: el código
 de ``product`` no menciona al sitio, y quien decide publicar es este archivo.
 """
+
 from addons.product.models import ProductTemplate
 from addons.website.models.mixins import WebsitePublishedMixin
 

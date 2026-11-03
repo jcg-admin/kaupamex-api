@@ -15,7 +15,11 @@ class Migration(migrations.Migration):
             name="restrictive_audit_trail",
             field=models.BooleanField(
                 default=False,
-                help_text="Impide borrar o mutar los mensajes del chatter que documentan asientos ya publicados de esta empresa (Odoo restrictive_audit_trail).",
+                help_text=(
+                    "Impide borrar o mutar los mensajes del chatter que"
+                    " documentan asientos ya publicados de esta empresa (Odoo"
+                    " restrictive_audit_trail)."
+                ),
                 verbose_name="Rastro de auditoría restrictivo",
             ),
         ),

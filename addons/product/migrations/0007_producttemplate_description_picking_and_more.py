@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             name="description_picking",
             field=models.TextField(
                 blank=True,
-                help_text="Odoo description_picking. La referencia lo declara traducible; el almacenamiento jsonb de translate=True es la tarea #333.",
+                help_text=(
+                    "Odoo description_picking. La referencia lo declara"
+                    " traducible; el almacenamiento jsonb de translate=True es"
+                    " la tarea #333."
+                ),
                 null=True,
                 verbose_name="Descripción en el albarán",
             ),
@@ -26,7 +30,11 @@ class Migration(migrations.Migration):
             name="description_pickingin",
             field=models.TextField(
                 blank=True,
-                help_text="Odoo description_pickingin. La referencia lo declara traducible; el almacenamiento jsonb de translate=True es la tarea #333.",
+                help_text=(
+                    "Odoo description_pickingin. La referencia lo declara"
+                    " traducible; el almacenamiento jsonb de translate=True es"
+                    " la tarea #333."
+                ),
                 null=True,
                 verbose_name="Descripción en recepciones",
             ),
@@ -36,7 +44,11 @@ class Migration(migrations.Migration):
             name="description_pickingout",
             field=models.TextField(
                 blank=True,
-                help_text="Odoo description_pickingout. La referencia lo declara traducible; el almacenamiento jsonb de translate=True es la tarea #333.",
+                help_text=(
+                    "Odoo description_pickingout. La referencia lo declara"
+                    " traducible; el almacenamiento jsonb de translate=True es"
+                    " la tarea #333."
+                ),
                 null=True,
                 verbose_name="Descripción en órdenes de entrega",
             ),
@@ -47,7 +59,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="product_template_uom_rel",
-                help_text='Odoo uom_ids ("Packagings"): unidades adicionales con las que este producto se puede vender. La fuente excluye la unidad base por dominio; aquí lo hace quien las consume.',
+                help_text=(
+                    'Odoo uom_ids ("Packagings"): unidades adicionales con las'
+                    ' que este producto se puede vender. La fuente excluye la'
+                    ' unidad base por dominio; aquí lo hace quien las consume.'
+                ),
                 related_name="packaging_product_tmpl_ids",
                 to="uom.uom",
                 verbose_name="Empaquetados",

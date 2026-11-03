@@ -22,12 +22,12 @@ hacerlo en su cuerpo, y a uno que lo escriba por asignacion directa —que
 Django prohibe desde 1.10, asi que no deberia existir, pero el instrumento no
 lo veria.
 """
+
 import argparse
 import ast
 import json
 import pathlib
 import sys
-
 
 VERBOS_DE_ESCRITURA = frozenset({'set', 'add', 'remove', 'clear'})
 
@@ -36,10 +36,12 @@ def m2m_written_by(body):
     """Los atributos que este cuerpo escribe como relacion."""
     written = set()
     for node in ast.walk(body):
-        if not (isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Attribute)
-                and node.func.attr in VERBOS_DE_ESCRITURA
-                and isinstance(node.func.value, ast.Attribute)):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in VERBOS_DE_ESCRITURA
+            and isinstance(node.func.value, ast.Attribute)
+        ):
             continue
         written.add(node.func.value.attr)
     return written
@@ -61,10 +63,16 @@ def m2m_field_names(tree):
     """Los campos declarados ``Many2many`` en el archivo, por nombre."""
     names = set()
     for node in ast.walk(tree):
-        if not (isinstance(node, ast.Assign) and isinstance(node.value, ast.Call)):
+        if not (
+            isinstance(node, ast.Assign) and isinstance(node.value, ast.Call)
+        ):
             continue
         func = node.value.func
-        called = func.attr if isinstance(func, ast.Attribute) else getattr(func, 'id', '')
+        called = (
+            func.attr
+            if isinstance(func, ast.Attribute)
+            else getattr(func, 'id', '')
+        )
         if called != 'Many2many':
             continue
         for target in node.targets:
@@ -86,19 +94,23 @@ def scan(roots):
             files += 1
             declared, m2m = declared_computes(tree), m2m_field_names(tree)
             for node in ast.walk(tree):
-                if not (isinstance(node, ast.FunctionDef)
-                        and node.name.startswith('_compute_')):
+                if not (
+                    isinstance(node, ast.FunctionDef)
+                    and node.name.startswith('_compute_')
+                ):
                     continue
                 written = m2m_written_by(node) & m2m
                 if not written:
                     continue
-                rows.append({
-                    'file': str(path),
-                    'line': node.lineno,
-                    'compute': node.name,
-                    'writes': sorted(written),
-                    'declared_by_a_field': node.name in declared,
-                })
+                rows.append(
+                    {
+                        'file': str(path),
+                        'line': node.lineno,
+                        'compute': node.name,
+                        'writes': sorted(written),
+                        'declared_by_a_field': node.name in declared,
+                    }
+                )
     return rows, files
 
 
@@ -111,15 +123,21 @@ def main():
     rows, files = scan(args.roots or ['addons', 'src'])
     orphans = [r for r in rows if not r['declared_by_a_field']]
     if args.json:
-        json.dump({'rows': rows, 'files_measured': files}, sys.stdout, indent=2)
+        json.dump(
+            {'rows': rows, 'files_measured': files}, sys.stdout, indent=2
+        )
         return
     for row in rows:
         mark = 'CON campo' if row['declared_by_a_field'] else 'SIN campo'
-        print(f"{mark}  {row['file']}:{row['line']}  {row['compute']} "
-              f"-> {', '.join(row['writes'])}")
-    print(f"\n{len(rows)} computo(s) escriben un M2M declarado en su archivo; "
-          f"{len(orphans)} sin campo que los nombre "
-          f"(alcance medido: {files} archivos .py, migraciones excluidas)")
+        print(
+            f"{mark}  {row['file']}:{row['line']}  {row['compute']} "
+            f"-> {', '.join(row['writes'])}"
+        )
+    print(
+        f"\n{len(rows)} computo(s) escriben un M2M declarado en su archivo; "
+        f"{len(orphans)} sin campo que los nombre "
+        f"(alcance medido: {files} archivos .py, migraciones excluidas)"
+    )
 
 
 if __name__ == '__main__':

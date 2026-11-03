@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="to_refund",
             field=models.BooleanField(
                 default=True,
-                help_text="Dispara la disminución de la cantidad entregada/recibida en la orden de venta o compra asociada (Odoo to_refund).",
+                help_text=(
+                    "Dispara la disminución de la cantidad entregada/recibida"
+                    " en la orden de venta o compra asociada (Odoo to_refund)."
+                ),
                 verbose_name="Update quantities on SO/PO",
             ),
         ),

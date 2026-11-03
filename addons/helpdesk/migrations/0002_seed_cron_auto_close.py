@@ -7,6 +7,7 @@ el addon dueño del job. Depende de ``base`` porque las dos filas que crea
 Idempotente: un segundo pase no duplica ni pisa el intervalo que el operador
 haya ajustado (``noupdate="1"`` del XML original).
 """
+
 from django.db import migrations
 
 from addons.base.data import sembrar_cron

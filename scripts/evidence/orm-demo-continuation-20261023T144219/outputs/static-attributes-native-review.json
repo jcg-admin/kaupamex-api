@@ -1,0 +1,27 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input": [
+    {
+      "id": "TASK-GEN-0633.static_attribute_observation",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile direct assignments in two captured ORM files using existing declaration extractor; no functional implementation",
+      "verify": "Bound snapshot revision and source hashes, preserve occurrence identities and reject malformed source; no applicability inferred",
+      "route": "local",
+      "owned": [
+        "scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py",
+        "tests/unit/scripts/test_orm_property_view.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 594,
+  "states": {},
+  "selected": [],
+  "scope": "Post-implementation verification review of one analysis unit, not a claimed prior dispatch, inference, acceptance or global frontier",
+  "dependency_evidence": "TaskGet1203 pending owned; existing snapshot bound to pinned reference; existing declaration extractor available; no SQL or ORM change",
+  "official_states_changed": false,
+  "availability": "Not applicable as an own-claim Codex dispatcher: own_owner(node) constructs vm-<node>, while approved operative owner is codex-module-lifecycle; this owner is treated as foreign by node_next_task. No owner/state/config or Provider code changed.",
+  "qualification": "Read-only interface executed; no selection, managed execution or whole-plan eligibility claimed",
+  "related_existing_provider_work": "TASK-THYROX-1072 remains historical task-source owner/dependency reconciliation; not asserted equivalent to this identity boundary"
+}

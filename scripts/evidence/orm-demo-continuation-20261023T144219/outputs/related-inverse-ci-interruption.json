@@ -1,0 +1,16 @@
+{
+  "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+  "pid": 137207,
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/.venv/bin/pytest",
+    "--create-db",
+    "--maxfail=1",
+    "-q",
+    "--junitxml=test-results/pytest.xml"
+  ],
+  "signal": "SIGINT",
+  "reason": "Independent existing protocol control proves NEW_REGRESSION: non-Django recorder lacks pk; stop known-bad full run before correcting",
+  "proof": "related-inverse-protocol-current.junit.xml",
+  "full_suite_acceptance": false
+}

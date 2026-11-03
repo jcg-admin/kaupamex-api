@@ -1,0 +1,57 @@
+{
+  "role": "analytical navigation only; relationship is not ownership/admission",
+  "tasks": {
+    "TASK-API-0397": [
+      "record_identity_singleton",
+      "exists_recordset_semantics"
+    ],
+    "TASK-API-0398": [
+      "record_identity_singleton",
+      "exists_recordset_semantics"
+    ],
+    "TASK-API-0401": [
+      "record_identity_singleton"
+    ],
+    "TASK-API-0402": [
+      "record_identity_singleton"
+    ],
+    "TASK-GEN-0575": [
+      "cache_value_and_miss",
+      "cache_across_user_environments",
+      "selective_invalidation",
+      "flush_recompute_fixpoint"
+    ],
+    "TASK-GEN-0578": [
+      "selective_invalidation"
+    ],
+    "TASK-API-0424": [
+      "inverse_dependency_navigation",
+      "flush_recompute_fixpoint",
+      "recompute_dependent_record_discovery"
+    ],
+    "TASK-API-0417": [
+      "relational_field_reconstruction"
+    ],
+    "TASK-API-0418": [
+      "relational_field_reconstruction"
+    ],
+    "TASK-API-0419": [
+      "relational_field_reconstruction"
+    ],
+    "TASK-GEN-0558": [
+      "recompute_dependent_record_discovery"
+    ],
+    "TASK-GEN-0559": [
+      "recompute_dependent_record_discovery"
+    ],
+    "TASK-GEN-0060": [
+      "translated_record_storage_query"
+    ],
+    "TASK-GEN-0062": [
+      "translated_record_storage_query"
+    ],
+    "TASK-API-0283": [
+      "translated_record_storage_query"
+    ]
+  }
+}

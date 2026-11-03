@@ -24,7 +24,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="account_tax_filiation_rel",
-                help_text="Sub-impuestos cuando amount_type=group (Odoo children_tax_ids). symmetrical=False: la relación es dirigida, padre → hijos.",
+                help_text=(
+                    "Sub-impuestos cuando amount_type=group (Odoo"
+                    " children_tax_ids). symmetrical=False: la relación es"
+                    " dirigida, padre → hijos."
+                ),
                 related_name="parent_taxes",
                 to="account.accounttax",
             ),
@@ -34,7 +38,10 @@ class Migration(migrations.Migration):
             name="include_base_amount",
             field=models.BooleanField(
                 default=False,
-                help_text="Afecta la base de los impuestos posteriores (Odoo include_base_amount).",
+                help_text=(
+                    "Afecta la base de los impuestos posteriores (Odoo"
+                    " include_base_amount)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -42,7 +49,10 @@ class Migration(migrations.Migration):
             name="is_base_affected",
             field=models.BooleanField(
                 default=True,
-                help_text="Su base puede ser afectada por impuestos anteriores (Odoo is_base_affected).",
+                help_text=(
+                    "Su base puede ser afectada por impuestos anteriores (Odoo"
+                    " is_base_affected)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -51,7 +61,11 @@ class Migration(migrations.Migration):
             field=models.IntegerField(
                 db_index=True,
                 default=1,
-                help_text="Orden de aplicación de los impuestos de una línea (Odoo sequence). NO es decorativo: el motor evalúa por este orden y de él dependen los lotes.",
+                help_text=(
+                    "Orden de aplicación de los impuestos de una línea (Odoo"
+                    " sequence). NO es decorativo: el motor evalúa por este"
+                    " orden y de él dependen los lotes."
+                ),
             ),
         ),
         migrations.AlterField(
@@ -59,7 +73,11 @@ class Migration(migrations.Migration):
             name="price_include",
             field=models.BooleanField(
                 default=False,
-                help_text="Precio con impuesto incluido (Odoo price_include). En la referencia es un compute sobre price_include_override + company_price_include; aquí es el booleano directo.",
+                help_text=(
+                    "Precio con impuesto incluido (Odoo price_include). En la"
+                    " referencia es un compute sobre price_include_override +"
+                    " company_price_include; aquí es el booleano directo."
+                ),
             ),
         ),
     ]

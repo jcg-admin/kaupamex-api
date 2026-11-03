@@ -1,0 +1,61 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Frozen baseline f04dfd1b9884998996bff8161f4962cea7f7fb7c control-plane policy ('sessions', 'contenttypes', 'base', 'base_address_extended', 'base_geolocalize')
+FFFFFF.F.                                                                [100%]
+=================================== FAILURES ===================================
+_____________ test_base_addons_route_to_the_selected_company[base] _____________
+tests/unit/orm/test_router_database_contract.py:28: in test_base_addons_route_to_the_selected_company
+    assert router.db_for_read(model(app)) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+____ test_base_addons_route_to_the_selected_company[base_address_extended] _____
+tests/unit/orm/test_router_database_contract.py:28: in test_base_addons_route_to_the_selected_company
+    assert router.db_for_read(model(app)) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+_______ test_base_addons_route_to_the_selected_company[base_geolocalize] _______
+tests/unit/orm/test_router_database_contract.py:28: in test_base_addons_route_to_the_selected_company
+    assert router.db_for_read(model(app)) == 'company_5_db'
+E   AssertionError: assert 'default' == 'company_5_db'
+E     - company_5_db
+E     + default
+___ test_migrations_reject_unknown_or_invalid_company_aliases[company_9_db] ____
+tests/unit/orm/test_router_database_contract.py:36: in test_migrations_reject_unknown_or_invalid_company_aliases
+    assert CompanyDatabaseRouter().allow_migrate(alias, 'product', 'thing') is False
+E   AssertionError: assert True is False
+E    +  where True = <bound method CompanyDatabaseRouter.allow_migrate of <baseline_router.CompanyDatabaseRouter object at 0x7f82a0fbb680>>('company_9_db', 'product', 'thing')
+E    +    where <bound method CompanyDatabaseRouter.allow_migrate of <baseline_router.CompanyDatabaseRouter object at 0x7f82a0fbb680>> = <baseline_router.CompanyDatabaseRouter object at 0x7f82a0fbb680>.allow_migrate
+E    +      where <baseline_router.CompanyDatabaseRouter object at 0x7f82a0fbb680> = CompanyDatabaseRouter()
+_ test_migrations_reject_unknown_or_invalid_company_aliases[company_not_a_number_db] _
+tests/unit/orm/test_router_database_contract.py:36: in test_migrations_reject_unknown_or_invalid_company_aliases
+    assert CompanyDatabaseRouter().allow_migrate(alias, 'product', 'thing') is False
+E   AssertionError: assert True is False
+E    +  where True = <bound method CompanyDatabaseRouter.allow_migrate of <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b43e0>>('company_not_a_number_db', 'product', 'thing')
+E    +    where <bound method CompanyDatabaseRouter.allow_migrate of <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b43e0>> = <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b43e0>.allow_migrate
+E    +      where <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b43e0> = CompanyDatabaseRouter()
+_____ test_migrations_reject_unknown_or_invalid_company_aliases[company_] ______
+tests/unit/orm/test_router_database_contract.py:36: in test_migrations_reject_unknown_or_invalid_company_aliases
+    assert CompanyDatabaseRouter().allow_migrate(alias, 'product', 'thing') is False
+E   AssertionError: assert True is False
+E    +  where True = <bound method CompanyDatabaseRouter.allow_migrate of <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b7260>>('company_', 'product', 'thing')
+E    +    where <bound method CompanyDatabaseRouter.allow_migrate of <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b7260>> = <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b7260>.allow_migrate
+E    +      where <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b7260> = CompanyDatabaseRouter()
+_ test_bound_objects_from_different_databases_cannot_relate_under_one_context __
+tests/unit/orm/test_router_database_contract.py:42: in test_bound_objects_from_different_databases_cannot_relate_under_one_context
+    assert CompanyDatabaseRouter().allow_relation(model('base', 'default'),
+E   AssertionError: assert True is False
+E    +  where True = <bound method CompanyDatabaseRouter.allow_relation of <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b5340>>(namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='default')), namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='company_5_db')))
+E    +    where <bound method CompanyDatabaseRouter.allow_relation of <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b5340>> = <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b5340>.allow_relation
+E    +      where <baseline_router.CompanyDatabaseRouter object at 0x7f82a06b5340> = CompanyDatabaseRouter()
+E    +    and   namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='default')) = model('base', 'default')
+E    +    and   namespace(_meta=namespace(app_label='base', model_name='thing'), _state=namespace(db='company_5_db')) = model('base', 'company_5_db')
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base]
+FAILED tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base_address_extended]
+FAILED tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base_geolocalize]
+FAILED tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[company_9_db]
+FAILED tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[company_not_a_number_db]
+FAILED tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[company_]
+FAILED tests/unit/orm/test_router_database_contract.py::test_bound_objects_from_different_databases_cannot_relate_under_one_context
+7 failed, 2 passed in 0.17s

@@ -1,0 +1,38 @@
+{
+  "interface": "session.claim_fold.active_claims; native overlap",
+  "ledger": "/workspace/thyrox/.claude/coordination/claims.jsonl",
+  "relevant": [
+    {
+      "id": "c-844ca00b-019b-4297-a19f-39d1a7b4a6a0",
+      "op": "claim",
+      "path": "src/task/task_source.py",
+      "owner": "vm-r",
+      "branch": "feature/vm-r-impl",
+      "at": "2026-10-09T04:45:40.641Z",
+      "task": "TASK-THYROX-1072"
+    },
+    {
+      "id": "c-35920a1e-f3fe-49e7-a5e4-0b18d3bedd55",
+      "op": "claim",
+      "path": "src/session/task_continuation.py",
+      "owner": "vm-r",
+      "branch": "feature/vm-r-impl",
+      "at": "2026-10-17T06:23:55.096Z",
+      "task": "TASK-THYROX-1069"
+    },
+    {
+      "id": "c-8362bf46-91bf-41b8-9712-6fe9ce461b59",
+      "op": "claim",
+      "path": "src/session/task_continuation.py",
+      "owner": "vm-a",
+      "branch": "feature/fresh-clone-bootstrap",
+      "at": "2026-10-17T22:32:46.481Z",
+      "task": "TASK-THYROX-1065"
+    }
+  ],
+  "targets": [
+    "src/session/task_continuation.py",
+    "src/task/task_source.py"
+  ],
+  "note": "A NULL task owner is not admission. No Provider claims acquired or states changed."
+}

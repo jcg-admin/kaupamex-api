@@ -1,0 +1,235 @@
+{
+  "versions": {
+    "CPython": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "Django": "6.0.5",
+    "djangorestframework": "3.16.1",
+    "psycopg": "3.3.4",
+    "gunicorn": "26.0.0",
+    "lxml": "6.1.1"
+  },
+  "interfaces": [
+    {
+      "symbol": "django.apps.registry.Apps.populate",
+      "signature": "(self, installed_apps=None)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 61,
+      "end_line": 127,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.register_model",
+      "signature": "(self, app_label, model)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 215,
+      "end_line": 240,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.get_model",
+      "signature": "(self, app_label, model_name=None, require_ready=True)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 188,
+      "end_line": 213,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.get_models",
+      "signature": "(self, include_auto_created=False, include_swapped=False)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 168,
+      "end_line": 186,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.lazy_model_operation",
+      "signature": "(self, function, *model_keys)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 388,
+      "end_line": 426,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.set_available_apps",
+      "signature": "(self, available)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 306,
+      "end_line": 332,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.set_installed_apps",
+      "signature": "(self, installed)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 339,
+      "end_line": 362,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.registry.Apps.clear_cache",
+      "signature": "(self)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/registry.py",
+      "line": 370,
+      "end_line": 386,
+      "sha256": "ec931677450952aad787249d5582cc3fe0cb0bdb2a9a7ee7fdd817c4263a0d66"
+    },
+    {
+      "symbol": "django.apps.config.AppConfig.create",
+      "signature": "(entry)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/config.py",
+      "line": 99,
+      "end_line": 222,
+      "sha256": "d59871b783abc119ce9ac4ff07f06eac89b3de88bcdf7d13246d2b451279f1b4"
+    },
+    {
+      "symbol": "django.apps.config.AppConfig.import_models",
+      "signature": "(self)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/config.py",
+      "line": 262,
+      "end_line": 269,
+      "sha256": "d59871b783abc119ce9ac4ff07f06eac89b3de88bcdf7d13246d2b451279f1b4"
+    },
+    {
+      "symbol": "django.apps.config.AppConfig.ready",
+      "signature": "(self)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/apps/config.py",
+      "line": 271,
+      "end_line": 274,
+      "sha256": "d59871b783abc119ce9ac4ff07f06eac89b3de88bcdf7d13246d2b451279f1b4"
+    },
+    {
+      "symbol": "django.db.models.base.ModelBase.__new__",
+      "signature": "(cls, name, bases, attrs, **kwargs)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py",
+      "line": 97,
+      "end_line": 389,
+      "sha256": "61305e168a0c56039e5c7624d6f31c688ebed5e768e2d533c56b9139b6a253d2"
+    },
+    {
+      "symbol": "django.db.models.options.Options.get_fields",
+      "signature": "(self, include_parents=True, include_hidden=False)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/options.py",
+      "line": 858,
+      "end_line": 872,
+      "sha256": "c59fc2e8af40bdeb9dc66669c8da81316dd125576ee0544d26ab79c5a755477b"
+    },
+    {
+      "symbol": "django.db.models.options.Options.get_field",
+      "signature": "(self, field_name)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/options.py",
+      "line": 663,
+      "end_line": 688,
+      "sha256": "c59fc2e8af40bdeb9dc66669c8da81316dd125576ee0544d26ab79c5a755477b"
+    },
+    {
+      "symbol": "django.db.utils.ConnectionRouter.db_for_read",
+      "signature": "(self, model, **hints)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py",
+      "line": 221,
+      "end_line": 237,
+      "sha256": "fd635f28832f6d0f1fb91614c51d3778717935dd6d627dd7401227f60406386e"
+    },
+    {
+      "symbol": "django.db.utils.ConnectionRouter.db_for_write",
+      "signature": "(self, model, **hints)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py",
+      "line": 221,
+      "end_line": 237,
+      "sha256": "fd635f28832f6d0f1fb91614c51d3778717935dd6d627dd7401227f60406386e"
+    },
+    {
+      "symbol": "django.db.utils.ConnectionRouter.allow_relation",
+      "signature": "(self, obj1, obj2, **hints)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py",
+      "line": 244,
+      "end_line": 255,
+      "sha256": "fd635f28832f6d0f1fb91614c51d3778717935dd6d627dd7401227f60406386e"
+    },
+    {
+      "symbol": "django.db.utils.ConnectionRouter.allow_migrate",
+      "signature": "(self, db, app_label, **hints)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py",
+      "line": 257,
+      "end_line": 269,
+      "sha256": "fd635f28832f6d0f1fb91614c51d3778717935dd6d627dd7401227f60406386e"
+    },
+    {
+      "symbol": "django.db.migrations.loader.MigrationLoader.build_graph",
+      "signature": "(self)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/loader.py",
+      "line": 274,
+      "end_line": 342,
+      "sha256": "3b92ed6ec272cfd1c206b30ce6fa6b8a3c5323d36c6e5a91f4d4f1e464327032"
+    },
+    {
+      "symbol": "django.db.migrations.executor.MigrationExecutor.migrate",
+      "signature": "(self, targets, plan=None, state=None, fake=False, fake_initial=False)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/executor.py",
+      "line": 96,
+      "end_line": 147,
+      "sha256": "a41c86b8bb744c3b70128ff1f321dd373d5acd96ca46cd3513adc44c975ca26a"
+    },
+    {
+      "symbol": "django.db.backends.base.schema.BaseDatabaseSchemaEditor.create_model",
+      "signature": "(self, model)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py",
+      "line": 505,
+      "end_line": 538,
+      "sha256": "ae9e75ae4e313136690d48d1630601b3e57057cd1899b506af7cb2419031085f"
+    },
+    {
+      "symbol": "django.db.backends.base.schema.BaseDatabaseSchemaEditor.delete_model",
+      "signature": "(self, model)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py",
+      "line": 540,
+      "end_line": 559,
+      "sha256": "ae9e75ae4e313136690d48d1630601b3e57057cd1899b506af7cb2419031085f"
+    },
+    {
+      "symbol": "django.db.backends.base.schema.BaseDatabaseSchemaEditor.alter_field",
+      "signature": "(self, model, old_field, new_field, strict=False)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py",
+      "line": 841,
+      "end_line": 922,
+      "sha256": "ae9e75ae4e313136690d48d1630601b3e57057cd1899b506af7cb2419031085f"
+    },
+    {
+      "symbol": "gunicorn.arbiter.Arbiter.spawn_worker",
+      "signature": "(self)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/gunicorn/arbiter.py",
+      "line": 687,
+      "end_line": 737,
+      "sha256": "4dd6c6a15fdb5fdfad0563d1467e9a4413f4d0533e7564e467decb7bf9347dac"
+    },
+    {
+      "symbol": "gunicorn.workers.base.Worker.init_process",
+      "signature": "(self)",
+      "file": "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/gunicorn/workers/base.py",
+      "line": 86,
+      "end_line": 144,
+      "sha256": "092f52622084c6eacb4fb8ab33387b25ff88f79bad67383edaa988b06211e89c"
+    }
+  ],
+  "experiments": {
+    "apps_restore_keeps_imported_models": {
+      "while_restricted": [],
+      "after_restore": [
+        "Before",
+        "During"
+      ],
+      "verdict": "PASS: observed retention; NOT a production installer"
+    },
+    "native_router_no_selection_falls_back_to_default": "PASS",
+    "native_router_rejects_bound_cross_database_relation": "PASS",
+    "process_memory_does_not_propagate_registry_updates": {
+      "parent": 0,
+      "child": 1,
+      "verdict": "PASS"
+    }
+  },
+  "limitations": [
+    "No changes to global Django apps, installed stack or production settings.",
+    "Gunicorn worker lifecycle inspected in installed source; no live multiworker reload acceptance.",
+    "Process experiment demonstrates memory separation, not an existing cross-process coordinator.",
+    "No native Odoo test runtime was executed."
+  ]
+}

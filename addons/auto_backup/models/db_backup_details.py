@@ -65,6 +65,7 @@ el historial del operador (manual contra programado, en curso contra
 terminado, y el detalle del fallo). La fuente no los necesita porque su
 historial vive en la vista de Odoo; el nuestro es un endpoint REST.
 """
+
 import logging
 import os
 
@@ -106,33 +107,46 @@ class DbBackupDetails(TimeStampedModel):
 
     # --- Los cuatro campos de la fuente ---
     name = fields.Char(
-        'Name', blank=True, default='',
+        'Name',
+        blank=True,
+        default='',
         help_text='Nombre del archivo de respaldo (Odoo name).',
     )
     file_path = fields.Char(
-        'File Path', blank=True, default='',
+        'File Path',
+        blank=True,
+        default='',
         help_text='Ruta absoluta del archivo en disco (Odoo file_path).',
     )
     url = fields.Char(
-        'URL', blank=True, default='',
+        'URL',
+        blank=True,
+        default='',
         help_text=(
             'Ruta de descarga (Odoo url). Es relativa —'
             '/dbbackup/download/<ruta>—, no una URL absoluta.'
         ),
     )
     db_backup_id = fields.Many2one(
-        'auto_backup.DbBackup', on_delete=models.CASCADE,
-        null=True, blank=True, related_name='backup_details_ids',
+        'auto_backup.DbBackup',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='backup_details_ids',
         verbose_name='Database Backup',
-        help_text='Configuración que produjo esta corrida (Odoo db_backup_id).',
+        help_text=(
+            'Configuración que produjo esta corrida (Odoo db_backup_id).'
+        ),
         db_column='db_backup_id',
     )
 
     # --- Campos propios: el historial que UC-ADM-05 lista ---
     type = fields.Selection(
-        'Tipo', max_length=10, choices=TYPE_CHOICES, default=TYPE_AUTO)
+        'Tipo', max_length=10, choices=TYPE_CHOICES, default=TYPE_AUTO
+    )
     status = fields.Selection(
-        'Estado', max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+        'Estado', max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
     size_bytes = models.PositiveBigIntegerField(null=True, blank=True)
     error_detail = fields.Text(blank=True, default='')
 
@@ -169,8 +183,11 @@ class DbBackupDetails(TimeStampedModel):
             if self.file_path and os.path.exists(self.file_path):
                 os.remove(self.file_path)
         except OSError:
-            _logger.warning('No se pudo retirar el archivo de respaldo %s',
-                            self.file_path, exc_info=True)
+            _logger.warning(
+                'No se pudo retirar el archivo de respaldo %s',
+                self.file_path,
+                exc_info=True,
+            )
         return super().delete(*args, **kwargs)
 
     def action_remove_file(self):

@@ -9,9 +9,11 @@ instrumento en vez de ponerlo a prueba.
 Los positivos que este archivo usa existen en el árbol y los nombra el propio
 gate al correr:
 
-- forma **A** — ``addons/account/models/account_account.py::AccountAccount.company``
+- forma **A** —
+  ``addons/account/models/account_account.py::AccountAccount.company``
   (símbolo divergente, columna fiel derivada).
-- forma **C** — ``addons/base_automation/models/base_automation.py::BaseAutomation.model_id``
+- forma **C** —
+  ``addons/base_automation/models/base_automation.py::BaseAutomation.model_id``
   (símbolo fiel + ``db_column`` con ese mismo nombre).
 - forma **N** — ``properties_base_definition_id``, un ``store=False`` que **no
   tiene el eje de columna**: clasificarlo como B rotularía de defecto un campo
@@ -26,6 +28,7 @@ sólo viera ``models.ForeignKey``: el alcance medido se desploma y el conteo de
 la forma A cae con él. Ése fue el defecto real del primer instrumento, que
 midió 111 declaraciones donde hay 747.
 """
+
 import importlib.util
 import pathlib
 
@@ -33,28 +36,39 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'check_fk_naming', REPO / 'scripts' / 'check_fk_naming.py')
+    'check_fk_naming', REPO / 'scripts' / 'check_fk_naming.py'
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
 
 class TestTheClassifierSeparatesTheFourForms:
-    """``classify`` es la tabla de ADR-029, sin más estado que sus argumentos."""
+    """
+    ``classify`` es la tabla de ADR-029, sin más estado que sus argumentos.
+    """
 
-    @pytest.mark.parametrize('name, has_db_column, expected', [
-        ('parent', False, 'A'),
-        ('crud_model_id', False, 'B'),
-        ('model_id', True, 'C'),
-        ('page', True, 'D'),
-    ])
+    @pytest.mark.parametrize(
+        'name, has_db_column, expected',
+        [
+            ('parent', False, 'A'),
+            ('crud_model_id', False, 'B'),
+            ('model_id', True, 'C'),
+            ('page', True, 'D'),
+        ],
+    )
     def test_the_two_syntactic_properties_decide_the_form(
-            self, name, has_db_column, expected):
+        self, name, has_db_column, expected
+    ):
         assert gate.classify(name, has_db_column) == expected
 
     def test_a_non_stored_field_is_n_and_not_b(self):
-        """``store=False`` no tiene columna: no se le mide fidelidad de columna."""
-        assert gate.classify('properties_base_definition_id', False,
-                             stored=False) == 'N'
+        """
+        ``store=False`` no tiene columna: no se le mide fidelidad de columna.
+        """
+        assert (
+            gate.classify('properties_base_definition_id', False, stored=False)
+            == 'N'
+        )
 
     def test_a_non_stored_field_with_a_divergent_symbol_is_still_n(self):
         """La ausencia del eje gana sobre la forma del nombre."""
@@ -72,8 +86,13 @@ class TestItReadsTheRealTree:
         assert forms['company'] == 'A'
 
     def test_a_known_form_c_declaration_is_reported_as_c(self):
-        path = (REPO / 'addons' / 'base_automation' / 'models'
-                / 'base_automation.py')
+        path = (
+            REPO
+            / 'addons'
+            / 'base_automation'
+            / 'models'
+            / 'base_automation.py'
+        )
 
         forms = {name: form for _k, name, form in gate.declarations(path)}
 
@@ -81,7 +100,9 @@ class TestItReadsTheRealTree:
         assert forms['trg_date_id'] == 'C'
 
     def test_it_recognises_our_dispatcher_not_only_djangos_constructor(self):
-        """``fields.Many2one`` cuenta, o el alcance medido no significa nada."""
+        """
+        ``fields.Many2one`` cuenta, o el alcance medido no significa nada.
+        """
         assert 'Many2one' in gate.SINGLE_VALUED
         assert 'ForeignKey' in gate.SINGLE_VALUED
 
@@ -93,8 +114,11 @@ class TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat:
         rows, _counts = gate.survey()
         baseline = gate.load_baseline()
 
-        fresh = [key for form, key in rows
-                 if form in ('A', 'B', 'D') and key not in baseline]
+        fresh = [
+            key
+            for form, key in rows
+            if form in ('A', 'B', 'D') and key not in baseline
+        ]
 
         assert fresh == []
 
@@ -140,9 +164,9 @@ class TestItSeesTheAnnotatedFormOfTheReference:
             'import fields\n'
             '\n'
             'class ResPartner(models.Model):\n'
-            "    parent_id: 'ResPartner' = fields.Many2one("
-            "'res.partner', string='Related Company', index=True)\n"
-            "    company = fields.Many2one('res.company')\n"
+            '    parent_id: \'ResPartner\' = fields.Many2one('
+            '\'res.partner\', string=\'Related Company\', index=True)\n'
+            '    company = fields.Many2one(\'res.company\')\n'
         )
 
         forms = {name: form for _k, name, form in gate.declarations(path)}
@@ -155,33 +179,49 @@ class TestTheReferenceDecidesTheSymbolNotTheSuffix:
 
     Positivo real del árbol, no fabricado:
     ``addons/crm/models/crm_lead.py::CrmLead.recurring_plan``. La referencia lo
-    declara **sin** sufijo (``odoo19c: addons/crm/models/crm_lead.py:144``), así
+    declara **sin** sufijo (``odoo19c: addons/crm/models/crm_lead.py:144``),
+    así
     que el porte fiel es el símbolo sin sufijo — y el proxy lo marcaba como
     incumplidor, pidiendo apartarse de la referencia.
 
-    No es un caso suelto: medido sobre ``odoo19c``, **128 de 2692** ``Many2one``
+    No es un caso suelto: medido sobre ``odoo19c``, **128 de 2692**
+    ``Many2one``
     (4.75 %) no llevan sufijo.
 
     Qué haría fallar a estos casos
     ==============================
 
-    Retirar la consulta a la contraparte de ``declarations``: ``recurring_plan``
+    Retirar la consulta a la contraparte de ``declarations``:
+    ``recurring_plan``
     vuelve a la forma D y reaparece como incumplidor nuevo. Es el control que
     se corrió al cerrar #141 — sin la consulta, las formas medidas pasan de
     ``A=637 B=13 C=99 D=5`` a ``A=650 B=0 C=98 D=6``.
     """
 
-    def test_a_symbol_the_reference_declares_without_the_suffix_is_faithful(self):
-        assert gate.classify('recurring_plan', True,
-                             reference_names=frozenset({'recurring_plan'})) == 'C'
+    def test_a_symbol_the_reference_declares_without_the_suffix_is_faithful(
+        self,
+    ):
+        assert (
+            gate.classify(
+                'recurring_plan',
+                True,
+                reference_names=frozenset({'recurring_plan'}),
+            )
+            == 'C'
+        )
 
-    def test_the_same_symbol_without_the_reference_falls_back_to_the_suffix(self):
+    def test_the_same_symbol_without_the_reference_falls_back_to_the_suffix(
+        self,
+    ):
         assert gate.classify('recurring_plan', True) == 'D'
 
     def test_a_divergent_symbol_is_not_absolved_by_the_counterpart(self):
-        """``partner`` no está en la contraparte de ``crm_lead``; sigue siendo A."""
+        """
+        ``partner`` no está en la contraparte de ``crm_lead``; sigue siendo A.
+        """
         fieles = gate.reference_many2one(
-            pathlib.Path('addons/crm/models/crm_lead.py'))
+            pathlib.Path('addons/crm/models/crm_lead.py')
+        )
         assert 'recurring_plan' in fieles and 'partner' not in fieles
         assert gate.classify('partner', False, reference_names=fieles) == 'A'
 
@@ -192,13 +232,20 @@ class TestTheReferenceDecidesTheSymbolNotTheSuffix:
         assert forms['recurring_plan'] == 'C'
 
     def test_a_faithful_symbol_without_db_column_is_still_an_offender(self):
-        """La consulta arregla el eje del símbolo, no absuelve el de la columna.
+        """
+        La consulta arregla el eje del símbolo, no absuelve el de la columna.
 
         ``country_of_birth`` de ``hr.employee`` es de los 128: símbolo fiel,
         pero sin ``db_column`` su columna sale ``country_of_birth_id``.
         """
-        assert gate.classify('country_of_birth', False,
-                             reference_names=frozenset({'country_of_birth'})) == 'B'
+        assert (
+            gate.classify(
+                'country_of_birth',
+                False,
+                reference_names=frozenset({'country_of_birth'}),
+            )
+            == 'B'
+        )
 
 
 class TestTheSourceDerivesStoreFromComputeAndRelated:
@@ -246,17 +293,21 @@ class TestTheSourceDerivesStoreFromComputeAndRelated:
 
     def _forms(self, tmp_path, body):
         path = tmp_path / 'm.py'
-        path.write_text('import fields\n'
-                        'from django.db import models\n'
-                        '\n'
-                        'class M(models.Model):\n' + body)
+        path.write_text(
+            'import fields\n'
+            'from django.db import models\n'
+            '\n'
+            'class M(models.Model):\n'
+            + body
+        )
         return {name: form for _k, name, form in gate.declarations(path)}
 
     def test_a_computed_many2one_has_no_column_axis(self, tmp_path):
         """``:443-447`` — con ``compute`` y sin ``store``, no hay columna."""
         forms = self._forms(
             tmp_path,
-            "    depth = fields.Many2one('x.y', compute='_compute_depth')\n")
+            "    depth = fields.Many2one('x.y', compute='_compute_depth')\n",
+        )
 
         assert forms == {'depth': 'N'}
 
@@ -265,7 +316,8 @@ class TestTheSourceDerivesStoreFromComputeAndRelated:
         no tiene hoy ninguna declaración de esta forma (medido: 0)."""
         forms = self._forms(
             tmp_path,
-            "    label = fields.Many2one(related='partner.country')\n")
+            "    label = fields.Many2one(related='partner.country')\n",
+        )
 
         assert forms == {'label': 'N'}
 
@@ -277,14 +329,16 @@ class TestTheSourceDerivesStoreFromComputeAndRelated:
         """
         forms = self._forms(
             tmp_path,
-            "    parent_id = fields.Many2one('x.y', compute='_c', store=True)\n")
+            "    parent_id = fields.Many2one('x.y', compute='_c',"
+            " store=True)\n",
+        )
 
         assert forms == {'parent_id': 'B'}
 
     def test_an_explicit_store_false_is_still_seen(self, tmp_path):
         """La rama que ya existía no se pierde al añadir la derivación."""
         forms = self._forms(
-            tmp_path,
-            "    parent_id = fields.Many2one('x.y', store=False)\n")
+            tmp_path, "    parent_id = fields.Many2one('x.y', store=False)\n"
+        )
 
         assert forms == {'parent_id': 'N'}

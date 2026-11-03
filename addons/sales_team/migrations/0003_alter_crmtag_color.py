@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("sales_team", "0002_remove_crmteammember_uniq_crm_team_member_and_more"),
+        (
+            "sales_team",
+            "0002_remove_crmteammember_uniq_crm_team_member_and_more",
+        ),
     ]
 
     operations = [

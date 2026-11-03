@@ -75,7 +75,9 @@ def seed(using=None):
         return
     manager.create(
         name='Orden de venta (plantilla del documento)',
-        type=VIEW_TYPE_TEMPLATE, key=REPORT_SALEORDER_KEY,
-        mode='primary', active=True,
+        type=VIEW_TYPE_TEMPLATE,
+        key=REPORT_SALEORDER_KEY,
+        mode='primary',
+        active=True,
         arch_db=REPORT_SALEORDER_ARCH,
     )

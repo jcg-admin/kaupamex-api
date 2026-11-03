@@ -7,6 +7,7 @@ divergencia y su motivo (4 workers prefork sin invalidación compartida) están
 declarados en el docstring del módulo portado; estos tests fijan la
 **semántica de resolución**, que es idéntica con o sin caché.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModelData
@@ -17,13 +18,21 @@ from orm.environments import context_scope
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
-def make_view(name, *, key=None, view_type='template', priority=16, active=True):
-    """Una vista mínima; ``key`` por defecto deriva del nombre (QWeb la exige)."""
+def make_view(
+    name, *, key=None, view_type='template', priority=16, active=True
+):
+    """
+    Una vista mínima; ``key`` por defecto deriva del nombre (QWeb la exige).
+    """
     if key is None:
         key = f'test.{name}'
     return IrUiView.objects.create(
-        name=name, type=view_type, key=key, arch_db='<data/>',
-        priority=priority, active=active,
+        name=name,
+        type=view_type,
+        key=key,
+        arch_db='<data/>',
+        priority=priority,
+        active=active,
     )
 
 
@@ -37,12 +46,18 @@ class TestGetTemplateViewById:
             IrUiView._get_template_view(99999999)
 
     def test_missing_id_without_raise_returns_none(self):
-        """La fuente devuelve un recordset vacío; aquí ese vacío es ``None``."""
-        assert IrUiView._get_template_view(
-            99999999, raise_if_not_found=False) is None
+        """
+        La fuente devuelve un recordset vacío; aquí ese vacío es ``None``.
+        """
+        assert (
+            IrUiView._get_template_view(99999999, raise_if_not_found=False)
+            is None
+        )
 
     def test_archived_view_resolves_by_id(self):
-        """Por id no interviene ``active_test`` — como el ``browse`` de la fuente."""
+        """
+        Por id no interviene ``active_test`` — como el ``browse`` de la fuente.
+        """
         view = make_view('old', active=False)
         assert IrUiView._get_template_view(view.id) == view
 
@@ -57,13 +72,18 @@ class TestGetTemplateViewByKey:
             IrUiView._get_template_view('website.no_existe')
 
     def test_lowest_priority_wins_between_same_key(self):
-        """El orden es ``priority, id`` — la primera del orden gana la ``key``."""
+        """
+        El orden es ``priority, id`` — la primera del orden gana la ``key``.
+        """
         make_view('generic', key='website.header', priority=32)
         specific = make_view('specific', key='website.header', priority=1)
         assert IrUiView._get_template_view('website.header') == specific
 
     def test_archived_view_is_not_found_by_key_by_default(self):
-        """Con ``active_test`` por defecto, la archivada no se resuelve por ``key``."""
+        """
+        Con ``active_test`` por defecto, la archivada no se resuelve por
+        ``key``.
+        """
         make_view('old', key='website.retired', active=False)
         with pytest.raises(MissingError):
             IrUiView._get_template_view('website.retired')
@@ -84,7 +104,9 @@ class TestGetTemplateViewByKey:
 
 class TestModelDataFallback:
     def test_resolves_via_external_identifier(self):
-        """Segundo escalón: la ``xmlid`` sin ``key`` sale de ``ir.model.data``."""
+        """
+        Segundo escalón: la ``xmlid`` sin ``key`` sale de ``ir.model.data``.
+        """
         view = make_view('plain', key='', view_type='form')
         IrModelData.set_xmlid(view, 'website.plain_view')
         assert IrUiView._get_template_view('website.plain_view') == view

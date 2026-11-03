@@ -16,7 +16,8 @@ Divergencias declaradas:
   ``_inherit`` sobre abstracto. No se usa ``extend_model`` porque éste opera
   sobre el registro de apps, donde un modelo abstracto no está.
 - ``_post_dispatch`` de la fuente encadena con ``super()._post_dispatch``.
-  Aquí **no hay a quién encadenar**: medido, ``src/addons/base/models/ir_http.py``
+  Aquí **no hay a quién encadenar**: medido,
+  ``src/addons/base/models/ir_http.py``
   declara ``slugify_one``, ``slugify``, ``slug``, ``unslug`` y
   ``sanitize_cookies`` — ningún ``_post_dispatch``. Se conserva el nombre y su
   papel de punto de salida; el encadenado se repone cuando alguien más lo
@@ -32,6 +33,7 @@ Divergencias declaradas:
   ``optional`` significa: sin consentimiento, ``CookieGovernanceMiddleware``
   las suprime en modo enforce.
 """
+
 from addons.base.models.ir_http import IrHttp as BaseIrHttp
 
 from .utm_mixin import UtmMixin
@@ -71,11 +73,15 @@ class IrHttp(BaseIrHttp):
         """
         domain = cls.get_utm_domain_cookies(request)
         for url_parameter, __, cookie_name in UtmMixin.tracking_fields():
-            value = request.GET.get(url_parameter) or request.POST.get(url_parameter)
+            value = request.GET.get(url_parameter) or request.POST.get(
+                url_parameter
+            )
             if value is not None and request.COOKIES.get(cookie_name) != value:
                 response.set_cookie(
-                    cookie_name, value,
-                    max_age=UTM_COOKIE_MAX_AGE, domain=domain,
+                    cookie_name,
+                    value,
+                    max_age=UTM_COOKIE_MAX_AGE,
+                    domain=domain,
                 )
         return response
 

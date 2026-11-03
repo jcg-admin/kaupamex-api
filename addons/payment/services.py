@@ -19,6 +19,7 @@ Qué cambia respecto del original, y por qué:
   solo** ``name`` (``odoo19c: base/models/res_partner.py``), no
   ``first_name``/``last_name``.
 """
+
 import json
 import logging
 
@@ -42,11 +43,12 @@ def get_or_create_mp_customer(partner):
     if partner is None:
         return None
 
-    known = (SavedCard.objects
-             .filter(user__partner=partner)
-             .exclude(mp_customer_id='')
-             .values_list('mp_customer_id', flat=True)
-             .first())
+    known = (
+        SavedCard.objects.filter(user__partner=partner)
+        .exclude(mp_customer_id='')
+        .values_list('mp_customer_id', flat=True)
+        .first()
+    )
     if known:
         return known
 
@@ -60,7 +62,8 @@ def get_or_create_mp_customer(partner):
     except Exception as exc:
         logger.warning(
             'MP customer lookup/create failed for partner %s: %s',
-            getattr(partner, 'pk', None), exc,
+            getattr(partner, 'pk', None),
+            exc,
         )
         return None
 
@@ -123,14 +126,14 @@ def initiate_checkout_api_payment(
 
     if result.status == 'approved':
         payment_status = Payment.STATUS_APPROVED
-        event_type     = PaymentGatewayEvent.EVENT_PAYMENT_APPROVED
+        event_type = PaymentGatewayEvent.EVENT_PAYMENT_APPROVED
     elif result.status == 'rejected':
         payment_status = Payment.STATUS_FAILED
-        event_type     = PaymentGatewayEvent.EVENT_PAYMENT_FAILED
+        event_type = PaymentGatewayEvent.EVENT_PAYMENT_FAILED
     else:
         # pending / in_process — PENDING permite reintento.
         payment_status = Payment.STATUS_PENDING
-        event_type     = PaymentGatewayEvent.EVENT_PREFERENCE_CREATED
+        event_type = PaymentGatewayEvent.EVENT_PREFERENCE_CREATED
 
     with transaction.atomic():
         payment = Payment.objects.create(
@@ -145,19 +148,23 @@ def initiate_checkout_api_payment(
         PaymentGatewayEvent.objects.create(
             payment=payment,
             event_type=event_type,
-            raw_body=json.dumps({
-                'source':             'checkout_api',
-                'gateway_payment_id': result.gateway_payment_id,
-                'status':             result.status,
-                'status_detail':      result.status_detail,
-            }),
+            raw_body=json.dumps(
+                {
+                    'source': 'checkout_api',
+                    'gateway_payment_id': result.gateway_payment_id,
+                    'status': result.status,
+                    'status_detail': result.status_detail,
+                }
+            ),
         )
         # O2C R8: el ``Payment`` APPROVED de arriba ES el eje de pago — la
         # proyección canónica deriva PAID de él; no se escribe columna espejo.
 
     logger.info(
         'Checkout API pago: orden=%s payment_id=%s status=%s detail=%s',
-        order.name, result.gateway_payment_id,
-        result.status, result.status_detail,
+        order.name,
+        result.gateway_payment_id,
+        result.status,
+        result.status_detail,
     )
     return payment, result

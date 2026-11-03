@@ -1,0 +1,36 @@
+{
+  "provider_revision": "c3c5d2f2868701b37644426e2266262613eb9c60",
+  "interface": "taskTools/TaskGet/TaskUpdate/storePath",
+  "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "input": {
+    "task_id": "307",
+    "description": "Bounded continuation published768d5616 in PR109: _recompute_field now selects physical pending rows independently of public visibility and reconstructs distinct requested IDs in order. Initial selector4FAIL2PASS; intermediate ordering2FAIL6PASS; final121PASS with inherited warnings. Selector-only annulment6expectedFAIL2PASS, order-only annulment2expectedFAIL6PASS; real PostgreSQL16.15 baseline drops hidden32, candidate computes31/32; ordered request32,31,32,99 computes32,31 exactly once; order annulment computes31,32 and fails. Both owned resources removed. Actual callback AccessError and physical lookup errors preserve pending. Existing compute/access/write paths and rest of module AST unchanged. Evidence: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-visibility-contract-14.json and source/SQL/claims receipts. backend responsibility, VM-b501 executor/owner, independent qa acceptance separate. No complete ORM/Field, routing/security or managed local-model qualification, merge or acceptance declared. Owner/status/dependencies unchanged."
+  },
+  "before": {
+    "task_id": "307",
+    "citation_id": "TASK-GEN-0559",
+    "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+    "description": null,
+    "status": "pending",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "result": {
+    "content": "{\"task_id\":\"307\",\"updated\":true}",
+    "isError": false
+  },
+  "after": {
+    "task_id": "307",
+    "citation_id": "TASK-GEN-0559",
+    "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+    "description": "Bounded continuation published768d5616 in PR109: _recompute_field now selects physical pending rows independently of public visibility and reconstructs distinct requested IDs in order. Initial selector4FAIL2PASS; intermediate ordering2FAIL6PASS; final121PASS with inherited warnings. Selector-only annulment6expectedFAIL2PASS, order-only annulment2expectedFAIL6PASS; real PostgreSQL16.15 baseline drops hidden32, candidate computes31/32; ordered request32,31,32,99 computes32,31 exactly once; order annulment computes31,32 and fails. Both owned resources removed. Actual callback AccessError and physical lookup errors preserve pending. Existing compute/access/write paths and rest of module AST unchanged. Evidence: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-visibility-contract-14.json and source/SQL/claims receipts. backend responsibility, VM-b501 executor/owner, independent qa acceptance separate. No complete ORM/Field, routing/security or managed local-model qualification, merge or acceptance declared. Owner/status/dependencies unchanged.",
+    "status": "pending",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "preserved_except_description": true
+}

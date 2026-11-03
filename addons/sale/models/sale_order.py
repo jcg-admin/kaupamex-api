@@ -340,7 +340,10 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         contexto del hilo de petición, que es el equivalente de este stack.
         """
         if get_context().get('sale_show_partner_name'):
-            return ['name', 'partner__name']
+            # ``partner_id.name`` en la fuente. Aquí ``partner`` apunta a
+            # ``res.users`` (divergencia del campo, ver su declaración) y el
+            # dominio resuelve ``name`` por el ``_inherits`` del usuario.
+            return ['name', 'partner.name']
         return ['name']
 
     # Odoo SALE_ORDER_STATE (sale/models/sale_order.py:70, default 'draft').

@@ -1,0 +1,4 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+('kaupamex_core', 'django_user', 'public', 0)
+('kaupamex_core_qa', 'django_user', 'public', 0)
+Authenticated host connections: PASS; both public schemas empty.

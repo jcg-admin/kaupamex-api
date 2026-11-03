@@ -5,6 +5,7 @@ pipeline de oportunidades. Se portan los diez campos y los tres métodos que la
 referencia declara (``odoo19c: crm/models/crm_stage.py``), más su constante de
 módulo ``AVAILABLE_PRIORITIES``.
 """
+
 import api
 import fields
 import models
@@ -13,7 +14,8 @@ from addons.base.models import TimeStampedModel
 from addons.sales_team.models import CrmTeam
 from tools.translate import _
 
-# ≙ ``AVAILABLE_PRIORITIES`` (crm_stage.py:6-11). La consume ``crm.lead.priority``.
+# ≙ ``AVAILABLE_PRIORITIES`` (crm_stage.py:6-11). La consume
+# ``crm.lead.priority``.
 AVAILABLE_PRIORITIES = [
     ('0', 'Baja'),
     ('1', 'Media'),
@@ -25,7 +27,8 @@ AVAILABLE_PRIORITIES = [
 class CrmStage(TimeStampedModel):
     """``crm.stage`` — etapa del pipeline de oportunidades.
 
-    Modela las etapas principales de un flujo de gestión documental. Los objetos
+    Modela las etapas principales de un flujo de gestión documental. Los
+    objetos
     CRM (iniciativas, oportunidades) usan sólo etapas, no un estado aparte.
     """
 
@@ -35,40 +38,51 @@ class CrmStage(TimeStampedModel):
     _order = "sequence, name, id"
 
     # Odoo crm.stage.name (crm_stage.py:25, required, translate).
-    name                   = fields.Char(
-        max_length=100, help_text='Nombre de la etapa (Odoo crm.stage.name).',
+    name = fields.Char(
+        max_length=100,
+        help_text='Nombre de la etapa (Odoo crm.stage.name).',
     )
     # Odoo sequence (crm_stage.py:26, default 1 — menor es mejor).
-    sequence               = fields.Integer(
-        default=1, help_text='Orden del pipeline; menor primero (Odoo sequence).',
+    sequence = fields.Integer(
+        default=1,
+        help_text='Orden del pipeline; menor primero (Odoo sequence).',
     )
     # Odoo is_won (crm_stage.py:27) — etapa ganada.
-    is_won                 = fields.Boolean(
-        default=False, help_text='Etapa ganada (Odoo is_won).',
+    is_won = fields.Boolean(
+        default=False,
+        help_text='Etapa ganada (Odoo is_won).',
     )
     # Odoo rotting_threshold_days (crm_stage.py:28, default 0 — 0 desactiva).
     rotting_threshold_days = fields.Integer(
         default=0,
-        help_text='Días sin actualizar tras los que la oportunidad se resalta; '
-                  '0 desactiva (Odoo rotting_threshold_days).',
+        help_text=(
+            'Días sin actualizar tras los que la oportunidad se resalta; '
+            '0 desactiva (Odoo rotting_threshold_days).'
+        ),
     )
-    # Odoo requirements (crm_stage.py:30) — tooltip sobre el nombre de la etapa.
-    requirements           = fields.Text(
-        blank=True, default='',
+    # Odoo requirements (crm_stage.py:30) — tooltip sobre el nombre de
+    # la etapa.
+    requirements = fields.Text(
+        blank=True,
+        default='',
         help_text='Requisitos internos de la etapa (Odoo requirements).',
     )
     # Odoo team_ids (crm_stage.py:31, ondelete restrict).
-    team_ids               = fields.Many2many(
-        'sales_team.CrmTeam', blank=True, related_name='crm_stages',
+    team_ids = fields.Many2many(
+        'sales_team.CrmTeam',
+        blank=True,
+        related_name='crm_stages',
         help_text='Equipos de venta que usan la etapa (Odoo team_ids).',
     )
     # Odoo fold (crm_stage.py:32) — plegada en el kanban.
-    fold                   = fields.Boolean(
-        default=False, help_text='Plegada en el pipeline (Odoo fold).',
+    fold = fields.Boolean(
+        default=False,
+        help_text='Plegada en el pipeline (Odoo fold).',
     )
     # Odoo color (crm_stage.py:36).
-    color                  = fields.Integer(
-        default=0, help_text='Índice de color (Odoo color).',
+    color = fields.Integer(
+        default=0,
+        help_text='Índice de color (Odoo color).',
     )
 
     class Meta:
@@ -80,7 +94,8 @@ class CrmStage(TimeStampedModel):
     def __str__(self) -> str:
         return self.name
 
-    # Odoo team_count (crm_stage.py:34, compute='_compute_team_count'). Campo de
+    # Odoo team_count (crm_stage.py:34, compute='_compute_team_count').
+    # Campo de
     # interfaz: no se persiste, por eso es una property y no una columna.
     @property
     def team_count(self):
@@ -108,9 +123,10 @@ class CrmStage(TimeStampedModel):
             'warning': {
                 'title': _("¿Realmente quieres actualizar esta etapa?"),
                 'message': _(
-                    "Cambiar el valor de «Etapa ganada» puede inducir un número "
-                    "grande de operaciones: las probabilidades de las "
-                    "oportunidades de esta etapa se recalculan al guardar."),
+                    "Cambiar el valor de «Etapa ganada» puede inducir un"
+                    " número grande de operaciones: las probabilidades de las"
+                    " oportunidades de esta etapa se recalculan al guardar."
+                ),
             }
         }
 
@@ -127,8 +143,12 @@ class CrmStage(TimeStampedModel):
         """
         previous = None
         if self.pk:
-            previous = (type(self).objects.filter(pk=self.pk)
-                      .values_list('is_won', flat=True).first())
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list('is_won', flat=True)
+                .first()
+            )
         res = super().save(*args, **kwargs)
         if previous is not None and previous != self.is_won:
             # La fuente resuelve por nombre (``self.env['crm.lead']``,

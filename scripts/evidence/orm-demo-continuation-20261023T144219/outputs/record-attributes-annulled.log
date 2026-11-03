@@ -1,0 +1,31 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+x....................................................................... [ 77%]
+..........FF.........                                                    [100%]
+=================================== FAILURES ===================================
+_ TestARecordRejectsUndeclaredAttributes.test_a_recordset_rejects_an_unknown_public_name _
+tests/unit/orm/test_base_model_recordset.py:528: in test_a_recordset_rejects_an_unknown_public_name
+    with pytest.raises(AttributeError):
+E   Failed: DID NOT RAISE <class 'AttributeError'>
+_ TestARecordRejectsUndeclaredAttributes.test_a_django_row_rejects_an_unknown_public_name _
+tests/unit/orm/test_base_model_recordset.py:533: in test_a_django_row_rejects_an_unknown_public_name
+    with pytest.raises(AttributeError):
+E   Failed: DID NOT RAISE <class 'AttributeError'>
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:133
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_a_recordset_rejects_an_unknown_public_name
+FAILED tests/unit/orm/test_base_model_recordset.py::TestARecordRejectsUndeclaredAttributes::test_a_django_row_rejects_an_unknown_public_name
+2 failed, 90 passed, 1 xfailed, 3 warnings in 6.86s

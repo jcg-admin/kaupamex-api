@@ -73,6 +73,7 @@ decoradores de caché sobre ``_pls_get_safe_fields``.
 *Ciega a:* que un consumidor futuro memorice la lista de campos por su cuenta.
 Si aparece, su invalidador se cuelga de este mismo receptor.
 """
+
 from django.db import models as dj_models
 
 from orm import registry
@@ -113,10 +114,12 @@ def rebuild_lead_on_pls_unlink(sender, instance, **kwargs):
 def apply_crm_extensions():
     """Conecta los dos receptores. La llama ``CrmConfig.ready()``."""
     dj_models.signals.post_save.connect(
-        rebuild_lead_on_pls_change, sender=SystemParameter,
+        rebuild_lead_on_pls_change,
+        sender=SystemParameter,
         dispatch_uid='crm.rebuild_lead_on_pls_change',
     )
     dj_models.signals.post_delete.connect(
-        rebuild_lead_on_pls_unlink, sender=SystemParameter,
+        rebuild_lead_on_pls_unlink,
+        sender=SystemParameter,
         dispatch_uid='crm.rebuild_lead_on_pls_unlink',
     )

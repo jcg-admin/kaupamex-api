@@ -5,6 +5,19 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def _calendar_field(default):
+    return models.ForeignKey(
+        blank=True,
+        default=default,
+        help_text="Horario por defecto del tipo de estructura salarial (Odoo default_resource_calendar_id).",
+        null=True,
+        on_delete=django.db.models.deletion.SET_NULL,
+        related_name="hr_payroll_structure_types",
+        to="resource.resourcecalendar",
+        verbose_name="Horario de trabajo",
+    )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,19 +25,21 @@ class Migration(migrations.Migration):
         ("resource", "0001_initial"),
     ]
 
+    # Existing rows have no historical company/calendar provenance. Do not
+    # query current runtime models while their schema is still migrating.
+    # Keep the runtime default in state for subsequent application creates.
     operations = [
-        migrations.AddField(
-            model_name="hrpayrollstructuretype",
-            name="default_resource_calendar",
-            field=models.ForeignKey(
-                blank=True,
-                default=addons.hr.models.hr_payroll_structure_type._default_resource_calendar,
-                help_text="Horario por defecto del tipo de estructura salarial (Odoo default_resource_calendar_id).",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="hr_payroll_structure_types",
-                to="resource.resourcecalendar",
-                verbose_name="Horario de trabajo",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[migrations.AddField(
+                model_name="hrpayrollstructuretype",
+                name="default_resource_calendar",
+                field=_calendar_field(None),
+            )],
+            state_operations=[migrations.AddField(
+                model_name="hrpayrollstructuretype",
+                name="default_resource_calendar",
+                field=_calendar_field(
+                    addons.hr.models.hr_payroll_structure_type._default_resource_calendar),
+            )],
         ),
     ]

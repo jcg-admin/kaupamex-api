@@ -1,0 +1,72 @@
+[
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "10",
+    "subject": "Cablear la cadena de premisas a un disparador periódico",
+    "status": "completed",
+    "owner": null,
+    "description": "La cadena detector→emisor→evaluador funciona pero nadie la corre: su único valor es la re-medición en el tiempo (el acuerdo del mismo día es estructural, por inclusión de instrumentos), y sin un disparador ese valor no se realiza. Condición de cierre: la cadena corre sin que nadie la recuerde —gate de sesión, pre-push, o lo que el ejecutor decida— y un cambio de veredicto entre dos ejecuciones queda registrado. Ver la sección «La cadena, construida» de analisis-dos-verificadores-de-premisa.rst.",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0006"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "157",
+    "subject": "Reconciliar la migración pendiente de product (drift preexistente)",
+    "status": "pending",
+    "owner": null,
+    "description": "`makemigrations --check --dry-run` marca una migración no escrita para `product`:\n\n```\nMigrations for 'product':\n  addons/product/migrations/0004_alter_producttemplate_supplier_taxes_and_more.py\n    ~ Alter field supplier_taxes on producttemplate\n    ~ Alter field taxes on producttemplate\n```\n\n**Medido como preexistente**, no introducido por el porte de chart.template: sale idéntico con el árbol limpio (`git stash -u` → mismo resultado → `git stash pop`), 2026-08-06.\n\nSon los dos M2M cuyo `default` lee `ResCompany.account_sale_tax` / `account_purchase_tax` (ver `account/models/product.py:220`). El estado del modelo en memoria —que `apply_account_extensions()` compone en `ready()`— no coincide con el que las migraciones tienen registrado.\n\nQué decidir: si la migración se escribe (y entonces el estado inyectado en `ready()` queda materializado) o si el drift es inherente a inyectar campos fuera de una migración y hay que declararlo. Lo segundo tendría consecuencia: `--check` nunca daría limpio, así que no serviría como gate de CI.",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0093"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "247",
+    "subject": "CI de api: arreglar el build de libharu y destapar el fallo de tests (H-API-397)",
+    "status": "completed",
+    "owner": null,
+    "description": "develop de kaupamex-api lleva 16 corridas rojas seguidas (último verde 5ccc6dc, 2026-07-12). Son DOS fallos distintos, no uno:\n\n1. Desde 2026-08-04 (commit 0ec9d8f, vendorización de libharu 2.4.6): falla el paso 7 \"Build PDF helper (ADR-017)\" y el paso 8 \"Run tests\" sale skipped. Causa: el workflow instala libhpdf-dev (.github/workflows/*.yml:109) pero el Makefile:139-140 declara que la copia vendorizada necesita las cabeceras de zlib/libpng, NO libhpdf-dev. Hits de libpng en .github/: 0.\n\n2. ANTES del 2026-08-04: el build pasaba y fallaban los TESTS. Medido en 443018d (2026-07-29): paso 7 success, paso 8 failure. Ese fallo lleva un mes sin diagnosticar y hoy está enmascarado.\n\nOrden obligatorio:\n- Añadir libpng-dev y zlib1g-dev al workflow (o retirar libhpdf-dev, que ya no sirve desde la vendorización).\n- SÓLO entonces leer el log del fallo de tests que reaparecerá, y tratarlo como problema separado.\n\nNo asumir que arreglar el apt-get deja el CI verde: destapará el segundo fallo.",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0136"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "321",
+    "subject": "Cablear el barrido de destinos muertos en depends como gate",
+    "status": "pending",
+    "owner": null,
+    "description": "`scripts/derivar_depends.py --auditar` detecta un `depends` que apunta a un addon inexistente y sale 1, pero no está cableado a `thyrox-audit.sh` ni al pre-push.\n\nPor qué importa: es la TERCERA ocurrencia del mismo defecto en el mismo manifiesto — `sale` declaró `catalogue` e `inventory` (H-API-229) y luego `company` (:ref:`h-api-561`). Los tres eran correctos al escribirse y sobrevivieron a la disolución de su destino. Nada en el flujo relaciona \"disolver un addon\" con \"barrer quién lo declaraba\", así que el defecto se repone solo cada vez que se disuelve uno.\n\nEstado hoy: 0 destinos muertos (`--auditar` exit 0), así que el gate arrancaría en verde — no hay deuda heredada que lo haga bloquear el día 1, que es la condición que DEC-AM-01 exigió para graduar el suyo.\n\nCondición de cierre: `--auditar` corriendo como gate de `thyrox-audit.sh`, con su denominador publicado (alcance medido: N de M addons).\n\nAbre :ref:`h-api-561`.",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0172"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "324",
+    "subject": "Barrer los consumidores de chain_method contra su depends (H-API-564 abre)",
+    "status": "completed",
+    "owner": null,
+    "description": "CERRADA 2026-08-14 en api@f269217 y docs@44e95b91. Hallazgo: H-API-573.\n\nBarrido: 57 llamadas a chain_method en 8 addons. 0 incumplidores hoy — el\ncaso concreto de H-API-564 ya estaba arreglado; lo que faltaba era el gate.\n\nGate: `api: scripts/check_chain_method_depends.py`, cableado como #11 del\npre-commit + `make check-chain-depends[-ci]`. Tres formas de dueño derivables\ndel AST: quien declara la clase, quien declara el método en su cuerpo, y el\ninstalador del que otro instalador ya depende (el ancestro común — la forma que\nun grafo de imports NO puede derivar, y la que el episodio dejó fuera).\n\nDos correcciones de diseño del propio gate, medidas:\n\n1. La primera versión señaló 17 llamadas tratando a los PARES como dueños. La\n   referencia lo desmiente: odoo19c declara `emv: ['account']` y\n   `sepa: ['account','base_iban']` — ninguno al otro. Su mecanismo es\n   insensible al orden ahí (relevo por qr_method; acumulador reordenado por\n   secuencia). Exigirles orden era inventar una regla contra la referencia.\n2. El escáner tuvo que resolver un nombre ligado por un `for`: account instala\n   sus once terminales así, y un escáner Constant-only no ve NINGUNO — ciego\n   justo al declarante del episodio.\n\nControl positivo NO fabricado: el depends histórico de emv (`['base']`,\nrecuperado de 921c497^) inyectado por `depends_of` sin tocar manifiestos.\n7 tests pasan; el histórico falla nombrando ('account_qr_code_emv','account').\n\nDe paso, dos cosas que el pase destapó y cerró:\n- 5 docstrings con escapes inválidos (`\\|`, `\\ `) — DeprecationWarning hoy,\n  SyntaxError futuro. Ninguno era regex; corregidos con prefijo r\"\"\". Medido\n  después: 0 restantes en las dos raíces.\n- `check_addon_root.py` (escrito al cerrar H-API-572) NUNCA se había cableado.\n  Ahora es el gate #10 + `make check-addon-root[-ci]`.\n\nAbierto y con dueño: #321 (destinos muertos en depends — gate hermano),\n#293 (si un combine= dejara de reordenar, el orden entre pares importaría).",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0175"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "326",
+    "subject": "Aviso de divergencia estructural entre ramas (H-API-572 abre)",
+    "status": "pending",
+    "owner": null,
+    "description": "El gate check_addon_root.py detecta el addon partido en el árbol de quien lo corre, pero NO avisa a la otra rama de que su base cambió de forma. Es la mitad de hccw:20-agent-teams.md §20.6 (_conflict_notice_delivered) que sigue sin equivalente: hoy la divergencia se descubre al mergear, no al producirse.\n\nEvaluar un aviso: un check en CI de develop que compare el reparto de raíces contra las ramas vivas, o una nota automática en el PR.\n\nCONDICIÓN DE CIERRE: que no introduzca un canal que nadie lea — es el modo de fallo que flow-selection-agile.md documenta para las capacidades sin consumidor. Si no se puede garantizar consumo, se declara DESCONOCIDO y se cierra la tarea con esa razón escrita.",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0177"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "433",
+    "subject": "RESUELTA — progreso escrito; el pre-push vuelve a pasar",
+    "status": "completed",
+    "owner": null,
+    "description": "corregir-drift-framework-agentico-api estaba en :estado: en-ejecucion sin progreso-*.rst y bloqueaba el pre-push de los cinco repos via check-artefactos-minimos.sh --strict (DEC-AM-01).\n\nEl arreglo correcto era escribir la bitacora, no corregir el estado: la regla distingue el hueco de estado (una iniciativa que se declara ejecutando sin estarlo) del hueco de contenido. Aqui el estado era fiel — cuatro de sus cinco hallazgos estan RESUELTOS en api@1e71fa3 y el quinto (H-API-625) esta DOCUMENTADO con su razon medida.\n\nEscrito en docs@48973fa5. Gate verificado: 0 incumplidoras / 106 activas auditadas / 264 totales.\n\nQueda anotado dentro del propio progreso que el sucesor de H-API-625 (los 8 scripts .thyrox-dependientes) esta declarado como sub-iniciativa SIN ID de tarea — el unico punto que le falta para cumplir hallazgo-abierto-genera-sucesor.md.",
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0260"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.fiscal_runtime_dependencies",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Resolve three independently discriminated fiscal consumer dependencies through existing cache key, country compute and DefaultGetMixin bootstrap",
+      "verify": "36PASS3FAIL declaration phase: same-primary active company cache collision, unassigned country groups, ResBank missing default_get; pinned bodies and existing sibling bootstrap compared; no schema or new model base",
+      "route": "local",
+      "owned": [
+        "src/orm/environments.py",
+        "src/addons/base/models/res_country.py",
+        "src/addons/base/models/res_bank.py",
+        "tests/unit/orm/test_environments_cache.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 462,
+  "selected": [
+    "TASK-GEN-0633.fiscal_runtime_dependencies"
+  ],
+  "scope": "Bounded existing fiscal verifier dependencies; no full Environment/Registry/default lifecycle acceptance"
+}

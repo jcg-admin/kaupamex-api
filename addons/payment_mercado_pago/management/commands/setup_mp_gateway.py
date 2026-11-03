@@ -20,9 +20,12 @@ Idempotente: si ya existe un gateway MERCADOPAGO activo, actualiza sus
 credenciales. Si no existe, lo crea.
 
 Uso:
-  DJANGO_SETTINGS_MODULE=config.settings.testing python manage.py setup_mp_gateway
-  DJANGO_SETTINGS_MODULE=config.settings.testing python manage.py setup_mp_gateway --dry-run
+  DJANGO_SETTINGS_MODULE=config.settings.testing python manage.py
+  setup_mp_gateway
+  DJANGO_SETTINGS_MODULE=config.settings.testing python manage.py
+  setup_mp_gateway --dry-run
 """
+
 import os
 
 import decouple
@@ -51,7 +54,10 @@ def _read_first(*names):
 
 
 class Command(BaseCommand):
-    help = 'Crea o actualiza el PaymentGateway de MercadoPago con credenciales de .env'
+    help = (
+        'Crea o actualiza el PaymentGateway de MercadoPago con credenciales de'
+        ' .env'
+    )
 
     # No correr los system checks: en producción (DEBUG=False) el check
     # payments.E001 falla cuando aún no existe el gateway — el estado
@@ -70,8 +76,10 @@ class Command(BaseCommand):
         dry_run = options['dry_run']
 
         access_token = _read_first('MP_ACCESS_TOKEN', 'MP_TEST_ACCESS_TOKEN')
-        public_key   = _read_first('MP_PUBLIC_KEY', 'MP_TEST_PUBLIC_KEY')
-        client_secret = _read_first('MP_CLIENT_SECRET', 'MP_TEST_CLIENT_SECRET')
+        public_key = _read_first('MP_PUBLIC_KEY', 'MP_TEST_PUBLIC_KEY')
+        client_secret = _read_first(
+            'MP_CLIENT_SECRET', 'MP_TEST_CLIENT_SECRET'
+        )
 
         if not access_token or not public_key:
             raise CommandError(
@@ -95,6 +103,7 @@ class Command(BaseCommand):
         # imprime aparte, así que el prefijo del token no aporta nada.
         def _mask(v):
             return ('****' + v[-4:]) if v and len(v) > 4 else '****'
+
         self.stdout.write(f'modo:          {modo}')
         self.stdout.write(f'access_token:  {_mask(access_token)}')
         self.stdout.write(f'public_key:    {_mask(public_key)}')
@@ -103,7 +112,9 @@ class Command(BaseCommand):
         )
 
         if dry_run:
-            self.stdout.write(self.style.WARNING('--dry-run: sin cambios en DB.'))
+            self.stdout.write(
+                self.style.WARNING('--dry-run: sin cambios en DB.')
+            )
             return
 
         gw, created = PaymentGateway.objects.get_or_create(
@@ -116,6 +127,8 @@ class Command(BaseCommand):
         gw.save()
 
         verb = 'Creado' if created else 'Actualizado'
-        self.stdout.write(self.style.SUCCESS(
-            f'{verb} PaymentGateway id={gw.pk} (MERCADOPAGO, {modo}).'
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'{verb} PaymentGateway id={gw.pk} (MERCADOPAGO, {modo}).'
+            )
+        )

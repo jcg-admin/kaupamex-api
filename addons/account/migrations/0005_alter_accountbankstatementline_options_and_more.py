@@ -7,7 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("account", "0004_accountpaymentmethod_accountpaymentmethodline_and_more"),
+        (
+            "account",
+            "0004_accountpaymentmethod_accountpaymentmethodline_and_more",
+        ),
         ("base", "0007_alter_iractionsreport_report_type"),
     ]
 
@@ -25,7 +28,12 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa — denormalizada de move.company (Odoo company_id, related=move_id.company_id, store=True). Se sincroniza en save(); no se edita directo, se cambia linea.move.company.",
+                help_text=(
+                    "Empresa — denormalizada de move.company (Odoo company_id,"
+                    " related=move_id.company_id, store=True). Se sincroniza"
+                    " en save(); no se edita directo, se cambia"
+                    " linea.move.company."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="bank_statement_lines",
@@ -38,7 +46,12 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Índice de orden: fecha + secuencia invertida + id, zero-padded (Odoo internal_index, compute=_compute_internal_index, store=True). Se recalcula en save() — ver docstring del módulo.",
+                help_text=(
+                    "Índice de orden: fecha + secuencia invertida + id,"
+                    " zero-padded (Odoo internal_index,"
+                    " compute=_compute_internal_index, store=True). Se"
+                    " recalcula en save() — ver docstring del módulo."
+                ),
                 max_length=32,
             ),
         ),
@@ -47,7 +60,12 @@ class Migration(migrations.Migration):
             name="journal",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Diario — denormalizado de move.journal (Odoo journal_id, related=move_id.journal_id, store=True, index=False # covered by _main_idx). Se sincroniza en save(); no se edita directo, se cambia linea.move.journal.",
+                help_text=(
+                    "Diario — denormalizado de move.journal (Odoo journal_id,"
+                    " related=move_id.journal_id, store=True, index=False #"
+                    " covered by _main_idx). Se sincroniza en save(); no se"
+                    " edita directo, se cambia linea.move.journal."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="bank_statement_lines",
@@ -60,7 +78,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="internal_index más chico entre las líneas del estado (Odoo first_line_index, computado — _compute_first_line_index, ver docstring del módulo).",
+                help_text=(
+                    "internal_index más chico entre las líneas del estado"
+                    " (Odoo first_line_index, computado —"
+                    " _compute_first_line_index, ver docstring del módulo)."
+                ),
                 max_length=64,
             ),
         ),
@@ -68,7 +90,12 @@ class Migration(migrations.Migration):
             model_name="accountbankstatementline",
             name="move",
             field=models.ForeignKey(
-                help_text="Asiento contable del que esta línea es la extensión bancaria (Odoo move_id, _inherits). currency/date/state se delegan a él; journal/company se sincronizan en save() (ver docstring del módulo).",
+                help_text=(
+                    "Asiento contable del que esta línea es la extensión"
+                    " bancaria (Odoo move_id, _inherits). currency/date/state"
+                    " se delegan a él; journal/company se sincronizan en"
+                    " save() (ver docstring del módulo)."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="bank_statement_line",
                 to="account.accountmove",
@@ -79,7 +106,11 @@ class Migration(migrations.Migration):
             name="sequence",
             field=models.IntegerField(
                 default=1,
-                help_text="Orden dentro del estado de cuenta (Odoo sequence; invertido dentro de internal_index, ver docstring del módulo).",
+                help_text=(
+                    "Orden dentro del estado de cuenta (Odoo sequence;"
+                    " invertido dentro de internal_index, ver docstring del"
+                    " módulo)."
+                ),
             ),
         ),
         migrations.AddIndex(

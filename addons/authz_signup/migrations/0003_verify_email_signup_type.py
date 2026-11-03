@@ -11,6 +11,7 @@ no-destructivo y ninguna fila existente queda inválida.
 Idempotente y ``noupdate`` como el XML de la referencia: nunca pisa un valor
 que ya exista. Escribe sobre el modelo **histórico** vía ``apps.get_model``.
 """
+
 from django.db import migrations
 
 import fields
@@ -33,11 +34,15 @@ def sembrar(apps, schema_editor):
     for key in _NUEVOS_PARAMETROS:
         if not SystemParameter.objects.using(alias).filter(key=key).exists():
             SystemParameter.objects.using(alias).create(
-                key=key, value=SIGNUP_PARAMETERS[key])
+                key=key, value=SIGNUP_PARAMETERS[key]
+            )
 
     spec = next(s for s in SIGNUP_TEMPLATES if s['name'] == _NUEVA_PLANTILLA)
-    if not MailTemplate.objects.using(alias).filter(
-            name=spec['name']).exists():
+    if (
+        not MailTemplate.objects.using(alias)
+        .filter(name=spec['name'])
+        .exists()
+    ):
         MailTemplate.objects.using(alias).create(**spec)
 
 
@@ -58,10 +63,12 @@ class Migration(migrations.Migration):
                     ("reset", "Restablecer contraseña"),
                     ("verify", "Verificación de correo"),
                 ],
-                help_text='Odoo signup_type: "signup" (alta invitada) o '
-                          '"reset" (restablecer contraseña). "verify" '
-                          '(verificación de correo) es forma propia: no '
-                          'existe en la referencia.',
+                help_text=(
+                    'Odoo signup_type: "signup" (alta invitada) o '
+                    '"reset" (restablecer contraseña). "verify" '
+                    '(verificación de correo) es forma propia: no '
+                    'existe en la referencia.'
+                ),
                 max_length=16,
                 verbose_name="Tipo de signup",
             ),

@@ -11,6 +11,7 @@ Estos casos fijan los dos emisores que los tres sondeos de la UI necesitan:
 - un ``Payment`` que alcanza estado terminal deja el evento en el canal del
   comprador de la orden.
 """
+
 import pytest
 from addons.bus.models import BusMessage
 from addons.bus.services import user_channel
@@ -26,10 +27,13 @@ User = get_user_model()
 
 @pytest.fixture
 def comprador(db):
-    return User.objects.create_user(login='emisor@e.com', password='BusPass123!')
+    return User.objects.create_user(
+        login='emisor@e.com', password='BusPass123!'
+    )
 
 
 # --- Notificación ----------------------------------------------------------
+
 
 def test_crear_notificacion_emite_al_canal_del_destinatario(comprador):
     Notification.objects.create(
@@ -48,8 +52,10 @@ def test_crear_notificacion_emite_al_canal_del_destinatario(comprador):
 def test_marcar_leida_no_vuelve_a_emitir(comprador):
     """Sólo la creación es un evento; actualizar la fila no lo es."""
     n = Notification.objects.create(
-        user=comprador, type=NotificationType.SYSTEM,
-        subject='Hola', body='Cuerpo',
+        user=comprador,
+        type=NotificationType.SYSTEM,
+        subject='Hola',
+        body='Cuerpo',
     )
     n.read = True
     n.save()
@@ -59,12 +65,15 @@ def test_marcar_leida_no_vuelve_a_emitir(comprador):
 
 # --- Pago ------------------------------------------------------------------
 
+
 @pytest.fixture
 def pago_pendiente(comprador):
     orden = SaleOrder.objects.create(partner=comprador)
     return Payment.objects.create(
-        sale_order=orden, gateway=Payment.GATEWAYS[0][0],
-        amount='100.00', status=Payment.STATUS_PENDING,
+        sale_order=orden,
+        gateway=Payment.GATEWAYS[0][0],
+        amount='100.00',
+        status=Payment.STATUS_PENDING,
     )
 
 
@@ -84,12 +93,16 @@ def test_pago_aprobado_emite_al_canal_del_comprador(pago_pendiente, comprador):
 
 
 def test_pago_fallido_tambien_emite(pago_pendiente):
-    """El comprador necesita enterarse del rechazo tanto como de la aprobación."""
+    """
+    El comprador necesita enterarse del rechazo tanto como de la aprobación.
+    """
     pago_pendiente.status = Payment.STATUS_FAILED
     pago_pendiente.save()
 
-    assert BusMessage.objects.get().payload()['payload']['status'] == \
-        Payment.STATUS_FAILED
+    assert (
+        BusMessage.objects.get().payload()['payload']['status']
+        == Payment.STATUS_FAILED
+    )
 
 
 def test_guardar_sin_cambiar_estado_no_reemite(pago_pendiente):
@@ -105,8 +118,10 @@ def test_orden_sin_comprador_no_rompe_el_guardado(comprador):
     """Carrito anónimo: sin destinatario no hay canal, y guardar no falla."""
     orden = SaleOrder.objects.create(partner=None)
     pago = Payment.objects.create(
-        sale_order=orden, gateway=Payment.GATEWAYS[0][0],
-        amount='50.00', status=Payment.STATUS_PENDING,
+        sale_order=orden,
+        gateway=Payment.GATEWAYS[0][0],
+        amount='50.00',
+        status=Payment.STATUS_PENDING,
     )
     pago.status = Payment.STATUS_APPROVED
     pago.save()

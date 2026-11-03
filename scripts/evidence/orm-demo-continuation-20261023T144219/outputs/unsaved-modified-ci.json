@@ -1,0 +1,17 @@
+{
+  "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+  "make_exit": 2,
+  "execution_status": "COMPLETED_FAILURE",
+  "command": "make ci-verify",
+  "pytest_exit": 1,
+  "passed": 838,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 607.55,
+  "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+  "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+  "new_related_inverse_cases_in_full_ci": 12,
+  "later_tests": "NOT_EVALUATED",
+  "whole_head_acceptance": false,
+  "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+}

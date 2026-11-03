@@ -16,60 +16,26 @@ Cobertura del porte -- 1 de 1 simbolo publico
    * - ``dict_to_xml``
      - portado verbatim (misma firma, mismo contrato)
 
-**Divergencia declarada -- ``remove_control_characters``.** La fuente la
-importa de ``odoo.tools.xml_utils`` (``odoo19c: odoo/tools/xml_utils.py:24``).
-Ese modulo no existe en el espejo ``src/tools/`` de este arbol y crearlo esta
-fuera de mi alcance de escritura en este pase (no esta en la lista de
-archivos escribibles de la tarea #398). Es una funcion pura de ~10 lineas sin
-ningun otro consumidor medido en el arbol
-(``grep -rn "remove_control_characters" src/ addons/`` -> 0 hits antes de
-este archivo), asi que se vendoriza aqui como
-``_remove_control_characters``, equivalente a la fuente (mismo rango de
-caracteres validos segun la especificacion XML 1.0 citada en su docstring,
-construido con ``chr(codepoint)`` en vez de escapes de barra para no
-depender de como el editor normalice backslashes). Si en el futuro un
-segundo consumidor la necesita, el sitio correcto es
-``src/tools/xml_utils.py`` (tarea **#401**, DESCONOCIDA hasta que aparezca
-ese segundo consumidor).
+``remove_control_characters`` se importa de ``tools.xml_utils``, como la
+fuente la importa de ``odoo.tools.xml_utils``
+(``odoo19c: odoo/tools/xml_utils.py:24``). Hasta que ese módulo existió se
+vendorizaba aquí; su segundo consumidor (``account_edi_ubl_cii``) era la
+condición que la nota anterior fijaba para crearlo.
 """
-import re
 
 from lxml import etree
 
-#: Puntos de codigo validos segun XML 1.0 (``odoo19c:
-#: odoo/tools/xml_utils.py:31-39``), armados con ``chr(N)`` sobre el entero
-#: exacto -- evita que un escape de barra invertida (``\t``, ``퟿``...)
-#: se corrompa al pasar por una herramienta que normalice el texto del
-#: archivo.
-_TAB = chr(9)
-_LINE_FEED = chr(10)
-_CARRIAGE_RETURN = chr(13)
-_XML_VALID_CHAR_RANGES = (
-    _TAB
-    + _LINE_FEED
-    + _CARRIAGE_RETURN
-    + chr(0x20) + '-' + chr(0xD7FF)
-    + chr(0xE000) + '-' + chr(0xFFFD)
-    + chr(0x10000) + '-' + chr(0x10FFFF)
-)
-_CONTROL_CHARACTERS_RE = re.compile(('[^' + _XML_VALID_CHAR_RANGES + ']').encode())
+from tools.xml_utils import remove_control_characters
 
-
-def _remove_control_characters(byte_node):
-    """Quita los caracteres de control no permitidos por XML 1.0.
-
-    Vendorizado de ``odoo19c: odoo/tools/xml_utils.py:24-42`` -- ver la nota
-    de procedencia en el docstring del modulo. Los caracteres a escapar son
-    los de control ``#x0`` a ``#x1F`` y ``#x7F`` (la mayoria no puede
-    aparecer en XML); el estandar acepta un ``Char`` de tab, salto de linea,
-    retorno de carro, o uno de los tres rangos altos declarados arriba.
-
-    Fuente: https://www.w3.org/TR/xml/
-    """
-    return _CONTROL_CHARACTERS_RE.sub(b'', byte_node)
-
-
-def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=None, path=None):
+def dict_to_xml(
+    node,
+    *,
+    nsmap={},
+    template=None,
+    render_empty_nodes=False,
+    tag=None,
+    path=None,
+):
     """Ayudante para renderizar un ``dict`` Python como nodo XML.
 
     Se espera que el ``dict`` tenga esta forma::
@@ -111,6 +77,7 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
     :return: el nodo XML renderizado, como ``lxml.Element``, o ``None`` si
         quedo vacio y ``render_empty_nodes`` es ``False``.
     """
+
     def convert_tag_to_lxml_convention(tag):
         if ':' in tag:
             namespace, local_name = tag.split(':')
@@ -125,7 +92,9 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
     tag = node.get('_tag') or (template or {}).get('_tag', tag)
 
     if tag is None:
-        raise ValueError(f"No se especifico tag para el nodo: {str(node)[:20]}")
+        raise ValueError(
+            f"No se especifico tag para el nodo: {str(node)[:20]}"
+        )
 
     if path is None:
         path = tag
@@ -134,13 +103,20 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
 
     # Anade atributos
     for attr_name, attr_value in node.items():
-        if not attr_name.startswith('_') and not isinstance(attr_value, (dict, list)) and attr_value is not None and attr_value is not False:
-            element.set(convert_tag_to_lxml_convention(attr_name), str(attr_value))
+        if (
+            not attr_name.startswith('_')
+            and not isinstance(attr_value, (dict, list))
+            and attr_value is not None
+            and attr_value is not False
+        ):
+            element.set(
+                convert_tag_to_lxml_convention(attr_name), str(attr_value)
+            )
 
     # Anade el texto, si lo hay
     text = node.get('_text')
     if text is not None and text is not False:
-        element.text = _remove_control_characters(str(text).encode()).decode()
+        element.text = remove_control_characters(str(text).encode()).decode()
 
     # Anade nodos hijos
     for child_tag, child in node.items():
@@ -166,10 +142,22 @@ def dict_to_xml(node, *, nsmap={}, template=None, render_empty_nodes=False, tag=
                         child_is_empty = False
 
             # Verifica que todo nodo hijo no vacio este definido en el template
-            if template is not None and child_tag not in template and not child_is_empty:
-                raise ValueError(f"El siguiente nodo hijo no esta definido en el template: {path}/{child_tag}")
+            if (
+                template is not None
+                and child_tag not in template
+                and not child_is_empty
+            ):
+                raise ValueError(
+                    "El siguiente nodo hijo no esta definido en el template:"
+                    f" {path}/{child_tag}"
+                )
 
-    if not render_empty_nodes and not element.attrib and not element.text and len(element) == 0:
+    if (
+        not render_empty_nodes
+        and not element.attrib
+        and not element.text
+        and len(element) == 0
+    ):
         return None
 
     return element

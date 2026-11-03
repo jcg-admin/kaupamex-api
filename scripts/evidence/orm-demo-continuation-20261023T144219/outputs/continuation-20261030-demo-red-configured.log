@@ -1,0 +1,241 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF.F                                                                     [100%]
+=================================== FAILURES ===================================
+__________________ test_demo_logs_start_before_loading[False] __________________
+
+args = ({}, 'init', 'demo', namespace(name='demo_contract', id=17, manifest={'demo': ['demo.sql']}))
+kwargs = {'using': 'default'}
+@py_assert0 = 'Module demo_contract: loading demo', @py_assert4 = []
+@py_assert2 = False
+@py_format6 = "'Module demo_contract: loading demo' in []\n{[] = <_pytest.logging.LogCaptureFixture object at 0x7fc7453dd8e0>.messages\n}"
+@py_format8 = "assert 'Module demo_contract: loading demo' in []\n{[] = <_pytest.logging.LogCaptureFixture object at 0x7fc7453dd8e0>.messages\n}"
+
+    def load(*args, **kwargs):
+>       assert 'Module demo_contract: loading demo' in caplog.messages
+E       AssertionError: assert 'Module demo_contract: loading demo' in []
+E        +  where [] = <_pytest.logging.LogCaptureFixture object at 0x7fc7453dd8e0>.messages
+
+tests/unit/modules/test_loading_demo.py:47: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fc7453dd8e0>
+legacy_only = False
+
+    @pytest.mark.parametrize('legacy_only', [False, True])
+    def test_demo_logs_start_before_loading(caplog, legacy_only):
+        caplog.set_level('INFO', logger='modules.loading')
+    
+        def load(*args, **kwargs):
+            assert 'Module demo_contract: loading demo' in caplog.messages
+    
+        selected = (
+            package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+        )
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=load),
+        ):
+>           assert loading.load_demo(environment(), selected, {}, 'init') is True
+
+tests/unit/modules/test_loading_demo.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/modules/loading.py:155: in load_demo
+    configuration_step = env.ref(
+src/orm/environments.py:1567: in ref
+    return model.ref(
+src/addons/base/models/ir_model.py:3584: in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3551: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3536: in _xmlid_lookup
+    row = cls.objects.using(using).filter(module=module, name=name).first()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.12/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1622: in execute_sql
+    cursor = self.connection.cursor()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <DatabaseWrapper vendor='postgresql' alias='default'>, name = None
+
+    def _cursor(self, name=None):
+        self.close_if_health_check_failed()
+>       self.ensure_connection()
+E       RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:150 Module demo_contract demo data failed to install
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/modules/loading.py", line 144, in load_demo
+    load_data(idref, mode, 'demo', package, using=using)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/modules/test_loading_demo.py", line 47, in load
+    assert 'Module demo_contract: loading demo' in caplog.messages
+AssertionError: assert 'Module demo_contract: loading demo' in []
+ +  where [] = <_pytest.logging.LogCaptureFixture object at 0x7fc7453dd8e0>.messages
+__________________ test_demo_logs_start_before_loading[True] ___________________
+
+args = ({}, 'init', 'demo', namespace(name='demo_contract', id=17, manifest={'demo': [], 'demo_xml': ['legacy.xml']}))
+kwargs = {'using': 'default'}
+@py_assert0 = 'Module demo_contract: loading demo', @py_assert4 = []
+@py_assert2 = False
+@py_format6 = "'Module demo_contract: loading demo' in []\n{[] = <_pytest.logging.LogCaptureFixture object at 0x7fc7452c66f0>.messages\n}"
+@py_format8 = "assert 'Module demo_contract: loading demo' in []\n{[] = <_pytest.logging.LogCaptureFixture object at 0x7fc7452c66f0>.messages\n}"
+
+    def load(*args, **kwargs):
+>       assert 'Module demo_contract: loading demo' in caplog.messages
+E       AssertionError: assert 'Module demo_contract: loading demo' in []
+E        +  where [] = <_pytest.logging.LogCaptureFixture object at 0x7fc7452c66f0>.messages
+
+tests/unit/modules/test_loading_demo.py:47: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fc7452c66f0>
+legacy_only = True
+
+    @pytest.mark.parametrize('legacy_only', [False, True])
+    def test_demo_logs_start_before_loading(caplog, legacy_only):
+        caplog.set_level('INFO', logger='modules.loading')
+    
+        def load(*args, **kwargs):
+            assert 'Module demo_contract: loading demo' in caplog.messages
+    
+        selected = (
+            package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+        )
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=load),
+        ):
+>           assert loading.load_demo(environment(), selected, {}, 'init') is True
+
+tests/unit/modules/test_loading_demo.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/modules/loading.py:155: in load_demo
+    configuration_step = env.ref(
+src/orm/environments.py:1567: in ref
+    return model.ref(
+src/addons/base/models/ir_model.py:3584: in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3551: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3536: in _xmlid_lookup
+    row = cls.objects.using(using).filter(module=module, name=name).first()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.12/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1622: in execute_sql
+    cursor = self.connection.cursor()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <DatabaseWrapper vendor='postgresql' alias='default'>, name = None
+
+    def _cursor(self, name=None):
+        self.close_if_health_check_failed()
+>       self.ensure_connection()
+E       RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:150 Module demo_contract demo data failed to install
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/modules/loading.py", line 144, in load_demo
+    load_data(idref, mode, 'demo', package, using=using)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/modules/test_loading_demo.py", line 47, in load
+    assert 'Module demo_contract: loading demo' in caplog.messages
+AssertionError: assert 'Module demo_contract: loading demo' in []
+ +  where [] = <_pytest.logging.LogCaptureFixture object at 0x7fc7452c66f0>.messages
+___________ test_demo_failure_log_preserves_optional_failure_meaning ___________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fc7454797f0>
+
+    def test_demo_failure_log_preserves_optional_failure_meaning(caplog):
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=ValueError('bad')),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+            assert loading.load_demo(
+                environment(), package(), {}, 'init'
+            ) is False
+        failures = [
+            record for record in caplog.records
+            if record.name == 'modules.loading' and record.levelname == 'WARNING'
+        ]
+        assert len(failures) == 1
+>       assert failures[0].getMessage() == (
+            'Module demo_contract demo data failed to install, '
+            'installed without demo data'
+        )
+E       AssertionError: assert 'Module demo_...ed to install' == 'Module demo_...out demo data'
+E         Skipping 37 identical leading characters in diff, use -v to show
+E         -  to install, installed without demo data
+E         +  to install
+
+tests/unit/modules/test_loading_demo.py:84: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:150 Module demo_contract demo data failed to install
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/modules/loading.py", line 144, in load_demo
+    load_data(idref, mode, 'demo', package, using=using)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ValueError: bad
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red.junit.xml -
+=========================== short test summary info ============================
+FAILED ../../dev/::test_demo_logs_start_before_loading[False] - RuntimeError:...
+FAILED ../../dev/::test_demo_logs_start_before_loading[True] - RuntimeError: ...
+FAILED ../../dev/::test_demo_failure_log_preserves_optional_failure_meaning
+3 failed, 1 passed, 10 deselected in 0.44s

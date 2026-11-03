@@ -1,4 +1,5 @@
 """AppConfig — ``addons.html_editor`` (familia ``web`` de la referencia)."""
+
 import importlib
 
 from django.apps import AppConfig

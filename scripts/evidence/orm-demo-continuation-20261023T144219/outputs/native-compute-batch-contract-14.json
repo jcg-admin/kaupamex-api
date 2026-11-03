@@ -1,0 +1,27 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/models.py BaseModel._compute_field_value: determine(field.compute,self)",
+  "behavior": "Direct native compute callback receives the whole recordset; legacy Django rows retain per-row adaptation",
+  "execution_flow": "Field.compute_value -> _invoke_compute_method -> as_record_list: native BaseModel is models.Model -> original recordset preserved -> determine",
+  "inputs_outputs": "Native two IDs/singleton/empty preserve original object and prefetch; named/callable callbacks; same exception propagates; two legacy rows yield two callbacks",
+  "side_effects": "In-memory environment protection only; SQL prohibited; no production change",
+  "dependencies": [
+    "TASK-GEN-0558/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/task306/pending/ownerVM-b501",
+    "Existing BaseModel inheritance, determine and as_record_list",
+    "Queued recompute selection/retries and actual DB prefetch remain separate"
+  ],
+  "consumers": "Native recordset compute_value and Django row compute callers",
+  "installed_mechanism": "Existing native TaskGet, plan_items_from_rows/claims_ledger_rows/node_frontier and claims; existing Consumer verifier extended by bounded flags",
+  "existing_adaptation": "as_record_list returns [records] for models.Model, including native BaseModel. Initial dispatch-fragmentation hypothesis refuted; docstring alone was misleading",
+  "verification": {
+    "positive": "6PASS native-compute-batch-current.json/.junit.xml",
+    "negative": "4expectedFAIL/2PASS native-compute-batch-annulled.json/.junit.xml; only temporary _invoke_compute_method native iteration changed",
+    "command_positive": "uv run --offline --frozen python scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_record_environment_candidate.py --batch-only --result scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-compute-batch-current.json",
+    "command_negative": "same verifier with --batch-only --annul-native-batch and native-compute-batch-annulled.json",
+    "source_hashes": "Exact candidate and modified snapshot source hashes preserved in receipts",
+    "status": "PASS bounded characterization; no production fix required"
+  },
+  "equivalence": "Direct dispatch only; not full Odoo _compute_field_value, validation or queue equivalence",
+  "limitations": "recompute currently iterates pending rows. Native queue batching, recursion order, missing-row retry, stored cache readback, validators, persistence and actual prefetch IO not_verified. No task closure",
+  "integration": "Tests and evidence pending ordinary commit/publication; no merge or acceptance"
+}

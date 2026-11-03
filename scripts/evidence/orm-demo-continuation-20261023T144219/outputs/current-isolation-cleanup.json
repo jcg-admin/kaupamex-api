@@ -1,0 +1,20 @@
+{
+  "owner_role": "orm_bootstrap_06fb8623f987",
+  "databases": [
+    "company_238680943072498_db",
+    "company_238680943072499_db",
+    "orm_bootstrap_06fb8623f987"
+  ],
+  "source": "Existing read-only observer; exact names from running owned harness, no destructive cleanup added",
+  "observation": "outputs/current-isolation-schema-observations.jsonl",
+  "execution_session": 67825,
+  "status": "completed",
+  "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+  "probe_exit": 0,
+  "independent_cleanup": {
+    "roles": [],
+    "databases": []
+  },
+  "cleanup": "PASS",
+  "command": "docker exec -u postgres ... psql readonly exact known role/database names, not shared cleanup"
+}

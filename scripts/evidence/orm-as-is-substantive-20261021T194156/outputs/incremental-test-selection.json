@@ -1,0 +1,8 @@
+{
+  "files": [
+    "test_nonstored_compute_dispatch",
+    "test_many2one_ondelete",
+    "test_field_definition_collection"
+  ],
+  "reason": "Explicit contract-unit selection, no mark filtering or omitted failures; DB fixture suites are separate gaps, not counted as passed."
+}

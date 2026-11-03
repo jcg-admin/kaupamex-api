@@ -1,0 +1,1373 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo19c:addons/product/models/product_product.py:ProductProduct._compute_display_name",
+    "odoo19c:odoo/orm/fields.py:Field.__get__/compute_value",
+    "odoo19c:odoo/orm/models.py:BaseModel._compute_field_value"
+  ],
+  "behavior": "Existing Consumer compute assigns its display_name via the current descriptor; cached labels follow actual template/value/relationship inputs; string snapshots preserve existing application format",
+  "execution_flow": "Sale line snapshot -> str(ProductProduct) -> display_name descriptor -> current compute -> assignment -> existing field cache; dependency notification invalidates the label",
+  "inputs_outputs": "Actual variant/template, attribute values/name/price_extra, repeated label and current SKU __str__ format; exceptions and return-only diagnostics retained",
+  "side_effects": "Nonstored field/cache assignment; existing modified() called by Django m2m_changed for forward/reverse add/remove/set/clear. Clear saves owner IDs transiently on the instance before removal. No schema, persistence, coordinator or Provider changes.",
+  "dependencies": [
+    "TASK-GEN-0633 pending owner codex-module-lifecycle, native description reconciled with actual global failure",
+    "Historical universal TASK-GEN-0386 completed without description/owner retained as history, not resumed",
+    "Existing descriptor c2d0d10d verified on bounded cases; task/global acceptance not inferred",
+    "Real PostgreSQL relation-change controls verified for current Product normal-PK forward and reverse relations; other through/key/alias arrangements not qualified."
+  ],
+  "consumers": [
+    "addons.sale.services._line_snapshot_name",
+    "TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+    "ProductProduct.__str__ and existing product/stock integration tests"
+  ],
+  "installed_mechanism": "Current DRF-independent Django model, FieldDescriptor, api.depends and ORM modified/cache mechanisms; native PostgreSQL and pytest verifiers",
+  "existing_adaptation": "Current display_name omits SKU and __str__ adds it once; per-instance helper returns label for compatibility. Native seller/partner/company/context formatting and singleton exclusion differ or are not implemented. Current value class has no is_distinguishing member; existing getattr fallback is not native singleton equivalence. No whole product method/file acceptance claimed.",
+  "verification": {
+    "red": {
+      "pytest_exit": 1,
+      "pass": 2,
+      "fail": 6,
+      "evidence": "product-display-name-red.junit.xml"
+    },
+    "relations_red": {
+      "pytest_exit": 1,
+      "pass": 1,
+      "fail": 3,
+      "evidence": "product-display-name-relations-red.junit.xml"
+    },
+    "contract": {
+      "pytest_exit": 0,
+      "pass": 12,
+      "evidence": "product-display-name-green.junit.xml"
+    },
+    "consumers": {
+      "pytest_exit": 0,
+      "pass": 54,
+      "evidence": "product-display-name-consumers.junit.xml"
+    },
+    "regression": {
+      "pytest_exit": 0,
+      "pass": 106,
+      "evidence": "product-display-name-regression.junit.xml"
+    },
+    "failed_instrument": "consumers-initial lacked pg_isready PATH; retained actual exit1, not product failure",
+    "global_before": "c2d0d10d Make2,77PASS1SKIP1ERROR first missing ProductProduct assignment",
+    "global_current": {
+      "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+      "make_exit": 2,
+      "pytest_exit": 1,
+      "passed": 146,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 469.44,
+      "first_failure": "ResCompany.country_code KeyError in field_computed; TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+      "classification": "Distinct current failure under diagnosis: exact ae949aa8 targeted baseline fails with ResCountry.DoesNotExist, not this KeyError. Do not conflate error identities.",
+      "later_suite": "NOT_EVALUATED"
+    }
+  },
+  "equivalence": "Bounded assignment/invalidation Consumer contract verified with real PostgreSQL and negative controls. Whole ProductProduct business-format contract not_verified.",
+  "limitations": "No native Odoo runtime execution or accepted complete product.product; no arbitrary extension of historical64 denominator; remaining50 failures stay separate; no TASK states changed Symmetrical M2M, custom through target keys, cross-database identity/cache and complete native product formatting not_verified.",
+  "integration": "Source2b249be8 local; required CI Make2,146PASS1SKIP1FAIL. Current regression repair tracked in same owned TASK-GEN-0633. PR109 open; no acceptance or merge.",
+  "structural_context": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "reference_file": "addons/product/models/product_product.py",
+    "reference_sha256": "8c881754357e3a11a594b0d798a1bd9dd3e7b0321575a1624c743719ecd7fc69",
+    "existing_extractor": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/inventory_reference_orm.py:file_inventory",
+    "historical_lookup": "Narrow existing workbench/AS IS output search found current links but no earlier file record; not a claim of exhaustive historical absence",
+    "inventory": {
+      "name": "product_product.py",
+      "lines": 1197,
+      "classes": [
+        {
+          "name": "ProductProduct",
+          "lineno": 16,
+          "decorators": [],
+          "methods": [
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_can_image_variant_1024_be_zoomed",
+              "lineno": 128,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('image_variant_1920', 'image_variant_1024')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_set_template_field",
+              "lineno": 132,
+              "signature": {
+                "params": [
+                  "template_field",
+                  "variant_field"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_pricelist_rule_ids",
+              "lineno": 153,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('product_tmpl_id.pricelist_rule_ids')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_inverse_pricelist_rule_ids",
+              "lineno": 162,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_write_date",
+              "lineno": 175,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('product_tmpl_id.write_date')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_image_1920",
+              "lineno": 204,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_set_image_1920",
+              "lineno": 209,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_image_1024",
+              "lineno": 212,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_image_512",
+              "lineno": 217,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_image_256",
+              "lineno": 222,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_image_128",
+              "lineno": 227,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_can_image_1024_be_zoomed",
+              "lineno": 232,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_placeholder_filename",
+              "lineno": 237,
+              "signature": {
+                "params": [
+                  "field"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_product_placeholder_filename",
+              "lineno": 243,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_barcodes_by_company",
+              "lineno": 246,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_barcode_search_domain",
+              "lineno": 252,
+              "signature": {
+                "params": [
+                  "barcodes_within_company",
+                  "company_id"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_check_duplicated_product_barcodes",
+              "lineno": 258,
+              "signature": {
+                "params": [
+                  "barcodes_within_company",
+                  "company_id"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_check_duplicated_packaging_barcodes",
+              "lineno": 277,
+              "signature": {
+                "params": [
+                  "barcodes_within_company",
+                  "company_id"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_check_barcode_uniqueness",
+              "lineno": 283,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.constrains('barcode')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_check_company_id",
+              "lineno": 293,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.constrains('company_id')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_invoice_policy",
+              "lineno": 297,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_combination_indices",
+              "lineno": 301,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('product_template_attribute_value_ids')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_is_product_variant",
+              "lineno": 305,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_set_product_lst_price",
+              "lineno": 309,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.onchange('lst_price')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_product_price_extra",
+              "lineno": 319,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('product_template_attribute_value_ids.price_extra')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_product_lst_price",
+              "lineno": 325,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('list_price', 'price_extra')",
+                "api.depends_context('uom')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_product_code",
+              "lineno": 338,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends_context('partner_id')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_partner_ref",
+              "lineno": 354,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends_context('partner_id')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_product_document_count",
+              "lineno": 364,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_all_product_tag_ids",
+              "lineno": 372,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('product_tag_ids', 'additional_product_tag_ids')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_search_all_product_tag_ids",
+              "lineno": 378,
+              "signature": {
+                "params": [
+                  "operator",
+                  "operand"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_search_is_in_selected_section_of_order",
+              "lineno": 383,
+              "signature": {
+                "params": [
+                  "operator",
+                  "value"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_onchange_standard_price",
+              "lineno": 400,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.onchange('standard_price')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_onchange_default_code",
+              "lineno": 405,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.onchange('default_code')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_trigger_uom_warning",
+              "lineno": 419,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_onchange_uom_id",
+              "lineno": 423,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.onchange('uom_id')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_inverse_import_attribute_values",
+              "lineno": 437,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_import_attribute_values",
+              "lineno": 441,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('product_template_attribute_value_ids')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_load_records_write",
+              "lineno": 448,
+              "signature": {
+                "params": [
+                  "values"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_load_records_create",
+              "lineno": 473,
+              "signature": {
+                "params": [
+                  "data_list"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "load",
+              "lineno": 669,
+              "signature": {
+                "params": [
+                  "fields",
+                  "data"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "create",
+              "lineno": 677,
+              "signature": {
+                "params": [
+                  "vals_list"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model_create_multi"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "write",
+              "lineno": 683,
+              "signature": {
+                "params": [
+                  "vals"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "action_archive",
+              "lineno": 693,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "action_unarchive",
+              "lineno": 701,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "unlink",
+              "lineno": 709,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_filter_to_unlink",
+              "lineno": 744,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_unlink_or_archive",
+              "lineno": 747,
+              "signature": {
+                "params": [
+                  "check_access"
+                ],
+                "has_default": [
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "copy",
+              "lineno": 783,
+              "signature": {
+                "params": [
+                  "default"
+                ],
+                "has_default": [
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_search",
+              "lineno": 805,
+              "signature": {
+                "params": [
+                  "domain"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": "args",
+                "kwonly": [],
+                "kwarg": "kwargs"
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_compute_display_name",
+              "lineno": 813,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.depends('name', 'default_code', 'product_tmpl_id')",
+                "api.depends_context('display_default_code', 'seller_id', 'company_id', 'partner_id', 'formatted_display_name', 'lang')"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_search_display_name",
+              "lineno": 875,
+              "signature": {
+                "params": [
+                  "operator",
+                  "value"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "name_search",
+              "lineno": 932,
+              "signature": {
+                "params": [
+                  "name",
+                  "domain",
+                  "operator",
+                  "limit"
+                ],
+                "has_default": [
+                  true,
+                  true,
+                  true,
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "view_header_get",
+              "lineno": 975,
+              "signature": {
+                "params": [
+                  "view_id",
+                  "view_type"
+                ],
+                "has_default": [
+                  false,
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "action_open_label_layout",
+              "lineno": 986,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.readonly"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "open_product_template",
+              "lineno": 993,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "action_open_documents",
+              "lineno": 1005,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.readonly"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_prepare_sellers",
+              "lineno": 1016,
+              "signature": {
+                "params": [
+                  "params"
+                ],
+                "has_default": [
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_filtered_sellers",
+              "lineno": 1020,
+              "signature": {
+                "params": [
+                  "partner_id",
+                  "quantity",
+                  "date",
+                  "uom_id",
+                  "params"
+                ],
+                "has_default": [
+                  true,
+                  true,
+                  true,
+                  true,
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_select_seller",
+              "lineno": 1049,
+              "signature": {
+                "params": [
+                  "partner_id",
+                  "quantity",
+                  "date",
+                  "uom_id",
+                  "ordered_by",
+                  "params"
+                ],
+                "has_default": [
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_product_price_context",
+              "lineno": 1073,
+              "signature": {
+                "params": [
+                  "combination"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_no_variant_attributes_price_extra",
+              "lineno": 1084,
+              "signature": {
+                "params": [
+                  "combination"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_attributes_extra_price",
+              "lineno": 1096,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_price_compute",
+              "lineno": 1101,
+              "signature": {
+                "params": [
+                  "price_type",
+                  "uom",
+                  "currency",
+                  "company",
+                  "date"
+                ],
+                "has_default": [
+                  false,
+                  true,
+                  true,
+                  true,
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "get_empty_list_help",
+              "lineno": 1134,
+              "signature": {
+                "params": [
+                  "help_message"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": [
+                "api.model"
+              ]
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "get_product_multiline_description_sale",
+              "lineno": 1140,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_is_variant_possible",
+              "lineno": 1151,
+              "signature": {
+                "params": [
+                  "parent_combination"
+                ],
+                "has_default": [
+                  true
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "get_contextual_price",
+              "lineno": 1167,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_contextual_price",
+              "lineno": 1170,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_get_contextual_discount",
+              "lineno": 1175,
+              "signature": {
+                "params": [],
+                "has_default": [],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            },
+            {
+              "kind": "method",
+              "owner": "ProductProduct",
+              "name": "_update_uom",
+              "lineno": 1194,
+              "signature": {
+                "params": [
+                  "to_uom_id"
+                ],
+                "has_default": [
+                  false
+                ],
+                "vararg": null,
+                "kwonly": [],
+                "kwarg": null
+              },
+              "body": "substantive",
+              "decorators": []
+            }
+          ]
+        }
+      ],
+      "functions": [],
+      "raw": 72,
+      "unique": 72
+    },
+    "applicable_scope": "Only compute assignment/dependencies/invalidation obligation verified here; other declarations are structural context, not auto-generated defects/TASK or accepted contracts. Imports/fields/dynamic/inherited responsibilities require supplementary semantic analysis.",
+    "file_acceptance": "not_verified"
+  }
+}

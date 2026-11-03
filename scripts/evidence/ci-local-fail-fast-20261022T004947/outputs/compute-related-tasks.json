@@ -1,0 +1,152 @@
+[
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "222",
+    "subject": "Arreglar chain_method para descriptores (H-API-381)",
+    "description": "YA ESTABA HECHA — cerrada por medición, no por trabajo nuevo (Clausula 2: estado declarado divergente del real).\n\nEl commit api@ba9e2dc \"Chain classmethods correctly and port base_iban\" la cerró. Verificado en este pase:\n\n- src/orm/method_chain.py:41-63 documenta la tabla de descriptores; _previous_of() recorre __mro__ y devuelve (function, wrapper) SIN ligar, que es exactamente el arreglo que la tarea pedía. La cita de la tarea (:60-87) apunta hoy al arreglo, no al defecto.\n- tests/unit/orm/test_method_chain.py: 10 passed. Cubre los cinco casos de H-API-381 — test_classmethod_chain_does_not_leak_self, test_classmethod_stays_a_classmethod, test_classmethod_chain_of_three, test_classmethod_chain_is_idempotent, test_classmethod_combine — más los tres de staticmethod.\n- addons/base_iban/ existe con __manifest__.py, apps.py, migrations/ y models/res_partner_bank.py. Los dos símbolos que la tarea declaraba bloqueados (retrieve_acc_type, _get_supported_account_types) ya no lo están.\n\nSubset medido: tests/unit/orm/ + base_iban + account_qr_code_{sepa,emv} → 234 passed, 1 failed. El único fallo es test_no_addon_crosses_the_facade_boundary, pre-existente y ajeno (árbol limpio, git status vacío): 1 cruce sobre 1103 archivos, account/models/account_analytic_plan.py importa orm.fields_nonstored. Es el dominio de #361.\n\nLección: el desempate de la tubería #530 eligió bien (esta tarea bloqueaba a #287, in_progress), pero el estado del tablero mentía. El sucesor de la tubería es cruzar ranking con verificación del estado heredado antes de implementar.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0132"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "291",
+    "subject": "Medir src/orm contra odoo/orm — la contraparte verdadera, no addons/base",
+    "description": "MEDIDO 2026-08-14 contra odoo19c: odoo/orm/ — 0 archivos de la referencia ausentes en src/orm/; 4 nuestros que la referencia NO declara: fields_nonstored.py (111), inherits.py (132), method_chain.py (186), routers.py (154). Los cuatro son mecanismos construidos con razón declarada (store=False, _inherits, el super() que falta, multi-DB), pero su SITIO diverge: la referencia pone _inherits en model_classes.py y store=False en fields_textual.py. Dar veredicto por archivo: fundir en su hogar de la referencia, o declarar la divergencia de forma con su razón. Precedente del mismo día: model_naming.py y model_extension.py se inventaron y se fundieron en registry.py y model_classes.py al detectarlo el ejecutor (H-API-578).",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0161"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "315",
+    "subject": "RESUELTA — barrido hecho por el gate; 0 fuera de sitio y prevención cableada",
+    "description": "El barrido se hizo mecanizándolo: scripts/check_symbol_home.py, gate 9 del pre-commit (+ make check-symbol-home).\n\nMedido: 0 fuera de sitio, 1 aceptada (alcance medido: 270 de 819 clases; 549 sin contraparte, 0 ambiguas). base_sparse_field era el único, ya movido en api@0a9a0fb — por eso el --strict se pudo cablear el mismo día, sin la graduación diferida que check-porte necesita.\n\nProbado contra el caso real: reponer `class Serialized` en src/orm/ da exit 1; un símbolo del núcleo dentro de un addon, también. Con el gate, api@61b7651 no habría podido commitear.\n\nDos fallos del instrumento corregidos antes de cablear: (1) el primer directorio no es el lado — el addon base de la referencia vive en odoo/addons/base/, lo que producía 68 falsos positivos; (2) el primer control negativo usó NonStored, que no existe en la referencia, así que no podía disparar.\n\nQueda fuera por construcción el eje del addon DENTRO de addons/ — DESCONOCIDO declarado en H-API-556 con su condición de cierre.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-DOCS-0076"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "334",
+    "subject": "Gate: archivo nuestro sin contraparte en la raíz espejada",
+    "description": "Sucesor de H-API-578. check_porte_completo compara símbolos DENTRO de un archivo dado; es estructuralmente ciego a un archivo que la referencia no declara (H-API-569 registra esa ceguera). Cablear un check de CONJUNTO por raíz espejada — src/orm vs odoo/orm, src/tools vs odoo/tools, src/addons/base vs odoo/addons/base — que rechace un archivo nuestro sin contraparte salvo divergencia declarada en su docstring. Medido 2026-08-14 en src/orm: 0 de la referencia ausentes, 4 nuestros que sobran (fields_nonstored, inherits, method_chain, routers), todos preexistentes y con razón declarada pero en sitio divergente. El gate debe distinguir 'sobra sin razón' de 'sobra con divergencia declarada'.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0179"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "335",
+    "subject": "Enseñar a check_porte_completo la equivalencia declarada (H-API-579)",
+    "description": "El gate compara por nombre literal; este árbol renombra por convención (_compute_X → compute_X | property, _compute_display_name → __str__, _onchange_X → método explícito). Medido: stock_picking.py está 83/83 y el gate le marca 15 ausentes; stock_location.py, porte cerrado, recibe 9. Cota superior en el reporte completo: 1308 de 3548 símbolos llevan prefijo renombrable.\n\nCierre: leer la tabla símbolo-por-símbolo del docstring (formato ya uniforme) en vez de exigir el literal; alternativa más barata pero laxa, un mapa de alias por prefijo. Republicar el conteo global con el denominador corregido y medir cuántos de los 1308 eran falsos positivos reales.\n\nNO renombrar nuestros métodos al literal de la referencia: la convención (property para el compute sin columna) es divergencia declarada.\n\n--- Ceguera adicional medida 2026-08-18 (verificando el entregable de #390) ---\nLa heurística de absolución del gate es 1:1 — absuelve `_compute_X` si existe\nuna `property X`. Es CIEGA al caso 1-compute → N-properties.\n\nCaso concreto: `stock/models/stock_storage_category.py`. El gate reporta\n`_compute_storage_capacity_ids` como MÉTODO AUSENTE. En la referencia\n(`odoo19c: addons/stock/models/stock_storage_category.py`) ese único compute\nalimenta DOS campos: `product_capacity_ids` y `package_capacity_ids`\n(`storage_category.product_capacity_ids = ...filtered(lambda c: c.product_id)`\ny `...package_capacity_ids = ...filtered(lambda c: c.package_type_id)`).\nAquí están portados como dos properties (`:162` y `:170`) más\n`_set_storage_capacity_ids` (`:187`). El porte es COMPLETO; el gate no puede\nverlo porque busca una property con el nombre del compute.\n\nConsecuencia para el cierre: la tabla símbolo-por-símbolo del docstring debe\nadmitir un símbolo de la referencia mapeado a VARIOS símbolos nuestros\n(relación 1:N), no sólo 1:1.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0180"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "361",
+    "subject": "Cablear al pre-commit el gate de frontera de la fachada (H-API-604)",
+    "description": "RE-ENCUADRADA 2026-08-18T17:49:23 por H-API-693: el gate YA EXISTE y ahora mide 0.\n\nVive como test de pytest — tests/unit/orm/test_fields_facade.py::test_no_addon_crosses_the_facade_boundary — y recorre por AST los nodos ImportFrom cuyo módulo empieza por orm.fields o es orm.commands, sobre los .py de addons/ menos migrations/.\n\nEstaba FALLANDO en HEAD limpio con 1 cruce sobre 1103 archivos: account/models/account_analytic_plan.py importaba NonStored de orm.fields_nonstored. Corregido en api@d2f1a3d; el gate da 27 passed.\n\nLo que falta NO es construir el gate: es cablearlo al .githooks/pre-commit, para que un cruce nuevo se detecte al commitear y no cuando alguien corra tests/unit/orm/. Es la diferencia entre detección y prevención que gitlink-bump-gate.md deja dicha, y la razón de que este cruce sobreviviera sin que nadie lo viera.\n\nCiega a: el import dinámico. importlib.import_module('orm.fields') no produce un nodo ImportFrom, y es la vía que base_sparse_field usa para publicar. Su cero acota el camino visible, no el módulo. El propio test lo declara en su docstring.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0203"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "540",
+    "subject": "Barrer los tests que miden cobertura de campos por _meta (H-API-694)",
+    "description": "H-API-694: un test de cobertura de campos que consulta sólo `Model._meta.get_fields()` es ciego a `fields.NonStored`, que es un descriptor y no una columna. En el test de `website` eso dio cinco falsos ausentes sobre campos sí portados.\n\nAlcance: censar los tests que miden cobertura de campos contra la referencia por `_meta`, y decidir si el criterio de dos canales (columna en `_meta` O atributo declarado en la clase) se generaliza a un ayudante compartido en `tests/` en vez de repetirse por archivo.\n\nCondición de cierre: el censo publicado con su denominador, y o bien el ayudante cableado, o la declaración medida de que ningún otro test tiene la ceguera.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0315"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "548",
+    "subject": "Gate: comparar los ATRIBUTOS del campo, no sólo su nombre (H-API-696/697)",
+    "description": "`check_porte_completo` compara nombres de símbolo. Es ciego por construcción a dos defectos que el episodio de website B1 produjo y que ningún conteo distingue de un porte correcto: (a) un campo declarado sin el `default=` que su fuente sí declara — 12 casos en un archivo (H-API-696); (b) un `NonStored` cuyo cómputo se pasó POSICIONAL, que su `*_args` traga en silencio dejando el campo en None (H-API-697). El gate debe comparar, por campo con contraparte, la presencia de `default=`/`compute=` y —para `NonStored`— que el cómputo llegue por `default=`. Hermano de #336 (cabecera) y #338 (visibilidad): la misma idea aplicada al campo.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "[]",
+    "citation": "TASK-API-0322"
+  },
+  {
+    "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+    "task_id": "134",
+    "subject": "Construir el display_name universal con su _compute_display_name",
+    "description": null,
+    "status": "completed",
+    "owner": null,
+    "blocked_by_json": "null",
+    "citation": "TASK-GEN-0386"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1189",
+    "subject": "Un NonStored no tiene atributo editable, y su hermano con columna sí",
+    "description": "Medido al cerrar H-API-1101 (M15 del workbench fusion-de-declaraciones-de-campo): `fields.Char(compute='_c')` sale NonStored y pedirle `.editable` levanta AttributeError; `fields.Char(readonly=True)` sale CharField con `editable=False`.\n\nHoy es inocuo: un NonStored no está en `_meta.get_fields()`, así que el mapeo automático de ModelSerializer nunca lo alcanza — `get_field_kwargs` (rest_framework/utils/field_mapping.py:124-128) no llega a preguntar. Deja de serlo el día que un serializer lo declare a mano en `Meta.fields`.\n\nQué medir antes de decidir: (1) si la referencia declara un equivalente de `editable` sobre su campo no almacenado, o si el eje es nuestro; (2) cuántos serializers del árbol declaran a mano un campo que resuelve a NonStored. Si (2) es 0, el desenlace puede ser declarar el DESCONOCIDO con su condición de cierre en vez de construir el atributo.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": null,
+    "citation": "TASK-API-0414"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1190",
+    "subject": "Despachar el compute declarado al leer un NonStored",
+    "description": "CERRADA en `api@a95c11fb`. TASK-API-0415.\n\n`NonStored.__get__` gana su tercera rama —entre `related` y `default`— que llama `determine_compute`, instalado desde `fields.py` como sus hermanos `determine_domain`/`determine_inverse` (el import inverso sería ciclo). Los dos sitios declaran ahora la forma de la referencia: `display_name = Char('Display Name', compute='_compute_display_name', search='_search_display_name')` y `full_name = fields.Char('Group Name', compute='_compute_full_name', search='_search_full_name')`; el envoltorio `_display_name_default` retirado, y la etiqueta movida de `help_text=` (alias de `help=`) al primer posicional (`verbose_name` en Django, `string` en la fuente).\n\nFlujo medido antes de escribir: `Field.__get__` abre la rama en `odoo19c: odoo/orm/fields.py:1736-1737`; su cuerpo llega a `_compute_field_value` (`odoo/orm/models.py:4953`), cuyo cuerpo entero es `determine(field.compute, self)` más un `if field.store:` que un campo sin columna nunca alcanza. `determine` ya estaba portado (`orm/fields.py:1699`).\n\nTDD con su rojo persistido: `scripts/evidence/rojo-compute-dispatch-2026-09-11T17-33-32.log` (2 failed, 6 passed) → verde (9 passed). Control de anulación: deshabilitada la rama caen EXACTAMENTE los cuatro casos que la miden (4 failed, 5 passed) y no se mueve ninguno de precedencia ni de regresión. Suite completa tras el porte: 3 failed, 10553 passed, 30 skipped en 317.63 s — los tres rojos son los heredados.\n\nEl control de control original NO discriminaba (`label != plain_label` era verde en los dos estados); se sustituyó por uno parametrizado con dos cómputos distintos, que ninguna constante satisface.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by_json": null,
+    "citation": "TASK-API-0415"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1191",
+    "subject": "Portar la fase que recoge las definiciones de campo por clase",
+    "description": "BLOQUEO CORREGIDO 2026-09-11. Esta tarea declaraba «depende de #318 (MetaModel) y de _setup/_setup_fields». **Falso, y la conclusión salía del censo de símbolos — significante — en vez de medir cómo funciona.**\n\nMedido por conducta (`scripts/workbench/recoleccion-de-definiciones-*/`):\n\n1. La referencia recorre `_model_classes__`, y eso ES `mro()`: `model_cls._model_classes__ = tuple(c for c in model_cls.mro() if getattr(c,'pool',None) is None)` (`odoo19c: odoo/orm/model_classes.py:358`). No es un registro propio — es el MRO filtrado a clases de definición. Python lo trae hecho.\n2. Las DOS ocurrencias sobreviven distinguibles en las dos formas de herencia de este árbol, medido con sondas: base abstracta de Django → `_meta.local_fields` de cada clase da `[('HoldsBase',10),('HoldsChild',20)]`; mixin llano → `vars(mixin)` y `vars(hija)` dan dos `NonStored` distintos, cada uno con su `compute`.\n3. `ModelBase.__new__(cls, name, bases, attrs, **kwargs)` recibe el cuerpo de clase igual que `MetaModel.__new__`, y `contribute_to_class` dispara una vez por ocurrencia en orden base→hija.\n\nVeredicto INVENTORY: la **recolección** es *el stack lo trae hecho* (mro + `_meta.local_fields` + `vars`); la **fusión** es *tiene con qué construirlo* (`_get_attrs` ya portado, `orm/fields.py:1105-1128`). No hace falta `MetaModel` ni ninguna dependencia de fuera.\n\nCASO DE ACEPTACIÓN, medido sobre el modelo real (`probe_the_override_loses_the_base.py`):\n\n    la base (DisplayNameMixin)  compute='_compute_display_name' search='_search_display_name' -> NonStored\n    el override (TestOrmCategory) compute=None search=None inverse='_inverse_display_name' recursive=True -> CharField\n\nEl override se porta verbatim de `odoo19c: odoo/addons/test_orm/models/test_orm.py:28-31`. Allá no significa «campo con columna»: significa override, y la fusión le trae el `compute` de la base, del que el bloque compute deriva `store=False`. Aquí, sin fusión, `store` cae a su defecto `True`.\n\nCierra los dos rojos heredados de `tests/unit/orm/test_display_name.py`.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by_json": null,
+    "citation": "TASK-API-0416"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1192",
+    "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+    "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+    "status": "in_progress",
+    "owner": null,
+    "blocked_by_json": null,
+    "citation": "TASK-API-0417"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1193",
+    "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+    "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": null,
+    "citation": "TASK-API-0418"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1203",
+    "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables",
+    "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de 2026-08-28.\n\nAgrupación medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).\n\nLos grupos medidos, por dueño:\n\n- **5** — `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el relacional desde `_args__`), no de aquí.\n- **6** — `src/orm/fields.py:1593` `Compute method failed to assign …display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo triaje.\n- **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html) más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** — `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin cerrar para el resto.\n- **2** — `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no tiene atributo editable y su hermano con columna sí).\n- **2** — `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` — resolución de modelo por cadena mal formada.\n- **1 + 1 + 1** — `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminación de estado entre casos, no defecto de porte).\n\nCondición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condición de cierre escrita. Ninguno se queda sin dueño.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": null,
+    "citation": "TASK-GEN-0633"
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "exit_code": 2,
+  "source_commit": "2b249be8",
+  "command": "make ci-verify",
+  "acceptance": false,
+  "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+  "make_exit": 2,
+  "pytest_exit": 1,
+  "passed": 146,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 469.44,
+  "first_failure": "ResCompany.country_code KeyError in field_computed; TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+  "classification": "Distinct current failure under diagnosis: exact ae949aa8 targeted baseline fails with ResCountry.DoesNotExist, not this KeyError. Do not conflate error identities.",
+  "later_suite": "NOT_EVALUATED"
+}

@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Etiqueta de la subunidad (Odoo currency_subunit_label). La consume amount_to_text para la parte fraccionaria.",
+                help_text=(
+                    "Etiqueta de la subunidad (Odoo currency_subunit_label)."
+                    " La consume amount_to_text para la parte fraccionaria."
+                ),
                 max_length=32,
             ),
         ),

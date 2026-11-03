@@ -18,6 +18,7 @@ Contrato de la rebanada:
    línea marcada **entra a los totales como cualquier otra** — son marcadores,
    no un tipo de línea aparte.
 """
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -34,13 +35,16 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def metodo():
     return ShippingMethod.objects.create(
-        name='Estándar', cost=Decimal('99.00'), estimated_days=3)
+        name='Estándar', cost=Decimal('99.00'), estimated_days=3
+    )
 
 
 @pytest.fixture
 def producto():
     cat = make_category(name='Cat E1bis')
-    return make_product(name='Prod E1bis', price=Decimal('100.00'), stock=5, categ=cat)
+    return make_product(
+        name='Prod E1bis', price=Decimal('100.00'), stock=5, categ=cat
+    )
 
 
 class TestFKOpcionalAProducto:
@@ -60,17 +64,26 @@ class TestSembradoDelProductoDeServicio:
         producto = metodo.ensure_service_product()
         metodo.refresh_from_db()
         assert metodo.product_id == producto.pk
-        assert producto.default_code == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        assert (
+            producto.default_code
+            == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
+        )
 
     def test_es_idempotente(self, metodo):
         primero = metodo.ensure_service_product()
         segundo = metodo.ensure_service_product()
         assert primero.pk == segundo.pk
-        assert ProductProduct.objects.filter(
-            default_code=primero.default_code).count() == 1
+        assert (
+            ProductProduct.objects.filter(
+                default_code=primero.default_code
+            ).count()
+            == 1
+        )
 
     def test_queda_fuera_del_storefront(self, metodo):
-        """``sale_ok=False`` en la ficha ≙ ``sale_ok=False`` de la semilla Odoo."""
+        """
+        ``sale_ok=False`` en la ficha ≙ ``sale_ok=False`` de la semilla Odoo.
+        """
         producto = metodo.ensure_service_product()
         assert producto.product_tmpl.sale_ok is False
         assert producto.active is True
@@ -80,10 +93,15 @@ class TestMarcadoresDeLinea:
 
     def test_una_linea_normal_no_esta_marcada(self, producto):
         venta = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=uuid4())
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid4()
+        )
         linea = SaleOrderLine.objects.create(
-            order=venta, product=producto, name=producto.name,
-            product_uom_qty=1, price_unit=producto.lst_price)
+            order=venta,
+            product=producto,
+            name=producto.name,
+            product_uom_qty=1,
+            price_unit=producto.lst_price,
+        )
         assert linea.is_delivery is False
         assert linea.is_reward is False
 
@@ -91,27 +109,46 @@ class TestMarcadoresDeLinea:
         """El punto de todo E1-bis: el envío deja de ser un escalar invisible
         para ``amount_total()`` y pasa a sumar como línea."""
         venta = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=uuid4())
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid4()
+        )
         SaleOrderLine.objects.create(
-            order=venta, product=producto, name=producto.name,
-            product_uom_qty=1, price_unit=Decimal('100.00'))
+            order=venta,
+            product=producto,
+            name=producto.name,
+            product_uom_qty=1,
+            price_unit=Decimal('100.00'),
+        )
         assert venta.amount_total == Decimal('100.00')
 
         SaleOrderLine.objects.create(
-            order=venta, product=metodo.ensure_service_product(),
-            name=f'Envío — {metodo.name}', product_uom_qty=1,
-            price_unit=metodo.cost, is_delivery=True)
+            order=venta,
+            product=metodo.ensure_service_product(),
+            name=f'Envío — {metodo.name}',
+            product_uom_qty=1,
+            price_unit=metodo.cost,
+            is_delivery=True,
+        )
         assert venta.amount_total == Decimal('199.00')
 
     def test_la_linea_de_recompensa_resta_del_total(self, producto):
         """Simetría envío/descuento (decisión ejecutor 2026-07-28): la
         recompensa es una línea de precio negativo, mismo mecanismo."""
         venta = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=uuid4())
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid4()
+        )
         SaleOrderLine.objects.create(
-            order=venta, product=producto, name=producto.name,
-            product_uom_qty=1, price_unit=Decimal('100.00'))
+            order=venta,
+            product=producto,
+            name=producto.name,
+            product_uom_qty=1,
+            price_unit=Decimal('100.00'),
+        )
         SaleOrderLine.objects.create(
-            order=venta, product=producto, name='Descuento cupón',
-            product_uom_qty=1, price_unit=Decimal('-20.00'), is_reward=True)
+            order=venta,
+            product=producto,
+            name='Descuento cupón',
+            product_uom_qty=1,
+            price_unit=Decimal('-20.00'),
+            is_reward=True,
+        )
         assert venta.amount_total == Decimal('80.00')

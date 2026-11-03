@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Gate de la convención de nombre de columna en las FK portadas (ADR-029, #141).
+"""
+Gate de la convención de nombre de columna en las FK portadas (ADR-029, #141).
 
 La referencia colapsa en un nombre lo que Django separa en tres ejes, así que
 una FK portada admite cuatro formas y sólo una es fiel a los dos que importan:
@@ -16,8 +17,10 @@ N       ``Many2one(store=False)``                  fiel       (sin columna)
 
 ADR-029 fija **C** como la forma que gobierna. Este gate mide la forma de cada
 declaración; NO lleva el conteo del árbol —eso lo publica al correr, y el
-registro fechado vive en ``docs: source/gestion/pm/reportes/censo-convencion-fk-sufijo-id.rst``
-(``calibration-verified-numbers.md``, corolario de la cifra que vive en código).
+registro fechado vive en ``docs:
+source/gestion/pm/reportes/censo-convencion-fk-sufijo-id.rst``
+(``calibration-verified-numbers.md``, corolario de la cifra que vive en
+código).
 
 El sufijo ``_id`` es el PROXY; el criterio es la referencia
 ===========================================================
@@ -64,11 +67,11 @@ import functools
 import pathlib
 import sys
 
+from reference_roots import addon_root, tree as _tree
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 BASELINE = REPO / 'scripts' / 'fk_naming_baseline.txt'
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from reference_roots import addon_root, tree as _tree  # noqa: E402
 
 #: La raíz del árbol que gobierna. Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata.
@@ -146,7 +149,9 @@ def reference_many2one(relative):
     if contraparte is None or not contraparte.is_file():
         return frozenset()
     try:
-        arbol = ast.parse(contraparte.read_text(encoding='utf-8', errors='ignore'))
+        arbol = ast.parse(
+            contraparte.read_text(encoding='utf-8', errors='ignore')
+        )
     except SyntaxError:
         return frozenset()
     nombres = set()
@@ -161,7 +166,11 @@ def reference_many2one(relative):
             if not isinstance(nodo.value, ast.Call):
                 continue
             f = nodo.value.func
-            ctor = f.attr if isinstance(f, ast.Attribute) else getattr(f, 'id', '')
+            ctor = (
+                f.attr
+                if isinstance(f, ast.Attribute)
+                else getattr(f, 'id', '')
+            )
             if ctor not in SINGLE_VALUED:
                 continue
             nombres.update(t.id for t in objetivos if isinstance(t, ast.Name))
@@ -204,13 +213,18 @@ def _is_stored(call):
     store = _keyword(call, 'store')
     if store is not None:
         return not (isinstance(store, ast.Constant) and store.value is False)
-    if _keyword(call, 'compute') is not None or _keyword(call, 'related') is not None:
+    if (
+        _keyword(call, 'compute') is not None
+        or _keyword(call, 'related') is not None
+    ):
         return False
     return True
 
 
 def declarations(path):
-    """Cada asignación relacional de un solo valor: ``(clase, campo, forma)``."""
+    """
+    Cada asignación relacional de un solo valor: ``(clase, campo, forma)``.
+    """
     try:
         tree = ast.parse(path.read_text(encoding='utf-8'))
     except (SyntaxError, UnicodeDecodeError):
@@ -240,7 +254,11 @@ def declarations(path):
             if not isinstance(node.value, ast.Call):
                 continue
             func = node.value.func
-            ctor = func.attr if isinstance(func, ast.Attribute) else getattr(func, 'id', '')
+            ctor = (
+                func.attr
+                if isinstance(func, ast.Attribute)
+                else getattr(func, 'id', '')
+            )
             if ctor not in SINGLE_VALUED:
                 continue
             stored = _is_stored(node.value)
@@ -248,7 +266,8 @@ def declarations(path):
             for target in targets:
                 if isinstance(target, ast.Name):
                     yield klass.name, target.id, classify(
-                        target.id, has_column, stored, fieles)
+                        target.id, has_column, stored, fieles
+                    )
 
 
 def python_files():
@@ -267,12 +286,17 @@ def python_files():
 def load_baseline():
     if not BASELINE.is_file():
         return set()
-    return {line.strip() for line in BASELINE.read_text().splitlines()
-            if line.strip() and not line.startswith('#')}
+    return {
+        line.strip()
+        for line in BASELINE.read_text().splitlines()
+        if line.strip() and not line.startswith('#')
+    }
 
 
 def survey():
-    """``(forma, clave)`` de cada declaración medida, con su conteo por forma."""
+    """
+    ``(forma, clave)`` de cada declaración medida, con su conteo por forma.
+    """
     rows, counts = [], {letter: 0 for letter in 'ABCDN'}
     for path in python_files():
         relative = path.relative_to(REPO)
@@ -284,10 +308,16 @@ def survey():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--strict', action='store_true',
-                        help='exit 1 si aparece una declaración no fiel nueva')
-    parser.add_argument('--write-baseline', action='store_true',
-                        help='congela la deuda heredada (formas A, B y D)')
+    parser.add_argument(
+        '--strict',
+        action='store_true',
+        help='exit 1 si aparece una declaración no fiel nueva',
+    )
+    parser.add_argument(
+        '--write-baseline',
+        action='store_true',
+        help='congela la deuda heredada (formas A, B y D)',
+    )
     args = parser.parse_args()
 
     rows, counts = survey()
@@ -299,24 +329,34 @@ def main():
             '# Deuda heredada de ADR-029 — formas A/B/D congeladas.\n'
             '# Una listada no bloquea; una nueva sí. Se paga al tocar el\n'
             '# archivo (barrido: tarea #143).\n'
-            + '\n'.join(offenders) + '\n')
+            + '\n'.join(offenders)
+            + '\n'
+        )
         print(f'baseline escrito: {len(offenders)} declaraciones')
         return 0
 
     baseline = load_baseline()
     fresh = [key for key in offenders if key not in baseline]
 
-    print(f'formas: ' + ' · '.join(f'{k}={v}' for k, v in sorted(counts.items()))
-          + f'  (alcance medido: {measured} declaraciones relacionales '
-            f'de un solo valor en {" y ".join(ROOTS)}/)')
-    print(f'no fieles: {len(offenders)}  ·  en baseline: {len(offenders) - len(fresh)}'
-          f'  ·  nuevas: {len(fresh)}')
+    print(
+        f'formas: '
+        + ' · '.join(f'{k}={v}' for k, v in sorted(counts.items()))
+        + f'  (alcance medido: {measured} declaraciones relacionales '
+        f'de un solo valor en {" y ".join(ROOTS)}/)'
+    )
+    print(
+        f'no fieles: {len(offenders)}  ·  en baseline:'
+        f' {len(offenders) - len(fresh)}  ·  nuevas: {len(fresh)}'
+    )
     for key in fresh:
         print(f'  NUEVA  {key}')
 
     if fresh and args.strict:
-        print('\nADR-029: la columna lleva el nombre que la referencia declara.\n'
-              "Forma C: símbolo fiel + db_column='<mismo nombre>'.", file=sys.stderr)
+        print(
+            '\nADR-029: la columna lleva el nombre que la referencia'
+            ' declara.\nForma C: símbolo fiel + db_column=\'<mismo nombre>\'.',
+            file=sys.stderr,
+        )
         return 1
     return 0
 

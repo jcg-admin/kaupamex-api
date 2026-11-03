@@ -1,0 +1,20 @@
+{
+  "interface": "TaskGet.run;claimsCommand",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "task": {
+    "task_id": "737",
+    "citation_id": "TASK-API-0382",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": []
+  },
+  "paths": [
+    "src/modules/module_graph.py",
+    "tests/unit/modules/test_module_graph.py"
+  ],
+  "scope": "Root pruning diagnostics for manifest/catalogue rejection; no imported provenance implementation or schema/state/version changes",
+  "dependencies": "Pure existing graph, manifest resolver, logger and read-only catalogue query; no full loader/isolation acceptance required",
+  "resources": "pytest logger capture and native graph; mocked query rows, no SQL",
+  "command": "TaskGet(737); claimsCommand --claim each exact path"
+}

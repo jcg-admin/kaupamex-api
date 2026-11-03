@@ -34,13 +34,19 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, db_index=True),
+                ),
                 (
                     "name",
                     models.CharField(
                         blank=True,
                         db_index=True,
-                        help_text="Referencia SO (Odoo sale.order.name). NULL en borrador.",
+                        help_text=(
+                            "Referencia SO (Odoo sale.order.name). NULL en"
+                            " borrador."
+                        ),
                         max_length=20,
                         null=True,
                         unique=True,
@@ -51,7 +57,10 @@ class Migration(migrations.Migration):
                     models.UUIDField(
                         blank=True,
                         db_index=True,
-                        help_text="Carrito anónimo — draft sin partner (paridad cart.cart_token).",
+                        help_text=(
+                            "Carrito anónimo — draft sin partner (paridad"
+                            " cart.cart_token)."
+                        ),
                         null=True,
                         unique=True,
                     ),
@@ -74,7 +83,10 @@ class Migration(migrations.Migration):
                     "date_order",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Fecha de la orden (Odoo date_order); se fija al confirmar.",
+                        help_text=(
+                            "Fecha de la orden (Odoo date_order); se fija al"
+                            " confirmar."
+                        ),
                         null=True,
                     ),
                 ),
@@ -82,7 +94,9 @@ class Migration(migrations.Migration):
                     "locked",
                     models.BooleanField(
                         default=False,
-                        help_text="Orden bloqueada, no modificable (Odoo locked).",
+                        help_text=(
+                            "Orden bloqueada, no modificable (Odoo locked)."
+                        ),
                     ),
                 ),
                 (
@@ -90,7 +104,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Email del comprador anónimo (BR-011). Vacío si hay partner.",
+                        help_text=(
+                            "Email del comprador anónimo (BR-011). Vacío si"
+                            " hay partner."
+                        ),
                         max_length=254,
                     ),
                 ),
@@ -99,7 +116,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Notas del comprador al confirmar (paridad orders.Order.notes).",
+                        help_text=(
+                            "Notas del comprador al confirmar (paridad"
+                            " orders.Order.notes)."
+                        ),
                     ),
                 ),
                 (
@@ -107,14 +127,19 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Motivo de la cancelación (comprador o admin).",
+                        help_text=(
+                            "Motivo de la cancelación (comprador o admin)."
+                        ),
                     ),
                 ),
                 (
                     "cancelled_at",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Momento de la cancelación. NULL si la orden no se canceló.",
+                        help_text=(
+                            "Momento de la cancelación. NULL si la orden no se"
+                            " canceló."
+                        ),
                         null=True,
                     ),
                 ),
@@ -123,7 +148,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Subtotal sin IVA, suma de líneas (Odoo amount_untaxed).",
+                        help_text=(
+                            "Subtotal sin IVA, suma de líneas (Odoo"
+                            " amount_untaxed)."
+                        ),
                         max_digits=10,
                     ),
                 ),
@@ -132,7 +160,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="IVA de la orden, suma de líneas (Odoo amount_tax).",
+                        help_text=(
+                            "IVA de la orden, suma de líneas (Odoo"
+                            " amount_tax)."
+                        ),
                         max_digits=10,
                     ),
                 ),
@@ -141,7 +172,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Total de la orden, suma de líneas (Odoo amount_total).",
+                        help_text=(
+                            "Total de la orden, suma de líneas (Odoo"
+                            " amount_total)."
+                        ),
                         max_digits=10,
                     ),
                 ),
@@ -149,7 +183,10 @@ class Migration(migrations.Migration):
                     "admin_cancelled_by",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Admin que canceló. NULL si la canceló el comprador.",
+                        help_text=(
+                            "Admin que canceló. NULL si la canceló el"
+                            " comprador."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="admin_cancelled_sale_orders",
@@ -160,7 +197,10 @@ class Migration(migrations.Migration):
                     "carrier",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Método de envío elegido (Odoo sale.order.carrier_id).",
+                        help_text=(
+                            "Método de envío elegido (Odoo"
+                            " sale.order.carrier_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_orders",
@@ -171,7 +211,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.",
+                        help_text=(
+                            "Empresa dueña de la orden (Odoo company_id). NULL"
+                            " pre-backfill."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sale_orders",
@@ -182,7 +225,10 @@ class Migration(migrations.Migration):
                     "invoice",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Factura emitida de la orden (Odoo invoice_ids, 1:1).",
+                        help_text=(
+                            "Factura emitida de la orden (Odoo invoice_ids,"
+                            " 1:1)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="+",
@@ -193,7 +239,10 @@ class Migration(migrations.Migration):
                     "partner",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cliente (Odoo partner_id). NULL en carrito anónimo.",
+                        help_text=(
+                            "Cliente (Odoo partner_id). NULL en carrito"
+                            " anónimo."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_orders",
@@ -204,7 +253,10 @@ class Migration(migrations.Migration):
                     "team",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Equipo de venta atribuido (Odoo sale.order.team_id).",
+                        help_text=(
+                            "Equipo de venta atribuido (Odoo"
+                            " sale.order.team_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_orders",
@@ -247,7 +299,9 @@ class Migration(migrations.Migration):
                     models.PositiveIntegerField(
                         default=1,
                         help_text="Cantidad (Odoo product_uom_qty).",
-                        validators=[django.core.validators.MinValueValidator(1)],
+                        validators=[
+                            django.core.validators.MinValueValidator(1)
+                        ],
                     ),
                 ),
                 (
@@ -272,7 +326,10 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="La línea representa el costo de envío (Odoo is_delivery).",
+                        help_text=(
+                            "La línea representa el costo de envío (Odoo"
+                            " is_delivery)."
+                        ),
                     ),
                 ),
                 (
@@ -280,7 +337,10 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="La línea representa un descuento/recompensa (precio negativo).",
+                        help_text=(
+                            "La línea representa un descuento/recompensa"
+                            " (precio negativo)."
+                        ),
                     ),
                 ),
                 (

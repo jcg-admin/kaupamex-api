@@ -11,6 +11,7 @@ Depende de ``base`` porque las dos filas que crea —``ir.actions.server`` e
 Idempotente: un segundo pase no duplica ni pisa el intervalo que el operador
 haya ajustado, que es lo que ``noupdate="1"`` garantiza en el XML original.
 """
+
 from django.db import migrations
 
 from addons.base.data import sembrar_cron
@@ -24,7 +25,10 @@ def sembrar(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mail', '0003_remove_mailalias_mail_alias_name_domain_unique_and_more'),
+        (
+            'mail',
+            '0003_remove_mailalias_mail_alias_name_domain_unique_and_more',
+        ),
         ('base', '0008_alter_iractionsactions_path_and_more'),
     ]
 

@@ -1,0 +1,52 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c: odoo/orm/fields_misc.py::Json.convert_to_record:67-69; test_orm.discussion.history; JsonFieldTest.test_json_field_read_write",
+  "behavior": "Preserve declared history content while isolating mutable values across records. This unit does not cover full copy-on-read or tuple normalization.",
+  "execution_flow": "Odoo declaration -> defaults/cache -> Json.convert_to_record deepcopy -> record read. Kaupamex Json factory -> Django JSONField -> get_default returns same literal; mutation contaminates a second value.",
+  "inputs_outputs": {
+    "input": {
+      "delete_messages": []
+    },
+    "expected_second_default": {
+      "delete_messages": []
+    },
+    "actual_second_default": {
+      "delete_messages": [
+        "only-first"
+      ]
+    }
+  },
+  "side_effects": "Observed mutation leaks into field.default and second retrieved default. Probe uses no product model or permanent table.",
+  "dependencies": [
+    "Django6 JSONField.get_default and CheckFieldDefaultMixin",
+    "Python nested value copying",
+    "Related/store metadata preserved",
+    "Future implementation must verify MigrationWriter serialization/clone and actual Discussion consumer",
+    "PostgreSQL16.15 resource verified; QA lacks res_users; app QA credentials missing from current option resolution"
+  ],
+  "consumers": [
+    "Kaupamex addons.test_orm TestOrmDiscussion.history; locate via existing alias/consumer root",
+    "Odoo JsonFieldTest read/write; native Odoo execution NOT_EVALUATED"
+  ],
+  "installed_mechanism": "Django JSONField supports callable defaults; raw mutable literal is shared and produces fields.E010.",
+  "existing_adaptation": "src/orm/fields_misc.py::Json constructs JSONField unchanged, retaining related/store dispatch. No production changes in this run.",
+  "verification": {
+    "instrument": "probes/json_default_contract.py",
+    "result": "BASELINE_FAILURE",
+    "cases": 7,
+    "pass": 5,
+    "fail": 2,
+    "exit_code": 1,
+    "pg_resource": "PASS real JSONB temp table roundtrip + rollback; admin channel only",
+    "pending": [
+      "two actual model instances",
+      "application-role persistence",
+      "makemigrations --check and migration serialization after admitted fix",
+      "related/store regression",
+      "independent acceptance"
+    ]
+  },
+  "equivalence": "NOT demonstrated for record default isolation; callable/None/absent defaults and literal deconstruction pass bounded controls.",
+  "limitations": "TASK owner NULL; preparation reservation is not assignment. Dependencies raw NULL not complete graph. No admission, functional fix, Odoo native runtime or Provider local-model cycle.",
+  "integration": "Existing PR109/154 OPEN; no merge; production change not made. Link this run to living plan, not a new plan."
+}

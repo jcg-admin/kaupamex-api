@@ -2,7 +2,8 @@
 
 Portación fiel de ``IrAttachment``
 (``scratchpad/odoo19x/odoo/addons/base/models/ir_attachment.py:61-985``, Odoo
-19; ``scratchpad/odoo18/extracted/odoo/addons/base/models/ir_attachment.py:32-``
+19;
+``scratchpad/odoo18/extracted/odoo/addons/base/models/ir_attachment.py:32-``
 para 18) — la **estructura de control** que vincula binarios o URLs a
 cualquier registro del proyecto de forma polimórfica (``res_model``+``res_id``
 como campos planos Char+Integer, sin ``GenericForeignKey`` — igual que Odoo,
@@ -53,6 +54,7 @@ al guardar cuando hay ``datas`` — equivalente simplificado de
 Cross-app: ``company`` → ``company.Company`` (Odoo ``company_id``,
 DEC-SALE-01 — FK cross-app en vez de tenant scope implícito).
 """
+
 import base64
 import hashlib
 import mimetypes
@@ -63,11 +65,19 @@ from django.apps import apps
 import fields
 import models
 from exceptions import ValidationError
+from tools.mimetypes import guess_mimetype
 from tools.translate import _
 
 
 class IrAttachment(models.Model):
     """``ir.attachment`` — adjunto (archivo o URL) vinculado a un registro."""
+
+    # Atributos de clase de la fuente (``odoo19c: odoo/addons/base/models/
+    # ir_attachment.py:75-77``). ``_res_idx`` vive en ``Meta.indexes`` con su
+    # nombre. Sin ``_name``, ``env['ir.attachment']`` no resolvía.
+    _name = 'ir.attachment'
+    _description = 'Attachment'
+    _order = 'id desc'
 
     TYPE_BINARY = 'binary'
     TYPE_URL = 'url'
@@ -76,21 +86,32 @@ class IrAttachment(models.Model):
         (TYPE_URL, 'URL'),
     ]
 
-    name = fields.Char(max_length=256, help_text='Nombre del adjunto (Odoo name).')
-    description = fields.Text(blank=True, default='', help_text='Odoo description.')
+    name = fields.Char(
+        max_length=256, help_text='Nombre del adjunto (Odoo name).'
+    )
+    description = fields.Text(
+        blank=True, default='', help_text='Odoo description.'
+    )
     res_model = fields.Char(
-        max_length=128, blank=True, default='',
+        max_length=128,
+        blank=True,
+        default='',
         help_text=(
             'Modelo polimórfico referenciado, p. ej. "product.ProductProduct" '
             '(Odoo res_model). NO es una FK — vínculo plano igual que Odoo.'
         ),
     )
     res_field = fields.Char(
-        max_length=128, blank=True, default='',
-        help_text='Campo binary del modelo referenciado, si aplica (Odoo res_field).',
+        max_length=128,
+        blank=True,
+        default='',
+        help_text=(
+            'Campo binary del modelo referenciado, si aplica (Odoo res_field).'
+        ),
     )
     res_id = fields.Integer(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text=(
             'ID del registro referenciado (Odoo res_id / Many2oneReference '
             'simplificado a Integer plano — el ORM shim del proyecto no '
@@ -99,23 +120,39 @@ class IrAttachment(models.Model):
         ),
     )
     type = fields.Selection(
-        max_length=8, choices=TYPE_CHOICES, default=TYPE_BINARY,
+        max_length=8,
+        choices=TYPE_CHOICES,
+        default=TYPE_BINARY,
         help_text='Odoo type: binary (archivo) o url (enlace externo).',
     )
-    url = fields.Char(max_length=1024, blank=True, default='', help_text='Odoo url.')
-    public = fields.Boolean(default=False, help_text='Odoo public — accesible sin auth.')
+    url = fields.Char(
+        max_length=1024, blank=True, default='', help_text='Odoo url.'
+    )
+    public = fields.Boolean(
+        default=False, help_text='Odoo public — accesible sin auth.'
+    )
     access_token = fields.Char(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Token de acceso externo (Odoo access_token).',
     )
-    mimetype = fields.Char(max_length=128, blank=True, default='', help_text='Odoo mimetype.')
-    file_size = fields.Integer(default=0, help_text='Tamaño en bytes (Odoo file_size).')
+    mimetype = fields.Char(
+        max_length=128, blank=True, default='', help_text='Odoo mimetype.'
+    )
+    file_size = fields.Integer(
+        default=0, help_text='Tamaño en bytes (Odoo file_size).'
+    )
     checksum = fields.Char(
-        max_length=40, blank=True, default='',
+        max_length=40,
+        blank=True,
+        default='',
         help_text='SHA1 del contenido (Odoo checksum, calculado en save()).',
     )
     store_fname = fields.Char(
-        max_length=256, blank=True, default='',
+        max_length=256,
+        blank=True,
+        default='',
         help_text=(
             'Nombre asignado por el storage backend de Django (Odoo '
             'store_fname — aquí no es una ruta sha1-sharded propia, ver '
@@ -123,15 +160,21 @@ class IrAttachment(models.Model):
         ),
     )
     datas = models.FileField(
-        upload_to='attachments/%Y/%m/', null=True, blank=True,
+        upload_to='attachments/%Y/%m/',
+        null=True,
+        blank=True,
         help_text=(
             'Contenido binario (Odoo datas/raw) — FileField de Django, no '
             'el filestore propio de Odoo (ver docstring del módulo).'
         ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='attachments', help_text='Empresa (Odoo company_id).',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='attachments',
+        help_text='Empresa (Odoo company_id).',
     )
 
     class Meta:
@@ -140,25 +183,32 @@ class IrAttachment(models.Model):
         verbose_name = 'Adjunto'
         verbose_name_plural = 'Adjuntos'
         indexes = [
-            models.Index(fields=['res_model', 'res_id'], name='ir_attachment_res_idx'),
+            models.Index(
+                fields=['res_model', 'res_id'], name='ir_attachment_res_idx'
+            ),
         ]
 
     def __str__(self) -> str:
         return self.name
 
     def clean(self):
-        """``_check_circular_attachment`` — un adjunto no se adjunta a si mismo.
+        """
+        ``_check_circular_attachment`` — un adjunto no se adjunta a si mismo.
 
         Su mensaje de la fuente, verbatim: *"You cannot attach an attachment to
         itself"*. Prohibe el **bucle**, no la relacion: un adjunto de OTRO
         adjunto es legitimo y se conserva.
         """
         super().clean()
-        if self.res_model == 'ir.attachment' and self.pk and \
-                self.res_id == self.pk:
+        if (
+            self.res_model == 'ir.attachment'
+            and self.pk
+            and self.res_id == self.pk
+        ):
             raise ValidationError(
                 'No se puede adjuntar un adjunto a si mismo. '
-                f'El adjunto {self.pk} no puede tener res_id: {self.res_id}.')
+                f'El adjunto {self.pk} no puede tener res_id: {self.res_id}.'
+            )
 
     @staticmethod
     def _compute_mimetype(values):
@@ -182,24 +232,26 @@ class IrAttachment(models.Model):
             if raw is None and values.get('datas'):
                 raw = base64.b64decode(values['datas'])
             if raw:
-                # DIVERGENCIA DE MECANISMO: la fuente adivina por los magic
-                # bytes con su `guess_mimetype`. Aqui no hay equivalente en la
-                # biblioteca estandar, asi que se conserva lo adivinado por
-                # nombre o url y no se inventa un detector propio. Lo que NO
-                # cambia es el desenlace por defecto.
-                mimetype = mimetype or None
+                # El contenido decide por su firma (``guess_mimetype``), como
+                # en la fuente. Aqui decia que no habia equivalente en la
+                # biblioteca estandar, y la fuente trae el suyo:
+                # ``_odoo_guess_mimetype``, portado en ``tools.mimetypes``.
+                mimetype = guess_mimetype(raw)
         return (mimetype or 'application/octet-stream').lower()
 
     @staticmethod
     def _can_write_views(user):
-        """¿El usuario puede escribir vistas? — ≙ ``ir.ui.view.has_access('write')``.
+        """
+        ¿El usuario puede escribir vistas? — ≙
+        ``ir.ui.view.has_access('write')``.
 
         Es la condicion de permiso de ``_check_contents``, y desde la tarea #93
         la responde el resolvedor de la ACL, no una consulta escrita aqui:
         ``IrModelAccess.check('ir.ui.view', 'write')``, que es literalmente lo
         que la fuente pregunta.
 
-        **Por que cambio, y es un defecto medido.** La primera version armaba la
+        **Por que cambio, y es un defecto medido.** La primera version armaba
+        la
         consulta a mano y filtraba ``model_id__model='ir.ui.view'`` — el nombre
         punteado de la fuente. Este arbol guarda el **label de Django** en
         ``ir_model.model``, asi que ese filtro no podia coincidir **nunca**, ni
@@ -221,7 +273,8 @@ class IrAttachment(models.Model):
             return False
         IrModelAccess = apps.get_model('base', 'IrModelAccess')
         return IrModelAccess.check(
-            'ir.ui.view', 'write', raise_exception=False, user=user)
+            'ir.ui.view', 'write', raise_exception=False, user=user
+        )
 
     @classmethod
     def _check_contents(cls, values, user=None, trusted=False):
@@ -261,7 +314,8 @@ class IrAttachment(models.Model):
         mimetype = values['mimetype'] = cls._compute_mimetype(values)
         xml_like = 'ht' in mimetype or (
             'xml' in mimetype
-            and not mimetype.startswith('application/vnd.openxmlformats'))
+            and not mimetype.startswith('application/vnd.openxmlformats')
+        )
         if xml_like and not trusted:
             values['mimetype'] = 'text/plain'
         return values
@@ -282,15 +336,17 @@ class IrAttachment(models.Model):
         lista; aqui ``self`` es una instancia y devuelve **su** token.
         """
         if not self.access_token:
+            # ≙ ``attachment.write({'access_token': ...})``: por ``save()``,
+            # con sus señales, y sin revalidar el contenido.
             self.access_token = self._generate_access_token()
-            type(self).objects.filter(pk=self.pk).update(
-                access_token=self.access_token)
+            self.save(update_fields=['access_token'])
         return self.access_token
 
     def save(self, *args, user=None, trusted=False, **kwargs):
         """Calcula ``file_size``/``checksum`` cuando hay contenido — versión
         simplificada de ``_get_datas_related_values``/``_compute_checksum``
-        de Odoo (sin el sharding sha1 propio del filestore; Django ``FileField``
+        de Odoo (sin el sharding sha1 propio del filestore; Django
+        ``FileField``
         ya resuelve dónde vive el archivo).
 
         Y **aquí se cablea** ``_check_contents``: la fuente lo llama desde su
@@ -303,18 +359,32 @@ class IrAttachment(models.Model):
         falso: quien tenga permiso para subir HTML lo declara, y quien se
         olvide degrada de más.
         """
-        if self.datas:
-            content = self.datas.read()
-            self.datas.seek(0)
-            self.file_size = len(content)
-            self.checksum = hashlib.sha1(content).hexdigest()
-        self.mimetype = self._check_contents(
-            {'mimetype': self.mimetype, 'name': self.name, 'url': self.url},
-            user=user, trusted=trusted)['mimetype']
+        update_fields = kwargs.get('update_fields')
+        # ≙ ``write`` (``odoo19c: ir_attachment.py:725-726``): el contenido se
+        # revalida sólo si cambia. Un guardado parcial que no toca
+        # ``mimetype`` ni ``datas`` —el token, el nombre— no degrada lo que
+        # quien subió el archivo ya tenía permitido.
+        if update_fields is None or {'mimetype', 'datas'} & set(update_fields):
+            if self.datas:
+                content = self.datas.read()
+                self.datas.seek(0)
+                self.file_size = len(content)
+                self.checksum = hashlib.sha1(content).hexdigest()
+            self.mimetype = self._check_contents(
+                {'mimetype': self.mimetype, 'name': self.name, 'url': self.url},
+                user=user,
+                trusted=trusted,
+            )['mimetype']
         super().save(*args, **kwargs)
-        if self.datas and self.datas.name and self.store_fname != self.datas.name:
+        if (
+            self.datas
+            and self.datas.name
+            and self.store_fname != self.datas.name
+        ):
             self.store_fname = self.datas.name
-            type(self).objects.filter(pk=self.pk).update(store_fname=self.store_fname)
+            type(self).objects.filter(pk=self.pk).update(
+                store_fname=self.store_fname
+            )
 
     # --- Origen remoto ----------------------------------------------------
     #
@@ -336,8 +406,10 @@ class IrAttachment(models.Model):
         forma que tomar.
         """
         return bool(
-            self.url and not self.file_size
-            and self.url.startswith(('http://', 'https://', 'ftp://')))
+            self.url
+            and not self.file_size
+            and self.url.startswith(('http://', 'https://', 'ftp://'))
+        )
 
     def _migrate_remote_to_local(self):
         """Baja a local el contenido de un adjunto remoto.
@@ -357,4 +429,5 @@ class IrAttachment(models.Model):
         if self.type == 'url':
             raise ValidationError(
                 _('URL attachment (%s) shouldn\'t be migrated to local.')
-                % self.pk)
+                % self.pk
+            )

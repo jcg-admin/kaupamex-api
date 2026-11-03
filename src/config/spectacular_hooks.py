@@ -26,13 +26,15 @@ Aplica el principio Open/Closed al schema OpenAPI:
     SPECTACULAR_TAGS = [
         {
             'name': 'catalogue',
-            'description': 'Catálogo de productos: listado, detalle, búsqueda.',
+            'description': 'Catálogo de productos: listado, detalle,
+            búsqueda.',
         },
     ]
 
     Solo se requiere el campo 'name'. 'description' es opcional pero
     recomendado para la documentación del equipo y clientes externos.
 """
+
 import importlib
 import logging
 

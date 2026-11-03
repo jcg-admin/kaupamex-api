@@ -30,6 +30,7 @@ como "la sesion expiro". Los XHR same-origin no cambian entre ``Lax`` y
 **Guardrail que acompania a ``Lax``:** ningun endpoint muta estado por
 ``GET``. ``Lax`` SI envia la cookie en una navegacion ``GET`` top-level.
 """
+
 from rest_framework.authentication import SessionAuthentication
 
 

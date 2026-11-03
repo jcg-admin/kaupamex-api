@@ -4,6 +4,7 @@ Adaptación fiel de ``sale.order.template.line``: una línea de la plantilla de
 cotización (producto + cantidad, o una sección/nota). Al aplicar la plantilla a
 una ``sale.order`` estas líneas se materializan en ``sale.order.line``.
 """
+
 from decimal import Decimal
 
 import fields
@@ -19,37 +20,48 @@ class SaleOrderTemplateLine(TimeStampedModel):
     # sección/nota (line_section/line_note).
     DISPLAY_PRODUCT = ''
     DISPLAY_SECTION = 'line_section'
-    DISPLAY_NOTE    = 'line_note'
+    DISPLAY_NOTE = 'line_note'
     DISPLAY_TYPES = [
         (DISPLAY_PRODUCT, 'Producto'),
         (DISPLAY_SECTION, 'Sección'),
-        (DISPLAY_NOTE,    'Nota'),
+        (DISPLAY_NOTE, 'Nota'),
     ]
 
-    template        = fields.Many2one(
-        'sale_management.SaleOrderTemplate', on_delete=models.CASCADE,
+    template = fields.Many2one(
+        'sale_management.SaleOrderTemplate',
+        null=False, on_delete=models.CASCADE,
         related_name='template_line',
         help_text='Plantilla (Odoo sale_order_template_id).',
     )
-    sequence        = fields.Integer(
-        default=10, help_text='Orden dentro de la plantilla (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden dentro de la plantilla (Odoo sequence).',
     )
-    product_id      = fields.Many2one(
-        'product.ProductProduct', null=True, blank=True, on_delete=models.PROTECT,
+    product_id = fields.Many2one(
+        'product.ProductProduct',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name='sale_template_lines',
         help_text='Producto (Odoo product_id); NULL en sección/nota.',
         db_column='product_id',
     )
-    name            = fields.Text(
-        blank=True, default='',
+    name = fields.Text(
+        blank=True,
+        default='',
         help_text='Descripción de la línea (Odoo name).',
     )
     product_uom_qty = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('1.00'),
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('1.00'),
         help_text='Cantidad (Odoo product_uom_qty).',
     )
-    display_type    = fields.Selection(
-        max_length=12, choices=DISPLAY_TYPES, default=DISPLAY_PRODUCT, blank=True,
+    display_type = fields.Selection(
+        max_length=12,
+        choices=DISPLAY_TYPES,
+        default=DISPLAY_PRODUCT,
+        blank=True,
         help_text='Tipo de línea: producto/sección/nota (Odoo display_type).',
     )
 
@@ -60,4 +72,6 @@ class SaleOrderTemplateLine(TimeStampedModel):
         verbose_name_plural = 'Líneas de plantilla de cotización'
 
     def __str__(self) -> str:
-        return self.name or (str(self.product_id) if self.product_id_id else self.display_type)
+        return self.name or (
+            str(self.product_id) if self.product_id_id else self.display_type
+        )

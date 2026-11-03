@@ -1,0 +1,57 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "integration": "Working tree, no commit or merge; global style FAIL",
+  "source_revision": "dc9b4c53167891baccc4a04ca1db7c8563fc1fe8 + uncommitted changes",
+  "consumer_sha256": "19cd47248783c8bce0e2120cb47f04bd17886a8a2c77241e4826bcbee26a2882",
+  "reference_symbol": {
+    "path": "odoo19c:odoo/modules/module_graph.py",
+    "qualified_symbols": [
+      "ModuleGraph.extend",
+      "ModuleGraph._update_from_database",
+      "ModuleGraph._remove"
+    ],
+    "sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5"
+  },
+  "behavior": "Los descartes ordinarios identifican el módulo raíz y su motivo, además de los dependientes retirados.",
+  "execution_flow": "Preparación vinculada: manifiesto no instalable -> WARNING -> poda. Snapshot: uninstallable -> WARNING; load con uninstalled/to install -> INFO; update conserva las solicitudes válidas.",
+  "inputs_outputs": "Manifiestos/filas existentes producen los mismos nodos y snapshots; niveles y mensajes coinciden con la referencia fijada.",
+  "side_effects": "Sólo se agregan registros de diagnóstico; no SQL adicional, estados persistidos, migraciones, commits ni instalación.",
+  "dependencies": [
+    "TASK-API-0382 native737 pending owner codex-module-lifecycle comprobado",
+    "Resolver de manifiestos, queryset por alias y logger existentes",
+    "La excepción imported no se implementa: falta su productor Consumer cualificado"
+  ],
+  "consumers": [
+    "ModuleGraph.from_database y extend posteriores",
+    "Carga/integración futura: no aceptada por esta unidad",
+    "Operadores que investigan por qué un módulo no aparece en el grafo"
+  ],
+  "installed_mechanism": "Logger y métodos existentes; sin otro registro, cargador o coordinador.",
+  "existing_adaptation": "Se conserva la guarda Consumer para filas cuyos nodos fueron podados previamente, la clausura transitiva y la lectura por alias.",
+  "verification": {
+    "red": {
+      "passed": 18,
+      "failed": 4,
+      "exit": 1,
+      "junit": "graph-diagnostics-red.junit.xml"
+    },
+    "green": {
+      "passed": 22,
+      "exit": 0,
+      "junit": "graph-diagnostics-green.junit.xml"
+    },
+    "neighbors": {
+      "passed": 48,
+      "exit": 0,
+      "junit": "graph-diagnostics-neighbors.junit.xml"
+    },
+    "independent_reference_cases": 6,
+    "comparison": "graph-diagnostics-reference-comparison.json",
+    "affected_files_pep8_exit": 0,
+    "affected_files_initial_imports_exit": 0,
+    "SQL": "Bloqueado en contraste independiente; no aceptación física",
+    "global_current_head": "not_verified; gate global de estilo FAIL previo, no se repite sin corregir sus obligaciones pendientes"
+  },
+  "equivalence": "Diagnósticos de descarte ordinario contrastados con cuerpos fijados; no runtime Odoo nativo ni equivalencia global del archivo.",
+  "limitations": "Procedencia/imported/studio_customization sigue not_verified. Cargador, hooks, versiones, aislamiento, CI completo, integración y aceptación permanecen pendientes."
+}

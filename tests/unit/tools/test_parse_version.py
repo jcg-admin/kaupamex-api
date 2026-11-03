@@ -10,6 +10,7 @@ Los casos se escribieron ANTES del modulo: contra un
 ``src/tools/parse_version.py`` inexistente el archivo entero falla en la
 importacion.
 """
+
 import pytest
 
 from tools.parse_version import parse_version
@@ -18,11 +19,23 @@ from tools.parse_version import parse_version
 class TestChronologicalOrder:
     """Lo que la fuente afirma en su bloque de auto-verificacion."""
 
-    @pytest.mark.parametrize('series', [
-        ('0', '4.2', '4.2.3.4', '5.0.0-alpha', '5.0.0-rc1', '5.0.0-rc1.1',
-         '5.0.0_rc2', '5.0.0_rc3', '5.0.0'),
-        ('5.0.0-0_rc3', '5.0.0-1dev', '5.0.0-1'),
-    ])
+    @pytest.mark.parametrize(
+        'series',
+        [
+            (
+                '0',
+                '4.2',
+                '4.2.3.4',
+                '5.0.0-alpha',
+                '5.0.0-rc1',
+                '5.0.0-rc1.1',
+                '5.0.0_rc2',
+                '5.0.0_rc3',
+                '5.0.0',
+            ),
+            ('5.0.0-0_rc3', '5.0.0-1dev', '5.0.0-1'),
+        ],
+    )
     def test_the_series_grows(self, series):
         keys = [parse_version(v) for v in series]
         for before, after in zip(keys, keys[1:]):
@@ -37,7 +50,9 @@ class TestDocumentedContract:
         assert parse_version('2.4.0') == parse_version('2.4')
 
     def test_the_dash_is_a_patch_level(self):
-        """«2.4.1 es mas nuevo que 2.4-1, que a su vez es mas nuevo que 2.4»."""
+        """
+        «2.4.1 es mas nuevo que 2.4-1, que a su vez es mas nuevo que 2.4».
+        """
         assert parse_version('2.4') < parse_version('2.4-1')
         assert parse_version('2.4-1') < parse_version('2.4.1')
 

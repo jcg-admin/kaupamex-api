@@ -79,6 +79,7 @@ Divergencias declaradas
    firma —es parte del contrato de la fuente— y se documenta que aquí no
    cambia el conjunto.
 """
+
 import datetime
 from ast import literal_eval
 
@@ -117,11 +118,16 @@ def _get_lead_from_date(cls, members, date_from, active_test=False):
     user_ids = [m.user_id_id for m in members if m.user_id_id]
     if not team_ids or not user_ids:
         return {}
-    grouped = (_lead_model().objects
-               .filter(date_open__gte=date_from,
-                       team_id__in=team_ids, user_id__in=user_ids)
-               .values_list('user_id', 'team_id')
-               .annotate(n=Count('pk')))
+    grouped = (
+        _lead_model()
+        .objects.filter(
+            date_open__gte=date_from,
+            team_id__in=team_ids,
+            user_id__in=user_ids,
+        )
+        .values_list('user_id', 'team_id')
+        .annotate(n=Count('pk'))
+    )
     return {(user_id, team_id): n for user_id, team_id, n in grouped}
 
 
@@ -156,20 +162,25 @@ def _check_domain(self, raw, etiqueta):
     try:
         domain = literal_eval(raw or '[]')
         if domain:
-            # La fuente valida CORRIENDO la búsqueda (``search(domain, limit=1)``):
+            # La fuente valida CORRIENDO la búsqueda (``search(domain,
+            # limit=1)``):
             # el dominio mal formado revienta al compilarse. Aquí el compilador
-            # es ``orm.domains.to_q``, y ``.exists()`` fuerza el viaje a la base
+            # es ``orm.domains.to_q``, y ``.exists()`` fuerza el viaje a
+            # la base
             # para que un campo inexistente también levante — compilar sin
             # ejecutar dejaría pasar la mitad de los errores que la fuente ve.
             Lead = _lead_model()
             Lead.objects.filter(to_q(domain, Lead))[:1].exists()
     except Exception:
-        raise ValidationError(_(
-            '%(etiqueta)s del usuario %(user)s y el equipo %(team)s está mal '
-            'formado', etiqueta=etiqueta,
-            user=getattr(self.user_id, 'name', self.user_id_id),
-            team=getattr(self.crm_team_id, 'name', self.crm_team_id_id),
-        ))
+        raise ValidationError(
+            _(
+                '%(etiqueta)s del usuario %(user)s y el equipo %(team)s está'
+                ' mal formado',
+                etiqueta=etiqueta,
+                user=getattr(self.user_id, 'name', self.user_id_id),
+                team=getattr(self.crm_team_id, 'name', self.crm_team_id_id),
+            )
+        )
 
 
 def _constrains_assignment_domain(self):
@@ -179,8 +190,11 @@ def _constrains_assignment_domain(self):
 
 def _constrains_assignment_domain_preferred(self):
     """≙ ``_constrains_assignment_domain_preferred`` (``:71-83``)."""
-    _check_domain(self, self.assignment_domain_preferred,
-                  _('El dominio de asignación preferente'))
+    _check_domain(
+        self,
+        self.assignment_domain_preferred,
+        _('El dominio de asignación preferente'),
+    )
 
 
 def _get_assignment_quota(self, force_quota=False):
@@ -190,8 +204,11 @@ def _get_assignment_quota(self, force_quota=False):
     asignado en las últimas 24 h. ``force_quota`` devuelve el cupo entero, sin
     descontar — su semántica la fija ``CrmTeam._action_assign_leads``.
     """
-    quota = float_round(self.assignment_max / 30.0, precision_digits=0,
-                        rounding_method='HALF-UP')
+    quota = float_round(
+        self.assignment_max / 30.0,
+        precision_digits=0,
+        rounding_method='HALF-UP',
+    )
     if force_quota:
         return quota
     return quota - self.lead_day_count
@@ -203,24 +220,34 @@ def apply_crm_extensions():
         'crm.team.member',
         campos={
             'assignment_domain': fields.Char(
-                max_length=255, blank=True, default='',
+                max_length=255,
+                blank=True,
+                default='',
                 verbose_name='Dominio de asignación',
                 help_text='Odoo assignment_domain ("Assignment Domain").',
             ),
             'assignment_domain_preferred': fields.Char(
-                max_length=255, blank=True, default='',
+                max_length=255,
+                blank=True,
+                default='',
                 verbose_name='Dominio de asignación preferente',
-                help_text='Odoo assignment_domain_preferred '
-                          '("Preference assignment Domain").',
+                help_text=(
+                    'Odoo assignment_domain_preferred '
+                    '("Preference assignment Domain").'
+                ),
             ),
             'assignment_optout': fields.Boolean(
-                default=False, verbose_name='Pausar asignación',
+                default=False,
+                verbose_name='Pausar asignación',
                 help_text='Odoo assignment_optout ("Pause assignment").',
             ),
             'assignment_max': fields.Integer(
-                default=30, verbose_name='Capacidad media (30 días)',
-                help_text='Odoo assignment_max ("Average Leads Capacity '
-                          '(on 30 days)").',
+                default=30,
+                verbose_name='Capacidad media (30 días)',
+                help_text=(
+                    'Odoo assignment_max ("Average Leads Capacity '
+                    '(on 30 days)").'
+                ),
             ),
         },
         propiedades={
@@ -233,8 +260,9 @@ def apply_crm_extensions():
             '_compute_lead_day_count': _compute_lead_day_count,
             '_compute_lead_month_count': _compute_lead_month_count,
             '_constrains_assignment_domain': _constrains_assignment_domain,
-            '_constrains_assignment_domain_preferred':
-                _constrains_assignment_domain_preferred,
+            '_constrains_assignment_domain_preferred': (
+                _constrains_assignment_domain_preferred
+            ),
             '_get_assignment_quota': _get_assignment_quota,
         },
     )

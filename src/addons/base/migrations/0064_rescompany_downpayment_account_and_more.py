@@ -18,7 +18,11 @@ class Migration(migrations.Migration):
             name="downpayment_account",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo downpayment_account_id ("Downpayment Account"). Cuenta usada en las facturas de anticipo. Acotada por DOWNPAYMENT_ACCOUNT_DOMAIN.',
+                help_text=(
+                    'Odoo downpayment_account_id ("Downpayment Account").'
+                    ' Cuenta usada en las facturas de anticipo. Acotada por'
+                    ' DOWNPAYMENT_ACCOUNT_DOMAIN.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -31,7 +35,10 @@ class Migration(migrations.Migration):
             name="portal_confirmation_pay",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo portal_confirmation_pay ("Online Payment"). Pide pago del cliente para confirmar la cotización.',
+                help_text=(
+                    'Odoo portal_confirmation_pay ("Online Payment"). Pide'
+                    ' pago del cliente para confirmar la cotización.'
+                ),
                 verbose_name="Pago en línea",
             ),
         ),
@@ -40,7 +47,10 @@ class Migration(migrations.Migration):
             name="portal_confirmation_sign",
             field=models.BooleanField(
                 default=True,
-                help_text='Odoo portal_confirmation_sign ("Online Signature"). Pide firma del cliente para confirmar la cotización.',
+                help_text=(
+                    'Odoo portal_confirmation_sign ("Online Signature"). Pide'
+                    ' firma del cliente para confirmar la cotización.'
+                ),
                 verbose_name="Firma en línea",
             ),
         ),
@@ -49,7 +59,10 @@ class Migration(migrations.Migration):
             name="prepayment_percent",
             field=models.FloatField(
                 default=1.0,
-                help_text="Odoo prepayment_percent. Porcentaje del importe que el cliente debe pagar para confirmar la cotización.",
+                help_text=(
+                    "Odoo prepayment_percent. Porcentaje del importe que el"
+                    " cliente debe pagar para confirmar la cotización."
+                ),
                 verbose_name="Porcentaje de anticipo",
             ),
         ),
@@ -58,7 +71,12 @@ class Migration(migrations.Migration):
             name="sale_discount_product",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo sale_discount_product_id ("Discount Product"). Producto usado por omisión para materializar un descuento como línea. Acotado por SALE_DISCOUNT_PRODUCT_DOMAIN.',
+                help_text=(
+                    'Odoo sale_discount_product_id ("Discount Product").'
+                    ' Producto usado por omisión para materializar un'
+                    ' descuento como línea. Acotado por'
+                    ' SALE_DISCOUNT_PRODUCT_DOMAIN.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -78,7 +96,10 @@ class Migration(migrations.Migration):
                     ("other", "Pagar con otra pasarela"),
                     ("manual", "Pago manual"),
                 ],
-                help_text="Odoo sale_onboarding_payment_method. Guarda qué método eligió la empresa la primera vez que usó Ventas.",
+                help_text=(
+                    "Odoo sale_onboarding_payment_method. Guarda qué método"
+                    " eligió la empresa la primera vez que usó Ventas."
+                ),
                 max_length=20,
                 null=True,
                 verbose_name="Método de pago elegido en el arranque de Ventas",
@@ -89,7 +110,11 @@ class Migration(migrations.Migration):
             name="quotation_validity_days",
             field=models.IntegerField(
                 default=30,
-                help_text='Odoo quotation_validity_days ("Default Quotation Validity"). Días entre la cotización y su vencimiento; 0 desactiva el vencimiento automático.',
+                help_text=(
+                    'Odoo quotation_validity_days ("Default Quotation'
+                    ' Validity"). Días entre la cotización y su vencimiento; 0'
+                    ' desactiva el vencimiento automático.'
+                ),
                 verbose_name="Validez de la cotización",
             ),
         ),

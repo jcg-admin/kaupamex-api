@@ -2,11 +2,14 @@
 
 ``odoo19c: addons/base_import_module/models/base_import_module.py:8-45``.
 """
+
 import pytest
 
 from addons.base_import_module.models import BaseImportModule
 from addons.base_import_module.models.base_import_module import (
-    IR_MODULE_MODEL, STATE_CHOICES)
+    IR_MODULE_MODEL,
+    STATE_CHOICES,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -19,16 +22,23 @@ class TestClassAttributes:
         assert BaseImportModule._description == 'Import Module'
 
     def test_the_table_derives_from_the_dotted_name(self):
-        assert BaseImportModule._meta.db_table == \
-            BaseImportModule._name.replace('.', '_')
+        assert (
+            BaseImportModule._meta.db_table
+            == BaseImportModule._name.replace('.', '_')
+        )
 
 
 class TestTheSixFields:
-    """Los seis campos de la fuente (``:12-17``), con sus valores por defecto."""
+    """
+    Los seis campos de la fuente (``:12-17``), con sus valores por defecto.
+    """
 
     def test_the_wizard_persists_and_reads_back(self):
         wizard = BaseImportModule.objects.create(module_file=b'PK\x03\x04')
-        assert BaseImportModule.objects.get(pk=wizard.pk).module_file == b'PK\x03\x04'
+        assert (
+            BaseImportModule.objects.get(pk=wizard.pk).module_file
+            == b'PK\x03\x04'
+        )
 
     def test_state_defaults_to_init(self):
         assert BaseImportModule.objects.create().state == 'init'
@@ -63,11 +73,14 @@ class TestActionModuleOpen:
 
     def test_the_named_modules_travel_in_the_domain(self):
         action = BaseImportModule.objects.create().action_module_open(
-            module_name=['sale', 'stock'])
+            module_name=['sale', 'stock']
+        )
         assert action['domain'] == [('name', 'in', ['sale', 'stock'])]
 
     def test_without_names_the_domain_is_empty(self):
-        """La fuente lee ``context.get('module_name', [])``: sin clave, vacío."""
+        """
+        La fuente lee ``context.get('module_name', [])``: sin clave, vacío.
+        """
         action = BaseImportModule.objects.create().action_module_open()
         assert action['domain'] == [('name', 'in', [])]
 
@@ -80,6 +93,7 @@ class TestTheTwoBlockedSymbols:
             BaseImportModule.objects.create().import_module()
 
     def test_get_dependencies_names_its_blocker(self):
-        with pytest.raises(NotImplementedError,
-                           match='_get_missing_dependencies_modules'):
+        with pytest.raises(
+            NotImplementedError, match='_get_missing_dependencies_modules'
+        ):
             BaseImportModule.objects.create().get_dependencies_to_install_names()

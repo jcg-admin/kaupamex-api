@@ -1,0 +1,17 @@
+{
+  "existing_population": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "descriptor": "protected_compute_scope",
+  "task": "TASK-GEN-0558",
+  "bounded_unit": "native_stored_compute_readback",
+  "evidence": "native-stored-contract-14.json",
+  "parent_equivalence": "not_verified",
+  "parent_acceptance": "not_verified",
+  "global_contract_denominator": "not established",
+  "historical_population_rewritten": false,
+  "actual_SQL_qualification": "native-stored-postgresql.json validates managers/read-back in rollback-scoped TEMP fixture; full commit remains blocked, no parent acceptance promotion",
+  "additional_existing_parent_descriptors": [
+    "flush_recompute_fixpoint",
+    "cursor_transaction_lifecycle"
+  ],
+  "additional_scope": "Provided-default_env actual cache-only commit/clear and SQL no-op writer negative; filtered physical lookup linked to API0397; no parent acceptance promotion"
+}

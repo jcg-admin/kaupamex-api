@@ -11,9 +11,10 @@
     # `depends` MEDIDO da ['base', 'product'] y la referencia declara
     # ['account']. La divergencia es de HOGAR: allí la matriz se estrena en la
     # factura, así que el addon cuelga del módulo contable; aquí el terminal
-    # es el producto y sus atributos, y quien la consume es `sale_product_matrix`.
+    # es el producto y sus atributos, y quien la consume es
+    # `sale_product_matrix`.
     'depends': [
-        'base',     # ResCompany
+        'base',  # ResCompany
         'product',  # ProductTemplate y sus atributos — los ejes de la rejilla
     ],
     'author': 'Odoo S.A.',

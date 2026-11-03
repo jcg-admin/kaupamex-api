@@ -1,0 +1,7 @@
+{
+  "before_sha256": "27c59575a55af0fa78ffa31917083baa791d69dc8f398733b1b7ab6c75adc3c9",
+  "after_sha256": "ea2e13b311a6c98704a15e1e245e554c85d756fc8725aeb56bfbabcfb7cbe828",
+  "executable_AST_equal_excluding_docstrings": true,
+  "working_executable_AST_preserved": true,
+  "scope": "Clarify native/Django docstrings; wrap invalidated Django expression only"
+}

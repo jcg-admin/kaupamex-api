@@ -8,6 +8,7 @@ conversor en sí. Se aplica explícitamente una vez, igual que
 ``tests/unit/account_debit_note/test_account_move_sequence_debit_note.py``
 hace con ``apply_account_debit_note_extensions()``.
 """
+
 from decimal import Decimal
 
 from addons.account_check_printing.models.res_currency import (
@@ -73,15 +74,24 @@ class TestAmountToText:
 
     def test_zero(self):
         currency = ResCurrency()
-        assert currency.amount_to_text(Decimal('0.00')) == 'CERO PESOS 00/100 M.N.'
+        assert (
+            currency.amount_to_text(Decimal('0.00'))
+            == 'CERO PESOS 00/100 M.N.'
+        )
 
     def test_with_cents(self):
         currency = ResCurrency()
-        assert currency.amount_to_text(Decimal('100.50')) == 'CIEN PESOS 50/100 M.N.'
+        assert (
+            currency.amount_to_text(Decimal('100.50'))
+            == 'CIEN PESOS 50/100 M.N.'
+        )
 
     def test_rounds_half_up_on_the_exact_half_cent(self):
         currency = ResCurrency()
-        assert currency.amount_to_text(Decimal('10.005')) == 'DIEZ PESOS 01/100 M.N.'
+        assert (
+            currency.amount_to_text(Decimal('10.005'))
+            == 'DIEZ PESOS 01/100 M.N.'
+        )
 
     def test_thousands(self):
         currency = ResCurrency()

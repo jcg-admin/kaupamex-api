@@ -1,0 +1,12 @@
+{
+  "task": "TASK-API-0420",
+  "tests_run": 7,
+  "failures": [
+    "test_literal_default_has_no_e010 (__main__.JsonDefaultContract.test_literal_default_has_no_e010)",
+    "test_nested_defaults_are_independent (__main__.JsonDefaultContract.test_nested_defaults_are_independent)"
+  ],
+  "errors": [],
+  "exit_code": 1,
+  "classification": "BASELINE_FAILURE",
+  "limits": "Field-only; no Odoo runtime, DB or addon acceptance"
+}

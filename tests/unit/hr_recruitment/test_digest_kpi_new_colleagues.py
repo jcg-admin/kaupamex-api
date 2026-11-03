@@ -10,6 +10,7 @@ causa ya no existía. Se ejerce por la puerta que el árbol usa —
 ``digest.compute_kpi_value(...)``, que despacha al método instalado por
 ``extend_model``— para que un ``metodos=`` mal cableado caiga aquí.
 """
+
 from datetime import timedelta
 
 import pytest
@@ -35,13 +36,15 @@ END = TODAY + timedelta(days=1)
 @pytest.fixture
 def company():
     return ResCompany.objects.create(
-        code='digest-colleagues-co', name='Digest Colleagues Co')
+        code='digest-colleagues-co', name='Digest Colleagues Co'
+    )
 
 
 @pytest.fixture
 def digest(company):
     return DigestDigest.objects.create(
-        name='Digest de empleados', company_id=company)
+        name='Digest de empleados', company_id=company
+    )
 
 
 @pytest.fixture
@@ -63,42 +66,53 @@ class TestNewColleaguesCountsEmployeesOfTheCompany:
     """≙ ``self._calculate_company_based_kpi('hr.employee', …)``."""
 
     def test_counts_the_employees_created_in_the_window(
-        self, digest, company, recruiter,
+        self,
+        digest,
+        company,
+        recruiter,
     ):
-        HrEmployee.objects.create(name='Primera contratación',
-                                  company=company)
-        HrEmployee.objects.create(name='Segunda contratación',
-                                  company=company)
+        HrEmployee.objects.create(name='Primera contratación', company=company)
+        HrEmployee.objects.create(name='Segunda contratación', company=company)
         with user_scope(recruiter.pk):
             value = digest.compute_kpi_value(
-                'kpi_hr_recruitment_new_colleagues', START, END)
+                'kpi_hr_recruitment_new_colleagues', START, END
+            )
         assert value == 2
 
     def test_no_hires_gives_zero(self, digest, company, recruiter):
         with user_scope(recruiter.pk):
             value = digest.compute_kpi_value(
-                'kpi_hr_recruitment_new_colleagues', START, END)
+                'kpi_hr_recruitment_new_colleagues', START, END
+            )
         assert value == 0
 
     def test_another_company_is_not_counted(self, digest, company, recruiter):
         other = ResCompany.objects.create(
-            code='digest-colleagues-other', name='Otra Co')
+            code='digest-colleagues-other', name='Otra Co'
+        )
         HrEmployee.objects.create(name='De la otra empresa', company=other)
         with user_scope(recruiter.pk):
             value = digest.compute_kpi_value(
-                'kpi_hr_recruitment_new_colleagues', START, END)
+                'kpi_hr_recruitment_new_colleagues', START, END
+            )
         assert value == 0
 
     def test_a_hire_outside_the_window_is_not_counted(
-        self, digest, company, recruiter,
+        self,
+        digest,
+        company,
+        recruiter,
     ):
-        employee = HrEmployee.objects.create(name='Contratación vieja',
-                                             company=company)
+        employee = HrEmployee.objects.create(
+            name='Contratación vieja', company=company
+        )
         HrEmployee.objects.filter(pk=employee.pk).update(
-            created_at=TODAY - timedelta(days=30))
+            created_at=TODAY - timedelta(days=30)
+        )
         with user_scope(recruiter.pk):
             value = digest.compute_kpi_value(
-                'kpi_hr_recruitment_new_colleagues', START, END)
+                'kpi_hr_recruitment_new_colleagues', START, END
+            )
         assert value == 0
 
 
@@ -107,16 +121,21 @@ class TestAccessGuard:
     group_hr_recruitment_user'): raise AccessError(...)``."""
 
     def test_user_outside_the_group_is_refused(
-        self, digest, company, outsider,
+        self,
+        digest,
+        company,
+        outsider,
     ):
         with user_scope(outsider.pk), pytest.raises(AccessError):
             digest.compute_kpi_value(
-                'kpi_hr_recruitment_new_colleagues', START, END)
+                'kpi_hr_recruitment_new_colleagues', START, END
+            )
 
     def test_no_current_user_is_refused_not_a_crash(self, digest, company):
         with user_scope(None), pytest.raises(AccessError):
             digest.compute_kpi_value(
-                'kpi_hr_recruitment_new_colleagues', START, END)
+                'kpi_hr_recruitment_new_colleagues', START, END
+            )
 
 
 class TestTheValueFieldHasNoColumn:

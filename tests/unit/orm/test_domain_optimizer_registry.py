@@ -1,4 +1,5 @@
-"""El registro de optimizadores de dominio — lo que ``_optimize_step`` esperaba.
+"""
+El registro de optimizadores de dominio — lo que ``_optimize_step`` esperaba.
 
 Hasta ``api@e85916e1`` los dos ``_optimize_step`` que importan declaraban su
 hueco en el docstring y devolvian el dominio sin tocar:
@@ -16,6 +17,7 @@ Esta suite mide el **mecanismo**, no los optimizadores concretos: los cuatro
 registradores, la llave de orden y las dos rutas de despacho. Los ~33
 optimizadores que se registran con el son la tanda siguiente.
 """
+
 import pytest
 
 from orm.domains import (
@@ -42,8 +44,10 @@ def isolated_registry():
     Sin esto, un optimizador de prueba sobreviviria al caso que lo registro y
     contaminaria los demas — incluida la suite de dominios que ya existe.
     """
-    saved_for = {level: {op: list(fns) for op, fns in mapping.items()}
-                 for level, mapping in _OPTIMIZATIONS_FOR.items()}
+    saved_for = {
+        level: {op: list(fns) for op, fns in mapping.items()}
+        for level, mapping in _OPTIMIZATIONS_FOR.items()
+    }
     saved_merge = list(_MERGE_OPTIMIZATIONS)
     saved_operators = set(CONDITION_OPERATORS)
     yield
@@ -63,7 +67,9 @@ class TestRegisteringByOperator:
         def optimizer(condition, model):
             return condition
 
-        assert optimizer in _OPTIMIZATIONS_FOR[OptimizationLevel.BASIC]['zz_test']
+        assert (
+            optimizer in _OPTIMIZATIONS_FOR[OptimizationLevel.BASIC]['zz_test']
+        )
 
     def test_it_returns_the_function_unchanged(self):
         def optimizer(condition, model):
@@ -94,8 +100,13 @@ class TestRegisteringByOperator:
         def optimizer(condition, model):
             return condition
 
-        assert optimizer in _OPTIMIZATIONS_FOR[OptimizationLevel.FULL]['zz_test']
-        assert optimizer not in _OPTIMIZATIONS_FOR[OptimizationLevel.BASIC]['zz_test']
+        assert (
+            optimizer in _OPTIMIZATIONS_FOR[OptimizationLevel.FULL]['zz_test']
+        )
+        assert (
+            optimizer
+            not in _OPTIMIZATIONS_FOR[OptimizationLevel.BASIC]['zz_test']
+        )
 
     def test_registering_without_operators_is_refused(self):
         with pytest.raises(AssertionError):
@@ -113,7 +124,9 @@ class TestRegisteringByFieldType:
         def optimizer(condition, model):
             return condition
 
-        assert optimizer in _OPTIMIZATIONS_FOR[OptimizationLevel.BASIC]['zz_kind']
+        assert (
+            optimizer in _OPTIMIZATIONS_FOR[OptimizationLevel.BASIC]['zz_kind']
+        )
 
     def test_it_does_not_declare_a_new_operator(self):
         @field_type_optimization(['zz_kind'])
@@ -137,14 +150,24 @@ class TestTheSortKey:
 
     def test_every_like_shares_the_like_family(self):
         for operator in ('like', 'not like', 'ilike', '=like'):
-            key = _optimize_nary_sort_key(DomainCondition('name', operator, 'a'))
+            key = _optimize_nary_sort_key(
+                DomainCondition('name', operator, 'a')
+            )
             assert key[1] == 'like', operator
 
     def test_the_two_any_families_are_distinct(self):
-        assert _optimize_nary_sort_key(
-            DomainCondition('a', 'any', Domain.TRUE))[1] == '1any'
-        assert _optimize_nary_sort_key(
-            DomainCondition('a', 'any!', Domain.TRUE))[1] == '2any'
+        assert (
+            _optimize_nary_sort_key(DomainCondition('a', 'any', Domain.TRUE))[
+                1
+            ]
+            == '1any'
+        )
+        assert (
+            _optimize_nary_sort_key(DomainCondition('a', 'any!', Domain.TRUE))[
+                1
+            ]
+            == '2any'
+        )
 
     def test_a_non_condition_sorts_at_the_end(self):
         """La fuente lo dice verbatim: *"in python; '~' > any letter"*."""
@@ -152,11 +175,14 @@ class TestTheSortKey:
         assert key[0] == '~'
 
     def test_two_conditions_on_the_same_field_land_together(self):
-        keys = sorted(_optimize_nary_sort_key(d) for d in [
-            DomainCondition('zeta', '=', 1),
-            DomainCondition('alfa', '=', 1),
-            DomainCondition('zeta', '>', 1),
-        ])
+        keys = sorted(
+            _optimize_nary_sort_key(d)
+            for d in [
+                DomainCondition('zeta', '=', 1),
+                DomainCondition('alfa', '=', 1),
+                DomainCondition('zeta', '>', 1),
+            ]
+        )
         assert [k[0] for k in keys] == ['alfa', 'zeta', 'zeta']
 
 
@@ -184,8 +210,9 @@ class TestTheNaryMerge:
             seen.append(cls)
             return domains
 
-        DomainAnd([DomainCondition('a', '=', 1),
-                   DomainCondition('b', '=', 2)]).optimize()
+        DomainAnd(
+            [DomainCondition('a', '=', 1), DomainCondition('b', '=', 2)]
+        ).optimize()
         assert DomainAnd in seen
 
     def test_the_nary_step_applies_what_the_merge_returns(self):
@@ -193,8 +220,9 @@ class TestTheNaryMerge:
         def collapse(cls, domains, model):
             return [DomainCondition('merged', '=', 1)]
 
-        result = DomainAnd([DomainCondition('a', '=', 1),
-                            DomainCondition('b', '=', 2)]).optimize()
+        result = DomainAnd(
+            [DomainCondition('a', '=', 1), DomainCondition('b', '=', 2)]
+        ).optimize()
         assert list(result.iter_conditions())[0].field_expr == 'merged'
 
     def test_the_children_reach_the_merge_already_sorted(self):
@@ -205,8 +233,9 @@ class TestTheNaryMerge:
             seen.append([d.field_expr for d in domains])
             return domains
 
-        DomainAnd([DomainCondition('zeta', '=', 1),
-                   DomainCondition('alfa', '=', 2)]).optimize()
+        DomainAnd(
+            [DomainCondition('zeta', '=', 1), DomainCondition('alfa', '=', 2)]
+        ).optimize()
         assert seen[0] == ['alfa', 'zeta']
 
     def test_an_or_domain_runs_the_merge_too(self):
@@ -219,8 +248,9 @@ class TestTheNaryMerge:
             seen.append(cls)
             return domains
 
-        DomainOr([DomainCondition('a', '=', 1),
-                  DomainCondition('b', '=', 2)]).optimize()
+        DomainOr(
+            [DomainCondition('a', '=', 1), DomainCondition('b', '=', 2)]
+        ).optimize()
         assert DomainOr in seen
 
 
@@ -235,9 +265,13 @@ class TestTheConditionBlockAdapter:
             seen.append([c.field_expr for c in conditions])
             return conditions
 
-        DomainAnd([DomainCondition('a', 'in', [1]),
-                   DomainCondition('a', 'in', [2]),
-                   DomainCondition('b', '>', 3)]).optimize()
+        DomainAnd(
+            [
+                DomainCondition('a', 'in', [1]),
+                DomainCondition('a', 'in', [2]),
+                DomainCondition('b', '>', 3),
+            ]
+        ).optimize()
         # ``optimize`` repite hasta punto fijo, asi que la fusion puede correr
         # mas de una vez; lo que se asierta es QUE bloque recibe, no cuantas.
         assert set(map(tuple, seen)) == {('a', 'a')}
@@ -250,8 +284,9 @@ class TestTheConditionBlockAdapter:
             seen.append(conditions)
             return conditions
 
-        DomainAnd([DomainCondition('a', 'in', [1]),
-                   DomainCondition('b', 'in', [2])]).optimize()
+        DomainAnd(
+            [DomainCondition('a', 'in', [1]), DomainCondition('b', 'in', [2])]
+        ).optimize()
         assert seen == []
 
     def test_what_it_returns_replaces_the_block(self):
@@ -259,8 +294,9 @@ class TestTheConditionBlockAdapter:
         def optimizer(cls, conditions, model):
             return [DomainCondition('a', 'in', [9])]
 
-        result = DomainAnd([DomainCondition('a', 'in', [1]),
-                            DomainCondition('a', 'in', [2])]).optimize()
+        result = DomainAnd(
+            [DomainCondition('a', 'in', [1]), DomainCondition('a', 'in', [2])]
+        ).optimize()
         conditions = list(result.iter_conditions())
         assert len(conditions) == 1
         assert list(conditions[0].value) == [9]
@@ -270,9 +306,13 @@ class TestTheConditionBlockAdapter:
         def optimizer(cls, conditions, model):
             return [DomainCondition('a', 'in', [9])]
 
-        result = DomainAnd([DomainCondition('a', 'in', [1]),
-                            DomainCondition('a', 'in', [2]),
-                            DomainCondition('z', '>', 3)]).optimize()
+        result = DomainAnd(
+            [
+                DomainCondition('a', 'in', [1]),
+                DomainCondition('a', 'in', [2]),
+                DomainCondition('z', '>', 3),
+            ]
+        ).optimize()
         assert {c.field_expr for c in result.iter_conditions()} == {'a', 'z'}
 
     def test_an_operator_outside_the_set_is_not_grouped(self):
@@ -283,8 +323,9 @@ class TestTheConditionBlockAdapter:
             seen.append(conditions)
             return conditions
 
-        DomainAnd([DomainCondition('a', '>', 1),
-                   DomainCondition('a', '>', 2)]).optimize()
+        DomainAnd(
+            [DomainCondition('a', '>', 1), DomainCondition('a', '>', 2)]
+        ).optimize()
         assert seen == []
 
 

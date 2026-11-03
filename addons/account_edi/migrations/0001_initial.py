@@ -38,7 +38,10 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Código técnico único del formato (Odoo code, requerido).",
+                        help_text=(
+                            "Código técnico único del formato (Odoo code,"
+                            " requerido)."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -46,7 +49,11 @@ class Migration(migrations.Migration):
                     "journals",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Diarios donde este formato está activo (Odoo journal_id, lado inverso de journal.edi_format_ids).",
+                        help_text=(
+                            "Diarios donde este formato está activo (Odoo"
+                            " journal_id, lado inverso de"
+                            " journal.edi_format_ids)."
+                        ),
                         related_name="edi_format_ids",
                         to="account.accountjournal",
                     ),
@@ -103,7 +110,9 @@ class Migration(migrations.Migration):
                             ("error", "Error"),
                         ],
                         default="",
-                        help_text="Severidad del bloqueo (Odoo blocking_level).",
+                        help_text=(
+                            "Severidad del bloqueo (Odoo blocking_level)."
+                        ),
                         max_length=7,
                     ),
                 ),
@@ -111,7 +120,10 @@ class Migration(migrations.Migration):
                     "attachment",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Archivo generado por edi_format al postear el asiento (Odoo attachment_id).",
+                        help_text=(
+                            "Archivo generado por edi_format al postear el"
+                            " asiento (Odoo attachment_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="edi_documents",
@@ -121,7 +133,11 @@ class Migration(migrations.Migration):
                 (
                     "move",
                     models.ForeignKey(
-                        help_text="Asiento contable (Odoo move_id, requerido). related_name da a account.move el M2O inverso sin tocar su archivo.",
+                        help_text=(
+                            "Asiento contable (Odoo move_id, requerido)."
+                            " related_name da a account.move el M2O inverso"
+                            " sin tocar su archivo."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="edi_document_ids",
                         to="account.accountmove",
@@ -130,7 +146,9 @@ class Migration(migrations.Migration):
                 (
                     "edi_format",
                     models.ForeignKey(
-                        help_text="Formato EDI (Odoo edi_format_id, requerido).",
+                        help_text=(
+                            "Formato EDI (Odoo edi_format_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="documents",
                         to="account_edi.accountediformat",

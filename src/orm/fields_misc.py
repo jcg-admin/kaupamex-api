@@ -14,6 +14,11 @@ consumidores en la referencia — ``account/models/partner.py:573-574``
 fuente (``odoo19c: odoo/orm/fields.py:42-44``), y además un campo por empresa
 YA es un ``jsonb`` — anidarlo no tendría dónde poner el mapa de empresas.
 """
+
+import json
+from copy import deepcopy
+from functools import partial
+
 from django.db import models
 
 from orm.fields_company_dependent import make_dispatcher
@@ -22,10 +27,13 @@ from orm.fields_nonstored import (
     annotate_related,
     apply_source_defaults,
 )
+from tools.json import json_default
 
 __all__ = ['Boolean', 'Json']
 
 Boolean = make_dispatcher('Boolean', 'boolean', models.BooleanField)
+
+
 def Json(*args, store=_UNSET, related=None, **kwargs):
     """``fields.Json`` — el ``JSONField`` de Django, con y sin columna.
 
@@ -46,6 +54,18 @@ def Json(*args, store=_UNSET, related=None, **kwargs):
     """
     if store is not _UNSET:
         kwargs['store'] = store
+    # TASK-API-0420: la fuente copia el JSON al entregarlo al registro
+    # (Json.convert_to_record). Django evalúa un default invocable por
+    # instancia; partial conserva el literal y es serializable en migraciones.
+    default = kwargs.get('default')
+    if default is not None and not callable(default):
+        kwargs['default'] = partial(deepcopy, default)
+    #: La columna ``jsonb`` de la fuente admite ``NULL`` (``Json`` no declara
+    #: ``required``), y ``convert_to_cache`` guarda ahí todo valor falso.
+    #: Sin ``null=`` Django la crearía ``NOT NULL``.
+    if 'null' not in kwargs:
+        kwargs['null'] = True
+        kwargs.setdefault('blank', True)
     related_attrs = apply_source_defaults(related, kwargs)
     #: El tipo se construye SIEMPRE, con columna o sin ella: ``store`` es un
     #: atributo del campo, no una clase distinta
@@ -56,8 +76,12 @@ def Json(*args, store=_UNSET, related=None, **kwargs):
     return annotate_related(field, related, related_attrs)
 
 
-def _boolean_convert_to_column(self, value, record, values=None, validate=True):
-    """``Boolean.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_misc.py:28-29``.
+def _boolean_convert_to_column(
+    self, value, record, values=None, validate=True
+):
+    """
+    ``Boolean.convert_to_column`` — ≙ ``odoo19c:
+    odoo/orm/fields_misc.py:28-29``.
 
     ``bool(value)`` y no la rama de la base: es el ÚNICO tipo para el que
     ``False`` es un valor y no la ausencia de valor. Sin esta sobrecarga, la
@@ -88,6 +112,63 @@ def _json_convert_to_column(self, value, record, values=None, validate=True):
 
 
 models.JSONField.convert_to_column = _json_convert_to_column
+
+
+def _json_convert_to_cache(self, value, record, validate=True):
+    """``Json.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/fields_misc.py:70-73``.
+
+    La caché guarda la forma JSON del valor: la ida y vuelta por ``json``
+    convierte una tupla en lista y separa el valor de cualquier referencia que
+    conserve quien lo asignó.
+
+    Todo valor falso se guarda como ``None``, como en la fuente, en una
+    columna que admite ``NULL`` —la de todo ``fields.Json``, que lo es por
+    defecto—. **Divergencia declarada, acotada:** en una columna ``NOT NULL``
+    (un ``models.JSONField`` con el vocabulario de Django, o un ``Json`` con
+    ``null=False``) el falso se conserva, porque ``NULL`` fallaría al volcar.
+
+    Serializa con ``tools.json.json_default``, como la fuente: un instante
+    sale como ``Datetime.to_string``, una fecha como ``Date.to_string`` y un
+    ``Domain`` como su lista.
+    """
+    if not value:
+        return None if self.null else value
+    return json.loads(json.dumps(value, ensure_ascii=False,
+                                 default=json_default))
+
+
+def _json_convert_to_record(self, value, record):
+    """``Json.convert_to_record`` — ≙ ``:66-68``: el registro recibe una copia.
+
+    La fuente documenta que ``Json`` no admite mutar el valor leído; la copia
+    profunda es lo que hace cierta esa frase, porque modificar lo devuelto no
+    toca la caché ni la fila.
+    """
+    return False if value is None else deepcopy(value)
+
+
+models.JSONField.convert_to_cache = _json_convert_to_cache
+models.JSONField.convert_to_record = _json_convert_to_record
+
+
+_DJANGO_JSON_PRE_SAVE = models.JSONField.pre_save
+
+
+def _json_pre_save(self, model_instance, add):
+    """Lo que se vuelca es el valor del almacén de la fila, no el del registro.
+
+    ``Field.pre_save`` de Django lee el atributo, y para un ``Json`` el
+    atributo es ``convert_to_record``: un ``NULL`` llega al registro como
+    ``False`` (``odoo19c: odoo/orm/fields_misc.py:66-68``). Volcar esa lectura
+    escribiría el JSON ``false`` donde la fuente deja ``NULL``. Sin valor en
+    el almacén se vuelve al camino de Django.
+    """
+    if self.attname in model_instance.__dict__:
+        return model_instance.__dict__[self.attname]
+    return _DJANGO_JSON_PRE_SAVE(self, model_instance, add)
+
+
+models.JSONField.pre_save = _json_pre_save
 
 
 def _id_convert_to_column(self, value, record, values=None, validate=True):

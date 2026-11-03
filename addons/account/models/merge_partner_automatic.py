@@ -1,4 +1,6 @@
-"""``base.partner.merge.automatic.wizard`` colgado por ``account`` — bypass de auditoría al fusionar.
+"""
+``base.partner.merge.automatic.wizard`` colgado por ``account`` — bypass de
+auditoría al fusionar.
 
 Adaptación de ``addons/account/models/merge_partner_automatic.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3 — atribución y aviso de
@@ -66,6 +68,7 @@ devuelve ``None``, así que la implementación real de ``PartnerMerge`` corre
 sin modificación — que es, medido, el comportamiento correcto dado que no
 hay nada que anular.
 """
+
 from addons.base.wizard.base_partner_merge import PartnerMerge
 from orm.method_chain import chain_method
 
@@ -83,7 +86,9 @@ def _update_reference_fields(cls, src_partners, dst_partner):
 
 
 def apply_account_extensions():
-    """Cuelga la extensión (vacía, documentada) sobre ``PartnerMerge`` — ≙ ``_inherit``.
+    """
+    Cuelga la extensión (vacía, documentada) sobre ``PartnerMerge`` — ≙
+    ``_inherit``.
 
     **Todavía no cableado** en ``AccountConfig._EXTENSIONES`` — mismo estado
     declarado que ``mail_message.py``/``mail_template.py``/
@@ -92,5 +97,8 @@ def apply_account_extensions():
     se encadena como tal para que ``chain_method`` reinstale el mismo tipo de
     descriptor (ver la tabla de ``orm/method_chain.py``).
     """
-    chain_method(PartnerMerge, '_update_reference_fields',
-                 classmethod(_update_reference_fields))
+    chain_method(
+        PartnerMerge,
+        '_update_reference_fields',
+        classmethod(_update_reference_fields),
+    )

@@ -4,6 +4,7 @@ Puente Reclutamiento ↔ SMS, sin modelos propios: una sola extensión sobre
 ``hr.applicant``, aplicada en ``ready()`` cuando el registro de modelos ya
 está poblado (mismo patrón que ``HrFleetConfig``).
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -19,8 +20,9 @@ class HrRecruitmentSmsConfig(AppConfig):
     #: nombre del archivo espeja el de la referencia
     #: (``odoo19c: hr_recruitment_sms/models/hr_applicant.py``).
     _EXTENSIONES = {
-        'addons.hr_recruitment_sms.models.hr_applicant':
-            'apply_hr_recruitment_sms_hr_applicant_extensions',
+        'addons.hr_recruitment_sms.models.hr_applicant': (
+            'apply_hr_recruitment_sms_hr_applicant_extensions'
+        ),
     }
 
     def ready(self):

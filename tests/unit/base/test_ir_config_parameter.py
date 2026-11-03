@@ -10,6 +10,7 @@ forma Django derivada donde el atributo la tiene. El comportamiento
 runtime (get/set, caché, protección de claves, seed) ya está cubierto por
 ``test_system_parameter.py`` — este archivo NO lo duplica.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
@@ -28,7 +29,8 @@ class TestHeaderClassAttributes:
         assert SystemParameter._name == 'ir.config_parameter'
 
     def test_description_matches_the_reference_description(self):
-        # odoo19c: ir_config_parameter.py:31 — _description = 'System Parameter'
+        # odoo19c: ir_config_parameter.py:31 — _description = 'System
+        # Parameter'
         assert SystemParameter._description == 'System Parameter'
 
     def test_rec_name_matches_the_reference_rec_name(self):
@@ -59,7 +61,9 @@ class TestHeaderDjangoDerivedForm:
         assert SystemParameter._meta.db_table == 'system_parameter'
 
     def test_description_coexists_with_verbose_name(self):
-        assert SystemParameter._meta.verbose_name == SystemParameter._description
+        assert (
+            SystemParameter._meta.verbose_name == SystemParameter._description
+        )
 
     def test_order_coexists_with_meta_ordering(self):
         assert list(SystemParameter._meta.ordering) == [SystemParameter._order]
@@ -88,7 +92,10 @@ class TestOrmcacheAdoption:
 
     def test_the_cache_family_is_the_one_the_reference_declares(self):
         # odoo19c: ir_config_parameter.py:70 — cache='stable'
-        assert SystemParameter._get_param.__func__.__cache__.cache_name == 'stable'
+        assert (
+            SystemParameter._get_param.__func__.__cache__.cache_name
+            == 'stable'
+        )
 
     def test_the_ad_hoc_cache_is_gone(self):
         assert not hasattr(config_module, '_PARAM_CACHE')
@@ -100,7 +107,8 @@ class TestOrmcacheAdoption:
         # (divergencia de enlace ya declarada en tools/cache.py), asi que el
         # alias entra en la clave: sin el, dos bases compartirian entrada.
         key = SystemParameter._get_param.__func__.__cache__.key(
-            SystemParameter, 'k', 'otra_base')
+            SystemParameter, 'k', 'otra_base'
+        )
         assert key[0] == 'ir.config_parameter'
         assert key[2] == 'k'
         assert key[3] == 'otra_base'
@@ -114,17 +122,19 @@ class TestPortedMutationMethods:
 
     def test_create_invalidates_the_stable_family(self):
         SystemParameter.set_param('k', 'v')
-        SystemParameter.get_param('k')                    # siembra la entrada
+        SystemParameter.get_param('k')  # siembra la entrada
         registry.cache_of('stable')['centinela'] = 1
         SystemParameter.create({'key': 'otra', 'value': 'x'})
         assert 'centinela' not in registry.cache_of('stable').snapshot
 
     def test_create_accepts_a_list_like_the_reference(self):
         # odoo19c: :101 — @api.model_create_multi
-        created = SystemParameter.create([
-            {'key': 'lote.a', 'value': '1'},
-            {'key': 'lote.b', 'value': '2'},
-        ])
+        created = SystemParameter.create(
+            [
+                {'key': 'lote.a', 'value': '1'},
+                {'key': 'lote.b', 'value': '2'},
+            ]
+        )
         assert len(created) == 2
         assert SystemParameter.get_param('lote.a') == '1'
 

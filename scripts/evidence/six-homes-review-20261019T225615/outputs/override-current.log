@@ -1,0 +1,38 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+
+=== EXISTING INSTRUMENT recoleccion-de-definiciones-20260911T175852/probe_the_override_loses_the_base.py
+== lo que la BASE declara ==
+   compute        '_compute_display_name'
+   search         None
+   verbose_name   'Display Name'
+   tipo           CharField
+
+== lo que el OVERRIDE deja en el modelo real ==
+   vars(Category)  ComputedFieldDescriptor
+   en _meta        CharField
+   compute        '_compute_display_name'
+   search         '_search_display_name'
+   inverse        '_inverse_display_name'
+   recursive      True
+
+== el veredicto de conducta ==
+   ¿es NonStored, como manda la fusión de la fuente? False
+   ¿conserva el compute de la base? True
+   ¿conserva el search de la base?  False
+
+=== EXISTING INSTRUMENT fusion-de-declaraciones-de-campo-20260911T122051/probe_tree_redeclarations.py
+modelos medidos: 399
+stored sobre NonStored (el defecto de M4): 0
+NonStored sobre stored: 0
+
+CONNECTION_ATTEMPTS []
+[
+  {
+    "instrument": "recoleccion-de-definiciones-20260911T175852/probe_the_override_loses_the_base.py",
+    "exit_code": null
+  },
+  {
+    "instrument": "fusion-de-declaraciones-de-campo-20260911T122051/probe_tree_redeclarations.py",
+    "exit_code": null
+  }
+]

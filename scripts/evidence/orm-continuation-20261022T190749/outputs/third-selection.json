@@ -1,0 +1,16 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "prior_units": "Bounded conformance PASS, not accepted; existing global CI blocks acceptance",
+  "input_states": {
+    "ModuleNode.demo_installable": "failed",
+    "ModuleNode.phase": "failed"
+  },
+  "next_selection": [
+    "ModuleGraph._update_from_database"
+  ],
+  "next_action": "Verify real persistent metadata/version correspondence, not implement a guessed schema or snapshot",
+  "claims": "Full native ledger; selected read-only model path is disjoint from reserved graph source",
+  "task": "TASK-API-0382"
+}

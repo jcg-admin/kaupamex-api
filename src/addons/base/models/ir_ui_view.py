@@ -22,7 +22,8 @@ sobre este modelo y que aquí no existen —``_get_default_view_domain`` (3),
 ``_postprocess_attributes``, ``_postprocess_debug``, ``_validate_tag_button``,
 ``_contains_branded``, ``is_node_branded``, ``_get_x2many_missing_view_archs``,
 ``_postprocess_access_rights``, ``_is_qweb_based_view``,
-``_postprocess_debug_to_cache``—: los diez son del combinador, y operan sobre un
+``_postprocess_debug_to_cache``—: los diez son del combinador, y operan sobre
+un
 árbol XML que este producto no tiene. No son deuda de porte sino la misma
 divergencia vista desde el otro lado. Medido en la tarea #78,
 :ref:`h-api-819`.
@@ -168,6 +169,7 @@ Consecuencias declaradas:
   dos versiones del XML. El asistente **sí** se porta —los tres modos de
   reinicio son la decisión, y ésa es dato— sin el generador del diff.
 """
+
 import collections
 import logging
 
@@ -189,7 +191,10 @@ _logger = logging.getLogger(__name__)
 
 #: Atributos de marcado que el editor en línea mueve con el nodo — verbatim.
 MOVABLE_BRANDING = [
-    'data-oe-model', 'data-oe-id', 'data-oe-field', 'data-oe-xpath',
+    'data-oe-model',
+    'data-oe-id',
+    'data-oe-field',
+    'data-oe-xpath',
     'data-oe-source-id',
 ]
 
@@ -272,69 +277,117 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la vista')
     model = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Modelo',
-        help_text='Modelo técnico que la vista muestra. Char plano, mismo '
-                  'criterio que ir_rule.model_name.',
+        help_text=(
+            'Modelo técnico que la vista muestra. Char plano, mismo '
+            'criterio que ir_rule.model_name.'
+        ),
     )
     key = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Clave',
-        help_text='Identificador estable de una vista QWeb. NO pasa por '
-                  'ir.model.data, por eso sí se porta.',
+        help_text=(
+            'Identificador estable de una vista QWeb. NO pasa por '
+            'ir.model.data, por eso sí se porta.'
+        ),
     )
     priority = fields.Integer(
-        default=16, verbose_name='Secuencia',
-        help_text='Orden de aplicación entre vistas hermanas. Menor = antes. '
-                  'Ver el docstring del módulo: el orden cambia el resultado.',
+        default=16,
+        verbose_name='Secuencia',
+        help_text=(
+            'Orden de aplicación entre vistas hermanas. Menor = antes. '
+            'Ver el docstring del módulo: el orden cambia el resultado.'
+        ),
     )
     type = fields.Selection(
-        max_length=16, choices=VIEW_TYPE_CHOICES, blank=True, default='',
-        verbose_name='Tipo de vista')
+        max_length=16,
+        choices=VIEW_TYPE_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='Tipo de vista',
+    )
     arch_db = fields.Text(
-        blank=True, default='', verbose_name='Arquitectura',
-        help_text='El XML de la vista. Este archivo NO lo interpreta.')
+        blank=True,
+        default='',
+        verbose_name='Arquitectura',
+        help_text='El XML de la vista. Este archivo NO lo interpreta.',
+    )
     arch_fs = fields.Char(
-        max_length=512, blank=True, default='',
+        max_length=512,
+        blank=True,
+        default='',
         verbose_name='Archivo de origen',
-        help_text='Archivo del que procede la vista; sirve para el reinicio '
-                  'duro.',
+        help_text=(
+            'Archivo del que procede la vista; sirve para el reinicio duro.'
+        ),
     )
     arch_updated = fields.Boolean(
-        default=False, verbose_name='Arquitectura modificada',
-        help_text='Marcado, la vista se editó tras cargarse del archivo.')
+        default=False,
+        verbose_name='Arquitectura modificada',
+        help_text='Marcado, la vista se editó tras cargarse del archivo.',
+    )
     arch_prev = fields.Text(
-        blank=True, default='', verbose_name='Arquitectura anterior',
-        help_text='Copia del arch_db antes de la última escritura; sirve para '
-                  'el reinicio suave.',
+        blank=True,
+        default='',
+        verbose_name='Arquitectura anterior',
+        help_text=(
+            'Copia del arch_db antes de la última escritura; sirve para '
+            'el reinicio suave.'
+        ),
     )
     inherit_id = fields.Many2one(
-        'self', on_delete=models.PROTECT, null=True, blank=True, db_index=True,
-        related_name='inherit_children_ids', verbose_name='Vista heredada',
-        help_text='ondelete restrict de la fuente: no se borra una vista de '
-                  'la que otras heredan.',
+        'self',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='inherit_children_ids',
+        verbose_name='Vista heredada',
+        help_text=(
+            'ondelete restrict de la fuente: no se borra una vista de '
+            'la que otras heredan.'
+        ),
         db_column='inherit_id',
     )
     groups = fields.Many2many(
-        ResGroups, blank=True, db_table='ir_ui_view_group_rel',
-        related_name='view_access', verbose_name='Grupos',
-        help_text='Vacío = la vista aplica a todos. Con valor, sólo a los '
-                  'usuarios de esos grupos. Este related_name es el '
-                  'view_access que res_groups.py dejó anotado como pendiente.',
+        ResGroups,
+        blank=True,
+        db_table='ir_ui_view_group_rel',
+        related_name='view_access',
+        verbose_name='Grupos',
+        help_text=(
+            'Vacío = la vista aplica a todos. Con valor, sólo a los '
+            'usuarios de esos grupos. Este related_name es el '
+            'view_access que res_groups.py dejó anotado como pendiente.'
+        ),
     )
     mode = fields.Selection(
-        max_length=16, choices=MODE_CHOICES, default=MODE_PRIMARY,
+        max_length=16,
+        choices=MODE_CHOICES,
+        default=MODE_PRIMARY,
         verbose_name='Modo de herencia',
-        help_text='Sólo aplica si la vista hereda de otra. En extensión se '
-                  'busca la primaria más cercana y se le aplican todas las '
-                  'vistas que hereden de ella con el mismo modelo; en '
-                  'primaria se resuelve la primaria entera —aunque use otro '
-                  'modelo— y luego se aplican los parches de ésta.',
+        help_text=(
+            'Sólo aplica si la vista hereda de otra. En extensión se '
+            'busca la primaria más cercana y se le aplican todas las '
+            'vistas que hereden de ella con el mismo modelo; en '
+            'primaria se resuelve la primaria entera —aunque use otro '
+            'modelo— y luego se aplican los parches de ésta.'
+        ),
     )
     active = fields.Boolean(
-        default=True, verbose_name='Activa',
-        help_text='Si la vista es heredada: activa extiende siempre a su '
-                  'padre; inactiva no lo extiende hoy pero puede reactivarse.',
+        default=True,
+        verbose_name='Activa',
+        help_text=(
+            'Si la vista es heredada: activa extiende siempre a su '
+            'padre; inactiva no lo extiende hoy pero puede reactivarse.'
+        ),
     )
 
     class Meta:
@@ -355,14 +408,16 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
             # ``_qweb_required_key``: una vista de plantilla necesita su
             # clave — es el único tipo que se resuelve por clave.
             models.CheckConstraint(
-                condition=~models.Q(type=VIEW_TYPE_TEMPLATE) | ~models.Q(key=''),
+                condition=~models.Q(type=VIEW_TYPE_TEMPLATE)
+                | ~models.Q(key=''),
                 name='ir_ui_view_template_required_key',
             ),
         ]
         indexes = [
             # ``_model_type_inherit_id``.
-            models.Index(fields=['model', 'inherit_id'],
-                         name='ir_ui_view_model_inherit'),
+            models.Index(
+                fields=['model', 'inherit_id'], name='ir_ui_view_model_inherit'
+            ),
         ]
 
     def _check_groups(self):
@@ -381,10 +436,16 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         ``ResGroups._check_inherited_view_groups`` —su otro llamador en la
         fuente— y se puede invocar a mano.
         """
-        if self.groups.exists() and self.inherit_id_id and self.mode != 'primary':
+        if (
+            self.groups.exists()
+            and self.inherit_id_id
+            and self.mode != 'primary'
+        ):
             raise ValidationError(
-                "Una vista heredada no puede declarar 'groups' en el registro. "
-                "Use el atributo 'groups' dentro de la definición de la vista.")
+                "Una vista heredada no puede declarar 'groups' en el registro."
+                " Use el atributo 'groups' dentro de la definición de la"
+                " vista."
+            )
 
     def __str__(self):
         return self.name
@@ -402,7 +463,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         while node is not None:
             if node.pk == self.pk or node.pk in seen:
                 raise ValidationError(
-                    'No se pueden crear vistas heredadas recursivas.')
+                    'No se pueden crear vistas heredadas recursivas.'
+                )
             seen.add(node.pk)
             node = node.inherit_id
 
@@ -442,11 +504,16 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         is_new = self.pk is None
         previous = None
         if not is_new:
-            previous = (type(self).objects.filter(pk=self.pk)
-                        .values_list('arch_db', flat=True).first())
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list('arch_db', flat=True)
+                .first()
+            )
 
-        the_arch_changes = is_new or (previous is not None
-                                      and previous != self.arch_db)
+        the_arch_changes = is_new or (
+            previous is not None and previous != self.arch_db
+        )
 
         if is_new:
             self.arch_prev = self.arch_db or ''
@@ -462,7 +529,9 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         return result
 
     def reset_arch(self, mode=RESET_SOFT, arch=None):
-        """≙ ``reset_arch`` (``:281-293``) — vuelve al arch anterior o al del archivo.
+        """
+        ≙ ``reset_arch`` (``:281-293``) — vuelve al arch anterior o al del
+        archivo.
 
         - ``soft`` — de ``arch_prev``. Si esta vacio no hace nada, como la
           fuente: su ``if arch:`` protege de reiniciar a la nada.
@@ -508,10 +577,12 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         ``False``; aqui el ausente de una consulta es ``None``, que es lo que
         el resto del arbol comprueba.
         """
-        return (cls.objects
-                .filter(model=model, type=view_type, mode=MODE_PRIMARY)
-                .order_by('priority', 'name', 'id')
-                .values_list('pk', flat=True).first())
+        return (
+            cls.objects.filter(model=model, type=view_type, mode=MODE_PRIMARY)
+            .order_by('priority', 'name', 'id')
+            .values_list('pk', flat=True)
+            .first()
+        )
 
     @property
     def root_view(self):
@@ -544,7 +615,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         while frontier:
             parent_ids = [view.pk for view in frontier]
             children = manager.filter(
-                inherit_id__in=parent_ids, mode=MODE_EXTENSION,
+                inherit_id__in=parent_ids,
+                mode=MODE_EXTENSION,
             ).order_by('priority', 'id')
             if not include_inactive:
                 children = children.filter(active=True)
@@ -573,8 +645,9 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         fuente hace con ``_raise_view_error``.
         """
         try:
-            return apply_inheritance_specs(source, specs_tree,
-                                           pre_locate=pre_locate)
+            return apply_inheritance_specs(
+                source, specs_tree, pre_locate=pre_locate
+            )
         except ValueError as e:
             raise ValidationError(
                 f'Error al aplicar la herencia de la vista {self.name!r}: {e}'
@@ -609,7 +682,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         # ``sorted(..., key=mode)``: 'extension' < 'primary' — las
         # extensiones directas se procesan antes que las primarias hijas.
         queue = collections.deque(
-            sorted(hierarchy.get(self.pk, []), key=lambda v: v.mode))
+            sorted(hierarchy.get(self.pk, []), key=lambda v: v.mode)
+        )
         while queue:
             view = queue.popleft()
             arch = etree.fromstring(view.arch_db or '<data/>')
@@ -703,7 +777,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         if xmlids:
             domain = models.Q(id__in=ids) | cls._get_template_domain(xmlids)
             views = cls.objects.filter(domain).order_by(
-                *cls._get_template_order())
+                *cls._get_template_order()
+            )
             # ``search`` de la fuente respeta ``active_test`` del contexto:
             # con el valor por defecto las archivadas no se resuelven por
             # ``key``; ``viewref``/``is_view_active`` entran con
@@ -723,8 +798,10 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
 
         # Segundo escalón: ``xmlid`` ausentes, vía ``ir.model.data``.
         missing_xmlid_views = [
-            xmlid for xmlid in xmlids
-            if '.' in xmlid and xmlid not in view_by_id]
+            xmlid
+            for xmlid in xmlids
+            if '.' in xmlid and xmlid not in view_by_id
+        ]
         if missing_xmlid_views:
             data_model = apps.get_model('base', 'IrModelData')
             domain = models.Q(pk__in=[])
@@ -745,11 +822,13 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         for view_id in ids:
             if view_id not in view_by_id:
                 view_by_id[view_id] = MissingError(
-                    'La plantilla no existe o fue eliminada: %s' % view_id)
+                    'La plantilla no existe o fue eliminada: %s' % view_id
+                )
         for xmlid in xmlids:
             if xmlid not in view_by_id:
                 view_by_id[xmlid] = MissingError(
-                    "Plantilla no encontrada: '%s'" % xmlid)
+                    "Plantilla no encontrada: '%s'" % xmlid
+                )
         return view_by_id
 
     @classmethod
@@ -765,7 +844,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         """
         refs = [
             int(ref) if isinstance(ref, int) or ref.isdigit() else ref
-            for ref in refs]
+            for ref in refs
+        ]
         batch = {}
         wanted = [ref for ref in refs if ref]
         if not wanted:
@@ -815,7 +895,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
             view = cls.objects.filter(pk=id_or_xmlid).first()
             if view is None:
                 error = MissingError(
-                    "Plantilla no encontrada: '%s'" % id_or_xmlid)
+                    "Plantilla no encontrada: '%s'" % id_or_xmlid
+                )
         else:
             preload = cls._preload_views([id_or_xmlid])
             if id_or_xmlid in preload:
@@ -828,7 +909,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
                 error = SyntaxError('Error compiling template')
         info = {
             f: getattr(view, f) if view else None
-            for f in cls._get_cached_template_prefetched_keys()}
+            for f in cls._get_cached_template_prefetched_keys()
+        }
         info['error'] = error
         return info
 
@@ -860,18 +942,26 @@ class IrUiViewCustom(TimeStampedModel):
 
     _name = 'ir.ui.view.custom'
     _description = 'Custom View'
-    _order = 'create_date desc, id desc'  # search(limit=1) should return the last customization
+    # search(limit=1) should return the last customization
+    _order = 'create_date desc, id desc'
     _rec_name = 'user_id'
     _allow_sudo_commands = False
 
     ref_id = fields.Many2one(
-        IrUiView, on_delete=models.CASCADE, db_index=True,
-        related_name='custom_ids', verbose_name='Vista original',
+        IrUiView,
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='custom_ids',
+        verbose_name='Vista original',
         db_column='ref_id',
     )
     user = fields.Many2one(
-        ResUsers, on_delete=models.CASCADE, db_index=True,
-        related_name='custom_views', verbose_name='Usuario')
+        ResUsers,
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='custom_views',
+        verbose_name='Usuario',
+    )
     arch = fields.Text(verbose_name='Arquitectura de la vista')
 
     class Meta:
@@ -881,8 +971,9 @@ class IrUiViewCustom(TimeStampedModel):
         verbose_name_plural = 'Vistas personalizadas'
         indexes = [
             # ``_user_id_ref_id``.
-            models.Index(fields=['user', 'ref_id'],
-                         name='ir_ui_view_custom_user_ref'),
+            models.Index(
+                fields=['user', 'ref_id'], name='ir_ui_view_custom_user_ref'
+            ),
         ]
 
     def __str__(self):
@@ -923,7 +1014,8 @@ class ResetViewArchWizard(models.Model):
         if reset_mode == RESET_OTHER_VIEW:
             if compare_view is None:
                 raise ValidationError(
-                    'El modo "otra vista" requiere una vista de comparación.')
+                    'El modo "otra vista" requiere una vista de comparación.'
+                )
             return ('arch_db', compare_view.arch_db)
         raise ValidationError(f'Modo de reinicio desconocido: {reset_mode!r}.')
 

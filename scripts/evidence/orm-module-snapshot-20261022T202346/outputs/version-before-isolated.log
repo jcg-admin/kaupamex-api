@@ -1,0 +1,49 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/verify_version_contract.py", line 34, in <module>
+    getattr(tests, name)(manifests)
+  File "/workspace/kaupamex-api/tests/integration/base/test_module_catalog_database.py", line 55, in test_refresh_preserves_installed_version_when_manifest_changes
+    IrModule.objects.bulk_create([IrModule(
+                                  ^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 1426, in _model_init_marking_the_load
+    _DJANGO_MODEL_INIT(self, *args, **kwargs)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 590, in __init__
+    raise TypeError(
+TypeError: IrModule() got unexpected keyword arguments: 'installed_version'
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/verify_version_contract.py", line 34, in <module>
+    getattr(tests, name)(manifests)
+  File "/workspace/kaupamex-api/tests/integration/base/test_module_catalog_database.py", line 71, in test_new_catalog_entry_has_unknown_installed_version
+    assert row.installed_version is None
+           ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IrModule' object has no attribute 'installed_version'
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/verify_version_contract.py", line 34, in <module>
+    getattr(tests, name)(manifests)
+  File "/workspace/kaupamex-api/tests/integration/base/test_module_catalog_database.py", line 76, in test_dry_run_preserves_both_version_sources
+    IrModule.objects.bulk_create([IrModule(
+                                  ^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 1426, in _model_init_marking_the_load
+    _DJANGO_MODEL_INIT(self, *args, **kwargs)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 590, in __init__
+    raise TypeError(
+TypeError: IrModule() got unexpected keyword arguments: 'installed_version'
+FAIL test_refresh_preserves_installed_version_when_manifest_changes
+FAIL test_new_catalog_entry_has_unknown_installed_version
+FAIL test_dry_run_preserves_both_version_sources
+0 PASS, 3 FAIL; real PostgreSQL, minimal model schema; not full migration/bootstrap acceptance
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

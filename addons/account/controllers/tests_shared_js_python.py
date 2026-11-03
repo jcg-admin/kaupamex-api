@@ -16,6 +16,7 @@ Divergencia declarada: ``request.render('account.tests_shared_js_python',
 de este árbol; ``route_init_tests_shared_js_python`` devuelve los ``props``
 como dict (el SPA los consume directo).
 """
+
 import json
 
 from addons.base.models import SystemParameter

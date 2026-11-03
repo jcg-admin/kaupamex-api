@@ -13,6 +13,7 @@ Dos cosas que la fuente marca como contrato y que aquí se comprueban:
 - la lectura **antes** de escribir en ``_inverse_related``, porque escribir en
   el extremo invalida la caché del origen.
 """
+
 import pytest
 from django.db import models
 
@@ -68,8 +69,12 @@ class TestTheTraversalOrder:
 
         field._compute_related(records)
 
-        assert log == [('a1', 'middle'), ('a2', 'middle'),
-                       ('a1.deep', 'name'), ('a2.deep', 'name')]
+        assert log == [
+            ('a1', 'middle'),
+            ('a2', 'middle'),
+            ('a1.deep', 'name'),
+            ('a2.deep', 'name'),
+        ]
         assert records[0].written['shortcut'] == 'valor-a1'
         assert records[1].written['shortcut'] == 'valor-a2'
 
@@ -195,6 +200,7 @@ class TestResolveDepends:
     def test_a_model_without_a_source_name_leaves_it_empty(self, db):
         """La otra mitad del control: sin ``_name`` no hay qué copiar, y la
         vía de Django es la única que resuelve el modelo."""
+
         class _Sin:
             pass
 
@@ -234,7 +240,9 @@ class TestResolveDepends:
         parent = partner._meta.get_field('parent')
         parent_name = parent.related_model._meta.get_field('name')
         assert self._resolved_with(field, ('parent.name',)) == [
-            (parent,), (parent, parent_name)]
+            (parent,),
+            (parent, parent_name),
+        ]
 
     def test_a_field_does_not_trigger_itself_as_the_first_step(self, db):
         """≙ ``if not (field is self and not index)`` (``:854``).

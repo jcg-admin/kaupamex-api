@@ -1,4 +1,6 @@
-"""``digest.digest`` — los dos KPIs de CRM en el correo periódico (≙ ``_inherit``).
+"""
+``digest.digest`` — los dos KPIs de CRM en el correo periódico (≙
+``_inherit``).
 
 Adaptación de ``odoo19c: addons/crm/models/digest.py`` (LGPL-3, 38 líneas) —
 atribución y aviso de licencia preservados (DEC-KX-03).
@@ -75,6 +77,7 @@ Divergencias declaradas
   ``UtmCampaign.action_redirect_to_leads_opportunities`` ya usan (ver el
   docstring del método base en ``addons/digest/models/digest.py``).
 """
+
 from exceptions import AccessError
 from orm.environments import get_current_user
 from orm.model_classes import extend_model
@@ -94,7 +97,8 @@ def _assert_salesman():
     user = get_current_user()
     if not (user is not None and user.has_group(GROUP_SALE_SALESMAN)):
         raise AccessError(
-            _("Do not have access, skip this data for user's digest email"))
+            _("Do not have access, skip this data for user's digest email")
+        )
 
 
 def _compute_kpi_crm_lead_created_value(self, start, end):
@@ -111,7 +115,9 @@ def _compute_kpi_crm_opportunities_won_value(self, start, end):
     """
     _assert_salesman()
     return self._calculate_company_based_kpi(
-        'crm.lead', start, end,
+        'crm.lead',
+        start,
+        end,
         date_field='date_closed',
         additional_domain={'type': 'opportunity', 'probability': 100},
     )
@@ -155,23 +161,29 @@ def apply_crm_extensions():
     un resultado con el que combinar el propio.
     """
     extend_model(
-        'digest', 'DigestDigest',
+        'digest',
+        'DigestDigest',
         campos={
             'kpi_crm_lead_created': fields.Boolean(
-                default=False, verbose_name='Nuevas iniciativas',
+                default=False,
+                verbose_name='Nuevas iniciativas',
                 help_text='Odoo kpi_crm_lead_created ("New Leads").',
             ),
             'kpi_crm_opportunities_won': fields.Boolean(
-                default=False, verbose_name='Oportunidades ganadas',
-                help_text='Odoo kpi_crm_opportunities_won '
-                          '("Opportunities Won").',
+                default=False,
+                verbose_name='Oportunidades ganadas',
+                help_text=(
+                    'Odoo kpi_crm_opportunities_won ("Opportunities Won").'
+                ),
             ),
         },
         metodos={
-            '_compute_kpi_crm_lead_created_value':
-                _compute_kpi_crm_lead_created_value,
-            '_compute_kpi_crm_opportunities_won_value':
-                _compute_kpi_crm_opportunities_won_value,
+            '_compute_kpi_crm_lead_created_value': (
+                _compute_kpi_crm_lead_created_value
+            ),
+            '_compute_kpi_crm_opportunities_won_value': (
+                _compute_kpi_crm_opportunities_won_value
+            ),
         },
         overrides={
             '_compute_kpis_actions': _compute_kpis_actions,

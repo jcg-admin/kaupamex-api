@@ -88,8 +88,12 @@ def file_inventory(path):
     by_owner = {}
     for record in records:
         if record['kind'] == 'class':
-            entry = {'name': record['name'], 'lineno': record['lineno'],
-                     'decorators': record['decorators'], 'methods': []}
+            entry = {
+                'name': record['name'],
+                'lineno': record['lineno'],
+                'decorators': record['decorators'],
+                'methods': [],
+            }
             classes.append(entry)
             by_owner[record['name']] = entry
         elif record['kind'] == 'function':
@@ -114,7 +118,9 @@ def file_inventory(path):
 
 
 def _signature_shape(records):
-    """Cuantas firmas declaran opcionales, ``*args``, kw-only y ``**kwargs``."""
+    """
+    Cuantas firmas declaran opcionales, ``*args``, kw-only y ``**kwargs``.
+    """
     shape = {'with_default': 0, 'vararg': 0, 'kwonly': 0, 'kwarg': 0}
     for record in records:
         signature = record.get('signature')
@@ -141,11 +147,23 @@ def inventory(root):
     root = pathlib.Path(root)
     if not root.is_dir():
         return {
-            'root': str(root), 'root_exists': False, 'files': [],
-            'totals': {'files': 0, 'lines': 0, 'classes': 0,
-                       'module_functions': 0, 'methods': 0, 'symbols': 0,
-                       'unique_names': 0, 'stub': 0,
-                       'with_default': 0, 'vararg': 0, 'kwonly': 0, 'kwarg': 0},
+            'root': str(root),
+            'root_exists': False,
+            'files': [],
+            'totals': {
+                'files': 0,
+                'lines': 0,
+                'classes': 0,
+                'module_functions': 0,
+                'methods': 0,
+                'symbols': 0,
+                'unique_names': 0,
+                'stub': 0,
+                'with_default': 0,
+                'vararg': 0,
+                'kwonly': 0,
+                'kwarg': 0,
+            },
         }
 
     files = [file_inventory(path) for path in sorted(root.glob('*.py'))]
@@ -168,10 +186,15 @@ def inventory(root):
         'stub': stub,
     }
     totals['symbols'] = (
-        totals['classes'] + totals['module_functions'] + totals['methods'])
+        totals['classes'] + totals['module_functions'] + totals['methods']
+    )
     totals.update(_signature_shape(every_callable))
-    return {'root': str(root), 'root_exists': True, 'files': files,
-            'totals': totals}
+    return {
+        'root': str(root),
+        'root_exists': True,
+        'files': files,
+        'totals': totals,
+    }
 
 
 # --- el reporte ------------------------------------------------------------
@@ -179,8 +202,19 @@ def inventory(root):
 #: Las etiquetas de la tabla. Van en INGLES porque nombran las claves del
 #: reporte, no prosa: 'default' es el parametro opcional — la forma
 #: castellana 'defecto' es un falso amigo que nombra un error.
-_HEADER = ('file', 'lines', 'cls', 'fn', 'met', 'raw', 'unique',
-           'default', '*args', 'kwonly', '**kw')
+_HEADER = (
+    'file',
+    'lines',
+    'cls',
+    'fn',
+    'met',
+    'raw',
+    'unique',
+    'default',
+    '*args',
+    'kwonly',
+    '**kw',
+)
 
 
 def _rows(report):
@@ -189,69 +223,110 @@ def _rows(report):
         for owner in entry['classes']:
             callables.extend(owner['methods'])
         shape = _signature_shape(callables)
-        yield (entry['name'], entry['lines'], len(entry['classes']),
-               len(entry['functions']),
-               sum(len(c['methods']) for c in entry['classes']),
-               entry['raw'], entry['unique'], shape['with_default'],
-               shape['vararg'], shape['kwonly'], shape['kwarg'])
+        yield (
+            entry['name'],
+            entry['lines'],
+            len(entry['classes']),
+            len(entry['functions']),
+            sum(len(c['methods']) for c in entry['classes']),
+            entry['raw'],
+            entry['unique'],
+            shape['with_default'],
+            shape['vararg'],
+            shape['kwonly'],
+            shape['kwarg'],
+        )
 
 
 def render(report, class_detail_min=10):
-    """La tabla por archivo, y el desglose por clase de los archivos grandes."""
+    """
+    La tabla por archivo, y el desglose por clase de los archivos grandes.
+    """
     lines = []
     if not report['root_exists']:
-        return [f"la raiz no existe: {report['root']}  (0 archivos, 0 simbolos)"]
+        return [
+            f"la raiz no existe: {report['root']}  (0 archivos, 0 simbolos)"
+        ]
 
-    widths = [max(len(str(_HEADER[i])),
-                  max((len(str(row[i])) for row in _rows(report)), default=0))
-              for i in range(len(_HEADER))]
+    widths = [
+        max(
+            len(str(_HEADER[i])),
+            max((len(str(row[i])) for row in _rows(report)), default=0),
+        )
+        for i in range(len(_HEADER))
+    ]
     fmt = '  '.join(
-        [f'{{:<{widths[0]}}}'] + [f'{{:>{w}}}' for w in widths[1:]])
+        [f'{{:<{widths[0]}}}'] + [f'{{:>{w}}}' for w in widths[1:]]
+    )
     lines.append(fmt.format(*_HEADER))
     lines.append('-' * (sum(widths) + 2 * (len(widths) - 1)))
     for row in _rows(report):
         lines.append(fmt.format(*row))
     total = report['totals']
     lines.append('-' * (sum(widths) + 2 * (len(widths) - 1)))
-    lines.append(fmt.format(
-        'TOTAL', total['lines'], total['classes'], total['module_functions'],
-        total['methods'],
-        total['classes'] + total['module_functions'] + total['methods'],
-        total['unique_names'], total['with_default'], total['vararg'],
-        total['kwonly'], total['kwarg']))
+    lines.append(
+        fmt.format(
+            'TOTAL',
+            total['lines'],
+            total['classes'],
+            total['module_functions'],
+            total['methods'],
+            total['classes'] + total['module_functions'] + total['methods'],
+            total['unique_names'],
+            total['with_default'],
+            total['vararg'],
+            total['kwonly'],
+            total['kwarg'],
+        )
+    )
 
     lines.append('')
     lines.append(f'clases con >= {class_detail_min} metodos, por archivo:')
     for entry in report['files']:
-        large = [c for c in entry['classes']
-                   if len(c['methods']) >= class_detail_min]
+        large = [
+            c
+            for c in entry['classes']
+            if len(c['methods']) >= class_detail_min
+        ]
         if not large:
             continue
         lines.append(f"  {entry['name']}")
         for owner in sorted(large, key=lambda c: -len(c['methods'])):
             lines.append(
                 f"    {owner['name']:<34} {len(owner['methods']):>4} methods"
-                f"   :{owner['lineno']}")
+                f"   :{owner['lineno']}"
+            )
     return lines
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description='Inventaria el ORM de un arbol de la referencia.')
-    parser.add_argument('--alias', default='odoo19c', choices=sorted(TREE_ROOTS))
-    parser.add_argument('--json', default=None,
-                        help='ruta del JSON; por defecto outputs/inventory.json')
+        description='Inventaria el ORM de un arbol de la referencia.'
+    )
+    parser.add_argument(
+        '--alias', default='odoo19c', choices=sorted(TREE_ROOTS)
+    )
+    parser.add_argument(
+        '--json',
+        default=None,
+        help='ruta del JSON; por defecto outputs/inventory.json',
+    )
     args = parser.parse_args(argv)
 
     root = orm_root(args.alias)
     report = inventory(root)
     report['alias'] = args.alias
 
-    destination = pathlib.Path(args.json) if args.json else (
-        RUN_DIR / 'outputs' / f'inventory-{args.alias}.json')
+    destination = (
+        pathlib.Path(args.json)
+        if args.json
+        else (RUN_DIR / 'outputs' / f'inventory-{args.alias}.json')
+    )
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
-        json.dumps(report, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
+        json.dumps(report, indent=1, ensure_ascii=False) + '\n',
+        encoding='utf-8',
+    )
 
     print(f'root: {root}')  # nombra la clave del reporte, no es prosa
     print('\n'.join(render(report)))

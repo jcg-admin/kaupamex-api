@@ -104,6 +104,7 @@ Símbolo de la referencia                Qué pasa aquí
                                          docstring)
 =====================================  ====================================
 """
+
 from addons.mail.models.mail_template import MailTemplate
 from exceptions import UserError
 from orm.models_transient import TransientModel
@@ -138,9 +139,14 @@ class AccountMoveSendWizard(TransientModel):
     # -------------------------------------------------------------------------
 
     @classmethod
-    def _compute_alerts(cls, move, sending_methods=None,
-                         invoice_edi_format=None, extra_edis=None,
-                         mail_partner_ids=None):
+    def _compute_alerts(
+        cls,
+        move,
+        sending_methods=None,
+        invoice_edi_format=None,
+        extra_edis=None,
+        mail_partner_ids=None,
+    ):
         """≙ ``_compute_alerts`` — delegación al mixin en porte paralelo."""
         move_data = {
             move: {
@@ -160,12 +166,14 @@ class AccountMoveSendWizard(TransientModel):
     @classmethod
     def _inverse_sending_methods(cls, sending_methods):
         """≙ ``_inverse_sending_methods`` — de lista a checkboxes."""
-        return {method_key: {'checked': True}
-                for method_key in sending_methods or {}}
+        return {
+            method_key: {'checked': True}
+            for method_key in sending_methods or {}
+        }
 
     @classmethod
     def _compute_sending_method_checkboxes(cls, move, methods):
-        """ Select one applicable sending method given the following priority
+        """Select one applicable sending method given the following priority
         1. preferred method set on partner,
         2. email,
 
@@ -180,11 +188,14 @@ class AccountMoveSendWizard(TransientModel):
         return {
             method_key: {
                 'checked': (
-                    method_key in preferred_methods and (
+                    method_key in preferred_methods
+                    and (
                         method_key == 'email'
                         or cls._is_applicable_to_move(
-                            method_key, move, **sending_settings)
-                    )),
+                            method_key, move, **sending_settings
+                        )
+                    )
+                ),
                 'label': method_label,
             }
             for method_key, method_label in methods
@@ -192,8 +203,9 @@ class AccountMoveSendWizard(TransientModel):
         }
 
     @classmethod
-    def _compute_display_attachments_widget(cls, invoice_edi_format,
-                                             sending_methods):
+    def _compute_display_attachments_widget(
+        cls, invoice_edi_format, sending_methods
+    ):
         """≙ ``_compute_display_attachments_widget`` — delegación al mixin
         en porte paralelo."""
         return cls._display_attachments_widget(
@@ -209,8 +221,9 @@ class AccountMoveSendWizard(TransientModel):
     @classmethod
     def _inverse_extra_edis(cls, extra_edis):
         """≙ ``_inverse_extra_edis`` — de lista a checkboxes."""
-        return {method_key: {'checked': True}
-                for method_key in extra_edis or {}}
+        return {
+            method_key: {'checked': True} for method_key in extra_edis or {}
+        }
 
     @classmethod
     def _compute_extra_edi_checkboxes(cls, move):
@@ -218,9 +231,11 @@ class AccountMoveSendWizard(TransientModel):
         porte paralelo."""
         all_extra_edis = cls._get_all_extra_edis()
         return {
-            edi_key: {'checked': True,
-                      'label': all_extra_edis[edi_key]['label'],
-                      'help': all_extra_edis[edi_key].get('help')}
+            edi_key: {
+                'checked': True,
+                'label': all_extra_edis[edi_key]['label'],
+                'help': all_extra_edis[edi_key].get('help'),
+            }
             for edi_key in cls._get_default_extra_edis(move)
         }
 
@@ -229,7 +244,8 @@ class AccountMoveSendWizard(TransientModel):
         """≙ ``_compute_invoice_edi_format`` — delegación al mixin en porte
         paralelo."""
         return cls._get_default_invoice_edi_format(
-            move, sending_methods=sending_methods or {})
+            move, sending_methods=sending_methods or {}
+        )
 
     @classmethod
     def _compute_pdf_report_id(cls, move):
@@ -259,8 +275,11 @@ class AccountMoveSendWizard(TransientModel):
         ``commercial_partner_id`` (el padre comercial del contacto) no está
         portado; se parte del partner del asiento."""
         partner = move.partner
-        partners = [partner] if partner is not None and getattr(
-            partner, 'email', None) else []
+        partners = (
+            [partner]
+            if partner is not None and getattr(partner, 'email', None)
+            else []
+        )
         if template:
             partners = cls._get_default_mail_partner_ids(move, template, lang)
         return partners
@@ -282,21 +301,31 @@ class AccountMoveSendWizard(TransientModel):
         return None
 
     @classmethod
-    def _compute_mail_attachments_widget(cls, move, template,
-                                          invoice_edi_format=None,
-                                          extra_edis=None, pdf_report=None,
-                                          mail_attachments_widget=None):
+    def _compute_mail_attachments_widget(
+        cls,
+        move,
+        template,
+        invoice_edi_format=None,
+        extra_edis=None,
+        pdf_report=None,
+        mail_attachments_widget=None,
+    ):
         """≙ ``_compute_mail_attachments_widget`` — conserva los adjuntos
         manuales y recalcula los derivados (delegación al mixin en porte
         paralelo)."""
         manual_attachments_data = [
-            x for x in mail_attachments_widget or [] if x.get('manual')]
-        return cls._get_default_mail_attachments_widget(
-            move, template,
-            invoice_edi_format=invoice_edi_format,
-            extra_edis=extra_edis or {},
-            pdf_report=pdf_report,
-        ) + manual_attachments_data
+            x for x in mail_attachments_widget or [] if x.get('manual')
+        ]
+        return (
+            cls._get_default_mail_attachments_widget(
+                move,
+                template,
+                invoice_edi_format=invoice_edi_format,
+                extra_edis=extra_edis or {},
+                pdf_report=pdf_report,
+            )
+            + manual_attachments_data
+        )
 
     @classmethod
     def _compute_res_ids(cls, move):
@@ -322,7 +351,7 @@ class AccountMoveSendWizard(TransientModel):
 
     @classmethod
     def create_mail_template(cls, model, subject, body, template_name=None):
-        """ Creates a mail template with the current mail composer's fields.
+        """Creates a mail template with the current mail composer's fields.
 
         (Docstring verbatim de la referencia.) Parcial declarado: sin el
         ``model_id`` de ``ir.model`` (aquí ``MailTemplate.model`` es el
@@ -331,8 +360,9 @@ class AccountMoveSendWizard(TransientModel):
         local los declara.
         """
         if not model:
-            raise UserError(_(
-                'Template creation from composer requires a valid model.'))
+            raise UserError(
+                _('Template creation from composer requires a valid model.')
+            )
         return MailTemplate.objects.create(
             name=template_name or subject,
             subject=subject or '',
@@ -367,23 +397,33 @@ class AccountMoveSendWizard(TransientModel):
         dict vacío sin entrada, lista de claves con ella)."""
         if not json_checkboxes:
             return {}
-        return [checkbox_key
-                for checkbox_key, checkbox_vals in json_checkboxes.items()
-                if checkbox_vals['checked']]
+        return [
+            checkbox_key
+            for checkbox_key, checkbox_vals in json_checkboxes.items()
+            if checkbox_vals['checked']
+        ]
 
     # -------------------------------------------------------------------------
     # BUSINESS METHODS
     # -------------------------------------------------------------------------
 
     @classmethod
-    def _get_sending_settings(cls, sending_methods=None,
-                               invoice_edi_format=None, extra_edis=None,
-                               pdf_report=None, author_user_id=None,
-                               author_partner_id=None, mail_template=None,
-                               mail_lang=None, mail_body=None,
-                               mail_subject=None, mail_partner_ids=None,
-                               mail_attachments_widget=None,
-                               display_attachments_widget=False):
+    def _get_sending_settings(
+        cls,
+        sending_methods=None,
+        invoice_edi_format=None,
+        extra_edis=None,
+        pdf_report=None,
+        author_user_id=None,
+        author_partner_id=None,
+        mail_template=None,
+        mail_lang=None,
+        mail_body=None,
+        mail_subject=None,
+        mail_partner_ids=None,
+        mail_attachments_widget=None,
+        display_attachments_widget=False,
+    ):
         """≙ ``_get_sending_settings`` — el dict de ajustes que consume
         ``_generate_and_send_invoices``. El autor viaja por parámetro
         (``self.env.user`` es sesión, no estado del wizard)."""
@@ -396,13 +436,15 @@ class AccountMoveSendWizard(TransientModel):
             'author_partner_id': author_partner_id,
         }
         if sending_methods and 'email' in sending_methods:
-            send_settings.update({
-                'mail_template': mail_template,
-                'mail_lang': mail_lang,
-                'mail_body': mail_body,
-                'mail_subject': mail_subject,
-                'mail_partner_ids': [p.pk for p in mail_partner_ids or []],
-            })
+            send_settings.update(
+                {
+                    'mail_template': mail_template,
+                    'mail_lang': mail_lang,
+                    'mail_body': mail_body,
+                    'mail_subject': mail_subject,
+                    'mail_partner_ids': [p.pk for p in mail_partner_ids or []],
+                }
+            )
         if display_attachments_widget:
             send_settings['mail_attachments_widget'] = mail_attachments_widget
         return send_settings
@@ -413,7 +455,9 @@ class AccountMoveSendWizard(TransientModel):
 
     @classmethod
     def _action_download(cls, attachments):
-        """ Download the PDF attachment, or a zip of attachments if there are more than one.
+        """
+        Download the PDF attachment, or a zip of attachments if there are more
+        than one.
 
         (Docstring verbatim de la referencia.) La URL es la del controller
         hermano (``controllers/download_docs.py``, portado en este mismo
@@ -426,9 +470,10 @@ class AccountMoveSendWizard(TransientModel):
         }
 
     @classmethod
-    def action_send_and_print(cls, move, send_settings,
-                               allow_fallback_pdf=False):
-        """ Create invoice documents and send them.
+    def action_send_and_print(
+        cls, move, send_settings, allow_fallback_pdf=False
+    ):
+        """Create invoice documents and send them.
 
         (Docstring verbatim de la referencia.) Delegación al mixin en porte
         paralelo (``_generate_and_send_invoices``); sin el

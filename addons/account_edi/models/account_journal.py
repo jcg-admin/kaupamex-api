@@ -61,6 +61,7 @@ administrativo reasigna todo"—, que es exactamente lo que el ``write()`` de
 la referencia tampoco distingue (intercepta el diccionario completo de
 ``vals``, no una intención). Mismo alcance, mecanismo distinto.
 """
+
 import fields
 import models
 from django.db.models.signals import m2m_changed
@@ -82,7 +83,8 @@ def compute_compatible_edi_ids(journal):
     criterio que el resto de propiedades DEC-SALE-01 de este árbol.
     """
     return [
-        edi_format for edi_format in AccountEdiFormat.objects.all()
+        edi_format
+        for edi_format in AccountEdiFormat.objects.all()
         if edi_format._is_compatible_with_journal(journal)
     ]
 
@@ -100,15 +102,19 @@ def compute_edi_format_ids(journal):
     hace el mismo trabajo con el ORM normal.
     """
     enabled = [
-        edi_format for edi_format in AccountEdiFormat.objects.all()
+        edi_format
+        for edi_format in AccountEdiFormat.objects.all()
         if edi_format._is_compatible_with_journal(journal)
-        and (edi_format._is_enabled_by_default_on_journal(journal)
-             or journal.edi_format_ids.filter(pk=edi_format.pk).exists())
+        and (
+            edi_format._is_enabled_by_default_on_journal(journal)
+            or journal.edi_format_ids.filter(pk=edi_format.pk).exists()
+        )
     ]
 
     protected_ids = set(
         AccountEdiDocument.objects.filter(
-            move_id__journal=journal, state__in=('to_cancel', 'to_send'),
+            move_id__journal=journal,
+            state__in=('to_cancel', 'to_send'),
         ).values_list('edi_format_id', flat=True)
     )
     protected = journal.edi_format_ids.filter(pk__in=protected_ids)
@@ -117,9 +123,14 @@ def compute_edi_format_ids(journal):
     journal.edi_format_ids.set(ids)
 
 
-@receiver(m2m_changed, sender=AccountEdiFormat.journals.through,
-          dispatch_uid='account_edi.guard_edi_format_removal')
-def _guard_edi_format_removal(sender, instance, action, reverse, pk_set, **kwargs):
+@receiver(
+    m2m_changed,
+    sender=AccountEdiFormat.journals.through,
+    dispatch_uid='account_edi.guard_edi_format_removal',
+)
+def _guard_edi_format_removal(
+    sender, instance, action, reverse, pk_set, **kwargs
+):
     """≙ ``write`` (``odoo19c: account_edi/models/account_journal.py:25-41``).
 
     No se borra un ``account.edi.format`` de ``journal.edi_format_ids`` si
@@ -147,10 +158,21 @@ def _guard_edi_format_removal(sender, instance, action, reverse, pk_set, **kwarg
     ).select_related('edi_format_id')
     blocking = [d for d in documents if d.edi_format_id._needs_web_services()]
     if blocking:
-        names = ', '.join(sorted({d.edi_format_id.name or d.edi_format_id.code for d in blocking}))
-        raise UserError(_(
-            'Cannot deactivate (%s) on this journal because not all '
-            'documents are synchronized') % names)
+        names = ', '.join(
+            sorted(
+                {
+                    d.edi_format_id.name or d.edi_format_id.code
+                    for d in blocking
+                }
+            )
+        )
+        raise UserError(
+            _(
+                'Cannot deactivate (%s) on this journal because not all '
+                'documents are synchronized'
+            )
+            % names
+        )
 
 
 def apply_account_edi_extensions():
@@ -162,5 +184,8 @@ def apply_account_edi_extensions():
     account_journal.py``.
     """
     if not hasattr(AccountJournal, 'compatible_edi_ids'):
-        setattr(AccountJournal, 'compatible_edi_ids',
-                property(compute_compatible_edi_ids))
+        setattr(
+            AccountJournal,
+            'compatible_edi_ids',
+            property(compute_compatible_edi_ids),
+        )

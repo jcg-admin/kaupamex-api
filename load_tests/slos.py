@@ -15,14 +15,15 @@ NOTA: confirmar los valores exactos contra
 ``docs/source/requisitos/requisitos-no-funcionales/rnf-perf-00*.rst``
 al implementar; aquí están los SLO declarados a 2026-06-02.
 """
+
 from __future__ import annotations
 
 # Grupo de endpoint -> P95 máximo permitido (milisegundos).
 SLO_P95_MS: dict[str, int] = {
-    "read_simple": 400,    # RNF-PERF-001: catálogo, detalle, carrito-ver
-    "search": 600,         # RNF-PERF-001: búsqueda con filtros
-    "write": 500,          # RNF-PERF-002: add-cart, checkout, crear orden
-    "pagination": 1200,    # RNF-PERF-003: listados grandes / reportes
+    "read_simple": 400,  # RNF-PERF-001: catálogo, detalle, carrito-ver
+    "search": 600,  # RNF-PERF-001: búsqueda con filtros
+    "write": 500,  # RNF-PERF-002: add-cart, checkout, crear orden
+    "pagination": 1200,  # RNF-PERF-003: listados grandes / reportes
 }
 
 # Mapeo grupo -> RNF de origen (trazabilidad a los AC-07).

@@ -97,6 +97,7 @@ automáticamente sobre ``account.AccountMove`` **sin tocar**
 Por eso este archivo no declara ningún campo — sólo cuelga métodos y
 propiedades.
 """
+
 import fields
 import models
 from addons.account.models.account_move import AccountMove
@@ -105,15 +106,18 @@ from exceptions import UserError
 from orm.method_chain import chain_method
 from tools.translate import _
 
-
 # --------------------------------------------------------------------------
 # Propiedades no-almacenadas — DEC-SALE-01
 # --------------------------------------------------------------------------
 
+
 def _edi_state(self):
     """≙ ``_compute_edi_state`` (``odoo19c: :41-53``)."""
-    docs_ws = [d for d in self.edi_document_ids.all()
-               if d.edi_format_id._needs_web_services()]
+    docs_ws = [
+        d
+        for d in self.edi_document_ids.all()
+        if d.edi_format_id._needs_web_services()
+    ]
     all_states = {d.state for d in docs_ws}
     if all_states == {'sent'}:
         return 'sent'
@@ -155,20 +159,35 @@ def _edi_error_message_and_level(self):
         return docs[0].error, docs[0].blocking_level
     levels = {d.blocking_level for d in self.edi_document_ids.all()}
     if 'error' in levels:
-        return _('%(count)s Electronic invoicing error(s)') % {'count': count}, 'error'
+        return (
+            _('%(count)s Electronic invoicing error(s)') % {'count': count},
+            'error',
+        )
     if 'warning' in levels:
-        return _('%(count)s Electronic invoicing warning(s)') % {'count': count}, 'warning'
-    return _('%(count)s Electronic invoicing info(s)') % {'count': count}, 'info'
+        return (
+            _('%(count)s Electronic invoicing warning(s)') % {'count': count},
+            'warning',
+        )
+    return (
+        _('%(count)s Electronic invoicing info(s)') % {'count': count},
+        'info',
+    )
 
 
 def _edi_web_services_to_process(self):
     """≙ ``_compute_edi_web_services_to_process`` (``odoo19c: :85-93``)."""
     to_process = [
-        d for d in self.edi_document_ids.all()
+        d
+        for d in self.edi_document_ids.all()
         if d.state in ('to_send', 'to_cancel') and d.blocking_level != 'error'
     ]
-    names = sorted({d.edi_format_id.name for d in to_process
-                    if d.edi_format_id._needs_web_services()})
+    names = sorted(
+        {
+            d.edi_format_id.name
+            for d in to_process
+            if d.edi_format_id._needs_web_services()
+        }
+    )
     return ', '.join(names)
 
 
@@ -176,9 +195,12 @@ def _check_edi_documents_for_reset_to_draft(self):
     """≙ ``_check_edi_documents_for_reset_to_draft`` (``odoo19c: :98-105``)."""
     for doc in self.edi_document_ids.all():
         applicability = doc.edi_format_id._get_move_applicability(self)
-        if (doc.edi_format_id._needs_web_services()
-                and doc.state in ('sent', 'to_cancel')
-                and applicability and applicability.get('cancel')):
+        if (
+            doc.edi_format_id._needs_web_services()
+            and doc.state in ('sent', 'to_cancel')
+            and applicability
+            and applicability.get('cancel')
+        ):
             return False
     return True
 
@@ -189,8 +211,12 @@ def _edi_show_cancel_button(self):
         return False
     for doc in self.edi_document_ids.all():
         applicability = doc.edi_format_id._get_move_applicability(self)
-        if (doc.edi_format_id._needs_web_services() and doc.state == 'sent'
-                and applicability and applicability.get('cancel')):
+        if (
+            doc.edi_format_id._needs_web_services()
+            and doc.state == 'sent'
+            and applicability
+            and applicability.get('cancel')
+        ):
             return True
     return False
 
@@ -201,8 +227,12 @@ def _edi_show_abandon_cancel_button(self):
     criterio del resto de este dominio)."""
     for doc in self.edi_document_ids.all():
         applicability = doc.edi_format_id._get_move_applicability(self)
-        if (doc.edi_format_id._needs_web_services() and doc.state == 'to_cancel'
-                and applicability and applicability.get('cancel')):
+        if (
+            doc.edi_format_id._needs_web_services()
+            and doc.state == 'to_cancel'
+            and applicability
+            and applicability.get('cancel')
+        ):
             return True
     return False
 
@@ -215,22 +245,29 @@ def _edi_show_force_cancel_button(self):
     pieza de este archivo depende de esta propiedad — el bloqueo es local."""
     raise NotImplementedError(
         'edi_show_force_cancel_button: bloqueado — AccountMove._can_force_'
-        'cancel no está portado.')
+        'cancel no está portado.'
+    )
 
 
 # --------------------------------------------------------------------------
 # Export Electronic Document
 # --------------------------------------------------------------------------
 
-def _prepare_edi_tax_details(self, filter_to_apply=None, filter_invl_to_apply=None,
-                              grouping_key_generator=None):
+
+def _prepare_edi_tax_details(
+    self,
+    filter_to_apply=None,
+    filter_invl_to_apply=None,
+    grouping_key_generator=None,
+):
     """≙ ``_prepare_edi_tax_details`` (``odoo19c: :151-200``) — **bloqueado**:
     delega en ``_prepare_invoice_aggregated_taxes``, que no existe en este
     árbol (medido: ``grep -rn "_prepare_invoice_aggregated_taxes"
     addons/account/models/*.py`` → 0 hits)."""
     raise NotImplementedError(
         '_prepare_edi_tax_details: bloqueado — _prepare_invoice_aggregated_'
-        'taxes no está portado en account/models/account_move.py.')
+        'taxes no está portado en account/models/account_move.py.'
+    )
 
 
 def _create_edi_documents_after_post(self):
@@ -251,17 +288,21 @@ def _create_edi_documents_after_post(self):
             continue
         errors = edi_format._check_move_configuration(self)
         if errors:
-            raise UserError(_('Invalid invoice configuration:\n\n%s') % '\n'.join(errors))
+            raise UserError(
+                _('Invalid invoice configuration:\n\n%s') % '\n'.join(errors)
+            )
 
         existing = AccountEdiDocument.objects.filter(
-            move_id=self, edi_format_id=edi_format).first()
+            move_id=self, edi_format_id=edi_format
+        ).first()
         if existing is not None:
             existing.state = 'to_send'
             existing.attachment_id = None
             existing.save(update_fields=['state', 'attachment_id'])
         else:
             AccountEdiDocument.objects.create(
-                edi_format_id=edi_format, move_id=self, state='to_send')
+                edi_format_id=edi_format, move_id=self, state='to_send'
+            )
 
     new_documents = list(self.edi_document_ids.all())
     AccountEdiDocument._process_documents_no_web_services(new_documents)
@@ -306,14 +347,21 @@ def _wrap_post_with_edi():
 
 def button_force_cancel(self):
     """≙ ``button_force_cancel`` (``odoo19c: :251-256``). ``message_post``
-    es GAP declarado — mismo patrón que ``account_document_import_mixin.py``."""
-    to_cancel = [d for d in self.edi_document_ids.all() if d.state == 'to_cancel']
+    es GAP declarado — mismo patrón que ``account_document_import_mixin.py``.
+    """
+    to_cancel = [
+        d for d in self.edi_document_ids.all() if d.state == 'to_cancel'
+    ]
     post = getattr(self, 'message_post', None)
     if post is not None and to_cancel:
         names = ', '.join(d.edi_format_id.name for d in to_cancel)
-        post(body=_(
-            'This invoice was canceled while the EDIs %s still had a '
-            'pending cancellation request.') % names)
+        post(
+            body=_(
+                'This invoice was canceled while the EDIs %s still had a '
+                'pending cancellation request.'
+            )
+            % names
+        )
     self.button_cancel()
     return None
 
@@ -334,7 +382,9 @@ def button_cancel(self):
         doc.error = ''
         doc.blocking_level = ''
         doc.save(update_fields=['state', 'error', 'blocking_level'])
-    AccountEdiDocument._process_documents_no_web_services(list(self.edi_document_ids.all()))
+    AccountEdiDocument._process_documents_no_web_services(
+        list(self.edi_document_ids.all())
+    )
     return None
 
 
@@ -351,8 +401,12 @@ def button_cancel_posted_moves(self):
     is_marked = False
     for doc in self.edi_document_ids.all():
         applicability = doc.edi_format_id._get_move_applicability(self)
-        if (doc.edi_format_id._needs_web_services() and doc.state == 'sent'
-                and applicability and applicability.get('cancel')):
+        if (
+            doc.edi_format_id._needs_web_services()
+            and doc.state == 'sent'
+            and applicability
+            and applicability.get('cancel')
+        ):
             to_cancel.append(doc)
             is_marked = True
     if is_marked:
@@ -367,18 +421,29 @@ def button_cancel_posted_moves(self):
 
 
 def button_abandon_cancel_posted_posted_moves(self):
-    """≙ ``button_abandon_cancel_posted_posted_moves`` (``odoo19c: :298-311``)."""
+    """
+    ≙ ``button_abandon_cancel_posted_posted_moves`` (``odoo19c: :298-311``).
+    """
     documents = []
     is_marked = False
     for doc in self.edi_document_ids.all():
         applicability = doc.edi_format_id._get_move_applicability(self)
-        if doc.state == 'to_cancel' and applicability and applicability.get('cancel'):
+        if (
+            doc.state == 'to_cancel'
+            and applicability
+            and applicability.get('cancel')
+        ):
             documents.append(doc)
             is_marked = True
     if is_marked:
         post = getattr(self, 'message_post', None)
         if post is not None:
-            post(body=_('A request for cancellation of the EDI has been called off.'))
+            post(
+                body=_(
+                    'A request for cancellation of the EDI has been called'
+                    ' off.'
+                )
+            )
     for doc in documents:
         doc.state = 'sent'
         doc.error = ''
@@ -388,7 +453,9 @@ def button_abandon_cancel_posted_posted_moves(self):
 
 def _get_edi_document(self, edi_format):
     """≙ ``_get_edi_document`` (``odoo19c: :313-314``)."""
-    return AccountEdiDocument.objects.filter(move_id=self, edi_format_id=edi_format).first()
+    return AccountEdiDocument.objects.filter(
+        move_id=self, edi_format_id=edi_format
+    ).first()
 
 
 def _get_edi_attachment(self, edi_format):
@@ -404,9 +471,14 @@ def button_process_edi_web_services(self):
 
 def action_process_edi_web_services(self, with_commit=True):
     """≙ ``action_process_edi_web_services`` (``odoo19c: :334-336``)."""
-    docs = [d for d in self.edi_document_ids.all()
-            if d.state in ('to_send', 'to_cancel') and d.blocking_level != 'error']
-    return AccountEdiDocument._process_documents_web_services(docs, with_commit=with_commit)
+    docs = [
+        d
+        for d in self.edi_document_ids.all()
+        if d.state in ('to_send', 'to_cancel') and d.blocking_level != 'error'
+    ]
+    return AccountEdiDocument._process_documents_web_services(
+        docs, with_commit=with_commit
+    )
 
 
 def _retry_edi_documents_error(self):
@@ -447,21 +519,50 @@ def apply_account_edi_extensions():
         if not hasattr(AccountMove, name):
             setattr(AccountMove, name, property(getter))
 
-    chain_method(AccountMove, '_prepare_edi_tax_details', _prepare_edi_tax_details)
-    chain_method(AccountMove, '_check_edi_documents_for_reset_to_draft',
-                 _check_edi_documents_for_reset_to_draft)
-    chain_method(AccountMove, '_create_edi_documents_after_post',
-                 _create_edi_documents_after_post)
+    chain_method(
+        AccountMove, '_prepare_edi_tax_details', _prepare_edi_tax_details
+    )
+    chain_method(
+        AccountMove,
+        '_check_edi_documents_for_reset_to_draft',
+        _check_edi_documents_for_reset_to_draft,
+    )
+    chain_method(
+        AccountMove,
+        '_create_edi_documents_after_post',
+        _create_edi_documents_after_post,
+    )
     _wrap_post_with_edi()
     chain_method(AccountMove, 'button_force_cancel', button_force_cancel)
     chain_method(AccountMove, 'button_cancel', button_cancel)
-    chain_method(AccountMove, '_edi_allow_button_draft', _edi_allow_button_draft)
-    chain_method(AccountMove, 'button_cancel_posted_moves', button_cancel_posted_moves)
-    chain_method(AccountMove, 'button_abandon_cancel_posted_posted_moves',
-                 button_abandon_cancel_posted_posted_moves)
+    chain_method(
+        AccountMove, '_edi_allow_button_draft', _edi_allow_button_draft
+    )
+    chain_method(
+        AccountMove, 'button_cancel_posted_moves', button_cancel_posted_moves
+    )
+    chain_method(
+        AccountMove,
+        'button_abandon_cancel_posted_posted_moves',
+        button_abandon_cancel_posted_posted_moves,
+    )
     chain_method(AccountMove, '_get_edi_document', _get_edi_document)
     chain_method(AccountMove, '_get_edi_attachment', _get_edi_attachment)
-    chain_method(AccountMove, 'button_process_edi_web_services', button_process_edi_web_services)
-    chain_method(AccountMove, 'action_process_edi_web_services', action_process_edi_web_services)
-    chain_method(AccountMove, '_retry_edi_documents_error', _retry_edi_documents_error)
-    chain_method(AccountMove, 'action_retry_edi_documents_error', action_retry_edi_documents_error)
+    chain_method(
+        AccountMove,
+        'button_process_edi_web_services',
+        button_process_edi_web_services,
+    )
+    chain_method(
+        AccountMove,
+        'action_process_edi_web_services',
+        action_process_edi_web_services,
+    )
+    chain_method(
+        AccountMove, '_retry_edi_documents_error', _retry_edi_documents_error
+    )
+    chain_method(
+        AccountMove,
+        'action_retry_edi_documents_error',
+        action_retry_edi_documents_error,
+    )

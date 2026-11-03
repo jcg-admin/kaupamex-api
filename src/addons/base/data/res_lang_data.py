@@ -1347,14 +1347,21 @@ def _seed(model, using):
     presentes = set(model.objects.using(using).values_list('code', flat=True))
     nuevos = [
         model(
-            code=d['code'], name=d['name'], iso_code=d['iso_code'],
-            url_code=d['url_code'], direction=d['direction'],
-            grouping=d['grouping'], decimal_point=d['decimal_point'],
-            thousands_sep=d['thousands_sep'], date_format=d['date_format'],
-            time_format=d['time_format'], week_start=d['week_start'],
+            code=d['code'],
+            name=d['name'],
+            iso_code=d['iso_code'],
+            url_code=d['url_code'],
+            direction=d['direction'],
+            grouping=d['grouping'],
+            decimal_point=d['decimal_point'],
+            thousands_sep=d['thousands_sep'],
+            date_format=d['date_format'],
+            time_format=d['time_format'],
+            week_start=d['week_start'],
             active=(d['code'] == DEFAULT_ACTIVE_LANG),
         )
-        for d in LANGS if d['code'] not in presentes
+        for d in LANGS
+        if d['code'] not in presentes
     ]
     model.objects.using(using).bulk_create(nuevos)
     return len(nuevos)
@@ -1365,7 +1372,8 @@ def seed(using=DEFAULT_DB_ALIAS):
 
     El catálogo de ``tests/conftest.py`` la re-aplica al arrancar la sesión y
     tras cada test transaccional: un ``flush`` borra las filas que sembró la
-    migración y ``django_migrations`` las sigue dando por aplicadas (H-API-337).
+    migración y ``django_migrations`` las sigue dando por aplicadas
+    (H-API-337).
     """
     return _seed(ResLang, using)
 

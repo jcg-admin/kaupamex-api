@@ -65,6 +65,7 @@ Métodos (5):
 ``_inherit`` lo expresa ``extend_model``; par de Django porque el destino no
 declara ``_name``.
 """
+
 from orm.environments import get_current_companies
 from orm.model_classes import extend_model
 
@@ -170,7 +171,9 @@ def _search_employee_id(cls, employee_ids):
     """Cuentas de los empleados dados — ≙ ``_search_employee_id``
     (``:35-37``). DIVERGENCIA: recibe ids de empleado y devuelve el
     queryset de cuentas (el dominio Odoo se traduce a ORM directo)."""
-    return cls.objects.filter(hr_employees__pk__in=list(employee_ids)).distinct()
+    return cls.objects.filter(
+        hr_employees__pk__in=list(employee_ids)
+    ).distinct()
 
 
 def _masked_acc_number(self):
@@ -192,7 +195,11 @@ def _compute_display_name(self, user=None):
     enmascara (fail-closed, al revés que un ``sudo``).
     """
     is_hr = bool(user is not None and user.has_group('hr.group_hr_user'))
-    if not is_hr and self.partner_id and self.partner.employee_work_contacts.exists():
+    if (
+        not is_hr
+        and self.partner_id
+        and self.partner.employee_work_contacts.exists()
+    ):
         return self._masked_acc_number()
     return str(self)
 
@@ -201,7 +208,8 @@ def apply_hr_res_partner_bank_extensions():
     """Cuelga sobre ``res.partner.bank`` lo que ``hr`` le añade — ≙
     ``_inherit``."""
     extend_model(
-        'base', 'ResPartnerBank',
+        'base',
+        'ResPartnerBank',
         metodos={
             '_compute_employee_id': _compute_employee_id,
             '_compute_salary_amount': _compute_salary_amount,
@@ -221,7 +229,11 @@ def apply_hr_res_partner_bank_extensions():
             'currency_symbol': currency_symbol,
             'employee': employee,
             'employee_salary_amount': employee_salary_amount,
-            'employee_salary_amount_is_percentage': employee_salary_amount_is_percentage,
-            'employee_has_multiple_bank_accounts': employee_has_multiple_bank_accounts,
+            'employee_salary_amount_is_percentage': (
+                employee_salary_amount_is_percentage
+            ),
+            'employee_has_multiple_bank_accounts': (
+                employee_has_multiple_bank_accounts
+            ),
         },
     )

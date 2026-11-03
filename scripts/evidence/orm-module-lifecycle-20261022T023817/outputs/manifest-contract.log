@@ -1,0 +1,45 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "manifest_properties_retained": {
+    "depends": [
+      "base"
+    ],
+    "auto_install": [],
+    "installable": false,
+    "application": true,
+    "external_dependencies": {
+      "python": [
+        "json"
+      ]
+    },
+    "pre_init_hook": "pre",
+    "post_init_hook": "post",
+    "uninstall_hook": "remove"
+  },
+  "executable_manifest_rejected": true,
+  "missing_python_dependency_rejected": true,
+  "auto_install_empty_trigger": {
+    "inputs": {
+      "base": {
+        "depends": []
+      },
+      "bridge": {
+        "depends": [
+          "base"
+        ],
+        "auto_install": []
+      },
+      "disabled": {
+        "depends": [],
+        "installable": false
+      }
+    },
+    "present": [],
+    "observed_candidates": [],
+    "expected_candidate": "bridge",
+    "candidate_requirement_satisfied": false,
+    "reference": "Odoo modules/db.py initialize: auto_install is not False; empty required subset qualifies."
+  },
+  "disabled_module_in_static_graph": true,
+  "limitations": "Static graph inclusion is not installation. Retaining hook keys does not execute hooks; no loader or dependency admission is qualified by this parser probe."
+}

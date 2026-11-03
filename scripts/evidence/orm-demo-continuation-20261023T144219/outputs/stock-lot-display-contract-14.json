@@ -1,0 +1,99 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "integration": "Local source committed with hooksPASS and focused regressionsPASS; required621aaf83 gate2224PASS1SKIP1FAIL at proven legacy analytic prefix criterion; publication pending, no whole-head acceptance or merge",
+  "source_revision": "3806ec77c3090419871999becf711cb4f906c613",
+  "reference_symbol": {
+    "path": "odoo19c:addons/product_expiry/models/production_lot.py",
+    "qualified_symbol": "StockLot._compute_display_name",
+    "line": 26,
+    "sha256": "397d6c5213a6c0424f22815e7e204c5c3b90021b269038a8ff8347543829ce29",
+    "body": "def _compute_display_name(self):\n        lots_to_process_ids = []\n        for lot in self:\n            if lot.env.context.get('formatted_display_name') and lot.use_expiration_date and lot.expiration_date:\n                name = f\"{lot.name}\"\n                if fields.Datetime.now() >= lot.expiration_date:\n                    name += self.env._(\"\\t--Expired--\")\n                elif lot.alert_date and fields.Datetime.now() >= lot.alert_date:\n                    name += self.env._(\"\\t--Expire on %(date)s--\", date=fields.Datetime.to_string(lot.expiration_date))\n                lot.display_name = name\n            else:\n                lots_to_process_ids.append(lot.id)\n        if lots_to_process_ids:\n            super(StockLot, self.env['stock.lot'].browse(lots_to_process_ids))._compute_display_name()",
+    "decorators": [
+      "api.depends('use_expiration_date', 'expiration_date', 'alert_date')",
+      "api.depends_context('formatted_display_name')"
+    ]
+  },
+  "behavior": "Formatted expiry label requires context, activated expiry and date; expired takes precedence over alert; otherwise base name/fallback",
+  "execution_flow": "Existing compute descriptor -> chain_method wrapper with dependency/context metadata -> real template activation path -> native clock/formatter/translation -> assigned label or None relay to existing base",
+  "inputs_outputs": "Saved/new StockLot, formattedFalse/True/absent, tracking flag, before/equal/after expiry/alert, missing date, renamed lot and disabled template; output actual reference label states",
+  "side_effects": "Existing field cache assignment/invalidation only; new row with cached saved product reads0SQL; no fields/schema/migrations added",
+  "dependencies": [
+    "Native1203 TASK-GEN-0633 pending owned, selection and claims recorded",
+    "Existing context_scope/get_context and existing formatted-display consumers contradict historical no-context header",
+    "Actual ProductTemplate.use_expiration_date field through product.product_tmpl, not an invented property dependency",
+    "Existing chain_method nonNone handled/None fallback contract and native fields.Datetime.to_string/translation"
+  ],
+  "consumers": [
+    "Original product-expiry historical node preserved with reconciled acceptance criterion",
+    "30 expiry tests including limits, cross-context cache, template flag and new row",
+    "297 stock/expiry neighborhood tests after StockMove correction"
+  ],
+  "installed_mechanism": "Existing api.depends/context, native descriptor/chain_method, temporal formatter and translation",
+  "existing_adaptation": "Odoo batches records and delegates nonhandled subset; Consumer handles actual scalar Django row and returns label after assignment as existing chain relay signal. No recordset or batching rewrite",
+  "verification": {
+    "baseline": {
+      "revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+      "failed": 1,
+      "exit": 1
+    },
+    "red": {
+      "passed": 1,
+      "failed": 10,
+      "exit": 1
+    },
+    "new_row_red": {
+      "failed": 1,
+      "exit": 1
+    },
+    "assignment_only": {
+      "passed": 1,
+      "failed": 11,
+      "exit": 1,
+      "reason": "Wrong unconditional date suffix remains observable after assignment"
+    },
+    "green": {
+      "passed": 28,
+      "exit": 0
+    },
+    "complete": {
+      "passed": 30,
+      "exit": 0,
+      "junit": "stock-lot-display-complete.junit.xml"
+    },
+    "broader_initial": {
+      "passed": 177,
+      "failed": 1,
+      "exit": 1,
+      "first": "Unchanged StockMove compute missing assignment"
+    },
+    "broader_final": {
+      "passed": 297,
+      "exit": 0,
+      "junit": "stock-display-regression-after-move.junit.xml"
+    },
+    "shared_required_ci": {
+      "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "execution_status": "COMPLETED_FAILURE",
+      "pytest_exit": 1,
+      "passed": 2224,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 901.47,
+      "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+      "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+      "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false
+    }
+  },
+  "equivalence": "Selected actual expiry label contract and cache consumers verified; not whole stock/product_expiry or recordset equivalence",
+  "limitations": "No complete activity/notification, automatic time-driven cache invalidation, all languages, N>1 or whole lot persistence acceptance",
+  "criterion_reconciliation": {
+    "stable_node": "tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it",
+    "historical": "Always append a date when expiration exists, assuming context absent",
+    "proof": "Pinned qualified body, real get_context and ResPartner/stock-package usage; assignment-only11FAIL proves criterion mismatch remains",
+    "legitimate_mechanism": "Existing native TaskUpdate description and unchanged test identity; no official states or new TASK"
+  }
+}

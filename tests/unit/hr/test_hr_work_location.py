@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo hr/models/hr_work_location.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import pytest
 
 from addons.hr.models import HrWorkLocation
@@ -31,7 +32,8 @@ class TestHrWorkLocationChoices:
 
     def test_location_type_accepts_home(self):
         location = HrWorkLocation.objects.create(
-            name='Casa de Ana', location_type=HrWorkLocation.LocationType.HOME)
+            name='Casa de Ana', location_type=HrWorkLocation.LocationType.HOME
+        )
         assert location.location_type == 'home'
 
 

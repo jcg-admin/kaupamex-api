@@ -5,10 +5,12 @@ portado como paquete ``models/`` (un archivo por modelo). Datos de negocio
 per-empresa (no plano de control): NO va en ``MULTIDB_CONTROL_PLANE_APPS``;
 enruta a la BD de la ``company`` bajo N>1.
 
-Depende de ``base`` (moneda), ``company`` (empresa) y ``users`` (party). Cross-app
+Depende de ``base`` (moneda), ``company`` (empresa) y ``users`` (party).
+Cross-app
 ``_inherit`` de Odoo (res.partner/res.company/res.currency) → FK/RELATED
 (DEC-SALE-01).
 """
+
 import importlib
 
 from django.apps import AppConfig

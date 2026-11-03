@@ -37,7 +37,15 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("html", "HTML"), ("pdf", "PDF"), ("text", "Text")],
                 default="pdf",
-                help_text="Formato de salida: html, pdf o text. El valor gobierna el despacho de _render. Son los tres de la fuente, sin su prefijo qweb-: aquí el intérprete no es QWeb. El intermedio de la composición es el descriptor, y cada formato tiene su serializador (pdf lo dibuja el helper de libharu, ADR-017; html y text los serializa report_template).",
+                help_text=(
+                    "Formato de salida: html, pdf o text. El valor gobierna el"
+                    " despacho de _render. Son los tres de la fuente, sin su"
+                    " prefijo qweb-: aquí el intérprete no es QWeb. El"
+                    " intermedio de la composición es el descriptor, y cada"
+                    " formato tiene su serializador (pdf lo dibuja el helper"
+                    " de libharu, ADR-017; html y text los serializa"
+                    " report_template)."
+                ),
                 max_length=16,
                 verbose_name="Tipo de reporte",
             ),

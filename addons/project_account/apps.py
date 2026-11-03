@@ -6,6 +6,7 @@ en ``ready()``, cuando el registro de modelos ya está poblado y
 ``chain_method`` sobre una clase ajena no rompe con ``AppRegistryNotReady``
 — mismo criterio que ``product_expiry`` / ``hr_timesheet``.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -13,14 +14,15 @@ from django.apps import AppConfig
 
 class ProjectAccountConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.project_account'
-    label              = 'project_account'
-    verbose_name       = 'Proyecto ↔ contabilidad (project_account)'
+    name = 'addons.project_account'
+    label = 'project_account'
+    verbose_name = 'Proyecto ↔ contabilidad (project_account)'
 
     #: Módulo → función. Mismo patrón que ``HrTimesheetConfig._EXTENSIONES``.
     _EXTENSIONES = {
-        'addons.project_account.models.project_project':
-            'apply_project_account_project_project_extensions',
+        'addons.project_account.models.project_project': (
+            'apply_project_account_project_project_extensions'
+        ),
     }
 
     def ready(self):

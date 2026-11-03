@@ -1,7 +1,8 @@
 """Contrato de ``tools.which`` — los casos POSIX de la fuente, ejecutables.
 
 ``odoo19c: odoo/tools/which.py:70-110`` prueba el módulo con *doctests* en el
-cuerpo de ``which_files`` y un ``if __name__ == '__main__': doctest.testmod()``.
+cuerpo de ``which_files`` y un ``if __name__ == '__main__':
+doctest.testmod()``.
 Aquí esos mismos casos viven como pruebas de la suite, que sí se corre — la
 divergencia de mecanismo que el docstring del puerto declara.
 
@@ -15,6 +16,7 @@ por un control de ``X_OK`` sobre un archivo **que existe** y no es ejecutable:
 la raíz sí respeta el bit de ejecución (medido: ``0o644`` → ``X_OK`` falso),
 así que el control puede fallar y falla por lo que dice medir.
 """
+
 import os
 import tempfile
 
@@ -27,7 +29,8 @@ from tools.which import ENOENT, F_OK, which, which_files
 SH = '/bin/sh'
 
 posix_only = pytest.mark.skipif(
-    which_module.windows, reason='los casos de la fuente son de la rama POSIX')
+    which_module.windows, reason='los casos de la fuente son de la rama POSIX'
+)
 
 
 @posix_only
@@ -120,7 +123,16 @@ def test_which_raises_ioerror_with_enoent_when_nothing_matches():
 
 def test_the_public_surface_is_the_one_the_source_declares():
     assert which_module.__all__ == [
-        'F_OK', 'R_OK', 'W_OK', 'X_OK', 'defpath', 'defpathext', 'dirname',
-        'pathsep', 'which', 'which_files']
+        'F_OK',
+        'R_OK',
+        'W_OK',
+        'X_OK',
+        'defpath',
+        'defpathext',
+        'dirname',
+        'pathsep',
+        'which',
+        'which_files',
+    ]
     assert which_module.__docformat__ == 'restructuredtext en'
     assert ENOENT == 2

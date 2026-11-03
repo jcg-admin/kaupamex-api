@@ -1,0 +1,90 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    {
+      "source": "odoo19c:odoo/tools/convert.py",
+      "sha256": "14635fd665aad305f120708df79a82e1a5e4bcfd81b78049e1906164666798c0",
+      "symbols": [
+        {
+          "name": "_tag_template",
+          "line": 469,
+          "body": "def _tag_template(self, el):\n        # This helper transforms a <template> element into a <record> and forwards it\n        tpl_id = el.get('id', el.get('t-name'))\n        full_tpl_id = tpl_id\n        if '.' not in full_tpl_id:\n            full_tpl_id = '%s.%s' % (self.module, tpl_id)\n        # set the full template name for qweb <module>.<id>\n        if not el.get('inherit_id'):\n            el.set('t-name', full_tpl_id)\n            el.tag = 't'\n        else:\n            el.tag = 'data'\n        el.attrib.pop('id', None)\n\n        if self.module.startswith('theme_'):\n            model = 'theme.ir.ui.view'\n        else:\n            model = 'ir.ui.view'\n\n        record_attrs = {\n            'id': tpl_id,\n            'model': model,\n        }\n        for att in ['forcecreate', 'context']:\n            if att in el.attrib:\n                record_attrs[att] = el.attrib.pop(att)\n\n        Field = builder.E.field\n        name = el.get('name', tpl_id)\n\n        record = etree.Element('record', attrib=record_attrs)\n        record.append(Field(name, name='name'))\n        record.append(Field(full_tpl_id, name='key'))\n        record.append(Field(\"qweb\", name='type'))\n        if 'track' in el.attrib:\n            record.append(Field(el.get('track'), name='track'))\n        if 'priority' in el.attrib:\n            record.append(Field(el.get('priority'), name='priority'))\n        if 'inherit_id' in el.attrib:\n            record.append(Field(name='inherit_id', ref=el.get('inherit_id')))\n        if 'website_id' in el.attrib:\n            record.append(Field(name='website_id', ref=el.get('website_id')))\n        if 'key' in el.attrib:\n            record.append(Field(el.get('key'), name='key'))\n\n        # If the \"active\" value is set on the root node (instead of an inner\n        # <field>), it is treated as the value for the \"active\" field but only\n        # when *not updating*. This allows to update the record in a more recent\n        # version without changing its active state (compatibility).\n        if el.get('active') in (\"True\", \"False\"):\n            view_id = self.id_get(tpl_id, raise_if_not_found=False)\n            if self.mode != \"update\" or not view_id:\n                record.append(Field(name='active', eval=el.get('active')))\n\n        if el.get('customize_show') in (\"True\", \"False\"):\n            record.append(Field(name='customize_show', eval=el.get('customize_show')))\n        groups = el.attrib.pop('groups', None)\n        if groups:\n            grp_lst = [(\"ref('%s')\" % x) for x in groups.split(',')]\n            record.append(Field(name=\"group_ids\", eval=\"[Command.set([\"+', '.join(grp_lst)+\"])]\"))\n        if el.get('primary') == 'True':\n            # Pseudo clone mode, we'll set the t-name to the full canonical xmlid\n            el.append(\n                builder.E.xpath(\n                    builder.E.attribute(full_tpl_id, name='t-name'),\n                    expr=\".\",\n                    position=\"attributes\",\n                )\n            )\n            record.append(Field('primary', name='mode'))\n        # inject complete <template> element (after changing node name) into\n        # the ``arch`` field\n        record.append(Field(el, name=\"arch\", type=\"xml\"))\n\n        return self._tag_record(record)"
+        }
+      ]
+    },
+    {
+      "source": "odoo19c:odoo/modules/loading.py",
+      "sha256": "9df2022f6f7e62eb7628736df4c334dc4fa1ab85154a8f6c80d9b8169fdf6e50",
+      "symbols": [
+        {
+          "name": "load_data",
+          "line": 41,
+          "body": "def load_data(env: Environment, idref: IdRef, mode: LoadMode, kind: LoadKind, package: ModuleNode) -> bool:\n    \"\"\"\n    noupdate is False, unless it is demo data\n\n    :returns: Whether a file was loaded\n    \"\"\"\n    keys = ('init_xml', 'data') if kind == 'data' else ('demo',)\n\n    files: set[str] = set()\n    for k in keys:\n        if k == 'init_xml' and package.manifest[k]:\n            _logger.warning(\"module %s: key 'init_xml' is deprecated in Odoo 19.\", package.name)\n        for filename in package.manifest[k]:\n            if filename in files:\n                _logger.warning(\"File %s is imported twice in module %s %s\", filename, package.name, kind)\n            files.add(filename)\n\n            _logger.info(\"loading %s/%s\", package.name, filename)\n            convert_file(env, package.name, filename, idref, mode, noupdate=kind == 'demo')\n\n    return bool(files)"
+        }
+      ]
+    },
+    {
+      "source": "odoo19c:odoo/addons/base/models/ir_ui_view.py",
+      "sha256": "bf67ea6ea7b748edf451d6bf81d661049ab97de74e8d9e97b072ed9ceaaeb5fd",
+      "symbols": [
+        {
+          "name": "_get_template_view",
+          "line": 1162,
+          "body": "def _get_template_view(self, id_or_xmlid: int | str, raise_if_not_found=True) -> models.BaseModel:\n        info = self._get_cached_template_info(id_or_xmlid)\n        if info['error'] and raise_if_not_found:\n            raise info['error']\n        return self.env['ir.ui.view'].browse(info['id'])"
+        }
+      ]
+    }
+  ],
+  "behavior": "Installed module data must remain discoverable by the active canonical template resolver, including inherited report additions.",
+  "execution_flow": "Django native migration graph -> existing historical seeds -> app-owned forward repair after base0070 -> existing report resolver -> inheritance -> descriptor -> compiled PDF helper",
+  "inputs_outputs": "Existing sale.report_saleorder and sale_stock.report_saleorder_incoterm rows of legacy typeqweb become existing canonicaltemplate; actual delivery Incoterm appears in PDF",
+  "side_effects": "Only type on two exact owned keys with legacy type. Preserve every other row value and unrelated keys/types. No schema, enum, runtime resolver, recorder or historical migration rewrite.",
+  "dependencies": [
+    "TASK-API-0383 native738 pending owned codex-module-lifecycle; native reconciliation/selection recorded",
+    "Existing base0070 canonical mapping and constraint; sale0012/sale_stock0003 leaves",
+    "Actual IrUiView inherited XML, Django template, descriptor and installed C helper"
+  ],
+  "consumers": [
+    "IrActionsReport._get_template_view",
+    "Actual sale primary report and sale_stock inherited Incoterm note",
+    "Existing TestPlantillaSembrada cases"
+  ],
+  "installed_mechanism": "Django-generated empty migration scaffold completed with historical Apps, schema_editor.connection.alias and RunPython; no alternate loader or scheduler",
+  "existing_adaptation": "Odoo authoring template tag storesqweb; current accepted Kaupamex authority base0070 maps totemplate because its native engine differs. Repair completes that existing decision after optional app seeds; Odoo interpreter/SQL implementation not mechanically copied.",
+  "verification": {
+    "inherited_red": "Exact093cdfd7 focused PDF failure; full2137 838PASS1SKIP1FAIL; pipeline selected_viewNone despite direct helper preserving notes",
+    "focused": {
+      "passed": 22,
+      "exit": 0,
+      "junit": "view-seed-focused.junit.xml"
+    },
+    "alias": {
+      "exit": 0,
+      "evidence": "view-seed-alias.json",
+      "scope": "Two connections on owned PostgreSQL, not N>1 acceptance"
+    },
+    "full_ci": {
+      "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "execution_status": "COMPLETED_FAILURE",
+      "pytest_exit": 1,
+      "passed": 1230,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 646.59,
+      "first_failure": "tests/integration/company/test_base_vat.py::test_partner_full_clean_rejects_bad_rfc",
+      "cause": "partner_fiscal_country_codes callable missing self in default_get -> field.get_default",
+      "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same TypeError, exit1",
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false,
+      "report_incoterm_in_full_ci": "PASS",
+      "baseline_evidence": "fiscal-default-baseline-093.junit.xml"
+    }
+  },
+  "equivalence": "Bounded deliberate adaptation of module data consistency and inherited report discovery, not whole loading.py/install lifecycle equivalence",
+  "limitations": "No whole loader, Registry, physical N>1, authentication, authorization or metadata policy acceptance. Reverse is noop while base0070 owns vocabulary reversal; app reverse dependency orders it before core reversal. No local inference or TASK state changes.",
+  "integration": "Sourceebb08d93 hooksPASS, full CI fails at proven inherited fiscal default; original PDF passes, publication pending; no acceptance/merge",
+  "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+  "acceptance": "not_verified"
+}

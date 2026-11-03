@@ -1,0 +1,12 @@
+{
+  "scripts/evidence/orm-contract-plan-20261020T202045/outputs/population-population-and-units.json": "c8cbabbb4bcb83e7b5a087cfc53e8ed150957e65f5e5e4991cc389c24612e602",
+  "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json": "557b5b205a7573285563bdf5e72e7c4edc7e27d484b5c5476796de8db7969bec",
+  "scripts/evidence/authority-separation-20261021T012957/outputs/task-reconciliation.json": "bfb77c3c583741be6fd3f2bbb07ef2eae4bb1de1bc510cec92b5f78e362bff0d",
+  "implementation_revision": "35501644c380f5f198e407fee16357994ac43b27",
+  "changed_since_population": [
+    "src/orm/fields.py",
+    "src/orm/fields_misc.py",
+    "tests/unit/orm/test_json_defaults.py",
+    "tests/unit/orm/test_relational_field_reconstruction.py"
+  ]
+}

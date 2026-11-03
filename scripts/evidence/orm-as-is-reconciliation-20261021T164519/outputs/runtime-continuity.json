@@ -1,0 +1,7 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "podman": null,
+  "inference": "NOT_EVALUATED; no local or external model invoked",
+  "existing_handoff": "Docs .claude/jobs/babok-operational-continuation-20261021T153929",
+  "skill_load_evidence": "Reuse prior same-revision BABOK run; not repeated and not E2E acceptance"
+}

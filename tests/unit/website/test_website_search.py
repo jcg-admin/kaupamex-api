@@ -7,12 +7,14 @@ fuzzy y los dos enumeradores. El enumerador por trigramas se salta solo si la
 base no trae ``pg_trgm`` (la migración ``website/0005`` la instala; la sonda
 es la misma ``has_trigram`` que usa el despacho).
 """
+
 import pytest
 
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_users import ResUsers
 from addons.website.models.mixins import (
-    WebsiteSearchableMixin, order_expression_to_order_by,
+    WebsiteSearchableMixin,
+    order_expression_to_order_by,
 )
 from addons.website.models.static_page import StaticPage, StaticPageVersion
 from addons.website.models.website import Website
@@ -27,9 +29,15 @@ pytestmark = pytest.mark.django_db
 def _page(slug, title, published=True, content='contenido'):
     page = StaticPage.objects.create(slug=slug, title=title)
     StaticPageVersion.objects.create(
-        page=page, version=1, content=content,
-        status=(StaticPageVersion.STATUS_PUBLISHED if published
-                else StaticPageVersion.STATUS_DRAFT))
+        page=page,
+        version=1,
+        content=content,
+        status=(
+            StaticPageVersion.STATUS_PUBLISHED
+            if published
+            else StaticPageVersion.STATUS_DRAFT
+        ),
+    )
     return page
 
 
@@ -55,13 +63,15 @@ def website(db):
     como lo suministra la data de la fuente.
     """
     company = ResCompany.objects.create(name='Kaupamex Search QA')
-    user = (ResUsers.objects.filter(login='public@kaupamex.test').first()
-            or ResUsers.objects.create_user(login='public@kaupamex.test'))
+    user = ResUsers.objects.filter(
+        login='public@kaupamex.test'
+    ).first() or ResUsers.objects.create_user(login='public@kaupamex.test')
     with company_scope(company.pk):
         yield Website.objects.create(name='Tienda', sequence=10, user=user)
 
 
 # ── piezas de soporte ───────────────────────────────────────────────────────
+
 
 def test_escape_psql_escapes_the_three_wildcards():
     """≙ ``escape_psql`` — el texto del usuario se busca literal."""
@@ -81,21 +91,29 @@ def test_has_unaccent_reports_a_function_status():
 
 # ── el detail y el dominio ──────────────────────────────────────────────────
 
+
 def test_search_get_detail_names_the_published_recipe():
     detail = StaticPage._search_get_detail(None, None, {})
     assert detail['model'] is StaticPage
     assert detail['search_fields'] == ['title', 'slug']
     assert detail['mapping']['website_url'] == {
-        'name': 'url', 'type': 'text', 'truncate': False}
+        'name': 'url',
+        'type': 'text',
+        'truncate': False,
+    }
 
 
 def test_build_domain_ands_each_term_over_an_or_of_fields(search_universe):
     """Dos términos: cada uno debe aparecer en ALGÚN campo (AND de ORs)."""
     domain = WebsiteSearchableMixin._search_build_domain(
-        [], 'política privacidad', ['title', 'slug'])
+        [], 'política privacidad', ['title', 'slug']
+    )
     results, count = StaticPage._search_fetch(
         {'search_fields': ['title', 'slug'], 'base_domain': [domain]},
-        None, 10, None)
+        None,
+        10,
+        None,
+    )
     assert count == 1
     assert results[0].slug == 'privacy'
 
@@ -122,6 +140,7 @@ def test_search_fetch_honors_base_domain_and_limit(search_universe):
 
 # ── el flujo del sitio ──────────────────────────────────────────────────────
 
+
 def test_search_exact_annotates_each_detail(website, search_universe):
     details = website._search_get_details('pages', None, {})
     total, all_results = website._search_exact(details, 'términos', 5, None)
@@ -136,22 +155,25 @@ def test_search_render_results_applies_the_mapping(website, search_universe):
     rendered = website._search_render_results(details, 5)
     row = rendered[0]['results_data'][0]
     assert row['title'] == 'Acerca de nosotros'
-    assert row['url'] == '/pages/about'      # la property, vía getattr
+    assert row['url'] == '/pages/about'  # la property, vía getattr
     assert row['_fa'] == 'fa-file-o'
     assert row['_mapping'] is rendered[0]['mapping']
 
 
 def test_search_with_fuzzy_exact_hit_reports_no_fuzzy_term(
-        website, search_universe):
+    website, search_universe
+):
     count, results, fuzzy = website._search_with_fuzzy(
-        'pages', 'privacidad', 5, None, {})
+        'pages', 'privacidad', 5, None, {}
+    )
     assert count == 1 and fuzzy is False
 
 
 def test_search_with_fuzzy_recovers_from_a_typo(website, search_universe):
     """'privasidad' no matchea exacto; el fuzzy devuelve la palabra real."""
     count, results, fuzzy = website._search_with_fuzzy(
-        'pages', 'privasidad', 5, None, {})
+        'pages', 'privasidad', 5, None, {}
+    )
     assert fuzzy == 'privacidad'
     assert count == 1
     assert results[0]['results'][0].slug == 'privacy'
@@ -159,35 +181,44 @@ def test_search_with_fuzzy_recovers_from_a_typo(website, search_universe):
 
 def test_search_with_fuzzy_disabled_by_option(website, search_universe):
     count, results, fuzzy = website._search_with_fuzzy(
-        'pages', 'privasidad', 5, None, {'allowFuzzy': False})
+        'pages', 'privasidad', 5, None, {'allowFuzzy': False}
+    )
     assert count == 0 and fuzzy is False
 
 
 # ── el término difuso y sus atajos ──────────────────────────────────────────
 
+
 def test_fuzzy_shortcuts_return_the_search_untouched(website):
     """Los tres atajos verbatim: corto, frase, y 80 %+ dígitos."""
     assert website._search_find_fuzzy_term([], 'abc') == 'abc'
-    assert website._search_find_fuzzy_term([], 'dos palabras') == 'dos palabras'
+    assert (
+        website._search_find_fuzzy_term([], 'dos palabras') == 'dos palabras'
+    )
     assert website._search_find_fuzzy_term([], '12345678a9') == '12345678a9'
 
 
 def test_fuzzy_term_prefers_the_most_similar_word(website):
     """Con word_list explícita no hay base de por medio: puntúa y elige."""
     found = website._search_find_fuzzy_term(
-        [], 'devolusiones', word_list=['devoluciones', 'direcciones'])
+        [], 'devolusiones', word_list=['devoluciones', 'direcciones']
+    )
     assert found == 'devoluciones'
 
 
 def test_fuzzy_term_requires_the_same_first_letter(website):
-    assert website._search_find_fuzzy_term(
-        [], 'zapato', word_list=['sapato']) is None
+    assert (
+        website._search_find_fuzzy_term([], 'zapato', word_list=['sapato'])
+        is None
+    )
 
 
 # ── los enumeradores ────────────────────────────────────────────────────────
 
+
 def test_basic_enumerate_words_yields_lowercase_candidates(
-        website, search_universe):
+    website, search_universe
+):
     details = website._search_get_details('pages', None, {})
     words = set(website._basic_enumerate_words(details, 'polí', 100))
     assert 'política' in words
@@ -196,34 +227,43 @@ def test_basic_enumerate_words_yields_lowercase_candidates(
 
 
 def test_trigram_enumerate_words_uses_word_similarity(
-        website, search_universe):
+    website, search_universe
+):
     with connection.cursor() as cr:
         if not has_trigram(cr):
             pytest.skip('pg_trgm ausente — el despacho degrada al básico')
     details = website._search_get_details('pages', None, {})
     words = set(website._trigram_enumerate_words(details, 'privasidad', 100))
     assert 'privacidad' in words
-    assert 'preguntas' not in words          # el borrador queda fuera
+    assert 'preguntas' not in words  # el borrador queda fuera
 
 
 # ── campos punteados ────────────────────────────────────────────────────────
 
+
 def test_indirect_fields_resolve_the_reverse_relation(website):
     indirect = website._search_get_indirect_fields(
-        ['title', 'versions.content'], StaticPage)
+        ['title', 'versions.content'], StaticPage
+    )
     assert list(indirect) == ['versions.content']
     info = indirect['versions.content']
     assert info['comodel'] is StaticPageVersion
-    assert info['cofield'] == 'page'         # la FK de vuelta (≙ relation_field)
+    # la FK de vuelta (≙ relation_field)
+    assert info['cofield'] == 'page'
 
 
 def test_indirect_fields_ignore_unknown_paths(website):
-    assert website._search_get_indirect_fields(
-        ['nope.title', 'title.too.deep', 'slug'], StaticPage) == {}
+    assert (
+        website._search_get_indirect_fields(
+            ['nope.title', 'title.too.deep', 'slug'], StaticPage
+        )
+        == {}
+    )
 
 
 def test_search_text_from_html_keeps_technical_nodes():
     """El casi-homónimo del modelo NO poda ``script`` — contrato distinto."""
     text = Website._search_text_from_html(
-        '<div>hola<script>x()</script></div>')
+        '<div>hola<script>x()</script></div>'
+    )
     assert 'hola' in text and 'x()' in text

@@ -1,4 +1,5 @@
 """Configuración de la app ``crm``."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -6,8 +7,8 @@ from django.apps import AppConfig
 
 class CrmConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name               = 'addons.crm'
-    verbose_name       = 'CRM (crm.lead)'
+    name = 'addons.crm'
+    verbose_name = 'CRM (crm.lead)'
 
     #: Los módulos que cuelgan algo de un modelo AJENO — ≙ los archivos que la
     #: referencia declara con ``_inherit`` sobre un modelo de otro addon. Cada

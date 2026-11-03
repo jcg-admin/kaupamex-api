@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"output": "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-structural-view.json", "files": 23, "observed_counts": {"class": 59, "method": 766, "function": 87, "property_accessor": 42}, "identities_unique": true, "contract_denominator": null}

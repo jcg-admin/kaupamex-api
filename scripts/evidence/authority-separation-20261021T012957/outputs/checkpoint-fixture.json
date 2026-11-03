@@ -1,0 +1,38 @@
+{
+  "store": "/workspace/thyrox/agent-results",
+  "tasks": [
+    {
+      "citation": "TASK-API-0406",
+      "session": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": "1181"
+    },
+    {
+      "citation": "TASK-GEN-0060",
+      "session": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": "333"
+    },
+    {
+      "citation": "TASK-GEN-0062",
+      "session": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": "400"
+    },
+    {
+      "citation": "TASK-THYROX-1072",
+      "session": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "task": "140"
+    }
+  ],
+  "evidence": {
+    "path": "/workspace/kaupamex-api/scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/full-module-content-coverage.json",
+    "sha256": "cf546ba1b4590fd2bd50b1a637b30a0b38fc0f8c37085e5ed74e1995c9a89ebe"
+  },
+  "claims": "/workspace/thyrox/.claude/coordination/claims.jsonl",
+  "repositories": {
+    "api": "/workspace/kaupamex-api",
+    "docs": "/workspace/kaupamex-docs"
+  },
+  "expected_heads": {
+    "api": "ebc91835b4e2a200cd8cab72e4a8bf2eefb45a9b",
+    "docs": "080b2c4d0c79b16be26f073684c7df3e1eaf88a4"
+  }
+}

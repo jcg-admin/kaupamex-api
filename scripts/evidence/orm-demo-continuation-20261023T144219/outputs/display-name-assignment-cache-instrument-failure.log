@@ -1,0 +1,4 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+ImportError: cannot import name 'get_environment' from 'orm.environments' (/workspace/kaupamex-api/src/orm/environments.py). Did you mean: 'Environment'?

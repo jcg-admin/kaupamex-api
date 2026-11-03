@@ -1,0 +1,73 @@
+{
+  "fixture_manifests": {
+    "base": {
+      "depends": []
+    },
+    "uom": {
+      "depends": [
+        "base"
+      ]
+    },
+    "product": {
+      "depends": [
+        "base",
+        "uom"
+      ]
+    }
+  },
+  "catalog_preserves_distinct_states": {
+    "a": {
+      "base": "installed",
+      "product": "uninstalled",
+      "uom": "uninstalled"
+    },
+    "b": {
+      "base": "installed",
+      "product": "installed",
+      "uom": "installed"
+    }
+  },
+  "install_request": {
+    "order": [
+      "base",
+      "uom",
+      "product"
+    ],
+    "a": {
+      "base": "installed",
+      "product": "to install",
+      "uom": "to install"
+    },
+    "b": {
+      "base": "installed",
+      "product": "installed",
+      "uom": "installed"
+    }
+  },
+  "upgrade_request": {
+    "base": "installed",
+    "product": "to upgrade",
+    "uom": "to upgrade"
+  },
+  "uninstall_request": {
+    "base": "installed",
+    "product": "to remove",
+    "uom": "to remove"
+  },
+  "rollback_restores_states": true,
+  "concurrent_requests": {
+    "a": {
+      "base": "installed",
+      "product": "to install",
+      "uom": "to install"
+    },
+    "b": {
+      "base": "installed",
+      "product": "to upgrade",
+      "uom": "installed"
+    },
+    "rollback_restored": true
+  },
+  "acceptance_limit": "Requests only. No addon schema/data/hooks execution or effective registry acceptance.",
+  "second_database_removed": true
+}

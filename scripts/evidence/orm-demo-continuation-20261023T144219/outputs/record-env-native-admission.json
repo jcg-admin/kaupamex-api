@@ -1,0 +1,24 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-API-0397.record_attached_field_context",
+      "taskId": "TASK-API-0397",
+      "prompt": "Prove or refute cache isolation for actual BaseModel recordsets using with_context, attached environments and nonstored compute fields",
+      "verify": "SQL-prohibited discriminating tests, exact candidate and annulment if defect confirmed; native Environment scopes only if qualified",
+      "route": "local",
+      "owned": [
+        "tests/unit/orm/test_record_environment_field_contract.py",
+        "src/orm/fields.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0397.record_attached_field_context"
+  ],
+  "claims_count": 615,
+  "dependencies": "Existing BaseModel.with_context/with_env, Environment.__enter__/__exit__, context/uid cache keys, compute dispatcher and FieldDescriptor. No SQL, migration, new environment implementation or accepted parent state required for bounded contract.",
+  "managed_inference": false
+}

@@ -1,0 +1,13 @@
+{
+  "available_tools": {
+    "pg_isready": null,
+    "psql": null,
+    "docker": "/usr/local/bin/docker"
+  },
+  "pg_isready_exit": 127,
+  "native_postgresql_server_reachable": "not_verified",
+  "historical_harness": "missing_recompute_postgresql.py expects explicit Docker container/database/bridge, creates temporary role and HBA entry",
+  "execution": "NOT_EVALUATED; no role/HBA/database changes attempted",
+  "classification": "Resource/configuration qualification incomplete; no inference that PostgreSQL itself is absent",
+  "bounded_unit": "Five query-transport-double controls remain valid; not live PostgreSQL acceptance"
+}

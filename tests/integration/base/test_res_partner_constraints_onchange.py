@@ -16,6 +16,7 @@ Son dos mecanismos distintos y conviene no confundirlos:
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from addons.base.models.res_country import ResCountry, ResCountryState
@@ -27,24 +28,30 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def mx(db):
-    return ResCountry.objects.get_or_create(code='MX', defaults={'name': 'Mexico'})[0]
+    return ResCountry.objects.get_or_create(
+        code='MX', defaults={'name': 'Mexico'}
+    )[0]
 
 
 @pytest.fixture
 def jp(db):
-    return ResCountry.objects.get_or_create(code='JP', defaults={'name': 'Japon'})[0]
+    return ResCountry.objects.get_or_create(
+        code='JP', defaults={'name': 'Japon'}
+    )[0]
 
 
 @pytest.fixture
 def jalisco(mx):
     return ResCountryState.objects.get_or_create(
-        country=mx, code='JAL', defaults={'name': 'Jalisco'})[0]
+        country=mx, code='JAL', defaults={'name': 'Jalisco'}
+    )[0]
 
 
 @pytest.fixture
 def osaka(jp):
     return ResCountryState.objects.get_or_create(
-        country=jp, code='OSK', defaults={'name': 'Osaka'})[0]
+        country=jp, code='OSK', defaults={'name': 'Osaka'}
+    )[0]
 
 
 class TestRecursiveHierarchy:
@@ -91,7 +98,9 @@ class TestRecursiveHierarchy:
 class TestOnchangeCountry:
     """≙ ``_onchange_country_id`` (``:586-589``)."""
 
-    def test_setting_a_country_clears_a_state_from_another_country(self, mx, osaka):
+    def test_setting_a_country_clears_a_state_from_another_country(
+        self, mx, osaka
+    ):
         """El eje: el estado de otro país deja de ser coherente."""
         who = ResPartner(name='Mudanza', state=osaka)
         who.country = mx
@@ -164,11 +173,19 @@ class TestOnchangeParent:
     """
 
     def test_a_contact_receives_the_address_of_its_parent(self, db, mx):
-        """El eje. Qué lo haría fallar: no consultar ``_get_address_values``."""
+        """
+        El eje. Qué lo haría fallar: no consultar ``_get_address_values``.
+        """
         company = ResPartner.objects.create(
-            name='Matriz', is_company=True, street='Reforma 1',
-            city='CDMX', country=mx)
-        who = ResPartner.objects.create(name='Contacto', type=ResPartner.TYPE_CONTACT)
+            name='Matriz',
+            is_company=True,
+            street='Reforma 1',
+            city='CDMX',
+            country=mx,
+        )
+        who = ResPartner.objects.create(
+            name='Contacto', type=ResPartner.TYPE_CONTACT
+        )
         who.parent = company
         result = who.onchange_parent_id()
         assert result['value']['street'] == 'Reforma 1'
@@ -186,8 +203,12 @@ class TestOnchangeParent:
         ``_fields_sync``, un diccionario de cadenas vacías **borraría** la
         dirección del hijo en vez de dejarla como está.
         """
-        company = ResPartner.objects.create(name='Matriz sin direccion', is_company=True)
-        who = ResPartner.objects.create(name='Contacto', type=ResPartner.TYPE_CONTACT)
+        company = ResPartner.objects.create(
+            name='Matriz sin direccion', is_company=True
+        )
+        who = ResPartner.objects.create(
+            name='Contacto', type=ResPartner.TYPE_CONTACT
+        )
         who.parent = company
         result = who.onchange_parent_id()
         assert 'value' not in result
@@ -205,9 +226,11 @@ class TestOnchangeParent:
         cómoda y la que ignora ``_origin``.
         """
         company = ResPartner.objects.create(
-            name='Matriz', is_company=True, street='Reforma 1', country=mx)
+            name='Matriz', is_company=True, street='Reforma 1', country=mx
+        )
         who = ResPartner.objects.create(
-            name='Facturacion', type=ResPartner.TYPE_INVOICE)
+            name='Facturacion', type=ResPartner.TYPE_INVOICE
+        )
         who.parent = company
         who.type = ResPartner.TYPE_CONTACT
         result = who.onchange_parent_id()
@@ -221,7 +244,10 @@ class TestOnchangeParent:
         registro nuevo, que es el caso más común del alta.
         """
         company = ResPartner.objects.create(
-            name='Matriz', is_company=True, street='Reforma 1', country=mx)
-        who = ResPartner(name='Nuevo', type=ResPartner.TYPE_CONTACT, parent=company)
+            name='Matriz', is_company=True, street='Reforma 1', country=mx
+        )
+        who = ResPartner(
+            name='Nuevo', type=ResPartner.TYPE_CONTACT, parent=company
+        )
         result = who.onchange_parent_id()
         assert result['value']['street'] == 'Reforma 1'

@@ -5,8 +5,9 @@
     'version': '1.0',
     'category': 'Hidden',
     'summary': (
-        'PaymentProvider, PaymentMethod, PaymentToken y PaymentTransaction: '
-        'el contrato común que cada proveedor implementa, y su máquina de estados'
+        'PaymentProvider, PaymentMethod, PaymentToken y PaymentTransaction: el'
+        ' contrato común que cada proveedor implementa, y su máquina de'
+        ' estados'
     ),
     # `depends` MEDIDO da cinco destinos; se declaran DOS. La referencia
     # declara ['onboarding', 'portal'] — el asistente de alta del proveedor y
@@ -24,7 +25,7 @@
     'depends': [
         'base',  # ResCompany, ResPartner, ResCurrency
         'mail',  # el aviso al comprador del resultado de la transacción
-        'bus',   # la notificación del webhook al resto del árbol
+        'bus',  # la notificación del webhook al resto del árbol
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

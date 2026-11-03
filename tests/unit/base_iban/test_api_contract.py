@@ -24,6 +24,7 @@ que DRF sea perezoso —no lo es—. La evidencia completa, con las líneas de l
 dos paquetes instaladas y la medición que las respalda, está en
 ``docs: …/completar-familia-base/evidencia-choices-invocables-django-drf.rst``.
 """
+
 import pytest
 from rest_framework import serializers
 
@@ -81,18 +82,26 @@ def test_a_model_serializer_field_is_rebuilt_per_instance():
 
 
 def test_a_type_chained_later_reaches_the_contract(restored_account_types):
-    """Un addon que llegue después entra al contrato sin tocar el serializer."""
+    """
+    Un addon que llegue después entra al contrato sin tocar el serializer.
+    """
+
     def extra_types(cls):
         return [('clabe', 'CLABE')]
 
-    chain_method(ResPartnerBank, '_get_supported_account_types',
-                 classmethod(extra_types), combine=extend_list)
+    chain_method(
+        ResPartnerBank,
+        '_get_supported_account_types',
+        classmethod(extra_types),
+        combine=extend_list,
+    )
 
     assert 'clabe' in list(AccTypeAutoSerializer().fields['acc_type'].choices)
 
 
 def test_an_explicit_choice_field_freezes_the_vocabulary(
-        restored_account_types):
+    restored_account_types,
+):
     """El anti-patrón que este archivo existe para impedir.
 
     Declarar el campo explícito con ``choices=_supported_account_types()``
@@ -102,6 +111,7 @@ def test_an_explicit_choice_field_freezes_the_vocabulary(
     aparece nunca, y el contrato publicado miente sobre lo que el modelo
     acepta.
     """
+
     class FrozenSerializer(serializers.ModelSerializer):
         acc_type = serializers.ChoiceField(choices=_supported_account_types())
 
@@ -112,8 +122,12 @@ def test_an_explicit_choice_field_freezes_the_vocabulary(
     def extra_types(cls):
         return [('clabe', 'CLABE')]
 
-    chain_method(ResPartnerBank, '_get_supported_account_types',
-                 classmethod(extra_types), combine=extend_list)
+    chain_method(
+        ResPartnerBank,
+        '_get_supported_account_types',
+        classmethod(extra_types),
+        combine=extend_list,
+    )
 
     assert 'clabe' in [code for code, _label in _supported_account_types()]
     assert 'clabe' not in list(FrozenSerializer().fields['acc_type'].choices)

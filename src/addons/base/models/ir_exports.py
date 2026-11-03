@@ -18,6 +18,7 @@ Procedencia de los campos:
 que es el análogo del ``_name`` de Odoo: el identificador con el que el
 registro se resuelve en el ORM.
 """
+
 from django.db import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -27,10 +28,16 @@ class IrExports(TimeStampedModel):
     """Selección de campos guardada para exportar (``ir.exports``)."""
 
     name = models.CharField(
-        max_length=200, blank=True, default='', verbose_name='Nombre',
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Nombre',
     )
     resource = models.CharField(
-        max_length=120, blank=True, default='', db_index=True,
+        max_length=120,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Modelo',
         help_text="Odoo resource. Label del modelo, p.ej. 'sale.SaleOrder'.",
     )
@@ -49,11 +56,17 @@ class IrExportsLine(models.Model):
     """Un campo dentro de una exportación (``ir.exports.line``)."""
 
     name = models.CharField(
-        max_length=120, blank=True, default='', verbose_name='Campo',
+        max_length=120,
+        blank=True,
+        default='',
+        verbose_name='Campo',
     )
     export = models.ForeignKey(
-        IrExports, on_delete=models.CASCADE, db_index=True,
-        related_name='export_fields', verbose_name='Exportación',
+        IrExports,
+        on_delete=models.CASCADE, null=True, blank=True,
+        db_index=True,
+        related_name='export_fields',
+        verbose_name='Exportación',
     )
 
     class Meta:

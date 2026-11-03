@@ -39,6 +39,7 @@ Divergencias declaradas
   incluidos su texto en francés y sus apóstrofos: son el dato con el que
   ``IrQwebFieldSelection.from_html`` busca la clave por su etiqueta.
 """
+
 import fields
 from addons.base.models import TimeStampedModel
 from django.db import models as django_models
@@ -58,7 +59,10 @@ class Html_EditorConverterTest(TimeStampedModel):
     integer = fields.Integer(default=0)
     float = fields.Float(default=0.0)
     numeric = django_models.DecimalField(
-        max_digits=16, decimal_places=2, null=True, blank=True,
+        max_digits=16,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text='Odoo numeric = fields.Float(digits=(16, 2)).',
     )
     # Forma **C** de ADR-029 (#141): el símbolo es el que la referencia
@@ -67,8 +71,11 @@ class Html_EditorConverterTest(TimeStampedModel):
     # Sin él, Django escribiría ``many2one_id``, que es la forma B.
     many2one = fields.Many2one(
         'html_editor.Html_EditorConverterTestSub',
-        on_delete=django_models.SET_NULL, null=True, blank=True,
-        related_name='converter_tests', db_column='many2one',
+        on_delete=django_models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='converter_tests',
+        db_column='many2one',
     )
     binary = fields.Binary(attachment=False, null=True, blank=True)
     date = fields.Date(null=True, blank=True)
@@ -81,10 +88,13 @@ class Html_EditorConverterTest(TimeStampedModel):
             ('C', "Qu'est-ce qu'il fout ce maudit pancake, tabernacle ?"),
             ('D', "La réponse D"),
         ],
-        null=True, blank=True,
-        verbose_name="Lorsqu'un pancake prend l'avion à destination de "
-                     "Toronto et qu'il fait une escale technique à St Claude, "
-                     "on dit:",
+        null=True,
+        blank=True,
+        verbose_name=(
+            "Lorsqu'un pancake prend l'avion à destination de "
+            "Toronto et qu'il fait une escale technique à St Claude, "
+            "on dit:"
+        ),
     )
     html = fields.Html(blank=True, default='')
     text = fields.Text(blank=True, default='')

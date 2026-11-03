@@ -1,4 +1,5 @@
-"""``hr.skill.type`` — categoría de habilidad/certificación (addon ``hr_skills``).
+"""
+``hr.skill.type`` — categoría de habilidad/certificación (addon ``hr_skills``).
 
 Adaptación fiel de Odoo hr_skills/models/hr_skill_type.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3) — atribución y aviso de licencia
@@ -57,6 +58,7 @@ Divergencias declaradas
    fallar el ``save()`` de todo tipo de habilidad recién creado (todavía
    sin hijos). Queda como método explícito para quien complete el alta.
 """
+
 import random
 
 import fields
@@ -80,22 +82,31 @@ class HrSkillType(TimeStampedModel):
     active = fields.Boolean(default=True, verbose_name='Activo')
     sequence = fields.Integer(default=0, verbose_name='Secuencia')
     name = fields.Char(
-        required=True, translate=True, verbose_name='Nombre',
+        required=True,
+        translate=True,
+        verbose_name='Nombre',
     )
     color = fields.Integer(
-        default=_get_default_color, verbose_name='Color',
+        default=_get_default_color,
+        verbose_name='Color',
         help_text='Odoo color — aleatorio 1-11 al crear (_get_default_color).',
     )
     levels_count = fields.Integer(
-        default=0, verbose_name='Nº de niveles',
-        help_text='Odoo levels_count (compute+store, readonly=False) — '
-                  'nº de hr.skill.level ligados a este tipo. Recómputo: '
-                  '_compute_levels_count() (divergencia 1: sin @api.depends).',
+        default=0,
+        verbose_name='Nº de niveles',
+        help_text=(
+            'Odoo levels_count (compute+store, readonly=False) — '
+            'nº de hr.skill.level ligados a este tipo. Recómputo: '
+            '_compute_levels_count() (divergencia 1: sin @api.depends).'
+        ),
     )
     is_certification = fields.Boolean(
-        default=False, verbose_name='Certificación',
-        help_text='Odoo is_certification — si está marcado, este tipo se '
-                  'trata como certificación (fecha de validez, ícono).',
+        default=False,
+        verbose_name='Certificación',
+        help_text=(
+            'Odoo is_certification — si está marcado, este tipo se '
+            'trata como certificación (fecha de validez, ícono).'
+        ),
     )
 
     class Meta:
@@ -108,7 +119,7 @@ class HrSkillType(TimeStampedModel):
         """≙ ``_compute_display_name`` (``:35-40``) — sufijo de medalla
         militar (unicode) cuando es certificación."""
         if self.is_certification:
-            return f'{self.name}\U0001F396'
+            return f'{self.name}\U0001f396'
         return self.name
 
     def _check_no_null_skill_or_skill_level(self):

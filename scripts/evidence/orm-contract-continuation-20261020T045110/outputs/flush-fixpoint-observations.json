@@ -1,0 +1,229 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_revision": "90cc7b78ecf727c352c5edd602b0fdf199198069",
+  "dependencies": {
+    "python": "3.12.14",
+    "Django_distribution": "6.0.5"
+  },
+  "extractor": "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py",
+  "extractor_sha256": "31ebea85ca9c3ed4af15eef14b951e0092d950c7cb30d30c0477499a569d4097",
+  "sources": {
+    "reference": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/environments.py",
+      "start": 380,
+      "end": 390,
+      "body": "def flush_all(self) -> None:\n    \"\"\" Flush all pending computations and updates to the database. \"\"\"\n    for _ in range(MAX_FIXPOINT_ITERATIONS):\n        self._recompute_all()\n        model_names = OrderedSet(field.model_name for field in self._field_dirty)\n        if not model_names:\n            break\n        for model_name in model_names:\n            self[model_name].flush_model()\n    else:\n        _logger.warning(\"Too many iterations for flushing fields!\")",
+      "file_sha256": "ff987a65389ac6c9648bad8bad86d8a9b1f8444ffd6c3598ffda53b8b0612bc5",
+      "body_sha256": "2186b8fc58faa0533b7e2b2b63f60906d944fceab581d59f5c8d31d98f15f1f6",
+      "ceiling": 10
+    },
+    "consumer": {
+      "path": "/workspace/kaupamex-api/src/orm/environments.py",
+      "start": 1274,
+      "end": 1307,
+      "body": "def flush_all(self):\n    \"\"\"Vuelca a la base todos los cómputos y escrituras pendientes.\n\n    ≙ ``Environment.flush_all`` (``:380-390``). Docstring de la fuente,\n    verbatim: *\"Flush all pending computations and updates to the\n    database\"*.\n\n    La fuente agrupa por ``field.model_name``; aquí se agrupa por la\n    **clase**, que es lo que ``field.model`` entrega, y el conjunto es un\n    ``OrderedSet`` por lo mismo que allá: el orden de volcado tiene que ser\n    determinista.\n\n    El filtro ``if ids`` no está en la fuente y aquí hace falta: su\n    ``_field_dirty`` es un ``defaultdict`` igual que el nuestro, pero allá\n    ``_flush`` **saca** las claves al volcar, mientras que cualquier lectura\n    de un campo por índice crea aquí una entrada vacía. Sin el filtro esas\n    entradas vacías darían diez vueltas y un aviso que no describe nada.\n    \"\"\"\n    for _ in range(MAX_FIXPOINT_ITERATIONS):\n        self._recompute_all()\n        models_to_flush = OrderedSet()\n        for field, ids in list(self._field_dirty.items()):\n            if not ids:\n                continue\n            model = model_of_field(field, registry)\n            if model is None:\n                raise KeyError(getattr(field, 'model_name', '') or repr(field))\n            models_to_flush.add(model)\n        if not models_to_flush:\n            break\n        for model in models_to_flush:\n            model.objects.none().flush_model()\n    else:\n        _logger.warning(\"Too many iterations for flushing fields!\")",
+      "file_sha256": "9db875b8acc179fb181f7f1c25155032477d70c2d800c02b36b401c3a750110a",
+      "body_sha256": "06c9691402d8d6bc1aa1d60c7e5681333b4ebb3c99392701b90aafe1e253d98c",
+      "ceiling": 10
+    }
+  },
+  "cases": {
+    "multiple_models": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      }
+    },
+    "second_wave": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      }
+    },
+    "recompute_exception": {
+      "reference": {
+        "events": [
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": "intentional-recompute-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      },
+      "consumer": {
+        "events": [
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": "intentional-recompute-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    },
+    "flush_exception": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [],
+        "exception": "intentional-flush-model-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [],
+        "exception": "intentional-flush-model-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    },
+    "sticky_ceiling": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [
+          "Too many iterations for flushing fields!"
+        ],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 1
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [
+          "Too many iterations for flushing fields!"
+        ],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    },
+    "empty_dirty_entry": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      },
+      "consumer": {
+        "events": [
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    }
+  },
+  "negative_controls": {
+    "omitting_recompute_detected": true,
+    "omitting_ceiling_warning_detected": true
+  },
+  "result": "Five orchestration protocols agree; the existing documented empty-dirty-entry normalization differs as expected.",
+  "scope": "Exact flush_all bodies on a declared OrderedSet/in-memory model bridge, no Django setup and no DB.",
+  "not_verified": [
+    "Real OrderedSet implementation",
+    "Actual model resolver",
+    "Recompute implementation",
+    "Dirty cache persistence and PostgreSQL writes",
+    "Exception rollback cleanup",
+    "Stored/nonstored field families",
+    "Actual Odoo runtime tests",
+    "Acceptance of the empty-entry representation adaptation"
+  ],
+  "reproduction": "THYROX_CONSUMER=<API> ODOO_TOOLS=<verified reference> UV_CACHE_DIR=<cache> uv run --frozen python <probe_flush_fixpoint.py>"
+}

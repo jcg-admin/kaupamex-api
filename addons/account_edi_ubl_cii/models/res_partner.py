@@ -1,4 +1,5 @@
-r"""``res.partner`` — lo que ``account_edi_ubl_cii`` le cuelga (≙ ``_inherit``).
+r"""
+``res.partner`` — lo que ``account_edi_ubl_cii`` le cuelga (≙ ``_inherit``).
 
 Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/res_partner.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 349 líneas) — atribución y aviso de licencia
@@ -109,7 +110,8 @@ docstring los atribuye explícitamente a este addon — sin colisión, medido).
 ``@api.constrains`` — qué se porta y qué no
 =============================================
 
-``_check_peppol_fields`` se instala con ``chain_method`` y **se puede invocar**;
+``_check_peppol_fields`` se instala con ``chain_method`` y **se puede
+invocar**;
 lo que no se porta es su **disparo automático** al escribir, porque en la
 referencia lo dispara el ORM y aquí lo dispararía ``Model.full_clean()``, que
 Django no llama en ``save()``. Es la misma divergencia que
@@ -130,6 +132,7 @@ Sustituciones medidas
   ``_compute_peppol_eas``, los dos bloqueados; no se importa aquí para no dejar
   un import sin consumidor vivo. Sigue declarada en ``account_edi_common.py``.
 """
+
 import re
 
 import fields
@@ -149,14 +152,33 @@ from .account_edi_xml_ubl_nlcius import AccountEdiXmlUbl_Nl
 from .account_edi_xml_ubl_sg import AccountEdiXmlUbl_Sg
 from .account_edi_xml_ubl_xrechnung import AccountEdiXmlUbl_De
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 #: ≙ ``odoo19c: addons/account/models/company.py:34-38`` — vendorizada; su
 #: hogar correcto es ``addons/account``, fuera del write-set de este pase.
 PEPPOL_DEFAULT_COUNTRIES = [
-    'AT', 'BE', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI',
-    'FR', 'IE', 'IS', 'LT', 'LU', 'LV', 'MT', 'NL', 'NO', 'SE',
+    'AT',
+    'BE',
+    'CH',
+    'CY',
+    'CZ',
+    'DE',
+    'DK',
+    'EE',
+    'ES',
+    'FI',
+    'FR',
+    'IE',
+    'IS',
+    'LT',
+    'LU',
+    'LV',
+    'MT',
+    'NL',
+    'NO',
+    'SE',
     'SI',
 ]
 
@@ -280,32 +302,45 @@ def sanitize_peppol_endpoint(peppol_endpoint, eas=None):
     if not peppol_endpoint:
         return peppol_endpoint
     sanitizer = PEPPOL_ENDPOINT_INVALID_CHARS_RE_BY_EAS.get(
-        eas, PEPPOL_ENDPOINT_INVALIDCHARS_RE)
+        eas, PEPPOL_ENDPOINT_INVALIDCHARS_RE
+    )
     return sanitizer.sub('', peppol_endpoint)
 
 
 def _extra_fields():
-    """Los dos campos con columna real que este addon cuelga sobre ``res.partner``.
+    """
+    Los dos campos con columna real que este addon cuelga sobre
+    ``res.partner``.
 
     ``is_ubl_format``, ``is_peppol_edi_format`` y ``available_peppol_eas`` NO
     están aquí: son ``compute`` sin ``store`` en la referencia y se instalan
-    como ``property`` (ver ``apply_account_edi_ubl_cii_res_partner_extensions``).
+    como ``property`` (ver
+    ``apply_account_edi_ubl_cii_res_partner_extensions``).
     """
     return {
         'peppol_endpoint': fields.Char(
-            max_length=50, blank=True, default='',
+            max_length=50,
+            blank=True,
+            default='',
             verbose_name='Peppol Endpoint',
-            help_text='Identificador único usado por BIS Billing 3.0 y sus '
-                      'derivados, también llamado "Endpoint ID" (Odoo '
-                      'peppol_endpoint).',
+            help_text=(
+                'Identificador único usado por BIS Billing 3.0 y sus '
+                'derivados, también llamado "Endpoint ID" (Odoo '
+                'peppol_endpoint).'
+            ),
         ),
         'peppol_eas': fields.Selection(
-            max_length=4, choices=PEPPOL_EAS_CHOICES, blank=True, default='',
+            max_length=4,
+            choices=PEPPOL_EAS_CHOICES,
+            blank=True,
+            default='',
             verbose_name='Peppol e-address (EAS)',
-            help_text='Código que identifica el Endpoint para BIS Billing 3.0 '
-                      'y sus derivados. Lista en '
-                      'https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/ '
-                      '(Odoo peppol_eas).',
+            help_text=(
+                'Código que identifica el Endpoint para BIS Billing 3.0 '
+                'y sus derivados. Lista en '
+                'https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/ '
+                '(Odoo peppol_eas).'
+            ),
         ),
     }
 
@@ -313,6 +348,7 @@ def _extra_fields():
 # -----------------------------------------------------------------------------
 # FORMATOS UBL/CII — portados enteros (no tocan el ORM)
 # -----------------------------------------------------------------------------
+
 
 def _get_ubl_cii_formats(cls):
     """≙ ``_get_ubl_cii_formats`` (``odoo19c: :341-343``)."""
@@ -380,57 +416,73 @@ def _peppol_eas_endpoint_depends(cls):
 # BLOQUEADOS — piezas nombradas ausentes (ver la tabla del docstring)
 # -----------------------------------------------------------------------------
 
+
 def _get_suggested_ubl_cii_edi_format(self):
     """≙ ``_get_suggested_ubl_cii_edi_format`` (``odoo19c: :375-389``) —
     **bloqueado**: ``commercial_partner_id`` / ``_deduce_country_code()`` /
     ``ensure_one()`` no existen (0 hits)."""
-    _blocked('_get_suggested_ubl_cii_edi_format',
-             'ResPartner.commercial_partner_id/_deduce_country_code/ensure_one '
-             'no existen (0 hits)')
+    _blocked(
+        '_get_suggested_ubl_cii_edi_format',
+        'ResPartner.commercial_partner_id/_deduce_country_code/ensure_one '
+        'no existen (0 hits)',
+    )
 
 
 def _get_ubl_cii_edi_format(self):
     """≙ ``_get_ubl_cii_edi_format`` (``odoo19c: :391-393``) — **bloqueado**:
     orquesta ``_get_suggested_ubl_cii_edi_format``, bloqueado."""
-    _blocked('_get_ubl_cii_edi_format',
-             '_get_suggested_ubl_cii_edi_format esta bloqueado')
+    _blocked(
+        '_get_ubl_cii_edi_format',
+        '_get_suggested_ubl_cii_edi_format esta bloqueado',
+    )
 
 
 def _get_suggested_peppol_edi_format(self):
     """≙ ``_get_suggested_peppol_edi_format`` (``odoo19c: :395-398``) —
     **bloqueado**: ``commercial_partner_id``/``ensure_one`` no existen."""
-    _blocked('_get_suggested_peppol_edi_format',
-             'ResPartner.commercial_partner_id/ensure_one no existen (0 hits)')
+    _blocked(
+        '_get_suggested_peppol_edi_format',
+        'ResPartner.commercial_partner_id/ensure_one no existen (0 hits)',
+    )
 
 
 def _get_peppol_edi_format(self):
     """≙ ``_get_peppol_edi_format`` (``odoo19c: :400-402``) — **bloqueado**:
     orquesta ``_get_suggested_peppol_edi_format``, bloqueado."""
-    _blocked('_get_peppol_edi_format',
-             '_get_suggested_peppol_edi_format esta bloqueado')
+    _blocked(
+        '_get_peppol_edi_format',
+        '_get_suggested_peppol_edi_format esta bloqueado',
+    )
 
 
 def _get_peppol_endpoint_value(self, country_code, field, eas):
     """≙ ``_get_peppol_endpoint_value`` (``odoo19c: :429-448``) —
     **bloqueado**: recorre ``self._fields`` (introspección del ORM de la
     referencia, sin análogo: este árbol usa ``Meta`` de Django)."""
-    _blocked('_get_peppol_endpoint_value',
-             'self._fields (introspeccion del ORM de la referencia) no tiene analogo')
+    _blocked(
+        '_get_peppol_endpoint_value',
+        'self._fields (introspeccion del ORM de la referencia) no tiene'
+        ' analogo',
+    )
 
 
 def _compute_peppol_endpoint(self):
     """≙ ``_compute_peppol_endpoint`` (``odoo19c: :450-460``) —
     **bloqueado**: ``_deduce_country_code()`` (0 hits) y
     ``_get_peppol_endpoint_value``, bloqueado."""
-    _blocked('_compute_peppol_endpoint',
-             'ResPartner._deduce_country_code() no existe (0 hits)')
+    _blocked(
+        '_compute_peppol_endpoint',
+        'ResPartner._deduce_country_code() no existe (0 hits)',
+    )
 
 
 def _compute_peppol_eas(self):
     """≙ ``_compute_peppol_eas`` (``odoo19c: :462-482``) — **bloqueado**:
     misma causa que ``_compute_peppol_endpoint``."""
-    _blocked('_compute_peppol_eas',
-             'ResPartner._deduce_country_code() no existe (0 hits)')
+    _blocked(
+        '_compute_peppol_eas',
+        'ResPartner._deduce_country_code() no existe (0 hits)',
+    )
 
 
 def _compute_available_peppol_eas(self):
@@ -438,14 +490,17 @@ def _compute_available_peppol_eas(self):
     **bloqueado**: lee ``self._fields['peppol_eas'].selection``. La lista sí
     está aquí (:data:`PEPPOL_EAS_CHOICES`), así que el desbloqueo es de una
     línea en cuanto exista el descriptor equivalente."""
-    _blocked('_compute_available_peppol_eas',
-             "self._fields['peppol_eas'].selection (introspeccion del ORM de "
-             "la referencia) no tiene analogo")
+    _blocked(
+        '_compute_available_peppol_eas',
+        "self._fields['peppol_eas'].selection (introspeccion del ORM de "
+        "la referencia) no tiene analogo",
+    )
 
 
 # -----------------------------------------------------------------------------
 # COMPUTES SIN ``store`` — property
 # -----------------------------------------------------------------------------
+
 
 def _compute_is_ubl_format(self):
     """≙ ``_compute_is_ubl_format`` (``odoo19c: :414-418``).
@@ -454,15 +509,19 @@ def _compute_is_ubl_format(self):
     el ``Char`` que ``account/models/partner.py:235`` sí declara (ver "Campos"
     en el docstring del módulo).
     """
-    return getattr(self, 'invoice_edi_format_store', '') in \
-        type(self)._get_ubl_cii_formats()
+    return (
+        getattr(self, 'invoice_edi_format_store', '')
+        in type(self)._get_ubl_cii_formats()
+    )
 
 
 def _compute_is_peppol_edi_format(self):
     """≙ ``_compute_is_peppol_edi_format`` (``odoo19c: :420-424``). Misma
     divergencia de nombre de campo que ``_compute_is_ubl_format``."""
-    return getattr(self, 'invoice_edi_format_store', '') in \
-        type(self)._get_peppol_formats()
+    return (
+        getattr(self, 'invoice_edi_format_store', '')
+        in type(self)._get_peppol_formats()
+    )
 
 
 def _available_peppol_eas(self):
@@ -478,6 +537,7 @@ def _available_peppol_eas(self):
 # VALIDACIÓN DEL ENDPOINT
 # -----------------------------------------------------------------------------
 
+
 def _build_error_peppol_endpoint(cls, eas, endpoint):
     """≙ ``_build_error_peppol_endpoint`` (``odoo19c: :489-503``).
 
@@ -488,23 +548,33 @@ def _build_error_peppol_endpoint(cls, eas, endpoint):
     que esa rama sola levanta con la causa nombrada.
     """
     if eas == '0208' and not re.match(r"^\d{10}$", endpoint):
-        return _("The Peppol endpoint is not valid. "
-                 "The expected format is: 0239843188")
+        return _(
+            "The Peppol endpoint is not valid. "
+            "The expected format is: 0239843188"
+        )
     if eas == '0009':
-        _blocked('_build_error_peppol_endpoint (rama 0009)',
-                 'stdnum.fr.siret.is_valid: stdnum no es dependencia (0 hits '
-                 'en uv.lock) y es un digito de control')
+        _blocked(
+            '_build_error_peppol_endpoint (rama 0009)',
+            'stdnum.fr.siret.is_valid: stdnum no es dependencia (0 hits '
+            'en uv.lock) y es un digito de control',
+        )
     if eas == '0007' and not re.match(r"^\d{10}$", endpoint):
-        return _("The Peppol endpoint is not valid. "
-                 "It should contain exactly 10 digits (Company Registry number)."
-                 "The expected format is: 1234567890")
+        return _(
+            "The Peppol endpoint is not valid. "
+            "It should contain exactly 10 digits (Company Registry number)."
+            "The expected format is: 1234567890"
+        )
     if eas == 'EM' and not single_email_re.match(endpoint):
         return _("The Peppol endpoint is not valid. A valid email is required")
     invalid_chars_re = PEPPOL_ENDPOINT_INVALID_CHARS_RE_BY_EAS.get(
-        eas, PEPPOL_ENDPOINT_INVALIDCHARS_RE)
+        eas, PEPPOL_ENDPOINT_INVALIDCHARS_RE
+    )
     if invalid_chars_re.search(endpoint) or not 1 <= len(endpoint) <= 50:
-        return _("The Peppol endpoint (%s) is not valid. "
-                 "It should contain only letters and digit.", endpoint)
+        return _(
+            "The Peppol endpoint (%s) is not valid. "
+            "It should contain only letters and digit.",
+            endpoint,
+        )
 
 
 def _check_peppol_fields(self):
@@ -518,7 +588,8 @@ def _check_peppol_fields(self):
     """
     if self.peppol_endpoint and self.peppol_eas:
         error = type(self)._build_error_peppol_endpoint(
-            self.peppol_eas, self.peppol_endpoint)
+            self.peppol_eas, self.peppol_endpoint
+        )
         if error:
             raise UserError(error)
 
@@ -558,16 +629,21 @@ def _import_retrieve_customer_from_eas_endpoint(cls, customer_values):
         return
 
     return {
-        'criteria': [{
-            'domain': [('peppol_eas', '=', peppol_eas),
-                       ('peppol_endpoint', '=', peppol_endpoint)],
-        }],
+        'criteria': [
+            {
+                'domain': [
+                    ('peppol_eas', '=', peppol_eas),
+                    ('peppol_endpoint', '=', peppol_endpoint),
+                ],
+            }
+        ],
     }
 
 
 def apply_account_edi_ubl_cii_res_partner_extensions():
     """Cuelga sobre ``base.ResPartner`` lo que este addon aporta — ≙
-    ``_inherit = 'res.partner'``. La llama ``AccountEdiUblCiiConfig.ready()``."""
+    ``_inherit = 'res.partner'``. La llama ``AccountEdiUblCiiConfig.ready()``.
+    """
     for name, field in _extra_fields().items():
         add_field_if_absent(ResPartner, name, field)
 
@@ -583,17 +659,28 @@ def apply_account_edi_ubl_cii_res_partner_extensions():
     for name, function in (
         ('_get_ubl_cii_formats', classmethod(_get_ubl_cii_formats)),
         ('_get_ubl_cii_formats_info', classmethod(_get_ubl_cii_formats_info)),
-        ('_get_ubl_cii_formats_by_country',
-         classmethod(_get_ubl_cii_formats_by_country)),
+        (
+            '_get_ubl_cii_formats_by_country',
+            classmethod(_get_ubl_cii_formats_by_country),
+        ),
         ('_get_peppol_formats', classmethod(_get_peppol_formats)),
-        ('_peppol_eas_endpoint_depends',
-         classmethod(_peppol_eas_endpoint_depends)),
-        ('_build_error_peppol_endpoint',
-         classmethod(_build_error_peppol_endpoint)),
+        (
+            '_peppol_eas_endpoint_depends',
+            classmethod(_peppol_eas_endpoint_depends),
+        ),
+        (
+            '_build_error_peppol_endpoint',
+            classmethod(_build_error_peppol_endpoint),
+        ),
         ('_get_edi_builder', classmethod(_get_edi_builder)),
-        ('_import_retrieve_customer_from_eas_endpoint',
-         classmethod(_import_retrieve_customer_from_eas_endpoint)),
-        ('_get_suggested_ubl_cii_edi_format', _get_suggested_ubl_cii_edi_format),
+        (
+            '_import_retrieve_customer_from_eas_endpoint',
+            classmethod(_import_retrieve_customer_from_eas_endpoint),
+        ),
+        (
+            '_get_suggested_ubl_cii_edi_format',
+            _get_suggested_ubl_cii_edi_format,
+        ),
         ('_get_ubl_cii_edi_format', _get_ubl_cii_edi_format),
         ('_get_suggested_peppol_edi_format', _get_suggested_peppol_edi_format),
         ('_get_peppol_edi_format', _get_peppol_edi_format),

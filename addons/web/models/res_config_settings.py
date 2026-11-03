@@ -59,6 +59,7 @@ campo). El destino sigue siendo ``SystemParameter`` — infra/ops de
 plataforma (L0, DEC-KX-05): el nombre visible de la PWA es una decisión de
 despliegue, no de tenant.
 """
+
 from django.db import models
 
 from addons.base.models.res_config import ResConfigSettings
@@ -71,10 +72,14 @@ class WebConfigSettings(ResConfigSettings):
     """
 
     web_app_name = models.CharField(
-        max_length=100, blank=True, default='',
+        max_length=100,
+        blank=True,
+        default='',
         verbose_name='Nombre de la app web',
-        help_text='Nombre visible de la PWA (Odoo web_app_name, '
-                  'config_parameter=web.web_app_name).',
+        help_text=(
+            'Nombre visible de la PWA (Odoo web_app_name, '
+            'config_parameter=web.web_app_name).'
+        ),
     )
 
     #: ≙ ``config_parameter='web.web_app_name'`` colgado del campo en la

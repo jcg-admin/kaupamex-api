@@ -11,7 +11,8 @@ modelo. Parte de la iniciativa ``adaptar-familias-odoo-monolito-modular``
 
 Drift 18→19 observado (ambas fuentes citadas arriba) — **se porta 18, no 19**:
 
-- **``user_id`` (18, Many2one a ``res.users``) → ``user_ids`` (19, Many2many)**.
+- **``user_id`` (18, Many2one a ``res.users``) → ``user_ids`` (19,
+  Many2many)**.
   Odoo 19 reemplaza la propiedad de un único usuario por una lista de
   usuarios con los que se comparte el filtro. Esta portación usa el
   **campo 18** (``user_id`` → aquí ``user``, Many2one nullable) porque el
@@ -36,7 +37,8 @@ Drift 18→19 observado (ambas fuentes citadas arriba) — **se porta 18, no 19*
 
 Alcance de esta portación — deliberadamente NO se porta:
 
-- **``embedded_action_id`` / ``embedded_parent_res_id``** — **YA NO se omiten.**
+- **``embedded_action_id`` / ``embedded_parent_res_id``** — **YA NO se
+  omiten.**
   Esta nota decía *"candidato H-BASE cuando/si ``ir.embedded.actions`` se
   porte"*; ese archivo se portó y los dos campos entraron con él
   (``embedded_action`` FK + ``embedded_parent_res_id``). Se conserva el
@@ -84,6 +86,7 @@ Cross-app: ``user`` → ``settings.AUTH_USER_MODEL`` (Odoo ``user_id``,
 NULL = filtro compartido/global, igual semántica que Odoo 18 — set = filtro
 privado de ese usuario).
 """
+
 from django.conf import settings
 from django.db.models.lookups import Exact
 
@@ -111,13 +114,19 @@ class JsonbTypeOf(models.Func):
 
 
 class IrFilters(models.Model):
-    """``ir.filters`` — filtro de búsqueda nombrado (dominio+contexto+orden)."""
+    """
+    ``ir.filters`` — filtro de búsqueda nombrado (dominio+contexto+orden).
+    """
 
     name = fields.Char(
-        max_length=256, help_text='Nombre del filtro (Odoo name).',
+        max_length=256,
+        help_text='Nombre del filtro (Odoo name).',
     )
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='ir_filters',
         help_text=(
             'Dueño del filtro (Odoo user_id). NULL = filtro compartido/global '
@@ -127,27 +136,44 @@ class IrFilters(models.Model):
     model_id = fields.Char(
         max_length=128,
         help_text=(
-            'Modelo técnico referenciado, p. ej. "product.ProductProduct" (Odoo '
-            'model_id — Selection dinámico en Odoo, aquí Char plano porque '
-            'no es una FK real, igual criterio que res_model en '
-            'ir_attachment).'
+            'Modelo técnico referenciado, p. ej. "product.ProductProduct"'
+            ' (Odoo model_id — Selection dinámico en Odoo, aquí Char plano'
+            ' porque no es una FK real, igual criterio que res_model en'
+            ' ir_attachment).'
         ),
     )
-    domain = fields.Text(default='[]', help_text='Dominio de búsqueda serializado (Odoo domain).')
-    context = fields.Text(default='{}', help_text='Contexto serializado (Odoo context).')
+    domain = fields.Text(
+        default='[]',
+        help_text='Dominio de búsqueda serializado (Odoo domain).',
+    )
+    context = fields.Text(
+        default='{}', help_text='Contexto serializado (Odoo context).'
+    )
     sort = fields.Char(
-        max_length=512, default='[]',
-        help_text='Orden serializado (Odoo sort — Char en la fuente, no Text).',
+        max_length=512,
+        default='[]',
+        help_text=(
+            'Orden serializado (Odoo sort — Char en la fuente, no Text).'
+        ),
     )
     is_default = fields.Boolean(
-        default=False, help_text='Filtro por defecto para el alcance modelo+usuario (Odoo is_default).',
+        default=False,
+        help_text=(
+            'Filtro por defecto para el alcance modelo+usuario (Odoo'
+            ' is_default).'
+        ),
     )
     #: Forma **C** de ADR-029 (#141): el símbolo lleva el nombre que la
     #: referencia declara (``action_id``) y ``db_column`` mantiene la columna
     #: en ``action_id`` — sin él Django la llamaría ``action_id_id``.
     action_id = fields.Many2one(
-        'base.IrActionsActions', on_delete=models.CASCADE, db_column='action_id',
-        null=True, blank=True, db_index=True, related_name='filter_ids',
+        'base.IrActionsActions',
+        on_delete=models.CASCADE,
+        db_column='action_id',
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='filter_ids',
         verbose_name='Acción',
         help_text=(
             'Acción/menú al que aplica el filtro (Odoo action_id). NULL = '
@@ -160,14 +186,22 @@ class IrFilters(models.Model):
     # declara ``embedded_action_id`` + ``embedded_parent_res_id`` y ambos
     # esperaban a ``ir.embedded.actions``, que ya está portado.
     embedded_action = fields.Many2one(
-        'base.IrEmbeddedActions', on_delete=models.CASCADE,
-        null=True, blank=True, db_index=True, related_name='filter_ids',
+        'base.IrEmbeddedActions',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='filter_ids',
         verbose_name='Acción embebida',
-        help_text='Odoo embedded_action_id. Filtro por defecto de una acción '
-                  'embebida.',
+        help_text=(
+            'Odoo embedded_action_id. Filtro por defecto de una acción '
+            'embebida.'
+        ),
     )
     embedded_parent_res_id = fields.Integer(
-        null=True, blank=True, verbose_name='ID del padre de la embebida',
+        null=True,
+        blank=True,
+        verbose_name='ID del padre de la embebida',
         help_text='Odoo embedded_parent_res_id.',
     )
     active = fields.Boolean(default=True, help_text='Odoo active.')
@@ -182,8 +216,12 @@ class IrFilters(models.Model):
         #: cada apertura de vista.
         indexes = [
             models.Index(
-                fields=['model_id', 'action_id', 'embedded_action',
-                        'embedded_parent_res_id'],
+                fields=[
+                    'model_id',
+                    'action_id',
+                    'embedded_action',
+                    'embedded_parent_res_id',
+                ],
                 name='ir_filters_get_filters_index',
             ),
         ]
@@ -196,8 +234,10 @@ class IrFilters(models.Model):
             #: Comentario de la fuente, verbatim: *"The embedded_parent_res_id
             #: can only be defined when the embedded_action_id field is set."*
             models.CheckConstraint(
-                condition=~models.Q(embedded_parent_res_id__isnull=False,
-                                    embedded_action__isnull=True),
+                condition=~models.Q(
+                    embedded_parent_res_id__isnull=False,
+                    embedded_action__isnull=True,
+                ),
                 name='ir_filters_check_res_id_only_when_embedded_action',
             ),
             #: ≙ ``_check_sort_json`` (``:37-40``) — el ``sort`` se
@@ -207,9 +247,12 @@ class IrFilters(models.Model):
             #: ``CHECK ("sort" IS NULL OR jsonb_typeof("sort"::jsonb) =
             #: 'array')``.
             models.CheckConstraint(
-                condition=(models.Q(sort__isnull=True)
-                           | models.Q(Exact(JsonbTypeOf('sort'),
-                                            models.Value('array')))),
+                condition=(
+                    models.Q(sort__isnull=True)
+                    | models.Q(
+                        Exact(JsonbTypeOf('sort'), models.Value('array'))
+                    )
+                ),
                 name='ir_filters_check_sort_json',
             ),
         ]
@@ -244,5 +287,7 @@ class IrFilters(models.Model):
         super().save(*args, **kwargs)
         if self.is_default:
             type(self).objects.filter(
-                model_id=self.model_id, user_id=self.user_id, is_default=True,
+                model_id=self.model_id,
+                user_id=self.user_id,
+                is_default=True,
             ).exclude(pk=self.pk).update(is_default=False)

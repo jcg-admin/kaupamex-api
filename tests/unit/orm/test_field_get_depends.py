@@ -8,7 +8,8 @@ complementarios, no duplicados: ``get_depends`` **produce** el par
 ``(depends, depends_context)`` a partir de lo que la clase declara, y
 ``resolve_depends`` **consume** ese par expandiendo cada nombre punteado a las
 tuplas de campos que lo recorren. Aqui el mapa que ``resolve_depends`` lee
-—``registry_module.field_depends``— lo poblaba ``_DerivedCollector('_depends')``
+—``registry_module.field_depends``— lo poblaba
+``_DerivedCollector('_depends')``
 leyendo el atributo **en crudo**, asi que dos de las tres ramas de la fuente no
 existian:
 
@@ -24,6 +25,7 @@ anterior —un solo ``getattr``— pasa todos los demas casos y **falla exactame
 ese**, porque un ``getattr`` devuelve la funcion mas derivada y pierde la de la
 base. Sin ese caso el verde no distinguiria «junta el MRO» de «lee una sola».
 """
+
 import pytest
 from django.db import models
 
@@ -47,8 +49,13 @@ def _field(**attrs):
     ``models.Field`` y no mira el tipo.
     """
     field = models.CharField(max_length=8)
-    for name, value in {'_depends': None, '_depends_context': None,
-                        'related': None, 'compute': None, **attrs}.items():
+    for name, value in {
+        '_depends': None,
+        '_depends_context': None,
+        'related': None,
+        'compute': None,
+        **attrs,
+    }.items():
         setattr(field, name, value)
     return field
 
@@ -60,9 +67,11 @@ class TestTheExplicitDependsWins:
     def test_an_explicit_depends_shadows_the_compute(self, users, monkeypatch):
         def _compute(self):
             pass
+
         _compute._depends = ('ignored',)
-        monkeypatch.setattr(users, '_compute_for_the_test', _compute,
-                            raising=False)
+        monkeypatch.setattr(
+            users, '_compute_for_the_test', _compute, raising=False
+        )
         field = _field(_depends=('own',), compute='_compute_for_the_test')
 
         assert field.get_depends(users) == (('own',), ())
@@ -96,8 +105,9 @@ class TestTheRelatedBranch:
         valor calculado dependa de quien lo mira.
         """
         link = model_field_registry(users)['partner']
-        monkeypatch.setattr(link, '_depends_context', ('company',),
-                            raising=False)
+        monkeypatch.setattr(
+            link, '_depends_context', ('company',), raising=False
+        )
         field = _field(related='partner.name')
 
         assert field.get_depends(users) == (['partner.name'], ('company',))
@@ -109,20 +119,27 @@ class TestTheComputeBranch:
     def test_a_compute_contributes_its_depends(self, users, monkeypatch):
         def _compute(self):
             pass
+
         _compute._depends = ('label',)
-        monkeypatch.setattr(users, '_compute_for_the_test', _compute,
-                            raising=False)
+        monkeypatch.setattr(
+            users, '_compute_for_the_test', _compute, raising=False
+        )
         field = _field(compute='_compute_for_the_test')
 
         assert field.get_depends(users) == (['label'], [])
 
-    def test_a_callable_depends_is_called_with_the_model(self, users, monkeypatch):
+    def test_a_callable_depends_is_called_with_the_model(
+        self, users, monkeypatch
+    ):
         """≙ ``:594`` — ``deps(model) if callable(deps) else deps``."""
+
         def _compute(self):
             pass
+
         _compute._depends = lambda model: ['from_%s' % model.__name__.lower()]
-        monkeypatch.setattr(users, '_compute_for_the_test', _compute,
-                            raising=False)
+        monkeypatch.setattr(
+            users, '_compute_for_the_test', _compute, raising=False
+        )
         field = _field(compute='_compute_for_the_test')
 
         depends, _ = field.get_depends(users)
@@ -130,16 +147,21 @@ class TestTheComputeBranch:
         assert depends == ['from_resusers']
 
     def test_a_callable_compute_is_used_as_is(self, users):
-        """≙ ``:589-590`` — un ``compute`` que ya es funcion no pasa por MRO."""
+        """
+        ≙ ``:589-590`` — un ``compute`` que ya es funcion no pasa por MRO.
+        """
+
         def _compute(self):
             pass
+
         _compute._depends = ('direct',)
         field = _field(compute=_compute)
 
         assert field.get_depends(users) == (['direct'], [])
 
     def test_a_compute_overridden_in_a_subclass_accumulates_both(self):
-        """EL CONTROL: ``getattr`` devuelve UNA funcion; ``resolve_mro``, todas.
+        """
+        EL CONTROL: ``getattr`` devuelve UNA funcion; ``resolve_mro``, todas.
 
         Una implementacion que lea ``getattr(model, compute)._depends`` pasa
         todos los casos de arriba y falla este, porque el ``_depends`` de la
@@ -159,14 +181,17 @@ class TestTheComputeBranch:
         bajo). Se midio: dos errores en
         ``test_run_checks_or_raise_passes_clean_tree``.
         """
+
         class Base:
             def compute_for_the_test(self):
                 pass
+
             compute_for_the_test._depends = ('from_base',)
 
         class Derived(Base):
             def compute_for_the_test(self):
                 pass
+
             compute_for_the_test._depends = ('from_derived',)
 
         field = _field(compute='compute_for_the_test')
@@ -183,11 +208,15 @@ class TestTheEmptyCase:
         assert _field().get_depends(users) == ((), ())
 
     def test_a_plain_field_keeps_its_declared_context(self, users):
-        assert _field(_depends_context=('tz',)).get_depends(users) == ((), ('tz',))
+        assert _field(_depends_context=('tz',)).get_depends(users) == (
+            (),
+            ('tz',),
+        )
 
 
 class TestTheCollectorConsumesTheProducer:
-    """El cableado: el mapa que ``resolve_depends`` lee sale de ``get_depends``.
+    """
+    El cableado: el mapa que ``resolve_depends`` lee sale de ``get_depends``.
 
     Sin este caso el metodo existiria y el mapa seguiria derivandose del
     atributo en crudo — un porte que compila y no se invoca, la misma frontera

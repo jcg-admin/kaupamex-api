@@ -30,7 +30,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         db_index=True,
                         default="MX",
-                        help_text="Código ISO 3166-1 alpha-2 del país de la fuente.",
+                        help_text=(
+                            "Código ISO 3166-1 alpha-2 del país de la fuente."
+                        ),
                         max_length=2,
                         verbose_name="País",
                     ),
@@ -39,14 +41,18 @@ class Migration(migrations.Migration):
                     "postal_code",
                     models.CharField(
                         db_index=True,
-                        help_text="CP del asentamiento (MX: SEPOMEX d_codigo).",
+                        help_text=(
+                            "CP del asentamiento (MX: SEPOMEX d_codigo)."
+                        ),
                         max_length=12,
                         verbose_name="Código postal",
                     ),
                 ),
                 (
                     "settlement_name",
-                    models.CharField(max_length=64, verbose_name="Asentamiento"),
+                    models.CharField(
+                        max_length=64, verbose_name="Asentamiento"
+                    ),
                 ),
                 (
                     "settlement_type",
@@ -58,24 +64,36 @@ class Migration(migrations.Migration):
                     "municipality",
                     models.CharField(max_length=64, verbose_name="Municipio"),
                 ),
-                ("state", models.CharField(max_length=40, verbose_name="Estado")),
+                (
+                    "state",
+                    models.CharField(max_length=40, verbose_name="Estado"),
+                ),
                 (
                     "city",
                     models.CharField(
-                        blank=True, default="", max_length=64, verbose_name="Ciudad"
+                        blank=True,
+                        default="",
+                        max_length=64,
+                        verbose_name="Ciudad",
                     ),
                 ),
                 (
                     "office_postal_code",
-                    models.CharField(max_length=5, verbose_name="CP de oficina"),
+                    models.CharField(
+                        max_length=5, verbose_name="CP de oficina"
+                    ),
                 ),
                 (
                     "state_code",
-                    models.CharField(max_length=2, verbose_name="Clave de estado"),
+                    models.CharField(
+                        max_length=2, verbose_name="Clave de estado"
+                    ),
                 ),
                 (
                     "office_code",
-                    models.CharField(max_length=5, verbose_name="Clave de oficina"),
+                    models.CharField(
+                        max_length=5, verbose_name="Clave de oficina"
+                    ),
                 ),
                 (
                     "postal_code_internal_code",
@@ -94,12 +112,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "municipality_code",
-                    models.CharField(max_length=3, verbose_name="Clave de municipio"),
+                    models.CharField(
+                        max_length=3, verbose_name="Clave de municipio"
+                    ),
                 ),
                 (
                     "settlement_consecutive_id",
                     models.CharField(
-                        max_length=4, verbose_name="ID consecutivo de asentamiento"
+                        max_length=4,
+                        verbose_name="ID consecutivo de asentamiento",
                     ),
                 ),
                 (
@@ -138,7 +159,11 @@ class Migration(migrations.Migration):
                 ],
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("country", "postal_code", "settlement_consecutive_id"),
+                        fields=(
+                            "country",
+                            "postal_code",
+                            "settlement_consecutive_id",
+                        ),
                         name="uq_catalog_postal_code_natural_key",
                     )
                 ],
@@ -160,13 +185,19 @@ class Migration(migrations.Migration):
                     "enforce_cities",
                     models.BooleanField(
                         default=False,
-                        help_text="Exigir ciudad del catálogo en direcciones (Odoo enforce_cities).",
+                        help_text=(
+                            "Exigir ciudad del catálogo en direcciones (Odoo"
+                            " enforce_cities)."
+                        ),
                     ),
                 ),
                 (
                     "country",
                     models.OneToOneField(
-                        help_text="País al que aplica la política (Odoo res.country).",
+                        help_text=(
+                            "País al que aplica la política (Odoo"
+                            " res.country)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="address_policy",
                         to="base.rescountry",
@@ -220,7 +251,10 @@ class Migration(migrations.Migration):
                     "state",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Estado/provincia (Odoo state_id, dominio country_id).",
+                        help_text=(
+                            "Estado/provincia (Odoo state_id, dominio"
+                            " country_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="cities",
@@ -261,7 +295,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Número exterior (Odoo street_number / House).",
+                        help_text=(
+                            "Número exterior (Odoo street_number / House)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -270,14 +306,20 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Número interior / puerta (Odoo street_number2 / Door).",
+                        help_text=(
+                            "Número interior / puerta (Odoo street_number2 /"
+                            " Door)."
+                        ),
                         max_length=32,
                     ),
                 ),
                 (
                     "partner",
                     models.OneToOneField(
-                        help_text="Partner al que pertenece (Odoo _inherit res.partner).",
+                        help_text=(
+                            "Partner al que pertenece (Odoo _inherit"
+                            " res.partner)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="structured",
                         to="base.respartner",
@@ -287,7 +329,9 @@ class Migration(migrations.Migration):
                     "city",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ciudad del catálogo (Odoo city_id → res.city).",
+                        help_text=(
+                            "Ciudad del catálogo (Odoo city_id → res.city)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="addresses",

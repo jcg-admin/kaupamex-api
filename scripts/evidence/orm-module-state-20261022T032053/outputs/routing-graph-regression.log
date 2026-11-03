@@ -1,0 +1,2973 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+EEEEEEEEEEEEEEEEEEEEEEEEEEEEE                                            [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_depth_rejects_cycle_with_a_domain_error[dependencies0-cycle0] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_depth_rejects_cycle_with_a_domain_error[dependencies1-cycle1] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_depth_rejects_cycle_with_a_domain_error[dependencies2-cycle2] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_order_rejects_cycles_before_returning_a_partial_plan __
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+___ ERROR at setup of test_diamond_is_not_a_cycle_and_ties_are_deterministic ___
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_depth_does_not_reuse_a_stale_memo_after_dependencies_change _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_missing_dependency_is_reported_without_inventing_a_cycle _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_____ ERROR at setup of test_each_node_depth_is_computed_once_per_ordering _____
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+___ ERROR at setup of test_empty_auto_install_trigger_is_not_false[trigger0] ___
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+___ ERROR at setup of test_empty_auto_install_trigger_is_not_false[trigger1] ___
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_uninstallable_module_is_not_an_auto_install_candidate _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_true_trigger_requires_dependencies_and_false_never_qualifies _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+___________ ERROR at setup of test_company_db_alias_maps_id_to_alias ___________
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+____ ERROR at setup of test_domain_reads_and_writes_go_to_active_company_db ____
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_____ ERROR at setup of test_domain_without_active_company_returns_none_n1 _____
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_domain_with_active_company_but_unprovisioned_db_degenerates_n1 _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+__________ ERROR at setup of test_control_plane_infra_goes_to_default __________
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+___ ERROR at setup of test_allow_migrate_keeps_control_plane_only_in_default ___
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_allow_migrate_domain_in_company_db_and_default_for_n1 _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_________ ERROR at setup of test_allow_relation_only_within_same_alias _________
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+____ ERROR at setup of test_base_addons_route_to_the_selected_company[base] ____
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_base_addons_route_to_the_selected_company[base_address_extended] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_base_addons_route_to_the_selected_company[base_geolocalize] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_migrations_reject_unknown_or_invalid_company_aliases[company_9_db] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_migrations_reject_unknown_or_invalid_company_aliases[company_not_a_number_db] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_migrations_reject_unknown_or_invalid_company_aliases[company_] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_migrations_reject_unknown_or_invalid_company_aliases[other] _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_bound_objects_from_different_databases_cannot_relate_under_one_context _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+_ ERROR at setup of test_bound_objects_keep_their_own_database_when_context_changes _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "django_user", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:221: in _create_test_db
+    with self._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:534: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  password authentication failed for user "django_user"
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies0-cycle0]
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:513: RuntimeWarning: Normally Django will use a connection to the 'postgres' database to avoid running initialization queries against the production database when it's not needed (for example, when running tests). Django was unable to create a connection to the 'postgres' database and will use the first PostgreSQL database instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies0-cycle0]
+ERROR tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies1-cycle1]
+ERROR tests/unit/modules/test_module_graph.py::test_depth_rejects_cycle_with_a_domain_error[dependencies2-cycle2]
+ERROR tests/unit/modules/test_module_graph.py::test_order_rejects_cycles_before_returning_a_partial_plan
+ERROR tests/unit/modules/test_module_graph.py::test_diamond_is_not_a_cycle_and_ties_are_deterministic
+ERROR tests/unit/modules/test_module_graph.py::test_depth_does_not_reuse_a_stale_memo_after_dependencies_change
+ERROR tests/unit/modules/test_module_graph.py::test_missing_dependency_is_reported_without_inventing_a_cycle
+ERROR tests/unit/modules/test_module_graph.py::test_each_node_depth_is_computed_once_per_ordering
+ERROR tests/unit/modules/test_module_graph.py::test_empty_auto_install_trigger_is_not_false[trigger0]
+ERROR tests/unit/modules/test_module_graph.py::test_empty_auto_install_trigger_is_not_false[trigger1]
+ERROR tests/unit/modules/test_module_graph.py::test_uninstallable_module_is_not_an_auto_install_candidate
+ERROR tests/unit/modules/test_module_graph.py::test_true_trigger_requires_dependencies_and_false_never_qualifies
+ERROR tests/unit/orm/test_multidb_router.py::test_company_db_alias_maps_id_to_alias
+ERROR tests/unit/orm/test_multidb_router.py::test_domain_reads_and_writes_go_to_active_company_db
+ERROR tests/unit/orm/test_multidb_router.py::test_domain_without_active_company_returns_none_n1
+ERROR tests/unit/orm/test_multidb_router.py::test_domain_with_active_company_but_unprovisioned_db_degenerates_n1
+ERROR tests/unit/orm/test_multidb_router.py::test_control_plane_infra_goes_to_default
+ERROR tests/unit/orm/test_multidb_router.py::test_allow_migrate_keeps_control_plane_only_in_default
+ERROR tests/unit/orm/test_multidb_router.py::test_allow_migrate_domain_in_company_db_and_default_for_n1
+ERROR tests/unit/orm/test_multidb_router.py::test_allow_relation_only_within_same_alias
+ERROR tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base]
+ERROR tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base_address_extended]
+ERROR tests/unit/orm/test_router_database_contract.py::test_base_addons_route_to_the_selected_company[base_geolocalize]
+ERROR tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[company_9_db]
+ERROR tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[company_not_a_number_db]
+ERROR tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[company_]
+ERROR tests/unit/orm/test_router_database_contract.py::test_migrations_reject_unknown_or_invalid_company_aliases[other]
+ERROR tests/unit/orm/test_router_database_contract.py::test_bound_objects_from_different_databases_cannot_relate_under_one_context
+ERROR tests/unit/orm/test_router_database_contract.py::test_bound_objects_keep_their_own_database_when_context_changes
+2 warnings, 29 errors in 3.22s

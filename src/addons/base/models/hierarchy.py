@@ -8,6 +8,7 @@ usaban ``Subsidiary`` y ``Department``. Al re-hogar ``Department`` al addon
 se extrae aquí —a ``base``, dependencia común de ambos— para no duplicarlo
 (D-4 de ``analisis-porte-familia-hr``).
 """
+
 from django.core.exceptions import ValidationError
 
 

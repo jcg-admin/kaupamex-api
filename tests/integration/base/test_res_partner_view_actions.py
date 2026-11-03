@@ -17,6 +17,7 @@ desglose vive en ``test_format_address_and_vat_label.py``. Ver
 
 Qué haría fallar a cada control se declara en cada caso.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner, ResPartnerCategory
@@ -72,10 +73,15 @@ class TestViewHeaderGet:
     """≙ ``view_header_get`` (``:1204-1210``)."""
 
     def test_with_a_category_in_context_it_names_it(self, db):
-        """El eje: el título de la lista dice por qué etiqueta está filtrada."""
+        """
+        El eje: el título de la lista dice por qué etiqueta está filtrada.
+        """
         tag = ResPartnerCategory.objects.create(name='Mayorista')
         with context_scope(category_id=tag.pk):
-            assert ResPartner.view_header_get(None, 'list') == 'Contactos: Mayorista'
+            assert (
+                ResPartner.view_header_get(None, 'list')
+                == 'Contactos: Mayorista'
+            )
 
     def test_without_a_category_there_is_no_header(self, db):
         """CONTROL de la guarda del contexto.

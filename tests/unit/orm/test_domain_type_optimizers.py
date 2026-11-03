@@ -14,6 +14,7 @@ necesita sobre un modelo real: ``active`` es booleano, ``name`` es texto y
 ``groups`` es relacional. Un campo falso probaria el despacho contra un objeto
 que yo mismo declaro; el modelo real lo prueba contra lo que el ORM publica.
 """
+
 import pytest
 
 from addons.base.models.ir_rule import IrRule
@@ -73,7 +74,9 @@ class TestBooleanValuesAreParsed:
         assert list(result.value) == [True]
 
     def test_the_comparison_is_always_against_true(self):
-        """La fuente lo declara: *"it eases the implementation of search methods"*.
+        """
+        La fuente lo declara: *"it eases the implementation of search
+        methods"*.
 
         Un solo caso que atender en el compilador de hoja, en vez de dos
         simetricos. Por eso ``in [False]`` no se compila: se invierte.
@@ -93,12 +96,16 @@ class TestBothBooleansIsATautology:
     """
 
     def test_at_full_level_it_collapses_to_true(self):
-        assert Domain('active', 'in', [True, False]).optimize_full(
-            IrRule) == Domain.TRUE
+        assert (
+            Domain('active', 'in', [True, False]).optimize_full(IrRule)
+            == Domain.TRUE
+        )
 
     def test_not_in_both_collapses_to_false(self):
-        assert Domain('active', 'not in', [True, False]).optimize_full(
-            IrRule) == Domain.FALSE
+        assert (
+            Domain('active', 'not in', [True, False]).optimize_full(IrRule)
+            == Domain.FALSE
+        )
 
     def test_at_the_basic_level_the_field_survives(self):
         """El control del recorte: en BASIC la condicion NO desaparece.
@@ -114,7 +121,9 @@ class TestBothBooleansIsATautology:
 
 
 class TestThePatternMustBeAString:
-    """``_optimize_like_str`` — el valor de un ``like`` se valida como texto."""
+    """
+    ``_optimize_like_str`` — el valor de un ``like`` se valida como texto.
+    """
 
     def test_a_number_becomes_its_string(self):
         result = _sole(Domain('name', 'like', 3).optimize(IrRule))

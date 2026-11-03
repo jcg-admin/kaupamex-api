@@ -1,0 +1,51 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+  "task": "TASK-API-0382",
+  "source_symbol": "ModuleGraph._imported_modules",
+  "reference_contract": {
+    "inputs": "Selected database cursor; optional ir_module_module.imported column",
+    "outputs": "Ordered unique names, starting with studio_customization, then imported rows",
+    "effects": "Column-existence query; conditional SELECT; cached result per graph instance",
+    "consumer": "ModuleGraph.extend suppresses expected noninstallable-node diagnostics for imported modules; does not permit installation"
+  },
+  "verification": {
+    "controls": "2PASS: optional column absent/present; conditional SELECT; deduplication/order; repeated read cached",
+    "kind": "Unmodified pinned class with mock cursor/column probe and bounded OrderedSet adapter; not native Odoo execution",
+    "consumer_model": "base.IrModule",
+    "consumer_concrete_fields": [
+      "id",
+      "created_at",
+      "updated_at",
+      "name",
+      "shortdesc",
+      "summary",
+      "description",
+      "author",
+      "maintainer",
+      "contributors",
+      "website",
+      "url",
+      "icon",
+      "to_buy",
+      "demo",
+      "category",
+      "version",
+      "sequence",
+      "license",
+      "application",
+      "auto_install",
+      "state"
+    ],
+    "consumer_has_imported": false,
+    "database_connections_opened": false
+  },
+  "implementation": "No imported-catalogue mechanism demonstrated in scoped current Consumer module loader; code enumeration is not DB provenance",
+  "dependencies": [
+    "Define imported-module provenance and producer before persistence or loader integration",
+    "Version-faithful database graph binding remains separate"
+  ],
+  "acceptance": "not_verified; no Consumer implementation, field, migration or TASK state change",
+  "scope_limit": "Focused model/migrations/module loader search, not global absence proof",
+  "operational_retry": "Initial command used system Python and failed ModuleNotFoundError django; corrected to Consumer venv, no installation or config change"
+}

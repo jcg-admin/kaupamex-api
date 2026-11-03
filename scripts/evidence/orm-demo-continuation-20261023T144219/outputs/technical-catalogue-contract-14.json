@@ -1,0 +1,34 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c: odoo/addons/base/models/ir_module.py; odoo/addons/base/security/ir.model.access.csv",
+  "behavior": "Read technical module metadata with explicit settings.modules capability; no installation or commercial entitlement mutation",
+  "execution_flow": "Existing admin URL include -> native DefaultRouter -> session authentication -> HasCapability -> typed filters -> IrModule queryset -> stable paginated read-only serializer",
+  "inputs_outputs": "GET collection/detail; search/category/state/application and page/page_size; count/next/previous/results; explicit available version versus nullable installed_version; 400 invalid filters, 401 missing session, 403 missing capability, 404 absent detail, 405 writes",
+  "side_effects": "Database reads and existing authorization resolution only; no catalogue refresh, state scheduling, installed version synthesis or database selection",
+  "dependencies": [
+    "TASK-API-0265 native449 owner authorized; HTTP portion only",
+    "Existing update_module_list preserved",
+    "TASK-API-0267 native452 now owned; category tree/FK not implemented in this unit",
+    "TASK-API-0381 remains unowned; full per-request database resolution not qualified"
+  ],
+  "consumers": "Administrative applications/catalogue clients; uses existing admin namespace without altering logs route",
+  "installed_mechanism": "DRF ReadOnlyModelViewSet, DefaultRouter, PageNumberPagination, CapabilityRequiredMixin and distributed authz declaration collector",
+  "existing_adaptation": "Django model with flat category string and consumer REST API rather than Odoo web client/RPC; native ACL group_system does not imply granting REST access to all authenticated users; named read capability is an explicit adaptation",
+  "verification": {
+    "red": "9 failed exit 1; absent route/capability, no setup errors",
+    "first_green": "7 passed 2 failed exit 1; missing canonical error envelope, retained separately",
+    "current": "55 passed, 3 warnings; pytest exit 0; ten new HTTP/schema cases plus existing catalogue/state/dependency regressions; PostgreSQL own disposable database",
+    "hook_configuration": {
+      "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+      "interface": "src/verify/check_identifier_language.py::canon_keys; IDENTIFIER_LANGUAGE_CANON_KEYS",
+      "first_commit_exit": 1,
+      "classification": "Missing Consumer contract-key configuration; not missing implementation or permission to bypass",
+      "configured_value": "codigo_error",
+      "scope": "Per-command environment only; existing Consumer canonical HTTP key; no hook, baseline or .env edits",
+      "evidence": "technical-catalogue-commit.log"
+    }
+  },
+  "equivalence": "Read-only bounded technical catalogue contract; no mechanical copying of full native ACL CRUD rights or SQL requirements",
+  "limitations": "Native Odoo execution not_verified; full native module installation, company routing and Registry acceptance not_verified; taxonomy/task states unchanged; flat category migration separately scoped",
+  "integration": "5a84f1ff committed with normal hooks; required CI result in technical-catalogue-ci artifacts; no merge, accepted TASK status or local model inference"
+}

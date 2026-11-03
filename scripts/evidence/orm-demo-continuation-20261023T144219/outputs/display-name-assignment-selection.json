@@ -1,0 +1,39 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "Provider Python stdin invocation; full current ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.display_name_assignment",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile five measured return-only display-name failures in generic mixin and ResPartner; assign through existing descriptor, preserve direct-return compatibility, declare actual dependency/context requirements; no field dispatcher or ProductProduct patch",
+      "verify": "Real PostgreSQL first read, repeated read, invalidation, same-record contexts and returning consumer compatibility; assignment-error negative remains; historical64 exact population measured separately",
+      "route": "local",
+      "owned": [
+        "src/orm/models.py",
+        "src/addons/base/models/res_partner.py",
+        "tests/integration/base/test_display_name_assignment.py",
+        "scripts/evidence/orm-demo-continuation-20261023T144219"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "node": "b501",
+  "claims_count": 402,
+  "selected": [
+    "TASK-GEN-0633.display_name_assignment"
+  ],
+  "admission": "NativeTaskGet1203 still pending owner codex-module-lifecycle; description explicitly admits assignment failures here; current five failures measured; descriptor8b6ea823 verified previously; no prerequisite TASK acceptance inferred",
+  "coverage": "One bounded candidate, not global population coverage",
+  "limits": "No whole file or local model inference acceptance",
+  "measured_dependency_expansion": {
+    "paths": [
+      "src/orm/fields.py",
+      "tests/unit/orm/test_field_descriptor.py"
+    ],
+    "evidence": "display-name-assignment-cache-stages.json and neighbor/refined artifacts",
+    "reason": "Ordinary write did not notify dependencies; invalidated computed value reused old instance snapshot; PK/unchanged-refresh regressions measured then corrected",
+    "authority": "Same owned TASK-GEN-0633 assignment-failure unit; source gates and verifiers; no status updates"
+  }
+}

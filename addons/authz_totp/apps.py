@@ -1,4 +1,5 @@
 """AppConfig — addons.authz_totp (Odoo auth_totp)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -15,8 +16,9 @@ class AuthTotpConfig(AppConfig):
     #: de modelos aún no está poblado (excepción #4 de ``no-lazy-imports``:
     #: llamada de función, no statement ``import``).
     _EXTENSIONS = {
-        'addons.authz_totp.models.res_users':
-            'apply_authz_totp_res_users_extensions',
+        'addons.authz_totp.models.res_users': (
+            'apply_authz_totp_res_users_extensions'
+        ),
     }
 
     def ready(self):

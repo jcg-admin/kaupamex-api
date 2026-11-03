@@ -13,7 +13,7 @@
     'depends': [
         'base',  # ResPartner — el destinatario
         'sale',  # SaleOrder — el disparador del aviso
-        'sms',   # el canal de envío
+        'sms',  # el canal de envío
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

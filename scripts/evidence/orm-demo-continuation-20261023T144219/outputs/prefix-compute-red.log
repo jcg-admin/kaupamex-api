@@ -1,0 +1,20 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/account/test_analytic_prefix_compute_contract.py:41: assert False
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/tests/unit/account/test_analytic_prefix_compute_contract.py:90: Failed: DID NOT RAISE <class 'ValueError'>
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/prefix-compute-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_prefix_is_computed_without_a_default_or_column
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[None-60, 61, 62]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[-60, 61, 62]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[ABC-60, 61, 62]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[550100-55, 56, 57]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_distinct_new_records_cannot_share_a_computed_prefix
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_compute_must_assign_instead_of_returning_a_value
+7 failed in 0.11s

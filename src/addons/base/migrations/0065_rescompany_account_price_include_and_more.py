@@ -19,9 +19,15 @@ class Migration(migrations.Migration):
                     ("tax_excluded", "Impuesto excluido"),
                 ],
                 default="tax_excluded",
-                help_text="Si el precio de venta que se captura en el producto y en las facturas de esta empresa incluye sus impuestos (Odoo account_price_include).",
+                help_text=(
+                    "Si el precio de venta que se captura en el producto y en"
+                    " las facturas de esta empresa incluye sus impuestos (Odoo"
+                    " account_price_include)."
+                ),
                 max_length=20,
-                verbose_name="Precio de venta con impuesto incluido por omisión",
+                verbose_name=(
+                    "Precio de venta con impuesto incluido por omisión"
+                ),
             ),
         ),
         migrations.AddField(
@@ -29,7 +35,11 @@ class Migration(migrations.Migration):
             name="account_use_credit_limit",
             field=models.BooleanField(
                 default=False,
-                help_text="Habilita el uso del límite de crédito en los contactos (Odoo account_use_credit_limit). Es el interruptor que gobierna el aviso de crédito de la orden de venta.",
+                help_text=(
+                    "Habilita el uso del límite de crédito en los contactos"
+                    " (Odoo account_use_credit_limit). Es el interruptor que"
+                    " gobierna el aviso de crédito de la orden de venta."
+                ),
                 verbose_name="Límite de crédito en ventas",
             ),
         ),
@@ -42,7 +52,11 @@ class Migration(migrations.Migration):
                     ("round_per_line", "Redondear por línea"),
                 ],
                 default="round_globally",
-                help_text="Si el impuesto se redondea una vez por impuesto sobre la base agregada, o línea por línea (Odoo tax_calculation_rounding_method).",
+                help_text=(
+                    "Si el impuesto se redondea una vez por impuesto sobre la"
+                    " base agregada, o línea por línea (Odoo"
+                    " tax_calculation_rounding_method)."
+                ),
                 max_length=20,
                 verbose_name="Método de redondeo del cálculo de impuestos",
             ),
@@ -56,7 +70,11 @@ class Migration(migrations.Migration):
                     ("html", "Añadir un enlace a una página web"),
                 ],
                 default="plain",
-                help_text="Si los términos y condiciones se añaden como nota al pie del documento o como enlace a una página web (Odoo terms_type).",
+                help_text=(
+                    "Si los términos y condiciones se añaden como nota al pie"
+                    " del documento o como enlace a una página web (Odoo"
+                    " terms_type)."
+                ),
                 max_length=10,
                 verbose_name="Formato de los términos y condiciones",
             ),

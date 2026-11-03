@@ -37,15 +37,23 @@ observada al ejercitarla.
 ``HttpResponse`` ya renderizado — eso lo cubre el censo de
 :class:`TestOurApiSurfaceStaysJsonOnly`, con otro instrumento.
 """
+
 import pathlib
 
 import pytest
 from django.conf import settings
 from django.core.handlers import base as django_handler
 from django.http import Http404
-from django.template.response import ContentNotRenderedError, SimpleTemplateResponse
+from django.template.response import (
+    ContentNotRenderedError,
+    SimpleTemplateResponse,
+)
 from django.test import RequestFactory
-from rest_framework.decorators import api_view, permission_classes, renderer_classes
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+    renderer_classes,
+)
 from rest_framework.permissions import AllowAny
 from rest_framework.renderers import JSONRenderer, StaticHTMLRenderer
 from rest_framework.response import Response
@@ -94,6 +102,7 @@ class TestTheFlatteningBelongsToTheHandler:
             assert response.is_rendered is False
             response['X-Probe'] = 'set-before-flatten'
             return response
+
         return probe
 
     def test_the_response_arrives_rendered_and_keeps_the_header(self):
@@ -108,7 +117,9 @@ class TestTheFlatteningBelongsToTheHandler:
         # ≙ ir_http._dispatch:355 — `if …is_qweb: result.flatten()`.
         # Aquí la condición es `hasattr(response, "render")`, y vive en el
         # handler de Django, no en un modelo.
-        source = pathlib.Path(django_handler.__file__).read_text(encoding='utf-8')
+        source = pathlib.Path(django_handler.__file__).read_text(
+            encoding='utf-8'
+        )
         assert 'hasattr(response, "render")' in source
         assert 'response.render()' in source
 
@@ -148,7 +159,9 @@ class TestOurApiSurfaceStaysJsonOnly:
             f"{p.relative_to(root)}:{n}"
             for p in root.rglob('*.py')
             if 'test' not in p.parts and '.venv' not in p.parts
-            for n, line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1)
+            for n, line in enumerate(
+                p.read_text(encoding='utf-8').splitlines(), 1
+            )
             if 'TemplateHTMLRenderer' in line or 'StaticHTMLRenderer' in line
         ]
         assert offenders == [], offenders

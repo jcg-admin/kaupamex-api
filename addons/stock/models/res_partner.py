@@ -66,24 +66,28 @@ Divergencia declarada — ``company_dependent``
 ===============================================
 
 La referencia marca los dos campos ``company_dependent=True``: su valor se
-guarda por empresa en ``ir.property`` (en 19, ``ir.default``), no en una columna
-de ``res_partner``. Aquí son **columnas normales**, porque el mecanismo de campo
+guarda por empresa en ``ir.property`` (en 19, ``ir.default``), no en una
+columna
+de ``res_partner``. Aquí son **columnas normales**, porque el mecanismo de
+campo
 dependiente de empresa **no está construido** en este árbol — medido:
 ``grep -rn "company_dependent" src/ addons/`` → 0 antes de este archivo.
 
-No se rodea con un valor inventado: la columna guarda **un** valor, que es el de
+No se rodea con un valor inventado: la columna guarda **un** valor, que es el
+de
 la empresa activa cuando se escribió. Es una divergencia de mecanismo declarada
 (``porte-completo-no-parcial.md``, desenlace 1), y su cierre es la tarea
 **#381** — construir el campo dependiente de empresa sobre ``ir.default``, que
 sí está portado (``src/addons/base/models/ir_default.py:145``).
 """
+
 import fields
 import models
 
 from addons.base.models import ResPartner
 
-
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 
@@ -91,7 +95,8 @@ def _add_if_absent(model, name, field):
     """Cuelga el campo sólo si el modelo no lo tiene ya.
 
     Idempotente a propósito: ``ready()`` puede correr más de una vez en un
-    proceso (recarga del autoreloader), y ``add_to_class`` sobre un campo que ya
+    proceso (recarga del autoreloader), y ``add_to_class`` sobre un campo que
+    ya
     existe rompe con ``FieldError``. Mismo criterio que
     ``sale/models/res_company.py::_add_if_absent``.
     """
@@ -100,10 +105,13 @@ def _add_if_absent(model, name, field):
 
 
 def action_view_stock_serial(self):
-    """≙ ``action_view_stock_serial`` (``odoo19c: stock/models/res_partner.py:21-25``).
+    """
+    ≙ ``action_view_stock_serial`` (``odoo19c:
+    stock/models/res_partner.py:21-25``).
 
     Los números de serie que pasaron por este contacto o por cualquiera de sus
-    hijos. El ``child_of`` de la fuente se expresa con la ruta materializada del
+    hijos. El ``child_of`` de la fuente se expresa con la ruta materializada
+    del
     contacto, igual que ``StockLocation`` lo hace con ``parent_path``.
     """
     return {
@@ -127,25 +135,51 @@ def apply_stock_res_partner_extensions():
     if not hasattr(ResPartner, '_check_company_auto'):
         ResPartner._check_company_auto = True
 
-    _add_if_absent(ResPartner, 'property_stock_customer', fields.Many2one(
-        'stock.StockLocation', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='partners_as_customer_location',
-        verbose_name='Ubicación de cliente',
-        help_text='Ubicación destino al enviarle mercancía a este contacto '
-                  '(Odoo property_stock_customer).',
-    ))
-    _add_if_absent(ResPartner, 'property_stock_supplier', fields.Many2one(
-        'stock.StockLocation', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='partners_as_supplier_location',
-        verbose_name='Ubicación de proveedor',
-        help_text='Ubicación origen al recibir mercancía de este contacto '
-                  '(Odoo property_stock_supplier).',
-    ))
-    _add_if_absent(ResPartner, 'picking_warn_msg', fields.Text(
-        blank=True, default='', verbose_name='Aviso en la transferencia',
-        help_text='Mensaje que se muestra al operar una transferencia con este '
-                  'contacto (Odoo picking_warn_msg).',
-    ))
+    _add_if_absent(
+        ResPartner,
+        'property_stock_customer',
+        fields.Many2one(
+            'stock.StockLocation',
+            null=True,
+            blank=True,
+            on_delete=models.SET_NULL,
+            related_name='partners_as_customer_location',
+            verbose_name='Ubicación de cliente',
+            help_text=(
+                'Ubicación destino al enviarle mercancía a este contacto '
+                '(Odoo property_stock_customer).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'property_stock_supplier',
+        fields.Many2one(
+            'stock.StockLocation',
+            null=True,
+            blank=True,
+            on_delete=models.SET_NULL,
+            related_name='partners_as_supplier_location',
+            verbose_name='Ubicación de proveedor',
+            help_text=(
+                'Ubicación origen al recibir mercancía de este contacto '
+                '(Odoo property_stock_supplier).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartner,
+        'picking_warn_msg',
+        fields.Text(
+            blank=True,
+            default='',
+            verbose_name='Aviso en la transferencia',
+            help_text=(
+                'Mensaje que se muestra al operar una transferencia con este '
+                'contacto (Odoo picking_warn_msg).'
+            ),
+        ),
+    )
 
     if not hasattr(ResPartner, 'action_view_stock_serial'):
         ResPartner.action_view_stock_serial = action_view_stock_serial

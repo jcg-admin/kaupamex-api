@@ -1,0 +1,36 @@
+{
+  "run": 41174236572,
+  "head": "a8952d778b3416b80f2fb1bb12811b6785a819d9",
+  "status": "completed",
+  "conclusion": "failure",
+  "first_diagnostics": [
+    {
+      "path": ".claude/hooks/inject_drf_skill_gate.py",
+      "line": 14,
+      "code": "E501",
+      "unchanged_from_base": true,
+      "base_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+      "candidate_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3"
+    },
+    {
+      "path": ".claude/hooks/inject_drf_skill_gate.py",
+      "line": 63,
+      "code": "E501",
+      "unchanged_from_base": true,
+      "base_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+      "candidate_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3"
+    },
+    {
+      "path": ".claude/scripts/bound_detector.py",
+      "line": 15,
+      "code": "E501",
+      "unchanged_from_base": true,
+      "base_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+      "candidate_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61"
+    }
+  ],
+  "scope": "First diagnostics only; not a whole repository debt census or new-regression-free assertion",
+  "log": "registry-consumers-current-ci-style.log.gz",
+  "log_retrieval": "PASS: job log parsed locally; original log retained only outside publication",
+  "log_scope": "Only diagnostic path/line/column/code; original text, commands and environment excluded"
+}

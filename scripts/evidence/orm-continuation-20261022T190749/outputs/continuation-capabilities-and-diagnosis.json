@@ -1,0 +1,67 @@
+{
+  "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "public_replay": "provider-replay-provenance.json selected interfaces identical to fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c",
+  "route": [
+    {
+      "location": "src/session/continuation_frontier.py",
+      "interface": "item_states(log); runnable_items(plan,states,exposed); node_graph_rows(plan,states,exposed)",
+      "inputs": "Native PlanItem, native continuation events and exposure set",
+      "outputs": "Per-item state and unaccepted ready frontier; not an objective completion verdict",
+      "tests": "test_continuation_frontier.py:26 assertions PASS",
+      "persistence": "Pure; consumer actual call snapshots and isolated native log fixture retained"
+    },
+    {
+      "location": "src/session/task_continuation.py; src/session/node_next_task.py",
+      "interface": "node_frontier(plan,states,exposed,claims,node); main([next,bank,...])",
+      "inputs": "Bounded existing0382 symbol obligations and full native claim ledger",
+      "outputs": "Next admissible scoped item, excluding reserved paths/dependencies; no new priority algorithm",
+      "tests": "test_node_next_task:31; test_task_continuation_node:13; seven Consumer controls PASS",
+      "persistence": "Native plan/log fixture for resumption; evidence first/second/third/fourth selection snapshots",
+      "limits": "Not global TASK universe or Codex final-response guard; scoped selection does not prove model resource/acceptance readiness"
+    },
+    {
+      "location": "src/session/task_continuation.py",
+      "interface": "settle_parent(workbench,task)",
+      "inputs": "Native plan parent verifier plus settled items",
+      "outputs": "Parent command exit/status, not initiative success by unit count",
+      "tests": "test_task_continuation_parent_verify:16 PASS",
+      "limits": "Whole objective criteria still require a valid parent authority; no --goal/load_goal in this revision"
+    },
+    {
+      "location": "src/session/local_plan.py",
+      "interface": "write_local_plan(result_text,served_models,local_models,plan_path); propose(...)",
+      "inputs": "Actual local-model plan response/provenance",
+      "outputs": "Validated native plan or refusal; no-model response is rejected",
+      "status": "Source inspected only; model proposal/dispatch NOT_EVALUATED, not qualified. Not invoked or replaced by Consumer planner."
+    },
+    {
+      "location": "src/task/task_source.py; src/task/implementation_order.py",
+      "interface": "records_from_store(db_path,layer); implementation_order ranks declared graph",
+      "status": "Global admission NOT_QUALIFIED: reader returns blockedBy empty and omits owner; existing1072 pending with foreign source claim",
+      "limits": "Do not infer readiness from lost edges or empty projection; existing AS IS/native TaskGet retained as bounded authority"
+    },
+    {
+      "location": "src/session/resource_admission.py; model_coordinator.sh; headless-pool; pool_integrate.sh; src/packages/execution-records",
+      "status": "Relevant source interfaces inspected; no local-model inference, coordinator launch, pool execution, record insertion or patch integration invoked",
+      "limits": "Source availability is not runtime/model qualification. Generic coordination remains Provider-owned; no equivalent implemented in Consumer"
+    }
+  ],
+  "goal_capability": {
+    "existing_task": "TASK-THYROX-1111",
+    "native_state": "pending",
+    "owner": null,
+    "test": "3PASS/5FAIL, missing --goal/load_goal; not a new regression introduced here",
+    "foreign_claims": "provider-path-claims.json covers task_continuation.py (vm-r/vm-a) and task_source.py (vm-r)",
+    "action": "No Provider edit or duplicate TASK; NULL owner not automatic availability"
+  },
+  "observable_diagnosis": {
+    "H1": "Supported: final replies followed partial commits despite documented pending obligations",
+    "H2": "Supported: prior evidence only TaskGet/claims, no recorded re-selection at those boundaries; this run performs four native selections",
+    "H3": "Partially supported: existing master consolidation is analytical, not executable plan; global reader loses dependency/owner information",
+    "H4": "Not confirmed as explicit false completion: prior finals said initiative incomplete, but still ended activity",
+    "H5": "Supported for Codex boundary: native continuation not previously invoked before final; now scoped route exercised without attributing local inference",
+    "H6": "Not accepted as current global blocker: independent demo/phase/pruning work continued despite preserved compute CI failure",
+    "H7": "No evidence supplied of previous genuine environment limit; no invented reason for prior termination"
+  },
+  "correction_scope": "Observable Consumer integration now reselects/executes successive admitted units, persists frontier and adds lasting operational instruction backed by tests. No enforceable Codex host final hook or completed generic Provider goal fix is claimed."
+}

@@ -1,0 +1,6 @@
+{
+  "ast_preserved": true,
+  "source_sha256": "05201fc9a4842ffeb0a04701af681efe6b4f2d464009adfd754f60be372a866f",
+  "scope": "Four reported E501 comments only; unnecessary attribute literal formatting reverted",
+  "verified_behavior_source": "exists-manager-ready.json"
+}

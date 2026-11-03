@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_subtotal ("Subtotal", compute+store, precompute). El importe de la línea sin impuestos.',
+                help_text=(
+                    'Odoo price_subtotal ("Subtotal", compute+store,'
+                    ' precompute). El importe de la línea sin impuestos.'
+                ),
                 max_digits=12,
                 verbose_name="Subtotal",
             ),
@@ -28,7 +31,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_tax ("Total Tax", compute+store, precompute). El impuesto de la línea.',
+                help_text=(
+                    'Odoo price_tax ("Total Tax", compute+store, precompute).'
+                    ' El impuesto de la línea.'
+                ),
                 max_digits=12,
                 verbose_name="Impuesto total",
             ),
@@ -39,7 +45,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_total ("Total", compute+store, precompute). El importe de la línea con impuestos.',
+                help_text=(
+                    'Odoo price_total ("Total", compute+store, precompute). El'
+                    ' importe de la línea con impuestos.'
+                ),
                 max_digits=12,
                 verbose_name="Total",
             ),

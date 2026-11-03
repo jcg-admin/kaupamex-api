@@ -17,7 +17,11 @@ class Migration(migrations.Migration):
             name="property_account_expense_categ",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de gasto de la categoría, usada al validar una factura de proveedor cuando el producto no declara la suya (Odoo property_account_expense_categ_id).",
+                help_text=(
+                    "Cuenta de gasto de la categoría, usada al validar una"
+                    " factura de proveedor cuando el producto no declara la"
+                    " suya (Odoo property_account_expense_categ_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -29,7 +33,11 @@ class Migration(migrations.Migration):
             name="property_account_income_categ",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de ingreso de la categoría, usada al validar una factura de cliente cuando el producto no declara la suya (Odoo property_account_income_categ_id).",
+                help_text=(
+                    "Cuenta de ingreso de la categoría, usada al validar una"
+                    " factura de cliente cuando el producto no declara la suya"
+                    " (Odoo property_account_income_categ_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -42,7 +50,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="product_template_account_tag_rel",
-                help_text="Etiquetas a poner en los apuntes de base e impuesto generados por este producto (Odoo account_tag_ids; applicability=products).",
+                help_text=(
+                    "Etiquetas a poner en los apuntes de base e impuesto"
+                    " generados por este producto (Odoo account_tag_ids;"
+                    " applicability=products)."
+                ),
                 related_name="product_templates",
                 to="account.accountaccounttag",
             ),
@@ -52,7 +64,10 @@ class Migration(migrations.Migration):
             name="property_account_expense",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de gasto del producto. Vacía = se usa la de la categoría (Odoo property_account_expense_id).",
+                help_text=(
+                    "Cuenta de gasto del producto. Vacía = se usa la de la"
+                    " categoría (Odoo property_account_expense_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -64,7 +79,10 @@ class Migration(migrations.Migration):
             name="property_account_income",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Cuenta de ingreso del producto. Vacía = se usa la de la categoría (Odoo property_account_income_id).",
+                help_text=(
+                    "Cuenta de ingreso del producto. Vacía = se usa la de la"
+                    " categoría (Odoo property_account_income_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -77,7 +95,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="product_supplier_taxes_rel",
-                help_text="Impuestos por defecto al COMPRAR el producto (Odoo supplier_taxes_id; type_tax_use=purchase). Sin default por la misma razón que taxes.",
+                help_text=(
+                    "Impuestos por defecto al COMPRAR el producto (Odoo"
+                    " supplier_taxes_id; type_tax_use=purchase). Sin default"
+                    " por la misma razón que taxes."
+                ),
                 related_name="product_templates_purchase",
                 to="account.accounttax",
             ),
@@ -88,7 +110,12 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="product_taxes_rel",
-                help_text="Impuestos por defecto al VENDER el producto (Odoo taxes_id; type_tax_use=sale). Sin default: el de la referencia lee ResCompany.account_sale_tax_id, campo del Bloque 1 aún ausente (tarea #137).",
+                help_text=(
+                    "Impuestos por defecto al VENDER el producto (Odoo"
+                    " taxes_id; type_tax_use=sale). Sin default: el de la"
+                    " referencia lee ResCompany.account_sale_tax_id, campo del"
+                    " Bloque 1 aún ausente (tarea #137)."
+                ),
                 related_name="product_templates_sale",
                 to="account.accounttax",
             ),

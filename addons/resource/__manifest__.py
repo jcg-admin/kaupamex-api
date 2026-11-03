@@ -15,7 +15,7 @@
     # también depende de `web` (widget JS de sección del calendario) — no
     # aplica (Django+DRF, sin vistas XML de Odoo).
     'depends': [
-        'base',      # TimeStampedModel, ResCompany, ResUsers
+        'base',  # TimeStampedModel, ResCompany, ResUsers
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `resource` en Odoo Community

@@ -1,0 +1,188 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+EEFFFFF..FF...........................                                   [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestTheReadDispatchesTheCompute.test_reading_it_dispatches_the_compute _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "relation_check_09e3f1c0d732", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "relation_check_09e3f1c0d732", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:223: in _create_test_db
+    self._execute_create_test_db(cursor, test_db_params, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/creation.py:51: in _execute_create_test_db
+    sys.exit(2)
+E   SystemExit: 2
+---------------------------- Captured stderr setup -----------------------------
+Got an error creating the test database: cannot execute CREATE DATABASE in a read-only transaction
+_ ERROR at setup of TestTheReadDispatchesTheCompute.test_the_select_does_not_ask_for_the_missing_column _
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "relation_check_09e3f1c0d732", database "postgres", no encryption
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:508: in _nodb_cursor
+    with super()._nodb_cursor() as cursor:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:712: in _nodb_cursor
+    with conn.cursor() as cursor:
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:278: in ensure_connection
+    with self.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:279: in ensure_connection
+    self.connect()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:256: in connect
+    self.connection = self.get_new_connection(conn_params)
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:333: in get_new_connection
+    connection = self.Database.connect(**conn_params)
+.venv/lib/python3.12/site-packages/psycopg/connection.py:122: in connect
+    raise last_ex.with_traceback(None)
+E   django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  no pg_hba.conf entry for host "172.17.0.1", user "relation_check_09e3f1c0d732", database "postgres", no encryption
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:69: in create_test_db
+    self._create_test_db(verbosity, autoclobber, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:223: in _create_test_db
+    self._execute_create_test_db(cursor, test_db_params, keepdb)
+.venv/lib/python3.12/site-packages/django/db/backends/postgresql/creation.py:51: in _execute_create_test_db
+    sys.exit(2)
+E   SystemExit: 2
+---------------------------- Captured stderr setup -----------------------------
+Got an error creating the test database: cannot execute CREATE DATABASE in a read-only transaction
+=================================== FAILURES ===================================
+_ TestTheDeclaredComputeIsDispatched.test_the_read_returns_what_the_compute_produces _
+tests/unit/orm/test_nonstored_compute_dispatch.py:109: in test_the_read_returns_what_the_compute_produces
+    assert probe.label == 'calculado'
+src/orm/fields.py:1624: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign ComputeDispatchProbe object (None).label
+_ TestTheDeclaredComputeIsDispatched.test_the_value_tracks_the_compute_and_not_a_constant[uno] _
+tests/unit/orm/test_nonstored_compute_dispatch.py:123: in test_the_value_tracks_the_compute_and_not_a_constant
+    assert field.__get__(ComputeDispatchProbe()) == produced
+E   AttributeError: 'CharField' object has no attribute '__get__'. Did you mean: '__ge__'?
+_ TestTheDeclaredComputeIsDispatched.test_the_value_tracks_the_compute_and_not_a_constant[otro distinto] _
+tests/unit/orm/test_nonstored_compute_dispatch.py:123: in test_the_value_tracks_the_compute_and_not_a_constant
+    assert field.__get__(ComputeDispatchProbe()) == produced
+E   AttributeError: 'CharField' object has no attribute '__get__'. Did you mean: '__ge__'?
+_ TestTheDeclaredComputeIsDispatched.test_the_facade_routes_a_bare_compute_to_the_descriptor _
+tests/unit/orm/test_nonstored_compute_dispatch.py:130: in test_the_facade_routes_a_bare_compute_to_the_descriptor
+    assert isinstance(declared, NonStored), type(declared).__name__
+E   AssertionError: CharField
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)
+_ TestTheDeclaredComputeIsDispatched.test_a_callable_compute_is_dispatched_too _
+tests/unit/orm/test_nonstored_compute_dispatch.py:137: in test_a_callable_compute_is_dispatched_too
+    assert field.__get__(ComputeDispatchProbe()) == 'por invocable'
+E   AttributeError: 'CharField' object has no attribute '__get__'. Did you mean: '__ge__'?
+_ TestWhatTheBranchDoesNotChange.test_a_field_without_compute_still_reads_its_default _
+tests/unit/orm/test_nonstored_compute_dispatch.py:160: in test_a_field_without_compute_still_reads_its_default
+    assert ComputeDispatchProbe().plain_label == 'del default'
+src/orm/fields.py:1641: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'ComputeDispatchProbe' object has no attribute 'default_get'
+_____ TestWhatTheBranchDoesNotChange.test_a_field_with_neither_reads_none ______
+tests/unit/orm/test_nonstored_compute_dispatch.py:165: in test_a_field_with_neither_reads_none
+    assert field.__get__(ComputeDispatchProbe()) is None
+E   AttributeError: 'CharField' object has no attribute '__get__'. Did you mean: '__ge__'?
+=============================== warnings summary ===============================
+tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_reading_it_dispatches_the_compute
+tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_select_does_not_ask_for_the_missing_column
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/base.py:513: RuntimeWarning: Normally Django will use a connection to the 'postgres' database to avoid running initialization queries against the production database when it's not needed (for example, when running tests). Django was unable to create a connection to the 'postgres' database and will use the first PostgreSQL database instead.
+    warnings.warn(
+
+tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_the_written_value_beats_the_compute
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_the_written_value_beats_the_compute
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_read_returns_what_the_compute_produces
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[uno]
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[otro distinto]
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_facade_routes_a_bare_compute_to_the_descriptor
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_a_callable_compute_is_dispatched_too
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_without_compute_still_reads_its_default
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_with_neither_reads_none
+ERROR tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_reading_it_dispatches_the_compute
+ERROR tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_select_does_not_ask_for_the_missing_column
+7 failed, 29 passed, 4 warnings, 2 errors in 0.43s

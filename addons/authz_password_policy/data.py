@@ -4,7 +4,8 @@ En Odoo los defaults del módulo viven en ``data/*.xml`` y se re-aplican en cada
 *install/update* del addon. Aquí el spec vive en este módulo y lo consumen dos
 lados, igual que ``base._DEFAULT_PARAMETERS`` (``base/0002``):
 
-- la **data-migration** ``0001_seed_password_minlength`` (arranque de la BD), que
+- la **data-migration** ``0001_seed_password_minlength`` (arranque de la BD),
+  que
   lo aplica sobre el modelo histórico;
 - **``seed()``** (abajo), para re-aplicarlo sobre el modelo vivo cuando la fila
   desaparece sin que la migración vuelva a correr — el caso de H-API-22.
@@ -12,6 +13,7 @@ lados, igual que ``base._DEFAULT_PARAMETERS`` (``base/0002``):
 El valor por defecto (8) preserva el comportamiento previo del
 ``MinimumLengthValidator`` de Django, ahora editable en caliente (L2).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import SystemParameter

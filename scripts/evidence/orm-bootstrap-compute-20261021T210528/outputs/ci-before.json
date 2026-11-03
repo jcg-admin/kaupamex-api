@@ -1,0 +1,22 @@
+{
+  "command": [
+    "gh",
+    "api",
+    "repos/jcg-admin/kaupamex-api/actions/jobs/119465039569/logs"
+  ],
+  "exit_code": 0,
+  "run": 39669997683,
+  "consumer_revision": "b1b6f59b1034d94c26aafd4c3ef623d69f8cf64b",
+  "conclusion": "FAILURE",
+  "summary": [
+    "2026-10-21T20:47:16.2912061Z 26 skipped, 1 xfailed, 39 warnings, 10674 errors in 1307.56s (0:21:47)"
+  ],
+  "raw_sha256": "96422603814d65cf50cc6be658e5ad8819f67b50038a89bc2aa06c57043b5bc7",
+  "raw_bytes": 43960815,
+  "log": "ci-39669997683.log.gz",
+  "short_error_summaries": {
+    "missing_res_users": 10636,
+    "aborted_transaction": 38,
+    "other": 0
+  }
+}

@@ -40,13 +40,16 @@ Medido por AST: 1 clase (``_name``/``_description``), 3 campos, 4 métodos.
      - **BLOQUEADO** — acción de UI (``ir.actions.act_window``); sin
        cliente web ni sistema de acciones.
 """
+
 from orm.models_transient import TransientModel
 
 from addons.analytic.models import AccountAnalyticLine
 
 
 class HrEmployeeDeleteWizard(TransientModel):
-    """El asistente de borrado de empleados — ≙ ``hr.employee.delete.wizard``."""
+    """
+    El asistente de borrado de empleados — ≙ ``hr.employee.delete.wizard``.
+    """
 
     class Meta:
         abstract = True

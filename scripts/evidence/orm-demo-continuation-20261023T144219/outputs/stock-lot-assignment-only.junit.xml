@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="12" time="5.341" timestamp="2026-10-26T17:23:39.615639" hostname="c8a29a030cff"><testcase classname="tests.integration.sale.test_product_expiry" name="test_display_name_carries_the_expiration_and_relays_without_it" time="4.664"><failure message="AssertionError: assert 'L9\t--2026-10-25--' == 'L9\t--Expired--'&#10;  - L9&#09;--Expired--&#10;  + L9&#09;--2026-10-25--">tests/integration/sale/test_product_expiry.py:175: in test_display_name_carries_the_expiration_and_relays_without_it
+    assert caduca.display_name == 'L9\t--Expired--'
+E   AssertionError: assert 'L9\t--2026-10-25--' == 'L9\t--Expired--'
+E     - L9	--Expired--
+E     + L9	--2026-10-25--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[False-True--1-None-plain]" time="0.050"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'&#10;  - BOUNDARY&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-False--1-None-plain]" time="0.051"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'&#10;  - BOUNDARY&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-None-None-plain]" time="0.044" /><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True--1-None-expired]" time="0.044"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--Expired--'&#10;  - BOUNDARY&#09;--Expired--&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--Expired--'
+E     - BOUNDARY	--Expired--
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-0-None-expired]" time="0.045"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--Expired--'&#10;  - BOUNDARY&#09;--Expired--&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--Expired--'
+E     - BOUNDARY	--Expired--
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60--1-alert]" time="0.042"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--...26 23:24:44--'&#10;  - BOUNDARY&#09;--Expire on 2026-10-26 23:24:44--&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--...26 23:24:44--'
+E     - BOUNDARY	--Expire on 2026-10-26 23:24:44--
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-0-alert]" time="0.043"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--...26 23:24:44--'&#10;  - BOUNDARY&#09;--Expire on 2026-10-26 23:24:44--&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--...26 23:24:44--'
+E     - BOUNDARY	--Expire on 2026-10-26 23:24:44--
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-30-plain]" time="0.042"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'&#10;  - BOUNDARY&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-None-plain]" time="0.042"><failure message="AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'&#10;  - BOUNDARY&#10;  + BOUNDARY&#09;--2026-10-26--">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_keeps_contexts_and_field_changes_separate" time="0.046"><failure message="AssertionError: assert 'CONTEXT\t--2026-10-25--' == 'CONTEXT'&#10;  - CONTEXT&#10;  + CONTEXT&#09;--2026-10-25--">tests/integration/sale/test_product_expiry.py:221: in test_expiry_display_keeps_contexts_and_field_changes_separate
+    assert lot.display_name == 'CONTEXT'
+E   AssertionError: assert 'CONTEXT\t--2026-10-25--' == 'CONTEXT'
+E     - CONTEXT
+E     + CONTEXT	--2026-10-25--</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_new_expiry_lot_assigns_computed_label_without_sql" time="0.044"><failure message="AssertionError: assert 'NEW\t--2026-10-25--' == 'NEW\t--Expired--'&#10;  - NEW&#09;--Expired--&#10;  + NEW&#09;--2026-10-25--">tests/integration/sale/test_product_expiry.py:241: in test_new_expiry_lot_assigns_computed_label_without_sql
+    assert lot.display_name == 'NEW\t--Expired--'
+E   AssertionError: assert 'NEW\t--2026-10-25--' == 'NEW\t--Expired--'
+E     - NEW	--Expired--
+E     + NEW	--2026-10-25--</failure></testcase></testsuite></testsuites>

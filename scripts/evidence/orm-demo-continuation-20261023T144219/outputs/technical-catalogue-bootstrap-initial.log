@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/.venv/bin/python: can't open file '/workspace/kaupamex-api/manage.py': [Errno 2] No such file or directory

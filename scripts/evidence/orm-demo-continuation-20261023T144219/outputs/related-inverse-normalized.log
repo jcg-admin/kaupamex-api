@@ -1,0 +1,86 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFFF.F                                                                [100%]
+=================================== FAILURES ===================================
+_ test_explicit_save_persists_the_related_scalar_target[bank_name-name-Updated bank] _
+tests/integration/base/test_related_inverse_persistence.py:32: in test_explicit_save_persists_the_related_scalar_target
+    assert ResBank.objects.values_list(target, flat=True).get(pk=account.bank_id) == value
+E   AssertionError: assert 'Original bank' == 'Updated bank'
+E     - Updated bank
+E     + Original bank
+_ test_explicit_save_persists_the_related_scalar_target[bank_bic-bic-FIXDMXMM] _
+tests/integration/base/test_related_inverse_persistence.py:32: in test_explicit_save_persists_the_related_scalar_target
+    assert ResBank.objects.values_list(target, flat=True).get(pk=account.bank_id) == value
+E   AssertionError: assert 'ORIGMXMM' == 'FIXDMXMM'
+E     - FIXDMXMM
+E     + ORIGMXMM
+____ test_inverse_dispatch_accepts_existing_consumer_record_shapes[scalar] _____
+tests/integration/base/test_related_inverse_persistence.py:42: in test_inverse_dispatch_accepts_existing_consumer_record_shapes
+    assert ResBank.objects.values_list('name', flat=True).get(pk=account.bank_id) == 'Dispatched bank'
+E   AssertionError: assert 'Original bank' == 'Dispatched bank'
+E     - Dispatched bank
+E     + Original bank
+_____ test_inverse_dispatch_accepts_existing_consumer_record_shapes[list] ______
+tests/integration/base/test_related_inverse_persistence.py:42: in test_inverse_dispatch_accepts_existing_consumer_record_shapes
+    assert ResBank.objects.values_list('name', flat=True).get(pk=account.bank_id) == 'Dispatched bank'
+E   AssertionError: assert 'Original bank' == 'Dispatched bank'
+E     - Dispatched bank
+E     + Original bank
+_____ test_inverse_dispatch_accepts_existing_consumer_record_shapes[tuple] _____
+tests/integration/base/test_related_inverse_persistence.py:42: in test_inverse_dispatch_accepts_existing_consumer_record_shapes
+    assert ResBank.objects.values_list('name', flat=True).get(pk=account.bank_id) == 'Dispatched bank'
+E   AssertionError: assert 'Original bank' == 'Dispatched bank'
+E     - Dispatched bank
+E     + Original bank
+______________ test_unsaved_source_does_not_update_a_saved_target ______________
+tests/integration/base/test_related_inverse_persistence.py:49: in test_unsaved_source_does_not_update_a_saved_target
+    record._meta.get_field('bank_name').determine_inverse(record)
+src/orm/fields.py:4326: in determine_inverse
+    return determine(field.inverse, records)
+src/orm/fields.py:2215: in determine
+    return needle(records, *args)
+src/orm/fields.py:3745: in _field_inverse_related
+    record_value = {record: record[self.name] for record in records}
+.venv/lib/python3.12/site-packages/django/db/models/base.py:628: in __hash__
+    raise TypeError("Model instances without primary key value are unhashable")
+E   TypeError: Model instances without primary key value are unhashable
+______________ test_two_unsaved_records_propagate_only_in_memory _______________
+tests/integration/base/test_related_inverse_persistence.py:60: in test_two_unsaved_records_propagate_only_in_memory
+    record._meta.get_field('bank_name').determine_inverse(record)
+src/orm/fields.py:4326: in determine_inverse
+    return determine(field.inverse, records)
+src/orm/fields.py:2215: in determine
+    return needle(records, *args)
+src/orm/fields.py:3745: in _field_inverse_related
+    record_value = {record: record[self.name] for record in records}
+.venv/lib/python3.12/site-packages/django/db/models/base.py:628: in __hash__
+    raise TypeError("Model instances without primary key value are unhashable")
+E   TypeError: Model instances without primary key value are unhashable
+_________________ test_real_target_save_error_is_not_silenced __________________
+tests/integration/base/test_related_inverse_persistence.py:79: in test_real_target_save_error_is_not_silenced
+    with pytest.raises(RuntimeError, match='target persistence failure'):
+E   Failed: DID NOT RAISE <class 'RuntimeError'>
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/base/test_related_inverse_persistence.py::test_explicit_save_persists_the_related_scalar_target[bank_name-name-Updated bank]
+  /workspace/kaupamex-api/src/orm/fields.py:4153: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_related_inverse_persistence.py::test_explicit_save_persists_the_related_scalar_target[bank_name-name-Updated bank]
+  /workspace/kaupamex-api/src/orm/fields.py:4153: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/related-inverse-normalized.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_explicit_save_persists_the_related_scalar_target[bank_name-name-Updated bank]
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_explicit_save_persists_the_related_scalar_target[bank_bic-bic-FIXDMXMM]
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_inverse_dispatch_accepts_existing_consumer_record_shapes[scalar]
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_inverse_dispatch_accepts_existing_consumer_record_shapes[list]
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_inverse_dispatch_accepts_existing_consumer_record_shapes[tuple]
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_unsaved_source_does_not_update_a_saved_target
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_two_unsaved_records_propagate_only_in_memory
+FAILED tests/integration/base/test_related_inverse_persistence.py::test_real_target_save_error_is_not_silenced
+8 failed, 1 passed, 3 warnings in 4.55s

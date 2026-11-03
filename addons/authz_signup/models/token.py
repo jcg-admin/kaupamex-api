@@ -13,13 +13,16 @@ Como el ``login_date`` va en el payload, el token se **invalida en cuanto el
 usuario inicia sesión** — fidelidad exacta a ``_generate_signup_token``
 (res_partner.py:180-181).
 """
+
 from django.core.signing import BadSignature, SignatureExpired, dumps, loads
 
 _SALT = 'authz_signup'  # ≙ scope 'signup' de la referencia
 
 
 def sign_signup_payload(payload):
-    """Firma el payload (lista) y devuelve el token urlsafe. ≙ ``hash_sign``."""
+    """
+    Firma el payload (lista) y devuelve el token urlsafe. ≙ ``hash_sign``.
+    """
     return dumps(list(payload), salt=_SALT)
 
 

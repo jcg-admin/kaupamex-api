@@ -1,0 +1,29 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_schema_preflight.py", line 13, in <module>
+    _check_applied_schema('default')
+  File "/workspace/kaupamex-api/src/service/db.py", line 442, in _check_applied_schema
+    state = loader.project_state(nodes=applied)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/loader.py", line 409, in project_state
+    return self.graph.make_state(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/migrations/graph.py", line 326, in make_state
+    if not isinstance(nodes[0], tuple):
+                      ~~~~~^^^
+TypeError: 'set' object is not subscriptable
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

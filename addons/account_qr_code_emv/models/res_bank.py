@@ -20,7 +20,8 @@ Símbolo de la referencia (línea)     Dónde queda en este puerto
 ``country_proxy_keys`` (16)          campo, ``NonStored`` vía ``fields.Char``
 ``proxy_value`` (17)                 campo, ``fields.Char``
 ``_serialize`` (19-24)               método homónimo
-``_remove_accents`` (26-28)          método homónimo — delega en ``strip_accents``
+``_remove_accents`` (26-28)          método homónimo — delega en
+``strip_accents``
 ``_compute_country_proxy_keys`` (30-32) → ``compute_country_proxy_keys``
 ``_compute_display_qr_setting`` (34-37) → ``compute_display_qr_setting``
 ``_get_crc16`` (39-49)               método homónimo
@@ -119,6 +120,7 @@ Divergencias declaradas
    declara ``depends: ['base']``, no ``mail`` ni ningún otro addon con una
    copia ya escrita.
 """
+
 import re
 import unicodedata
 
@@ -255,8 +257,15 @@ def _get_merchant_category_code(self):
     return '0000'
 
 
-def _get_qr_code_vals_list(self, qr_method, amount, currency, debtor_partner,
-                            free_communication, structured_communication):
+def _get_qr_code_vals_list(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """≙ ``_get_qr_code_vals_list`` (``odoo19c: res_bank.py:60-84``).
 
     Arma los 10 campos EMV como pares ``(tag, valor)`` — ``_get_qr_vals`` los
@@ -294,38 +303,46 @@ def _get_qr_code_vals_list(self, qr_method, amount, currency, debtor_partner,
     partner = getattr(self, 'partner', None)
     partner_country = getattr(partner, 'country', None) if partner else None
     merchant_name = (
-        partner and partner.name
-        and self._remove_accents(partner.name)[:25]
+        partner and partner.name and self._remove_accents(partner.name)[:25]
     ) or 'NA'
     merchant_city = (
-        partner and partner.city
-        and self._remove_accents(partner.city)[:15]
+        partner and partner.city and self._remove_accents(partner.city)[:15]
     ) or ''
     comment = structured_communication or free_communication or ''
     comment = re.sub(
-        r'[^ A-Za-z0-9_@.\\/#&+-]+', '', self._remove_accents(comment))
+        r'[^ A-Za-z0-9_@.\\/#&+-]+', '', self._remove_accents(comment)
+    )
     additional_data_field = (
         self._get_additional_data_field(comment)
-        if self.include_reference else None
+        if self.include_reference
+        else None
     )
     merchant_category_code = self._get_merchant_category_code()
     country_code = partner_country.code if partner_country else None
     return [
-        (0, '01'),                                 # Payload Format Indicator
-        (1, '12'),                                 # Dynamic QR Codes
-        (tag, merchant_account_info),              # Merchant Account Information
-        (52, merchant_category_code),              # Merchant Category Code
-        (53, currency_code),                       # Transaction Currency
-        (54, amount),                               # Transaction Amount
-        (58, country_code),                          # Country Code
-        (59, merchant_name),                        # Merchant Name
-        (60, merchant_city),                        # Merchant City
-        (62, additional_data_field),                # Additional Data Field
+        (0, '01'),  # Payload Format Indicator
+        (1, '12'),  # Dynamic QR Codes
+        # Merchant Account Information
+        (tag, merchant_account_info),
+        (52, merchant_category_code),  # Merchant Category Code
+        (53, currency_code),  # Transaction Currency
+        (54, amount),  # Transaction Amount
+        (58, country_code),  # Country Code
+        (59, merchant_name),  # Merchant Name
+        (60, merchant_city),  # Merchant City
+        (62, additional_data_field),  # Additional Data Field
     ]
 
 
-def _get_qr_vals(self, qr_method, amount, currency, debtor_partner,
-                  free_communication, structured_communication):
+def _get_qr_vals(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """≙ ``_get_qr_vals`` (``odoo19c: res_bank.py:86-95``).
 
     Para ``'emv_qr'``: serializa los campos TLV, cierra con ``'6304'`` (tag
@@ -336,8 +353,13 @@ def _get_qr_vals(self, qr_method, amount, currency, debtor_partner,
     """
     if qr_method == 'emv_qr':
         qr_code_vals = self._get_qr_code_vals_list(
-            qr_method, amount, currency, debtor_partner,
-            free_communication, structured_communication)
+            qr_method,
+            amount,
+            currency,
+            debtor_partner,
+            free_communication,
+            structured_communication,
+        )
         qr_code_str = ''.join(self._serialize(*val) for val in qr_code_vals)
         qr_code_str += '6304'
         crc = self._get_crc16(bytes(qr_code_str, 'utf-8'))
@@ -347,9 +369,15 @@ def _get_qr_vals(self, qr_method, amount, currency, debtor_partner,
     return None
 
 
-def _get_qr_code_generation_params(self, qr_method, amount, currency,
-                                    debtor_partner, free_communication,
-                                    structured_communication):
+def _get_qr_code_generation_params(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """≙ ``_get_qr_code_generation_params`` (``odoo19c: res_bank.py:97-107``).
 
     Los parámetros que un generador de barcode (``ir.actions.report.barcode``
@@ -368,15 +396,26 @@ def _get_qr_code_generation_params(self, qr_method, amount, currency,
             'height': 128,
             'humanreadable': 1,
             'value': self._get_qr_vals(
-                qr_method, amount, currency, debtor_partner,
-                free_communication, structured_communication),
+                qr_method,
+                amount,
+                currency,
+                debtor_partner,
+                free_communication,
+                structured_communication,
+            ),
         }
     return None
 
 
-def _check_for_qr_code_errors(self, qr_method, amount, currency,
-                               debtor_partner, free_communication,
-                               structured_communication):
+def _check_for_qr_code_errors(
+    self,
+    qr_method,
+    amount,
+    currency,
+    debtor_partner,
+    free_communication,
+    structured_communication,
+):
     """≙ ``_check_for_qr_code_errors`` (``odoo19c: res_bank.py:109-119``).
 
     El primer chequeo (``_get_merchant_account_info()`` faltante) NUNCA
@@ -410,11 +449,13 @@ def _get_available_qr_methods(self):
     3), así que la lista resultante es sólo la entrada de este puente.
     """
     result = []
-    result.append((
-        'emv_qr',
-        _('Código QR EMV presentado por el comercio'),
-        30,
-    ))
+    result.append(
+        (
+            'emv_qr',
+            _('Código QR EMV presentado por el comercio'),
+            30,
+        )
+    )
     return result
 
 
@@ -437,10 +478,12 @@ def _get_error_messages_for_qr(self, qr_method, debtor_partner, currency):
         if self is None:
             return _(
                 'Se requiere una cuenta bancaria para generar el código '
-                'QR EMV.')
+                'QR EMV.'
+            )
         return _(
             'No hay código QR EMV disponible para el país de la cuenta '
-            '%(account_number)s.') % {'account_number': self.acc_number}
+            '%(account_number)s.'
+        ) % {'account_number': self.acc_number}
 
     return None
 
@@ -459,40 +502,73 @@ def apply_account_qr_code_emv_extensions():
     """
     # -- los dos campos NonStored (sin columna) --------------------------
     if not hasattr(ResPartnerBank, 'display_qr_setting'):
-        ResPartnerBank.add_to_class('display_qr_setting', fields.NonStored(
-            default=compute_display_qr_setting,
-            help_text='Visibilidad de la sección de ajustes EMV (Odoo '
-                      'display_qr_setting, compute, store=False). '
-                      'Constante False en el puente: cada localización que '
-                      'active su método EMV decide cuándo mostrarla.',
-        ))
+        ResPartnerBank.add_to_class(
+            'display_qr_setting',
+            fields.NonStored(
+                default=compute_display_qr_setting,
+                help_text=(
+                    'Visibilidad de la sección de ajustes EMV (Odoo '
+                    'display_qr_setting, compute, store=False). '
+                    'Constante False en el puente: cada localización que '
+                    'active su método EMV decide cuándo mostrarla.'
+                ),
+            ),
+        )
     if not hasattr(ResPartnerBank, 'country_proxy_keys'):
-        ResPartnerBank.add_to_class('country_proxy_keys', fields.Char(
-            store=False, default=compute_country_proxy_keys,
-            help_text='Claves de proxy válidas para el país de la cuenta '
-                      '(Odoo country_proxy_keys, compute, store=False). '
-                      'Cadena vacía en el puente.',
-        ))
+        ResPartnerBank.add_to_class(
+            'country_proxy_keys',
+            fields.Char(
+                store=False,
+                default=compute_country_proxy_keys,
+                help_text=(
+                    'Claves de proxy válidas para el país de la cuenta '
+                    '(Odoo country_proxy_keys, compute, store=False). '
+                    'Cadena vacía en el puente.'
+                ),
+            ),
+        )
 
     # -- los tres campos CON columna (migración pendiente — divergencia 4) --
-    _add_if_absent(ResPartnerBank, 'include_reference', fields.Boolean(
-        default=False,
-        help_text='Incluye la referencia/comunicación en el código QR '
-                  '(Odoo include_reference). Sin efecto en el puente puro: '
-                  '``_get_additional_data_field`` sigue devolviendo None '
-                  'hasta que una localización lo sobreescriba.',
-    ))
-    _add_if_absent(ResPartnerBank, 'proxy_type', fields.Selection(
-        max_length=32, choices=[('none', 'Ninguno')], default='none',
-        help_text='Tipo de proxy del método EMV activo (Odoo proxy_type). '
-                  'El único valor del puente es "none" — cada localización '
-                  'agrega los suyos (teléfono, CLABE, RFC…).',
-    ))
-    _add_if_absent(ResPartnerBank, 'proxy_value', fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Valor del proxy (teléfono, CLABE, RFC…) que el método '
-                  'EMV activo usa (Odoo proxy_value).',
-    ))
+    _add_if_absent(
+        ResPartnerBank,
+        'include_reference',
+        fields.Boolean(
+            default=False,
+            help_text=(
+                'Incluye la referencia/comunicación en el código QR '
+                '(Odoo include_reference). Sin efecto en el puente puro: '
+                '``_get_additional_data_field`` sigue devolviendo None '
+                'hasta que una localización lo sobreescriba.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartnerBank,
+        'proxy_type',
+        fields.Selection(
+            max_length=32,
+            choices=[('none', 'Ninguno')],
+            default='none',
+            help_text=(
+                'Tipo de proxy del método EMV activo (Odoo proxy_type). '
+                'El único valor del puente es "none" — cada localización '
+                'agrega los suyos (teléfono, CLABE, RFC…).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        ResPartnerBank,
+        'proxy_value',
+        fields.Char(
+            max_length=255,
+            blank=True,
+            default='',
+            help_text=(
+                'Valor del proxy (teléfono, CLABE, RFC…) que el método '
+                'EMV activo usa (Odoo proxy_value).'
+            ),
+        ),
+    )
 
     # -- los 14 métodos — se ENCADENAN sobre lo que ya hubiera -------------
     # NO ``if not hasattr(...)``: esa guarda es correcta para campos (no
@@ -520,5 +596,9 @@ def apply_account_qr_code_emv_extensions():
     # hace ``rslt = super()._get_available_qr_methods(); rslt.append(...)``
     # (``odoo19c: res_bank.py:121-125``), así que cada addon suma su método
     # en vez de reemplazar la lista.
-    chain_method(ResPartnerBank, '_get_available_qr_methods',
-                 _get_available_qr_methods, combine=extend_list)
+    chain_method(
+        ResPartnerBank,
+        '_get_available_qr_methods',
+        _get_available_qr_methods,
+        combine=extend_list,
+    )

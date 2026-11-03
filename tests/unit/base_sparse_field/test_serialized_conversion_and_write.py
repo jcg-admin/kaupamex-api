@@ -7,10 +7,15 @@ base_sparse_field/models/fields.py:85-93``) y el ``write`` de ``IrModelFields``
 Los de conversión no tocan la base: son métodos del campo. El de ``write`` sí,
 porque su guarda relee la fila.
 """
+
 import pytest
 
 from addons.base.models.ir_model import (
-    IrModel, IrModelFields, STATE_BASE, STATE_MANUAL)
+    IrModel,
+    IrModelFields,
+    STATE_BASE,
+    STATE_MANUAL,
+)
 from addons.base_sparse_field.models.fields import Serialized
 from addons.base_sparse_field.models.ir_model_fields import SERIALIZED_TTYPE
 from exceptions import UserError
@@ -26,10 +31,14 @@ class TestSerializedConversion:
         """La fuente hace ``json.dumps``; aquí la columna es ``jsonb``."""
         field = Serialized()
         assert field.convert_to_cache({'integer': 7, 'char': 'x'}, None) == {
-            'integer': 7, 'char': 'x'}
+            'integer': 7,
+            'char': 'x',
+        }
 
     def test_convert_to_cache_normalizes_falsy_to_none(self):
-        """``value or None`` de la fuente, verbatim — un ``''`` no se guarda."""
+        """
+        ``value or None`` de la fuente, verbatim — un ``''`` no se guarda.
+        """
         field = Serialized()
         assert field.convert_to_cache('', None) is None
         assert field.convert_to_cache(None, None) is None
@@ -43,8 +52,9 @@ class TestSerializedConversion:
         """Cuerpo verbatim de la fuente: delega, y ``values`` no participa."""
         field = Serialized()
         payload = {'boolean': True}
-        assert (field.convert_to_column_insert(payload, None, values={'x': 1})
-                == field.convert_to_cache(payload, None))
+        assert field.convert_to_column_insert(
+            payload, None, values={'x': 1}
+        ) == field.convert_to_cache(payload, None)
 
     def test_convert_to_record_returns_the_mapping_jsonb_gives_back(self):
         field = Serialized()
@@ -53,10 +63,14 @@ class TestSerializedConversion:
     def test_convert_to_record_still_parses_text(self):
         """La rama que la fuente usa siempre: de texto sale el mapa."""
         field = Serialized()
-        assert field.convert_to_record('{"integer": 7}', None) == {'integer': 7}
+        assert field.convert_to_record('{"integer": 7}', None) == {
+            'integer': 7
+        }
 
     def test_convert_to_record_reads_null_as_an_empty_mapping(self):
-        """El ``or "{}"`` de la fuente — la promesa se mantiene en las 3 ramas."""
+        """
+        El ``or "{}"`` de la fuente — la promesa se mantiene en las 3 ramas.
+        """
         field = Serialized()
         assert field.convert_to_record(None, None) == {}
         assert field.convert_to_record('', None) == {}
@@ -70,9 +84,10 @@ class TestIrModelFieldsWrite:
     def _model_row(self):
         """La fila de ``ir.model`` que ``model_id`` exige (no admite nulo)."""
         self.model_row = IrModel.objects.create(
-            model=MODEL_LABEL, name='Prueba de campos dispersos',
-            state=STATE_BASE)
-
+            model=MODEL_LABEL,
+            name='Prueba de campos dispersos',
+            state=STATE_BASE,
+        )
 
     def _a_field_row(self, **extra):
         """Fila en estado ``manual``, no ``base``.
@@ -87,9 +102,14 @@ class TestIrModelFieldsWrite:
         ``ir_model_fields_name_manual_field`` lo exige a todo campo manual —
         misma convención que ``x_plain`` en ``test_ir_model_fields``.
         """
-        values = {'model': MODEL_LABEL, 'model_id': self.model_row,
-                  'name': 'x_char', 'field_description': 'char',
-                  'ttype': 'char', 'state': STATE_MANUAL}
+        values = {
+            'model': MODEL_LABEL,
+            'model_id': self.model_row,
+            'name': 'x_char',
+            'field_description': 'char',
+            'ttype': 'char',
+            'state': STATE_MANUAL,
+        }
         values.update(extra)
         return IrModelFields.objects.create(**values)
 
@@ -130,7 +150,8 @@ class TestIrModelFieldsWrite:
         # Se ata al contenedor por la vía del reflejo, que no pasa por la
         # guarda — es el estado que la fuente supone al llegar a ``write``.
         IrModelFields.objects.filter(pk=row.pk).update(
-            serialization_field_id=container)
+            serialization_field_id=container
+        )
         row.refresh_from_db()
 
         with pytest.raises(UserError):
@@ -141,7 +162,9 @@ class TestIrModelFieldsWrite:
         assert row.name == 'x_char'
 
     def test_write_allows_renaming_a_field_that_is_not_sparse(self):
-        """La asimetría de la fuente: renombrar sólo se prohíbe si es disperso."""
+        """
+        La asimetría de la fuente: renombrar sólo se prohíbe si es disperso.
+        """
         row = self._a_field_row()
         row.write(name='x_caracteres')
 
@@ -153,7 +176,8 @@ class TestIrModelFieldsWrite:
         container = self._a_field_row(name='x_data', ttype=SERIALIZED_TTYPE)
         row = self._a_field_row()
         IrModelFields.objects.filter(pk=row.pk).update(
-            serialization_field_id=container)
+            serialization_field_id=container
+        )
         row.refresh_from_db()
 
         row.write(serialization_field_id=container, field_description='Cadena')

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.524" timestamp="2026-10-26T17:30:59.222960" hostname="c8a29a030cff"><testcase classname="tests.unit.stock.test_stock_move_persistence" name="test_display_name_joins_origin_code_and_both_locations" time="4.385"><failure message="ValueError: Compute method failed to assign stock.StockMove(108,).display_name">tests/unit/stock/test_stock_move_persistence.py:239: in test_display_name_joins_origin_code_and_both_locations
+    assert move.display_name == 'SO0042/CAM-M: Stock&gt;Customers'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(108,).display_name</failure></testcase></testsuite></testsuites>

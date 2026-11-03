@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo hr/models/hr_payroll_structure_type.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import pytest
 
 from addons.base.models import ResCompany, ResCountry
@@ -58,5 +59,6 @@ class TestHrPayrollStructureTypeStr:
 
     def test_str_returns_name(self):
         structure_type = HrPayrollStructureType.objects.create(
-            name='Nómina mensual')
+            name='Nómina mensual'
+        )
         assert str(structure_type) == 'Nómina mensual'

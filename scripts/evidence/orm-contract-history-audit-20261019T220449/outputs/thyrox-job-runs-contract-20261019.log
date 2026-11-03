@@ -1,0 +1,16 @@
+  ok    test_a_scaffolded_run_is_NOT_conformant_yet
+  ok    test_an_empty_population_refuses_instead_of_publishing_a_zero
+  ok    test_latest_run_finds_the_most_recent_of_a_slug
+  ok    test_opposite_dispersion_with_the_SAME_total_gives_a_different_verdict
+  ok    test_reuses_the_workbench_required_keys
+  ok    test_reuses_the_workbench_run_id_grammar
+  ok    test_scaffold_creates_one_directory_per_run
+  ok    test_scaffold_records_when_the_job_started
+  ok    test_settle_forced_reasserts_and_says_so
+  ok    test_settle_is_idempotent_and_its_duration_does_not_grow
+  ok    test_settle_records_the_duration_not_only_the_exit_code
+  ok    test_settle_records_the_exit_code_where_the_manifest_can_be_read
+  ok    test_the_distribution_publishes_its_operands_not_only_the_total
+  ok    test_the_log_lives_inside_its_run_not_beside_it
+  ok    test_the_manifest_declares_the_instrument_and_OMITS_what_it_cannot_know
+resumen: 0 fallo(s)

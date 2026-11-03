@@ -36,66 +36,114 @@ corte fiscal); ``foreign_vat_header_mode``/``action_create_foreign_taxes``
 (banner + wizard del cliente web de Odoo, sin análogo en DRF);
 ``states_count`` (cuenta trivial de UI, sin uso fuera de vista).
 """
+
 import fields
 import models
 
 
 class AccountFiscalPosition(models.Model):
-    """``account.fiscal.position`` — mapeo de impuestos/cuentas por país/tercero."""
+    """
+    ``account.fiscal.position`` — mapeo de impuestos/cuentas por país/tercero.
+    """
 
-    sequence         = fields.Integer(
-        default=10, help_text='Orden de emparejamiento, empresa específica primero (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text=(
+            'Orden de emparejamiento, empresa específica primero (Odoo'
+            ' sequence).'
+        ),
     )
-    name              = fields.Char(
-        max_length=255, help_text='Nombre de la posición fiscal (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre de la posición fiscal (Odoo name, requerido).',
     )
-    active             = fields.Boolean(
-        default=True, help_text='Posición activa; desactivar en vez de borrar (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text=(
+            'Posición activa; desactivar en vez de borrar (Odoo active).'
+        ),
     )
-    company             = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='fiscal_positions',
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=False, on_delete=models.CASCADE,
+        related_name='fiscal_positions',
         help_text='Empresa (Odoo company_id, requerido).',
     )
-    tax_ids               = fields.Many2many(
-        'account.AccountTax', related_name='fiscal_positions', blank=True,
+    tax_ids = fields.Many2many(
+        'account.AccountTax',
+        related_name='fiscal_positions',
+        blank=True,
         db_table='account_fiscal_position_account_tax_rel',
-        help_text='Impuestos destino aplicables bajo esta posición (Odoo tax_ids).',
+        help_text=(
+            'Impuestos destino aplicables bajo esta posición (Odoo tax_ids).'
+        ),
     )
-    note                    = fields.Text(
-        blank=True, default='',
-        help_text='Menciones legales a imprimir en la factura (Odoo note, Html en la referencia).',
+    note = fields.Text(
+        blank=True,
+        default='',
+        help_text=(
+            'Menciones legales a imprimir en la factura (Odoo note, Html en la'
+            ' referencia).'
+        ),
     )
-    auto_apply                = fields.Boolean(
+    auto_apply = fields.Boolean(
         default=False,
-        help_text='Aplica automáticamente si el criterio VAT/país coincide (Odoo auto_apply).',
+        help_text=(
+            'Aplica automáticamente si el criterio VAT/país coincide (Odoo'
+            ' auto_apply).'
+        ),
     )
-    vat_required                = fields.Boolean(
-        default=False, help_text='Sólo aplica si el tercero tiene VAT (Odoo vat_required).',
+    vat_required = fields.Boolean(
+        default=False,
+        help_text='Sólo aplica si el tercero tiene VAT (Odoo vat_required).',
     )
-    country                       = fields.Many2one(
-        'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
+    country = fields.Many2one(
+        'base.ResCountry',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fiscal_positions',
         help_text='País de entrega requerido para aplicar (Odoo country_id).',
     )
-    country_group                  = fields.Many2one(
-        'base.ResCountryGroup', on_delete=models.SET_NULL, null=True, blank=True,
+    country_group = fields.Many2one(
+        'base.ResCountryGroup',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='fiscal_positions',
-        help_text='Grupo de países requerido para aplicar (Odoo country_group_id).',
+        help_text=(
+            'Grupo de países requerido para aplicar (Odoo country_group_id).'
+        ),
     )
-    state_ids                       = fields.Many2many(
-        'base.ResCountryState', related_name='fiscal_positions', blank=True,
+    state_ids = fields.Many2many(
+        'base.ResCountryState',
+        related_name='fiscal_positions',
+        blank=True,
         db_table='account_fiscal_position_state_rel',
-        help_text='Estados federales requeridos para aplicar (Odoo state_ids).',
+        help_text=(
+            'Estados federales requeridos para aplicar (Odoo state_ids).'
+        ),
     )
-    zip_from                         = fields.Char(
-        max_length=24, blank=True, default='', help_text='Rango de código postal, desde (Odoo zip_from).',
+    zip_from = fields.Char(
+        max_length=24,
+        blank=True,
+        default='',
+        help_text='Rango de código postal, desde (Odoo zip_from).',
     )
-    zip_to                            = fields.Char(
-        max_length=24, blank=True, default='', help_text='Rango de código postal, hasta (Odoo zip_to).',
+    zip_to = fields.Char(
+        max_length=24,
+        blank=True,
+        default='',
+        help_text='Rango de código postal, hasta (Odoo zip_to).',
     )
-    foreign_vat                        = fields.Char(
-        max_length=32, blank=True, default='',
-        help_text='RFC/VAT propio en la región mapeada por esta posición (Odoo foreign_vat).',
+    foreign_vat = fields.Char(
+        max_length=32,
+        blank=True,
+        default='',
+        help_text=(
+            'RFC/VAT propio en la región mapeada por esta posición (Odoo'
+            ' foreign_vat).'
+        ),
     )
 
     class Meta:
@@ -142,7 +190,9 @@ class AccountFiscalPosition(models.Model):
         siempre, dejando inerte la rama de sustitución de ``map_tax``.
         """
         tax_map = {}
-        for dest_tax in self.tax_ids.all().prefetch_related('original_tax_ids'):
+        for dest_tax in self.tax_ids.all().prefetch_related(
+            'original_tax_ids'
+        ):
             for src_tax in dest_tax.original_tax_ids.all():
                 tax_map.setdefault(src_tax.pk, []).append(dest_tax.pk)
         return tax_map

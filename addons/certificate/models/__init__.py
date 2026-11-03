@@ -1,4 +1,7 @@
-"""Modelos del addon ``certificate`` (estructura Odoo: un archivo por modelo)."""
+"""
+Modelos del addon ``certificate`` (estructura Odoo: un archivo por modelo).
+"""
+
 from .key import CertificateKey
 from .certificate import CertificateCertificate
 

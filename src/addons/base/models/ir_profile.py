@@ -92,6 +92,7 @@ Lo que este archivo NO trae, y por qué
    / ``act_url`` existen desde el porte de ``ir_actions.py``: las dos causas
    dejaron de existir y el bloqueo quedó caduco. Ver :ref:`h-api-1081`.
 """
+
 import base64
 import datetime
 import json
@@ -127,7 +128,12 @@ GC_RETENTION_DAYS = 30
 #: Campos de traza: pesados y rara vez necesarios al listar. La referencia los
 #: marca ``prefetch=False``; aquí el manager por defecto los difiere.
 _TRACE_FIELDS = (
-    'init_stack_trace', 'sql', 'traces_async', 'traces_sync', 'others', 'qweb',
+    'init_stack_trace',
+    'sql',
+    'traces_async',
+    'traces_sync',
+    'others',
+    'qweb',
 )
 
 
@@ -182,11 +188,13 @@ class ProfileSetMixin:
                     continue
                 if baseline is None:
                     baseline = mem
-                points.append({
-                    'timestamp': entry['start'],
-                    'memory': mem - baseline,
-                    'abs_memory': mem,
-                })
+                points.append(
+                    {
+                        'timestamp': entry['start'],
+                        'memory': mem - baseline,
+                        'abs_memory': mem,
+                    }
+                )
         return {'points': points}
 
     def _default_profile_params(self):
@@ -223,12 +231,20 @@ class ProfileSetMixin:
             'constant_time': str2bool(params.get('constant_time', False)),
             'aggregate_sql': str2bool(params.get('aggregate_sql', False)),
             'use_context': str2bool(params.get('use_execution_context', True)),
-            'combined_profile': str2bool(params.get('combined_profile', False)),
-            'sql_no_gap_profile': str2bool(params.get('sql_no_gap_profile', False)),
-            'sql_density_profile': str2bool(params.get('sql_density_profile', False)),
+            'combined_profile': str2bool(
+                params.get('combined_profile', False)
+            ),
+            'sql_no_gap_profile': str2bool(
+                params.get('sql_no_gap_profile', False)
+            ),
+            'sql_density_profile': str2bool(
+                params.get('sql_density_profile', False)
+            ),
             'frames_profile': str2bool(params.get('frames_profile', False)),
             'memory_profile': str2bool(params.get('memory_profile', False)),
-            'profile_aggregation_mode': params.get('profile_aggregation_mode', 'tabs'),
+            'profile_aggregation_mode': params.get(
+                'profile_aggregation_mode', 'tabs'
+            ),
         }
 
     def _generate_speedscope(self, params):
@@ -245,21 +261,36 @@ class ProfileSetMixin:
         init_stack_trace = profiles[0].init_stack_trace
         for record in profiles:
             if record.init_stack_trace != init_stack_trace:
-                raise UserError(_(
-                    'All profiles must have the same initial stack trace to be '
-                    'displayed together.'))
+                raise UserError(
+                    _(
+                        'All profiles must have the same initial stack trace'
+                        ' to be displayed together.'
+                    )
+                )
         sp = Speedscope(init_stack_trace=json.loads(init_stack_trace))
         for profile in profiles:
-            if (params['sql_no_gap_profile'] or params['sql_density_profile']
-                    or params['combined_profile']) and profile.sql:
+            if (
+                params['sql_no_gap_profile']
+                or params['sql_density_profile']
+                or params['combined_profile']
+            ) and profile.sql:
                 sp.add(f'sql {profile.id}', json.loads(profile.sql))
-            if (params['frames_profile'] or params['combined_profile']
-                    or params['memory_profile']) and profile.traces_async:
-                sp.add(f'frames {profile.id}', json.loads(profile.traces_async))
+            if (
+                params['frames_profile']
+                or params['combined_profile']
+                or params['memory_profile']
+            ) and profile.traces_async:
+                sp.add(
+                    f'frames {profile.id}', json.loads(profile.traces_async)
+                )
             if params['profile_aggregation_mode'] == 'tabs':
                 profile._add_outputs(
                     sp,
-                    f'{profile.id} {profile.name}' if len(profiles) > 1 else '',
+                    (
+                        f'{profile.id} {profile.name}'
+                        if len(profiles) > 1
+                        else ''
+                    ),
                     params,
                 )
 
@@ -280,17 +311,30 @@ class ProfileSetMixin:
         sql = [f'sql {profile.id}' for profile in profiles]
         frames = [f'frames {profile.id}' for profile in profiles]
         if params['combined_profile']:
-            sp.add_output(sql + frames, display_name=f'Combined {suffix}', **params)
+            sp.add_output(
+                sql + frames, display_name=f'Combined {suffix}', **params
+            )
         if params['sql_no_gap_profile']:
-            sp.add_output(sql, hide_gaps=True,
-                          display_name=f'Sql (no gap) {suffix}', **params)
+            sp.add_output(
+                sql,
+                hide_gaps=True,
+                display_name=f'Sql (no gap) {suffix}',
+                **params,
+            )
         if params['sql_density_profile']:
-            sp.add_output(sql, continuous=False, complete=False,
-                          display_name=f'Sql (density) {suffix}', **params)
+            sp.add_output(
+                sql,
+                continuous=False,
+                complete=False,
+                display_name=f'Sql (density) {suffix}',
+                **params,
+            )
         if params['frames_profile']:
             sp.add_output(frames, display_name=f'Frames {suffix}', **params)
         if params['memory_profile']:
-            sp.add_memory_output(frames, display_name=f'Memory {suffix}', **params)
+            sp.add_memory_output(
+                frames, display_name=f'Memory {suffix}', **params
+            )
 
     def action_view_speedscope(self):
         """≙ ``action_view_speedscope`` (``:223-229``).
@@ -333,11 +377,17 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
     _allow_sudo_commands = False
 
     session = fields.Char(
-        max_length=120, blank=True, default='', db_index=True,
+        max_length=120,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Sesión',
     )
     name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Descripción',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Descripción',
     )
     # La referencia declara ``fields.Float(digits=(9, 3))``, que su ORM guarda
     # como ``numeric(9,3)``. En este vocabulario ``fields.Float`` es
@@ -346,28 +396,40 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
     # pero nombra dinero y esto son segundos — así que se usa el primitivo de
     # Django directamente en vez de forzar un alias que miente.
     duration = models.DecimalField(
-        max_digits=9, decimal_places=3, null=True, blank=True,
-        verbose_name='Duración', help_text='Tiempo real transcurrido.',
+        max_digits=9,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        verbose_name='Duración',
+        help_text='Tiempo real transcurrido.',
     )
     cpu_duration = models.DecimalField(
-        max_digits=9, decimal_places=3, null=True, blank=True,
+        max_digits=9,
+        decimal_places=3,
+        null=True,
+        blank=True,
         verbose_name='Duración de CPU',
         help_text='Reloj de CPU (sin otros procesos ni SQL).',
     )
 
     init_stack_trace = fields.Text(
-        blank=True, default='', verbose_name='Traza de pila inicial')
+        blank=True, default='', verbose_name='Traza de pila inicial'
+    )
     sql = fields.Text(blank=True, default='', verbose_name='Sql')
     sql_count = fields.Integer(
-        null=True, blank=True, verbose_name='Conteo de consultas')
+        null=True, blank=True, verbose_name='Conteo de consultas'
+    )
     traces_async = fields.Text(
-        blank=True, default='', verbose_name='Trazas asíncronas')
+        blank=True, default='', verbose_name='Trazas asíncronas'
+    )
     traces_sync = fields.Text(
-        blank=True, default='', verbose_name='Trazas síncronas')
+        blank=True, default='', verbose_name='Trazas síncronas'
+    )
     others = fields.Text(blank=True, default='', verbose_name='Otros')
     qweb = fields.Text(blank=True, default='', verbose_name='Qweb')
     entry_count = fields.Integer(
-        null=True, blank=True, verbose_name='Conteo de entradas')
+        null=True, blank=True, verbose_name='Conteo de entradas'
+    )
 
     #: ≙ ``speedscope`` (``odoo19c: ir_profile.py:47``):
     #: ``fields.Binary('Speedscope', compute='_compute_speedscope')``.
@@ -409,7 +471,8 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
     def _profiles(self):
         """Una fila se ve a sí misma como el conjunto de un elemento.
 
-        Es el singleton con el que la fuente llama desde ``_compute_speedscope``
+        Es el singleton con el que la fuente llama desde
+        ``_compute_speedscope``
         (``:100``): ``execution._generate_speedscope(params)``.
         """
         return [self]
@@ -424,8 +487,9 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
         """
         cutoff = timezone.now() - datetime.timedelta(days=GC_RETENTION_DAYS)
         ids = list(
-            cls.objects.filter(created_at__lt=cutoff)
-            .values_list('pk', flat=True)[:GC_UNLINK_LIMIT]
+            cls.objects.filter(created_at__lt=cutoff).values_list(
+                'pk', flat=True
+            )[:GC_UNLINK_LIMIT]
         )
         if ids:
             cls.objects.filter(pk__in=ids).delete()
@@ -463,7 +527,9 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
         return limit if str(timezone.now()) < str(limit) else None
 
     @classmethod
-    def set_profiling(cls, request, profile=None, collectors=None, params=None):
+    def set_profiling(
+        cls, request, profile=None, collectors=None, params=None
+    ):
         """≙ ``set_profiling`` (``:174-221``) — habilita o apaga el perfilado.
 
         :param request: la petición en curso. La fuente lo lee del global
@@ -492,11 +558,16 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
                         'target': 'new',
                         'views': [[False, 'form']],
                     }
-                raise UserError(_(
-                    'Profiling is not enabled on this database. Please contact '
-                    'an administrator.'))
+                raise UserError(
+                    _(
+                        'Profiling is not enabled on this database. Please'
+                        ' contact an administrator.'
+                    )
+                )
             if not request.session.get('profile_session'):
-                request.session['profile_session'] = make_session(request.user.name)
+                request.session['profile_session'] = make_session(
+                    request.user.name
+                )
                 request.session['profile_expiration'] = limit
                 if request.session.get('profile_collectors') is None:
                     request.session['profile_collectors'] = []
@@ -550,20 +621,29 @@ class BaseEnableProfilingWizard(TransientModel):
     ]
 
     duration = fields.Selection(
-        max_length=16, choices=DURATION_CHOICES, null=True, blank=True,
+        max_length=16,
+        choices=DURATION_CHOICES,
+        null=True,
+        blank=True,
         verbose_name="Enable profiling for",
-        help_text='Cuanto dura el permiso de perfilado (Odoo ``duration``, '
-                  '``odoo19c: ir_profile.py:234``).',
+        help_text=(
+            'Cuanto dura el permiso de perfilado (Odoo ``duration``, '
+            '``odoo19c: ir_profile.py:234``).'
+        ),
     )
     expiration = fields.Datetime(
-        null=True, blank=True,
-        compute='_compute_expiration', store=True,
+        null=True,
+        blank=True,
+        compute='_compute_expiration',
+        store=True,
         verbose_name="Enable profiling until",
-        help_text='Instante en que caduca el permiso (Odoo ``expiration``, '
-                  '``odoo19c: ir_profile.py:240``). La fuente lo declara '
-                  '``readonly=False``: el computo propone y quien llena el '
-                  'formulario puede sobrescribir, que aqui es el '
-                  '``blank=True`` del campo.',
+        help_text=(
+            'Instante en que caduca el permiso (Odoo ``expiration``, '
+            '``odoo19c: ir_profile.py:240``). La fuente lo declara '
+            '``readonly=False``: el computo propone y quien llena el '
+            'formulario puede sobrescribir, que aqui es el '
+            '``blank=True`` del campo.'
+        ),
     )
 
     class Meta:
@@ -591,7 +671,9 @@ class BaseEnableProfilingWizard(TransientModel):
         ``res_partner._compute_commercial_company_name``).
         """
         unit, quantity = (self.duration or 'days_0').split('_')
-        self.expiration = timezone.now() + relativedelta(**{unit: int(quantity)})
+        self.expiration = timezone.now() + relativedelta(
+            **{unit: int(quantity)}
+        )
 
     def submit(self):
         """≙ ``submit`` (``:248-250``) — escribe el parametro y no abre vista.
@@ -600,6 +682,8 @@ class BaseEnableProfilingWizard(TransientModel):
         dialogo y no navegues a ningun lado*. Se conserva el valor: es el
         contrato de la accion, no un detalle de su interfaz.
         """
-        SystemParameter.set_param(PROFILING_ENABLED_UNTIL, str(self.expiration))
+        SystemParameter.set_param(
+            PROFILING_ENABLED_UNTIL, str(self.expiration)
+        )
         _logger.info('Perfilado habilitado hasta %s', self.expiration)
         return False

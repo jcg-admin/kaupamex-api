@@ -9,6 +9,7 @@ EXTIENDEN modelos de otro addon (``key.py``, ``res_company.py``) NO se
 importan aquí: se cargan desde ``AccountEdiProxyClientConfig.ready()``,
 mismo criterio que ``account_edi/models/__init__.py``.
 """
+
 from .account_edi_proxy_user import AccountEdiProxyError, AccountEdiProxyUser
 
 __all__ = ['AccountEdiProxyError', 'AccountEdiProxyUser']

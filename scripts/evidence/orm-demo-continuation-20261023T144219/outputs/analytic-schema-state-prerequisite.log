@@ -1,0 +1,20 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "private_field_registered": true,
+  "concrete": false,
+  "column": null,
+  "migration_fields": [
+    "account_prefix",
+    "analytic_distribution",
+    "company",
+    "created_at",
+    "id",
+    "partner",
+    "product",
+    "product_categ",
+    "sequence",
+    "updated_at"
+  ],
+  "connection_opened": false
+}

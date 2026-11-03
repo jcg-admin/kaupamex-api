@@ -7,6 +7,7 @@ constante) y la migración escribe sobre el modelo **histórico**.
 
 Idempotente y ``noupdate``: nunca pisa una fila que ya exista con la clave.
 """
+
 from django.db import migrations
 
 from addons.sale.data.report_templates import (
@@ -25,25 +26,33 @@ def seed_view(apps, schema_editor):
     """
     IrUiView = apps.get_model('base', 'IrUiView')
     alias = schema_editor.connection.alias
-    if not IrUiView.objects.using(alias).filter(
-            key=REPORT_SALEORDER_KEY).exists():
+    if (
+        not IrUiView.objects.using(alias)
+        .filter(key=REPORT_SALEORDER_KEY)
+        .exists()
+    ):
         IrUiView.objects.using(alias).create(
             name='Orden de venta (plantilla del documento)',
             # El valor va CONGELADO: una migración escribe sobre el modelo
             # histórico, y el renombre a ``template`` lo aplica
             # ``base/0070`` sobre las filas ya escritas.
-            type='qweb', key=REPORT_SALEORDER_KEY,
-            mode='primary', active=True,
+            type='qweb',
+            key=REPORT_SALEORDER_KEY,
+            mode='primary',
+            active=True,
             arch_db=REPORT_SALEORDER_ARCH,
         )
 
 
 def unseed_view(apps, schema_editor):
-    """El reverse borra sólo la fila sembrada con esta clave y sin herederas."""
+    """
+    El reverse borra sólo la fila sembrada con esta clave y sin herederas.
+    """
     IrUiView = apps.get_model('base', 'IrUiView')
     alias = schema_editor.connection.alias
     IrUiView.objects.using(alias).filter(
-        key=REPORT_SALEORDER_KEY, inherit_id__isnull=True).delete()
+        key=REPORT_SALEORDER_KEY, inherit_id__isnull=True
+    ).delete()
 
 
 class Migration(migrations.Migration):

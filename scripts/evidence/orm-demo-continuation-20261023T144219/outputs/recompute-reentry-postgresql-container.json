@@ -1,0 +1,156 @@
+{
+  "container_id": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9",
+  "label": {
+    "org.kaupamex.orm-reentry": "d1a50b5fa281474e93997d2fbcdfc9b4"
+  },
+  "removed": true,
+  "probe_exit_code": 0,
+  "commands": [
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "run",
+        "--rm",
+        "-d",
+        "--name",
+        "orm-reentry-d1a50b5fa281",
+        "--label",
+        "org.kaupamex.orm-reentry=d1a50b5fa281474e93997d2fbcdfc9b4",
+        "--tmpfs",
+        "/var/lib/postgresql/data:rw,nosuid,size=192m",
+        "-e",
+        "POSTGRES_HOST_AUTH_METHOD=trust",
+        "-p",
+        "127.0.0.1::5432",
+        "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222"
+      ],
+      "exit_code": 0,
+      "stdout": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9",
+        "pg_isready",
+        "-U",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "exec",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9",
+        "pg_isready",
+        "-U",
+        "postgres"
+      ],
+      "exit_code": 0,
+      "stdout": "/var/run/postgresql:5432 - accepting connections\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "--format",
+        "{{.Id}}|{{index .Config.Labels \"org.kaupamex.orm-reentry\"}}|{{json .NetworkSettings.Ports}}",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9"
+      ],
+      "exit_code": 0,
+      "stdout": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9|d1a50b5fa281474e93997d2fbcdfc9b4|{\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"32781\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--offline",
+        "--frozen",
+        "python",
+        "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_native_pending_postgresql.py",
+        "--recompute-visibility-only",
+        "--recompute-request-order",
+        "--index-models"
+      ],
+      "exit_code": 0,
+      "log": "recompute-reentry-postgresql-compatibility.log"
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "--format",
+        "{{.Id}}|{{index .Config.Labels \"org.kaupamex.orm-reentry\"}}|{{json .NetworkSettings.Ports}}",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9"
+      ],
+      "exit_code": 0,
+      "stdout": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9|d1a50b5fa281474e93997d2fbcdfc9b4|{\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"32781\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "stop",
+        "--timeout",
+        "3",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9"
+      ],
+      "exit_code": 0,
+      "stdout": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "--format",
+        "{{.Id}}|{{index .Config.Labels \"org.kaupamex.orm-reentry\"}}|{{json .NetworkSettings.Ports}}",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9"
+      ],
+      "exit_code": 0,
+      "stdout": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9|d1a50b5fa281474e93997d2fbcdfc9b4|{}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "--format",
+        "{{.Id}}|{{index .Config.Labels \"org.kaupamex.orm-reentry\"}}|{{json .NetworkSettings.Ports}}",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9"
+      ],
+      "exit_code": 0,
+      "stdout": "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9|d1a50b5fa281474e93997d2fbcdfc9b4|{}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "inspect",
+        "--format",
+        "{{.Id}}|{{index .Config.Labels \"org.kaupamex.orm-reentry\"}}|{{json .NetworkSettings.Ports}}",
+        "583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9"
+      ],
+      "exit_code": 1,
+      "stdout": "\n",
+      "stderr": "Error: No such object: 583a1f0134b88c6a93acd7a806273dac3ff42531a095251e464bd5d43c83f9d9\n"
+    }
+  ],
+  "original_sql_receipt_preserved_sha256": "0dfa1226d43c75c4432caa8643396c812dbc405c3ed39920d278a643c6e22fc8",
+  "scope": "Compatibility of prior physical/ordered SQL path under exact new field source; new reentry contract itself remains SQL-prohibited queue verification"
+}

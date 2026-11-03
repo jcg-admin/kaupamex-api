@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "uv run --offline --frozen --project /workspace/thyrox python with actual full ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.category_display_assignment",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile ResPartnerCategory display compute with pinned assignment contract while preserving full hierarchical label and search behavior",
+      "verify": "Existing category label consumers, unsaved and real rows, reparent invalidation and assignment-vs-return negative control; no whole parent-store acceptance",
+      "route": "local",
+      "owned": [
+        "src/addons/base/models/res_partner.py",
+        "tests/unit/base/test_res_partner_category.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 456,
+  "states": {},
+  "selected": [
+    "TASK-GEN-0633.category_display_assignment"
+  ],
+  "admission": "Native1203 pending owned codex-module-lifecycle, pinned category assigns display_name; native claims no overlap; existing historical consumer covers label; no unowned0397/0418 execution",
+  "scope": "Bounded candidate selection, not population exhaustion, acceptance or local-model inference"
+}

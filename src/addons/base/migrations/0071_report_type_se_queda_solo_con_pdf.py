@@ -16,7 +16,13 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=[("pdf", "PDF")],
                 default="pdf",
-                help_text="Formato de salida: PDF. El valor gobierna el despacho de _render. Divergencia declarada frente a la fuente, que ofrece tres: aquí el intermedio de la composición es el descriptor, y sólo el camino del PDF tiene quien lo convierta.",
+                help_text=(
+                    "Formato de salida: PDF. El valor gobierna el despacho de"
+                    " _render. Divergencia declarada frente a la fuente, que"
+                    " ofrece tres: aquí el intermedio de la composición es el"
+                    " descriptor, y sólo el camino del PDF tiene quien lo"
+                    " convierta."
+                ),
                 max_length=16,
                 verbose_name="Tipo de reporte",
             ),

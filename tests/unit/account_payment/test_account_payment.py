@@ -15,6 +15,7 @@ mismo caveat que ``account_qr_code_sepa``/``account_debit_note``. Se llama
 ``apply_account_payment_extensions()`` explícitamente en cada módulo de
 test, idempotente.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -41,14 +42,18 @@ def company():
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Banco', code='BNKAP', type='bank', company=company)
+        name='Banco', code='BNKAP', type='bank', company=company
+    )
 
 
 @pytest.fixture
 def payment(company, journal):
     return AccountPayment.objects.create(
-        amount=Decimal('150.00'), payment_type='inbound',
-        partner_type='customer', company=company, journal=journal,
+        amount=Decimal('150.00'),
+        payment_type='inbound',
+        partner_type='customer',
+        company=company,
+        journal=journal,
     )
 
 
@@ -60,8 +65,10 @@ def sale_order():
 @pytest.fixture
 def transaction(sale_order):
     return Payment.objects.create(
-        sale_order=sale_order, gateway=Payment.GATEWAY_MERCADOPAGO,
-        amount=Decimal('150.00'), status=Payment.STATUS_APPROVED,
+        sale_order=sale_order,
+        gateway=Payment.GATEWAY_MERCADOPAGO,
+        amount=Decimal('150.00'),
+        status=Payment.STATUS_APPROVED,
     )
 
 
@@ -80,16 +87,26 @@ class TestPaymentTransactionProperty:
         # que este árbol materializa como propiedad que devuelve el objeto.
         assert again.payment_transaction.pk == transaction.pk
 
-    def test_reassign_updates_same_link_row(self, payment, transaction, sale_order):
+    def test_reassign_updates_same_link_row(
+        self, payment, transaction, sale_order
+    ):
         payment.payment_transaction = transaction
         second = Payment.objects.create(
-            sale_order=sale_order, gateway=Payment.GATEWAY_PAYPAL,
-            amount=Decimal('150.00'), status=Payment.STATUS_PENDING,
+            sale_order=sale_order,
+            gateway=Payment.GATEWAY_PAYPAL,
+            amount=Decimal('150.00'),
+            status=Payment.STATUS_PENDING,
         )
         payment.payment_transaction = second
-        assert AccountPayment.objects.get(pk=payment.pk).payment_transaction.pk == second.pk
+        assert (
+            AccountPayment.objects.get(pk=payment.pk).payment_transaction.pk
+            == second.pk
+        )
         # Una sola fila de enlace, no dos — get_or_create reusa la existente.
-        assert AccountPaymentTransaction.objects.filter(payment=payment).count() == 1
+        assert (
+            AccountPaymentTransaction.objects.filter(payment=payment).count()
+            == 1
+        )
 
 
 class TestPaymentTokenProperty:
@@ -98,13 +115,21 @@ class TestPaymentTokenProperty:
 
     def test_set_and_get(self, payment, company):
         user = ResUsers.objects.create_user(
-            login='card@acme.mx', password='TestPass123!', name='Card Holder')
+            login='card@acme.mx', password='TestPass123!', name='Card Holder'
+        )
         card = SavedCard.objects.create(
-            user=user, mp_card_id='card_1', mp_customer_id='cust_1',
-            last_four_digits='4242', expiration_month=12, expiration_year=2030,
+            user=user,
+            mp_card_id='card_1',
+            mp_customer_id='cust_1',
+            last_four_digits='4242',
+            expiration_month=12,
+            expiration_year=2030,
         )
         payment.payment_token = card
-        assert AccountPayment.objects.get(pk=payment.pk).payment_token.pk == card.pk
+        assert (
+            AccountPayment.objects.get(pk=payment.pk).payment_token.pk
+            == card.pk
+        )
 
 
 class TestSourcePaymentProperty:
@@ -113,8 +138,11 @@ class TestSourcePaymentProperty:
 
     def test_set_marks_as_refund(self, payment, company, journal):
         refund_payment = AccountPayment.objects.create(
-            amount=Decimal('50.00'), payment_type='outbound',
-            partner_type='customer', company=company, journal=journal,
+            amount=Decimal('50.00'),
+            payment_type='outbound',
+            partner_type='customer',
+            company=company,
+            journal=journal,
         )
         refund_payment.source_payment = payment
         assert refund_payment.source_payment.pk == payment.pk
@@ -132,11 +160,13 @@ class TestAmountAvailableForRefund:
     def test_subtracts_approved_refunds_only(self, payment, transaction):
         payment.payment_transaction = transaction
         Refund.objects.create(
-            payment=transaction, amount=Decimal('40.00'),
+            payment=transaction,
+            amount=Decimal('40.00'),
             status=Refund.STATUS_APPROVED,
         )
         Refund.objects.create(
-            payment=transaction, amount=Decimal('1000.00'),
+            payment=transaction,
+            amount=Decimal('1000.00'),
             status=Refund.STATUS_PENDING,  # no cuenta — no aprobado
         )
         assert payment.amount_available_for_refund == Decimal('110.00')
@@ -147,14 +177,21 @@ class TestRefundsCount:
         assert payment.refunds_count == 0
 
     def test_counts_only_payments_declaring_this_source(
-            self, payment, company, journal):
+        self, payment, company, journal
+    ):
         AccountPayment.objects.create(
-            amount=Decimal('10.00'), payment_type='outbound',
-            partner_type='customer', company=company, journal=journal,
+            amount=Decimal('10.00'),
+            payment_type='outbound',
+            partner_type='customer',
+            company=company,
+            journal=journal,
         )  # sin source_payment — no cuenta
         refund = AccountPayment.objects.create(
-            amount=Decimal('10.00'), payment_type='outbound',
-            partner_type='customer', company=company, journal=journal,
+            amount=Decimal('10.00'),
+            payment_type='outbound',
+            partner_type='customer',
+            company=company,
+            journal=journal,
         )
         refund.source_payment = payment
         assert payment.refunds_count == 1

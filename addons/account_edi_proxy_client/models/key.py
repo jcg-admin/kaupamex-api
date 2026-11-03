@@ -27,6 +27,7 @@ Dependencia medida — ``cryptography`` SÍ disponible (regla 1 de la tanda)
 Ed25519. ``cryptography.fernet.Fernet`` es el mismo paquete, otro
 submódulo — se importa sin sustitución.
 """
+
 from cryptography.fernet import Fernet
 
 from addons.certificate.models.key import CertificateKey
@@ -46,5 +47,8 @@ def apply_account_edi_proxy_client_extensions():
     "_account_edi_fernet_decrypt" addons/certificate/models/key.py`` → 0
     hits), así que ``chain_method`` lo instala tal cual.
     """
-    chain_method(CertificateKey, '_account_edi_fernet_decrypt',
-                 classmethod(_account_edi_fernet_decrypt))
+    chain_method(
+        CertificateKey,
+        '_account_edi_fernet_decrypt',
+        classmethod(_account_edi_fernet_decrypt),
+    )

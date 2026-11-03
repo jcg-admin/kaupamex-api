@@ -45,6 +45,7 @@ decía «3 failed, 18 passed» sobre un módulo de 21, escrita antes de correr l
 sonda. Se corrigió con la medición. El cuerpo se restauró y ``git diff`` lo
 confirma.
 """
+
 import collections
 
 import pytest
@@ -84,8 +85,9 @@ class TestFieldCopyFlag:
         del árbol sin que ninguna columna hubiera cambiado, y
         ``makemigrations --check`` dejaría de estar limpio.
         """
-        _name, _path, _args, kwargs = fields.Char(max_length=10,
-                                                  copy=False).deconstruct()
+        _name, _path, _args, kwargs = fields.Char(
+            max_length=10, copy=False
+        ).deconstruct()
         assert 'copy' not in kwargs
 
 
@@ -119,7 +121,9 @@ class TestCopyData:
         assert 'id' not in partner.copy_data()
 
     def test_the_audit_columns_do_not_travel(self):
-        """La copia es nueva: su fecha de alta es la suya, no la del original."""
+        """
+        La copia es nueva: su fecha de alta es la suya, no la del original.
+        """
         partner = ResPartner.objects.create(name='Original')
         values = partner.copy_data()
         assert 'created_at' not in values
@@ -228,8 +232,11 @@ class TestCopyTranslations:
         el cuerpo se puede escribir.
         """
         partner = ResPartner.objects.create(name='Original')
-        for symbol in ('_get_stored_translations', 'update_field_translations',
-                       'get_translation_dictionary'):
+        for symbol in (
+            '_get_stored_translations',
+            'update_field_translations',
+            'get_translation_dictionary',
+        ):
             assert not hasattr(partner, symbol)
 
 
@@ -252,8 +259,11 @@ class TestOverridesReachSuper:
         Una copia con el mismo nombre chocaría con la restricción.
         """
         entry = IrModelData.objects.create(
-            module='base', name='control_de_copia',
-            model='base.ResPartner', res_id=1)
+            module='base',
+            name='control_de_copia',
+            model='base.ResPartner',
+            res_id=1,
+        )
         assert entry.copy_data()['name'].startswith('control_de_copia_')
         assert entry.copy_data()['name'] != 'control_de_copia'
 
@@ -265,8 +275,12 @@ class TestOverridesReachSuper:
         justo el modo en que esa lista envejecía sola.
         """
         entry = IrModelData.objects.create(
-            module='base', name='control_de_campos',
-            model='base.ResPartner', res_id=7, noupdate=True)
+            module='base',
+            name='control_de_campos',
+            model='base.ResPartner',
+            res_id=7,
+            noupdate=True,
+        )
         values = entry.copy_data()
         assert values['module'] == 'base'
         assert values['model'] == 'base.ResPartner'

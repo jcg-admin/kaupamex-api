@@ -1,0 +1,60 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Increment admission: PASS; global style, CI, integration and acceptance are NOT_EVALUATED
+Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.
+  TASK-API-0382 -> Mecanismo: la instalación se decide por base, no por proceso (H-API-78
+[feature/codex-workspace-bootstrap da475beb] Preserve bounded ORM continuation evidence
+ Author: Nestor Monroy <46802445+NestorMonroy@users.noreply.github.com>
+ 52 files changed, 60379 insertions(+)
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-artifacts.SHA256SUMS
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-attribute-instrument.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-ci-classification.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-ci-failed.log.gz
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-commit-configured.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-commit-declared-homes.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-commit-final.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-commit.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-contract-14.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-green.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-green.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-push-network.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-push.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red-configured.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red-isolated.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red-isolated.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-increment-final.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-increment-first.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-instruments.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-inventory-configured.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-inventory-tests-configured.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-inventory-tests.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-inventory.junit.xml
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-claims-acquired.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-claims-released.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-claims.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-frontier.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-frontier.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-native-tasks.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-native-tasks.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-next-frontier.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-next-frontier.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-pr109.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-preimage-loading.py.txt
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-preimage-test_loading_demo.py.txt
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-probe-style.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-reference-inventory.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-reference-inventory.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-source-proof.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-structural-view.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-structural-view.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-summary.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-task-update.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-task-update.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-tasklist-complete.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-tasklist-complete.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-tasklist.json
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-tasklist.log
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py
+ create mode 100644 scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_demo_diagnostics.py

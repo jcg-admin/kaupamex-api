@@ -1,0 +1,1132 @@
+{
+  "input": {
+    "name": "Kaupamex — Auditoría integral del contrato ORM, referencia Odoo, evidencia histórica y capacidades de Thyrox.txt",
+    "sha256": "de38656cab6265f477ae73f0b8df0dc253a8d762b80fc25ce934af4e7a8691fb",
+    "adopted_scope": "Analysis and verification only; attachment does not independently authorize privileges"
+  },
+  "api_revision_examined": "5905a9ebc5e348f038f2bcdc4a27e262e038140d",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "functional_authority": "Odoo19 Community at odoo-tools@abe4040ec1; required behavior not waived by Django structure or missing current consumers",
+  "L029": {
+    "actual_subject": "Harness ambiguity: three referents, not evidence homes",
+    "source": "source/gestion/pm/thyrox/lecciones-aprendidas/harness-termino-de-tres-referentes-2026-09-07.rst",
+    "introducing_commit": "932ca65c56e0ac3d5c422cb05623c3da93e4a54a",
+    "glossary": "source/base-cognitiva/glosario.rst",
+    "correct_related_lesson": "L-028, gate-existente-y-nunca-corrido-2026-09-07.rst, including same-day correction",
+    "location_authority": "Provider workbench.paths, session.job_runs, cache.paths; existing Docs analisis-hogar-del-workbench-en-thyrox"
+  },
+  "evidence_homes": [
+    {
+      "repo": "kaupamex-api",
+      "kind": "workbench",
+      "interface": "workbench.paths.workbench_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/kaupamex-api/scripts/workbench",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 355,
+      "untracked_count": 0,
+      "ignored_count": 5,
+      "tracked_sample": [
+        "scripts/workbench/README.md",
+        "scripts/workbench/analogue-in-the-client-20260830T192922/manifest.json",
+        "scripts/workbench/analogue-in-the-client-20260830T192922/outputs/client-mechanism-20260830T192922.txt",
+        "scripts/workbench/analogue-in-the-client-20260830T192922/outputs/counts-20260830T192922.txt",
+        "scripts/workbench/any-con-permiso-concedido-20260830T235423/control-s1-sin-la-elevacion.txt"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [
+        "scripts/workbench/orm-root-census-20260902T203712/__pycache__/census_orm_root.cpython-312.pyc",
+        "scripts/workbench/orm-root-census-20260902T203712/tests/__pycache__/test_census_orm_root.cpython-312-pytest-7.4.4.pyc",
+        "scripts/workbench/orm-signature-parity-20260904T162214/__pycache__/signature_parity.cpython-312.pyc",
+        "scripts/workbench/orm-signature-parity-20260904T162214/tests/__pycache__/conftest.cpython-312-pytest-7.4.4.pyc",
+        "scripts/workbench/orm-signature-parity-20260904T162214/tests/__pycache__/test_signature_parity.cpython-312-pytest-7.4.4.pyc"
+      ],
+      "last_commit": "5905a9ebc5e348f038f2bcdc4a27e262e038140d 2026-10-19T18:59:02Z Contrasta el almacenamiento de campos traducibles"
+    },
+    {
+      "repo": "kaupamex-api",
+      "kind": "jobs",
+      "interface": "session.job_runs.jobs_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/kaupamex-api/scripts/evidence",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 412,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [
+        "scripts/evidence/211-control-indice-empresa-2026-09-03T09-09-29.txt",
+        "scripts/evidence/211-control-vista-dependiente-2026-09-03T08-15-37.txt",
+        "scripts/evidence/211-conversion-suite-completa.log",
+        "scripts/evidence/311-determine-inverse/suite-20260902T175440.log",
+        "scripts/evidence/331-controles-por-neutralizacion.log"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": "7b9ad7b4456e445a434e8753dc720558bc48b4b5 2026-09-14T02:29:20Z Record full pytest baseline against fresh PostgreSQL DB"
+    },
+    {
+      "repo": "kaupamex-api",
+      "kind": "cache",
+      "interface": "cache.paths.cache_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/kaupamex-api/.claude/cache",
+      "exists": false,
+      "inside_owner": true
+    },
+    {
+      "repo": "kaupamex-docs",
+      "kind": "workbench",
+      "interface": "workbench.paths.workbench_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/kaupamex-docs/.claude/eventos",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 15487,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [
+        ".claude/eventos/.ultimo-porte-sale",
+        ".claude/eventos/README.md",
+        ".claude/eventos/acl-como-puerta-20260827T194322/README.md",
+        ".claude/eventos/acl-como-puerta-20260827T194322/manifiesto.json",
+        ".claude/eventos/acl-como-puerta-20260827T194322/salidas/citas-rotas.txt"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": "c5f67acd4607b720bf8c170fd80396c416f16764 2026-10-19T21:13:13Z Audit ORM architecture before further construction"
+    },
+    {
+      "repo": "kaupamex-docs",
+      "kind": "jobs",
+      "interface": "session.job_runs.jobs_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/kaupamex-docs/.claude/jobs",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 34,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [
+        ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/README.md",
+        ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/manifest.json",
+        ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/outputs/pid",
+        ".claude/jobs/base-cognitiva-y-bitacora-20260911T171800/outputs/salida.log",
+        ".claude/jobs/census-open-docs-20260912T100327/README.md"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": "83bb03a809c507d0530b9d0e0ca37516822091cc 2026-09-29T05:38:43Z Record the job that committed the ADR rename"
+    },
+    {
+      "repo": "kaupamex-docs",
+      "kind": "cache",
+      "interface": "cache.paths.cache_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/kaupamex-docs/.claude/cache",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 0,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": ""
+    },
+    {
+      "repo": "thyrox",
+      "kind": "workbench",
+      "interface": "workbench.paths.workbench_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/thyrox/.claude/workbench",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 55609,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [
+        ".claude/workbench/.all-tsconfigs-current",
+        ".claude/workbench/accepted-task-population-20261005T065345/README.md",
+        ".claude/workbench/accepted-task-population-20261005T065345/RECORD.md",
+        ".claude/workbench/accepted-task-population-20261005T065345/outputs/discriminates-0964-retry.tsv",
+        ".claude/workbench/accepted-task-population-20261005T065345/outputs/discriminates-overlay.tsv"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": "ef8b090d39b377c59ea2cb6eae0c9d4c0091c133 2026-10-18T00:07:50Z Correct the write time of the carrier record"
+    },
+    {
+      "repo": "thyrox",
+      "kind": "jobs",
+      "interface": "session.job_runs.jobs_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/thyrox/.claude/jobs",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 14086,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [
+        ".claude/jobs/--label-20260918T021702/README.md",
+        ".claude/jobs/--label-20260918T021702/manifest.jsonl",
+        ".claude/jobs/--label-20260918T021702/outputs/pid",
+        ".claude/jobs/--label-20260918T021702/outputs/salida.log",
+        ".claude/jobs/--label-20260919T015311/README.md"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": "e937d1a0152fde5a4f4f59f1998a0ed69a699f5e 2026-10-17T23:53:36Z Specify id allocation from leased per-node blocks"
+    },
+    {
+      "repo": "thyrox",
+      "kind": "cache",
+      "interface": "cache.paths.cache_dir",
+      "readonly_unwrapped": true,
+      "resolved_path": "/workspace/thyrox/.claude/cache",
+      "exists": true,
+      "inside_owner": true,
+      "tracked_count": 354,
+      "untracked_count": 0,
+      "ignored_count": 0,
+      "tracked_sample": [
+        ".claude/cache/bound-the-task-pool-by-available-memory-40adef36/README.md",
+        ".claude/cache/bound-the-task-pool-by-available-memory-40adef36/pool-derived-suites.txt",
+        ".claude/cache/clean-code-3-c-extraction/README.md",
+        ".claude/cache/clean-code-3-c-extraction/clean-code-3-c.txt",
+        ".claude/cache/control-idioma/README.md"
+      ],
+      "untracked_sample": [],
+      "ignored_sample": [],
+      "last_commit": "3d1e030bdc9b6a34f88ad954a636ed8faf53e1df 2026-10-12T09:46:06Z Record u4a r1 of resolve_import, timed out"
+    }
+  ],
+  "homes_reader_source": "\"\"\"Consulta diagnóstica de resolutores Thyrox sin crear hogares.\"\"\"\nfrom pathlib import Path\nimport inspect,json,subprocess,hashlib\nfrom workbench.paths import workbench_dir\nfrom session.job_runs import jobs_dir\nfrom cache.paths import cache_dir\nrows=[]\nfor name in ['kaupamex-api','kaupamex-docs','thyrox']:\n root=Path('/workspace')/name\n for kind,resolver in [('workbench',workbench_dir),('jobs',jobs_dir),('cache',cache_dir)]:\n  row={'repo':name,'kind':kind,'interface':resolver.__module__+'.'+resolver.__name__,'readonly_unwrapped':True}\n  try:\n   path=inspect.unwrap(resolver)(root);row['resolved_path']=str(path);row['exists']=path.exists();row['inside_owner']=path.is_relative_to(root)\n   if row['inside_owner'] and path.exists():\n    relative=str(path.relative_to(root));tracked=subprocess.check_output(['git','-C',str(root),'ls-files','--',relative],text=True).splitlines();untracked=subprocess.check_output(['git','-C',str(root),'ls-files','--others','--exclude-standard','--',relative],text=True).splitlines();ignored=subprocess.check_output(['git','-C',str(root),'ls-files','--others','--ignored','--exclude-standard','--',relative],text=True).splitlines();row.update(tracked_count=len(tracked),untracked_count=len(untracked),ignored_count=len(ignored),tracked_sample=tracked[:5],untracked_sample=untracked[:5],ignored_sample=ignored[:5])\n    row['last_commit']=subprocess.check_output(['git','-C',str(root),'log','-1','--format=%H %cI %s','--',relative],text=True).strip()\n  except Exception as error:row.update(error=type(error).__name__,message=str(error))\n  rows.append(row);print(json.dumps(row,ensure_ascii=False))\nPath('/workspace/scratch/evidence-homes-contract-20261019.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\\n')\n",
+  "historical_banks": [
+    {
+      "path": "scripts/workbench/basemodel-contract-20260911T030334",
+      "materialized": true,
+      "manifest": {
+        "question": "De los 194 métodos que la referencia cuelga de BaseModel, ¿cuáles trae hecho el stack, cuáles cuelga ya nuestro propio árbol, y cuáles hay que construir?",
+        "instrument": [
+          "scripts/workbench/basemodel-contract-20260911T030334/census_reference_basemodel.py",
+          "scripts/workbench/basemodel-contract-20260911T030334/census_ours_models.py",
+          "scripts/workbench/basemodel-contract-20260911T030334/locate_in_our_tree.py",
+          "scripts/workbench/basemodel-contract-20260911T030334/census_class.py",
+          "scripts/workbench/basemodel-contract-20260911T030334/probe_stack_inventory.py"
+        ],
+        "metric": "hasattr() sobre Model, ModelBase, Manager y QuerySet de django 6.0.5, en DOS procesos —uno prístino con PYTHONPATH despojado y DJANGO_SETTINGS_MODULE vacío, otro tras django.setup() con config.settings.testing— para los 194 nombres que el censo extrae por AST del cuerpo de BaseModel (odoo/orm/models.py:334-7004). La diferencia entre los dos procesos es el tercer cubo.",
+        "blind_to": [
+          "el CONTRATO detrás de cada nombre: exists devuelve bool allá y recordset acá; create una instancia contra un recordset de N; update filas afectadas contra escritura en caché; __eq__/__lt__ comparan pk contra conjuntos de ids. El cubo TRAE autoriza a leer el binario, no a llamar",
+          "un símbolo que Django ofrezca bajo OTRO nombre: ningún hasattr por nombre literal puede verlo, y no hay tabla de equivalencia",
+          "lo que un addon de terceros cuelgue sobre models.Model sin pasar por src/orm: el segundo proceso lo contaría como nuestro",
+          "la familia de un símbolo cuyo nombre no la delate — 50 de los 159 quedan en «otros», el 31 % sin clasificar",
+          "el cuerpo de los 14 que nuestro árbol ya colgó: que el nombre esté no dice que haga lo que la referencia hace"
+        ],
+        "destination": [
+          "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-basemodel-trae-o-construye.rst",
+          "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/hallazgos/hallazgo-H-API-1089-la-sonda-midio-el-stack-mas-nuestros-parches.rst",
+          "src/orm/ — el núcleo del recordset que TASK-API-0397 construye"
+        ],
+        "control": "el positivo real del árbol: _recompute_field, que django 6.0.5 no declara en ninguna parte y src/orm/models.py:3384 cuelga con la marca «≙ BaseModel._recompute_field (:6948-6959)». Prístino da Model=False QuerySet=False; tras django.setup() da Model=True. La sonda contaminada lo contaba como stack, y ése es el fallo que discrimina: sin ese control, 35 y 21 se leen igual.",
+        "corrected_premise": {
+          "decia": "35 de los 194 los trae hecho el stack",
+          "mide": "21 los trae Django prístino; 14 los había colgado nuestro propio src/orm sobre models.Model, y la sonda los contaba como stack porque preguntaba después de django.setup()",
+          "consecuencia": "el criterio de dos niveles del ejecutor necesita TRES cubos, no dos: el tercero —lo que ya portamos— no es ni «el stack lo trae» ni «hay que construirlo»"
+        },
+        "reproducible": "eval \"$(python3 scripts/reference_roots.py --env)\" && python3 scripts/workbench/basemodel-contract-20260911T030334/census_reference_basemodel.py BaseModel && python3 scripts/workbench/basemodel-contract-20260911T030334/probe_stack_inventory.py",
+        "outputs": [
+          "reference_basemodel.tsv",
+          "ours_models.txt",
+          "located_in_ours.txt",
+          "stack_inventory.txt",
+          "stack_inventory.err",
+          "django_base.txt",
+          "django_field.txt",
+          "django_manager.txt",
+          "django_options.txt",
+          "django_query.txt",
+          "django_sqlquery.txt"
+        ],
+        "source": "odoo19c: odoo/orm/models.py:334-7004 (BaseModel, 194 métodos, 1 atributo de clase) — odoo-tools@abe4040ec1; django 6.0.5 en .venv/lib/python3.12/site-packages",
+        "findings": [
+          "H-API-1089"
+        ],
+        "tasks": [
+          "#318",
+          "#319"
+        ],
+        "measured_at": "2026-09-11T03:19:15",
+        "api_head": "806a2ad2"
+      },
+      "manifest_sha256": "3164bec8110d143b86a42bfb1f669778a3a4de228c3edc0ad3a1209d510d6469",
+      "last_commit": "a872f4ae85fce246fa81672332fc4c38d76dcc89 2026-09-11T04:37:10Z Build the BaseModel recordset core",
+      "files": [
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/BANK_PATH",
+          "sha256": "d3af3ab70f2e540ba070318e182db05e6d9c017716a764b4eee887adefdea791"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/census_class.py",
+          "sha256": "0630664497f3a9c0c47ff02ffc570d79b45225e2af815f689df3fd31cf8107c9"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/census_ours_models.py",
+          "sha256": "eced6031dc0a5eee18c451cc1c39a62069d67c15a14f9ce5eb514087b8257e45"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/census_reference_basemodel.py",
+          "sha256": "ad9b5ed468e388116d38696a2abb5da9435793b82fcff5649930844a8cac2b9c"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/cmds-binarios.txt",
+          "sha256": "1d014bda32c1721163ab36f873201a4a745ed9a51104945900e0b90f493b2eca"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/cmds-fase1.txt",
+          "sha256": "f409a7ce0dcf1029b68781caabc92f43c470ab75f7dfabcdd127ca55b878d353"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/cmds-fase2.txt",
+          "sha256": "74f51dd0bb304313c9e96ba6109ca1142f248825547b34aaf358bd5c800b08cc"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/locate_in_our_tree.py",
+          "sha256": "27012b8f9f700cc571943307af2c19637f5b8b9727070c6588f146b5c89911bc"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/logs/job-001.log",
+          "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/logs/job-002.log",
+          "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/logs/job-003.log",
+          "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/logs/job-004.log",
+          "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/logs/job-005.log",
+          "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/logs/job-006.log",
+          "sha256": "418a5c17f33c70e99b0cc0a07fce69191489cfedc94164bfa903785777c5bd4b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/manifest.json",
+          "sha256": "3164bec8110d143b86a42bfb1f669778a3a4de228c3edc0ad3a1209d510d6469"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/coverage_derived.txt",
+          "sha256": "91654e57ea725c3ebde96b2f31d3fd42b967cfa95cf85d20a847678d8e16eaed"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/django_base.txt",
+          "sha256": "bac6bdd53941de3934fb8a02cd9592b5919a5d23e151bacfd771f5e00b4f5e9c"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/django_field.txt",
+          "sha256": "2232ac7bd6e6c95ba7b9ce47ea029a2893af5b2dde7bd4d1fd395a1994b9828f"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/django_manager.txt",
+          "sha256": "506779989e0ae1b5152912909c42907de859e32afa5f5b5b8078c6a204966fca"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/django_options.txt",
+          "sha256": "07e3a85610afd8d6c2eb37112905a0210ff9e9aac6e7fd9950ce1e8c2c061ce5"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/django_query.txt",
+          "sha256": "5e1195ac887d5fe784e980e8ca35fcbabcf6e59db6f219d08772a769f8128e55"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/django_sqlquery.txt",
+          "sha256": "d6a2445dace813cfdf61fb48c5beeb0e5f1f287266e4f33ff4e2986768af1386"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/located_in_ours.txt",
+          "sha256": "d57571026c4aa58357a743bc2042c373e9bb538b0fce3cc5233bf7e8fc9a483d"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/ours_models.txt",
+          "sha256": "319f2cf67095bf474ff2feec92d83a613035edd5fead43a1839e307fd5412a6e"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/reference_basemodel.tsv",
+          "sha256": "83e8d2a1e939bb36ce8bdcb7a433dfd4292d7c15de52a22e7c5d6824b76d8284"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/stack_inventory.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/outputs/stack_inventory.txt",
+          "sha256": "a961dfc1a4e8649720a1ab6605f027e650e34949a87b4ebe9f2a12eb5f514df2"
+        },
+        {
+          "path": "scripts/workbench/basemodel-contract-20260911T030334/probe_stack_inventory.py",
+          "sha256": "e709f8e8f17543dbed566116497aa27e99f8e0f4b7550053fa2e233df60c1360"
+        }
+      ]
+    },
+    {
+      "path": "scripts/workbench/basemodel-id-access-20260911T035612",
+      "materialized": true,
+      "manifest": {
+        "question": "Para el `id` de BaseModel, ¿el stack trae el mecanismo de los tres regímenes de `Id.__get__` (vacío→False, singleton→ids[0], N→ValueError), o hay que construirlo? ¿Y `__slots__` verbatim sobre una base abstracta de Django es admisible?",
+        "instrument": [
+          "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py",
+          "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_descriptor.py",
+          "scripts/workbench/basemodel-id-access-20260911T035612/probe_abstract_base.py",
+          "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_setter.py"
+        ],
+        "metric": "Conducta observada de `.id` sobre instancias construidas por tres vías (object.__new__ pelado, +_state, +__dict__) y número de consultas SQL emitidas, con django.setup() y config.settings.testing; más el descriptor que `Sujeto.__dict__['id']` guarda en cada montaje (base llana contra receptor de `class_prepared`). Y: si el `Id.__set__` de la referencia (fields_misc.py:116-117) se puede portar verbatim, construyendo una fila con `Sujeto(id=99)` bajo un descriptor con `__set__` y bajo uno sin el.",
+        "blind_to": [
+          "el camino que SÍ puede consultar la base — `rs.<campo>` por DeferredAttribute → refresh_from_db; las sondas sólo ejercitan `.id`",
+          "el comportamiento bajo un modelo con pk no entera o con pk compuesta: los tres sujetos declaran AutoField implícito",
+          "si el receptor de class_prepared sobrevive a una recarga del registro de apps (migraciones, makemigrations) — no se midió",
+          "el coste de la indirección del descriptor: ninguna sonda mide tiempo",
+          "el punto exacto de Model.__init__ donde la asignacion falla: la sonda mide el desenlace de la construccion, no la linea que lo produce"
+        ],
+        "destination": [
+          "api: src/orm/models.py — BaseModel, el núcleo del recordset de TASK-API-0397",
+          "api: tests/unit/orm/test_base_model_recordset.py — la mitad RED ya escrita (api@08908b86)"
+        ],
+        "control": "El positivo real es el tercer régimen: con `_ids=(7, 18)` la sonda exige ValueError, que es lo que `odoo19c: odoo/orm/fields_misc.py:110-114` hace. Un descriptor que devolviera ids[0] pasaría los otros dos y fallaría éste. Y el control negativo del montaje: probe_id_descriptor.py declara el MISMO descriptor sobre una base llana y mide que ModelBase lo sombrea con DeferredAttribute — sin esa sonda, el éxito del receptor de class_prepared no distinguiría 'el descriptor funciona' de 'cualquier descriptor habría funcionado'.",
+        "corrected_premise": {
+          "decia": "`.id` sobre una instancia construida con object.__new__ dispara refresh_from_db y por tanto una consulta SQL",
+          "mide": "lanza AttributeError con 0 consultas — el DeferredAttribute muere en `self.field.attname` antes de llegar a la base",
+          "consecuencia": "el riesgo del bypass no es una consulta silenciosa sino un atributo inaccesible; el camino que sí consulta es `rs.<campo>`, no `.id`"
+        },
+        "reproducible": "cd /home/user/kaupamex-api && for p in probe_id_access probe_id_descriptor probe_abstract_base; do uv run python scripts/workbench/basemodel-id-access-20260911T035612/$p.py; done",
+        "outputs": [
+          "id_access.txt",
+          "id_descriptor.txt",
+          "abstract_base.txt",
+          "id_setter.txt"
+        ],
+        "source": "odoo19c: odoo/orm/fields_misc.py:89-130 (Id) y odoo/orm/models.py:334-7004 (BaseModel) — odoo-tools@abe4040ec1; django 6.0.5 en .venv/lib/python3.12/site-packages",
+        "tasks": [
+          "#318"
+        ],
+        "durable_tasks": [
+          "TASK-API-0397"
+        ],
+        "measured_at": "2026-09-11T03:56:42",
+        "api_head": "08908b86"
+      },
+      "manifest_sha256": "336c6d7e6ceedf87f7cb1611c287d6a8e9843460d4ae20994b2fb4afb66782cf",
+      "last_commit": "a872f4ae85fce246fa81672332fc4c38d76dcc89 2026-09-11T04:37:10Z Build the BaseModel recordset core",
+      "files": [
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/BANK_PATH",
+          "sha256": "ce02776063756e858b5b9a728f1a2a547039ba5fec51b85d2d5298759aa4cc97"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/manifest.json",
+          "sha256": "336c6d7e6ceedf87f7cb1611c287d6a8e9843460d4ae20994b2fb4afb66782cf"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/outputs/abstract_base.txt",
+          "sha256": "62f409e8d6a716d9dbfeb82e10b337376e1a7fe9538bd0c86bf3e299eb45fd63"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/outputs/id_access.txt",
+          "sha256": "26ce3668c898af66bbd952ba9594c246047170f334445ff8e1c99cae63ef630a"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/outputs/id_descriptor.txt",
+          "sha256": "17cfb492598d7b3f6fd706f54f7536e6b1caf5955651112701b76e368679dd0f"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/outputs/id_setter.txt",
+          "sha256": "c3662e69d7cac5641bc875709ce5bd40648359b87a79bfb919d75f38d6ce7992"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/probe_abstract_base.py",
+          "sha256": "66e872391924f74ab0037c0756b9b2bb109034e7e4c2a19d2083e2a87b9318cc"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py",
+          "sha256": "0909435559bb0f62a4ebdfe03a47e7f2ce62e0ac470adf9f1e031eceb7bc735b"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_descriptor.py",
+          "sha256": "22ebe0b4a5e306274b90aaa001546705bf72df0d435d71a433bab4138e708738"
+        },
+        {
+          "path": "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_setter.py",
+          "sha256": "88831e66cea65f0743e472f52893f3e329973c40fedaa41cf8ca90e7111ff4a0"
+        }
+      ]
+    },
+    {
+      "path": "scripts/workbench/two-caches-descriptor-20260911T053450",
+      "materialized": true,
+      "manifest": {
+        "question": "¿Puede el ORM consultar su caché de campo desde el descriptor sin encarecer el camino caliente de Django, y qué construye Django de verdad cuando `_from_ids` fabrica una fila con la terna del recordset?",
+        "instrument": [
+          "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py",
+          "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py",
+          "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py"
+        ],
+        "metric": "nanosegundos por lectura de `row.label` sobre 300 000 repeticiones con `__dict__` YA poblado, en tres formas: atributo llano, descriptor de NO datos (`__get__` solo) y descriptor de DATOS (`__get__` + `__set__`). Más dos sondas de conducta: si la caché de campo sobrevive a un Environment nuevo, y qué devuelve `rs.id` / `rs.pk` / `rs.label` sobre una terna de uno y de tres ids.",
+        "blind_to": [
+          "el coste del FALLO del almacén — ahí el cuerpo del descriptor sí corre, y es el caso que el porte quiere habilitar, no abaratar",
+          "el reloj de otra máquina: 22.8 ns es este contenedor con este CPython, no una constante del lenguaje",
+          "si la tabla existe en la base: la sonda de resolución de id corre sobre una sonda `managed = False`, así que `rs.label` termina en ProgrammingError cuando cae al camino de Django — eso mide el CAMINO, no el valor"
+        ],
+        "control": "el descriptor de NO datos contra el llano da 1.00x — no es un «casi igual» leído a ojo, es la anulación de la hipótesis de que todo descriptor encarece: el de DATOS sí, 3.24x, porque gana sobre `instance.__dict__`. Si las tres formas hubieran dado lo mismo, la medición no habría discriminado nada.",
+        "reproducible": "python3 scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py (las otras dos exigen DJANGO_SETTINGS_MODULE=config.settings.testing y PYTHONPATH=src)",
+        "outputs": [
+          "outputs/descriptor_cost.txt",
+          "outputs/orm_cache_outlives_environment.txt",
+          "outputs/id_resolution_on_recordset.txt",
+          "outputs/recordset_is_a_django_row.txt"
+        ],
+        "source": [
+          "odoo19c: odoo/orm/fields.py — el descriptor de la referencia y su caché por transacción",
+          "django/db/models/query_utils.py::DeferredAttribute — del paquete instalado: el descriptor que Django instala por campo",
+          "src/orm/fields.py, src/orm/models.py — el puerto medido"
+        ],
+        "tasks": [
+          "#323",
+          "#324"
+        ],
+        "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/ — el eje de la guarda de tamaño en el acceso llano y el de la terna en la fila que Django construye",
+        "measured_at": "2026-09-11T05:34:50"
+      },
+      "manifest_sha256": "f020d59b932892810724e40b01809cf755636c0e704bf4a45c6079e79f432047",
+      "last_commit": "9d1fd142117a5bf248d1828ec0205edd4760d8bb 2026-09-11T06:40:48Z Bank the BaseModel contract work and its controls",
+      "files": [
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/manifest.json",
+          "sha256": "f020d59b932892810724e40b01809cf755636c0e704bf4a45c6079e79f432047"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/outputs/descriptor_cost.txt",
+          "sha256": "a20f5a59fb1837d47160f2232937a8867730a35eb167ed11597be197ecd7aefa"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/outputs/id_resolution_on_recordset.txt",
+          "sha256": "78f50553446215352f2d304cc754b8a4a361a684d70615aa1422788c2f20d50c"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/outputs/orm_cache_outlives_environment.txt",
+          "sha256": "cd91cd126262c0f96a33c830be1ed07ceda047ed0f883fdd8dfff3c73bf5d100"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/outputs/recordset_is_a_django_row.txt",
+          "sha256": "f3bdd5d1ae3c17cd3c59f24a8ee6801bd2cc2268f8598b6322416f4e6d26e9a0"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py",
+          "sha256": "9976d37799f3641b16aa4790854ec48961a2b12ec1d193ab1654e9b04ab01b2d"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py",
+          "sha256": "ab1a0795226c9a9b4e63b9d28ff6e6852b973b6674773a2975119c9489dae6bf"
+        },
+        {
+          "path": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py",
+          "sha256": "3328925d1baa5a1671005796f090225651f68d7bdbd053e0b9e6f74992590cff"
+        }
+      ]
+    },
+    {
+      "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421",
+      "materialized": true,
+      "manifest": {
+        "question": "De los 21 símbolos que el cubo clasificó como TRAE —el stack ya lo tiene hecho—, ¿cuántos los trae de verdad una clase del stack, y cuántos sólo los resuelve `object` para toda clase de Python?",
+        "instrument": [
+          "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/probe_who_declares.py",
+          "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py"
+        ],
+        "metric": "por cada nombre del cubo TRAE, la clase del MRO que DEFINE el atributo (`__mro__` + `vars(clase)`), no `hasattr`, sobre cinco sujetos del stack instalado: django.Model, django.QuerySet, django.Manager, drf.Serializer y drf.ModelSerializer. El segundo instrumento extrae el cuerpo de los dos lados —referencia y stack— para leer qué hace cada uno, no si el nombre resuelve.",
+        "blind_to": [
+          "si el cuerpo del stack hace LO MISMO que el de la referencia: el instrumento localiza la definición y extrae el texto, pero el veredicto de equivalencia lo emite quien lee, no el guion",
+          "un símbolo que el stack traiga bajo otro nombre — no hay tabla de equivalencia",
+          "las clases del stack fuera de los cinco sujetos medidos; un sexto que lo declarara saldría AUSENTE aquí"
+        ],
+        "corrected_premise": {
+          "decia": "21 símbolos de BaseModel caen en el cubo TRAE, clasificados con hasattr(clase, nombre)",
+          "mide": "hasattr responde True para __eq__, __ge__, __hash__, __repr__ e __init__ en CUALQUIER clase de Python: los hereda de `object`. object.__ge__ devuelve NotImplemented — no ordena nada.",
+          "consecuencia": "el cubo medía el SIGNIFICANTE (el nombre resuelve) y se leyó como el SIGNIFICADO (hay un cuerpo que hace el trabajo). Un TRAE sostenido por `object` es un CONSTRUYE sin declarar."
+        },
+        "reproducible": "python3 scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/probe_who_declares.py && python3 scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py",
+        "outputs": [
+          "outputs/who_declares.json",
+          "outputs/trae_presence.json",
+          "outputs/both_sides.txt",
+          "outputs/mutacion_sin_los_tres.py"
+        ],
+        "source": [
+          "odoo19c: odoo/orm/models.py::BaseModel — la referencia que declara el contrato",
+          "django.db.models.query::QuerySet, django.db.models::Model, django.db.models::Manager — del paquete instalado, no de memoria",
+          "rest_framework.serializers::Serializer, ModelSerializer"
+        ],
+        "tasks": [
+          "#319"
+        ],
+        "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-veredicto-contrato-de-los-21-del-cubo-trae.rst",
+        "measured_at": "2026-09-11T05:04:21"
+      },
+      "manifest_sha256": "93f9d9b65b1b87492fe75b884eac3c16edc11e83b21bef2aeaebee7dd2181e03",
+      "last_commit": "9d1fd142117a5bf248d1828ec0205edd4760d8bb 2026-09-11T06:40:48Z Bank the BaseModel contract work and its controls",
+      "files": [
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/BANK_PATH",
+          "sha256": "3cd7269fc8051a5ef40fd1b9c5b8b3e9d1d8502fc02324de983a1ea86f2f7b90"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/manifest.json",
+          "sha256": "93f9d9b65b1b87492fe75b884eac3c16edc11e83b21bef2aeaebee7dd2181e03"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/outputs/both_sides.txt",
+          "sha256": "adf7ff19e1d17d1feca7f52b4201d2c1a146f6d9e2583dc469caf6a8f6ca98f7"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/outputs/mutacion_sin_los_tres.py",
+          "sha256": "2988f036d0f04449f91d0993673c4f8b8454fc96d197061c0fa3ec4b59e01eb8"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/outputs/trae_presence.json",
+          "sha256": "2ebad2e7585fc1202c73e7bf0b52f577f18d9f2d3aabd738d98e1396e71bdb68"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/outputs/who_declares.json",
+          "sha256": "202492e32e42cf4ceb8bcb6204a7cead67f9985fcba2bcf7994603d93af81c85"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py",
+          "sha256": "31ebea85ca9c3ed4af15eef14b951e0092d950c7cb30d30c0477499a569d4097"
+        },
+        {
+          "path": "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/probe_who_declares.py",
+          "sha256": "273605d709ca4d24f019fea87dc98a99f7c83778a7e939b6734764ab69062208"
+        }
+      ]
+    }
+  ],
+  "revalidated_nominal_populations": {
+    "nominal_stack": {
+      "declarations": 21,
+      "unique_names": 19
+    },
+    "attached": {
+      "declarations": 14,
+      "unique_names": 14
+    },
+    "absent": {
+      "declarations": 159,
+      "unique_names": 155
+    },
+    "blind_spot_BaseModel": {
+      "declarations": 31,
+      "unique_names": 27
+    }
+  },
+  "pristine_child_checks": [
+    {
+      "exit": 0,
+      "PYTHONPATH_removed": true,
+      "settings_empty": true,
+      "orm_not_loaded_assertion": true
+    }
+  ],
+  "two_caches_revalidated": [
+    {
+      "script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py",
+      "exit": 0,
+      "denied_database_attempts": 0
+    },
+    {
+      "script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py",
+      "exit": 0,
+      "denied_database_attempts": 0
+    },
+    {
+      "script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py",
+      "exit": 0,
+      "denied_database_attempts": 0
+    }
+  ],
+  "previous_probe_correction": "Manual __dict__ injection does not prove ordinary initial read ignores cardinality; historical actual cached reads pass singleton/multi/empty cases",
+  "new_contract_difference": {
+    "contract": "Field.__set__ dispatches protected plain-field assignment to write",
+    "reference_source": "odoo19c: odoo/orm/fields.py",
+    "reference_lines": [
+      1807,
+      1843
+    ],
+    "reference_calls": [
+      {
+        "ids": [
+          7,
+          18
+        ],
+        "value": "new"
+      }
+    ],
+    "consumer_calls": [],
+    "positive_witness_control": [
+      {
+        "ids": [
+          7,
+          18
+        ],
+        "value": "control"
+      }
+    ],
+    "consumer_field_cache": {
+      "7": "old-7",
+      "18": "old-18"
+    },
+    "consumer_instance_attribute": "new",
+    "descriptor": "FieldDescriptor",
+    "database_attempts": [],
+    "scope": "Protected branch only, actual original reference body; no persistent write or full ORM acceptance",
+    "contract_matches": false,
+    "environment_lookup": {
+      "reference_ids": [],
+      "reference_is_class": false,
+      "consumer_is_class": true,
+      "consumer_name": "ResPartner",
+      "reference_lines": [
+        105,
+        107
+      ],
+      "same_representation": false
+    }
+  },
+  "id_access_probe": {
+    "exit": 1,
+    "classification": "BLOCKED",
+    "reason": "CaptureQueriesContext opens a connection before measurement; audit guard refused; later independent id_setter exit0"
+  },
+  "historical_exists_correction": {
+    "reference": "odoo/orm/models.py:5545-5561",
+    "consumer": "src/orm/models.py:5269-5288",
+    "correction": "Odoo exists queries real IDs via env.execute_query; only no-real-ID branch avoids I/O; return type still recordset versus Django bool"
+  },
+  "inventory_original_keys": [
+    {
+      "original_key": [
+        "cpython",
+        "contención por bytecode"
+      ],
+      "mechanism_diagnostic": "YA IMPLEMENTADO",
+      "observed_mechanism": "tools.safe_eval adds policy checks over CPython bytecode; native bytecode inspection alone is not containment",
+      "scope_and_evidence": "Positive 1+2 and rejected __import__ control, not a complete security qualification"
+    },
+    {
+      "original_key": [
+        "django",
+        "evaluación y control de flujo"
+      ],
+      "mechanism_diagnostic": "NO VERIFICADO",
+      "observed_mechanism": "Django Template control flow works; no equivalence to Odoo QWeb inferred",
+      "scope_and_evidence": "Conditional yes/no exercised, no QWeb runtime"
+    },
+    {
+      "original_key": [
+        "django",
+        "almacén del arch por key"
+      ],
+      "mechanism_diagnostic": "NO VERIFICADO",
+      "observed_mechanism": "IrUiView model and Django fields declare storage; physical schema not inspected",
+      "scope_and_evidence": "Source only, PostgreSQL required"
+    },
+    {
+      "original_key": [
+        "django",
+        "formateo por locale"
+      ],
+      "mechanism_diagnostic": "TRAE",
+      "observed_mechanism": "django.utils.formats.number_format provides locale formatting primitive",
+      "scope_and_evidence": "Installed API exercised; complete Odoo formatting contract not compared"
+    },
+    {
+      "original_key": [
+        "django",
+        "recorrido del árbol a dict"
+      ],
+      "mechanism_diagnostic": "YA IMPLEMENTADO",
+      "observed_mechanism": "Django _meta supplies reflection; Odoo field inverse/trigger mapping is Kaupamex adaptation",
+      "scope_and_evidence": "Registry support tests28 only resolve prerequisites"
+    },
+    {
+      "original_key": [
+        "drf",
+        "contrato del endpoint"
+      ],
+      "mechanism_diagnostic": "TRAE",
+      "observed_mechanism": "DRF serializers/views provide HTTP primitives, not Odoo create(vals_list) recordsets",
+      "scope_and_evidence": "Installed version3.16.1; historical extract distinguishes endpoint/serialization/ORM contracts"
+    },
+    {
+      "original_key": [
+        "lxml",
+        "parseo, XPath y construcción de nodos"
+      ],
+      "mechanism_diagnostic": "TRAE",
+      "observed_mechanism": "lxml parses XML and evaluates XPath",
+      "scope_and_evidence": "Positive XPath count1"
+    },
+    {
+      "original_key": [
+        "lxml",
+        "herencia entre vistas por XPath"
+      ],
+      "mechanism_diagnostic": "YA IMPLEMENTADO",
+      "observed_mechanism": "tools.template_inheritance implements Odoo semantics using lxml",
+      "scope_and_evidence": "16 existing tests pass; reference blobs match622ddc2aa5/abe4040ec1"
+    },
+    {
+      "original_key": [
+        "postgresql",
+        "guardar y consultar el arch"
+      ],
+      "mechanism_diagnostic": "NO VERIFICADO",
+      "observed_mechanism": "PostgreSQL target, Django migrations and schema sync declared",
+      "scope_and_evidence": "No physical schema inspection or persistent acceptance"
+    },
+    {
+      "original_key": [
+        "gunicorn",
+        "servir el documento"
+      ],
+      "mechanism_diagnostic": "TRAE",
+      "observed_mechanism": "Gunicorn WSGI serving primitive",
+      "scope_and_evidence": "Installed26.0.0, not serving/formatting/PDF acceptance"
+    },
+    {
+      "original_key": [
+        "libharu",
+        "emitir el PDF"
+      ],
+      "mechanism_diagnostic": "NO VERIFICADO",
+      "observed_mechanism": "No hpdf library found; report-consumer contract not tested",
+      "scope_and_evidence": "Not discarded as unnecessary ORM functionality"
+    },
+    {
+      "original_key": [
+        "libharu",
+        "leer y fusionar el PDF"
+      ],
+      "mechanism_diagnostic": "NO VERIFICADO",
+      "observed_mechanism": "No hpdf library found; PDF merge is distinct from generation",
+      "scope_and_evidence": "Not claimed provided by Gunicorn"
+    },
+    {
+      "original_key": [
+        "pypdf",
+        "leer y fusionar el PDF"
+      ],
+      "mechanism_diagnostic": "NO VERIFICADO",
+      "observed_mechanism": "pypdf distribution not installed",
+      "scope_and_evidence": "No dependency installation or PDF implementation authorized"
+    }
+  ],
+  "stack_measurements": {
+    "versions": {
+      "CPython": "3.12.14",
+      "Django": "6.0.5",
+      "djangorestframework": "3.16.1",
+      "psycopg": "3.3.4",
+      "gunicorn": "26.0.0",
+      "lxml": "6.1.1",
+      "pypdf": null
+    },
+    "libharu_found": null,
+    "cpython_instructions": [
+      "RESUME",
+      "LOAD_FAST",
+      "LOAD_CONST",
+      "BINARY_OP",
+      "RETURN_VALUE"
+    ],
+    "django_locale": "1234.5",
+    "django_template_control_flow": "yes",
+    "lxml_xpath": 1.0,
+    "safe_eval_positive": 3,
+    "safe_eval_import_rejected": true,
+    "safe_eval_error": "NameError"
+  },
+  "template_reference_provenance": {
+    "comparisons": [
+      {
+        "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/tools/template_inheritance.py",
+        "exit": 0,
+        "git_blob": "99cd8c805a5998cebe49b733fd161e6b9eabf960",
+        "sha256": "dd90d5f1d9110eac4a8374f526872ac36248c490b514a87b3810037d42fb1734"
+      },
+      {
+        "revision": "622ddc2aa5",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/tools/template_inheritance.py",
+        "exit": 0,
+        "git_blob": "99cd8c805a5998cebe49b733fd161e6b9eabf960",
+        "sha256": "dd90d5f1d9110eac4a8374f526872ac36248c490b514a87b3810037d42fb1734"
+      }
+    ],
+    "same_blob": true,
+    "population_still_partial": true
+  },
+  "reference_partial_files_now": 32,
+  "task_reconciliation": [
+    {
+      "citation_id": "TASK-API-0397",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1167",
+      "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+      "description": "La referencia declara BaseModel con 194 metodos y __slots__ = ['env','_ids','_prefetch_ids'] (odoo19c: odoo/orm/models.py:334-7004). Portarlo con el criterio de dos niveles: (1) el stack lo trae hecho — hay simbolo instalado y basta llamarlo; (2) el stack tiene con que construirlo — no hay simbolo, si primitivas, sin dependencia de fuera.\n\nMedido en el banco api scripts/workbench/basemodel-contract-20260911T030334:\n- nivel 1 por NOMBRE: 21 sobre Django pristino. NO es veredicto: create/exists/update/__eq__ existen con OTRA semantica (exists() da bool, la fuente da recordset — H-API-1084).\n- nuestro arbol YA colgo: 14 sobre models.Model.\n- por construir: 159.\n- el bloque raiz es el protocolo de recordset: ids, ensure_one, with_env/sudo/with_user/with_company/with_context/with_prefetch, mapped, filtered, grouped, sorted, exists, concat, _cache, _convert_to_record, _convert_to_write — AUSENTES; sus 'presentes' del localizador son homonimos en otros archivos.\n\nPrimitivas medidas en los binarios instalados (django 6.0.5):\n- ModelBase.__new__ :97-389 y add_to_class :391-395 — el gancho de clase.\n- Model.__init__ :482-595, from_db :598-608 — el portal de instancia.\n- QuerySet.__init__(model, query, using, hints) :286-300, _clone :1979-1996, _fetch_all :1998-2002, __iter__ :375-391, __getitem__ :407-442.\n\nTDD: la mitad roja primero. Sin declarar divergencia donde toca construir.",
+      "status": "in_progress",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-12T09:36:13"
+    },
+    {
+      "citation_id": "TASK-API-0398",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1168",
+      "subject": "Verificar contrato por contrato los 21 del cubo TRAE de BaseModel",
+      "description": "H-API-1089 corrigió el instrumento (Django prístino en subproceso) y dejó el cubo TRAE en 21 nombres. Ese 21 es por NOMBRE, no por contrato: `exists` (bool vs recordset), `create` (una instancia vs recordset de N), `update` (filas afectadas vs escritura en caché) y `__eq__`/`__lt__` (pk vs conjunto de ids) son homónimos con contrato distinto — sub-patrón C de metrica-decide-la-conclusion.md.\n\nEntregable: por cada uno de los 21, leer su cuerpo en el binario instalado (.venv/lib/python3.12/site-packages/django) y en la referencia (odoo19c: odoo/orm/models.py:334-7004), y publicar su veredicto: LLAMABLE tal cual · ADAPTABLE con envoltura · HOMÓNIMO (hay que construirlo, y el nombre colisiona).\n\nEl instrumento ya existe: scripts/workbench/basemodel-contract-20260911T030334/census_class.py, que censa una clase de cualquiera de los dos árboles con el mismo formato.\n\nSin este veredicto, el cubo TRAE no autoriza a llamar y el conteo 21/14/159 no se puede usar para repartir trabajo.",
+      "status": "in_progress",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-12T09:36:13"
+    },
+    {
+      "citation_id": "TASK-API-0403",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1174",
+      "subject": "Decidir si la protección de Id.__set__ se recupera por otra vía",
+      "description": "H-API-1091. `IdFromIds` porta `Id.__get__` verbatim y NO declara `__set__`: declararlo lo convierte en descriptor de datos, que precede al `instance.__dict__`, y `Model.__init__` de Django asigna la pk por `setattr` — medido, `Sujeto(id=99)` levanta `TypeError: field 'id' cannot be assigned` y la construcción normal de una fila deja de funcionar (banco `basemodel-id-access-20260911T035612/outputs/id_setter.txt`).\n\nConsecuencia aceptada hoy: `rs.id = 5` sobre un recordset NO levanta el `TypeError` de la fuente (`odoo19c: odoo/orm/fields_misc.py:102-114`); escribe en el `__dict__`.\n\nQué decidir: si esa protección se recupera, y por cuál vía. Candidata: marcar el tramo de construcción como ya hace `_model_init_marking_the_load` en `src/orm/fields.py`, y que el `__set__` rehúse sólo FUERA de él. Precondición de la decisión: medir el coste sobre el camino caliente antes de añadir un descriptor de datos a `id` — es el mismo eje que midió el 3.12× (42.6 ns contra 132.9 ns sobre 300 000 lecturas) de H-API-1092.",
+      "status": "pending",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-11T04:34:31"
+    },
+    {
+      "citation_id": "TASK-API-0412",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1187",
+      "subject": "Despachar el inverse declarado al escribir el campo",
+      "description": "CERRADA en api@775c674e (TASK-API-0412). Las dos vías portadas, en tres piezas: (1) `RecordLoaderMixin.write` envuelve la escritura en `env().protecting(protected, self)` y despacha `fields[0].determine_inverse(self)` al final del bloque — ≙ `odoo19c: odoo/orm/models.py:4334,4493`; (2) `ComputedFieldDescriptor.__set__` marca el campo en `instance.__dict__[PENDING_INVERSE_FIELDS]` en sus tres cubos de escritura (fila nueva, fila real, y el cubo `_orm_building` SÓLO si el campo no tiene columna — un campo sin columna sólo llega al `__init__` por el bucle de kwargs sobrantes, o sea porque el llamador lo pasó); (3) `RecordLoaderMixin.save` vacía esa marca tras `super().save()` y despacha. Además `model_field_registry` responde ahora al attname y al name (895 attnames, 0 choques), que es lo que el KeyError 'company_id' destapó. Aceptación por CONTENIDO (columna del partner releída de la DB, no `hasattr`): 4/4 caminos. Banco: scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_declared_address_dispatches_its_inverse.py. Hallazgo: H-API-1111 (docs@d84ac6acd). Sucesores abiertos: #358 (64 rojos alcanzables), #359 (los ocho @property restantes de ResCompany).",
+      "status": "completed",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-12T10:57:56"
+    },
+    {
+      "citation_id": "TASK-GEN-0633",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "1203",
+      "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables",
+      "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de 2026-08-28.\n\nAgrupación medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).\n\nLos grupos medidos, por dueño:\n\n- **5** — `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el relacional desde `_args__`), no de aquí.\n- **6** — `src/orm/fields.py:1593` `Compute method failed to assign …display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo triaje.\n- **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html) más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** — `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin cerrar para el resto.\n- **2** — `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no tiene atributo editable y su hermano con columna sí).\n- **2** — `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` — resolución de modelo por cadena mal formada.\n- **1 + 1 + 1** — `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminación de estado entre casos, no defecto de porte).\n\nCondición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condición de cierre escrita. Ninguno se queda sin dueño.",
+      "status": "pending",
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "updated_at": "2026-09-12T10:57:56"
+    }
+  ],
+  "task_states_modified": false,
+  "new_tasks_created": false,
+  "historical_baseline": {
+    "path": "scripts/evidence/pytest-full-baseline-20260914T012243",
+    "passed": 10247,
+    "failed": 321,
+    "errors": 43,
+    "skipped": 30,
+    "xfailed": 1,
+    "exit": 1,
+    "manifest_lacks_api_SHA": true,
+    "not_current_baseline": true,
+    "not_attributed_wholly_to_one_cause": true
+  },
+  "provider_native_evidence": {
+    "interfaces": [
+      "session.job_runs.jobs_dir(start)",
+      "session.job_runs.scaffold_run(base_dir,slug,command,now)",
+      "workbench.manifest.declare_workbench(run_dir,question,instrument,metric,blind_to,destination)",
+      "session.job_runs.settle(run_dir,exit_code)",
+      "checkWorkbench(dir)",
+      "claimsCommand(argv,cwd)"
+    ],
+    "commands": [
+      "UV_CACHE_DIR=/workspace/.cache/uv PYTHONPATH=/workspace/thyrox/src uv run --frozen python tests/session/test_job_runs.py",
+      "PATH=/workspace/.cache/toolchains/bin:$PATH bun --eval importing checkWorkbench from src/packages/workbench/manifest.ts, checking API run",
+      "Native claimsCommand --claim/--release --owner codex-vmb501-contract-audit --branch feature/codex-workspace-bootstrap; no fabricated TASK id"
+    ],
+    "job_tests_passed": 15,
+    "manifest_check_initial_exit": 1,
+    "manifest_check_initial_reason": "instrument field must be path within run; command-shaped declaration rejected",
+    "manifest_check_corrected_exit": 0,
+    "append_only_history_preserved": true,
+    "functional_probe_settled_exit": 1,
+    "not_model_execution": true,
+    "not_full_provider_qualification": true
+  },
+  "other_tests": {
+    "registry_support": {
+      "passed": 28,
+      "exit": 0,
+      "only_primitives_resolution": true
+    },
+    "template_inheritance": {
+      "passed": 16,
+      "exit": 0,
+      "pure_no_DB": true
+    }
+  },
+  "instrument_side_effect": {
+    "file": "scripts/workbench/registry-field-axis-support-20260903T053330/outputs/verdicts.json",
+    "instrument_main_wrote_tracked_output": true,
+    "initial_worktree_clean": true,
+    "new_output_preserved": "outputs/registry-field-support-current-verdicts.json",
+    "restored_exact_HEAD_blob": true,
+    "historical_sha256": "caad13e7f44ab9ff9eebb890fe530858d9ce849db690c8c2b724af3934208e56",
+    "new_sha256": "86345a3386118b722d315355241f0c41a860e8a6a97e64be5886b4c942693645"
+  },
+  "PR_snapshot": [
+    {
+      "repository": "jcg-admin/kaupamex-api",
+      "exit": 0,
+      "data": {
+        "headRefOid": "5905a9ebc5e348f038f2bcdc4a27e262e038140d",
+        "isDraft": false,
+        "number": 109,
+        "reviewDecision": "",
+        "state": "OPEN",
+        "statusCheckRollup": [
+          {
+            "__typename": "CheckRun",
+            "completedAt": "2026-10-19T19:25:08Z",
+            "conclusion": "FAILURE",
+            "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39307252466/job/118247424701",
+            "name": "test",
+            "startedAt": "2026-10-19T19:00:06Z",
+            "status": "COMPLETED",
+            "workflowName": "api-tests"
+          }
+        ],
+        "url": "https://github.com/jcg-admin/kaupamex-api/pull/109"
+      }
+    },
+    {
+      "repository": "jcg-admin/kaupamex-api",
+      "exit": 0,
+      "data": {
+        "headRefOid": "e51f484faf39406fa3dd1d83bd3c8b4aaba646eb",
+        "isDraft": true,
+        "number": 110,
+        "reviewDecision": "",
+        "state": "OPEN",
+        "statusCheckRollup": [
+          {
+            "__typename": "CheckRun",
+            "completedAt": "2026-10-19T19:16:13Z",
+            "conclusion": "FAILURE",
+            "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39306774872/job/118245767475",
+            "name": "test",
+            "startedAt": "2026-10-19T18:56:40Z",
+            "status": "COMPLETED",
+            "workflowName": "api-tests"
+          }
+        ],
+        "url": "https://github.com/jcg-admin/kaupamex-api/pull/110"
+      }
+    },
+    {
+      "repository": "jcg-admin/kaupamex-docs",
+      "exit": 0,
+      "data": {
+        "headRefOid": "c5f67acd4607b720bf8c170fd80396c416f16764",
+        "isDraft": false,
+        "number": 154,
+        "reviewDecision": "",
+        "state": "OPEN",
+        "statusCheckRollup": [],
+        "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154"
+      }
+    },
+    {
+      "repository": "jcg-admin/kaupamex-db",
+      "exit": 0,
+      "data": {
+        "headRefOid": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+        "isDraft": false,
+        "number": 32,
+        "reviewDecision": "",
+        "state": "OPEN",
+        "statusCheckRollup": [],
+        "url": "https://github.com/jcg-admin/kaupamex-db/pull/32"
+      }
+    },
+    {
+      "repository": "jcg-admin/kaupamex-server",
+      "exit": 0,
+      "data": {
+        "headRefOid": "f5008aa5addd796aaf1cfe35694209668944fb2e",
+        "isDraft": false,
+        "number": 17,
+        "reviewDecision": "",
+        "state": "OPEN",
+        "statusCheckRollup": [],
+        "url": "https://github.com/jcg-admin/kaupamex-server/pull/17"
+      }
+    },
+    {
+      "repository": "jcg-admin/kaupamex-ui",
+      "exit": 0,
+      "data": {
+        "headRefOid": "945ea00b6944cd664f1e950c32b7284d753cb9eb",
+        "isDraft": false,
+        "number": 90,
+        "reviewDecision": "",
+        "state": "OPEN",
+        "statusCheckRollup": [],
+        "url": "https://github.com/jcg-admin/kaupamex-ui/pull/90"
+      }
+    }
+  ],
+  "resource_labels": [
+    "thyrox.task",
+    "thyrox.owner-kind",
+    "thyrox.owner-id",
+    "thyrox.owner-pid",
+    "thyrox.execution-id",
+    "thyrox.execution-kind",
+    "thyrox.execution-reference",
+    "thyrox.resource-kind",
+    "io.thyrox.image.lifecycle"
+  ],
+  "docker_containers_observed": 0,
+  "physical_database_schema": "NOT_EVALUATED",
+  "sphinx": "NOT_EVALUATED",
+  "cloud": {
+    "draft_revision_observed": 8,
+    "draft_docs_ref_predates_c5f67acd4": true,
+    "published_verified": false,
+    "runtime_version_unchanged": true,
+    "changed_in_this_audit": false
+  },
+  "global_audit_complete": false,
+  "functional_implementation_authorized": false,
+  "eligibility": "Not established; independent inquiry is not globally blocked by one uncertainty"
+}

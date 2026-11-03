@@ -1,0 +1,106 @@
+{
+  "question": "Does actual Environment.invalidate_all preserve flush-before-invalidate and flush exception propagation?",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_revision": "694587d9a5b6715e1e0309e7c8b36c58d8ebdc2d",
+  "sources": {
+    "reference": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/environments.py",
+      "start": 357,
+      "end": 366,
+      "file_sha256": "ff987a65389ac6c9648bad8bad86d8a9b1f8444ffd6c3598ffda53b8b0612bc5",
+      "body_sha256": "6952f97ec81e0c59e3a95c1cca852f25331f5596aeb95c9dca123fac1c215449",
+      "body": "def invalidate_all(self, flush: bool = True) -> None:\n    \"\"\" Invalidate the cache of all records.\n\n    :param flush: whether pending updates should be flushed before invalidation.\n        It is ``True`` by default, which ensures cache consistency.\n        Do not use this parameter unless you know what you are doing.\n    \"\"\"\n    if flush:\n        self.flush_all()\n    self.transaction.invalidate_field_data()"
+    },
+    "consumer": {
+      "path": "/workspace/kaupamex-api/src/orm/environments.py",
+      "start": 1438,
+      "end": 1440,
+      "file_sha256": "9db875b8acc179fb181f7f1c25155032477d70c2d800c02b36b401c3a750110a",
+      "body_sha256": "327f288ac7c516a86ce7bd66dd42f589e2931574b7e1b47329daf17b2122f9ca",
+      "body": "def invalidate_all(self, flush=True):\n    \"\"\"≙ ``Environment.invalidate_all`` (``:357``).\"\"\"\n    self.transaction.invalidate_field_data()"
+    },
+    "extractor_sha256": "31ebea85ca9c3ed4af15eef14b951e0092d950c7cb30d30c0477499a569d4097"
+  },
+  "observations": {
+    "default_flush": {
+      "reference": {
+        "events": [
+          "flush_all",
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": false
+    },
+    "explicit_true": {
+      "reference": {
+        "events": [
+          "flush_all",
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": false
+    },
+    "explicit_false": {
+      "reference": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": true
+    },
+    "flush_failure": {
+      "reference": {
+        "events": [
+          "flush_all"
+        ],
+        "return": null,
+        "exception": "intentional-flush-failure"
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": false
+    }
+  },
+  "negative_control": "Removing reference flush call is detected under default=True; explicit False still agrees.",
+  "result": "Observed contractual call-order/exception gap; test assertions pass by proving the gap.",
+  "scope": "Exact extracted method bodies, protocol receivers; no imports of Consumer Django modules and no DB connection.",
+  "not_verified": [
+    "Actual PostgreSQL dirty-data persistence/loss",
+    "Full Environment lifecycle",
+    "Reference test suite",
+    "Application consumers and their transactions",
+    "TASK eligibility and acceptance"
+  ]
+}

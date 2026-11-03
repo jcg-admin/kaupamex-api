@@ -14,6 +14,7 @@ Por qué estos códigos son de este addon:
   ``StaticPageVersion``/``Banner`` → ``addons.website`` (H-SETTINGS-01)"*.
   El banner es una pieza de contenido de sitio, no configuración.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

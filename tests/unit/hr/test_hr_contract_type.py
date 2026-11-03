@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo hr/models/hr_contract_type.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import pytest
 
 from addons.hr.models import HrContractType
@@ -19,7 +20,8 @@ class TestHrContractTypeCode:
 
     def test_save_preserves_an_explicit_code(self):
         contract_type = HrContractType.objects.create(
-            name='Indefinido', code='CDI')
+            name='Indefinido', code='CDI'
+        )
         assert contract_type.code == 'CDI'
 
     def test_code_is_not_overwritten_on_subsequent_saves(self):
@@ -37,7 +39,9 @@ class TestHrContractTypeOrdering:
         HrContractType.objects.create(name='Primero', sequence=10)
         names = list(
             HrContractType.objects.order_by(
-                *HrContractType._meta.ordering).values_list('name', flat=True))
+                *HrContractType._meta.ordering
+            ).values_list('name', flat=True)
+        )
         assert names == ['Primero', 'Segundo']
 
 

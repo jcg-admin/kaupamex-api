@@ -66,7 +66,8 @@ from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
 from django.db.models.base import ModelState
-from django.db.models.signals import (class_prepared, post_init,
+from django.db.models.fields import related_descriptors as _related_descriptors
+from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
 from django.dispatch import receiver
 
@@ -78,13 +79,22 @@ import api
 
 from exceptions import AccessError, UserError
 from orm.environments import (
-    context_scope, env, get_context, get_current_company, get_current_uid,
-    get_current_user, get_transaction, is_su, sudo as elevate_privileges,
+    context_scope, env, execute_query, get_context, get_current_company,
+    get_current_uid, get_current_user, get_transaction, is_su,
+    sudo as elevate_privileges,
 )
-from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
+from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
+                          ManyToManySet,
+                          One2manyChild, apply_many2many_commands,
+                          apply_one2many_commands,
+                          is_command_list, related_manager)
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.fields import (PENDING_INVERSE_FIELDS, FieldDescriptor,
+from orm.model_classes import parent_name_of
+from orm.fields_relational import One2many as DeclaredOne2many
+from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, FieldDescriptor,
+                        StoredMany2oneIdDescriptor,
+                        _field_cache_record_id,
                         convert_to_display_name, determine_inverse)
 from orm.fields_textual import Char
 from orm.identifiers import NewId
@@ -96,7 +106,7 @@ from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
 from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
-from tools.misc import OrderedSet, ReadonlyDict, partition, split_every
+from tools.misc import OrderedSet, ReadonlyDict, partition, split_every, unique
 from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
@@ -580,11 +590,10 @@ class DefaultGetMixin:
         # que un x2many salga como ``[(SET, 0, [2, 3])]`` y no como una lista
         # de ``LINK``. Aqui el par de conversion lo declaran los campos que lo
         # necesitan —``Properties`` y ``PropertiesDefinition``
-        # (``orm/fields_properties.py``)—, y el motivo x2many no se puede dar:
-        # nuestro ``Command`` es **ejecutivo**, escribe al llamarlo en vez de
-        # devolver una tupla, asi que un default de x2many nunca es una lista
-        # de comandos. Esa divergencia es de la clase entera y ya tiene su
-        # registro (:ref:`h-api-589`, tarea **#345**), no se abre aqui.
+        # (``orm/fields_properties.py``)—. El motivo x2many de la fuente sigue
+        # sin portarse: ``Command`` ya devuelve triples, pero un default de
+        # x2many no se normaliza aquí a ``[(SET, 0, ids)]`` (TASK-API-0190,
+        # :ref:`h-api-589`).
         instance = cls()
         for name, value in list(defaults.items()):
             try:
@@ -769,9 +778,24 @@ class DefaultGetMixin:
         """
         assert isinstance(vals_list, (list, tuple))
         if not vals_list:
-            return browse(cls)
+            return cls._create_result(browse(cls))
 
         AccessQuerySet(model=cls).none().check_access('create')
+
+        # Un ``fields.One2many`` declarado no es un campo de Django ni entra en
+        # el registro: se aparta aquí y se aplica con la fila ya creada, como
+        # ``One2many.write_real(..., create=True)``.
+        declared_one2many = [
+            {name: vals[name] for name in vals
+             if isinstance(getattr(cls, name, None), DeclaredOne2many)}
+            for vals in vals_list
+        ]
+        if any(declared_one2many):
+            vals_list = [
+                {name: value for name, value in vals.items()
+                 if name not in apart}
+                for vals, apart in zip(vals_list, declared_one2many)
+            ]
 
         # check access to all user-provided fields
         context = get_context()
@@ -848,6 +872,19 @@ class DefaultGetMixin:
 
         # create records with stored fields
         records = cls._create(data_list)
+        for record, apart in zip(records, declared_one2many):
+            for name, value in apart.items():
+                field = getattr(cls, name)
+                if field.compute:
+                    # Un One2many calculado: su escritura la propaga
+                    # ``inverse``, no un Many2one inverso.
+                    field.__set__(record, value)
+                elif is_command_list(value):
+                    _, inverse = field._inverse_field()
+                    apply_one2many_commands(record, inverse.remote_field,
+                                            value, create=True)
+                else:
+                    field.__set__(record, value)
 
         # protect fields being written against recomputation
         with contextlib.ExitStack() as stack:
@@ -881,7 +918,7 @@ class DefaultGetMixin:
 
         import_module = context.get('_import_current_module')
         if not import_module:   # not an import -> bail
-            return records
+            return cls._create_result(records)
 
         # It is to support setting xids directly in create by
         # providing an "id" key (otherwise stripped by create) during an import
@@ -901,7 +938,28 @@ class DefaultGetMixin:
             if xid and isinstance(xid, str)
         ])
 
-        return records
+        return cls._create_result(records)
+
+    @classmethod
+    def _create_result(cls, records):
+        """El recordset que entrega ``create`` — ≙ el ``records`` de ``:4770``.
+
+        En la fuente ``create`` devuelve un recordset de ``BaseModel``: sobre
+        él ``record.name = x`` escribe y un nombre no declarado levanta
+        ``AttributeError``. Un modelo que deriva de :class:`BaseModel` recibe
+        aquí esa misma forma, ``cls._from_ids(env, ids, ids)`` (la de
+        ``browse``, ``:5897``), con el orden de ``vals_list``.
+
+        El resto del árbol sigue recibiendo el ``QuerySet`` de
+        :func:`~orm.utils.browse`: sus consumidores lo usan como tal, y
+        cambiarlo es la adopción global de ``BaseModel`` (TASK-API-0397).
+        Sobre ese ``QuerySet`` una asignación de campo se pierde sin error
+        (H-API-1123).
+        """
+        if not issubclass(cls, BaseModel):
+            return records
+        ids = tuple(records.values_list('pk', flat=True))
+        return cls._from_ids(env(), ids, ids)
 
     @classmethod
     def _prepare_create_values(cls, vals_list):
@@ -990,11 +1048,22 @@ class DefaultGetMixin:
             if relational:
                 record._load_records_apply_relational(relational)
             for name, value in deferred.items():
-                getattr(record, name).set(value)
+                field = registry.get(name)
+                if getattr(field, 'many_to_many', False):
+                    # ≙ ``Many2many.write_real``: los triples de ``Command``
+                    # y sus abreviaturas (TASK-API-0190).
+                    apply_many2many_commands(record, field, value)
+                elif getattr(field, 'one_to_many', False) and is_command_list(value):
+                    # ≙ ``One2many.write_real(..., create=True)``.
+                    apply_one2many_commands(record, field, value, create=True)
+                else:
+                    related_manager(record, name).set(value)
             data['record'] = record
             ids.append(record.pk)
 
         records = browse(cls, ids)
+        if _maintains_parent_store(cls):
+            _parent_store_create(cls, ids)
 
         # protect fields being written against recomputation
         with contextlib.ExitStack() as stack:
@@ -1005,6 +1074,97 @@ class DefaultGetMixin:
             modified(records, list(model_field_registry(cls)), create=True)
 
         return records
+
+
+def _maintains_parent_store(cls):
+    """Si el ORM mantiene ``parent_path`` del modelo.
+
+    Sólo un ``BaseModel``: los modelos productivos con ``_parent_store``
+    (``res.company``, ``res.partner``, ``hr.department``…) calculan su
+    ``parent_path`` en su propio ``save()``, y mantenerlo aquí también sería
+    escribirlo dos veces.
+    """
+    return (getattr(cls, '_parent_store', False)
+            and isinstance(cls, type) and issubclass(cls, BaseModel))
+
+
+def _parent_column(cls):
+    return cls._meta.get_field(parent_name_of(cls)).column
+
+
+def _parent_store_create(cls, ids):
+    """≙ ``_parent_store_create`` (``odoo19c: odoo/orm/models.py:4961-4983``).
+
+    Docstring de la fuente, verbatim: *"Set the parent_path field on ``self``
+    after its creation."* Un ``UPDATE`` que concatena la ruta del padre y el id
+    propio, con el mismo SQL salvo ``IN %s`` → ``= ANY(%s)``: psycopg 3 adapta
+    una lista a un arreglo y no expande una tupla.
+    """
+    if not ids:
+        return
+    execute_query(SQL(
+        """ UPDATE %(table)s node
+            SET parent_path=concat((
+                    SELECT parent.parent_path
+                    FROM %(table)s parent
+                    WHERE parent.id=node.%(parent)s
+                ), node.id, '/')
+            WHERE node.id = ANY(%(ids)s)
+            RETURNING node.id, node.parent_path """,
+        table=SQL.identifier(cls._meta.db_table),
+        parent=SQL.identifier(_parent_column(cls)),
+        ids=list(ids),
+    ))
+
+
+def _reparented(record, values):
+    """≙ ``_parent_store_update_prepare`` (``:4985-5018``) para una fila: si
+    ``values`` cambia su padre. Se mide antes de escribir."""
+    cls = type(record)
+    if not _maintains_parent_store(cls):
+        return False
+    name = parent_name_of(cls)
+    if name not in values:
+        return False
+    new = values[name]
+    new = getattr(new, 'pk', new) or None
+    current = cls._base_manager.filter(pk=record.pk).values_list(
+        _parent_column(cls), flat=True).first()
+    return current != new
+
+
+def _parent_store_update(record):
+    """≙ ``_parent_store_update`` (``:5020-5054``) para una fila.
+
+    Reescribe el prefijo de ``parent_path`` de la fila y de todos sus
+    descendientes, con el mismo ``UPDATE`` de la fuente, tras rechazar una
+    recursión: *"Recursion Detected."*
+    """
+    cls = type(record)
+    table = cls._meta.db_table
+    parent_id = cls._base_manager.filter(pk=record.pk).values_list(
+        _parent_column(cls), flat=True).first()
+    prefix = ''
+    if parent_id:
+        prefix = cls._base_manager.filter(pk=parent_id).values_list(
+            'parent_path', flat=True).first() or ''
+    if prefix and record.pk in {int(label) for label in prefix.split('/')[:-1]}:
+        raise UserError('Recursion Detected.')
+    updated = dict(execute_query(SQL(
+        """ UPDATE %(table)s child
+            SET parent_path = concat(%(prefix)s, substr(child.parent_path,
+                    length(node.parent_path) - length(node.id || '/') + 1))
+            FROM %(table)s node
+            WHERE node.id = ANY(%(ids)s)
+            AND child.parent_path LIKE concat(node.parent_path, %(wildcard)s)
+            RETURNING child.id, child.parent_path """,
+        table=SQL.identifier(table),
+        prefix=prefix,
+        ids=[record.pk],
+        wildcard='%',
+    )))
+    if record.pk in updated:
+        record.__dict__['parent_path'] = updated[record.pk]
 
 
 def _creation_flags(field):
@@ -1264,7 +1424,7 @@ class CheckCompanyMixin:
             elif own_name is not None:
                 companies = [getattr(self, own_name, None)]
             elif many_name is not None:
-                companies = list(getattr(self, many_name).all())
+                companies = list(related_manager(self, many_name).all())
             else:
                 _logger.warning(
                     'Se omite la verificación de empresa de %s: sus campos %s '
@@ -1506,6 +1666,8 @@ def _corecords(record, name):
     value = getattr(record, name, None)
     if value is None:
         return []
+    if isinstance(value, BaseModel):
+        return list(value)
     if hasattr(value, 'all'):
         return list(value.all())
     return [value]
@@ -1626,7 +1788,7 @@ class CopyMixin:
         porque su ``Command.create`` es una tupla que el ORM aplica después.
 
         Aquí no puede vivir dentro: nuestro ``Command`` es **ejecutivo**
-        —escribe al llamarlo (:ref:`h-api-589`, tarea **#345**)— y Django
+        —escribe al llamarlo (:ref:`h-api-589`, tarea **TASK-API-0190**)— y Django
         exige la fila del padre antes de poder colgarle un hijo. Así que el
         paso se separa y corre **después** del alta, con el padre ya con ``pk``.
         El efecto es el mismo que el de la fuente: los hijos se duplican *"using
@@ -2436,12 +2598,32 @@ class RecordLoaderMixin(FieldSqlMixin):
             # junto a los asignados pero que nadie asignó: dentro del alcance
             # de protección ya no se computarían.
             self._recompute_recordset(to_compute)
+        many2many = self._pop_many2many_values(values)
+        one2many = self._pop_one2many_values(values)
+        reparented = _reparented(self, values)
         values, relational = self._load_records_split_relational(values)
         values = self._load_records_coerce_vals(values)
         with env().protecting(protected, self):
+            if many2many:
+                # La fila ya existe, así que la relación se escribe ANTES de
+                # guardar: la comprobación de empresa de ``save`` ve entonces
+                # todos los valores nuevos a la vez, como en la fuente.
+                registry_ = model_field_registry(type(self))
+                for fname, value in many2many.items():
+                    apply_many2many_commands(self, registry_[fname], value)
+                if not values and getattr(type(self), '_check_company_auto', False):
+                    self._check_company(list(many2many))
             if values:
-                for fname, value in values.items():
-                    setattr(self, fname, value)
+                # La fuente escribe todos los valores y comprueba la empresa
+                # una vez (``BaseModel.write``); la comprobación de la
+                # asignación suelta (``StoredMany2oneIdDescriptor``) se
+                # suspende mientras dure este reparto.
+                self.__dict__[WRITING_VALUES] = True
+                try:
+                    for fname, value in values.items():
+                        setattr(self, fname, value)
+                finally:
+                    self.__dict__.pop(WRITING_VALUES, None)
                 # ``update_fields`` sólo admite lo que Django sabe escribir:
                 # su propio ``Model.save`` valida contra este conjunto y lanza
                 # *"The following fields do not exist in this model, are m2m
@@ -2453,15 +2635,71 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # conjunto que Django valida —no con una copia— para que no
                 # haya dos fuentes de verdad.
                 writable = self._meta._non_pk_concrete_field_names
-                self.save(update_fields=[fname for fname in values
-                                         if fname in writable])
+                update_fields = [fname for fname in values if fname in writable]
+                # ≙ ``vals.setdefault('write_date', ...)`` (``odoo19c:
+                # odoo/orm/models.py:4394-4396``): con ``_log_access`` toda
+                # escritura se fecha. Aquí la fecha es ``auto_now`` y la pone
+                # ``pre_save``, pero un ``save`` con ``update_fields`` sólo
+                # guarda lo nombrado, así que la columna se nombra.
+                if (getattr(type(self), '_log_access', True)
+                        and 'updated_at' in writable
+                        and 'updated_at' not in update_fields):
+                    update_fields.append('updated_at')
+                self.save(update_fields=update_fields)
+            if reparented:
+                _parent_store_update(self)
             if relational:
                 self._load_records_apply_relational(relational)
+            for rel, commands in one2many:
+                # ≙ ``One2many.write_real``: la fila ya existe.
+                apply_one2many_commands(self, rel, commands)
             # ``:4493`` — el inverso se despacha DENTRO del alcance de
             # protección, una vez por grupo.
             for fields in determine_inverses.values():
                 fields[0].determine_inverse(self)
         return self
+
+    def _pop_many2many_values(self, values):
+        """Retira de ``values`` los ``Many2many`` escritos en la forma de la fuente.
+
+        Una lista de triples de ``Command``, una lista de ids o ``False`` no se
+        pueden asignar sobre el lado directo de un muchos-a-muchos de Django;
+        se aplican tras guardar la fila con :func:`apply_many2many_commands`.
+        Los portadores diferidos del cargador (``ManyToManySet``,
+        ``ManyToManyLink``) siguen su camino propio.
+        """
+        registry_ = model_field_registry(type(self))
+        popped = {}
+        for fname in list(values):
+            field = registry_.get(fname)
+            value = values[fname]
+            # El lado directo: un ``ManyToManyField`` (nunca ``concrete`` en
+            # Django, que no tiene columna); el inverso es un ``ManyToManyRel``.
+            if (isinstance(field, ManyToManyField)
+                    and not isinstance(value, (ManyToManySet, ManyToManyLink))
+                    and (value is False or value is None
+                         or is_command_list(value)
+                         or isinstance(value, (list, tuple)))):
+                popped[field.name] = values.pop(fname)
+        return popped
+
+    def _pop_one2many_values(self, values):
+        """Retira de ``values`` los One2many escritos como lista de comandos.
+
+        El One2many de la fuente es aquí la relación inversa de Django (un
+        ``ManyToOneRel``), que no se asigna: sus comandos los aplica
+        :func:`~orm.commands.apply_one2many_commands` sobre el ``Many2one``
+        del comodelo, tras guardar la fila.
+        """
+        registry_ = model_field_registry(type(self))
+        popped = []
+        for fname in list(values):
+            field = registry_.get(fname)
+            if (getattr(field, 'one_to_many', False)
+                    and not isinstance(field, Field)
+                    and is_command_list(values[fname])):
+                popped.append((field, values.pop(fname)))
+        return popped
 
     def _warm_x2many_before_inverse(self, determine_inverses):
         """Deja en caché el valor actual de un x2many antes de escribirlo.
@@ -2672,7 +2910,7 @@ class RecordLoaderMixin(FieldSqlMixin):
         Es la contraparte de la divergencia que ``ir_fields`` declara: la
         fuente devuelve ``Command`` diferidos y su ``write`` los interpreta; el
         ``Command`` de este árbol es ejecutivo (:ref:`h-api-589`, tarea
-        **#345**), así que el valor viaja en
+        **TASK-API-0190**), así que el valor viaja en
         :class:`~orm.commands.ManyToManySet`,
         :class:`~orm.commands.ManyToManyLink` y
         :class:`~orm.commands.One2manyChild`, y es aquí donde se aparta.
@@ -3281,7 +3519,16 @@ def search_display_name(model_cls, operator, value):
     funciona por los dos caminos.
     """
     cls = model_cls
-    search_fnames = (getattr(cls, '_rec_names_search', None)
+    rec_names = getattr(cls, '_rec_names_search', None)
+    if isinstance(rec_names, property):
+        # La fuente lo declara a veces como propiedad (``sale.order``,
+        # ``odoo19c: sale_order.py:46-50``) y la lee sobre el recordset. Aquí
+        # el método recibe la clase, que es lo que ``env['x']`` devuelve, y
+        # leer el atributo sobre la clase da el objeto ``property``: la
+        # búsqueda moría con ``'property' object is not iterable``. Se evalúa
+        # sobre la clase; el cuerpo de la fuente sólo lee el contexto.
+        rec_names = rec_names.fget(cls)
+    search_fnames = (rec_names
                      or ([cls._rec_name] if getattr(cls, '_rec_name', None)
                          else []))
     if not search_fnames:
@@ -3363,10 +3610,9 @@ class DisplayNameMixin:
     ``ir_model``, ``properties_base_definition``, ``res_currency``), así que
     cambiarlas ahora rompería lo que ya funciona:
 
-    1. **``_compute_display_name`` DEVUELVE la etiqueta**; la fuente la
-       **asigna** (``record.display_name = convert(...)``). Aquí el campo no es
-       un campo del ORM con cache de cómputo, así que el valor tiene que
-       volver al descriptor por el retorno.
+    1. **``_compute_display_name`` asigna la etiqueta**, como la fuente, y
+       conserva además el retorno para los llamadores directos existentes.
+       El retorno no sustituye la asignación exigida por el descriptor.
     2. **``name_create`` y ``name_search`` reciben y devuelven lo de Django.**
        ``name_search`` acota con un ``Q`` y no con un dominio extra, que es la
        forma que sus llamadores de este árbol ya usaban.
@@ -3390,11 +3636,9 @@ class DisplayNameMixin:
     Lo que NO es divergencia: la asignación sigue permitida
     ======================================================
 
-    ``display_name`` es un :class:`orm.fields_nonstored.NonStored`, no una
-    ``property``, y la diferencia es deliberada: la fuente declara un campo, y
-    un campo de la fuente **se puede escribir en memoria** aunque no tenga
-    columna. ``record.display_name = 'X'`` gana sobre el cómputo hasta que se
-    borre, igual que allá.
+    ``display_name`` es un campo sin columna, no una ``property``. Su
+    descriptor admite la asignación en memoria y la caché vigente conserva
+    el valor hasta que se invalidan sus dependencias.
     """
 
     #: ≙ la declaración de la fuente, verbatim salvo el nombre del argumento
@@ -3409,8 +3653,7 @@ class DisplayNameMixin:
     #: Sin ``store=``, el bloque ``compute`` de la fuente deriva
     #: ``store=False`` (``odoo19c: odoo/orm/fields.py:443-450``, portado en
     #: :func:`orm.fields_nonstored.apply_source_defaults`), así que el
-    #: enrutador devuelve un :class:`~orm.fields_nonstored.NonStored` y el
-    #: campo no tiene columna — igual que allá.
+    #: campo se contribuye como privado, sin columna — igual que allá.
     #:
     #: La etiqueta va en el primer posicional porque es ``verbose_name`` en
     #: Django y ``string`` en la fuente; antes viajaba en ``help_text=``, que
@@ -3423,6 +3666,7 @@ class DisplayNameMixin:
                         compute='_compute_display_name',
                         search='_search_display_name')
 
+    @api.depends(lambda model: (model._rec_name,) if getattr(model, '_rec_name', None) else ())
     def _compute_display_name(self):
         """La etiqueta del registro — ≙ ``_compute_display_name`` (``:1425``).
 
@@ -3430,28 +3674,26 @@ class DisplayNameMixin:
         :func:`orm.fields.convert_to_display_name`; sin él, ``modelo,id``,
         verbatim el ``f"{record._name},{record.id}"`` de la fuente.
 
-        El ``@api.depends(lambda self: (self._rec_name,) ...)`` de la fuente no
-        se porta: declara de qué depende el cómputo para invalidar su cache, y
-        aquí no hay cache que invalidar — el descriptor computa en cada
-        lectura. Es divergencia de mecanismo, no un hueco.
+        La dependencia invocable conserva el campo de nombre de cada modelo.
+        Se asigna mediante el descriptor existente para poblar su caché; el
+        retorno adicional conserva los consumidores que llaman directamente.
         """
         rec_name = getattr(type(self), '_rec_name', None)
         if not rec_name:
             name = getattr(type(self), '_name', None) or self._meta.label
-            return f'{name},{self.pk}'
-        try:
-            field = self._meta.get_field(rec_name)
-        except FieldDoesNotExist:
-            field = None
-        etiqueta = convert_to_display_name(field, getattr(self, rec_name), self)
-        # El ``False`` del default de la fuente para un campo vacío: aquí la
-        # etiqueta tiene que ser texto, así que se cae al par ``modelo,id`` —
-        # que es lo que la fuente da cuando NO hay ``_rec_name`` en absoluto, y
-        # el único texto que identifica al registro sin inventar nada.
-        if not etiqueta:
-            name = getattr(type(self), '_name', None) or self._meta.label
-            return f'{name},{self.pk}'
-        return etiqueta
+            label = f'{name},{self.pk}'
+        else:
+            try:
+                field = self._meta.get_field(rec_name)
+            except FieldDoesNotExist:
+                field = None
+            label = convert_to_display_name(field, getattr(self, rec_name), self)
+            # Conservar el respaldo técnico de la adaptación para nombres vacíos.
+            if not label:
+                name = getattr(type(self), '_name', None) or self._meta.label
+                label = f'{name},{self.pk}'
+        self.display_name = label
+        return label
 
     @classmethod
     def _search_display_name(cls, operator, value):
@@ -3677,10 +3919,20 @@ def _traverse_inverse(rows, inverse):
     reached = []
     seen = set()
     for row in rows:
+        if isinstance(row, Model) and not row._is_pk_set():
+            descriptor = getattr(type(row), name, None)
+            if type(descriptor) in (
+                    _related_descriptors.ReverseManyToOneDescriptor,
+                    _related_descriptors.ManyToManyDescriptor):
+                # Native collection managers require a PK even for cached
+                # querysets. New rows cannot have persisted inverse links.
+                # Direct cached relations and custom descriptors still walk.
+                continue
         value = getattr(row, name, None)
         if value is None:
             continue
-        found = list(value.all()) if hasattr(value, 'all') else [value]
+        found = (list(value) if isinstance(value, BaseModel)
+                 else list(value.all()) if hasattr(value, 'all') else [value])
         for item in found:
             key = (type(item), item.pk) if item.pk is not None else id(item)
             if key not in seen:
@@ -3847,7 +4099,8 @@ def modified(self, fnames, create=False, before=False):
                 #: Sin columna solo interesan las filas con valor en cache: las
                 #: demas no tienen nada que invalidar.
                 in_cache = field._get_all_cache_ids(environment)
-                records = [row for row in records if row.pk in in_cache]
+                records = [row for row in records
+                           if _field_cache_record_id(field, row) in in_cache]
             if not records:
                 continue
             todo.append(_modified(records, [field], created))
@@ -3857,11 +4110,70 @@ def modified(self, fnames, create=False, before=False):
         else:
             #: Un calculado sin columna no se fuerza a recalcular: basta con
             #: retirar su valor del cache — ``:6828-6831``.
-            field._invalidate_cache(environment, record_ids(records))
+            # Contextual nonstored fields already use NewId cache keys on
+            # unsaved Django rows. Keep the descriptor identity rather than
+            # the persistence PK (None), without changing transaction IDs.
+            field._invalidate_cache(environment, tuple(
+                _field_cache_record_id(field, row) for row in records))
 
     if before:
         for field, ids in tomark.items():
             environment.add_to_compute(field, ids)
+
+
+_M2M_CLEAR_OWNERS = '_orm_m2m_clear_owners'
+
+
+@receiver(m2m_changed, dispatch_uid='orm.models.notify_m2m_modified')
+def _notify_m2m_modified(sender, instance, action, reverse, model,
+                         pk_set=None, using=None, **_ignored):
+    """Notifica al motor existente los cambios de relación hechos por Django.
+
+    El manager M2M escribe su tabla sin pasar por Field.__set__. La señal
+    pública conserva ese flujo y entrega la invalidación a modified(). En
+    clear inverso hay que recordar los propietarios antes de borrar enlaces;
+    el dato temporal vive sólo en la instancia entre las dos señales.
+    """
+    if action not in {'post_add', 'post_remove', 'pre_clear', 'post_clear'}:
+        return
+    owner = model if reverse else type(instance)
+    if not hasattr(owner, 'modified'):
+        return
+    for field in owner._meta.many_to_many:
+        if field.remote_field.through is not sender:
+            continue
+        key = (sender, field.name, using)
+        symmetrical = field.remote_field.symmetrical
+        if action == 'pre_clear':
+            if reverse:
+                previous = owner._base_manager.using(using).filter(
+                    **{field.name: instance.pk}).values_list('pk', flat=True)
+            elif symmetrical:
+                previous = getattr(instance, field.name).using(using).values_list(
+                    'pk', flat=True)
+            else:
+                continue
+            instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})[key] = tuple(previous)
+            continue
+        if action == 'post_clear':
+            snapshots = instance.__dict__.get(_M2M_CLEAR_OWNERS, {})
+            owner_ids = set(snapshots.pop(key, ()))
+            if not snapshots:
+                instance.__dict__.pop(_M2M_CLEAR_OWNERS, None)
+        else:
+            if not pk_set:
+                continue
+            owner_ids = set(pk_set) if reverse or symmetrical else set()
+        if not reverse or symmetrical:
+            owner_ids.add(instance.pk)
+        if not owner_ids:
+            continue
+        if reverse or symmetrical:
+            records = owner._base_manager.using(using).filter(pk__in=owner_ids)
+        else:
+            records = (instance,)
+        for record in records:
+            record.modified([field.name])
 
 
 def _recompute_field(self, field, ids=None):
@@ -3878,7 +4190,25 @@ def _recompute_field(self, field, ids=None):
     model = _model_of_records(self) or getattr(field, 'model', None)
     if model is None:
         return
-    field.recompute(list(model.objects.filter(pk__in=[i for i in ids if i])))
+    persisted_ids = [record_id for record_id in ids if record_id]
+    rows_by_id = {
+        row.pk: row
+        for row in model._base_manager.filter(pk__in=persisted_ids)
+    }
+    records = [
+        rows_by_id[record_id]
+        for record_id in dict.fromkeys(persisted_ids)
+        if record_id in rows_by_id
+    ]
+    missing_ids = set(persisted_ids).difference(rows_by_id)
+    field.recompute(records)
+    # TASK-GEN-0559: Django excluye las filas ausentes al consultar, sin
+    # MissingError. Equivale al descarte de apply_except_missing de la fuente
+    # (odoo19c: odoo/orm/fields.py:1859-1874), después de computar con éxito.
+    # Se conserva el trabajo virtual y el ajeno al alcance solicitado.
+    if missing_ids:
+        for computed in registry.field_computed[field]:
+            env().remove_to_compute(computed, missing_ids)
 
 
 def _recompute_model(self, fnames=None):
@@ -3956,7 +4286,10 @@ def _flush(self):
     #: virtual, que se recalcula al leerla y no tiene columna que escribir.
     wanted_ids = OrderedSet(record_id for ids in dirty_field_ids.values()
                             for record_id in ids if isinstance(record_id, int))
-    rows = {row.pk: row for row in model.objects.filter(pk__in=list(wanted_ids))}
+    rows = {
+        row.pk: row
+        for row in model._base_manager.filter(pk__in=list(wanted_ids))
+    }
 
     for record_id in wanted_ids:
         row = rows.get(record_id)
@@ -4047,10 +4380,55 @@ def flush_recordset(self, fnames=None):
         _flush(rows)
 
 
+def _invalidate_cache(self, fnames=None, ids=None):
+    """Retira de la caché los campos dados, en las filas dadas o en todas.
+
+    ≙ ``BaseModel._invalidate_cache`` (``odoo19c: odoo/orm/models.py``). Una
+    lista de ids vacía no invalida nada —*"Avoid invalidating field_inverses
+    for no reason"*—; ``None`` invalida el modelo entero.
+    """
+    if ids is not None and not ids:
+        return
+    fields = (self._fields.values() if fnames is None
+              else [self._fields[fname] for fname in fnames])
+    # La clase hace de recordset vacío y no lleva entorno propio: el suyo es
+    # el activo, que es el que ``env['x']`` le daría en la fuente.
+    environment = env() if isinstance(self, type) else self.env
+    for field in fields:
+        invalidate = getattr(field, '_invalidate_cache', None)
+        if invalidate is not None:
+            invalidate(environment, ids)
+
+
+def invalidate_model(self, fnames=None, flush=True):
+    """Invalida la caché de todas las filas del modelo de ``self``.
+
+    ≙ ``BaseModel.invalidate_model`` (``odoo19c: odoo/orm/models.py``).
+    Docstring de la fuente: para cuando lo cacheado ya no corresponde a la
+    base; con ``flush`` (el defecto) se vuelca antes lo pendiente, que es lo
+    que garantiza la coherencia.
+    """
+    if flush:
+        flush_model(self, fnames)
+    _invalidate_cache(self, fnames)
+
+
+def invalidate_recordset(self, fnames=None, flush=True):
+    """Invalida la caché de las filas de ``self``.
+
+    ≙ ``BaseModel.invalidate_recordset`` (``odoo19c: odoo/orm/models.py``).
+    Mismo contrato que :func:`invalidate_model`, acotado a estas filas.
+    """
+    if flush:
+        flush_recordset(self, fnames)
+    _invalidate_cache(self, fnames, tuple(record_ids(as_record_list(self))))
+
+
 for _engine_method in (modified, _modified, _modified_triggers,
                        _recompute_model, _recompute_recordset,
                        _recompute_field, _flush, flush_model,
-                       flush_recordset):
+                       flush_recordset, _invalidate_cache, invalidate_model,
+                       invalidate_recordset):
     setattr(Model, _engine_method.__name__, _engine_method)
     setattr(QuerySet, _engine_method.__name__, _engine_method)
 
@@ -4337,6 +4715,280 @@ def _run_ondelete_on_delete(sender, instance, **_ignored):
 
 
 Model._add_precomputed_values = _add_precomputed_values
+
+
+def _ordering(expression, direction, nulls):
+    """Dirección y nulos de un término — los literales de la fuente."""
+    options = {}
+    if nulls == 'NULLS FIRST':
+        options['nulls_first'] = True
+    elif nulls == 'NULLS LAST':
+        options['nulls_last'] = True
+    if direction == 'DESC':
+        return expression.desc(**options)
+    return expression.asc(**options)
+
+
+def order_to_django(model, order, reverse=False, prefix='', seen=frozenset()):
+    """Una cláusula de orden de la fuente como ``order_by`` de Django.
+
+    ≙ ``_order_to_sql`` + ``_order_field_to_sql``
+    (``odoo19c: odoo/orm/models.py:5224-5322``): cada término se valida con
+    ``regex_order``; ``reverse`` invierte dirección y nulos; un ``Many2one``
+    se ordena por el ``_order`` de su comodelo (salvo ``x_id.id`` o un
+    comodelo ordenado por ``id``), con una guarda contra ciclos y, para
+    ``NULLS FIRST``/``NULLS LAST``, el término ``IS NOT NULL``/``IS NULL``
+    delante. El ``LEFT JOIN`` de la fuente es el que Django emite al cruzar
+    una clave anulable.
+
+    **No portado:** el orden por una propiedad (``campo.propiedad`` sobre un
+    ``Properties``) y por una función (``campo:func``); se rehúsan con
+    ``ValueError`` en vez de ignorarse.
+    """
+    if not order:
+        return []
+    if not regex_order.match(order):
+        raise UserError(
+            'Orden inválido (%s). Un orden válido es una lista de nombres '
+            'de campo separados por coma, cada uno seguido opcionalmente '
+            'de asc o desc.' % order)
+    registry_ = model_field_registry(model)
+    terms = []
+    for part in order.split(','):
+        match = regex_order.match(part)
+        fname = match['field']
+        direction = (match['direction'] or '').upper()
+        nulls = (match['nulls'] or '').upper()
+        if reverse:
+            direction = 'ASC' if direction == 'DESC' else 'DESC'
+            if nulls:
+                nulls = 'NULLS LAST' if nulls == 'NULLS FIRST' else 'NULLS FIRST'
+        field = registry_.get(fname)
+        if field is None:
+            raise ValueError(
+                f'Invalid field {fname!r} on model {registry.name_of(model) or model}')
+        prop = match['property']
+        if match['func'] or (prop and not isinstance(field, ForeignKey)):
+            raise ValueError(f'Orden no portado: {part.strip()!r}')
+        if isinstance(field, ForeignKey):
+            if field in seen:
+                continue
+            comodel = field.related_model
+            coorder = 'id' if prop == 'id' else (getattr(comodel, '_order', None) or 'id')
+            if coorder == 'id':
+                terms.append(_ordering(F(prefix + field.attname), direction, nulls))
+                continue
+            path = prefix + field.name
+            if nulls == 'NULLS FIRST':
+                terms.append(ExpressionWrapper(
+                    Q(**{path + '__isnull': False}), output_field=BooleanField()).asc())
+            elif nulls == 'NULLS LAST':
+                terms.append(ExpressionWrapper(
+                    Q(**{path + '__isnull': True}), output_field=BooleanField()).asc())
+            terms.extend(order_to_django(
+                comodel, coorder, reverse=direction == 'DESC',
+                prefix=path + '__', seen=seen | {field}))
+            continue
+        column = 'pk' if fname == 'id' and not prefix else prefix + getattr(field, 'attname', fname)
+        terms.append(_ordering(F(column), direction, nulls))
+    return terms
+
+
+_DJANGO_MANY2MANY_SET = _related_descriptors.ManyToManyDescriptor.__set__
+
+
+def _many2many_descriptor_set(self, instance, value):
+    """Asignar un ``Many2many`` es escribirlo — ≙ ``Field.__set__`` (``:1807``).
+
+    En la fuente ``record.tag_ids = [Command.link(7)]`` llama a
+    ``records.write({name: value})``. Django prohíbe la asignación directa
+    sobre el lado directo de un muchos-a-muchos (``TypeError``); aquí, sobre
+    una fila ya guardada que sabe escribirse, se entrega a ``write``, que
+    interpreta los comandos y comprueba la empresa. El lado inverso y la fila
+    sin guardar conservan la conducta de Django.
+    """
+    if not self.reverse and hasattr(instance, 'write') and _saved(instance):
+        instance.write({self.field.name: value})
+        return
+    _DJANGO_MANY2MANY_SET(self, instance, value)
+
+
+def _saved(instance):
+    ids = getattr(instance, '_ids', None)
+    if ids:
+        return all(ids)
+    return instance.__dict__.get(instance._meta.pk.attname) is not None
+
+
+_related_descriptors.ManyToManyDescriptor.__set__ = _many2many_descriptor_set
+
+def _x2many_descriptor_get(self, instance, cls=None):
+    """Leer un x2many es un recordset del comodelo —
+    ≙ ``_RelationalMulti.convert_to_record`` (``odoo19c: odoo/orm/
+    fields_relational.py``).
+
+    Sólo cuando el dueño y el comodelo son ``BaseModel``: los demás modelos
+    del producto leen el gestor de Django y lo siguen leyendo. El orden es el
+    ``_order`` del comodelo, como en la fuente. Una fila sin guardar no tiene
+    relación persistida: su valor es el recordset vacío.
+    """
+    if instance is None:
+        return _DJANGO_X2MANY_GET(self, instance, cls)
+    if isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        comodel = self.field.model if self.reverse else self.field.related_model
+    else:
+        comodel = self.rel.related_model
+    if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
+            and issubclass(comodel, BaseModel)):
+        return _DJANGO_X2MANY_GET(self, instance, cls)
+    if instance.pk is None:
+        return comodel._from_ids(env(), (), ())
+    if (isinstance(instance.pk, NewId)
+            and not isinstance(self, _related_descriptors.ManyToManyDescriptor)):
+        # Un registro de ``new()`` no tiene filas que apunten a él: su One2many
+        # vive sólo en el caché de la transacción (``_write_new_one2many``).
+        ids = env().transaction.field_data[self.rel].get(instance.pk, ())
+        return comodel._from_ids(env(), ids, ids)
+    if not isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        # El inverso puede estar pendiente de cálculo (un Many2one
+        # ``compute=..., store=True``): la fuente lo vuelca antes de leer,
+        # porque el One2many se resuelve con ``comodel._search`` y éste hace
+        # ``flush_model`` de los campos del dominio
+        # (``odoo19c: odoo/orm/fields_relational.py``, ``One2many.read``).
+        flush_model(comodel, [self.rel.field.name])
+    manager = _DJANGO_X2MANY_GET(self, instance, cls)
+    rows = manager.all()
+    order = getattr(comodel, '_order', None)
+    if order:
+        rows = rows.order_by(*order_to_django(comodel, order))
+    ids = tuple(rows.values_list('pk', flat=True))
+    return comodel._from_ids(env(), ids, ids)
+
+
+_related_descriptors.ReverseManyToOneDescriptor.__get__ = _x2many_descriptor_get
+_DJANGO_X2MANY_SET = _related_descriptors.ReverseManyToOneDescriptor.__set__
+
+
+def _x2many_descriptor_set(self, instance, value):
+    """Asignar un One2many es fijar su conjunto — ≙ ``One2many.write_real``,
+    rama ``SET`` (``odoo19c: odoo/orm/fields_relational.py:1027``).
+
+    Sólo un One2many entre ``BaseModel`` (el reverso de un Many2one): la
+    fuente admite ``record.line_ids = lines`` y aquí el descriptor de Django
+    lo rechazaba («Direct assignment to the reverse side»). Un recordset, una
+    lista de ids o una lista de comandos se aplican como en ``write``. El
+    Many2many y los modelos de Django conservan la conducta de Django.
+    """
+    if isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        return _DJANGO_X2MANY_SET(self, instance, value)
+    comodel = self.rel.related_model
+    if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
+            and issubclass(comodel, BaseModel)):
+        return _DJANGO_X2MANY_SET(self, instance, value)
+    if isinstance(instance.pk, NewId):
+        _write_new_one2many(self.rel, instance, value)
+        return None
+    if not is_command_list(value):
+        ids = getattr(value, '_ids', None)
+        if ids is not None and not all(ids):
+            value = self.rel.convert_to_write(value, instance)
+        else:
+            if ids is None:
+                ids = [getattr(item, 'pk', item) for item in (value or ())]
+            value = [Command.set(list(ids))]
+    apply_one2many_commands(instance, self.rel, value)
+    return None
+
+
+def _write_new_one2many(rel, owner, value):
+    """El One2many de un registro de ``new()`` — ≙ ``One2many.write_new``
+    (``odoo19c: odoo/orm/fields_relational.py:1121``).
+
+    Nada se escribe en la base: el conjunto de líneas queda en el caché de la
+    transacción, indexado por el ``NewId`` del dueño, y cada ``CREATE`` es una
+    línea de ``new()`` cuyo inverso apunta al dueño, como en la fuente.
+    """
+    comodel = rel.related_model
+    inverse = rel.field.name
+    cache = env().transaction.field_data[rel]
+    ids = list(cache.get(owner.pk, ()))
+    if not is_command_list(value):
+        ids = getattr(value, '_ids', None)
+        if ids is None:
+            ids = [getattr(item, 'pk', item) for item in (value or ())]
+        cache[owner.pk] = tuple(ids)
+        return
+    for command in value:
+        operation = command[0]
+        if operation == Command.CREATE:
+            line = comodel.new(dict(command[2] or {}), ref=command[1] or None)
+            line._update_cache({inverse: owner}, validate=False)
+            ids.append(line.id)
+        elif operation == Command.UPDATE:
+            comodel.browse(command[1])._update_cache(command[2], validate=False)
+        elif operation in (Command.DELETE, Command.UNLINK):
+            ids = [id_ for id_ in ids if id_ != command[1]]
+        elif operation == Command.LINK:
+            if command[1] not in ids:
+                ids.append(command[1])
+        elif operation == Command.CLEAR:
+            ids = []
+        elif operation == Command.SET:
+            ids = list(command[2])
+    cache[owner.pk] = tuple(ids)
+
+
+_related_descriptors.ReverseManyToOneDescriptor.__set__ = _x2many_descriptor_set
+_DJANGO_FORWARD_GET_OBJECT = _related_descriptors.ForwardManyToOneDescriptor.get_object
+
+
+def _forward_get_object(self, instance):
+    """El valor de un Many2one hacia un ``BaseModel`` es ``browse(id)``.
+
+    ≙ ``Many2one.convert_to_record`` (``odoo19c: odoo/orm/
+    fields_relational.py:356``): leer el campo no consulta la fila del
+    comodelo; el recordset se resuelve campo a campo cuando se lee. Django, en
+    cambio, carga la fila entera en ``get_object``. Para un registro de
+    ``new()`` esa carga ni siquiera es posible: su id es un ``NewId`` sin fila.
+    Un comodelo de Django sigue su lectura nativa.
+    """
+    comodel = self.field.remote_field.model
+    value = self.field.get_local_related_value(instance)
+    if (len(value) == 1 and value[0] is not None
+            and isinstance(comodel, type) and issubclass(comodel, BaseModel)):
+        return comodel._from_ids(env(), value, value)
+    return _DJANGO_FORWARD_GET_OBJECT(self, instance)
+
+
+_related_descriptors.ForwardManyToOneDescriptor.get_object = _forward_get_object
+_DJANGO_FORWARD_GET = _related_descriptors.ForwardManyToOneDescriptor.__get__
+
+
+def _forward_get(self, instance, cls=None):
+    """Un Many2one leído sobre varios registros es la unión de sus valores.
+
+    ≙ ``_Relational.__get__``, rama *multi-record* (``odoo19c: odoo/orm/
+    fields_relational.py:42-79``), más ``Many2one.convert_to_record_multi``
+    (``:360-364``): el recordset del comodelo con los ids sin repetir y sin
+    los vacíos. Aquí cada valor se lee por el registro singular, que ya sabe
+    resolver una fila, un registro de ``new()`` y el caché; un recordset de
+    un solo id o una fila de Django siguen la lectura de Django.
+    """
+    ids = getattr(instance, '_ids', None) if instance is not None else None
+    comodel = self.field.remote_field.model
+    if (ids is None or len(ids) <= 1 or not isinstance(comodel, type)
+            or not issubclass(comodel, BaseModel)):
+        return _DJANGO_FORWARD_GET(self, instance, cls)
+    environment = env()
+    if not environment.su and hasattr(instance, '_has_field_access'):
+        if not instance._has_field_access(self.field, 'read'):
+            instance._check_field_access(self.field, 'read')
+    values = [getattr(record, self.field.attname) for record in instance]
+    value_ids = tuple(unique(id_ for id_ in values if id_ is not None))
+    return comodel._from_ids(environment, value_ids, value_ids)
+
+
+_related_descriptors.ForwardManyToOneDescriptor.__get__ = _forward_get
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 
@@ -4393,15 +5045,16 @@ class RecordCache(collections.abc.Mapping):
         objetos ``Field``, y todos tienen caché. Aquí lo provee ``_meta``, que
         incluye además los descriptores de relación **inversa** de Django
         —``ManyToOneRel``, ``OneToOneRel``, ``ManyToManyRel``—, que no son
-        campos y no tienen dónde cachear: la fuente los modela como
-        ``One2many``, que allá sí es un ``Field``.
+        campos: la fuente los modela como ``One2many``, que allá sí es un
+        ``Field``. Desde que ``new()`` necesita el One2many de un registro sin
+        fila, el ``ManyToOneRel`` tiene caché (``fields_relational.py``,
+        ``_reverse_one2many_get_cache``); ``OneToOneRel`` y ``ManyToManyRel``
+        siguen sin él, y por ellos la guarda sigue.
 
-        *Métrica:* atributos de ``res.partner`` en ``_fields`` con
-        ``_get_cache``: **86 de 128**; los 42 restantes son 36 ``ManyToOneRel``,
-        4 ``OneToOneRel`` y 2 ``ManyToManyRel``.
+        *Métrica (2026-08, antes de ese caché):* atributos de ``res.partner``
+        en ``_fields`` con ``_get_cache``: **86 de 128**; los 42 restantes
+        eran 36 ``ManyToOneRel``, 4 ``OneToOneRel`` y 2 ``ManyToManyRel``.
         *Ciega a:* un campo que tuviera caché y no la expusiera con ese nombre.
-        La guarda se retira cuando el uno-a-muchos sea un campo propio con su
-        caché — tareas **#243** y **#244**.
         """
         record = self._record
         id_ = record.id
@@ -4415,6 +5068,36 @@ class RecordCache(collections.abc.Mapping):
     def __len__(self):
         """Cuántos campos tienen valor en caché."""
         return sum(1 for name in self)
+
+
+class _on_empty_recordset:
+    """Un método de recordset que también se llama sobre la clase.
+
+    ``env['x']`` devuelve aquí la **clase** del modelo, no el recordset vacío
+    que devuelve la fuente (``odoo19c: odoo/orm/environments.py:105``). Con
+    eso ``env['x'].browse(ids)`` —la forma más corriente de la fuente— llegaba
+    al método sin ``self`` y moría con ``AttributeError``. Este descriptor
+    cierra esa diferencia: llamado sobre la clase, el método recibe el
+    recordset vacío del entorno activo, que es exactamente lo que la fuente
+    le pasa. Llamado sobre un recordset, se comporta como un método normal.
+
+    El recordset vacío se construye al **llamar**, no al leer el atributo,
+    para que inspeccionar la clase no exija un entorno activo.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+
+    def __get__(self, instance, owner):
+        if instance is not None:
+            return self.func.__get__(instance, owner)
+        func = self.func
+
+        @functools.wraps(func)
+        def on_empty(*args, **kwargs):
+            return func(owner._from_ids(env(), (), ()), *args, **kwargs)
+        return on_empty
 
 
 class BaseModel(DefaultGetMixin, Model):
@@ -4488,7 +5171,31 @@ class BaseModel(DefaultGetMixin, Model):
 
     __slots__ = ['env', '_ids', '_prefetch_ids']
 
-    #: **Divergencia de mecanismo.** La fuente cuelga el registro completo de la
+    def __setattr__(self, name, value):
+        """Un registro no admite atributos que su modelo no declare.
+
+        ≙ la conducta que ``__slots__`` da en la fuente
+        (``odoo19c: odoo/orm/models.py:362``): sin ``__dict__``, asignar un
+        nombre que la clase no declara levanta ``AttributeError``
+        (``odoo/addons/test_orm/tests/test_attributes.py``). Aquí el modelo
+        concreto de Django conserva su ``__dict__`` —ver el punto 1 del
+        docstring de la clase—, así que la ranura sola no lo impide.
+
+        **Divergencia declarada:** los nombres con guion bajo se admiten,
+        porque Django guarda en ellos el estado de la instancia (``_state``,
+        las cachés de relación y de prelectura) y este ORM sus marcas
+        internas. Un nombre público sólo se acepta si la clase lo declara:
+        campo, ``attname``, propiedad o método. Lo que Django escribe con
+        nombre público libre —``annotate()`` y ``Prefetch(to_attr=…)``— no
+        tiene receptor sobre un registro, como no lo tiene en la fuente.
+        """
+        if name[:1] != '_' and not hasattr(type(self), name):
+            raise AttributeError(
+                f'{type(self).__name__!r} object has no attribute {name!r}')
+        super().__setattr__(name, value)
+
+    #: **Divergencia de mecanismo.** La fuente cuelga el registro completo
+    #: de la
     #: clase (``pool: Registry``, ``:362``) porque su metaclase lo construye.
     #: Aquí el registro de Django vive en ``_meta.apps`` y el nuestro en
     #: :mod:`orm.registry`; la anotación se conserva para que el nombre exista
@@ -4496,7 +5203,8 @@ class BaseModel(DefaultGetMixin, Model):
     pool: 'registry.Registry'
 
     _fields__: dict
-    #: ≙ ``BaseModel._fields`` (``:368``). **No se duplica el mecanismo**: es el
+    #: ≙ ``BaseModel._fields`` (``:368``). **No se duplica el mecanismo**:
+    #: es el
     #: mismo :class:`~orm.utils.FieldRegistryDescriptor` que
     #: :class:`FieldSqlMixin` ya declara en ``:1612``, respaldado por
     #: :func:`~orm.utils.model_field_registry`. Aquí es además el sitio fiel:
@@ -4559,7 +5267,8 @@ class BaseModel(DefaultGetMixin, Model):
     _depends: ReadonlyDict = ReadonlyDict({})
     """dependencies of models backed up by SQL views ``{model_name: field_names}``."""
 
-    #: ``id = Id()`` (``:472``) **se porta como descriptor instalado en la clase
+    #: ``id = Id()`` (``:472``) **se porta como descriptor instalado
+    #: en la clase
     #: concreta**, no como asignación en este cuerpo: ``ModelBase`` pone su
     #: propio ``DeferredAttribute`` sobre ``id`` al preparar la subclase y
     #: sombrea cualquier descriptor de la base — medido en
@@ -4592,6 +5301,12 @@ class BaseModel(DefaultGetMixin, Model):
         entorno es el ambiente (:func:`~orm.environments.env`), la misma
         adaptación que :class:`RecordCache` declara.
         """
+        # Una terna vacía mientras Django construye la fila: sus asignaciones
+        # pasan por descriptores que leen el registro como recordset —
+        # ``Many2one.convert_to_cache`` evalúa ``bool(record)`` en un campo
+        # ``delegate``—, y sin ``_ids`` esa lectura moría con
+        # ``AttributeError`` en todo modelo con ``_inherits``.
+        object.__setattr__(self, '_ids', ())
         super().__init__(*args, **kwargs)
         self._install_singleton_triple()
 
@@ -4642,6 +5357,115 @@ class BaseModel(DefaultGetMixin, Model):
         record._prefetch_ids = prefetch_ids
         return record
 
+    # === búsqueda =======================================================
+
+    @classmethod
+    def _active_field_name(cls):
+        """``_active_name`` — ``'active'`` o ``'x_active'`` si el modelo lo declara.
+
+        ≙ el ``_active_name`` que la fuente fija en el setup del modelo
+        (``odoo19c: odoo/orm/model_classes.py``): un modelo con campo
+        ``active`` filtra sus registros archivados al buscar.
+        """
+        if cls._active_name:
+            return cls._active_name
+        registry_ = model_field_registry(cls)
+        for name in ('active', 'x_active'):
+            if name in registry_:
+                return name
+        return None
+
+    @classmethod
+    def _search(cls, domain, offset=0, limit=None, order=None, *,
+                active_test=True, bypass_access=False):
+        """El ``QuerySet`` de las filas que cumplen ``domain`` — ≙ ``:5324``.
+
+        Mismos pasos que la fuente: ACL de lectura, filtro de archivados
+        salvo que el dominio nombre el campo ``active`` o el contexto lo
+        apague, el dominio (vía :func:`~orm.domains.to_q`), las reglas de
+        fila, el orden y la ventana.
+
+        **Divergencias de mecanismo:** la fuente devuelve un ``Query`` y aquí
+        se devuelve el ``QuerySet`` de Django, que es su equivalente perezoso.
+        Las reglas de fila se aplican con
+        :meth:`AccessQuerySet._filtered_access` (una exclusión por clave) en
+        vez de añadirse al ``WHERE``. Sin ``order`` no se impone ninguno, como
+        en la fuente.
+        """
+        check = not (is_su() or bypass_access)
+        records = AccessQuerySet(model=cls)
+        if check:
+            records.none().check_access('read')
+        domain = Domain(domain)
+        active = cls._active_field_name()
+        if (active and active_test
+                and get_context().get('active_test', True)
+                and not any(getattr(leaf, 'field_expr', None) == active
+                            for leaf in domain.iter_conditions())):
+            domain &= Domain(active, '=', True)
+        records = records.filter(to_q(domain, cls))
+        if check:
+            records = records._filtered_access('read')
+        if order:
+            records = records.order_by(*order_to_django(cls, order))
+        if offset or limit:
+            records = records[offset:(offset + limit) if limit else None]
+        return records
+
+    @api.private
+    def unlink(self):
+        """Borra los registros de ``self`` — ≙ ``unlink`` (``odoo19c:
+        odoo/orm/models.py``, ``BaseModel.unlink``).
+
+        Mismos pasos que la fuente: ACL de borrado; los cómputos pendientes
+        de estas filas se descartan; se vuelca lo pendiente; se borra; y se
+        invalida **toda** la caché, porque —dice la fuente— *"the orm does
+        not handle all changes made in the database, like cascading
+        delete"*.
+
+        **Divergencia de mecanismo:** el ``DELETE`` lo emite el ``Collector``
+        de Django (``QuerySet.delete``). Su ``pre_delete`` corre las
+        comprobaciones ``@api.ondelete`` (:func:`_run_ondelete_checks`) y las
+        cascadas de ``on_delete``, que aquí sustituyen al ``ON DELETE`` de las
+        claves de la fuente. La limpieza de ``ir.model.data`` y
+        ``ir.attachment`` sigue en manos de sus propios receptores de borrado.
+        """
+        if not self:
+            return True
+        rows = AccessQuerySet(model=type(self)).filter(pk__in=self.ids)
+        rows.check_access('unlink')
+        environment = env()
+        for field in set(model_field_registry(type(self)).values()):
+            environment.remove_to_compute(field, self.ids)
+        environment.flush_all()
+        rows.delete()
+        environment.invalidate_all(flush=False)
+        return True
+
+    @classmethod
+    def search(cls, domain, offset=0, limit=None, order=None):
+        """Los registros que cumplen ``domain`` — ≙ ``search`` (``:1363``).
+
+        Devuelve el recordset de ``BaseModel`` en el orden pedido, o en el
+        ``_order`` del modelo si no se pide ninguno, como ``search_fetch``.
+        """
+        records = cls._search(domain, offset=offset, limit=limit,
+                              order=order or cls._order)
+        ids = tuple(records.values_list('pk', flat=True))
+        return cls._from_ids(env(), ids, ids)
+
+    @classmethod
+    def search_count(cls, domain, limit=None):
+        """Cuántos registros cumplen ``domain`` — ≙ ``search_count`` (``:1347``)."""
+        return cls._search(domain, limit=limit).count()
+
+    #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
+    #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
+    #: da el recordset vacío del entorno activo, como a ``browse``.
+    flush_model = _on_empty_recordset(flush_model)
+    invalidate_model = _on_empty_recordset(invalidate_model)
+
+    @_on_empty_recordset
     @api.private
     def browse(self, ids=()):
         """Return a recordset for the ids provided as parameter in the current
@@ -4880,7 +5704,11 @@ class BaseModel(DefaultGetMixin, Model):
         # columna; se prefiere sólo cuando es el nuestro.
         attname = getattr(field, 'attname', None) or field.name
         descriptor = getattr(type(self), attname, None)
-        if not isinstance(descriptor, FieldDescriptor):
+        # El descriptor del id de un Many2one almacenado también es un
+        # ``FieldDescriptor`` y devuelve el entero; la fila la da el de
+        # ``field.name``.
+        if (not isinstance(descriptor, FieldDescriptor)
+                or isinstance(descriptor, StoredMany2oneIdDescriptor)):
             descriptor = getattr(type(self), field.name, None)
         if descriptor is None or not hasattr(descriptor, '__get__'):
             return getattr(self, field.name)
@@ -4890,6 +5718,68 @@ class BaseModel(DefaultGetMixin, Model):
     def _cache(self):
         """ Return the cache of ``self``, mapping field names to values. — ≙ ``:6703`` """
         return RecordCache(self)
+
+    def _update_cache(self, values, validate=True):
+        """ Update the cache of ``self`` with ``values``. — ≙ ``:6066``
+
+            :param values: dict of field values, in any format.
+            :param validate: whether values must be checked
+        """
+        self.ensure_one()
+        fields = self._fields
+        try:
+            field_values = [(fields[name], value) for name, value in values.items() if name != 'id']
+        except KeyError as e:
+            raise ValueError("Invalid field %r on model %r" % (e.args[0], self._name))
+
+        # convert monetary fields after other columns for correct value rounding
+        for field, value in sorted(field_values, key=lambda item: item[0].write_sequence):
+            value = field.convert_to_cache(value, self, validate)
+            field._update_cache(self, value)
+
+            # set inverse fields on new records in the comodel
+            if field.relational:
+                inv_recs = self[field.name].filtered(lambda r: not r.id)
+                if not inv_recs:
+                    continue
+                # we need to adapt the value of the inverse fields to integrate self into it:
+                # x2many fields should add self, while many2one fields should replace with self
+                for invf in registry.field_inverses[field]:
+                    invf._update_inverse(inv_recs, self)
+
+    def _convert_to_write(self, values):
+        """ Convert the ``values`` dictionary into the format of :meth:`write`. — ≙ ``:6103`` """
+        fields = self._fields
+        result = {}
+        for name, value in values.items():
+            if name in fields:
+                field = fields[name]
+                value = field.convert_to_write(value, self)
+                if not isinstance(value, NewId):
+                    result[name] = value
+        return result
+
+    @_on_empty_recordset
+    def new(self, values=None, origin=None, ref=None):
+        """ Return a new record instance attached to the current environment and
+        initialized with the provided ``value``. The record is *not* created
+        in database, it only exists in memory. — ≙ ``:6441``
+
+        One can pass an ``origin`` record, which is the actual record behind the
+        result. It is retrieved as ``record._origin``. Two new records with the
+        same origin record are considered equal.
+
+        One can also pass a ``ref`` value to identify the record among other new
+        records. The reference is encapsulated in the ``id`` of the record.
+        """
+        if values is None:
+            values = {}
+        if origin is not None:
+            origin = origin.id
+        record = self.browse((NewId(origin, ref),))
+        record._update_cache(values, validate=False)
+
+        return record
 
     @property
     def _origin(self):
@@ -5275,15 +6165,17 @@ class BaseModel(DefaultGetMixin, Model):
         self._table, self._table_sql)`` y ejecuta el ``SELECT``;
         ``_table_sql`` no tiene contraparte aquí (declarado en
         ``orm/environments.py:1831``). El stack trae el mecanismo: el manager
-        por defecto del modelo emite el mismo ``id IN (…)`` y devuelve los ids
-        reales, sin SQL a mano.
+        base del modelo emite el mismo ``id IN (…)`` sin aplicar filtros
+        del manager público y devuelve los ids reales, sin SQL a mano.
         """
         new_ids, ids = partition(lambda i: isinstance(i, NewId), self._ids)
         if not ids:
             return self
-        real_ids = (type(self)._default_manager
-                    .filter(pk__in=tuple(ids))
-                    .values_list('pk', flat=True))
+        real_ids = (
+            type(self)
+            ._base_manager.filter(pk__in=tuple(ids))
+            .values_list('pk', flat=True)
+        )
         valid_ids = {*real_ids, *new_ids}
         return self.browse(i for i in self._ids if i in valid_ids)
 
@@ -5389,7 +6281,8 @@ class AbstractModel:
     _abstract = True        #: es abstracto
 
 
-#: ``Model`` — ≙ ``class Model(AbstractModel)`` (``odoo19c: odoo/orm/models.py:7049``).
+#: ``Model`` — ≙ ``class Model(AbstractModel)``
+#: (``odoo19c: odoo/orm/models.py:7049``).
 #:
 #: **Ya existe, y es el de Django**: este módulo re-exporta el ORM completo
 #: (``from django.db.models import *``, arriba), así que ``orm.models.Model``

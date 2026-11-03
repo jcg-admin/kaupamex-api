@@ -43,7 +43,12 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo company_id (compute+store, default=env.company). El auto-sync desde employee.company está BLOQUEADO por ``api.depends`` — sin trigger de recómputo, lo asigna quien escribe (familia (a)).",
+                help_text=(
+                    "Odoo company_id (compute+store, default=env.company). El"
+                    " auto-sync desde employee.company está BLOQUEADO por"
+                    " ``api.depends`` — sin trigger de recómputo, lo asigna"
+                    " quien escribe (familia (a))."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="hr_versions",
@@ -56,7 +61,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa dueña de la sede (Odoo company_id, required=True en la fuente — ver docstring del módulo).",
+                help_text=(
+                    "Empresa dueña de la sede (Odoo company_id, required=True"
+                    " en la fuente — ver docstring del módulo)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="hr_work_locations",

@@ -30,6 +30,7 @@ Dos símbolos, los 2 portados
 mismo criterio que el resto de este dominio (``account_edi_document.py``,
 ``ir_attachment.py``): sin ACL de campo que saltarse en este puerto.
 """
+
 from addons.account.models.account_move_send import AccountMoveSend
 from addons.base.models.ir_attachment import IrAttachment
 from orm.method_chain import chain_method, extend_list
@@ -72,8 +73,14 @@ def apply_account_edi_extensions():
     preserva la de ``account`` si otro addon la instala primero
     (:ref:`h-api-364`).
     """
-    chain_method(AccountMoveSend, '_get_mail_attachment_from_doc',
-                 classmethod(_get_mail_attachment_from_doc))
-    chain_method(AccountMoveSend, '_get_invoice_extra_attachments',
-                 classmethod(_get_invoice_extra_attachments_edi),
-                 combine=extend_list)
+    chain_method(
+        AccountMoveSend,
+        '_get_mail_attachment_from_doc',
+        classmethod(_get_mail_attachment_from_doc),
+    )
+    chain_method(
+        AccountMoveSend,
+        '_get_invoice_extra_attachments',
+        classmethod(_get_invoice_extra_attachments_edi),
+        combine=extend_list,
+    )

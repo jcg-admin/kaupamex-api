@@ -1,0 +1,32 @@
+{
+  "provider_revision": "c3c5d2f2868701b37644426e2266262613eb9c60",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-GEN-0559.recompute_physical_pending_rows",
+      "taskId": "TASK-GEN-0559",
+      "prompt": "Preserve physical pending records hidden by public manager visibility; only physically absent rows may clear pending compute group; preserve recursive requested-ID order and distinct work",
+      "verify": "Pinned Odoo browse/pending contract; discriminant visible/hidden/missing/subset/virtual/error controls; staged-source snapshot regression and negative selector restoration",
+      "route": "local",
+      "owned": [
+        "src/orm/models.py",
+        "tests/unit/orm/test_recompute_visibility_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "node": "b501",
+  "states": {},
+  "selected": [
+    "TASK-GEN-0559.recompute_physical_pending_rows"
+  ],
+  "verified_unit": "TASK-GEN-0559.recompute_physical_pending_rows",
+  "functional_commit": "768d561657cab1720af6dc7c2b9067f405ed1117",
+  "execution_decision": "Do not reimplement verified unit; no accepted/integrated state fabricated. Reconcile pending implementation separately from integration/acceptance",
+  "known_task_population": "recompute-visibility-known-task-revalidation.json:68identities from existing authority",
+  "known_descriptor_population": 33,
+  "global_contract_denominator": "unknown",
+  "next_independent_investigation": "TASK-GEN-0558 recursive callback reentry/pending coalescence on Django adapter; verify claims/admission and characterize before any implementation",
+  "whole_objective_complete": false,
+  "managed_inference": false
+}

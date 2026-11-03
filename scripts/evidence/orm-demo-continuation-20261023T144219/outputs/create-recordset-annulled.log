@@ -1,0 +1,49 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFF.................................................................... [ 65%]
+......................................                                   [100%]
+=================================== FAILURES ===================================
+________________________ test_we_cannot_add_attributes _________________________
+tests/integration/test_orm/test_attributes.py:21: in test_we_cannot_add_attributes
+    with pytest.raises(AttributeError):
+E   Failed: DID NOT RAISE <class 'AttributeError'>
+______________ test_create_returns_the_native_recordset_in_order _______________
+tests/integration/test_orm/test_create_recordset.py:20: in test_create_returns_the_native_recordset_in_order
+    assert isinstance(records, TestOrmCategory)
+E   assert False
+E    +  where False = isinstance(<AccessQuerySet [test_orm.category(17,), test_orm.category(18,)]>, TestOrmCategory)
+___________ test_assigning_a_field_on_the_created_record_is_written ____________
+tests/integration/test_orm/test_create_recordset.py:29: in test_assigning_a_field_on_the_created_record_is_written
+    assert TestOrmCategory.objects.get(pk=record.id).name == 'Bar'
+E   AttributeError: 'AccessQuerySet' object has no attribute 'id'
+__________________ test_an_empty_create_is_an_empty_recordset __________________
+tests/integration/test_orm/test_create_recordset.py:34: in test_an_empty_create_is_an_empty_recordset
+    assert isinstance(records, TestOrmCategory)
+E   assert False
+E    +  where False = isinstance(<AccessQuerySet []>, TestOrmCategory)
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/unit/orm/test_create.py::TestTheSignatureIsTheSourcesSignature::test_a_list_returns_the_rows_in_the_given_order
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/unit/orm/test_create.py::TestTheSignatureIsTheSourcesSignature::test_a_list_returns_the_rows_in_the_given_order
+  /home/user/kaupamex-api/src/orm/fields.py:4209: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+FAILED tests/integration/test_orm/test_create_recordset.py::test_create_returns_the_native_recordset_in_order
+FAILED tests/integration/test_orm/test_create_recordset.py::test_assigning_a_field_on_the_created_record_is_written
+FAILED tests/integration/test_orm/test_create_recordset.py::test_an_empty_create_is_an_empty_recordset
+4 failed, 106 passed, 6 warnings in 6.38s

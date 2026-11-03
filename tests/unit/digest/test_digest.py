@@ -5,6 +5,7 @@
 Adaptación fiel de Odoo digest/models/digest.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 from datetime import timedelta
 
 import pytest
@@ -26,7 +27,9 @@ def company():
 
 @pytest.fixture
 def internal_group():
-    return ResGroups.objects.create(name='Interno', user_type=ResGroups.USER_TYPE_INTERNAL)
+    return ResGroups.objects.create(
+        name='Interno', user_type=ResGroups.USER_TYPE_INTERNAL
+    )
 
 
 @pytest.fixture
@@ -38,7 +41,9 @@ def internal_user(internal_group):
 
 @pytest.fixture
 def digest(company):
-    return DigestDigest.objects.create(name='Digest diario', company_id=company)
+    return DigestDigest.objects.create(
+        name='Digest diario', company_id=company
+    )
 
 
 class TestDigestNextRunDate:
@@ -48,14 +53,18 @@ class TestDigestNextRunDate:
     def test_next_run_date_respects_explicit_value(self, company):
         explicit = timezone.localdate() + timedelta(days=30)
         digest = DigestDigest.objects.create(
-            name='Digest con fecha fija', company_id=company, next_run_date=explicit,
+            name='Digest con fecha fija',
+            company_id=company,
+            next_run_date=explicit,
         )
         assert digest.next_run_date == explicit
 
     def test_action_set_periodicity_recomputes_next_run_date(self, digest):
         digest.action_set_periodicity(DigestPeriodicity.WEEKLY)
         assert digest.periodicity == DigestPeriodicity.WEEKLY
-        assert digest.next_run_date == timezone.localdate() + timedelta(weeks=1)
+        assert digest.next_run_date == timezone.localdate() + timedelta(
+            weeks=1
+        )
 
     def test_action_set_periodicity_monthly_uses_calendar_month(self, digest):
         digest.action_set_periodicity(DigestPeriodicity.MONTHLY)
@@ -93,7 +102,9 @@ class TestDigestSubscription:
     def test_is_subscribed_false_without_current_user(self, digest):
         assert digest.is_subscribed is False
 
-    def test_action_subscribe_adds_current_internal_user(self, digest, internal_user):
+    def test_action_subscribe_adds_current_internal_user(
+        self, digest, internal_user
+    ):
         with user_scope(internal_user.pk):
             digest.action_subscribe()
         assert digest.user_ids.filter(pk=internal_user.pk).exists()
@@ -122,7 +133,9 @@ class TestDigestCurrency:
         assert digest.currency == company.currency
 
     def test_currency_property_none_without_company(self):
-        digest = DigestDigest.objects.create(name='Sin compañía', company_id=None)
+        digest = DigestDigest.objects.create(
+            name='Sin compañía', company_id=None
+        )
         assert digest.currency is None
 
 

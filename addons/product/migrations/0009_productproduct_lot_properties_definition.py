@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
             field=models.JSONField(
                 blank=True,
                 default=None,
-                help_text="Esquema de las propiedades que llevan los lotes de este producto (Odoo lot_properties_definition).",
+                help_text=(
+                    "Esquema de las propiedades que llevan los lotes de este"
+                    " producto (Odoo lot_properties_definition)."
+                ),
                 null=True,
                 verbose_name="Definición de propiedades de lote",
             ),

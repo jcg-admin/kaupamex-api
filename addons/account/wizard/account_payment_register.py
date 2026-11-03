@@ -1,4 +1,6 @@
-"""``account.payment.register`` — asistente de registro de pago (Odoo ``account``).
+"""
+``account.payment.register`` — asistente de registro de pago (Odoo
+``account``).
 
 Adaptación de Odoo ``addons/account/wizard/account_payment_register.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3) —
@@ -33,6 +35,7 @@ Alcance — ver PARTE 1.3 / PARTE 8.1 del UC
   ``payment_difference_handling == 'reconcile'``
   (``odoo19c: account_payment_register.py:1010-1046``).
 """
+
 from decimal import Decimal
 
 from django.db import transaction
@@ -41,7 +44,9 @@ from django.utils import timezone
 from addons.account.models.account_full_reconcile import AccountFullReconcile
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
-from addons.account.models.account_partial_reconcile import AccountPartialReconcile
+from addons.account.models.account_partial_reconcile import (
+    AccountPartialReconcile,
+)
 from exceptions import UserError
 from tools.translate import _
 
@@ -53,9 +58,17 @@ class AccountPaymentRegisterWizard:
 
     @classmethod
     @transaction.atomic
-    def register_payment(cls, move, *, amount, journal, difference_handling='open',
-                          difference_account=None, difference_label='Write-Off',
-                          date=None):
+    def register_payment(
+        cls,
+        move,
+        *,
+        amount,
+        journal,
+        difference_handling='open',
+        difference_account=None,
+        difference_label='Write-Off',
+        date=None,
+    ):
         """Registra un abono (o pago completo) sobre ``move`` — ≙ el botón
         "Registrar Pago" del wizard (PARTE 3 del UC, pasos 5-7).
 
@@ -90,58 +103,88 @@ class AccountPaymentRegisterWizard:
             account__account_type__in=AccountMove._RESIDUAL_ACCOUNT_TYPES,
         ).first()
         if receivable_line is None:
-            raise UserError(_(
-                'El movimiento no tiene línea por cobrar/pagar (PRE-01).'))
+            raise UserError(
+                _('El movimiento no tiene línea por cobrar/pagar (PRE-01).')
+            )
 
         if journal.default_account_id is None:
-            raise UserError(_(
-                'El diario no tiene cuenta por defecto configurada (PRE-03).'))
+            raise UserError(
+                _(
+                    'El diario no tiene cuenta por defecto configurada'
+                    ' (PRE-03).'
+                )
+            )
 
         residual = move.get_amount_residual()
         if amount <= Decimal('0.00'):
             raise UserError(_('El monto debe ser mayor a cero (EX-02).'))
         if amount > residual:
-            raise UserError(_(
-                'El monto excede el saldo pendiente de la factura (EX-01).'))
+            raise UserError(
+                _('El monto excede el saldo pendiente de la factura (EX-01).')
+            )
         if difference_handling == 'reconcile' and difference_account is None:
-            raise UserError(_(
-                'Se requiere una cuenta de diferencia para conciliar el '
-                'resto como Write-Off (EX-03).'))
+            raise UserError(
+                _(
+                    'Se requiere una cuenta de diferencia para conciliar el '
+                    'resto como Write-Off (EX-03).'
+                )
+            )
 
         payment_date = date or timezone.now().date()
-        difference = (residual - amount) if difference_handling == 'reconcile' \
+        difference = (
+            (residual - amount)
+            if difference_handling == 'reconcile'
             else Decimal('0.00')
+        )
 
         payment_move = AccountMove.objects.create(
-            move_type='entry', date=payment_date, journal=journal,
-            company=move.company, partner=move.partner, state='draft',
+            move_type='entry',
+            date=payment_date,
+            journal=journal,
+            company=move.company,
+            partner=move.partner,
+            state='draft',
         )
         AccountMoveLine.objects.create(
-            move=payment_move, account=journal.default_account,
-            name=_('Abono %s') % move.name, debit=amount,
+            move=payment_move,
+            account=journal.default_account,
+            name=_('Abono %s') % move.name,
+            debit=amount,
         )
         receivable_credit_line = AccountMoveLine.objects.create(
-            move=payment_move, account=receivable_line.account,
-            name=_('Abono %s') % move.name, credit=amount,
+            move=payment_move,
+            account=receivable_line.account,
+            name=_('Abono %s') % move.name,
+            credit=amount,
         )
-        partials = [AccountPartialReconcile.create_partial(
-            debit_move=receivable_line, credit_move=receivable_credit_line,
-            amount=amount,
-        )]
+        partials = [
+            AccountPartialReconcile.create_partial(
+                debit_move=receivable_line,
+                credit_move=receivable_credit_line,
+                amount=amount,
+            )
+        ]
 
         if difference > Decimal('0.00'):
             AccountMoveLine.objects.create(
-                move=payment_move, account=difference_account,
-                name=difference_label, debit=difference,
+                move=payment_move,
+                account=difference_account,
+                name=difference_label,
+                debit=difference,
             )
             writeoff_credit_line = AccountMoveLine.objects.create(
-                move=payment_move, account=receivable_line.account,
-                name=difference_label, credit=difference,
+                move=payment_move,
+                account=receivable_line.account,
+                name=difference_label,
+                credit=difference,
             )
-            partials.append(AccountPartialReconcile.create_partial(
-                debit_move=receivable_line, credit_move=writeoff_credit_line,
-                amount=difference,
-            ))
+            partials.append(
+                AccountPartialReconcile.create_partial(
+                    debit_move=receivable_line,
+                    credit_move=writeoff_credit_line,
+                    amount=difference,
+                )
+            )
 
         payment_move.post()
 
@@ -150,7 +193,8 @@ class AccountPaymentRegisterWizard:
             # de esta llamada — un segundo abono (Alternativa B, PARTE 4.2)
             # debe agrupar también el partial del primero, que ya existía.
             open_partials = AccountPartialReconcile.objects.filter(
-                debit_move=receivable_line, full_reconcile__isnull=True)
+                debit_move=receivable_line, full_reconcile__isnull=True
+            )
             AccountFullReconcile.create_from_partials(open_partials)
 
         move.compute_payment_state()

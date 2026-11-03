@@ -1,6 +1,7 @@
 """``html.field.history.mixin`` — el historial de revisiones de un campo HTML.
 
-Adaptación de ``odoo19c: addons/html_editor/models/html_field_history_mixin.py``
+Adaptación de ``odoo19c:
+addons/html_editor/models/html_field_history_mixin.py``
 (167 líneas, LGPL-3 — copia + adaptación con atribución, DEC-KX-03).
 
 **9 símbolos en la fuente, 9 portados, 0 ausentes.** Dos campos, un atributo
@@ -87,6 +88,7 @@ esperan (``models.py`` de este addon publica ``sanitize``/``sanitize_tags`` en
 los atributos de vista, y ``ir_qweb_fields.IrQwebFieldHtml.attributes`` lee
 cuatro de esas banderas).
 """
+
 import fields
 import api
 import models
@@ -115,7 +117,9 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
     _html_field_history_size_limit = 300
 
     html_field_history = fields.Json(
-        null=True, blank=True, editable=False,
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name="History data",
         help_text='Odoo html_field_history (prefetch=False, readonly).',
     )
@@ -172,9 +176,11 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
         ``objects.create(...)`` directamente.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
         for vals in vals_list:
@@ -219,20 +225,29 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
         changed_versioned_fields = []
 
         if versioned_fields:
-            stored = (type(self).objects.filter(pk=self.pk)
-                      .values(*versioned_fields).first())
+            stored = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values(*versioned_fields)
+                .first()
+            )
             if stored is not None:
                 rec_db_contents = dict(stored)
                 changed_versioned_fields = [
-                    name for name in versioned_fields
+                    name
+                    for name in versioned_fields
                     if getattr(self, name) != rec_db_contents.get(name)
                 ]
 
         # ≙ ``if 'html_field_history' in vals: del vals['html_field_history']``
         # — el historial tampoco se acepta desde fuera al escribir: se
         # restaura el valor en base y se recalcula abajo.
-        history_revs = (type(self).objects.filter(pk=self.pk)
-                        .values_list('html_field_history', flat=True).first())
+        history_revs = (
+            type(self)
+            .objects.filter(pk=self.pk)
+            .values_list('html_field_history', flat=True)
+            .first()
+        )
         self.html_field_history = history_revs
 
         # Se llama a super().save() ANTES de generar el parche para asegurar
@@ -243,12 +258,17 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
             return write_result
 
         new_revisions = False
-        model_fields = {f.name: f for f in type(self)._meta.get_fields()
-                        if hasattr(f, 'name')}
+        model_fields = {
+            f.name: f
+            for f in type(self)._meta.get_fields()
+            if hasattr(f, 'name')
+        }
 
-        if any(name in changed_versioned_fields
-               and not isinstance(model_fields.get(name), fields.Html)
-               for name in versioned_fields):
+        if any(
+            name in changed_versioned_fields
+            and not isinstance(model_fields.get(name), fields.Html)
+            for name in versioned_fields
+        ):
             raise ValidationError(
                 "Ensure all versioned fields ( %s ) in model %s are declared "
                 "as fields.Html" % (str(versioned_fields), self._name)
@@ -290,12 +310,14 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
         if new_revisions:
             self.html_field_history = history_revs
             type(self).objects.filter(pk=self.pk).update(
-                html_field_history=history_revs)
+                html_field_history=history_revs
+            )
 
         return write_result
 
-    def html_field_history_get_content_at_revision(self, field_name,
-                                                   revision_id):
+    def html_field_history_get_content_at_revision(
+        self, field_name, revision_id
+    ):
         """≙ ``html_field_history_get_content_at_revision`` (``:110-128``).
 
         Devuelve el contenido del campo restaurado a ``revision_id``.
@@ -317,8 +339,9 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
 
         return content
 
-    def html_field_history_get_comparison_at_revision(self, field_name,
-                                                      revision_id):
+    def html_field_history_get_comparison_at_revision(
+        self, field_name, revision_id
+    ):
         """≙ ``html_field_history_get_comparison_at_revision`` (``:130-145``).
 
         Comparación entre el contenido actual del campo y el restaurado a
@@ -333,12 +356,15 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
             field_name, revision_id
         )
 
-        return generate_comparison(restored_content,
-                                   getattr(self, field_name) or "")
+        return generate_comparison(
+            restored_content, getattr(self, field_name) or ""
+        )
 
-    def html_field_history_get_unified_diff_at_revision(self, field_name,
-                                                        revision_id):
-        """≙ ``html_field_history_get_unified_diff_at_revision`` (``:147-167``).
+    def html_field_history_get_unified_diff_at_revision(
+        self, field_name, revision_id
+    ):
+        """
+        ≙ ``html_field_history_get_unified_diff_at_revision`` (``:147-167``).
 
         *Unified diff* entre el contenido actual del campo y el restaurado a
         ``revision_id``.
@@ -352,5 +378,6 @@ class HtmlFieldHistoryMixin(models.DefaultGetMixin, models.Model):
             field_name, revision_id
         )
 
-        return generate_unified_diff(getattr(self, field_name) or "",
-                                     restored_content)
+        return generate_unified_diff(
+            getattr(self, field_name) or "", restored_content
+        )

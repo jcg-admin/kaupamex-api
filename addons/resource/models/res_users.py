@@ -25,6 +25,7 @@ Divergencias declaradas
    (mismo criterio que las ramas dependientes de external IDs ya
    documentadas en ``fleet``/``certificate``).
 """
+
 from addons.base.models import ResUsers
 
 

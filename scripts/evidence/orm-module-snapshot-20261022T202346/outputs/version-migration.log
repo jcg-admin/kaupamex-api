@@ -1,0 +1,36 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "forward": [
+    {
+      "name": "legacy_installed",
+      "version": "19.0.9.9",
+      "state": "installed",
+      "installed_version": null
+    },
+    {
+      "name": "legacy_pending",
+      "version": "19.0.2.0",
+      "state": "to install",
+      "installed_version": null
+    }
+  ],
+  "reverse_preserves_legacy_metadata": true,
+  "field_matches_model": true,
+  "history_backfilled": false,
+  "limits": "Real isolated AddField forward/reverse; not complete project migration graph acceptance"
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

@@ -1,0 +1,176 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control: original Json factory restored in memory only
+...................................FFF.....FFFFF.F                       [100%]
+=================================== FAILURES ===================================
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[compute] _
+
+self = <tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped object at 0x7ffa8c6f8860>
+attribute = 'compute'
+
+    @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
+    def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
+        """El control del control: si ``apply_source_defaults`` dejara de poner
+        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        universo más chico — verde por ausencia de sujeto, que es el
+        sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        attrs = apply_source_defaults(None, {})
+>       assert attribute in attrs, (
+            f'{attribute} ya no viaja en attrs: el control de no-estampado '
+            f'dejó de medirlo')
+E       AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E       assert 'compute' in {'declared_keys': frozenset(), 'store': True}
+
+tests/unit/orm/test_declared_source_vocabulary.py:178: AssertionError
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[inverse] _
+
+self = <tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped object at 0x7ffa8d9cc860>
+attribute = 'inverse'
+
+    @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
+    def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
+        """El control del control: si ``apply_source_defaults`` dejara de poner
+        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        universo más chico — verde por ausencia de sujeto, que es el
+        sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        attrs = apply_source_defaults(None, {})
+>       assert attribute in attrs, (
+            f'{attribute} ya no viaja en attrs: el control de no-estampado '
+            f'dejó de medirlo')
+E       AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E       assert 'inverse' in {'declared_keys': frozenset(), 'store': True}
+
+tests/unit/orm/test_declared_source_vocabulary.py:178: AssertionError
+_ TestTheClassDefaultIsNotStamped.test_the_universe_of_the_control_is_the_measured_one[precompute] _
+
+self = <tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped object at 0x7ffa8d9cc050>
+attribute = 'precompute'
+
+    @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
+    def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
+        """El control del control: si ``apply_source_defaults`` dejara de poner
+        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        universo más chico — verde por ausencia de sujeto, que es el
+        sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        attrs = apply_source_defaults(None, {})
+>       assert attribute in attrs, (
+            f'{attribute} ya no viaja en attrs: el control de no-estampado '
+            f'dejó de medirlo')
+E       AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E       assert 'precompute' in {'declared_keys': frozenset(), 'store': True}
+
+tests/unit/orm/test_declared_source_vocabulary.py:178: AssertionError
+___________ JsonDefaultTests.test_callable_none_missing_and_scalars ____________
+
+self = <tests.unit.orm.test_json_defaults.JsonDefaultTests testMethod=test_callable_none_missing_and_scalars>
+
+    def test_callable_none_missing_and_scalars(self):
+        self.assertIs(Json(default=dict).default, dict)
+        self.assertIsNone(Json(default=None, null=True).get_default())
+        self.assertFalse(Json().has_default())
+        for value in (False, 0, '', 2, 'value', [], [1, {'nested': []}]):
+            with self.subTest(value=value):
+                field = Json(default=value)
+                self.assertEqual(field.get_default(), value)
+>               self.assertEqual(field._check_default(), [])
+E               AssertionError: Lists differ: [<Warning: level=30, msg="JSONField defaul[226 chars]10'>] != []
+E               
+E               First list contains 1 additional elements.
+E               First extra element 0:
+E               <Warning: level=30, msg="JSONField default should be a callable instead of an instance so that it's not shared between all field instances.", hint='Use a callable instead, e.g., use `dict` instead of `{}`.', obj=<django.db.models.fields.json.JSONField>, id='fields.E010'>
+E               
+E               - [<Warning: level=30, msg="JSONField default should be a callable instead of an instance so that it's not shared between all field instances.", hint='Use a callable instead, e.g., use `dict` instead of `{}`.', obj=<django.db.models.fields.json.JSONField>, id='fields.E010'>]
+E               + []
+
+tests/unit/orm/test_json_defaults.py:65: AssertionError
+_________ JsonDefaultTests.test_deconstruct_and_clone_preserve_content _________
+
+self = <tests.unit.orm.test_json_defaults.JsonDefaultTests testMethod=test_deconstruct_and_clone_preserve_content>
+
+    def test_deconstruct_and_clone_preserve_content(self):
+        original = Json(default={'delete_messages': []})
+        _, path, args, kwargs = original.deconstruct()
+        for field in (import_string(path)(*args, **kwargs), original.clone()):
+            self.assertEqual(field.get_default(), {'delete_messages': []})
+>           self.assertIsNot(field.get_default(), field.get_default())
+E           AssertionError: unexpectedly identical: {'delete_messages': []}
+
+tests/unit/orm/test_json_defaults.py:55: AssertionError
+____________ JsonDefaultTests.test_default_checks_and_model_checks _____________
+
+self = <tests.unit.orm.test_json_defaults.JsonDefaultTests testMethod=test_default_checks_and_model_checks>
+
+    def test_default_checks_and_model_checks(self):
+        field = JsonDefaultModel._meta.get_field('history')
+>       self.assertEqual(field.check(), [])
+E       AssertionError: Lists differ: [<Warning: level=30, msg="JSONField defaul[235 chars]10'>] != []
+E       
+E       First list contains 1 additional elements.
+E       First extra element 0:
+E       <Warning: level=30, msg="JSONField default should be a callable instead of an instance so that it's not shared between all field instances.", hint='Use a callable instead, e.g., use `dict` instead of `{}`.', obj=<django.db.models.fields.json.JSONField: history>, id='fields.E010'>
+E       
+E       - [<Warning: level=30, msg="JSONField default should be a callable instead of an instance so that it's not shared between all field instances.", hint='Use a callable instead, e.g., use `dict` instead of `{}`.', obj=<django.db.models.fields.json.JSONField: history>, id='fields.E010'>]
+E       + []
+
+tests/unit/orm/test_json_defaults.py:35: AssertionError
+___ JsonDefaultTests.test_migration_serialization_recreates_isolated_default ___
+
+self = <tests.unit.orm.test_json_defaults.JsonDefaultTests testMethod=test_migration_serialization_recreates_isolated_default>
+
+    def test_migration_serialization_recreates_isolated_default(self):
+        field = Json(default={'delete_messages': []})
+        serialized, imports = MigrationWriter.serialize(field)
+        namespace = {}
+        for statement in imports:
+            exec(statement, namespace)
+        restored = eval(serialized, namespace)
+        first, second = restored.get_default(), restored.get_default()
+        first['delete_messages'].append('changed')
+>       self.assertEqual(second, {'delete_messages': []})
+E       AssertionError: {'delete_messages': ['changed']} != {'delete_messages': []}
+E       - {'delete_messages': ['changed']}
+E       ?                      ---------
+E       
+E       + {'delete_messages': []}
+
+tests/unit/orm/test_json_defaults.py:47: AssertionError
+________ JsonDefaultTests.test_models_have_independent_nested_defaults _________
+
+self = <tests.unit.orm.test_json_defaults.JsonDefaultTests testMethod=test_models_have_independent_nested_defaults>
+
+    def test_models_have_independent_nested_defaults(self):
+        first, second = JsonDefaultModel(), JsonDefaultModel()
+        self.assertEqual(first.history, {'delete_messages': []})
+>       self.assertIsNot(first.history, second.history)
+E       AssertionError: unexpectedly identical: {'delete_messages': []}
+
+tests/unit/orm/test_json_defaults.py:27: AssertionError
+________ JsonDefaultTests.test_related_and_store_metadata_are_preserved ________
+
+self = <tests.unit.orm.test_json_defaults.JsonDefaultTests testMethod=test_related_and_store_metadata_are_preserved>
+
+    def test_related_and_store_metadata_are_preserved(self):
+        for stored in (False, True):
+            with self.subTest(store=stored):
+                field = Json(related='parent.history', store=stored,
+                             default={'delete_messages': []})
+                self.assertEqual(field.related, 'parent.history')
+                self.assertEqual(field.store, stored)
+                self.assertEqual(field.get_default(), {'delete_messages': []})
+>               self.assertIsNot(field.get_default(), field.get_default())
+E               AssertionError: unexpectedly identical: {'delete_messages': []}
+
+tests/unit/orm/test_json_defaults.py:80: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[compute]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[inverse]
+FAILED tests/unit/orm/test_declared_source_vocabulary.py::TestTheClassDefaultIsNotStamped::test_the_universe_of_the_control_is_the_measured_one[precompute]
+FAILED tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_callable_none_missing_and_scalars
+FAILED tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_deconstruct_and_clone_preserve_content
+FAILED tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_default_checks_and_model_checks
+FAILED tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_migration_serialization_recreates_isolated_default
+FAILED tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_models_have_independent_nested_defaults
+FAILED tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_related_and_store_metadata_are_preserved
+9 failed, 41 passed in 0.13s

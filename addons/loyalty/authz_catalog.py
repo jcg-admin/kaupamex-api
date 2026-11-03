@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``vouchers`` — ``loyalty`` dueña cupones y programas.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

@@ -74,7 +74,8 @@ Divergencias declaradas
 
 4. **``session_info``/``get_frontend_session_info`` no extienden a ``web``.**
    La fuente los extiende por ``_inherit`` sobre ``ir.http``. Aquí el
-   productor equivalente es ``web.controllers.session.build_session_info(user)``,
+   productor equivalente es
+   ``web.controllers.session.build_session_info(user)``,
    una **función de módulo**: extenderla desde este addon exigiría que
    ``web`` conociera a ``authz_timeout``, invirtiendo la dependencia. Los dos
    símbolos se portan y su consumidor es ``GET /api/v2/authz/timeout/``, que
@@ -110,6 +111,7 @@ Divergencias declaradas
    reto de WebAuthn vive en la sesión y ``PasskeyKey._verify_auth`` lo recibe
    explícito, donde la fuente lo lee de un hilo-local.
 """
+
 import logging
 import re
 import time
@@ -128,10 +130,10 @@ _logger = logging.getLogger(__name__)
 
 #: Claves de sesión — verbatim de la fuente, para que el vocabulario del
 #: almacén sea el mismo que el de la referencia y un diagnóstico cruce.
-SESSION_CREATE_TIME = 'create_time'          # ≙ ``:52``
-SESSION_CHECK_NEXT = 'identity-check-next'   # ≙ ``:56``
-SESSION_CHECK_1FA = 'identity-check-1fa'     # ≙ ``:70``
-SESSION_CHECK_LAST = 'identity-check-last'   # ≙ ``:115``
+SESSION_CREATE_TIME = 'create_time'  # ≙ ``:52``
+SESSION_CHECK_NEXT = 'identity-check-next'  # ≙ ``:56``
+SESSION_CHECK_1FA = 'identity-check-1fa'  # ≙ ``:70``
+SESSION_CHECK_LAST = 'identity-check-last'  # ≙ ``:115``
 
 
 def stamp_session_create_time(sender, request, user, **kwargs):
@@ -171,14 +173,28 @@ def _must_check_identity(request):
     first_inactivity = inactivity[0][0] if inactivity else 0
     ejes = (
         ('lock_timeout', 'logout', SESSION_CREATE_TIME, 0, 0),
-        ('lock_timeout_inactivity', 'check_identity', SESSION_CHECK_NEXT,
-         None, first_inactivity),
+        (
+            'lock_timeout_inactivity',
+            'check_identity',
+            SESSION_CHECK_NEXT,
+            None,
+            first_inactivity,
+        ),
     )
-    for timeout_type, reauth_type, session_key, key_default, first_timeout in ejes:
+    for (
+        timeout_type,
+        reauth_type,
+        session_key,
+        key_default,
+        first_timeout,
+    ) in ejes:
         for timeout, mfa in reversed(timeouts.get(timeout_type) or []):
             threshold = time.time() - timeout
             timestamp = session.get(session_key, key_default)
-            if timestamp is not None and timestamp - first_timeout <= threshold:
+            if (
+                timestamp is not None
+                and timestamp - first_timeout <= threshold
+            ):
                 res = {reauth_type: True, 'mfa': mfa}
                 if mfa:
                     first_fa = session.get(SESSION_CHECK_1FA)
@@ -191,7 +207,9 @@ def _must_check_identity(request):
 
 
 def _check_credential(user, credential, request):
-    """≙ ``user._check_credentials(credential, {"interactive": True})`` (``:105``).
+    """
+    ≙ ``user._check_credentials(credential, {"interactive": True})``
+    (``:105``).
 
     **Envoltorio de traducción, no despachador** — divergencia 6. El despacho
     por tipo lo hace la cadena de ``_check_credentials`` sobre ``res.users``:
@@ -207,12 +225,14 @@ def _check_credential(user, credential, request):
     """
     try:
         return user._check_credentials(
-            credential, {'interactive': True, 'request': request})
+            credential, {'interactive': True, 'request': request}
+        )
     except AccessDenied:
         # La fuente deja escapar ``AccessDenied`` y su despachador la
         # convierte en respuesta. Aquí sería un 500: es un ``UserError`` de la
         # fachada, no una ``APIException``, así que el manejador de DRF no la
-        # conoce. La vista sella el ``None`` como 401 ``CHECK_IDENTITY_FAILED``.
+        # conoce. La vista sella el ``None`` como 401
+        # ``CHECK_IDENTITY_FAILED``.
         return None
 
 
@@ -232,8 +252,11 @@ def _check_identity(request, credential):
     if not credential:
         if first_fa and first_fa in auth_methods:
             auth_methods.remove(first_fa)
-        return {'user_id': user.pk, 'login': user.login,
-                'auth_methods': auth_methods}
+        return {
+            'user_id': user.pk,
+            'login': user.login,
+            'auth_methods': auth_methods,
+        }
 
     if credential.get('type') in ('totp', 'totp_mail'):
         credential['token'] = int(re.sub(r'\s', '', str(credential['token'])))
@@ -244,8 +267,11 @@ def _check_identity(request, credential):
 
     if first_fa and first_fa != auth['auth_method']:
         request.session.pop(SESSION_CHECK_1FA, None)
-    elif (auth['mfa'] != 'skip' and len(auth_methods) > 1
-            and check_identity.get('mfa')):
+    elif (
+        auth['mfa'] != 'skip'
+        and len(auth_methods) > 1
+        and check_identity.get('mfa')
+    ):
         request.session[SESSION_CHECK_1FA] = (time.time(), credential['type'])
         auth_methods.remove(credential['type'])
         return {'mfa': True, 'auth_methods': auth_methods}
@@ -273,10 +299,14 @@ def _set_session_inactivity(request, inactivity_period=0, force=False):
     inactive = timeout and (force or inactivity_period >= timeout)
     if inactive:
         next_check = time.time() + timeout - inactivity_period
-        if (not session.get(SESSION_CHECK_NEXT)
-                or next_check < session[SESSION_CHECK_NEXT]):
+        if (
+            not session.get(SESSION_CHECK_NEXT)
+            or next_check < session[SESSION_CHECK_NEXT]
+        ):
             session[SESSION_CHECK_NEXT] = next_check
-    elif (timestamp := session.get(SESSION_CHECK_NEXT)) and timestamp > time.time():
+    elif (
+        timestamp := session.get(SESSION_CHECK_NEXT)
+    ) and timestamp > time.time():
         session.pop(SESSION_CHECK_NEXT)
 
 
@@ -300,14 +330,16 @@ def _authenticate(request, view_func):
         return
     if must_check_identity.get('logout'):
         raise SessionLockExpired()
-    if (_view_declares_check_identity(view_func)
-            and must_check_identity.get('check_identity')):
+    if _view_declares_check_identity(view_func) and must_check_identity.get(
+        'check_identity'
+    ):
         methods = request.user._get_auth_methods()
         first_fa = must_check_identity.get('1fa')
         if first_fa and first_fa in methods:
             methods.remove(first_fa)
         raise CheckIdentityRequired(
-            auth_methods=methods, mfa=must_check_identity.get('mfa'))
+            auth_methods=methods, mfa=must_check_identity.get('mfa')
+        )
 
 
 def _view_declares_check_identity(view_func):
@@ -326,11 +358,13 @@ def _view_declares_check_identity(view_func):
     """
     declared = getattr(view_func, 'check_identity', None)
     if declared is None:
-        declared = getattr(getattr(view_func, 'cls', None),
-                           'check_identity', None)
+        declared = getattr(
+            getattr(view_func, 'cls', None), 'check_identity', None
+        )
     if declared is None:
-        declared = getattr(getattr(view_func, 'view_class', None),
-                           'check_identity', None)
+        declared = getattr(
+            getattr(view_func, 'view_class', None), 'check_identity', None
+        )
     return True if declared is None else bool(declared)
 
 

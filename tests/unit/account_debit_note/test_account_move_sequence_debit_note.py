@@ -1,6 +1,7 @@
 """Contrato de los dos ganchos de numeración — ≙ ``_get_starting_sequence``/
 ``_get_last_sequence_domain`` de ``odoo19c: addons/account_debit_note/
-models/account_move.py`` (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``).
+models/account_move.py``
+(``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``).
 
 Extiende el mecanismo que ``tests/unit/account/test_account_move_sequence.py``
 ya fija para ``AccountMove.post()`` — aquí sólo lo que ``account_debit_note``
@@ -14,6 +15,7 @@ tablas de ``JournalDebitSequence``/``AccountMoveDebitNote``. Los ganchos de
 aquí se invocan explícitamente una vez (idempotente — ver el docstring de
 ``account_move_sequence.py``).
 """
+
 from decimal import Decimal
 
 import pytest
@@ -25,7 +27,9 @@ from addons.account.models import (
     AccountMove,
     AccountMoveLine,
 )
-from addons.account_debit_note.models.account_journal import JournalDebitSequence
+from addons.account_debit_note.models.account_journal import (
+    JournalDebitSequence,
+)
 from addons.account_debit_note.models.account_move import AccountMoveDebitNote
 from addons.account_debit_note.models.account_move_sequence import (
     apply_account_debit_note_extensions,
@@ -45,20 +49,34 @@ def company(db):
 @pytest.fixture
 def setup(db, company):
     journal = AccountJournal.objects.create(
-        name='Ventas', code='VEN', type='sale', company=company)
+        name='Ventas', code='VEN', type='sale', company=company
+    )
     receivable = AccountAccount.objects.create(
-        code='105', name='Clientes', account_type='asset_receivable',
-        company=company)
+        code='105',
+        name='Clientes',
+        account_type='asset_receivable',
+        company=company,
+    )
     income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company)
+        code='401', name='Ventas', account_type='income', company=company
+    )
     return company, journal, receivable, income
 
 
-def _balanced(company, journal, receivable, income,
-              move_type='out_invoice', amount=Decimal('100.00')):
+def _balanced(
+    company,
+    journal,
+    receivable,
+    income,
+    move_type='out_invoice',
+    amount=Decimal('100.00'),
+):
     move = AccountMove.objects.create(
-        move_type=move_type, date=timezone.now().date(),
-        journal=journal, company=company)
+        move_type=move_type,
+        date=timezone.now().date(),
+        journal=journal,
+        company=company,
+    )
     AccountMoveLine.objects.create(move=move, account=receivable, debit=amount)
     AccountMoveLine.objects.create(move=move, account=income, credit=amount)
     return move
@@ -113,9 +131,9 @@ class TestWithDedicatedSequence:
         serie (2), no la de la nota de débito (1)."""
         company, journal, receivable, income = setup
         origin = _balanced(*setup)
-        origin.post()                                     # INV/.../00001
+        origin.post()  # INV/.../00001
         debit_note = _debit_note(setup, origin)
-        debit_note.post()                                  # DINV/.../00001
+        debit_note.post()  # DINV/.../00001
 
         invoice_2 = _balanced(*setup)
         invoice_2.post()
@@ -138,12 +156,16 @@ class TestWithDedicatedSequence:
 
 
 class TestWithoutDedicatedSequence:
-    def test_debit_note_shares_the_series_when_the_journal_opts_out(self, setup):
+    def test_debit_note_shares_the_series_when_the_journal_opts_out(
+        self, setup
+    ):
         company, journal, receivable, income = setup
-        JournalDebitSequence.objects.create(journal=journal, debit_sequence=False)
+        JournalDebitSequence.objects.create(
+            journal=journal, debit_sequence=False
+        )
 
         origin = _balanced(*setup)
-        origin.post()                                      # INV/.../00001
+        origin.post()  # INV/.../00001
         debit_note = _debit_note(setup, origin)
         debit_note.post()
         debit_note.refresh_from_db()

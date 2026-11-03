@@ -4,7 +4,8 @@ La referencia tiene **25** archivos además del ``__init__``. Portados hasta
 ahora, con lo que aporta cada uno:
 
 - ``product_attribute.py`` · ``product_attribute_value.py`` ·
-  ``product_template_attribute_line.py`` · ``product_template_attribute_value.py``
+  ``product_template_attribute_line.py`` ·
+  ``product_template_attribute_value.py``
   — atributos reutilizables entre productos, valores por-producto
   (``price_extra``) y la generación cartesiana de combinaciones.
 - ``product_category.py`` → ``ProductCategory``, el árbol de categorías con su
@@ -52,6 +53,7 @@ La lista de pendientes de arriba nombraba ``product_pricelist{,_item}``,
 es el defecto de cita rancia que H-API-149 fijó como barrido obligatorio, y
 un índice es justo donde más engaña. Se corrige al registrar la tarifa.
 """
+
 from addons.product.models.product_attribute import ProductAttribute
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 from addons.product.models.product_category import ProductCategory

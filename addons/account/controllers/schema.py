@@ -9,8 +9,12 @@ una sola vez, donde vive el dominio.
 """
 
 SPECTACULAR_TAGS = [
-    {'name': 'finance',
-     'description': 'Movimientos financieros y sus asistentes: registro de '
-                    'pago (abono/liquidación total), cheques prenumerados, '
-                    'notas de débito, recálculo de casillas fiscales.'},
+    {
+        'name': 'finance',
+        'description': (
+            'Movimientos financieros y sus asistentes: registro de '
+            'pago (abono/liquidación total), cheques prenumerados, '
+            'notas de débito, recálculo de casillas fiscales.'
+        ),
+    },
 ]

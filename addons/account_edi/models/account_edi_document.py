@@ -1,4 +1,6 @@
-r"""``account.edi.document`` — el documento EDI de un asiento (Odoo ``account_edi``).
+r"""
+``account.edi.document`` — el documento EDI de un asiento (Odoo
+``account_edi``).
 
 Adaptación de ``addons/account_edi/models/account_edi_document.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, ``odoo19c:``,
@@ -95,6 +97,7 @@ Sin ``@api.depends`` reactivo
 reactivamente ante cambios de ``move_id``/``error``/``state`` — mismo criterio
 DEC-SALE-01 que el resto de este puerto.
 """
+
 import base64
 import logging
 
@@ -133,7 +136,8 @@ def lock_for_update(queryset):
     except OperationalError as error:
         raise LockError(
             'Otra transacción ya bloqueó estas filas; no se puede procesar '
-            'ahora.') from error
+            'ahora.'
+        ) from error
 
 
 class AccountEdiDocument(models.Model):
@@ -159,34 +163,52 @@ class AccountEdiDocument(models.Model):
 
     # == Campos almacenados ==
     move_id = fields.Many2one(
-        'account.AccountMove', on_delete=models.CASCADE, db_index=True,
+        'account.AccountMove',
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
         related_name='edi_document_ids',
-        help_text='Asiento contable (Odoo move_id, requerido). related_name '
-                  'da a account.move el M2O inverso sin tocar su archivo.',
+        help_text=(
+            'Asiento contable (Odoo move_id, requerido). related_name '
+            'da a account.move el M2O inverso sin tocar su archivo.'
+        ),
         db_column='move_id',
     )
     edi_format_id = fields.Many2one(
-        AccountEdiFormat, on_delete=models.PROTECT, related_name='documents',
+        AccountEdiFormat,
+        null=False, on_delete=models.PROTECT,
+        related_name='documents',
         help_text='Formato EDI (Odoo edi_format_id, requerido).',
         db_column='edi_format_id',
     )
     attachment_id = fields.Many2one(
-        'base.IrAttachment', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.IrAttachment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='edi_documents',
-        help_text='Archivo generado por edi_format al postear el asiento '
-                  '(Odoo attachment_id).',
+        help_text=(
+            'Archivo generado por edi_format al postear el asiento '
+            '(Odoo attachment_id).'
+        ),
         db_column='attachment_id',
     )
     state = fields.Selection(
-        max_length=9, choices=STATES, blank=True, default='',
+        max_length=9,
+        choices=STATES,
+        blank=True,
+        default='',
         help_text='Odoo state.',
     )
     error = fields.Html(
-        blank=True, default='',
+        blank=True,
+        default='',
         help_text='Texto del último error EDI (Odoo error).',
     )
     blocking_level = fields.Selection(
-        max_length=7, choices=BLOCKING_LEVELS, blank=True, default='',
+        max_length=7,
+        choices=BLOCKING_LEVELS,
+        blank=True,
+        default='',
         help_text='Severidad del bloqueo (Odoo blocking_level).',
     )
 
@@ -198,7 +220,8 @@ class AccountEdiDocument(models.Model):
             # ≙ ``_unique_edi_document_by_move_by_format``
             # (``odoo19c: account_edi_document.py:38-41``).
             models.UniqueConstraint(
-                fields=['edi_format_id', 'move_id'], name='uniq_edi_doc_move_format',
+                fields=['edi_format_id', 'move_id'],
+                name='uniq_edi_doc_move_format',
             ),
         ]
 
@@ -242,7 +265,8 @@ class AccountEdiDocument(models.Model):
         raise NotImplementedError(
             'action_export_xml es una acción del cliente web de Odoo; '
             'este stack expone el contenido vía un endpoint REST propio, '
-            'fuera del alcance de este porte.')
+            'fuera del alcance de este porte.'
+        )
 
     @classmethod
     def _prepare_jobs(cls, documents):
@@ -254,24 +278,34 @@ class AccountEdiDocument(models.Model):
         """
         to_process = {}
         for state, edi_flow in (('to_send', 'post'), ('to_cancel', 'cancel')):
-            batch = [d for d in documents
-                     if d.state == state and d.blocking_level != 'error']
+            batch = [
+                d
+                for d in documents
+                if d.state == state and d.blocking_level != 'error'
+            ]
             for edi_doc in batch:
                 edi_format = edi_doc.edi_format_id
                 move = edi_doc.move_id
-                move_applicability = edi_format._get_move_applicability(move) or {}
+                move_applicability = (
+                    edi_format._get_move_applicability(move) or {}
+                )
 
                 batching_key = [edi_format.pk, state, move.company_id]
                 custom_batching_key = f'{edi_flow}_batching'
                 if move_applicability.get(custom_batching_key):
-                    batching_key += list(move_applicability[custom_batching_key](move))
+                    batching_key += list(
+                        move_applicability[custom_batching_key](move)
+                    )
                 else:
                     batching_key.append(move.pk)
 
-                job = to_process.setdefault(tuple(batching_key), {
-                    'documents': [],
-                    'method_to_call': move_applicability.get(edi_flow),
-                })
+                job = to_process.setdefault(
+                    tuple(batching_key),
+                    {
+                        'documents': [],
+                        'method_to_call': move_applicability.get(edi_flow),
+                    },
+                )
                 job['documents'].append(edi_doc)
 
         return list(to_process.values())
@@ -284,6 +318,7 @@ class AccountEdiDocument(models.Model):
         ``mail.thread``) no tiene contraparte — se omite; el resto se
         porta símbolo a símbolo.
         """
+
         def _postprocess_post_edi_results(documents, edi_result):
             attachments_to_unlink = []
             for document in documents:
@@ -293,7 +328,11 @@ class AccountEdiDocument(models.Model):
                     old_attachment = document.attachment_id
                     document.attachment_id = move_result['attachment']
                     document.save(update_fields=['attachment_id'])
-                    if old_attachment and not old_attachment.res_model and not old_attachment.res_id:
+                    if (
+                        old_attachment
+                        and not old_attachment.res_model
+                        and not old_attachment.res_id
+                    ):
                         attachments_to_unlink.append(old_attachment)
                 if move_result.get('success') is True:
                     document.state = 'sent'
@@ -302,9 +341,15 @@ class AccountEdiDocument(models.Model):
                 else:
                     document.error = move_result.get('error') or ''
                     document.blocking_level = (
-                        move_result.get('blocking_level', DEFAULT_BLOCKING_LEVEL)
-                        if 'error' in move_result else '')
-                document.save(update_fields=['state', 'error', 'blocking_level'])
+                        move_result.get(
+                            'blocking_level', DEFAULT_BLOCKING_LEVEL
+                        )
+                        if 'error' in move_result
+                        else ''
+                    )
+                document.save(
+                    update_fields=['state', 'error', 'blocking_level']
+                )
 
             # Los adjuntos sin traceability a un modelo de negocio se
             # pueden retirar — ≙ el mismo criterio de la referencia.
@@ -323,21 +368,37 @@ class AccountEdiDocument(models.Model):
                     document.error = ''
                     document.attachment_id = None
                     document.blocking_level = ''
-                    document.save(update_fields=['state', 'error', 'attachment_id', 'blocking_level'])
+                    document.save(
+                        update_fields=[
+                            'state',
+                            'error',
+                            'attachment_id',
+                            'blocking_level',
+                        ]
+                    )
 
                     if move.state == 'posted' and all(
-                        d.state == 'cancelled' or not d.edi_format_id._needs_web_services()
+                        d.state == 'cancelled'
+                        or not d.edi_format_id._needs_web_services()
                         for d in move.edi_document_ids.all()
                     ):
                         move_ids_to_cancel.add(move.pk)
 
-                    if old_attachment and not old_attachment.res_model and not old_attachment.res_id:
+                    if (
+                        old_attachment
+                        and not old_attachment.res_model
+                        and not old_attachment.res_id
+                    ):
                         attachments_to_unlink.append(old_attachment)
                 else:
                     document.error = move_result.get('error') or ''
                     document.blocking_level = (
-                        move_result.get('blocking_level', DEFAULT_BLOCKING_LEVEL)
-                        if move_result.get('error') else '')
+                        move_result.get(
+                            'blocking_level', DEFAULT_BLOCKING_LEVEL
+                        )
+                        if move_result.get('error')
+                        else ''
+                    )
                     document.save(update_fields=['error', 'blocking_level'])
 
             if move_ids_to_cancel:
@@ -348,7 +409,9 @@ class AccountEdiDocument(models.Model):
                 # ``button_draft`` (medido: 0 hits en
                 # ``addons/account/models/account_move.py``) — sólo el
                 # segundo paso tiene contraparte real.
-                for move in AccountMove.objects.filter(pk__in=move_ids_to_cancel):
+                for move in AccountMove.objects.filter(
+                    pk__in=move_ids_to_cancel
+                ):
                     move.button_cancel()
 
             for attachment in attachments_to_unlink:
@@ -356,7 +419,8 @@ class AccountEdiDocument(models.Model):
 
         documents = job['documents']
         method_to_call = job['method_to_call'] or (
-            lambda moves: {move: {'success': True} for move in moves})
+            lambda moves: {move: {'success': True} for move in moves}
+        )
 
         edi_formats = {d.edi_format_id for d in documents}
         companies = {d.move_id.company_id for d in documents}
@@ -364,7 +428,8 @@ class AccountEdiDocument(models.Model):
         if len(edi_formats) != 1 or len(companies) != 1 or len(states) != 1:
             raise ValueError(
                 'Todos los documentos de un job deben compartir formato, '
-                'empresa y estado.')
+                'empresa y estado.'
+            )
 
         state = documents[0].state
         moves = list({d.move_id for d in documents})
@@ -378,12 +443,16 @@ class AccountEdiDocument(models.Model):
     @classmethod
     def _process_documents_no_web_services(cls, documents):
         """≙ ``_process_documents_no_web_services`` (``odoo19c: :154-158``)."""
-        batch = [d for d in documents if not d.edi_format_id._needs_web_services()]
+        batch = [
+            d for d in documents if not d.edi_format_id._needs_web_services()
+        ]
         for job in cls._prepare_jobs(batch):
             cls._process_job(job)
 
     @classmethod
-    def _process_documents_web_services(cls, documents, job_count=None, with_commit=True):
+    def _process_documents_web_services(
+        cls, documents, job_count=None, with_commit=True
+    ):
         """≙ ``_process_documents_web_services`` (``odoo19c: :160-186``).
 
         ``self.env.cr.commit()`` por lote → cada job corre dentro de su
@@ -398,24 +467,39 @@ class AccountEdiDocument(models.Model):
             documents_in_job = job['documents']
             move_ids = {d.move_id for d in documents_in_job}
             attachment_ids = {
-                d.attachment_id for d in documents_in_job
-                if d.attachment_id_id and not d.attachment_id.res_model and not d.attachment_id.res_id
+                d.attachment_id
+                for d in documents_in_job
+                if d.attachment_id_id
+                and not d.attachment_id.res_model
+                and not d.attachment_id.res_id
             }
             try:
                 with transaction.atomic():
-                    lock_for_update(cls.objects.filter(pk__in=[d.pk for d in documents_in_job]))
-                    lock_for_update(AccountMove.objects.filter(pk__in=move_ids))
+                    lock_for_update(
+                        cls.objects.filter(
+                            pk__in=[d.pk for d in documents_in_job]
+                        )
+                    )
+                    lock_for_update(
+                        AccountMove.objects.filter(pk__in=move_ids)
+                    )
                     if attachment_ids:
-                        lock_for_update(IrAttachment.objects.filter(pk__in=attachment_ids))
+                        lock_for_update(
+                            IrAttachment.objects.filter(pk__in=attachment_ids)
+                        )
                     cls._process_job(job)
             except LockError:
                 _logger.debug(
                     'Otra transacción ya bloqueó estos documentos; se '
-                    'omite este job.')
+                    'omite este job.'
+                )
                 if not with_commit:
-                    raise UserError(_(
-                        'This document is being sent by another process '
-                        'already. ')) from None
+                    raise UserError(
+                        _(
+                            'This document is being sent by another process '
+                            'already. '
+                        )
+                    ) from None
                 continue
 
         return len(all_jobs) - len(jobs_to_process)
@@ -425,17 +509,22 @@ class AccountEdiDocument(models.Model):
         """≙ ``_cron_process_documents_web_services`` (``odoo19c: :188-198``),
         parcial declarado: el disparo del cron al final queda bloqueado (ver
         el docstring del módulo)."""
-        edi_documents = list(cls.objects.filter(
-            state__in=('to_send', 'to_cancel'),
-            move_id__state='posted',
-        ).exclude(blocking_level='error'))
+        edi_documents = list(
+            cls.objects.filter(
+                state__in=('to_send', 'to_cancel'),
+                move_id__state='posted',
+            ).exclude(blocking_level='error')
+        )
         nb_remaining_jobs = cls._process_documents_web_services(
-            edi_documents, job_count=job_count)
+            edi_documents, job_count=job_count
+        )
         if nb_remaining_jobs > 0:
             _logger.info(
                 'account_edi: quedan %s jobs por procesar; el cron '
                 '(bloqueado, sin sembrar) los recogería en la próxima '
-                'corrida — ver el docstring del módulo.', nb_remaining_jobs)
+                'corrida — ver el docstring del módulo.',
+                nb_remaining_jobs,
+            )
         return nb_remaining_jobs
 
     def _filter_edi_attachments_for_mailing(self):

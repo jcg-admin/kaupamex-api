@@ -1,0 +1,85 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+________________ test_empty_or_wildcard_does_not_query[names0] _________________
+
+names = []
+
+    @pytest.mark.parametrize('names', [[], ['all'], ['all', 'all']])
+    def test_empty_or_wildcard_does_not_query(names):
+        cursor = mock.Mock()
+>       assert loading._check_module_names(cursor, names) is None
+E       AttributeError: module 'modules.loading' has no attribute '_check_module_names'
+
+tests/unit/modules/test_loading_names.py:12: AttributeError
+________________ test_empty_or_wildcard_does_not_query[names1] _________________
+
+names = ['all']
+
+    @pytest.mark.parametrize('names', [[], ['all'], ['all', 'all']])
+    def test_empty_or_wildcard_does_not_query(names):
+        cursor = mock.Mock()
+>       assert loading._check_module_names(cursor, names) is None
+E       AttributeError: module 'modules.loading' has no attribute '_check_module_names'
+
+tests/unit/modules/test_loading_names.py:12: AttributeError
+________________ test_empty_or_wildcard_does_not_query[names2] _________________
+
+names = ['all', 'all']
+
+    @pytest.mark.parametrize('names', [[], ['all'], ['all', 'all']])
+    def test_empty_or_wildcard_does_not_query(names):
+        cursor = mock.Mock()
+>       assert loading._check_module_names(cursor, names) is None
+E       AttributeError: module 'modules.loading' has no attribute '_check_module_names'
+
+tests/unit/modules/test_loading_names.py:12: AttributeError
+_____________ test_known_duplicates_and_generator_are_not_reported _____________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fcf1d26e8a0>
+
+    def test_known_duplicates_and_generator_are_not_reported(caplog):
+        cursor = mock.Mock()
+        cursor.fetchone.return_value = (2,)
+        assert loading._check_module_names(
+>           cursor, (name for name in ['base', 'all', 'sale', 'base'])) is None
+E       AttributeError: module 'modules.loading' has no attribute '_check_module_names'
+
+tests/unit/modules/test_loading_names.py:20: AttributeError
+______________ test_unknown_names_are_warned_once_without_writes _______________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fcf1d26f740>
+
+    def test_unknown_names_are_warned_once_without_writes(caplog):
+        cursor = mock.Mock()
+        cursor.fetchone.return_value = (1,)
+        cursor.fetchall.return_value = [('base',), ('stock',)]
+        assert loading._check_module_names(
+>           cursor, ['base', 'unknown_contract', 'unknown_contract', 'all']) is None
+E       AttributeError: module 'modules.loading' has no attribute '_check_module_names'
+
+tests/unit/modules/test_loading_names.py:33: AttributeError
+_______________________ test_catalogue_errors_propagate ________________________
+
+    def test_catalogue_errors_propagate():
+        cursor = mock.Mock()
+        cursor.execute.side_effect = RuntimeError('catalogue unavailable')
+        with pytest.raises(RuntimeError, match='catalogue unavailable'):
+>           loading._check_module_names(cursor, ['base'])
+E           AttributeError: module 'modules.loading' has no attribute '_check_module_names'
+
+tests/unit/modules/test_loading_names.py:44: AttributeError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_loading_names.py::test_empty_or_wildcard_does_not_query[names0]
+FAILED tests/unit/modules/test_loading_names.py::test_empty_or_wildcard_does_not_query[names1]
+FAILED tests/unit/modules/test_loading_names.py::test_empty_or_wildcard_does_not_query[names2]
+FAILED tests/unit/modules/test_loading_names.py::test_known_duplicates_and_generator_are_not_reported
+FAILED tests/unit/modules/test_loading_names.py::test_unknown_names_are_warned_once_without_writes
+FAILED tests/unit/modules/test_loading_names.py::test_catalogue_errors_propagate
+6 failed, 1 warning in 0.14s

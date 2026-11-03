@@ -1,0 +1,43 @@
+{
+  "alternatives": {
+    "A_central_provider": {
+      "identity": "Existing session/task PK and stable citations preserved; host storage != functional ownership",
+      "integrity": "Cross-Consumer relations in same DB; selected JSON/text deps still require reconciliation",
+      "availability": "Provider/store shared dependency; offline access not automatically solved",
+      "concurrency": "WAL + native writer/claims; locks and contention remain",
+      "recovery_backup": "Consistent DB+WAL backup via official mechanism, generation/head/evidence match; no backup executed here",
+      "portability": "Generic explicit resolver supported; avoid sibling Docs assumption",
+      "migration_reversibility": "Keep current physical layout until authorized mapping/rollback rehearsed",
+      "performance": "No benchmark; do not infer from fewer files",
+      "security": "Logical scoping/access policy needed; SQLite path alone not tenant isolation",
+      "history": "Retain board session, citation, layer citation, owner/status, claims/ref/source"
+    },
+    "B_per_project": {
+      "identity": "Needs global citation mapping and cross-project resolver; never restart numbering",
+      "integrity": "Cross-store dependencies/finding/session refs need tested federation or journal semantics",
+      "availability": "Improves independent local availability only if authoritative copies are defined; sync is nontrivial",
+      "concurrency": "Separate writers may reduce contention but introduce cross-store races",
+      "recovery_backup": "Multiple coordinated backups and proven restore horizon needed",
+      "portability": "Project carries its state; Provider must still run generically",
+      "migration_reversibility": "Physical split forbidden now; reversible identity/dependency map and compare read sets first",
+      "performance": "Not benchmarked; duplication/join overhead unknown",
+      "security": "Filesystem separation alone does not establish authorization",
+      "history": "Preserve all IDs, evidence refs, claims, statuses and history, including missing/unknown cases"
+    },
+    "C_logical_consumer": {
+      "identity": "Represent functional ownership and repository refs through existing metadata/interfaces where sufficient, without new fields now",
+      "integrity": "Keep current store and cross-Consumer relationships; validate scope and no lossy projection",
+      "availability": "Does not by itself eliminate central operational availability dependency",
+      "concurrency": "Use current WAL/claim/continuation contracts, qualify scope collisions",
+      "recovery_backup": "Current physical backup + versioned logical ownership definitions, no duplicate operational states",
+      "portability": "Consumer name/root/config generic; owner repository need not equal Provider storage root",
+      "migration_reversibility": "Preferred design direction C with present A topology, subject to approved authority; compare projections and rollback before adoption",
+      "performance": "No performance claim; require comparable workload before topology decision",
+      "security": "Ownership semantics/access controls remain required and unqualified",
+      "history": "Keep stable identities and historical fields; proposed English dimensions remain conceptual"
+    }
+  },
+  "recommendation": "C logical functional ownership while retaining A current physical topology; proposal only, not approved or migrated. B requires demonstrated independent-storage need and compatible federation.",
+  "approved_api_task_definition_destination": "not_verified: existing Docs and local AGENTS still govern until legitimate authority change",
+  "no_schema_or_store_writes": true
+}

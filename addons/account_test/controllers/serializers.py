@@ -1,7 +1,10 @@
 """Serializers — ``addons.account_test``."""
+
 from rest_framework import serializers
 
-from addons.account_test.models.accounting_assert_test import AccountingAssertTest
+from addons.account_test.models.accounting_assert_test import (
+    AccountingAssertTest,
+)
 
 
 class AccountingAssertTestSerializer(serializers.ModelSerializer):
@@ -29,11 +32,15 @@ class AccountingAssertTestRunResultSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
     passed = serializers.BooleanField(
-        help_text='True si `result` vino vacío tras ejecutar `code_exec` '
-                  '(≙ el mensaje de éxito por defecto de la referencia).',
+        help_text=(
+            'True si `result` vino vacío tras ejecutar `code_exec` '
+            '(≙ el mensaje de éxito por defecto de la referencia).'
+        ),
     )
     result = serializers.ListField(
         child=serializers.CharField(),
-        help_text='Una línea por fila de `result` — formateada igual que '
-                  '`_execute_code` de la referencia.',
+        help_text=(
+            'Una línea por fila de `result` — formateada igual que '
+            '`_execute_code` de la referencia.'
+        ),
     )

@@ -1,0 +1,26 @@
+{
+  "kaupamex-api": {
+    "root": "/workspace/kaupamex-api",
+    "head": "35501644c380f5f198e407fee16357994ac43b27",
+    "branch": "feature/codex-workspace-bootstrap",
+    "status": "M .claude/coordination/claims.jsonl\n M src/orm/models.py\n?? scripts/evidence/orm-as-is-reconciliation-20261021T164519/\n?? tests/unit/orm/test_missing_recompute.py\n?? tests/unit/orm/test_relational_reconstruction_persistence.py",
+    "worktrees": "/workspace/kaupamex-api  35501644 [feature/codex-workspace-bootstrap]",
+    "stashes": ""
+  },
+  "kaupamex-docs": {
+    "root": "/workspace/kaupamex-docs",
+    "head": "a64e978abad69693341a63fc7bf801948c7d54a8",
+    "branch": "feature/codex-workspace-bootstrap",
+    "status": "M .claude/coordination/claims.jsonl",
+    "worktrees": "/workspace/kaupamex-docs  a64e978ab [feature/codex-workspace-bootstrap]",
+    "stashes": ""
+  },
+  "thyrox": {
+    "root": "/workspace/thyrox",
+    "head": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "branch": "feature/codex-workspace-bootstrap",
+    "status": "",
+    "worktrees": "/workspace/thyrox  9b13f2d7a [feature/codex-workspace-bootstrap]",
+    "stashes": ""
+  }
+}

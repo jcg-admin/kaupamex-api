@@ -4,6 +4,7 @@ Cubre ``addons/account/tools/dict_to_xml.py``, portacion pura sin ORM (tarea
 #398, hallazgo H-API-682). Ver el docstring del modulo bajo prueba para la
 divergencia declarada sobre ``remove_control_characters``.
 """
+
 import pytest
 from lxml import etree
 
@@ -33,7 +34,9 @@ class TestDictToXmlBasics:
         assert element.text == 'hola'
 
     def test_false_and_none_values_are_not_rendered_as_attributes(self):
-        element = dict_to_xml({'_tag': 'root', 'a': None, 'b': False, 'c': 'ok'})
+        element = dict_to_xml(
+            {'_tag': 'root', 'a': None, 'b': False, 'c': 'ok'}
+        )
         assert element.get('a') is None
         assert element.get('b') is None
         assert element.get('c') == 'ok'
@@ -50,19 +53,23 @@ class TestDictToXmlNestedNodes:
         assert children[0].text == 'x'
 
     def test_list_of_dicts_becomes_multiple_children_with_same_tag(self):
-        element = dict_to_xml({
-            '_tag': 'root',
-            'line': [{'_text': '1'}, {'_text': '2'}],
-        })
+        element = dict_to_xml(
+            {
+                '_tag': 'root',
+                'line': [{'_text': '1'}, {'_text': '2'}],
+            }
+        )
         children = list(element)
         assert [c.tag for c in children] == ['line', 'line']
         assert [c.text for c in children] == ['1', '2']
 
     def test_none_entries_in_a_child_list_are_skipped(self):
-        element = dict_to_xml({
-            '_tag': 'root',
-            'line': [{'_text': '1'}, None, {'_text': '2'}],
-        })
+        element = dict_to_xml(
+            {
+                '_tag': 'root',
+                'line': [{'_text': '1'}, None, {'_text': '2'}],
+            }
+        )
         assert [c.text for c in element] == ['1', '2']
 
 
@@ -84,7 +91,9 @@ class TestDictToXmlEmptyNodes:
 
 
 class TestDictToXmlTagRequirement:
-    """Sin ``_tag`` en ningun nivel -- ``ValueError``, no un fallo silencioso."""
+    """
+    Sin ``_tag`` en ningun nivel -- ``ValueError``, no un fallo silencioso.
+    """
 
     def test_raises_without_any_tag(self):
         with pytest.raises(ValueError):

@@ -5,11 +5,13 @@ Adaptación fiel de ``odoo19c: odoo/tools/constants.py``. Es un módulo de
 tenga un solo sitio donde vive.
 
 **Por qué se crea ahora.** Seis de sus ocho símbolos ya estaban en el árbol,
-declarados **localmente** en tres archivos distintos, cada uno con un comentario
+declarados **localmente** en tres archivos distintos, cada uno con un
+comentario
 diciendo que su hogar era este módulo: ``GC_UNLINK_LIMIT`` en ``ir_cron.py`` y
 en ``ir_profile.py``, y los cuatro de extensiones más ``EXTERNAL_ASSET`` en
 ``ir_asset.py``. Tres copias de un valor son tres fuentes de verdad que nadie
-sincroniza — lo que ``calibration-verified-numbers.md`` prohíbe— y el defecto no
+sincroniza — lo que ``calibration-verified-numbers.md`` prohíbe— y el defecto
+no
 es hipotético: basta que una cambie.
 
 ``PREFETCH_MAX`` entra sin consumidor todavía. No es relleno: es el tope de

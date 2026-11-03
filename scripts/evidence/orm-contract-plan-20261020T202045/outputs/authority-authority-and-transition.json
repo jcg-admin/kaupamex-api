@@ -1,0 +1,93 @@
+{
+  "scope": "Read-only authority research; no experiments rerun, no repository edits or TASK writes. Scratch evidence only.",
+  "existing_authorities": {
+    "plan": "tareas-completar-raiz-orm.rst",
+    "scope": "alcance-completar-raiz-orm.rst",
+    "progress": "progreso/index.rst",
+    "architecture_and_contracts": "analisis-contrato-de-basemodel-trae-o-construye.rst"
+  },
+  "decisions": [
+    {
+      "finding": "Existing plan groups work by what it unlocks. Extend this authority rather than create another plan/store.",
+      "source": "tareas-completar-raiz-orm.rst:207"
+    },
+    {
+      "finding": "Historical AST counts and 68 divergent signatures are measurement populations, not functional defects or automatic TASKs.",
+      "source": "tareas-completar-raiz-orm.rst"
+    },
+    {
+      "finding": "Oct19 scope supersedes historical mandatory construction of BaseModel; architectural adoption remains open.",
+      "source": "alcance-completar-raiz-orm.rst:36; analisis-contrato-de-basemodel-trae-o-construye.rst:2037"
+    },
+    {
+      "finding": "BaseModel exists with 45 own methods; 77 protocol tests do not establish product adoption or persistence acceptance. Loaded models measured zero subclasses; TimeStampedModel inherits mixins/Django. Test docstring claiming chosen common parent is not current architecture authority.",
+      "source": "analisis-contrato-de-basemodel-trae-o-construye.rst:2110; tests/unit/orm/test_base_model_recordset.py:9"
+    },
+    {
+      "finding": "Progress correction records removal of projection_or_none at API20dc122b, but following TASK0418 text retains blocker0417. Reconcile routing already implemented versus residual NonStored type/acceptance.",
+      "source": "progreso/index.rst: TASK-API-0417 and TASK-API-0418 sections"
+    },
+    {
+      "finding": "Fixed Community19 reference abe4040ec1a45beee90fb694e4eae4453e46b389 with explicit root and existing hash provenance permits bounded planning. reference_flow.resolve_roots ignores alias for relative roots; retain correction as planned unit, do not treat other aliases safe.",
+      "source": "scripts/reference_flow.py:115; existing orm-corpus-delimitation-20261020T145932 evidence"
+    }
+  ],
+  "seven_closure_criteria": [
+    {
+      "criterion": 1,
+      "status": "sufficient_for_planning",
+      "evidence": "Current scope authority and fixed Community19 logical contracts bound root and functional dependencies; related initiatives retain ownership.",
+      "remaining_action": "Represent explicit exclusions and consumer boundaries in existing plan."
+    },
+    {
+      "criterion": 2,
+      "status": "partial",
+      "evidence": "Fixed Community19 explicit root/hash provenance exists; relative-root alias defect remains.",
+      "remaining_action": "Plan bounded reference selection correction and negative alias/missing-root verification; require safe19 provenance for current units."
+    },
+    {
+      "criterion": 3,
+      "status": "partial",
+      "evidence": "Existing analysis contains identified contract populations and unknowns; structural historic totals are unsuitable denominator.",
+      "remaining_action": "Consolidate bounded contract units into traceable population with unknown status, without claiming global coverage."
+    },
+    {
+      "criterion": 4,
+      "status": "sufficient_for_initial_units",
+      "evidence": "Existing architecture responsibility table identifies implementations/consumers/tests and limits.",
+      "remaining_action": "Attach independent verifier and persistence qualification needs per unit; do not repeat valid protocol experiments."
+    },
+    {
+      "criterion": 5,
+      "status": "partial",
+      "evidence": "Stable TASK authority exists; stale0417/0418 progress edge and projection-reader loss require reconciliation.",
+      "remaining_action": "Crosscheck real Thyrox read-only interfaces/records, ownership, textual and structured dependencies before eligibility."
+    },
+    {
+      "criterion": 6,
+      "status": "pending",
+      "evidence": "Historical hierarchy exists but not yet updated to contractual units/admission and explicit uncertainty resolution.",
+      "remaining_action": "Update existing tareas authority with hierarchy, acceptance and admission; no new TaskStore or premature TASK creation."
+    },
+    {
+      "criterion": 7,
+      "status": "partial",
+      "evidence": "Architecture, reference instrument, field dependency, bootstrap/persistence, Provider qualification contradictions already documented.",
+      "remaining_action": "Map each uncertainty to bounded planned work and actual blocking scope; do not block independent units globally."
+    }
+  ],
+  "architecture_resolution_unit": {
+    "purpose": "Adjudicate representation responsibility and consumers, not reimplement BaseModel from absence.",
+    "inputs": [
+      "Oct19 responsibility/MRO/loaded-model evidence",
+      "Public reexport and protocol compatibility",
+      "Actual with_context/browse consumers and receiver contracts"
+    ],
+    "required_acceptance": [
+      "Comparable permissions/context/cache and PostgreSQL behavior",
+      "Managers/descriptors/import/reload compatibility",
+      "Migration and cost implications where relevant"
+    ],
+    "independent_work": "Do not place all fields/domains/cache units behind disproven TimeStampedModel→BaseModel dependency."
+  }
+}

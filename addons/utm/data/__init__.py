@@ -28,6 +28,7 @@ test_migration_seeds_survive_flush.py`` documenta para ``base``/``mail``/
 ``utm`` todavía **no** está en ``tests/conftest.py::_SEEDERS`` — ver
 :ref:`h-api-674` para el sucesor que lo cablea.
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import IrModelData
@@ -73,12 +74,15 @@ def _seed_family(model, specs, using):
     for spec in specs:
         xmlid = spec['xmlid']
         name = spec['name']
-        defaults = {k: v for k, v in spec.items() if k not in ('xmlid', 'name')}
+        defaults = {
+            k: v for k, v in spec.items() if k not in ('xmlid', 'name')
+        }
 
         record = IrModelData.ref(xmlid, raise_if_not_found=False)
         if record is not None:
             continue
 
         record, _created = model.objects.using(using).get_or_create(
-            name=name, defaults=defaults)
+            name=name, defaults=defaults
+        )
         IrModelData.set_xmlid(record, xmlid, noupdate=True)

@@ -18,6 +18,7 @@ fuente aunque el nombre viejo siga existiendo. Eso exige construir 3.16 y
 ejecutarlo, que no se hace aquí; lo que sí se hace es leer su ``codegen.c``
 cuando la instantánea señala una desaparición.
 """
+
 import ast
 import dis
 import pathlib
@@ -28,7 +29,9 @@ import pytest
 
 import tools.safe_eval as safe_eval_module
 from tests.fixtures.cpython_opcode_snapshots import (
-    CPYTHON_SNAPSHOT_OPMAP, CPYTHON_SNAPSHOT_VERSION)
+    CPYTHON_SNAPSHOT_OPMAP,
+    CPYTHON_SNAPSHOT_VERSION,
+)
 
 #: El corpus de expresiones que un descriptor puede contener. No es una lista
 #: inventada: son las formas que las sondas hermanas ya ejercen más las que la
@@ -86,20 +89,29 @@ def declared_opcode_names():
     source = pathlib.Path(safe_eval_module.__file__).read_text()
     names = set()
     for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Call) and getattr(node.func, 'id', None) == 'to_opcodes':
+        if (
+            isinstance(node, ast.Call)
+            and getattr(node.func, 'id', None) == 'to_opcodes'
+        ):
             for argument in node.args:
                 for element in ast.walk(argument):
-                    if isinstance(element, ast.Constant) and isinstance(element.value, str):
+                    if isinstance(element, ast.Constant) and isinstance(
+                        element.value, str
+                    ):
                         names.add(element.value)
     # La comprensión sobre `_operations` no deja literales completos.
-    names |= {prefix + operation
-              for prefix in ('BINARY_', 'INPLACE_')
-              for operation in safe_eval_module._operations}
+    names |= {
+        prefix + operation
+        for prefix in ('BINARY_', 'INPLACE_')
+        for operation in safe_eval_module._operations
+    }
     return names
 
 
 def emitted_opcode_names(source):
-    """Los opcodes que este intérprete emite para una expresión, lambdas dentro."""
+    """
+    Los opcodes que este intérprete emite para una expresión, lambdas dentro.
+    """
     code = compile(source, '<expr>', 'eval')
     names = {instruction.opname for instruction in dis.get_instructions(code)}
     for constant in code.co_consts:
@@ -109,7 +121,10 @@ def emitted_opcode_names(source):
 
 
 class TestTheSnapshotIsUsableEvidence:
-    """Antes de concluir nada: que la instantánea sea de otra versión y esté llena."""
+    """
+    Antes de concluir nada: que la instantánea sea de otra versión y esté
+    llena.
+    """
 
     def test_it_comes_from_a_version_that_is_not_ours(self):
         assert CPYTHON_SNAPSHOT_VERSION > sys.version_info[:2]
@@ -122,7 +137,9 @@ class TestTheSnapshotIsUsableEvidence:
 
 
 class TestTheAllowlistFailsClosedOnTheJump:
-    """La mitad de seguridad: ningún opcode nuevo entra por la puerta de atrás."""
+    """
+    La mitad de seguridad: ningún opcode nuevo entra por la puerta de atrás.
+    """
 
     def test_every_opcode_the_snapshot_adds_is_absent_from_the_allowlist(self):
         """El allowlist es una lista blanca: lo que nadie declaró, se rechaza.
@@ -140,10 +157,13 @@ class TestTheAllowlistFailsClosedOnTheJump:
         # Y de los que nadie listó, ninguno queda permitido.
         assert not (unlisted & declared)
 
-    @pytest.mark.parametrize('blacklisted, replacement', [
-        ('DELETE_ATTR', 'STORE_ATTR'),
-        ('DELETE_GLOBAL', 'STORE_GLOBAL'),
-    ])
+    @pytest.mark.parametrize(
+        'blacklisted, replacement',
+        [
+            ('DELETE_ATTR', 'STORE_ATTR'),
+            ('DELETE_GLOBAL', 'STORE_GLOBAL'),
+        ],
+    )
     def test_a_blacklisted_opcode_that_disappears_lands_on_another_blacklisted_one(
             self, blacklisted, replacement):
         """El caso fail-OPEN que había que descartar, y se descarta.
@@ -154,7 +174,9 @@ class TestTheAllowlistFailsClosedOnTheJump:
         STORE_ATTR, que el propio BLACKLIST ya prohíbe.
         """
         source = pathlib.Path(safe_eval_module.__file__).read_text()
-        blacklist_block = source.split('_BLACKLIST = set(to_opcodes([')[1].split(']))')[0]
+        blacklist_block = source.split('_BLACKLIST = set(to_opcodes([')[
+            1
+        ].split(']))')[0]
         assert f"'{blacklisted}'" in blacklist_block
         assert f"'{replacement}'" in blacklist_block
         assert blacklisted not in CPYTHON_SNAPSHOT_OPMAP
@@ -166,7 +188,8 @@ class TestNoLegitimateExpressionBreaks:
 
     @pytest.mark.parametrize('source', EXPRESSION_CORPUS)
     def test_every_opcode_it_emits_either_survives_or_has_an_allowed_replacement(
-            self, source):
+        self, source
+    ):
         declared = declared_opcode_names()
         for name in emitted_opcode_names(source):
             if name in CPYTHON_SNAPSHOT_OPMAP:
@@ -174,11 +197,16 @@ class TestNoLegitimateExpressionBreaks:
             replacement = RETIRED_IN_SNAPSHOT_AND_ITS_REPLACEMENT.get(name)
             assert replacement, (
                 '%r emite %s, que la instantánea no nombra y para el que no '
-                'hay sustituto declarado' % (source, name))
+                'hay sustituto declarado' % (source, name)
+            )
             for substitute in replacement:
                 assert substitute in CPYTHON_SNAPSHOT_OPMAP, substitute
-                assert substitute in declared, (
-                    '%s sustituye a %s pero no está en el allowlist' % (substitute, name))
+                assert (
+                    substitute in declared
+                ), '%s sustituye a %s pero no está en el allowlist' % (
+                    substitute,
+                    name,
+                )
 
     def test_the_corpus_does_exercise_the_retired_opcodes(self):
         """Control positivo del caso anterior, que si no sería un verde vacío.
@@ -188,7 +216,9 @@ class TestNoLegitimateExpressionBreaks:
         """
         retired_seen = set()
         for source in EXPRESSION_CORPUS:
-            retired_seen |= emitted_opcode_names(source) - set(CPYTHON_SNAPSHOT_OPMAP)
+            retired_seen |= emitted_opcode_names(source) - set(
+                CPYTHON_SNAPSHOT_OPMAP
+            )
         assert retired_seen, 'el corpus no ejercita ningún opcode retirado'
         assert retired_seen <= set(RETIRED_IN_SNAPSHOT_AND_ITS_REPLACEMENT)
 
@@ -196,7 +226,9 @@ class TestNoLegitimateExpressionBreaks:
 class TestTheOpcodesNobodyListedAreHarmless:
     """Los que quedan fuera: por qué no rompen nada que hoy funcione."""
 
-    def test_the_boolean_operators_survive_because_their_new_opcode_is_pseudo(self):
+    def test_the_boolean_operators_survive_because_their_new_opcode_is_pseudo(
+        self,
+    ):
         """El susto de la medición, y su desenlace.
 
         `codegen_boolop` de 3.16 emite JUMP_IF_FALSE / JUMP_IF_TRUE
@@ -215,8 +247,11 @@ class TestTheOpcodesNobodyListedAreHarmless:
         assert isinstance(compile('a and b', '<e>', 'eval').co_code, bytes)
 
     def test_the_instrumented_ones_only_appear_under_a_tracer(self):
-        instrumented = {n for n in set(CPYTHON_SNAPSHOT_OPMAP) - set(opmap)
-                        if n.startswith('INSTRUMENTED_')}
+        instrumented = {
+            n
+            for n in set(CPYTHON_SNAPSHOT_OPMAP) - set(opmap)
+            if n.startswith('INSTRUMENTED_')
+        }
         assert instrumented
         # No los emite el compilador: los inyecta el runtime al instrumentar.
         for source in EXPRESSION_CORPUS:

@@ -1,0 +1,10 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "passed": true,
+  "selected_alias": "report_seed_contract_alias",
+  "default_sql_rejected_during_repair": true,
+  "all_row_values_preserved_after_repair": true,
+  "rollback_verified": true,
+  "alias_cleanup": true,
+  "scope": "Two connections to own PostgreSQL database; not N>1 physical acceptance"
+}

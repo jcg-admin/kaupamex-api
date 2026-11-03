@@ -1,9 +1,12 @@
-"""authz_totp — códigos de recuperación (DEC-01, ~recovery codes de authz_totp).
+"""
+authz_totp — códigos de recuperación (DEC-01, ~recovery codes de authz_totp).
 
 Cubre: generación al activar el 2FA, login con un código de recuperación
 (un solo uso), regeneración, desactivación con un código de recuperación, y el
-conteo restante en el status. Se guardan hasheados (el plano se muestra una vez).
+conteo restante en el status. Se guardan hasheados (el plano se muestra una
+vez).
 """
+
 import base64
 import time
 
@@ -46,7 +49,9 @@ def user(db):
     # agrupa. Ver test_totp.py.
     call_command('seed_authz')
     u = User.objects.create_user(
-        login='recovery-user@example.com', password=PASSWORD, active=True,
+        login='recovery-user@example.com',
+        password=PASSWORD,
+        active=True,
     )
     assign_buyer_role(u)
     invalidate_capabilities(u.id)
@@ -62,15 +67,20 @@ def auth_client(user):
 
 # --- generación al activar ---------------------------------------------------
 
+
 def test_confirm_returns_recovery_codes(auth_client, user):
     secret = auth_client.post(SETUP_URL).data['secret']
-    confirm = auth_client.post(CONFIRM_URL, {'code': _current_code(secret)}, format='json')
+    confirm = auth_client.post(
+        CONFIRM_URL, {'code': _current_code(secret)}, format='json'
+    )
     assert confirm.status_code == 200
     codes = confirm.data['recovery_codes']
-    assert len(codes) == 10                                   # default Odoo
+    assert len(codes) == 10  # default Odoo
     assert count_recovery_codes(user) == 10
     # Se guardan hasheados, nunca el plano.
-    stored = TotpRecoveryCode.objects.filter(user=user).values_list('code_hash', flat=True)
+    stored = TotpRecoveryCode.objects.filter(user=user).values_list(
+        'code_hash', flat=True
+    )
     assert codes[0] not in stored
 
 
@@ -85,31 +95,40 @@ def test_status_reports_remaining(auth_client, user):
 # --- login con código de recuperación (un solo uso) --------------------------
 
 
-
-
 def test_regenerate_requires_valid_totp(auth_client, user):
     secret = generate_secret()
     TotpSecret.objects.create(user=user, secret=secret, confirmed=True)
     generate_recovery_codes(user)
-    assert auth_client.post(RECOVERY_URL, {'code': '000000'}, format='json').status_code == 400
+    assert (
+        auth_client.post(
+            RECOVERY_URL, {'code': '000000'}, format='json'
+        ).status_code
+        == 400
+    )
 
 
 def test_regenerate_rejected_without_2fa(auth_client, user):
     resp = auth_client.post(RECOVERY_URL, {'code': '000000'}, format='json')
-    assert resp.status_code == 409 and resp.data['codigo_error'] == 'TOTP_NOT_ENABLED'
+    assert (
+        resp.status_code == 409
+        and resp.data['codigo_error'] == 'TOTP_NOT_ENABLED'
+    )
 
 
 # --- desactivación con código de recuperación --------------------------------
+
 
 def test_disable_with_recovery_code(auth_client, user):
     secret = generate_secret()
     TotpSecret.objects.create(user=user, secret=secret, confirmed=True)
     codes = generate_recovery_codes(user)
-    # el endpoint de disable acepta un código de recuperación (no sólo 6 dígitos)
+    # el endpoint de disable acepta un código de recuperación (no sólo 6
+    # dígitos)
     ok = auth_client.post(DISABLE_URL, {'code': codes[0]}, format='json')
     assert ok.status_code == 200 and ok.data['enabled'] is False
     assert TotpSecret.objects.filter(user=user).count() == 0
     assert TotpRecoveryCode.objects.filter(user=user).count() == 0
+
 
 # ---------------------------------------------------------------------------
 # Tests retirados: el flujo de LOGIN no tiene endpoint (H-API-218)

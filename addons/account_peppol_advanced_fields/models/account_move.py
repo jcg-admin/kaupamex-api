@@ -70,6 +70,7 @@ Divergencias declaradas
    exige uno. Se fija en 255, que es el ancho por defecto del árbol para
    referencias documentales.
 """
+
 import fields
 from addons.account.models.account_move import AccountMove
 from orm.model_classes import add_field_if_absent
@@ -88,47 +89,76 @@ def _fields():
     """
     return {
         'peppol_contract_document_reference': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] Referencia al documento de contrato',
-            help_text='Una referencia al documento de contrato (Odoo '
-                      'peppol_contract_document_reference).',
+            help_text=(
+                'Una referencia al documento de contrato (Odoo '
+                'peppol_contract_document_reference).'
+            ),
         ),
         'peppol_project_reference': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] Referencia al proyecto',
-            help_text='Una referencia al proyecto (Odoo peppol_project_reference).',
+            help_text=(
+                'Una referencia al proyecto (Odoo peppol_project_reference).'
+            ),
         ),
         'peppol_originator_document_reference': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] Referencia al documento originador',
-            help_text='Una referencia al documento que originó el pedido (Odoo '
-                      'peppol_originator_document_reference).',
+            help_text=(
+                'Una referencia al documento que originó el pedido (Odoo '
+                'peppol_originator_document_reference).'
+            ),
         ),
         'peppol_despatch_document_reference': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] Referencia al albarán',
-            help_text='Una referencia al documento de envío (Odoo '
-                      'peppol_despatch_document_reference).',
+            help_text=(
+                'Una referencia al documento de envío (Odoo '
+                'peppol_despatch_document_reference).'
+            ),
         ),
         'peppol_additional_document_reference': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] Referencia a documento adicional',
-            help_text='Una referencia a un documento de soporte adicional. Sólo '
-                      'se puede referenciar UN documento (Odoo '
-                      'peppol_additional_document_reference).',
+            help_text=(
+                'Una referencia a un documento de soporte adicional. Sólo '
+                'se puede referenciar UN documento (Odoo '
+                'peppol_additional_document_reference).'
+            ),
         ),
         'peppol_accounting_cost': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] Centro de costo contable',
-            help_text='Descripción textual o código que identifica el centro de '
-                      'costo contable (Odoo peppol_accounting_cost).',
+            help_text=(
+                'Descripción textual o código que identifica el centro de '
+                'costo contable (Odoo peppol_accounting_cost).'
+            ),
         ),
-        # Sufijo `_id` conservado aunque sea texto — ver divergencia 1 del módulo.
+        # Sufijo `_id` conservado aunque sea texto — ver divergencia 1
+        # del módulo.
         'peppol_delivery_location_id': fields.Char(
-            max_length=_REFERENCE_MAX_LENGTH, blank=True, default='',
+            max_length=_REFERENCE_MAX_LENGTH,
+            blank=True,
+            default='',
             verbose_name='[DEPRECATED] GLN del lugar de entrega',
-            help_text='El Global Location Number (GLN) del lugar de entrega (Odoo '
-                      'peppol_delivery_location_id, Char pese al sufijo _id).',
+            help_text=(
+                'El Global Location Number (GLN) del lugar de entrega (Odoo '
+                'peppol_delivery_location_id, Char pese al sufijo _id).'
+            ),
         ),
     }
 

@@ -4,10 +4,12 @@ Extensión ``sale_stock`` de ``sale.order.line`` (Odoo ``_inherit``): cantidad
 entregada por línea. Como modelo relacionado (OneToOne a ``sale.order.line``),
 la forma Django correcta de un módulo-extensión Odoo separado.
 
-``qty_delivered`` (Odoo ``sale.order.line.qty_delivered``, sale_order_line.py:230;
+``qty_delivered`` (Odoo ``sale.order.line.qty_delivered``,
+sale_order_line.py:230;
 en Odoo lo computa ``sale_stock`` desde ``stock.move``). Aquí la fuente es
 ``logistics``/``inventory`` (pickings).
 """
+
 import fields
 import models
 
@@ -17,8 +19,10 @@ from addons.base.models import TimeStampedModel
 class SaleOrderLineDelivery(TimeStampedModel):
     """Extensión ``sale_stock`` de ``sale.order.line`` — cantidad entregada."""
 
-    line          = models.OneToOneField(
-        'sale.SaleOrderLine', on_delete=models.CASCADE, related_name='delivery',
+    line = models.OneToOneField(
+        'sale.SaleOrderLine',
+        on_delete=models.CASCADE,
+        related_name='delivery',
         help_text='Línea de orden extendida (Odoo sale.order.line).',
     )
     qty_delivered = models.PositiveIntegerField(

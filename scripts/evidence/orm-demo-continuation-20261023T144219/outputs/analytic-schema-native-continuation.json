@@ -1,0 +1,12 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "command": "Provider interpreter, existing four plan inputs, full ledger, node=b501, states={}, exposed=set()",
+  "inputs_source": "incremental-graph-native-continuation.json",
+  "claims_count": 493,
+  "selected": [
+    "TASK-API-0382.incremental_graph_snapshot"
+  ],
+  "states": {},
+  "limits": "Bounded existing candidates only; not global eligibility/exhaustion. No claim rows filtered, no accepted state fabricated. Manual Codex owner and node b501 may differ. No local model execution."
+}

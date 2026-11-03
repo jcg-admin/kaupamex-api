@@ -32,6 +32,7 @@ siquiera: es sólo docstring, y una llamada no-op sería cableado muerto.
 
 Las demás llegan con su superficie.
 """
+
 from .sale_order import WebsiteSaleOrderInfo
 from .website import WebsiteSaleSettings
 

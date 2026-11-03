@@ -1,0 +1,13 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control in memory only: context-key
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_cache_key_uses_dependencies_derived_from_the_compute ___________
+tests/unit/orm/test_res_groups_compute_contract.py:89: in test_cache_key_uses_dependencies_derived_from_the_compute
+    assert env().cache_key(field) == (None,)
+E   assert () == (None,)
+E     Right contains one more item: None
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_cache_key_uses_dependencies_derived_from_the_compute
+1 failed in 0.09s

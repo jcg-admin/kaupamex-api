@@ -74,6 +74,7 @@ consumidores **internos** de ``Website`` (``get_unique_path``,
 modelos propios como interinato — ver sus docstrings en ``website.py``. La
 migración de los endpoints REST y del contenido es la tarea **#560**.
 """
+
 import re
 from collections import Counter
 
@@ -98,7 +99,9 @@ from orm.environments import get_context, is_su, sudo
 
 
 class PageCannotBeCached(Exception):
-    """≙ ``PageCannotBeCached`` (``odoo19c: addons/website/models/website_page.py:19-21``).
+    """
+    ≙ ``PageCannotBeCached`` (``odoo19c:
+    addons/website/models/website_page.py:19-21``).
 
     La señal con que la familia de caché de respuesta corta el camino
     cacheado. Se porta verbatim aunque su consumidor
@@ -127,8 +130,12 @@ def _translate_order(order):
     return translated
 
 
-class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
-                  WebsitePageOptionsMixin, TimeStampedModel):
+class WebsitePage(
+    WebsiteSearchableMixin,
+    WebsitePublishedMixin,
+    WebsitePageOptionsMixin,
+    TimeStampedModel,
+):
     """``website.page`` — una URL del sitio cuyo contenido es una vista.
 
     La página no *tiene* el contenido: **delega** en ``ir.ui.view`` por
@@ -189,15 +196,22 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     url = fields.Char(
         max_length=1024,
-        help_text='Ruta de la página, p. ej. /acerca-de (Odoo url, '
-                  'required; el largo es el max_length del slugify de la '
-                  'fuente).',
+        help_text=(
+            'Ruta de la página, p. ej. /acerca-de (Odoo url, '
+            'required; el largo es el max_length del slugify de la '
+            'fuente).'
+        ),
     )
     view = fields.Many2one(
-        'base.IrUiView', on_delete=models.CASCADE, db_index=True,
-        related_name='page_ids', db_column='view_id',
-        help_text='La vista que da el contenido (Odoo view_id, required, '
-                  'ondelete=cascade). Es la FK de la delegación _inherits.',
+        'base.IrUiView',
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='page_ids',
+        db_column='view_id',
+        help_text=(
+            'La vista que da el contenido (Odoo view_id, required, '
+            'ondelete=cascade). Es la FK de la delegación _inherits.'
+        ),
     )
     # ``view_write_uid`` (``related='view_id.write_uid'``, ``:41-42``):
     # BLOQUEADO por ``ir.ui.view.write_uid`` — TimeStampedModel no lleva
@@ -205,41 +219,55 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
     # write_uid/create_uid se porte a base.
     website_indexed = fields.Boolean(
         default=True,
-        help_text='Aparece en el sitemap y para los buscadores (Odoo '
-                  'website_indexed, "Is Indexed").',
+        help_text=(
+            'Aparece en el sitemap y para los buscadores (Odoo '
+            'website_indexed, "Is Indexed").'
+        ),
     )
     date_publish = fields.Datetime(
-        null=True, blank=True,
-        help_text='Fecha de publicación programada; antes de ella la página '
-                  'no es visible (Odoo date_publish).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Fecha de publicación programada; antes de ella la página '
+            'no es visible (Odoo date_publish).'
+        ),
     )
     # ``menu_ids`` es el reverso del FK ``page`` de ``website.menu``
     # (``related_name='menu_ids'``) — mismo nombre que el One2many de la
     # fuente (``:48``).
     is_new_page_template = fields.Boolean(
         default=False,
-        help_text='La página se ofrece como plantilla en "+Nueva", categoría '
-                  'Personalizadas (Odoo is_new_page_template).',
+        help_text=(
+            'La página se ofrece como plantilla en "+Nueva", categoría '
+            'Personalizadas (Odoo is_new_page_template).'
+        ),
     )
     website = fields.Many2one(
-        'website.Website', on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='pages',
-        help_text='Sitio dueño de la página; vacía = genérica, visible en '
-                  'todos (Odoo website_id; aquí FK real — divergencia 2 del '
-                  'módulo).',
+        'website.Website',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='pages',
+        help_text=(
+            'Sitio dueño de la página; vacía = genérica, visible en '
+            'todos (Odoo website_id; aquí FK real — divergencia 2 del '
+            'módulo).'
+        ),
     )
 
     # ── Campos NO almacenados (compute sin store, divergencia 3) ────────────
 
     #: ≙ ``is_in_menu`` (``:49``).
     is_in_menu = fields.NonStored(
-        default=lambda self: self._compute_website_menu())
+        default=lambda self: self._compute_website_menu()
+    )
     #: ≙ ``is_homepage`` (``:50``).
     is_homepage = fields.NonStored(
-        default=lambda self: self._compute_is_homepage())
+        default=lambda self: self._compute_is_homepage()
+    )
     #: ≙ ``is_visible`` (``:51``).
-    is_visible = fields.NonStored(
-        default=lambda self: self._compute_visible())
+    is_visible = fields.NonStored(default=lambda self: self._compute_visible())
 
     class Meta:
         db_table = 'website_page'
@@ -255,7 +283,8 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     @property
     def view_write_date(self):
-        """≙ ``view_write_date`` (``related='view_id.write_date'``, ``:43-44``).
+        """
+        ≙ ``view_write_date`` (``related='view_id.write_date'``, ``:43-44``).
 
         ``write_date`` de la referencia es ``updated_at`` en
         ``TimeStampedModel`` — la equivalencia ya declarada por el porte de
@@ -302,15 +331,20 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
             return False
         return self.url == (
             current_website.homepage_url
-            or (self.website_id == current_website.pk and '/'))
+            or (self.website_id == current_website.pk and '/')
+        )
 
     def _compute_visible(self):
         """≙ ``_compute_visible`` (``:63-67``)."""
-        return bool(self.website_published and (
-            not self.date_publish or self.date_publish < timezone.now()))
+        return bool(
+            self.website_published
+            and (not self.date_publish or self.date_publish < timezone.now())
+        )
 
     def _compute_website_menu(self):
-        """≙ ``_compute_website_menu`` (``@api.depends('menu_ids')``, ``:70-72``)."""
+        """
+        ≙ ``_compute_website_menu`` (``@api.depends('menu_ids')``, ``:70-72``).
+        """
         if not self.pk:
             return False
         return self.menu_ids.exists()
@@ -327,7 +361,8 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     @classmethod
     def _get_most_specific_pages(cls, pages, website=None):
-        """≙ ``_get_most_specific_pages`` (``odoo19c: website_page.py:91-112``).
+        """
+        ≙ ``_get_most_specific_pages`` (``odoo19c: website_page.py:91-112``).
 
         De un conjunto con posibles duplicados genérica/específica por URL,
         las más específicas: gana la del sitio; la genérica sólo cuenta si su
@@ -343,24 +378,21 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         if website is None:
             context_website_id = get_context().get('website_id')
             if context_website_id:
-                website = Website.objects.filter(
-                    pk=context_website_id).first()
+                website = Website.objects.filter(pk=context_website_id).first()
             else:
                 website = Website.get_current_website()
         scope = cls.objects.all()
         if website is not None:
             scope = scope.filter(website.website_domain())
-        page_keys_counts = Counter(
-            scope.values_list('view__key', flat=True))
+        page_keys_counts = Counter(scope.values_list('view__key', flat=True))
 
         selected_ids = set()
         previous_page = None
         # Un solo recorrido sobre la lista ordenada específica-primero
         # (comentario de la fuente).
         for page in sorted(pages, key=lambda p: (p.url, not p.website_id)):
-            if (
-                (not previous_page or page.url != previous_page.url)
-                and (page.website_id or page_keys_counts[page.key] == 1)
+            if (not previous_page or page.url != previous_page.url) and (
+                page.website_id or page_keys_counts[page.key] == 1
             ):
                 selected_ids.add(page.pk)
             previous_page = page
@@ -392,8 +424,11 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
             current_website = Website.get_current_website()
             source_view = self.view
             new_key = current_website.get_unique_key(
-                source_view.key.split('.')[-1] or IrHttp.slugify(
-                    default.get('name') or source_view.name or ''))
+                source_view.key.split('.')[-1]
+                or IrHttp.slugify(
+                    default.get('name') or source_view.name or ''
+                )
+            )
             new_view = IrUiView.objects.create(
                 name=default.get('name') or source_view.name,
                 model=source_view.model,
@@ -405,8 +440,15 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
                 arch_db=source_view.arch_db,
             )
             values['view'] = new_view
-        for field_name in ('url', 'website', 'website_indexed', 'date_publish',
-                           'is_published', 'is_new_page_template', 'name'):
+        for field_name in (
+            'url',
+            'website',
+            'website_indexed',
+            'date_publish',
+            'is_published',
+            'is_new_page_template',
+            'name',
+        ):
             if field_name in default:
                 values[field_name] = default[field_name]
         # ``name`` pertenece a la vista; si ya se aplicó al clon, no viaja
@@ -414,12 +456,15 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         values.pop('name', None)
         if 'url' not in default:
             values['url'] = Website.get_current_website().get_unique_path(
-                self.url)
+                self.url
+            )
         return values
 
     @classmethod
     def clone_page(cls, page_id, page_name=None, clone_menu=True):
-        """≙ ``clone_page`` (``@api.model``, ``odoo19c: website_page.py:127-146``).
+        """
+        ≙ ``clone_page`` (``@api.model``, ``odoo19c:
+        website_page.py:127-146``).
 
         Clona una página por identificador; devuelve la URL del clon.
         El menú se clona sólo si el clon quedó en el mismo sitio (el caso
@@ -468,8 +513,11 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         """
         view = self.view if self.view_id else None
         result = super().delete(*args, **kwargs)
-        if view is not None and not view.page_ids.exists() \
-                and not view.inherit_children_ids.exists():
+        if (
+            view is not None
+            and not view.page_ids.exists()
+            and not view.inherit_children_ids.exists()
+        ):
             view.delete()
         return result
 
@@ -496,7 +544,8 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
         if previous is not None:
             new_url = '/' + IrHttp.slugify(
-                self.url or '', max_length=1024, path=True)
+                self.url or '', max_length=1024, path=True
+            )
             if previous.url != new_url:
                 current_website = Website.get_current_website()
                 if current_website is not None:
@@ -506,7 +555,10 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
                     # de la fuente sobre _handle_homepage_url).
                     normalized = {'homepage_url': previous.url}
                     Website._handle_homepage_url(normalized)
-                    if current_website.homepage_url == normalized['homepage_url']:
+                    if (
+                        current_website.homepage_url
+                        == normalized['homepage_url']
+                    ):
                         current_website.homepage_url = new_url
                         current_website.save(update_fields=['homepage_url'])
                 self.url = new_url
@@ -515,7 +567,8 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
                 current_website = Website.get_current_website()
                 if current_website is not None:
                     self.view.key = current_website.get_unique_key(
-                        IrHttp.slugify(self.name or ''))
+                        IrHttp.slugify(self.name or '')
+                    )
                     self.view.save(update_fields=['key'])
 
         return super().save(*args, **kwargs)
@@ -530,7 +583,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     @classmethod
     def _search_get_detail(cls, website, order, options):
-        """≙ ``_search_get_detail`` (``@api.model``, ``odoo19c: website_page.py:202-240``).
+        """
+        ≙ ``_search_get_detail`` (``@api.model``, ``odoo19c:
+        website_page.py:202-240``).
 
         La receta de búsqueda de las páginas. Divergencias declaradas:
 
@@ -564,24 +619,39 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
             # ≙ ``website.website_domain()``, en forma de dominio para que
             # ``Domain.AND`` del mixin lo componga: las del sitio más las
             # genéricas.
-            domain.append(Domain.OR([
-                Domain('website_id', '=', False),
-                Domain('website_id', '=', website.pk),
-            ]))
+            domain.append(
+                Domain.OR(
+                    [
+                        Domain('website_id', '=', False),
+                        Domain('website_id', '=', website.pk),
+                    ]
+                )
+            )
         domain.append(Domain('is_published', '=', True))
         domain.append(Domain('website_indexed', '=', True))
         # ≙ ``[('visibility', '!=', 'password')]`` — *"Prevent accessing
         # unaccessible pages"*. Sin fila lateral la vista es pública.
-        domain.append(Domain.OR([
-            Domain('view.website_info', '=', False),
-            Domain('view.website_info.visibility', '!=', 'password'),
-        ]))
+        domain.append(
+            Domain.OR(
+                [
+                    Domain('view.website_info', '=', False),
+                    Domain('view.website_info.visibility', '!=', 'password'),
+                ]
+            )
+        )
         if website is None or Website.is_public_user():
-            # ≙ ``if website.is_public_user(): [('visibility','!=','connected')]``.
-            domain.append(Domain.OR([
-                Domain('view.website_info', '=', False),
-                Domain('view.website_info.visibility', '!=', 'connected'),
-            ]))
+            # ≙ ``if website.is_public_user():
+            # [('visibility','!=','connected')]``.
+            domain.append(
+                Domain.OR(
+                    [
+                        Domain('view.website_info', '=', False),
+                        Domain(
+                            'view.website_info.visibility', '!=', 'connected'
+                        ),
+                    ]
+                )
+            )
         # ≙ ``OR([[('group_ids','=',False)], [('group_ids','in', user…)]])``:
         # BLOQUEADO por ``orm.domains.to_q`` — su rama de ``= False`` sobre un
         # Many2many colapsa al leaf falso (``Q(pk__in=[])``) en vez de
@@ -605,7 +675,11 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
             search_fields.append('view.arch_db')
             fetch_fields.append('arch')
             mapping['description'] = {
-                'name': 'arch', 'type': 'text', 'html': True, 'match': True}
+                'name': 'arch',
+                'type': 'text',
+                'html': True,
+                'match': True,
+            }
         return {
             'model': cls,
             'base_domain': domain,
@@ -618,7 +692,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     @classmethod
     def _search_fetch(cls, search_detail, search, limit, order):
-        """≙ ``_search_fetch`` (``@api.model``, ``odoo19c: website_page.py:242-301``).
+        """
+        ≙ ``_search_fetch`` (``@api.model``, ``odoo19c:
+        website_page.py:242-301``).
 
         No sirve el ``_search_fetch`` del mixin: la búsqueda debe ocurrir
         sólo entre las páginas más específicas (comentario de la fuente).
@@ -634,8 +710,11 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         search_fields = search_detail['search_fields']
         base_domain = Domain.AND(search_detail['base_domain'])
         domain = cls._search_build_domain(
-            [base_domain], search, search_fields,
-            search_detail.get('search_extra'))
+            [base_domain],
+            search,
+            search_fields,
+            search_detail.get('search_extra'),
+        )
         with sudo(bool(search_detail.get('requires_sudo')) or is_su()):
             order_by = _translate_order(search_detail.get('order', order))
             queryset = cls.objects.filter(to_q(domain, cls))
@@ -648,12 +727,18 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
                     # El match pudo caer en un tag XML; confirmar que los
                     # términos aparecen en el texto (verbatim la mecánica).
                     text = '%s %s %s' % (
-                        page.name, page.url, text_from_html(page.arch or ''))
+                        page.name,
+                        page.url,
+                        text_from_html(page.arch or ''),
+                    )
                     pattern = '|'.join(
-                        re.escape(term) for term in search.split())
-                    return bool(
-                        re.findall('(%s)' % pattern, text, flags=re.I)
-                    ) if pattern else False
+                        re.escape(term) for term in search.split()
+                    )
+                    return (
+                        bool(re.findall('(%s)' % pattern, text, flags=re.I))
+                        if pattern
+                        else False
+                    )
                 return True
 
             results = [page for page in results if filter_page(page)]
@@ -684,7 +769,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     @classmethod
     def _allow_cache_insertion(cls, layout):
-        """≙ ``_allow_cache_insertion`` (``@api.model``, ``odoo19c: website_page.py:326-331``).
+        """
+        ≙ ``_allow_cache_insertion`` (``@api.model``, ``odoo19c:
+        website_page.py:326-331``).
 
         ¿La página puede insertarse en la caché a partir del layout ya
         renderizado? La fuente responde ``True`` incondicional — es el gancho
@@ -694,7 +781,9 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
 
     @classmethod
     def _get_page_info(cls, request):
-        """≙ ``_get_page_info`` (``@api.model``, ``odoo19c: website_page.py:467-485``).
+        """
+        ≙ ``_get_page_info`` (``@api.model``, ``odoo19c:
+        website_page.py:467-485``).
 
         La página que responde a la ruta pedida: primero la específica del
         sitio (``order='website_id asc'`` — en PostgreSQL el ASC pone los
@@ -721,8 +810,11 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
         page = queryset.filter(url=req_page).order_by('website_id').first()
         if page is None:
             # Búsqueda case-insensitive.
-            page = (queryset.filter(url__iexact=req_page)
-                    .order_by('website_id').first())
+            page = (
+                queryset.filter(url__iexact=req_page)
+                .order_by('website_id')
+                .first()
+            )
 
         if page is not None:
             return {
@@ -730,6 +822,7 @@ class WebsitePage(WebsiteSearchableMixin, WebsitePublishedMixin,
                 'url': page.url,
                 'view_id': page.view_id,
                 'group_ids': list(
-                    page.view.groups.values_list('pk', flat=True)),
+                    page.view.groups.values_list('pk', flat=True)
+                ),
             }
         return None

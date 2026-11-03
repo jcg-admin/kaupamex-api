@@ -1,0 +1,75 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "authorization": "User explicitly authorized assigning both TASK owners only",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "results": [
+    {
+      "interface": "taskTools.TaskGet -> TaskUpdate -> TaskGet",
+      "input": {
+        "task_id": "449",
+        "owner": "codex-module-lifecycle"
+      },
+      "before": {
+        "task_id": "449",
+        "citation_id": "TASK-API-0265",
+        "subject": "Sembrar el registro de módulos para que la pantalla de aplicaciones sea visible (H-API-647/649)",
+        "description": "**RE-ENCUADRADA 2026-08-18 por directiva del ejecutor.** El encuadre anterior era «sembrar datos de demostración de producto — producto → carrito → orden → envío», y era falso: *\"estás pensando en el L1 es un ecommerce y ya no es así; lo que dices de la siembra es poder ver los módulos, quizá como se ven en la imagen\"* (captura de la pantalla de aplicaciones de Odoo: tarjetas por módulo + barra lateral de categorías con su conteo).\n\nKaupamex es el operador **L0**. Lo que tiene que ser consultable primero no es un catálogo de productos de una empresa L1 — es el **registro de módulos** de la plataforma.\n\n**Mitad (a) — CERRADA en `api@6945cc1`.** `update_module_list` recorría una sola raíz de addons y registraba 1 módulo de 94 (:ref:`h-api-649`). Corregido: 94 filas en `ir_module_module`, todas con su nombre técnico, resumen, licencia, versión, `application`, `auto_install` y estado derivado de `INSTALLED_APPS`.\n\n**Mitad (b) — la barra lateral.** El árbol de categorías sigue vacío: tarea **#452**.\n\n**Mitad (c) — el canal HTTP.** Ningún endpoint sirve hoy la lista de aplicaciones: los dos hits de `ir.module.module` en controladores son menciones de docstring. Sin él, las 94 filas existen y nadie las ve desde fuera. Falta medir qué expone la referencia (`odoo19c: addons/base/…`) y decidir su forma DRF.\n\nLo que **sale** del alcance: sembrar productos, carritos y órdenes de un L1. Eso es data de demostración de una empresa cliente, no del operador, y su decisión es aparte.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      },
+      "update": {
+        "content": "{\"task_id\":\"449\",\"updated\":true}",
+        "isError": false
+      },
+      "after": {
+        "task_id": "449",
+        "citation_id": "TASK-API-0265",
+        "subject": "Sembrar el registro de módulos para que la pantalla de aplicaciones sea visible (H-API-647/649)",
+        "description": "**RE-ENCUADRADA 2026-08-18 por directiva del ejecutor.** El encuadre anterior era «sembrar datos de demostración de producto — producto → carrito → orden → envío», y era falso: *\"estás pensando en el L1 es un ecommerce y ya no es así; lo que dices de la siembra es poder ver los módulos, quizá como se ven en la imagen\"* (captura de la pantalla de aplicaciones de Odoo: tarjetas por módulo + barra lateral de categorías con su conteo).\n\nKaupamex es el operador **L0**. Lo que tiene que ser consultable primero no es un catálogo de productos de una empresa L1 — es el **registro de módulos** de la plataforma.\n\n**Mitad (a) — CERRADA en `api@6945cc1`.** `update_module_list` recorría una sola raíz de addons y registraba 1 módulo de 94 (:ref:`h-api-649`). Corregido: 94 filas en `ir_module_module`, todas con su nombre técnico, resumen, licencia, versión, `application`, `auto_install` y estado derivado de `INSTALLED_APPS`.\n\n**Mitad (b) — la barra lateral.** El árbol de categorías sigue vacío: tarea **#452**.\n\n**Mitad (c) — el canal HTTP.** Ningún endpoint sirve hoy la lista de aplicaciones: los dos hits de `ir.module.module` en controladores son menciones de docstring. Sin él, las 94 filas existen y nadie las ve desde fuera. Falta medir qué expone la referencia (`odoo19c: addons/base/…`) y decidir su forma DRF.\n\nLo que **sale** del alcance: sembrar productos, carritos y órdenes de un L1. Eso es data de demostración de una empresa cliente, no del operador, y su decisión es aparte.",
+        "status": "pending",
+        "owner": "codex-module-lifecycle",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "taskTools.TaskGet -> TaskUpdate -> TaskGet",
+      "input": {
+        "task_id": "456",
+        "owner": "codex-module-lifecycle"
+      },
+      "before": {
+        "task_id": "456",
+        "citation_id": "TASK-API-0269",
+        "subject": "installable: False no tiene efecto en la carga (H-API-654)",
+        "description": "_local_apps() (src/config/settings/base.py:89-118) deriva LOCAL_APPS de todo lo que get_modules() encuentra bajo ADDONS_PATHS: presencia en disco es carga. La clave installable la lee un solo sitio — update_module_list.py:175 — y para mostrar el catálogo, no para decidir la carga. Hoy 0 addons la declaran, así que nada está roto; decide el día que un addon a medias necesite estar en disco sin cargarse. Arreglo acotado (_local_apps consulta installable antes de incluir) pero toca el arranque de los 94 addons. Ver hallazgo-H-API-654.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      },
+      "update": {
+        "content": "{\"task_id\":\"456\",\"updated\":true}",
+        "isError": false
+      },
+      "after": {
+        "task_id": "456",
+        "citation_id": "TASK-API-0269",
+        "subject": "installable: False no tiene efecto en la carga (H-API-654)",
+        "description": "_local_apps() (src/config/settings/base.py:89-118) deriva LOCAL_APPS de todo lo que get_modules() encuentra bajo ADDONS_PATHS: presencia en disco es carga. La clave installable la lee un solo sitio — update_module_list.py:175 — y para mostrar el catálogo, no para decidir la carga. Hoy 0 addons la declaran, así que nada está roto; decide el día que un addon a medias necesite estar en disco sin cargarse. Arreglo acotado (_local_apps consulta installable antes de incluir) pero toca el arranque de los 94 addons. Ver hallazgo-H-API-654.",
+        "status": "pending",
+        "owner": "codex-module-lifecycle",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ],
+  "status_changed": false,
+  "dependencies_changed": false
+}

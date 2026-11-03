@@ -9,11 +9,14 @@
     # copiado de la referencia (que declara base_setup/digest/phone_validation/
     # resource_mail/web — deps de la familia hr COMPLETA, no de este corte).
     'depends': [
-        'base',      # TimeStampedModel, _reject_hierarchy_cycle, ResUsers
-        'mail',      # MailThread
-        'resource',  # ResourceCalendar (hr.payroll.structure.type) + ResCompany.resource_calendar
+        'base',  # TimeStampedModel, _reject_hierarchy_cycle, ResUsers
+        'mail',  # MailThread
+        # ResourceCalendar (hr.payroll.structure.type) +
+        # ResCompany.resource_calendar
+        'resource',
     ],
-    # Licencia de la fuente de la que se adapta este addon, tal como su manifest
+    # Licencia de la fuente de la que se adapta este addon, tal como su
+    # manifest
     # la declara (DEC-KX-03 punto 1): `hr` en Odoo Community es LGPL-3.
     'license': 'LGPL-3',
     'application': False,  # corte parcial, no el módulo completo

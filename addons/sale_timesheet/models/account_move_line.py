@@ -54,7 +54,8 @@ def apply_sale_timesheet_account_move_line_extensions():
     """No-op declarado — los dos símbolos de la referencia están bloqueados
     por ``sale.AccountAnalyticLine.so_line``. Ver el docstring del módulo.
 
-    Se conserva la función (y su entrada en ``SaleTimesheetConfig._EXTENSIONES``)
+    Se conserva la función (y su entrada en
+    ``SaleTimesheetConfig._EXTENSIONES``)
     porque es el punto exacto donde se cablean los dos el día que ``so_line``
     aterrice — mismo criterio que ``hr/models/res_config_settings.py``.
     """

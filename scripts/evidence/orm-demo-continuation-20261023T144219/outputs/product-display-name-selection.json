@@ -1,0 +1,27 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "Provider Python stdin invocation, full actual claims ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.product_display_name_assignment",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Correct return-only ProductProduct Consumer compute demonstrated by current CI; preserve actual format/direct-return compatibility, verify effective dependencies and relation changes; no whole product method/file acceptance",
+      "verify": "Real PostgreSQL assigned/repeated label, template/value change and cart snapshot; return-only and error controls; required CI separate",
+      "route": "local",
+      "owned": [
+        "addons/product/models/product_product.py",
+        "tests/integration/product/test_display_name_assignment.py",
+        "scripts/evidence/orm-demo-continuation-20261023T144219"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 417,
+  "selected": [
+    "TASK-GEN-0633.product_display_name_assignment"
+  ],
+  "admission": "Owned pending Task1203 description reconciled through native TaskUpdate against actual global failure. Existing descriptor code c2d0d10d locally verified, not TASK accepted. No need to declare previous TASK accepted to verify this Consumer.",
+  "scope": "One bounded candidate, not global coverage or model execution"
+}

@@ -1,0 +1,8 @@
+{
+  "head": "da475beb5c7f21c9c475c63b6dda407c7cd05994",
+  "index_tree": "4eb1695c11b022467204fcc68a0cbb8724c7b6ac",
+  "staged_registry_sha256": "3a3243ba9911ac852158284cea06bf4f2050648b2de7a9a3c0cf3560ccdbaf4c",
+  "pytest_exit_code": 0,
+  "git_provenance_unchanged": true,
+  "scope": "Exact staged Registry; other Consumer sources remain working-tree dependencies; SQL prohibited; no acceptance"
+}

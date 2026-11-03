@@ -1,14 +1,19 @@
-"""Tests de integración — ``product`` + ``stock`` (ex ``catalogue``/``chartsize``).
+"""
+Tests de integración — ``product`` + ``stock`` (ex
+``catalogue``/``chartsize``).
 
 ``catalogue`` y ``chartsize`` fueron eliminados por completo (modelos, vistas,
 serializers, management commands): no queda superficie HTTP ni serializer que
-ejercitar todavía en ``addons.product`` — es un puerto model-only de Odoo. Estos
-tests cubren, contra MariaDB real, lo que SÍ existe: la generación cartesiana de
+ejercitar todavía en ``addons.product`` — es un puerto model-only de Odoo.
+Estos
+tests cubren, contra MariaDB real, lo que SÍ existe: la generación cartesiana
+de
 combinaciones (``addons.product.services``), la existencia derivada de
 ``stock.quant`` (no una columna ``stock`` en el producto — el rename más
 importante de la migración) y la tarifa de proveedor (``code_for``/
 ``partner_ref_for``).
 """
+
 from decimal import Decimal
 
 import pytest
@@ -33,7 +38,9 @@ pytestmark = pytest.mark.integration
 def _attribute(name, values):
     attr = ProductAttribute.objects.create(name=name)
     objs = [
-        ProductAttributeValue.objects.create(attribute=attr, name=v, sequence=i)
+        ProductAttributeValue.objects.create(
+            attribute=attr, name=v, sequence=i
+        )
         for i, v in enumerate(values)
     ]
     return attr, objs
@@ -41,7 +48,8 @@ def _attribute(name, values):
 
 def _line(product_tmpl, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=product_tmpl, attribute=attr, sequence=sequence)
+        product_tmpl=product_tmpl, attribute=attr, sequence=sequence
+    )
     line.values.set(values)
     return line
 
@@ -49,6 +57,7 @@ def _line(product_tmpl, attr, values, sequence=10):
 # =============================================================================
 # Generación cartesiana de variantes (addons.product.services)
 # =============================================================================
+
 
 class TestCartesianCombinations:
 
@@ -94,6 +103,7 @@ class TestCartesianCombinations:
 # directa) desaparece. La existencia se deriva de `stock.quant` a través de
 # `InventoryService.available_quantity` / `StockQuant.available_qty`.
 
+
 class TestExistenciaDerivadaDeStockQuant:
 
     def test_variante_sin_quants_no_tiene_disponibilidad(self, db):
@@ -110,40 +120,54 @@ class TestExistenciaDerivadaDeStockQuant:
     def test_reserva_descuenta_de_la_disponibilidad(self, db):
         variante = make_product(name='Eleke')
         almacen = StockLocation.objects.create(
-            name='WH/Stock2', usage=StockLocation.USAGE_INTERNAL)
+            name='WH/Stock2', usage=StockLocation.USAGE_INTERNAL
+        )
         StockQuant.objects.create(
-            product=variante, location=almacen,
-            quantity=Decimal('7.00'), reserved_quantity=Decimal('2.00'))
+            product=variante,
+            location=almacen,
+            quantity=Decimal('7.00'),
+            reserved_quantity=Decimal('2.00'),
+        )
         assert get_stock(variante) == Decimal('5.00')
 
     def test_decrement_agota_y_levanta_si_no_alcanza(self, db):
         variante = make_product(name='Eleke', stock=3)
         InventoryService.decrement(
-            [{'product': variante, 'quantity': Decimal('2.00')}])
+            [{'product': variante, 'quantity': Decimal('2.00')}]
+        )
         assert get_stock(variante) == Decimal('1.00')
         with pytest.raises(InsufficientStockError):
             InventoryService.decrement(
-                [{'product': variante, 'quantity': Decimal('5.00')}])
+                [{'product': variante, 'quantity': Decimal('5.00')}]
+            )
 
     def test_ubicacion_proveedor_no_bloquea_la_reserva(self, db):
         """Las ubicaciones no-internas (proveedor, cliente...) tienen
-        disponibilidad "infinita" a efectos de reserva (should_bypass_reservation)."""
+        disponibilidad "infinita" a efectos de reserva
+        (should_bypass_reservation).
+        """
         variante = make_product(name='Eleke')
         proveedor = StockLocation.objects.create(
-            name='Proveedores', usage=StockLocation.USAGE_SUPPLIER)
-        assert StockQuant.available_qty(variante, proveedor) == Decimal('999999999.00')
+            name='Proveedores', usage=StockLocation.USAGE_SUPPLIER
+        )
+        assert StockQuant.available_qty(variante, proveedor) == Decimal(
+            '999999999.00'
+        )
 
 
 # =============================================================================
-# Tarifa de proveedor — code_for / partner_ref_for (asimetría plantilla/variante)
+# Tarifa de proveedor — code_for / partner_ref_for (asimetría
+# plantilla/variante)
 # =============================================================================
+
 
 class TestSupplierinfoCodeFor:
 
     def test_sin_tarifa_del_proveedor_devuelve_la_referencia_interna(self, db):
         tmpl = ProductTemplate.objects.create(name='Eleke')
         variante = ProductProduct.objects.create(
-            product_tmpl=tmpl, default_code='ELK-001')
+            product_tmpl=tmpl, default_code='ELK-001'
+        )
         comprador = ResPartner.objects.create(name='Comprador de prueba')
         assert variante.code_for(comprador) == 'ELK-001'
 
@@ -153,11 +177,16 @@ class TestSupplierinfoCodeFor:
         primera coincidencia, sigue hasta encontrar la de la variante."""
         tmpl = ProductTemplate.objects.create(name='Eleke')
         variante = ProductProduct.objects.create(
-            product_tmpl=tmpl, default_code='ELK-001')
+            product_tmpl=tmpl, default_code='ELK-001'
+        )
         proveedor = ResPartner.objects.create(name='Proveedor de prueba')
         ProductSupplierinfo.objects.create(
-            partner=proveedor, product_tmpl=tmpl, product_code='PROV-TMPL')
+            partner=proveedor, product_tmpl=tmpl, product_code='PROV-TMPL'
+        )
         ProductSupplierinfo.objects.create(
-            partner=proveedor, product_tmpl=tmpl, product=variante,
-            product_code='PROV-VARIANTE')
+            partner=proveedor,
+            product_tmpl=tmpl,
+            product=variante,
+            product_code='PROV-VARIANTE',
+        )
         assert variante.code_for(proveedor) == 'PROV-VARIANTE'

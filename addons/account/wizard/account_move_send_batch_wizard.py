@@ -46,6 +46,7 @@ Símbolo de la referencia          Qué pasa aquí
                                    docstring)
 ===============================  ==========================================
 """
+
 from collections import Counter
 
 from addons.account.models.account_move import AccountMove
@@ -57,7 +58,8 @@ from tools.translate import _
 class AccountMoveSendBatchWizard(TransientModel):
     """Wizard that handles the sending of multiple invoices.
 
-    (Docstring verbatim de la referencia.) ≙ ``account.move.send.batch.wizard``.
+    (Docstring verbatim de la referencia.) ≙
+    ``account.move.send.batch.wizard``.
     """
 
     _name = 'account.move.send.batch.wizard'
@@ -92,12 +94,17 @@ class AccountMoveSendBatchWizard(TransientModel):
         for move in moves:
             edi_counter += Counter(cls._get_default_extra_edis(move))
             sending_settings = cls._get_default_sending_settings(move)
-            sending_method_counter += Counter([
-                sending_method
-                for sending_method in cls._get_default_sending_methods(move)
-                if cls._is_applicable_to_move(sending_method, move,
-                                              **sending_settings)
-            ])
+            sending_method_counter += Counter(
+                [
+                    sending_method
+                    for sending_method in cls._get_default_sending_methods(
+                        move
+                    )
+                    if cls._is_applicable_to_move(
+                        sending_method, move, **sending_settings
+                    )
+                ]
+            )
 
         summary_data = {}
         for edi, edi_count in edi_counter.items():
@@ -108,16 +115,20 @@ class AccountMoveSendBatchWizard(TransientModel):
         for sending_method, count in sending_method_counter.items():
             summary_data[sending_method] = {
                 'count': count,
-                'label': sending_method if sending_method != 'manual'
-                         else _('Manually'),
+                'label': (
+                    sending_method
+                    if sending_method != 'manual'
+                    else _('Manually')
+                ),
             }
         return summary_data
 
     @classmethod
     def _compute_alerts(cls, moves):
         """≙ ``_compute_alerts`` — delegación al mixin en porte paralelo."""
-        moves_data = {move: cls._get_default_sending_settings(move)
-                      for move in moves}
+        moves_data = {
+            move: cls._get_default_sending_settings(move) for move in moves
+        }
         return cls._get_alerts(moves, moves_data)
 
     # -------------------------------------------------------------------------
@@ -135,9 +146,10 @@ class AccountMoveSendBatchWizard(TransientModel):
     # -------------------------------------------------------------------------
 
     @classmethod
-    def action_send_and_print(cls, moves, force_synchronous=False,
-                               allow_fallback_pdf=False):
-        """ Launch asynchronously the generation and sending of invoices.
+    def action_send_and_print(
+        cls, moves, force_synchronous=False, allow_fallback_pdf=False
+    ):
+        """Launch asynchronously the generation and sending of invoices.
 
         (Docstring verbatim de la referencia.) Parcial declarado:
 
@@ -155,9 +167,13 @@ class AccountMoveSendBatchWizard(TransientModel):
         if alerts:
             cls._raise_danger_alerts(alerts)
         if not force_synchronous:
-            raise UserError(_(
-                'El envío en lote asíncrono (cron '
-                'account.ir_cron_account_move_send) no está portado — '
-                'usa force_synchronous=True.'))
+            raise UserError(
+                _(
+                    'El envío en lote asíncrono (cron '
+                    'account.ir_cron_account_move_send) no está portado — '
+                    'usa force_synchronous=True.'
+                )
+            )
         return cls._generate_and_send_invoices(
-            moves, allow_fallback_pdf=allow_fallback_pdf)
+            moves, allow_fallback_pdf=allow_fallback_pdf
+        )

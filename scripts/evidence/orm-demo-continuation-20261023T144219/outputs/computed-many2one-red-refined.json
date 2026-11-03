@@ -1,0 +1,5 @@
+{
+  "pytest_exit": 1,
+  "production_before": "5943be0c",
+  "fixture": "Valid company manager/explicit country-only constructor; no constructor implementation changes"
+}

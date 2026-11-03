@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.105" timestamp="2026-10-31T19:45:01.483706" hostname="211a47b6160b"><testcase classname="" name="tests.unit.account.test_analytic_prefix_compute_contract" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/kaupamex-api/tests/unit/account/test_analytic_prefix_compute_contract.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+tests/unit/account/test_analytic_prefix_compute_contract.py:16: in &lt;module&gt;
+    from orm.environments import get_environment
+E   ImportError: cannot import name 'get_environment' from 'orm.environments' (/workspace/kaupamex-api/src/orm/environments.py). Did you mean: 'environments'?</error></testcase></testsuite></testsuites>

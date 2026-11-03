@@ -1,0 +1,24 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Increment admission: PASS; global style, CI, integration and acceptance are NOT_EVALUATED
+Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.
+OK: sin lazy imports (2 archivos medidos).
+check_canon_language: OK — sin violaciones.
+OK: todo silencio de excepción está justificado (2 archivos medidos).
+OK: identificadores en inglés (2 archivos medidos, 3531 en deuda heredada).
+OK: ningun identificador lleva el nombre de la referencia (2 archivos medidos).
+OK: 0 marca(s) nueva(s) sin forma fija (alcance medido: 2 archivos, 0 marcas informes, 332 congeladas en baseline)
+OK: 0 marca(s) caducada(s) nueva(s) · 0 caducada(s) en 0 clave(s) · 0 viva(s) · 0 de forma no medible (alcance medido: 0 aristas bien formadas; 19 clave(s) en baseline)
+OK: sin secuencias de escape inválidas (alcance medido: 2 archivos pedidos por ruta).
+OK: ningún modelo concreto choca con el lookup (alcance medido: 2 archivos).
+AVISO: no esta el arbol de referencia en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; sin el este gate no puede medir nada.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/check_addon_cycles.py", line 34, in <module>
+    from addons_roots import addon_dirs
+  File "/workspace/kaupamex-api/scripts/addons_roots.py", line 24, in <module>
+    from modules.module import (
+  File "/workspace/kaupamex-api/src/modules/__init__.py", line 46, in <module>
+    from modules.module_graph import ModuleGraph, ModuleNode  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/modules/module_graph.py", line 25, in <module>
+    from django.apps import apps
+ModuleNotFoundError: No module named 'django'

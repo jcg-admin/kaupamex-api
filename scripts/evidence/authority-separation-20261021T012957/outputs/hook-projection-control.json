@@ -1,0 +1,9 @@
+{
+  "interface": "rendered_sync_hooks(consumer_root,session_root), user_wiring.resolve_consumer(declared)",
+  "command": "uv run --frozen python: explicit Consumer pure projection vs default projection",
+  "exit_code": 0,
+  "explicit_projection_without_docs_literal": true,
+  "legacy_default_projection_has_docs_literal": true,
+  "explicit_consumer_resolution": "/workspace/scratch/authority-separation/fixture-consumer-no-state",
+  "limit": "Computed hook dictionaries only; no live settings/hooks changed, no command/hook executed"
+}

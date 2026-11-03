@@ -1,0 +1,43 @@
+{
+  "global": "FAIL",
+  "pytest_exit": 1,
+  "make_exit": 2,
+  "passed": 77,
+  "skipped": 1,
+  "errors": [
+    {
+      "class": "tests.integration.test_v2_cart_wishlist_notifications.TestCartSnapshotsV2",
+      "test": "test_saves_cart_and_returns_200",
+      "message": "failed on setup with \"ValueError: Compute method failed to assign product.ProductProduct(1,).display_name\"",
+      "trace": "tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item\n    add_item_to_draft(order, product_f2, quantity=1)\naddons/sale/services.py:125: in add_item_to_draft\n    'name': _line_snapshot_name(product),\naddons/sale/services.py:91: in _line_snapshot_name\n    return str(product)\naddons/product/models/product_product.py:178: in __str__\n    return f'[{self.default_code}] {self.display_name}' \\\nsrc/orm/fields.py:1657: in __get__\n    raise ValueError(\nE   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name"
+    }
+  ],
+  "duration_seconds": 501.83,
+  "classification": "BASELINE_FAILURE of first observed error; subsequent suite NOT_EVALUATED",
+  "baseline_evidence": "Prior remote JUnit in orm-module-order-20261022T174513/outputs/previous-ci-artifact/pytest.xml",
+  "focused": {
+    "contracts_and_inventory": 28,
+    "existing_pure_graph_regressions": 12,
+    "isolated_continuation_controls": 7,
+    "provider_assertions_passed": 86,
+    "provider_goal_assertions_failed": 5,
+    "strengthened_protocol": "1PASS,20deselected; one existing case strengthened, not an additional unique case",
+    "reference_imported_metadata_controls": 2,
+    "docs_language_checker_tests": 6
+  },
+  "official_task_states_changed": false,
+  "previous_run": {
+    "duration_seconds": 512.99,
+    "passed": 77,
+    "skipped": 1,
+    "pytest_exit": 1,
+    "make_exit": 2
+  },
+  "junit": "outputs/ci-pruning-final.junit.xml",
+  "cleanup": {
+    "disposable_databases_remaining": 0,
+    "disposable_roles_remaining": 0,
+    "command_exit": 0
+  },
+  "repeat_reason": "Material functional pruning code added after first global run; no repeat for metadata-only updates"
+}

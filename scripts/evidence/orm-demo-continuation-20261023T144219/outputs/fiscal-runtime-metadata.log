@@ -1,0 +1,77 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "result": "PASS",
+  "rows": [
+    {
+      "model": "base.ResBank",
+      "kind": "session_default",
+      "passed": true
+    },
+    {
+      "model": "base.ResPartnerBank",
+      "kind": "session_default",
+      "passed": true
+    },
+    {
+      "model": "base.ResCurrency",
+      "kind": "session_default",
+      "passed": true
+    },
+    {
+      "model": "uom.Uom",
+      "kind": "compute",
+      "passed": true,
+      "depends": [
+        [],
+        [
+          "company",
+          "allowed_company_ids"
+        ]
+      ]
+    },
+    {
+      "model": "product.ProductTemplate",
+      "kind": "compute",
+      "passed": true,
+      "depends": [
+        [
+          "company"
+        ],
+        [
+          "company",
+          "allowed_company_ids"
+        ]
+      ]
+    },
+    {
+      "model": "account.AccountPaymentTerm",
+      "kind": "compute",
+      "passed": true,
+      "depends": [
+        [
+          "company"
+        ],
+        [
+          "company",
+          "allowed_company_ids"
+        ]
+      ]
+    },
+    {
+      "model": "base.ResPartner",
+      "kind": "compute",
+      "passed": true,
+      "depends": [
+        [
+          "country.code"
+        ],
+        [
+          "company",
+          "allowed_company_ids"
+        ]
+      ]
+    }
+  ],
+  "scope": "Metadata/setup and empty-session zero-argument defaults only, no PostgreSQL or whole functional acceptance"
+}

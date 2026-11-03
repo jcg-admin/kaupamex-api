@@ -31,13 +31,18 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "name",
-                    models.CharField(help_text="Odoo name (required).", max_length=200),
+                    models.CharField(
+                        help_text="Odoo name (required).", max_length=200
+                    ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Odoo active — archivar el horario sin borrarlo ni afectar a los recursos que lo usan.",
+                        help_text=(
+                            "Odoo active — archivar el horario sin borrarlo ni"
+                            " afectar a los recursos que lo usan."
+                        ),
                     ),
                 ),
                 (
@@ -56,14 +61,23 @@ class Migration(migrations.Migration):
                     "duration_based",
                     models.BooleanField(
                         default=False,
-                        help_text="Odoo duration_based — las horas se centran en las 12:00 para cubrir la duración del día, en vez de horas fijas de inicio/fin.",
+                        help_text=(
+                            "Odoo duration_based — las horas se centran en las"
+                            " 12:00 para cubrir la duración del día, en vez de"
+                            " horas fijas de inicio/fin."
+                        ),
                     ),
                 ),
                 (
                     "full_time_required_hours",
                     models.FloatField(
                         default=0,
-                        help_text="Odoo full_time_required_hours (compute+store, readonly=False en la referencia) — sincronizar con sync_full_time_required_hours() (divergencia 4).",
+                        help_text=(
+                            "Odoo full_time_required_hours (compute+store,"
+                            " readonly=False en la referencia) — sincronizar"
+                            " con sync_full_time_required_hours()"
+                            " (divergencia 4)."
+                        ),
                     ),
                 ),
                 (
@@ -142,18 +156,30 @@ class Migration(migrations.Migration):
                                 "America/Argentina/Catamarca",
                                 "America/Argentina/Catamarca",
                             ),
-                            ("America/Argentina/Cordoba", "America/Argentina/Cordoba"),
-                            ("America/Argentina/Jujuy", "America/Argentina/Jujuy"),
+                            (
+                                "America/Argentina/Cordoba",
+                                "America/Argentina/Cordoba",
+                            ),
+                            (
+                                "America/Argentina/Jujuy",
+                                "America/Argentina/Jujuy",
+                            ),
                             (
                                 "America/Argentina/La_Rioja",
                                 "America/Argentina/La_Rioja",
                             ),
-                            ("America/Argentina/Mendoza", "America/Argentina/Mendoza"),
+                            (
+                                "America/Argentina/Mendoza",
+                                "America/Argentina/Mendoza",
+                            ),
                             (
                                 "America/Argentina/Rio_Gallegos",
                                 "America/Argentina/Rio_Gallegos",
                             ),
-                            ("America/Argentina/Salta", "America/Argentina/Salta"),
+                            (
+                                "America/Argentina/Salta",
+                                "America/Argentina/Salta",
+                            ),
                             (
                                 "America/Argentina/San_Juan",
                                 "America/Argentina/San_Juan",
@@ -162,14 +188,23 @@ class Migration(migrations.Migration):
                                 "America/Argentina/San_Luis",
                                 "America/Argentina/San_Luis",
                             ),
-                            ("America/Argentina/Tucuman", "America/Argentina/Tucuman"),
-                            ("America/Argentina/Ushuaia", "America/Argentina/Ushuaia"),
+                            (
+                                "America/Argentina/Tucuman",
+                                "America/Argentina/Tucuman",
+                            ),
+                            (
+                                "America/Argentina/Ushuaia",
+                                "America/Argentina/Ushuaia",
+                            ),
                             ("America/Aruba", "America/Aruba"),
                             ("America/Asuncion", "America/Asuncion"),
                             ("America/Atikokan", "America/Atikokan"),
                             ("America/Atka", "America/Atka"),
                             ("America/Bahia", "America/Bahia"),
-                            ("America/Bahia_Banderas", "America/Bahia_Banderas"),
+                            (
+                                "America/Bahia_Banderas",
+                                "America/Bahia_Banderas",
+                            ),
                             ("America/Barbados", "America/Barbados"),
                             ("America/Belem", "America/Belem"),
                             ("America/Belize", "America/Belize"),
@@ -220,15 +255,27 @@ class Migration(migrations.Migration):
                                 "America/Indiana/Indianapolis",
                             ),
                             ("America/Indiana/Knox", "America/Indiana/Knox"),
-                            ("America/Indiana/Marengo", "America/Indiana/Marengo"),
+                            (
+                                "America/Indiana/Marengo",
+                                "America/Indiana/Marengo",
+                            ),
                             (
                                 "America/Indiana/Petersburg",
                                 "America/Indiana/Petersburg",
                             ),
-                            ("America/Indiana/Tell_City", "America/Indiana/Tell_City"),
+                            (
+                                "America/Indiana/Tell_City",
+                                "America/Indiana/Tell_City",
+                            ),
                             ("America/Indiana/Vevay", "America/Indiana/Vevay"),
-                            ("America/Indiana/Vincennes", "America/Indiana/Vincennes"),
-                            ("America/Indiana/Winamac", "America/Indiana/Winamac"),
+                            (
+                                "America/Indiana/Vincennes",
+                                "America/Indiana/Vincennes",
+                            ),
+                            (
+                                "America/Indiana/Winamac",
+                                "America/Indiana/Winamac",
+                            ),
                             ("America/Inuvik", "America/Inuvik"),
                             ("America/Iqaluit", "America/Iqaluit"),
                             ("America/Jamaica", "America/Jamaica"),
@@ -286,7 +333,10 @@ class Migration(migrations.Migration):
                             ("America/Pangnirtung", "America/Pangnirtung"),
                             ("America/Paramaribo", "America/Paramaribo"),
                             ("America/Phoenix", "America/Phoenix"),
-                            ("America/Port-au-Prince", "America/Port-au-Prince"),
+                            (
+                                "America/Port-au-Prince",
+                                "America/Port-au-Prince",
+                            ),
                             ("America/Port_of_Spain", "America/Port_of_Spain"),
                             ("America/Porto_Acre", "America/Porto_Acre"),
                             ("America/Porto_Velho", "America/Porto_Velho"),
@@ -327,7 +377,10 @@ class Migration(migrations.Migration):
                             ("America/Yellowknife", "America/Yellowknife"),
                             ("Antarctica/Casey", "Antarctica/Casey"),
                             ("Antarctica/Davis", "Antarctica/Davis"),
-                            ("Antarctica/DumontDUrville", "Antarctica/DumontDUrville"),
+                            (
+                                "Antarctica/DumontDUrville",
+                                "Antarctica/DumontDUrville",
+                            ),
                             ("Antarctica/Macquarie", "Antarctica/Macquarie"),
                             ("Antarctica/Mawson", "Antarctica/Mawson"),
                             ("Antarctica/McMurdo", "Antarctica/McMurdo"),
@@ -433,7 +486,10 @@ class Migration(migrations.Migration):
                             ("Atlantic/Jan_Mayen", "Atlantic/Jan_Mayen"),
                             ("Atlantic/Madeira", "Atlantic/Madeira"),
                             ("Atlantic/Reykjavik", "Atlantic/Reykjavik"),
-                            ("Atlantic/South_Georgia", "Atlantic/South_Georgia"),
+                            (
+                                "Atlantic/South_Georgia",
+                                "Atlantic/South_Georgia",
+                            ),
                             ("Atlantic/St_Helena", "Atlantic/St_Helena"),
                             ("Atlantic/Stanley", "Atlantic/Stanley"),
                             ("Australia/Adelaide", "Australia/Adelaide"),
@@ -615,7 +671,10 @@ class Migration(migrations.Migration):
                             ("localtime", "localtime"),
                         ],
                         default="America/Mexico_City",
-                        help_text="Odoo tz (required) — zona horaria en la que trabajan los recursos.",
+                        help_text=(
+                            "Odoo tz (required) — zona horaria en la que"
+                            " trabajan los recursos."
+                        ),
                         max_length=64,
                     ),
                 ),
@@ -623,7 +682,13 @@ class Migration(migrations.Migration):
                     "is_default",
                     models.BooleanField(
                         default=False,
-                        help_text="NUEVO (no existe en la referencia) — marca el calendario por defecto de la compañía (Odoo res.company.resource_calendar_id, columna que este addon no puede declarar — ver divergencia 5).",
+                        help_text=(
+                            "NUEVO (no existe en la referencia) — marca el"
+                            " calendario por defecto de la compañía (Odoo"
+                            " res.company.resource_calendar_id, columna que"
+                            " este addon no puede declarar — ver"
+                            " divergencia 5)."
+                        ),
                     ),
                 ),
                 (
@@ -659,7 +724,10 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(help_text="Odoo name.", max_length=100)),
+                (
+                    "name",
+                    models.CharField(help_text="Odoo name.", max_length=100),
+                ),
                 (
                     "dayofweek",
                     models.CharField(
@@ -681,7 +749,11 @@ class Migration(migrations.Migration):
                     "hour_from",
                     models.FloatField(
                         default=0,
-                        help_text="Hora de inicio (Odoo hour_from). Un valor de 24.0 se interpreta como 23:59:59.999999 (mismo criterio que la referencia).",
+                        help_text=(
+                            "Hora de inicio (Odoo hour_from). Un valor de 24.0"
+                            " se interpreta como 23:59:59.999999 (mismo"
+                            " criterio que la referencia)."
+                        ),
                     ),
                 ),
                 (
@@ -708,9 +780,15 @@ class Migration(migrations.Migration):
                     "week_type",
                     models.CharField(
                         blank=True,
-                        choices=[("0", "Primera semana"), ("1", "Segunda semana")],
+                        choices=[
+                            ("0", "Primera semana"),
+                            ("1", "Segunda semana"),
+                        ],
                         default=None,
-                        help_text="Odoo week_type — sólo relevante si calendar.two_weeks_calendar.",
+                        help_text=(
+                            "Odoo week_type — sólo relevante si"
+                            " calendar.two_weeks_calendar."
+                        ),
                         max_length=1,
                         null=True,
                     ),
@@ -721,7 +799,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         choices=[("line_section", "Sección")],
                         default=None,
-                        help_text="Odoo display_type — línea técnica de sección (UI).",
+                        help_text=(
+                            "Odoo display_type — línea técnica de sección"
+                            " (UI)."
+                        ),
                         max_length=20,
                         null=True,
                     ),
@@ -730,13 +811,17 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Odoo sequence — orden al listar el calendario.",
+                        help_text=(
+                            "Odoo sequence — orden al listar el calendario."
+                        ),
                     ),
                 ),
                 (
                     "calendar",
                     models.ForeignKey(
-                        help_text="Odoo calendar_id (required, ondelete='cascade').",
+                        help_text=(
+                            "Odoo calendar_id (required, ondelete='cascade')."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="attendances",
                         to="resource.resourcecalendar",
@@ -747,7 +832,12 @@ class Migration(migrations.Migration):
                 "verbose_name": "Tramo de horario",
                 "verbose_name_plural": "Tramos de horario",
                 "db_table": "resource_calendar_attendance",
-                "ordering": ["sequence", "week_type", "dayofweek", "hour_from"],
+                "ordering": [
+                    "sequence",
+                    "week_type",
+                    "dayofweek",
+                    "hour_from",
+                ],
             },
         ),
         migrations.CreateModel(
@@ -764,12 +854,17 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(help_text="Odoo name.", max_length=200)),
+                (
+                    "name",
+                    models.CharField(help_text="Odoo name.", max_length=200),
+                ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Odoo active — archivar sin borrar (Odoo active).",
+                        help_text=(
+                            "Odoo active — archivar sin borrar (Odoo active)."
+                        ),
                     ),
                 ),
                 (
@@ -785,7 +880,10 @@ class Migration(migrations.Migration):
                     "time_efficiency",
                     models.FloatField(
                         default=100,
-                        help_text="Odoo time_efficiency — factor de eficiencia %; 200% implica la mitad del tiempo esperado.",
+                        help_text=(
+                            "Odoo time_efficiency — factor de eficiencia %;"
+                            " 200% implica la mitad del tiempo esperado."
+                        ),
                     ),
                 ),
                 (
@@ -858,18 +956,30 @@ class Migration(migrations.Migration):
                                 "America/Argentina/Catamarca",
                                 "America/Argentina/Catamarca",
                             ),
-                            ("America/Argentina/Cordoba", "America/Argentina/Cordoba"),
-                            ("America/Argentina/Jujuy", "America/Argentina/Jujuy"),
+                            (
+                                "America/Argentina/Cordoba",
+                                "America/Argentina/Cordoba",
+                            ),
+                            (
+                                "America/Argentina/Jujuy",
+                                "America/Argentina/Jujuy",
+                            ),
                             (
                                 "America/Argentina/La_Rioja",
                                 "America/Argentina/La_Rioja",
                             ),
-                            ("America/Argentina/Mendoza", "America/Argentina/Mendoza"),
+                            (
+                                "America/Argentina/Mendoza",
+                                "America/Argentina/Mendoza",
+                            ),
                             (
                                 "America/Argentina/Rio_Gallegos",
                                 "America/Argentina/Rio_Gallegos",
                             ),
-                            ("America/Argentina/Salta", "America/Argentina/Salta"),
+                            (
+                                "America/Argentina/Salta",
+                                "America/Argentina/Salta",
+                            ),
                             (
                                 "America/Argentina/San_Juan",
                                 "America/Argentina/San_Juan",
@@ -878,14 +988,23 @@ class Migration(migrations.Migration):
                                 "America/Argentina/San_Luis",
                                 "America/Argentina/San_Luis",
                             ),
-                            ("America/Argentina/Tucuman", "America/Argentina/Tucuman"),
-                            ("America/Argentina/Ushuaia", "America/Argentina/Ushuaia"),
+                            (
+                                "America/Argentina/Tucuman",
+                                "America/Argentina/Tucuman",
+                            ),
+                            (
+                                "America/Argentina/Ushuaia",
+                                "America/Argentina/Ushuaia",
+                            ),
                             ("America/Aruba", "America/Aruba"),
                             ("America/Asuncion", "America/Asuncion"),
                             ("America/Atikokan", "America/Atikokan"),
                             ("America/Atka", "America/Atka"),
                             ("America/Bahia", "America/Bahia"),
-                            ("America/Bahia_Banderas", "America/Bahia_Banderas"),
+                            (
+                                "America/Bahia_Banderas",
+                                "America/Bahia_Banderas",
+                            ),
                             ("America/Barbados", "America/Barbados"),
                             ("America/Belem", "America/Belem"),
                             ("America/Belize", "America/Belize"),
@@ -936,15 +1055,27 @@ class Migration(migrations.Migration):
                                 "America/Indiana/Indianapolis",
                             ),
                             ("America/Indiana/Knox", "America/Indiana/Knox"),
-                            ("America/Indiana/Marengo", "America/Indiana/Marengo"),
+                            (
+                                "America/Indiana/Marengo",
+                                "America/Indiana/Marengo",
+                            ),
                             (
                                 "America/Indiana/Petersburg",
                                 "America/Indiana/Petersburg",
                             ),
-                            ("America/Indiana/Tell_City", "America/Indiana/Tell_City"),
+                            (
+                                "America/Indiana/Tell_City",
+                                "America/Indiana/Tell_City",
+                            ),
                             ("America/Indiana/Vevay", "America/Indiana/Vevay"),
-                            ("America/Indiana/Vincennes", "America/Indiana/Vincennes"),
-                            ("America/Indiana/Winamac", "America/Indiana/Winamac"),
+                            (
+                                "America/Indiana/Vincennes",
+                                "America/Indiana/Vincennes",
+                            ),
+                            (
+                                "America/Indiana/Winamac",
+                                "America/Indiana/Winamac",
+                            ),
                             ("America/Inuvik", "America/Inuvik"),
                             ("America/Iqaluit", "America/Iqaluit"),
                             ("America/Jamaica", "America/Jamaica"),
@@ -1002,7 +1133,10 @@ class Migration(migrations.Migration):
                             ("America/Pangnirtung", "America/Pangnirtung"),
                             ("America/Paramaribo", "America/Paramaribo"),
                             ("America/Phoenix", "America/Phoenix"),
-                            ("America/Port-au-Prince", "America/Port-au-Prince"),
+                            (
+                                "America/Port-au-Prince",
+                                "America/Port-au-Prince",
+                            ),
                             ("America/Port_of_Spain", "America/Port_of_Spain"),
                             ("America/Porto_Acre", "America/Porto_Acre"),
                             ("America/Porto_Velho", "America/Porto_Velho"),
@@ -1043,7 +1177,10 @@ class Migration(migrations.Migration):
                             ("America/Yellowknife", "America/Yellowknife"),
                             ("Antarctica/Casey", "Antarctica/Casey"),
                             ("Antarctica/Davis", "Antarctica/Davis"),
-                            ("Antarctica/DumontDUrville", "Antarctica/DumontDUrville"),
+                            (
+                                "Antarctica/DumontDUrville",
+                                "Antarctica/DumontDUrville",
+                            ),
                             ("Antarctica/Macquarie", "Antarctica/Macquarie"),
                             ("Antarctica/Mawson", "Antarctica/Mawson"),
                             ("Antarctica/McMurdo", "Antarctica/McMurdo"),
@@ -1149,7 +1286,10 @@ class Migration(migrations.Migration):
                             ("Atlantic/Jan_Mayen", "Atlantic/Jan_Mayen"),
                             ("Atlantic/Madeira", "Atlantic/Madeira"),
                             ("Atlantic/Reykjavik", "Atlantic/Reykjavik"),
-                            ("Atlantic/South_Georgia", "Atlantic/South_Georgia"),
+                            (
+                                "Atlantic/South_Georgia",
+                                "Atlantic/South_Georgia",
+                            ),
                             ("Atlantic/St_Helena", "Atlantic/St_Helena"),
                             ("Atlantic/Stanley", "Atlantic/Stanley"),
                             ("Australia/Adelaide", "Australia/Adelaide"),
@@ -1338,7 +1478,10 @@ class Migration(migrations.Migration):
                     "calendar",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo calendar_id — horario de trabajo. Vacío = horario completamente flexible.",
+                        help_text=(
+                            "Odoo calendar_id — horario de trabajo. Vacío ="
+                            " horario completamente flexible."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="resources",
@@ -1360,7 +1503,10 @@ class Migration(migrations.Migration):
                     "user",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo user_id — usuario relacionado, para gestionar accesos.",
+                        help_text=(
+                            "Odoo user_id — usuario relacionado, para"
+                            " gestionar accesos."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="resource_resources",
@@ -1392,18 +1538,25 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        blank=True, default="", help_text="Odoo name.", max_length=200
+                        blank=True,
+                        default="",
+                        help_text="Odoo name.",
+                        max_length=200,
                     ),
                 ),
                 (
                     "date_from",
-                    models.DateTimeField(help_text="Odoo date_from (required)."),
+                    models.DateTimeField(
+                        help_text="Odoo date_from (required)."
+                    ),
                 ),
                 (
                     "date_to",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Odoo date_to (compute+store, readonly=False).",
+                        help_text=(
+                            "Odoo date_to (compute+store, readonly=False)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -1420,7 +1573,9 @@ class Migration(migrations.Migration):
                     "calendar",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo calendar_id (compute+store, readonly=False).",
+                        help_text=(
+                            "Odoo calendar_id (compute+store, readonly=False)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="leaves",
@@ -1431,7 +1586,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo company_id (compute+store; aquí sincronizado en save()).",
+                        help_text=(
+                            "Odoo company_id (compute+store; aquí sincronizado"
+                            " en save())."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="resource_leaves",
@@ -1442,7 +1600,11 @@ class Migration(migrations.Migration):
                     "resource",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo resource_id. Vacío = ausencia general de la compañía; con valor = ausencia sólo de ese recurso.",
+                        help_text=(
+                            "Odoo resource_id. Vacío = ausencia general de la"
+                            " compañía; con valor = ausencia sólo de ese"
+                            " recurso."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="leaves",

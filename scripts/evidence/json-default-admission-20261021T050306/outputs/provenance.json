@@ -1,0 +1,21 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "resolved_tree": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0",
+  "reference_files": {
+    "odoo/orm/fields_misc.py": "f529c1ef2d1b799d70d73808d6b7882c319d61c70e4d06da9048eaf0576e0f32",
+    "odoo/addons/test_orm/models/test_orm.py": "5cb16e502ede06f8027a65205ec62fcbffacc36af610eb92c9ab972aef167d2a",
+    "odoo/addons/test_orm/tests/test_json_field.py": "b419b54f942b592106c586035903754bb6e7fa3f27f2445b7c3d47d27a056c76"
+  },
+  "api_base": "7416b78e256d858e7e82adf810d2310fc1c5b089",
+  "docs_base": "4f24ff841af3e24b16ef6cc943cbecdbfe3a79c7",
+  "attachments": {
+    "Kaupamex — Transición efectiva a la implementación contractual del ORM con trazabilidad metodológica y continuidad operativa.txt": "3d4bcfd984473f95d2af67cdc78bd619d02c26f664890fdf2a0c0dee0f8ccd8f",
+    "traceability-matrix-template.xlsx": "ddb0c54523fe9e471c1bc4994b692e1eb74dce1c3dfa210f9cd250589ee7291f"
+  },
+  "methodology": [
+    "fnd-00-contexto-y-jerarquia.rst (historical example unchanged)",
+    "base-cognitiva/pmbok/pmbok-gestion-requisitos.rst",
+    "XLSX 12 sheets; sheet10 FR/NF->UC->test->ST/SIT/UAT/NFR; sample business IDs not Kaupamex requirements"
+  ],
+  "traceability_origin": "Existing ORM initiative behavioral compatibility contract -> TASK-API-0420 -> Json factory -> discriminating probe -> pending fix/verifier/acceptance; no fabricated business UC"
+}

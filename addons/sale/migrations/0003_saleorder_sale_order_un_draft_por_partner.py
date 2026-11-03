@@ -19,7 +19,9 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="saleorder",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("partner__isnull", False), ("state", "draft")),
+                condition=models.Q(
+                    ("partner__isnull", False), ("state", "draft")
+                ),
                 fields=("partner",),
                 name="sale_order_un_draft_por_partner",
             ),

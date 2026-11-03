@@ -1,4 +1,5 @@
-"""``_deactivate_portal_user`` — la baja de una cuenta de portal (``:934-987``).
+"""
+``_deactivate_portal_user`` — la baja de una cuenta de portal (``:934-987``).
 
 Porta ``odoo19c: odoo/addons/base/models/res_users.py`` (LGPL-3). Su
 docstring de la fuente dice para qué existe: *"This is used to give the
@@ -53,12 +54,16 @@ def _make_user(login, internal=False):
     user.save(update_fields=['password'])
     if internal:
         user.group_ids.add(
-            ResGroups.objects.create(name='Empleados %s' % login,
-                                     user_type=ResGroups.USER_TYPE_INTERNAL))
+            ResGroups.objects.create(
+                name='Empleados %s' % login,
+                user_type=ResGroups.USER_TYPE_INTERNAL,
+            )
+        )
     return user
 
 
 # --- la guarda de clase: sólo un usuario de portal se da de baja -----------
+
 
 def test_an_internal_user_cannot_deactivate_its_own_account(db):
     user = _make_user('interno@ejemplo.mx', internal=True)
@@ -72,12 +77,15 @@ def test_a_batch_with_one_internal_user_deactivates_nobody(db):
     portal = _make_user('portal@ejemplo.mx')
     interno = _make_user('otro-interno@ejemplo.mx', internal=True)
     with pytest.raises(AccessDenied):
-        ResUsers.objects.filter(pk__in=[portal.pk, interno.pk])._deactivate_portal_user()
+        ResUsers.objects.filter(
+            pk__in=[portal.pk, interno.pk]
+        )._deactivate_portal_user()
     portal.refresh_from_db()
     assert portal.active is True
 
 
 # --- los efectos sobre la fila del usuario --------------------------------
+
 
 def test_the_portal_user_is_archived(db):
     user = _make_user('baja@ejemplo.mx')
@@ -124,6 +132,7 @@ def test_the_partner_is_archived_too(db):
 
 # --- la cola de borrado ----------------------------------------------------
 
+
 def test_the_user_is_queued_for_deletion(db):
     user = _make_user('cola@ejemplo.mx')
     ResUsers.objects.filter(pk=user.pk)._deactivate_portal_user()
@@ -135,26 +144,32 @@ def test_a_batch_queues_one_row_per_user(db):
     uno = _make_user('lote-uno@ejemplo.mx')
     dos = _make_user('lote-dos@ejemplo.mx')
     ResUsers.objects.filter(pk__in=[uno.pk, dos.pk])._deactivate_portal_user()
-    assert ResUsersDeletion.objects.filter(
-        user_int__in=[uno.pk, dos.pk]).count() == 2
+    assert (
+        ResUsersDeletion.objects.filter(user_int__in=[uno.pk, dos.pk]).count()
+        == 2
+    )
 
 
 def test_the_batch_archives_both(db):
     uno = _make_user('ambos-uno@ejemplo.mx')
     dos = _make_user('ambos-dos@ejemplo.mx')
     ResUsers.objects.filter(pk__in=[uno.pk, dos.pk])._deactivate_portal_user()
-    assert ResUsers.objects.filter(
-        pk__in=[uno.pk, dos.pk], active=True).count() == 0
+    assert (
+        ResUsers.objects.filter(pk__in=[uno.pk, dos.pk], active=True).count()
+        == 0
+    )
 
 
 # --- las claves de API ------------------------------------------------------
+
 
 def test_the_api_keys_are_removed(db):
     """Como en la fuente, ``_remove`` sigue exigiendo identidad: la baja la
     pide el propio usuario, así que el actor es él."""
     user = _make_user('llaves@ejemplo.mx')
     clave = ResUsersApikeys.objects.create(
-        user=user, name='una', index='abcdefgh', key='no-importa')
+        user=user, name='una', index='abcdefgh', key='no-importa'
+    )
     with user_scope(user.pk):
         ResUsers.objects.filter(pk=user.pk)._deactivate_portal_user()
     assert not ResUsersApikeys.objects.filter(pk=clave.pk).exists()

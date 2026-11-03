@@ -12,9 +12,9 @@
     # declaran explícitos porque los modelos/extensiones de este addon los
     # importan directo:
     'depends': [
-        'hr',        # HrEmployee, HrVersion (FKs + extensiones)
+        'hr',  # HrEmployee, HrVersion (FKs + extensiones)
         'resource',  # ResourceCalendar{,Attendance,Leaves} (extensiones)
-        'base',      # TimeStampedModel, ResUsers, ResCompany, ResCountry
+        'base',  # TimeStampedModel, ResUsers, ResCompany, ResCountry
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): LGPL-3.

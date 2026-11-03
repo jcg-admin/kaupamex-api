@@ -367,7 +367,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     _rec_names_search = ['location_id', 'lot_id', 'package_id', 'owner_id']
 
     product           = fields.Many2one(
-        'product.ProductProduct', on_delete=models.CASCADE, related_name='quants',
+        'product.ProductProduct', null=False, on_delete=models.CASCADE, related_name='quants',
         help_text='Producto (Odoo product_id).',
     )
     company           = fields.Many2one(
@@ -377,7 +377,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                   'con store=True; se recalcula en save()).',
     )
     location          = fields.Many2one(
-        'stock.StockLocation', on_delete=models.CASCADE, related_name='quants',
+        'stock.StockLocation', null=False, on_delete=models.CASCADE, related_name='quants',
         help_text='Ubicación (Odoo location_id).',
     )
     lot               = fields.Many2one(

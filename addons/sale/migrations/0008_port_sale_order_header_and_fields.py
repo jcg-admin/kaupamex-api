@@ -15,7 +15,8 @@ def backfill_date_order_from_created_at(apps, schema_editor):
     """
     SaleOrder = apps.get_model("sale", "SaleOrder")
     SaleOrder.objects.filter(date_order__isnull=True).update(
-        date_order=models.F("created_at"))
+        date_order=models.F("created_at")
+    )
 
 
 class Migration(migrations.Migration):
@@ -51,7 +52,11 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Token que permite el acceso al documento por link, saltando los permisos del destinatario (Odoo access_token).",
+                help_text=(
+                    "Token que permite el acceso al documento por link,"
+                    " saltando los permisos del destinatario (Odoo"
+                    " access_token)."
+                ),
                 max_length=64,
                 verbose_name="Token de seguridad",
             ),
@@ -62,7 +67,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="campaign_id",
-                help_text="Nombre con el que se distingue cada esfuerzo de campaña, p. ej. Fall_Drive, Christmas_Special.",
+                help_text=(
+                    "Nombre con el que se distingue cada esfuerzo de campaña,"
+                    " p. ej. Fall_Drive, Christmas_Special."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -76,7 +84,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo client_order_ref ("Customer Reference"). El número con que el cliente identifica esta compra de su lado.',
+                help_text=(
+                    'Odoo client_order_ref ("Customer Reference"). El número'
+                    ' con que el cliente identifica esta compra de su lado.'
+                ),
                 max_length=64,
                 verbose_name="Referencia del cliente",
             ),
@@ -86,7 +97,11 @@ class Migration(migrations.Migration):
             name="commitment_date",
             field=models.DateTimeField(
                 blank=True,
-                help_text='Odoo commitment_date ("Delivery Date"). Fecha prometida al cliente; si se fija, el albarán se programa contra ella y no contra los plazos de cada producto.',
+                help_text=(
+                    'Odoo commitment_date ("Delivery Date"). Fecha prometida'
+                    ' al cliente; si se fija, el albarán se programa contra'
+                    ' ella y no contra los plazos de cada producto.'
+                ),
                 null=True,
                 verbose_name="Fecha de entrega",
             ),
@@ -96,7 +111,11 @@ class Migration(migrations.Migration):
             name="currency",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Odoo currency_id (compute, store=True, precompute, ondelete='restrict'). Sale de la tarifa, o de la empresa si el pedido no tiene tarifa. PROTECT ≙ restrict.",
+                help_text=(
+                    "Odoo currency_id (compute, store=True, precompute,"
+                    " ondelete='restrict'). Sale de la tarifa, o de la empresa"
+                    " si el pedido no tiene tarifa. PROTECT ≙ restrict."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -109,7 +128,12 @@ class Migration(migrations.Migration):
             name="currency_rate",
             field=models.FloatField(
                 default=1.0,
-                help_text='Odoo currency_rate ("Currency Rate", digits=0 — sin redondeo declarado). Tasa aplicada al confirmar, congelada en el pedido para que un cambio posterior no reescriba el importe.',
+                help_text=(
+                    'Odoo currency_rate ("Currency Rate", digits=0 — sin'
+                    ' redondeo declarado). Tasa aplicada al confirmar,'
+                    ' congelada en el pedido para que un cambio posterior no'
+                    ' reescriba el importe.'
+                ),
                 verbose_name="Tipo de cambio",
             ),
         ),
@@ -118,7 +142,11 @@ class Migration(migrations.Migration):
             name="fiscal_position",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo fiscal_position_id ("Fiscal Position"). Adapta impuestos y cuentas para un cliente o pedido concreto; su valor por omisión sale del cliente.',
+                help_text=(
+                    'Odoo fiscal_position_id ("Fiscal Position"). Adapta'
+                    ' impuestos y cuentas para un cliente o pedido concreto;'
+                    ' su valor por omisión sale del cliente.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -137,7 +165,12 @@ class Migration(migrations.Migration):
                     ("to invoice", "Por facturar"),
                     ("no", "Nada que facturar"),
                 ],
-                help_text="Odoo invoice_status (compute, store=True). Deriva del estado de facturación de las líneas: por facturar, facturado por completo, oportunidad de venta adicional, o nada que facturar.",
+                help_text=(
+                    "Odoo invoice_status (compute, store=True). Deriva del"
+                    " estado de facturación de las líneas: por facturar,"
+                    " facturado por completo, oportunidad de venta adicional,"
+                    " o nada que facturar."
+                ),
                 max_length=16,
                 null=True,
                 verbose_name="Estado de facturación",
@@ -148,7 +181,12 @@ class Migration(migrations.Migration):
             name="journal",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo journal_id ("Invoicing Journal"). Si se fija, el pedido factura en este diario; si no, se usa el diario de ventas de menor secuencia. Acotado por SALE_JOURNAL_DOMAIN.',
+                help_text=(
+                    'Odoo journal_id ("Invoicing Journal"). Si se fija, el'
+                    ' pedido factura en este diario; si no, se usa el diario'
+                    ' de ventas de menor secuencia. Acotado por'
+                    ' SALE_JOURNAL_DOMAIN.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -176,7 +214,10 @@ class Migration(migrations.Migration):
             field=models.TextField(
                 blank=True,
                 default="",
-                help_text='Odoo note ("Terms and conditions"). Su valor inicial sale de los términos de la empresa.',
+                help_text=(
+                    'Odoo note ("Terms and conditions"). Su valor inicial sale'
+                    ' de los términos de la empresa.'
+                ),
                 verbose_name="Términos y condiciones",
             ),
         ),
@@ -186,7 +227,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo origin ("Source Document"). Referencia del documento que originó esta solicitud de venta.',
+                help_text=(
+                    'Odoo origin ("Source Document"). Referencia del documento'
+                    ' que originó esta solicitud de venta.'
+                ),
                 max_length=64,
                 verbose_name="Documento de origen",
             ),
@@ -196,7 +240,12 @@ class Migration(migrations.Migration):
             name="partner_invoice",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo partner_invoice_id ("Invoice Address"). index="btree_not_null" en la fuente: aquí el índice lo pone Django con la FK; el tramo parcial se declara en Meta.indexes cuando el volumen lo justifique.',
+                help_text=(
+                    'Odoo partner_invoice_id ("Invoice Address").'
+                    ' index="btree_not_null" en la fuente: aquí el índice lo'
+                    ' pone Django con la FK; el tramo parcial se declara en'
+                    ' Meta.indexes cuando el volumen lo justifique.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -222,7 +271,11 @@ class Migration(migrations.Migration):
             name="payment_term",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo payment_term_id ("Payment Terms"). Acotado por PAYMENT_TERM_DOMAIN: los de la empresa del pedido o los compartidos (company_id vacío).',
+                help_text=(
+                    'Odoo payment_term_id ("Payment Terms"). Acotado por'
+                    ' PAYMENT_TERM_DOMAIN: los de la empresa del pedido o los'
+                    ' compartidos (company_id vacío).'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -235,7 +288,11 @@ class Migration(migrations.Migration):
             name="pending_email_template",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo pending_email_template_id ("Pending Email Template"). La plantilla del correo que queda por enviar de forma asíncrona.',
+                help_text=(
+                    'Odoo pending_email_template_id ("Pending Email'
+                    ' Template"). La plantilla del correo que queda por enviar'
+                    ' de forma asíncrona.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -248,7 +305,11 @@ class Migration(migrations.Migration):
             name="preferred_payment_method_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo preferred_payment_method_line_id ("Payment Method"). Acotado por PREFERRED_PAYMENT_METHOD_DOMAIN: entrante y de la empresa del pedido.',
+                help_text=(
+                    'Odoo preferred_payment_method_line_id ("Payment Method").'
+                    ' Acotado por PREFERRED_PAYMENT_METHOD_DOMAIN: entrante y'
+                    ' de la empresa del pedido.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -261,7 +322,12 @@ class Migration(migrations.Migration):
             name="prepayment_percent",
             field=models.FloatField(
                 default=1.0,
-                help_text='Odoo prepayment_percent ("Prepayment percentage"). Fracción del importe que el cliente debe pagar para confirmar. Su valor inicial sale de company.prepayment_percent.',
+                help_text=(
+                    'Odoo prepayment_percent ("Prepayment percentage").'
+                    ' Fracción del importe que el cliente debe pagar para'
+                    ' confirmar. Su valor inicial sale de'
+                    ' company.prepayment_percent.'
+                ),
                 verbose_name="Porcentaje de anticipo",
             ),
         ),
@@ -270,7 +336,11 @@ class Migration(migrations.Migration):
             name="pricelist",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo pricelist_id ("Pricelist"). Cambiarla sólo afecta a las líneas que se añadan después. Acotada por PRICELIST_DOMAIN.',
+                help_text=(
+                    'Odoo pricelist_id ("Pricelist"). Cambiarla sólo afecta a'
+                    ' las líneas que se añadan después. Acotada por'
+                    ' PRICELIST_DOMAIN.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -284,7 +354,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo reference ("Payment Ref."). La comunicación de pago de este pedido — lo que el cliente ve en su estado de cuenta.',
+                help_text=(
+                    'Odoo reference ("Payment Ref."). La comunicación de pago'
+                    ' de este pedido — lo que el cliente ve en su estado de'
+                    ' cuenta.'
+                ),
                 max_length=64,
                 verbose_name="Referencia de pago",
             ),
@@ -294,7 +368,11 @@ class Migration(migrations.Migration):
             name="require_payment",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo require_payment ("Online payment"). Pide pago del cliente para confirmar el pedido. Su valor inicial sale de company.portal_confirmation_pay.',
+                help_text=(
+                    'Odoo require_payment ("Online payment"). Pide pago del'
+                    ' cliente para confirmar el pedido. Su valor inicial sale'
+                    ' de company.portal_confirmation_pay.'
+                ),
                 verbose_name="Pago en línea",
             ),
         ),
@@ -303,7 +381,11 @@ class Migration(migrations.Migration):
             name="require_signature",
             field=models.BooleanField(
                 default=True,
-                help_text='Odoo require_signature ("Online signature"). Pide firma del cliente para confirmar el pedido. Su valor inicial sale de company.portal_confirmation_sign.',
+                help_text=(
+                    'Odoo require_signature ("Online signature"). Pide firma'
+                    ' del cliente para confirmar el pedido. Su valor inicial'
+                    ' sale de company.portal_confirmation_sign.'
+                ),
                 verbose_name="Firma en línea",
             ),
         ),
@@ -312,7 +394,11 @@ class Migration(migrations.Migration):
             name="signature",
             field=models.ImageField(
                 blank=True,
-                help_text='Odoo signature ("Signature", attachment=True, máx. 1024×1024). Imagen de la firma con que el cliente aceptó.',
+                help_text=(
+                    'Odoo signature ("Signature", attachment=True, máx.'
+                    ' 1024×1024). Imagen de la firma con que el cliente'
+                    ' aceptó.'
+                ),
                 null=True,
                 upload_to="sale/signatures/",
                 verbose_name="Firma",
@@ -324,7 +410,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo signed_by ("Signed By"). Nombre de quien firmó.',
+                help_text=(
+                    'Odoo signed_by ("Signed By"). Nombre de quien firmó.'
+                ),
                 max_length=128,
                 verbose_name="Firmado por",
             ),
@@ -345,7 +433,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="source_id",
-                help_text="Origen del enlace: un buscador, otro dominio, o el nombre de una lista de correo.",
+                help_text=(
+                    "Origen del enlace: un buscador, otro dominio, o el nombre"
+                    " de una lista de correo."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -359,7 +450,12 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="sale_order_tag_rel",
-                help_text='Odoo tag_ids ("Tags", relation="sale_order_tag_rel"). El nombre de la tabla intermedia se conserva verbatim. Su groups=\'sales_team.group_sale_salesman\' se aplica por capacidad en la vista DRF (DEC-11), no en el campo.',
+                help_text=(
+                    'Odoo tag_ids ("Tags", relation="sale_order_tag_rel"). El'
+                    ' nombre de la tabla intermedia se conserva verbatim. Su'
+                    ' groups=\'sales_team.group_sale_salesman\' se aplica por'
+                    ' capacidad en la vista DRF (DEC-11), no en el campo.'
+                ),
                 related_name="sale_orders",
                 to="sales_team.crmtag",
                 verbose_name="Etiquetas",
@@ -370,7 +466,12 @@ class Migration(migrations.Migration):
             name="user",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Odoo user_id ("Salesperson"). NO es el cliente —ese es ``partner``—: es quien atiende la venta. Acotado por SALESPERSON_GROUP: usuario interno del grupo de ventas de la empresa del pedido.',
+                help_text=(
+                    'Odoo user_id ("Salesperson"). NO es el cliente —ese es'
+                    ' ``partner``—: es quien atiende la venta. Acotado por'
+                    ' SALESPERSON_GROUP: usuario interno del grupo de ventas'
+                    ' de la empresa del pedido.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="sale_orders_as_salesperson",
@@ -398,13 +499,18 @@ class Migration(migrations.Migration):
             name="date_order",
             field=models.DateTimeField(
                 default=django.utils.timezone.now,
-                help_text="Fecha de la orden (Odoo date_order): fecha de creación en borrador o enviada, fecha de confirmación una vez confirmada.",
+                help_text=(
+                    "Fecha de la orden (Odoo date_order): fecha de creación en"
+                    " borrador o enviada, fecha de confirmación una vez"
+                    " confirmada."
+                ),
             ),
         ),
         migrations.AddIndex(
             model_name="saleorder",
             index=models.Index(
-                fields=["-date_order", "-id"], name="sale_order_date_order_id_idx"
+                fields=["-date_order", "-id"],
+                name="sale_order_date_order_id_idx",
             ),
         ),
         migrations.AddConstraint(
@@ -416,7 +522,10 @@ class Migration(migrations.Migration):
                     _connector="OR",
                 ),
                 name="sale_order_date_order_conditional_required",
-                violation_error_message="Una orden de venta confirmada requiere fecha de confirmación.",
+                violation_error_message=(
+                    "Una orden de venta confirmada requiere fecha de"
+                    " confirmación."
+                ),
             ),
         ),
     ]

@@ -1,0 +1,29 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run/claimsCommand",
+  "tasks": [
+    {
+      "task_id": "1203",
+      "citation_id": "TASK-GEN-0633",
+      "owner": "codex-module-lifecycle",
+      "status": "pending",
+      "blocked_by": [],
+      "blocks": []
+    },
+    {
+      "task_id": "520",
+      "citation_id": "TASK-API-0305",
+      "owner": null,
+      "status": "in_progress",
+      "blocked_by": [],
+      "blocks": []
+    }
+  ],
+  "scope": "Owned GEN0633 contractual triage of demonstrated global schema criterion; preserve original test identity and original64 population. No analytic implementation, compute/default policy, taxonomy, state, dependency or ownership changes.",
+  "resources": "Pure Django metadata and native ModelState; PostgreSQL access must remain blocked for this unit.",
+  "claim": {
+    "path": "tests/unit/account/test_account_analytic_distribution_model.py",
+    "branch": "feature/codex-workspace-bootstrap",
+    "exit": 0
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "head": "f17fca957391868e9194a98fbe4ffc8d384758d6",
+  "index_tree": "ed7bda4f0894e950e84ace3191b4870b4e7b1d70",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py"
+  },
+  "source_sha256": {
+    "orm.environments": "254ef0348b6fa118e5962150662fb69bb7fab6baeb2959d2593e692546460446",
+    "orm.fields": "65d7c061303803f3981cbf5d0d9fdecbd029c1ab84b13d72bc13e2639e952e8e"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_record_environment_field_contract.py": "4546c94eca9ea7fa1fa65f33c9850f85e6f3f344d20d22861231c867d8262d1a",
+    "tests/unit/orm/test_nonstored_compute_dispatch.py": "07d043d7ddf7d2e9052add76f218a3b26031293a09ac3ab270de50a9d0e05bc4",
+    "tests/unit/orm/test_uid_cache_key_contract.py": "3c7bddba9df9d9520c42ebecc731c30a3b592a6e35c224c63996e3af379f69f1",
+    "tests/unit/orm/test_environments_channels.py": "e110212b30a34d79d0f587d1ef1bf5222a358791a6a213f45a720aefc0912b9f",
+    "tests/unit/orm/test_field_cache.py": "133e1c759ae881e3a3fd6f004be5dd55b6398d0a0c29a7925253329ff5eb23e6",
+    "tests/unit/account/test_analytic_prefix_compute_contract.py": "6f6f9732e2333ef18a3d80577f5d10d5f2ec0acfb2749e89a73032c91f4355d0",
+    "tests/unit/orm/test_environments_cache.py": "e2520e7a005a9bfe743aa5f40f4d8a8b6d550ec1e3002003a5205ac383df77f1"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": true,
+  "pytest_exit": 0,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}

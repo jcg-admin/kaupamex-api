@@ -1,0 +1,230 @@
+[
+  {
+    "repo": "api",
+    "pr": 109,
+    "command": [
+      "gh",
+      "pr",
+      "view",
+      "109",
+      "--repo",
+      "jcg-admin/kaupamex-api",
+      "--json",
+      "state,headRefOid,isDraft,reviews,statusCheckRollup,url"
+    ],
+    "exit_code": 0,
+    "headRefOid": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "isDraft": false,
+    "reviews": [
+      {
+        "id": "PRR_kwDOScMorc8AAAABS4vrPA",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "CONTRIBUTOR",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:44:56Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "2940ef16f36bf9369767a0e5800c752f0b353f28"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-20T05:46:40Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39374373036/job/118469076518",
+        "name": "test",
+        "startedAt": "2026-10-20T05:20:34Z",
+        "status": "COMPLETED",
+        "workflowName": "api-tests"
+      }
+    ],
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109"
+  },
+  {
+    "repo": "api",
+    "pr": 110,
+    "command": [
+      "gh",
+      "pr",
+      "view",
+      "110",
+      "--repo",
+      "jcg-admin/kaupamex-api",
+      "--json",
+      "state,headRefOid,isDraft,reviews,statusCheckRollup,url"
+    ],
+    "exit_code": 0,
+    "headRefOid": "e51f484faf39406fa3dd1d83bd3c8b4aaba646eb",
+    "isDraft": true,
+    "reviews": [],
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T19:16:13Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39306774872/job/118245767475",
+        "name": "test",
+        "startedAt": "2026-10-19T18:56:40Z",
+        "status": "COMPLETED",
+        "workflowName": "api-tests"
+      }
+    ],
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/110"
+  },
+  {
+    "repo": "docs",
+    "pr": 154,
+    "command": [
+      "gh",
+      "pr",
+      "view",
+      "154",
+      "--repo",
+      "jcg-admin/kaupamex-docs",
+      "--json",
+      "state,headRefOid,isDraft,reviews,statusCheckRollup,url"
+    ],
+    "exit_code": 0,
+    "headRefOid": "90bb68b606a508c86a0b617dd2757d5afe615230",
+    "isDraft": false,
+    "reviews": [
+      {
+        "id": "PRR_kwDOScMgrM8AAAABS4vtPw",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "NONE",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:45:08Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "7d7ce079d3971f8984b4f082f71e5e66bfdd9df1"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154"
+  },
+  {
+    "repo": "db",
+    "pr": 32,
+    "command": [
+      "gh",
+      "pr",
+      "view",
+      "32",
+      "--repo",
+      "jcg-admin/kaupamex-db",
+      "--json",
+      "state,headRefOid,isDraft,reviews,statusCheckRollup,url"
+    ],
+    "exit_code": 0,
+    "headRefOid": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+    "isDraft": false,
+    "reviews": [
+      {
+        "id": "PRR_kwDOSerqX88AAAABS4vrsw",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "CONTRIBUTOR",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:44:59Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "6a0586e7a41cc8ab1e58f57e6f65598f1a1be47b"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-db/pull/32"
+  },
+  {
+    "repo": "server",
+    "pr": 17,
+    "command": [
+      "gh",
+      "pr",
+      "view",
+      "17",
+      "--repo",
+      "jcg-admin/kaupamex-server",
+      "--json",
+      "state,headRefOid,isDraft,reviews,statusCheckRollup,url"
+    ],
+    "exit_code": 0,
+    "headRefOid": "f5008aa5addd796aaf1cfe35694209668944fb2e",
+    "isDraft": false,
+    "reviews": [
+      {
+        "id": "PRR_kwDOSeqZYM8AAAABS4vsPA",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "NONE",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:45:02Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "76ea9cc1d0bec8685c886f66e2c513d8485e7c58"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-server/pull/17"
+  },
+  {
+    "repo": "ui",
+    "pr": 90,
+    "command": [
+      "gh",
+      "pr",
+      "view",
+      "90",
+      "--repo",
+      "jcg-admin/kaupamex-ui",
+      "--json",
+      "state,headRefOid,isDraft,reviews,statusCheckRollup,url"
+    ],
+    "exit_code": 0,
+    "headRefOid": "945ea00b6944cd664f1e950c32b7284d753cb9eb",
+    "isDraft": false,
+    "reviews": [
+      {
+        "id": "PRR_kwDOScMnrc8AAAABS4vsvw",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "NONE",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:45:05Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "16c989a0e9ce0f635e31024dd522d001d8c49d56"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "url": "https://github.com/jcg-admin/kaupamex-ui/pull/90"
+  }
+]

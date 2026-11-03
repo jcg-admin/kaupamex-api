@@ -1,4 +1,6 @@
-r"""``onboarding.onboarding.step`` colgado por ``account`` — las acciones de cada paso.
+r"""
+``onboarding.onboarding.step`` colgado por ``account`` — las acciones de cada
+paso.
 
 Adaptación de ``addons/account/models/onboarding_onboarding_step.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3 — atribución y aviso de
@@ -44,6 +46,7 @@ esa validación sí tiene análogo portable
 Se ejecuta aquí, y sólo la construcción de la acción de navegación queda
 bloqueada.
 """
+
 from addons.base.models.res_company import ResCompany
 from addons.onboarding.models.onboarding_onboarding_step import (
     OnboardingOnboardingStep,
@@ -61,20 +64,26 @@ def _blocked(action_name, missing):
     raise OnboardingActionBlocked(
         f'{action_name}: bloqueado — construye un ir.actions.act_window '
         f'que abriría {missing}; ese mecanismo no está portado en este '
-        f'árbol (ver el docstring de onboarding_onboarding_step.py).')
+        'árbol (ver el docstring de onboarding_onboarding_step.py).'
+    )
 
 
 def action_open_step_company_data(self):
     """≙ ``action_open_step_company_data`` (``odoo19c: onboarding_
     onboarding_step.py:9-19``)."""
-    _blocked('action_open_step_company_data',
-             "el formulario de 'res.company' (vista 'res_company_form_view_onboarding')")
+    _blocked(
+        'action_open_step_company_data',
+        "el formulario de 'res.company' (vista"
+        " 'res_company_form_view_onboarding')",
+    )
 
 
 def action_open_step_base_document_layout(self):
     """≙ ``action_open_step_base_document_layout`` (``:21-29``)."""
-    _blocked('action_open_step_base_document_layout',
-             "'base.document.layout' (vista 'web.view_base_document_layout')")
+    _blocked(
+        'action_open_step_base_document_layout',
+        "'base.document.layout' (vista 'web.view_base_document_layout')",
+    )
 
 
 def action_validate_step_base_document_layout(self, company=None):
@@ -89,17 +98,26 @@ def action_validate_step_base_document_layout(self, company=None):
     ``account.onboarding_onboarding_step_base_document_layout``. Si existe y
     la empresa ya tiene ``external_report_layout_id``, marca el paso hecho.
     """
-    step = type(self).objects.filter(
-        panel_step_open_action_name='action_open_step_base_document_layout',
-    ).first()
+    step = (
+        type(self)
+        .objects.filter(
+            panel_step_open_action_name=(
+                'action_open_step_base_document_layout'
+            ),
+        )
+        .first()
+    )
     if step is None:
         return False
     company_id = _resolve_company_id(company)
     resolved_company = (
         ResCompany.objects.filter(pk=company_id).first()
-        if company_id is not None else None
+        if company_id is not None
+        else None
     )
-    if resolved_company is None or not getattr(resolved_company, 'external_report_layout_id', None):
+    if resolved_company is None or not getattr(
+        resolved_company, 'external_report_layout_id', None
+    ):
         return False
     return step.action_set_just_done(company=resolved_company) is not None
 
@@ -108,22 +126,28 @@ def action_open_step_bank_account(self):
     """≙ ``action_open_step_bank_account`` (``:39-40``): delega en
     ``self.env.company.setting_init_bank_account_action()``, que construye
     otro ``ir.actions.act_window`` — mismo bloqueo."""
-    _blocked('action_open_step_bank_account',
-             "el asistente de cuenta bancaria ('setting_init_bank_account_action')")
+    _blocked(
+        'action_open_step_bank_account',
+        "el asistente de cuenta bancaria ('setting_init_bank_account_action')",
+    )
 
 
 def action_open_step_create_invoice(self):
     """≙ ``action_open_step_create_invoice`` (``:42-48``)."""
-    _blocked('action_open_step_create_invoice',
-             "el formulario de 'account.move' (vista 'account.view_move_form')")
+    _blocked(
+        'action_open_step_create_invoice',
+        "el formulario de 'account.move' (vista 'account.view_move_form')",
+    )
 
 
 def action_open_step_fiscal_year(self):
     """≙ ``action_open_step_fiscal_year`` (``:51-63``): crea un
     ``account.financial.year.op`` wizard y abre su formulario — modelo
     ausente además del act_window."""
-    _blocked('action_open_step_fiscal_year',
-             "el wizard 'account.financial.year.op' (no portado en este árbol)")
+    _blocked(
+        'action_open_step_fiscal_year',
+        "el wizard 'account.financial.year.op' (no portado en este árbol)",
+    )
 
 
 def action_open_step_chart_of_accounts(self):
@@ -136,15 +160,19 @@ def action_open_step_chart_of_accounts(self):
     allá).
     """
     type(self).action_validate_step(self.pk)
-    _blocked('action_open_step_chart_of_accounts',
-             "la lista de 'account.account' filtrada por empresa")
+    _blocked(
+        'action_open_step_chart_of_accounts',
+        "la lista de 'account.account' filtrada por empresa",
+    )
 
 
 def action_open_step_sales_tax(self):
     """≙ ``action_open_step_sales_tax`` (``:92-102``)."""
-    _blocked('action_open_step_sales_tax',
-             "el formulario de 'res.company' (vista "
-             "'account.res_company_form_view_onboarding_sale_tax')")
+    _blocked(
+        'action_open_step_sales_tax',
+        "el formulario de 'res.company' (vista "
+        "'account.res_company_form_view_onboarding_sale_tax')",
+    )
 
 
 def apply_account_extensions():
@@ -156,12 +184,21 @@ def apply_account_extensions():
     """
     for name, func in (
         ('action_open_step_company_data', action_open_step_company_data),
-        ('action_open_step_base_document_layout', action_open_step_base_document_layout),
-        ('action_validate_step_base_document_layout', action_validate_step_base_document_layout),
+        (
+            'action_open_step_base_document_layout',
+            action_open_step_base_document_layout,
+        ),
+        (
+            'action_validate_step_base_document_layout',
+            action_validate_step_base_document_layout,
+        ),
         ('action_open_step_bank_account', action_open_step_bank_account),
         ('action_open_step_create_invoice', action_open_step_create_invoice),
         ('action_open_step_fiscal_year', action_open_step_fiscal_year),
-        ('action_open_step_chart_of_accounts', action_open_step_chart_of_accounts),
+        (
+            'action_open_step_chart_of_accounts',
+            action_open_step_chart_of_accounts,
+        ),
         ('action_open_step_sales_tax', action_open_step_sales_tax),
     ):
         chain_method(OnboardingOnboardingStep, name, func)

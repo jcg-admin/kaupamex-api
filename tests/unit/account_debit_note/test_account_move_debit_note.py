@@ -10,6 +10,7 @@ origen, compartible por varias notas).
 Requiere ``addons.account_debit_note`` en ``INSTALLED_APPS`` (fuera del
 alcance de este porte — ver ``apps.py``) para que la migración cree su tabla.
 """
+
 import pytest
 from django.utils import timezone
 
@@ -28,13 +29,16 @@ def company(db):
 @pytest.fixture
 def journal(company):
     return AccountJournal.objects.create(
-        name='Ventas', code='VEN', type='sale', company=company)
+        name='Ventas', code='VEN', type='sale', company=company
+    )
 
 
 def _move(company, journal, **kwargs):
     defaults = {
-        'move_type': 'out_invoice', 'date': timezone.now().date(),
-        'journal': journal, 'company': company,
+        'move_type': 'out_invoice',
+        'date': timezone.now().date(),
+        'journal': journal,
+        'company': company,
     }
     defaults.update(kwargs)
     return AccountMove.objects.create(**defaults)
@@ -70,7 +74,10 @@ class TestDebitNotesFor:
         AccountMoveDebitNote.objects.create(move=debit_note_1, origin=origin)
         AccountMoveDebitNote.objects.create(move=debit_note_2, origin=origin)
         debit_notes = set(
-            AccountMoveDebitNote.debit_notes_for(origin).values_list('pk', flat=True))
+            AccountMoveDebitNote.debit_notes_for(origin).values_list(
+                'pk', flat=True
+            )
+        )
         assert debit_notes == {debit_note_1.pk, debit_note_2.pk}
 
 
@@ -87,7 +94,9 @@ class TestCountFor:
         AccountMoveDebitNote.objects.create(move=debit_note_2, origin=origin)
         assert AccountMoveDebitNote.count_for(origin) == 2
 
-    def test_does_not_count_another_origins_debit_notes(self, company, journal):
+    def test_does_not_count_another_origins_debit_notes(
+        self, company, journal
+    ):
         origin_a = _move(company, journal)
         origin_b = _move(company, journal)
         debit_note = _move(company, journal)
@@ -102,7 +111,9 @@ class TestRelatedModel:
         debit_note = _move(company, journal)
         AccountMoveDebitNote.objects.create(move=debit_note, origin=origin_a)
         with pytest.raises(Exception):
-            AccountMoveDebitNote.objects.create(move=debit_note, origin=origin_b)
+            AccountMoveDebitNote.objects.create(
+                move=debit_note, origin=origin_b
+            )
 
     def test_origin_admits_several_debit_notes(self, company, journal):
         origin = _move(company, journal)
@@ -122,6 +133,8 @@ class TestRelatedModel:
     def test_str_shows_debit_note_and_origin(self, company, journal):
         origin = _move(company, journal)
         debit_note = _move(company, journal)
-        link = AccountMoveDebitNote.objects.create(move=debit_note, origin=origin)
+        link = AccountMoveDebitNote.objects.create(
+            move=debit_note, origin=origin
+        )
         text = str(link)
         assert '←' in text

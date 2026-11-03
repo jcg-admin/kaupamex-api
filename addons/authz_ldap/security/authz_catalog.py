@@ -8,12 +8,15 @@ Recogido por ``seed_authz`` vía ``addons.authz.declaration.discover()``.
   ``res.company.ldap`` completo a ``base.group_system``
   (``auth_ldap/security/ir.model.access.csv``).
 """
+
 from addons.authz.declaration import CapabilitySpec
 
 MODULES = []
 
 CAPABILITIES = [
     CapabilitySpec(
-        code='permissions.ldap', name='Federación LDAP', is_sensitive=True,
+        code='permissions.ldap',
+        name='Federación LDAP',
+        is_sensitive=True,
     ),
 ]

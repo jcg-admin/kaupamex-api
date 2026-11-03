@@ -1,0 +1,24 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.demo_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Adapt pinned demo stage to existing Environment scopes and Django savepoint; preserve optional complete failure recording on selected alias",
+      "verify": "No-op/success/failed demo, scope restoration, caller transaction and mismatched alias controls; real PG/full-stack verification",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading_demo.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0382.demo_execution"
+  ],
+  "dependencies": "Existing Environment elevation/context/PG rollback already verified; error storage actual PG/migration/guard passes this run. No TASK or prerequisite marked accepted to unlock work. Full-stack verification still required.",
+  "native_task": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737/TASK-API-0382",
+  "objective_complete": false,
+  "official_state_changes": false
+}

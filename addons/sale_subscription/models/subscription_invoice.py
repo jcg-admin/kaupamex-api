@@ -24,8 +24,10 @@ class SubscriptionInvoice(TimeStampedModel):
 
     Documento de cobro **auditable** e **idempotente** por
     ``(subscription, period)`` (EX-04): reintentar una corrida no duplica la
-    factura. El ``amount`` **congela** ``subscription.price`` — no referencia el
-    tarifario en vivo (inmutabilidad histórica, H-API-01). El cobro reutiliza el
+    factura. El ``amount`` **congela** ``subscription.price`` — no referencia
+    el
+    tarifario en vivo (inmutabilidad histórica, H-API-01). El cobro reutiliza
+    el
     eje ``payment`` del O2C (DEC-KX-07); esta factura sella el resultado en
     ``status``. Ver :ref:`diseno-motor-facturacion-recurrente-l0`.
     """
@@ -38,43 +40,62 @@ class SubscriptionInvoice(TimeStampedModel):
         VOID = 'void', 'Anulada'
 
     company = fields.Many2one(
-        ResCompany, on_delete=models.CASCADE, related_name='subscription_invoices',
+        ResCompany,
+        null=False, on_delete=models.CASCADE,
+        related_name='subscription_invoices',
         verbose_name='Empresa',
     )
     subscription = fields.Many2one(
-        CompanyModuleSubscription, on_delete=models.PROTECT,
-        related_name='invoices', verbose_name='Suscripción',
+        CompanyModuleSubscription,
+        null=False, on_delete=models.PROTECT,
+        related_name='invoices',
+        verbose_name='Suscripción',
     )
     run = fields.Many2one(
-        SubscriptionBillingRun, on_delete=models.PROTECT, related_name='invoices',
+        SubscriptionBillingRun,
+        null=False, on_delete=models.PROTECT,
+        related_name='invoices',
         verbose_name='Corrida',
     )
     period = fields.Char(max_length=7, verbose_name='Periodo')  # ``YYYY-MM``
     amount = fields.Monetary(
-        max_digits=10, decimal_places=2, verbose_name='Monto',
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Monto',
     )
     currency = fields.Char(max_length=3, default='MXN', verbose_name='Moneda')
     status = fields.Selection(
-        max_length=8, choices=Status.choices, default=Status.DRAFT,
+        max_length=8,
+        choices=Status.choices,
+        default=Status.DRAFT,
         verbose_name='Estado',
     )
-    issued_at = fields.Datetime(null=True, blank=True, verbose_name='Emitida en')
+    issued_at = fields.Datetime(
+        null=True, blank=True, verbose_name='Emitida en'
+    )
     paid_at = fields.Datetime(null=True, blank=True, verbose_name='Pagada en')
     failure_reason = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Motivo de fallo',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Motivo de fallo',
     )
     # Asiento contable del cobro L0 en los libros de Kaupamex (H-API-05). FK
     # company→account (dirección correcta: account es la capa base). El enlace
-    # hace idempotente post_to_ledger: no se duplica el asiento. related_name='+'
+    # hace idempotente post_to_ledger: no se duplica el asiento.
+    # related_name='+'
     # — sin accesor inverso (account limpio).
     account_move = fields.Many2one(
-        'account.AccountMove', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='+',
+        'account.AccountMove',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
         verbose_name='Asiento contable',
     )
 
-    objects = models.AccessManager()         # default: cross-company (L0)
-    scoped = RuleScopedManager()             # L3: record rules (ir_rule)
+    objects = models.AccessManager()  # default: cross-company (L0)
+    scoped = RuleScopedManager()  # L3: record rules (ir_rule)
 
     class Meta:
         db_table = 'subscription_invoice'

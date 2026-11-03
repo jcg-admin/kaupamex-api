@@ -6,7 +6,8 @@ Adaptación de ``odoo19c: addons/account_edi_ubl_cii/__init__.py``
 
 Sin imports de modelos: los declara ``models/__init__.py``, que Django carga al
 levantar la app; las extensiones sobre modelos ajenos las aplica
-``AccountEdiUblCiiConfig.ready()``. Misma plantilla que ``addons/utm/__init__.py``.
+``AccountEdiUblCiiConfig.ready()``. Misma plantilla que
+``addons/utm/__init__.py``.
 
 ``uninstall_hook`` — no se porta, y por qué
 ============================================

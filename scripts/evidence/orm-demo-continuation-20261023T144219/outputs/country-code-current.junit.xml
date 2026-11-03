@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.642" timestamp="2026-10-24T21:28:13.318236" hostname="c8a29a030cff"><testcase classname="tests.integration.account.test_recalculate_tax_tags_endpoint.TestRecalculateTaxTagsErrors" name="test_child_tax_shared_by_two_parents_is_422" time="4.451"><failure message="KeyError: &lt;django.db.models.fields.CharField: country_code&gt;">tests/integration/account/test_recalculate_tax_tags_endpoint.py:61: in test_child_tax_shared_by_two_parents_is_422
+    parent1 = AccountTax.objects.create(name='P1', company=company)
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:946: in save_base
+    pre_save.send(
+.venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/l10n_mx/models/account_tax.py:98: in _apply_l10n_mx_tax_type
+    _compute_l10n_mx_tax_type(instance)
+addons/l10n_mx/models/account_tax.py:87: in _compute_l10n_mx_tax_type
+    'iva' if company is not None and company.country_code == 'MX' else ''
+src/orm/fields.py:1625: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4853: in compute_value
+    fields = registry_field_computed[self]
+src/orm/registry.py:1212: in __getitem__
+    return self._table[field]
+E   KeyError: &lt;django.db.models.fields.CharField: country_code&gt;</failure></testcase></testsuite></testsuites>

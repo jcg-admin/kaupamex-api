@@ -15,6 +15,7 @@ en vez de ``@api.depends`` + ``store=True``), ``preceding_subtotal``,
 NO se porta: ``country_code`` (``related='country_id.code'`` — propiedad de
 solo lectura trivial, se expone como ``@property``).
 """
+
 import fields
 import models
 
@@ -22,52 +23,79 @@ import models
 class AccountTaxGroup(models.Model):
     """``account.tax.group`` — agrupador de impuestos (Odoo ``account``)."""
 
-    name                         = fields.Char(
-        max_length=255, help_text='Nombre del grupo (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre del grupo (Odoo name, requerido).',
     )
-    sequence                     = fields.Integer(
-        default=10, help_text='Orden de presentación (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de presentación (Odoo sequence).',
     )
-    company                      = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='tax_groups',
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=False, on_delete=models.CASCADE,
+        related_name='tax_groups',
         help_text='Empresa (Odoo company_id, requerido).',
     )
-    tax_payable_account          = fields.Many2one(
-        'account.AccountAccount', on_delete=models.SET_NULL, null=True, blank=True,
+    tax_payable_account = fields.Many2one(
+        'account.AccountAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='tax_groups_payable',
         help_text=(
             'Cuenta de contrapartida del asiento de cierre cuando el saldo '
             'favorece a la autoridad fiscal (Odoo tax_payable_account_id).'
         ),
     )
-    tax_receivable_account       = fields.Many2one(
-        'account.AccountAccount', on_delete=models.SET_NULL, null=True, blank=True,
+    tax_receivable_account = fields.Many2one(
+        'account.AccountAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='tax_groups_receivable',
         help_text=(
             'Cuenta de contrapartida del asiento de cierre cuando el saldo '
             'favorece a la empresa (Odoo tax_receivable_account_id).'
         ),
     )
-    advance_tax_payment_account  = fields.Many2one(
-        'account.AccountAccount', on_delete=models.SET_NULL, null=True, blank=True,
+    advance_tax_payment_account = fields.Many2one(
+        'account.AccountAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='tax_groups_advance',
-        help_text='Cuenta de anticipos considerada en el cierre (Odoo advance_tax_payment_account_id).',
+        help_text=(
+            'Cuenta de anticipos considerada en el cierre (Odoo'
+            ' advance_tax_payment_account_id).'
+        ),
     )
-    country                      = fields.Many2one(
-        'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
+    country = fields.Many2one(
+        'base.ResCountry',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='tax_groups',
         help_text=(
             'País de aplicación (Odoo country_id, compute desde la empresa; '
             'aquí resuelto en save(), ver _compute_country()).'
         ),
     )
-    preceding_subtotal            = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Etiqueta del subtotal previo al grupo (Odoo preceding_subtotal).',
+    preceding_subtotal = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Etiqueta del subtotal previo al grupo (Odoo preceding_subtotal).'
+        ),
     )
-    pos_receipt_label             = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Etiqueta en el ticket de punto de venta (Odoo pos_receipt_label).',
+    pos_receipt_label = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Etiqueta en el ticket de punto de venta (Odoo pos_receipt_label).'
+        ),
     )
 
     class Meta:

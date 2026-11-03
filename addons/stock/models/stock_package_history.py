@@ -74,7 +74,7 @@ class StockPackageHistory(TimeStampedModel):
     _check_company_auto = True
 
     company           = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
+        'base.ResCompany', null=False, on_delete=models.CASCADE,
         related_name='package_histories',
         help_text='Empresa (Odoo company_id, requerido).',
     )
@@ -89,7 +89,7 @@ class StockPackageHistory(TimeStampedModel):
         help_text='Ubicación de destino (Odoo location_dest_id).',
     )
     package           = fields.Many2one(
-        'stock.StockPackage', on_delete=models.CASCADE,
+        'stock.StockPackage', null=False, on_delete=models.CASCADE,
         related_name='history_ids',
         help_text='Paquete movido (Odoo package_id, requerido).',
     )

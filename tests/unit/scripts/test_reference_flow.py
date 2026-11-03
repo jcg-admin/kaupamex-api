@@ -21,6 +21,7 @@ Los tres son la misma forma: un resultado que no discrimina *"el fenomeno no
 ocurre"* de *"el instrumento no lo ve"* (``metrica-decide-la-conclusion.md``,
 sub-patron D).
 """
+
 import importlib.util
 import io
 import contextlib
@@ -31,7 +32,8 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'reference_flow', REPO / 'scripts' / 'reference_flow.py')
+    'reference_flow', REPO / 'scripts' / 'reference_flow.py'
+)
 reference_flow = importlib.util.module_from_spec(_spec)
 sys.modules['reference_flow'] = reference_flow
 _spec.loader.exec_module(reference_flow)
@@ -88,14 +90,17 @@ class TestTheSymbolIsReadAcrossItsWholeFamily:
 
     def test_the_siblings_are_not_empty(self, index):
         # Regresion 3: excluir cada declaracion contra si misma daba cero.
-        assert len(reference_flow.siblings_of(
-            index, 'convert_to_column')) == 15
+        assert (
+            len(reference_flow.siblings_of(index, 'convert_to_column')) == 15
+        )
 
-    def test_the_origin_file_stops_being_its_own_sibling(self, index,
-                                                         tree_root):
+    def test_the_origin_file_stops_being_its_own_sibling(
+        self, index, tree_root
+    ):
         origin = tree_root / 'odoo/orm/fields.py'
         siblings = reference_flow.siblings_of(
-            index, 'convert_to_column', origin)
+            index, 'convert_to_column', origin
+        )
         assert 'Field' not in siblings
         assert len(siblings) == 14
 
@@ -134,11 +139,13 @@ class TestTheCallersAreMethodsNotTheirClasses:
 
     def test_no_call_site_is_a_class_declaration(self, index):
         flow = reference_flow.flow_of('convert_to_column', index)
-        classes = {(str(path), decl.lineno)
-                   for path, (_, decls) in index.items()
-                   for decl in decls if decl.kind == 'class'}
-        assert not [s for s in flow.callers
-                    if (s.path, s.lineno) in classes]
+        classes = {
+            (str(path), decl.lineno)
+            for path, (_, decls) in index.items()
+            for decl in decls
+            if decl.kind == 'class'
+        }
+        assert not [s for s in flow.callers if (s.path, s.lineno) in classes]
 
     def test_the_symbol_is_not_its_own_caller(self, index):
         flow = reference_flow.flow_of('convert_to_column', index)
@@ -161,9 +168,11 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
         roots = reference_flow.resolve_roots(('odoo/tools',))
         files = reference_flow.universe_files(roots)
         narrow = reference_flow.index_files(
-            reference_flow.files_naming(files, ('frozendict',)))
+            reference_flow.files_naming(files, ('frozendict',))
+        )
         flow = reference_flow.flow_of(
-            'frozendict', narrow, universe=len(files))
+            'frozendict', narrow, universe=len(files)
+        )
         assert flow.scope.files_in_universe == len(files)
         assert flow.scope.files_parsed < flow.scope.files_in_universe
 
@@ -171,19 +180,27 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
         # Una unidad ausente del informe se lee como "no aplica"; una vacia,
         # como "medido, no hay". Por eso las cuatro salen siempre.
         text = reference_flow.render(
-            reference_flow.flow_of('frozendict', index), tree_root)
+            reference_flow.flow_of('frozendict', index), tree_root
+        )
         for label in ('declara', 'bases con el', 'lo llaman', 'hermanos'):
             assert label in text
 
     def test_a_symbol_absent_from_the_scope_says_so(self, index, tree_root):
         text = reference_flow.render(
-            reference_flow.flow_of('nombre_que_no_existe_en_la_referencia',
-                                   index), tree_root)
+            reference_flow.flow_of(
+                'nombre_que_no_existe_en_la_referencia', index
+            ),
+            tree_root,
+        )
         assert 'no se declara en el alcance medido' in text
 
     def test_the_run_publishes_its_blind_spots(self, capsys):
-        assert reference_flow.main(
-            ['--symbol', 'frozendict', '--root', 'odoo/tools']) == 0
+        assert (
+            reference_flow.main(
+                ['--symbol', 'frozendict', '--root', 'odoo/tools']
+            )
+            == 0
+        )
         out = capsys.readouterr().out
         assert 'alcance medido:' in out
         assert 'Ciega a:' in out
@@ -204,11 +221,13 @@ class TestThePrefilterWidensTheScopeWithoutLosingEdges:
         roots = reference_flow.resolve_roots(ROOTS)
         files = reference_flow.universe_files(roots)
         narrow = reference_flow.index_files(
-            reference_flow.files_naming(files, ('convert_to_column',)))
+            reference_flow.files_naming(files, ('convert_to_column',))
+        )
         completo = reference_flow.flow_of('convert_to_column', index)
         filtrado = reference_flow.flow_of('convert_to_column', narrow)
-        assert {(s.path, s.lineno) for s in filtrado.callers} \
-            == {(s.path, s.lineno) for s in completo.callers}
+        assert {(s.path, s.lineno) for s in filtrado.callers} == {
+            (s.path, s.lineno) for s in completo.callers
+        }
         assert len(narrow) < len(index)
 
     def test_the_narrow_scope_publishes_a_zero_the_wide_scope_refutes(self):
@@ -218,23 +237,32 @@ class TestThePrefilterWidensTheScopeWithoutLosingEdges:
         # Ese informe no decia "nadie mas lo llama" sino "el alcance no
         # llega a quien lo llama".
         estrechas = reference_flow.resolve_roots(
-            ('odoo/tools', 'odoo/orm', 'odoo/addons/base'))
+            ('odoo/tools', 'odoo/orm', 'odoo/addons/base')
+        )
         estrecho = reference_flow.index_roots(
-            estrechas, names=('parse_inline_template',))
+            estrechas, names=('parse_inline_template',)
+        )
         dentro = reference_flow.callers_of(
-            estrecho, 'parse_inline_template',
+            estrecho,
+            'parse_inline_template',
             reference_flow.declarations_named(
-                estrecho, 'parse_inline_template'))
+                estrecho, 'parse_inline_template'
+            ),
+        )
         assert [s for s in dentro if 'mail_render_mixin' in s.path] == []
-        assert {pathlib.Path(s.path).name for s in dentro} \
-            == {'rendering_tools.py'}
+        assert {pathlib.Path(s.path).name for s in dentro} == {
+            'rendering_tools.py'
+        }
 
         anchas = reference_flow.resolve_roots(reference_flow.DEFAULT_ROOTS)
         ancho = reference_flow.index_roots(
-            anchas, names=('parse_inline_template',))
+            anchas, names=('parse_inline_template',)
+        )
         sitios = reference_flow.callers_of(
-            ancho, 'parse_inline_template',
-            reference_flow.declarations_named(ancho, 'parse_inline_template'))
+            ancho,
+            'parse_inline_template',
+            reference_flow.declarations_named(ancho, 'parse_inline_template'),
+        )
         assert [s for s in sitios if 'mail_render_mixin' in s.path]
 
 
@@ -247,7 +275,8 @@ class TestTheGuardCanFail:
 
     def test_a_missing_root_refuses_without_a_report(self, capsys):
         code = reference_flow.main(
-            ['--symbol', 'frozendict', '--root', 'odoo/no-existe'])
+            ['--symbol', 'frozendict', '--root', 'odoo/no-existe']
+        )
         captured = capsys.readouterr()
         assert code == 2
         assert 'raiz inexistente' in captured.err

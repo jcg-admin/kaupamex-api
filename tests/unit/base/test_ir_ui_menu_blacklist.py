@@ -24,11 +24,11 @@ miden la forma del punto y no su efecto.
 no de la lista negra, así que un veto calculado por usuario no se propagaría.
 Está declarado en el docstring del método; hoy la lista es estática.
 """
+
 import pytest
 from django.core.cache import cache
 
-from addons.base.models.ir_ui_menu import (CapabilityPrunedMenuManager,
-                                            IrUiMenu)
+from addons.base.models.ir_ui_menu import CapabilityPrunedMenuManager, IrUiMenu
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -48,17 +48,26 @@ def test_the_hook_exists_and_is_empty_by_default(db):
 def test_a_blacklisted_menu_is_not_visible(db, monkeypatch):
     """El veto gana a la capacidad, como en la fuente (``:237-241``)."""
     vetado = IrUiMenu.objects.create(
-        name='Vetado', route='/vetado', sequence=1, key='test.vetado')
+        name='Vetado', route='/vetado', sequence=1, key='test.vetado'
+    )
     otro = IrUiMenu.objects.create(
-        name='Otro', route='/otro', sequence=2, key='test.otro')
+        name='Otro', route='/otro', sequence=2, key='test.otro'
+    )
 
-    visibles = IrUiMenu.objects._visible_menu_ids(None, frozenset(), superadmin=True)
+    visibles = IrUiMenu.objects._visible_menu_ids(
+        None, frozenset(), superadmin=True
+    )
     assert {vetado.pk, otro.pk} <= set(visibles)
 
-    monkeypatch.setattr(CapabilityPrunedMenuManager, '_load_menus_blacklist',
-                        lambda self: [vetado.pk])
+    monkeypatch.setattr(
+        CapabilityPrunedMenuManager,
+        '_load_menus_blacklist',
+        lambda self: [vetado.pk],
+    )
     cache.clear()
-    visibles = IrUiMenu.objects._visible_menu_ids(None, frozenset(), superadmin=True)
+    visibles = IrUiMenu.objects._visible_menu_ids(
+        None, frozenset(), superadmin=True
+    )
     assert vetado.pk not in visibles
     assert otro.pk in visibles
 
@@ -76,17 +85,25 @@ def test_the_cache_does_not_see_the_blacklist(db, monkeypatch):
     con el invalidador de grupos.
     """
     menu = IrUiMenu.objects.create(
-        name='Tarde', route='/tarde', sequence=1, key='test.tarde')
+        name='Tarde', route='/tarde', sequence=1, key='test.tarde'
+    )
 
-    visibles = IrUiMenu.objects._visible_menu_ids(None, frozenset(), superadmin=True)
-    assert menu.pk in visibles                      # entra al caché
+    visibles = IrUiMenu.objects._visible_menu_ids(
+        None, frozenset(), superadmin=True
+    )
+    assert menu.pk in visibles  # entra al caché
 
-    monkeypatch.setattr(CapabilityPrunedMenuManager, '_load_menus_blacklist',
-                        lambda self: [menu.pk])
+    monkeypatch.setattr(
+        CapabilityPrunedMenuManager,
+        '_load_menus_blacklist',
+        lambda self: [menu.pk],
+    )
     # Sin tocar la generación, el veto no llega: el caché responde lo viejo.
     assert menu.pk in IrUiMenu.objects._visible_menu_ids(
-        None, frozenset(), superadmin=True)
+        None, frozenset(), superadmin=True
+    )
 
     cache.clear()
     assert menu.pk not in IrUiMenu.objects._visible_menu_ids(
-        None, frozenset(), superadmin=True)
+        None, frozenset(), superadmin=True
+    )

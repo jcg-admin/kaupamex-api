@@ -44,6 +44,7 @@ import reference_roots
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.testing')
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / 'src'))
 import django
+
 django.setup()
 
 #: Argumentos posicionales mínimos por tipo — un ``Many2one`` sin comodelo no
@@ -73,15 +74,18 @@ def accepts_related(field_type):
     ``metrica-decide-la-conclusion.md`` aplicado al propio instrumento.
     """
     import fields as fields_facade
+
     constructor = getattr(fields_facade, field_type, None)
     if constructor is None:
         return False
     try:
-        field = constructor(*PROBE_ARGUMENTS.get(field_type, ()),
-                            related='probe.chain')
+        field = constructor(
+            *PROBE_ARGUMENTS.get(field_type, ()), related='probe.chain'
+        )
     except Exception:
         return False
     return getattr(field, 'related', None) == 'probe.chain'
+
 
 #: Una llamada ``fields.X(...)`` que admite un nivel de anidamiento dentro.
 FIELD_CALL = re.compile(r'fields\.(\w+)\(((?:[^()]|\([^()]*\))*)\)', re.S)
@@ -89,7 +93,9 @@ DECLARES_STORE = re.compile(r'\bstore\s*=')
 
 
 def declarations_in(tree_root, addons):
-    """Cada ``related=`` de la referencia, con su tipo y si declara ``store``."""
+    """
+    Cada ``related=`` de la referencia, con su tipo y si declara ``store``.
+    """
     for path in sorted(tree_root.rglob('addons/*/models/*.py')):
         parts = path.parts
         addon = parts[parts.index('addons') + 1]
@@ -113,15 +119,28 @@ def declarations_in(tree_root, addons):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--alias', default='ODOO19C',
-                        help='raíz de la referencia (default: la que gobierna)')
-    parser.add_argument('--pendientes', action='store_true',
-                        help='listar los que ningún constructor de aquí acepta')
+    parser.add_argument(
+        '--alias',
+        default='ODOO19C',
+        help='raíz de la referencia (default: la que gobierna)',
+    )
+    parser.add_argument(
+        '--pendientes',
+        action='store_true',
+        help='listar los que ningún constructor de aquí acepta',
+    )
     options = parser.parse_args()
 
     exported = subprocess.run(
-        [sys.executable, str(pathlib.Path(__file__).parent / 'reference_roots.py'),
-         '--env'], capture_output=True, text=True, check=True).stdout
+        [
+            sys.executable,
+            str(pathlib.Path(__file__).parent / 'reference_roots.py'),
+            '--env',
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
     for assignment in re.findall(r'(\w+)=(\S+)', exported):
         os.environ.setdefault(assignment[0], assignment[1].strip('"'))
     tree_root = pathlib.Path(os.environ[options.alias])
@@ -129,9 +148,11 @@ def main():
     addons = set(addons_roots.addon_names())
     rows = list(declarations_in(tree_root, addons))
     if not rows:
-        print(f'ERROR — 0 declaraciones medidas bajo {tree_root}. '
-              'NO se emite reparto: un 0 aquí sería un verde falso.',
-              file=sys.stderr)
+        print(
+            f'ERROR — 0 declaraciones medidas bajo {tree_root}. '
+            'NO se emite reparto: un 0 aquí sería un verde falso.',
+            file=sys.stderr,
+        )
         raise SystemExit(2)
 
     unstored = [r for r in rows if not r['stored']]
@@ -145,16 +166,24 @@ def main():
     by_type = {}
     for row in pending:
         by_type[row['type']] = by_type.get(row['type'], 0) + 1
-    print(f'\nrelated= declarados: {len(rows)} en {len(addons)} addons portados')
-    print(f'  sin store:  {len(unstored)}  '
-          f'({100 * len(unstored) / len(rows):.0f} %)')
+    print(
+        f'\nrelated= declarados: {len(rows)} en {len(addons)} addons portados'
+    )
+    print(
+        f'  sin store:  {len(unstored)}  '
+        f'({100 * len(unstored) / len(rows):.0f} %)'
+    )
     print(f'  con store:  {len(rows) - len(unstored)}')
-    print(f'  que ningun constructor de aqui acepta todavia: {len(pending)}  '
-          f'({100 * len(pending) / len(rows):.0f} %)')
+    print(
+        f'  que ningun constructor de aqui acepta todavia: {len(pending)}  '
+        f'({100 * len(pending) / len(rows):.0f} %)'
+    )
     for field_type, count in sorted(by_type.items(), key=lambda x: -x[1]):
         print(f'      {field_type:12} {count}')
-    print('\n(cota inferior: el patrón admite un nivel de anidamiento; una '
-          'declaración con dos niveles no se cuenta)')
+    print(
+        '\n(cota inferior: el patrón admite un nivel de anidamiento; una '
+        'declaración con dos niveles no se cuenta)'
+    )
 
 
 if __name__ == '__main__':

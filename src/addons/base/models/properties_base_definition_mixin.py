@@ -68,6 +68,7 @@ levantaba ``NotImplementedError`` citando la tarea. Hoy existe como
 tres dependencias: ``_traverse_related_sql``, ``_check_field_access`` y el par
 ``field.to_sql``/``field.property_to_sql`` de ``orm/fields.py``.
 """
+
 import logging
 
 import fields
@@ -90,7 +91,9 @@ PROPERTIES_FIELD_NAME = 'properties'
 
 
 def _definition_default(record):
-    """``default`` del campo sin columna — delega en el cómputo de la fuente."""
+    """
+    ``default`` del campo sin columna — delega en el cómputo de la fuente.
+    """
     return record._compute_properties_base_definition_id()
 
 
@@ -101,16 +104,24 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
     _description = 'Properties Base Definition Mixin'
 
     properties = fields.Properties(
-        default=dict, blank=True, verbose_name='Propiedades',
+        default=dict,
+        blank=True,
+        verbose_name='Propiedades',
         definition='properties_base_definition_id.properties_definition',
-        help_text='Pares clave/valor definidos por el usuario. Su esquema vive '
-                  'en properties.base.definition, resuelto por (modelo, '
-                  'campo) — no por registro.',
+        help_text=(
+            'Pares clave/valor definidos por el usuario. Su esquema vive '
+            'en properties.base.definition, resuelto por (modelo, '
+            'campo) — no por registro.'
+        ),
     )
     properties_base_definition_id = fields.Many2one(
-        PropertiesBaseDefinition, store=False, default=_definition_default,
-        help_text='Derivado de (modelo, campo), no del registro: todas las '
-                  'filas de este modelo comparten la misma definición.',
+        PropertiesBaseDefinition,
+        null=False, store=False,
+        default=_definition_default,
+        help_text=(
+            'Derivado de (modelo, campo), no del registro: todas las '
+            'filas de este modelo comparten la misma definición.'
+        ),
     )
 
     class Meta:
@@ -118,7 +129,8 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
 
     @classmethod
     def properties_model_label(cls):
-        """El nombre técnico del modelo, tal como lo guarda ``ir.model.fields``.
+        """
+        El nombre técnico del modelo, tal como lo guarda ``ir.model.fields``.
 
         La fuente usa ``self._name``; aquí el nombre del modelo en el catálogo
         es la etiqueta de Django, que es la que ``ir.model.fields`` almacena.
@@ -134,7 +146,8 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
         guardarla sería un error.
         """
         return PropertiesBaseDefinition._get_definition_for_property_field(
-            type(self).properties_model_label(), PROPERTIES_FIELD_NAME)
+            type(self).properties_model_label(), PROPERTIES_FIELD_NAME
+        )
 
     @classmethod
     def _search_properties_base_definition_id(cls, operator, value):
@@ -150,12 +163,17 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
 
         properties_base_definition_id = (
             PropertiesBaseDefinition._get_definition_id_for_property_field(
-                cls.properties_model_label(), PROPERTIES_FIELD_NAME))
+                cls.properties_model_label(), PROPERTIES_FIELD_NAME
+            )
+        )
 
         if not isinstance(value, COLLECTION_TYPES):
             value = (value,)
-        return (Domain.TRUE if properties_base_definition_id in value
-                else Domain.FALSE)
+        return (
+            Domain.TRUE
+            if properties_base_definition_id in value
+            else Domain.FALSE
+        )
 
     @api.model_create_multi
     @classmethod
@@ -169,8 +187,11 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
         fila de definición **exista**— se hace llamando al mismo método que
         ella llama.
         """
-        parent = PropertiesBaseDefinition._get_definition_id_for_property_field(
-            cls.properties_model_label(), PROPERTIES_FIELD_NAME)
+        parent = (
+            PropertiesBaseDefinition._get_definition_id_for_property_field(
+                cls.properties_model_label(), PROPERTIES_FIELD_NAME
+            )
+        )
         created = []
         for vals in vals_list:
             record = cls.objects.create(**vals)
@@ -186,7 +207,8 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
         """
         if self._state.adding:
             PropertiesBaseDefinition._get_definition_id_for_property_field(
-                type(self).properties_model_label(), PROPERTIES_FIELD_NAME)
+                type(self).properties_model_label(), PROPERTIES_FIELD_NAME
+            )
         return super().save(*args, **kwargs)
 
     def _field_to_sql(self, alias, fname, query=None):
@@ -204,8 +226,9 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
         if fname == 'properties_base_definition_id':
             parent = (
                 PropertiesBaseDefinition._get_definition_id_for_property_field(
-                    type(self).properties_model_label(),
-                    PROPERTIES_FIELD_NAME))
+                    type(self).properties_model_label(), PROPERTIES_FIELD_NAME
+                )
+            )
             return SQL("%s", parent)
 
         return super()._field_to_sql(alias, fname, query)

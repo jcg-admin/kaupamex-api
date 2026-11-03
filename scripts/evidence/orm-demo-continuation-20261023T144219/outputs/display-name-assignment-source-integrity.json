@@ -1,0 +1,9 @@
+{
+  "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+  "matches_committed_sources": true,
+  "sha256": {
+    "src/orm/fields.py": "2dd6f36d3b14c117a3e093c798387c0a2435a57d242cf5948ff0e039acbdfde0",
+    "src/orm/models.py": "d940bae69f7bf424eb8f6196bf2d2441c10e32a518334a42d31ddbd6b06c4599",
+    "src/addons/base/models/res_partner.py": "e71ab7867089a9996b3b0c4dae14b64c143b92d7446f3a6aa62cbb746659a6f2"
+  }
+}

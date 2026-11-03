@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="8" time="2.785" timestamp="2026-10-24T20:43:28.609781" hostname="c8a29a030cff"><testcase classname="tests.integration.product.test_display_name_assignment" name="test_product_label_and_snapshot_keep_the_existing_format" time="2.465"><failure message="ValueError: Compute method failed to assign product.ProductProduct(2,).display_name">tests/integration/product/test_display_name_assignment.py:43: in test_product_label_and_snapshot_keep_the_existing_format
+    assert variant.display_name == 'Camiseta'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign product.ProductProduct(2,).display_name</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_product_compute_preserves_direct_return_and_assigns" time="0.008"><failure message="KeyError: 'display_name'">tests/integration/product/test_display_name_assignment.py:51: in test_product_compute_preserves_direct_return_and_assigns
+    assert variant.__dict__['display_name'] == 'Camiseta'
+E   KeyError: 'display_name'</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_template_name_change_invalidates_variant_label" time="0.007"><failure message="ValueError: Compute method failed to assign product.ProductProduct(4,).display_name">tests/integration/product/test_display_name_assignment.py:56: in test_template_name_change_invalidates_variant_label
+    assert variant.display_name == 'Camiseta'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign product.ProductProduct(4,).display_name</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_relation_change_invalidates_variant_label" time="0.025"><failure message="ValueError: Compute method failed to assign product.ProductProduct(5,).display_name">tests/integration/product/test_display_name_assignment.py:66: in test_relation_change_invalidates_variant_label
+    assert variant.display_name == 'Camiseta (Rojo)'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign product.ProductProduct(5,).display_name</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_attribute_name_change_invalidates_variant_label" time="0.018"><failure message="ValueError: Compute method failed to assign product.ProductProduct(6,).display_name">tests/integration/product/test_display_name_assignment.py:76: in test_attribute_name_change_invalidates_variant_label
+    assert variant.display_name == 'Camiseta (Rojo)'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign product.ProductProduct(6,).display_name</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_price_extra_change_invalidates_the_current_value_format" time="0.019"><failure message="ValueError: Compute method failed to assign product.ProductProduct(7,).display_name">tests/integration/product/test_display_name_assignment.py:85: in test_price_extra_change_invalidates_the_current_value_format
+    assert variant.display_name == 'Camiseta (Rojo)'
+src/orm/fields.py:1649: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign product.ProductProduct(7,).display_name</failure></testcase><testcase classname="tests.integration.product.test_display_name_assignment" name="test_return_only_product_compute_remains_an_error" time="0.007" /><testcase classname="tests.integration.product.test_display_name_assignment" name="test_product_compute_failure_propagates" time="0.009" /></testsuite></testsuites>

@@ -11,6 +11,7 @@ extensiones sobre modelos AJENOS (``hr.HrEmployee``, ``hr.HrEmployeePublic``,
 paquete — en tiempo de import del paquete el registro de modelos aún no está
 poblado.
 """
+
 from .account_analytic_line_calendar_employee import (
     AccountAnalyticLineCalendarEmployee,
 )

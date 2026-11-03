@@ -42,6 +42,7 @@ Divergencias declaradas
    del guardado, la misma ventana que el ``super()``-primero de la
    referencia (mismo patrón que ``hr_fleet/models/employee.py``).
 """
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
@@ -63,16 +64,21 @@ def _send_sms(self):
     number = partner.phone
     if not number:
         return None
-    body = template.render({
-        'task': self.name or '',
-        'stage': self.stage.name or '',
-        'project': self.project.name or '',
-    })
+    body = template.render(
+        {
+            'task': self.name or '',
+            'stage': self.stage.name or '',
+            'project': self.project.name or '',
+        }
+    )
     return SmsSms.objects.create(number=number, body=body)
 
 
-@receiver(pre_save, sender=ProjectTask,
-          dispatch_uid='project_sms.task_pre_save_capture_stage')
+@receiver(
+    pre_save,
+    sender=ProjectTask,
+    dispatch_uid='project_sms.task_pre_save_capture_stage',
+)
 def _task_pre_save(sender, instance, **kwargs):
     """La mitad previa del ``write`` de la referencia (``:24-30``) —
     captura la etapa previa para que ``post_save`` detecte el cambio."""
@@ -80,12 +86,16 @@ def _task_pre_save(sender, instance, **kwargs):
     if instance.pk is not None:
         instance._project_sms_old_stage_id = (
             sender.objects.filter(pk=instance.pk)
-            .values_list('stage_id', flat=True).first()
+            .values_list('stage_id', flat=True)
+            .first()
         )
 
 
-@receiver(post_save, sender=ProjectTask,
-          dispatch_uid='project_sms.task_post_save_send_sms')
+@receiver(
+    post_save,
+    sender=ProjectTask,
+    dispatch_uid='project_sms.task_post_save_send_sms',
+)
 def _task_post_save(sender, instance, created, **kwargs):
     """≙ ``create`` (``:19-22``) + la mitad posterior del ``write``
     (``:24-30``): envía el SMS al crear la tarea y al cambiar su etapa."""
@@ -104,7 +114,8 @@ def apply_project_sms_project_task_extensions():
     (``ready()`` ya lo importa una vez; ``dispatch_uid`` los hace
     idempotentes)."""
     extend_model(
-        'project', 'ProjectTask',
+        'project',
+        'ProjectTask',
         metodos={
             '_send_sms': _send_sms,
         },

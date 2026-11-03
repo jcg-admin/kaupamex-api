@@ -1,0 +1,5 @@
+{
+  "pytest_exit": 0,
+  "source_revision": "ae949aa8",
+  "scope": "Two non-DB unit cases with public confcutdir; not native PostgreSQL qualification"
+}

@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=0,
-                        help_text="Odoo sequence (Integer sin default explícito: la referencia lee 0 cuando no está fijado).",
+                        help_text=(
+                            "Odoo sequence (Integer sin default explícito: la"
+                            " referencia lee 0 cuando no está fijado)."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -40,7 +43,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo name (translate=True; la traducción por campo llega con #333).",
+                        help_text=(
+                            "Odoo name (translate=True; la traducción por"
+                            " campo llega con #333)."
+                        ),
                         max_length=255,
                         verbose_name="Nombre",
                     ),
@@ -50,7 +56,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo description (translate=True; la traducción por campo llega con #333).",
+                        help_text=(
+                            "Odoo description (translate=True; la traducción"
+                            " por campo llega con #333)."
+                        ),
                         max_length=255,
                         verbose_name="Descripción",
                     ),
@@ -70,7 +79,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Odoo iap_page_code: "Page code used to tell IAP website_service for which page a snippet list should be generated".',
+                        help_text=(
+                            'Odoo iap_page_code: "Page code used to tell IAP'
+                            ' website_service for which page a snippet list'
+                            ' should be generated".'
+                        ),
                         max_length=255,
                         verbose_name="Código de página IAP",
                     ),
@@ -80,7 +93,11 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text='Odoo website_config_preselection: "Comma-separated list of website type/purpose for which this feature should be pre-selected".',
+                        help_text=(
+                            'Odoo website_config_preselection:'
+                            ' "Comma-separated list of website type/purpose'
+                            ' for which this feature should be pre-selected".'
+                        ),
                         max_length=255,
                         verbose_name="Preselección por tipo de sitio",
                     ),
@@ -99,7 +116,12 @@ class Migration(migrations.Migration):
                     "menu_sequence",
                     models.IntegerField(
                         default=0,
-                        help_text='Odoo menu_sequence: "If set, a website menu will be created for the feature." Cero = no fijado, la misma semántica de truthiness de la referencia.',
+                        help_text=(
+                            'Odoo menu_sequence: "If set, a website menu will'
+                            ' be created for the feature." Cero = no fijado,'
+                            ' la misma semántica de truthiness de la'
+                            ' referencia.'
+                        ),
                         verbose_name="Secuencia de menú",
                     ),
                 ),
@@ -107,7 +129,11 @@ class Migration(migrations.Migration):
                     "menu_company",
                     models.BooleanField(
                         default=False,
-                        help_text="Odoo menu_company: \"If set, add the menu as a second level menu, as a child of 'Company' menu.\"",
+                        help_text=(
+                            "Odoo menu_company: \"If set, add the menu as a"
+                            " second level menu, as a child of 'Company'"
+                            " menu.\""
+                        ),
                         verbose_name="Bajo el menú Company",
                     ),
                 ),
@@ -115,7 +141,12 @@ class Migration(migrations.Migration):
                     "module",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo module_id (ondelete=cascade, Many2one a ir.module.module — aquí authz.Module, el mismo mapeo que theme_id en website.py). El módulo que la feature instala/activa.",
+                        help_text=(
+                            "Odoo module_id (ondelete=cascade, Many2one a"
+                            " ir.module.module — aquí authz.Module, el mismo"
+                            " mapeo que theme_id en website.py). El módulo que"
+                            " la feature instala/activa."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="configurator_features",
@@ -127,7 +158,10 @@ class Migration(migrations.Migration):
                     "page_view",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo page_view_id (ondelete=cascade). La vista plantilla de la página que la feature crea.",
+                        help_text=(
+                            "Odoo page_view_id (ondelete=cascade). La vista"
+                            " plantilla de la página que la feature crea."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="configurator_features",

@@ -61,6 +61,7 @@ Divergencias declaradas
 5. **Los campos de baja viven en la versión** (``hr.version``): la
    referencia escribe en el empleado vía la delegación ``_inherits``.
 """
+
 from datetime import date
 
 from addons.hr.models.hr_departure_reason import HrDepartureReason
@@ -100,8 +101,11 @@ class HrDepartureWizard(TransientModel):
         company_ids = get_current_companies()
         if not company_ids:
             return list(employees)
-        return [employee for employee in employees
-                if employee.company_id in company_ids]
+        return [
+            employee
+            for employee in employees
+            if employee.company_id in company_ids
+        ]
 
     @classmethod
     def _get_domain_employee_ids(cls):
@@ -126,11 +130,16 @@ class HrDepartureWizard(TransientModel):
         return any(employee.user is not None for employee in employees)
 
     @classmethod
-    def action_register_departure(cls, employees, departure_reason,
-                                  departure_date, departure_description='',
-                                  remove_related_user=False,
-                                  set_date_end=True,
-                                  employee_termination=False):
+    def action_register_departure(
+        cls,
+        employees,
+        departure_reason,
+        departure_date,
+        departure_description='',
+        remove_related_user=False,
+        set_date_end=True,
+        employee_termination=False,
+    ):
         """Registra la baja — ≙ ``action_register_departure`` (``:61-133``).
 
         Valida la fecha contra los contratos vigentes, archiva empleados (y
@@ -141,15 +150,20 @@ class HrDepartureWizard(TransientModel):
         archivados (ver divergencia 3).
         """
         employees = list(employees)
-        active_versions = [employee.version for employee in employees
-                           if employee.version_id]
+        active_versions = [
+            employee.version for employee in employees if employee.version_id
+        ]
 
-        if any(version.contract_date_start
-               and version.contract_date_start > departure_date
-               for version in active_versions):
+        if any(
+            version.contract_date_start
+            and version.contract_date_start > departure_date
+            for version in active_versions
+        ):
             raise UserError(
-                _('La fecha de baja no puede ser anterior al inicio del '
-                  'contrato vigente.'),
+                _(
+                    'La fecha de baja no puede ser anterior al inicio del '
+                    'contrato vigente.'
+                ),
             )
 
         allow_archived_users = []
@@ -160,7 +174,9 @@ class HrDepartureWizard(TransientModel):
                 user = employee.user
                 if user is None:
                     continue
-                employees_by_user.setdefault(user.pk, (user, []))[1].append(employee)
+                employees_by_user.setdefault(user.pk, (user, []))[1].append(
+                    employee
+                )
             for user, selected in employees_by_user.values():
                 total_linked = HrEmployee.objects.filter(
                     resource__user=user,
@@ -179,9 +195,12 @@ class HrDepartureWizard(TransientModel):
             if employee_termination:
                 archived_employees.append(employee)
                 user = employee.user
-                if (remove_related_user and user is not None
-                        and user.pk in allowed_user_pks
-                        and user not in archived_users):
+                if (
+                    remove_related_user
+                    and user is not None
+                    and user.pk in allowed_user_pks
+                    and user not in archived_users
+                ):
                     archived_users.append(user)
 
         for employee in archived_employees:
@@ -198,15 +217,22 @@ class HrDepartureWizard(TransientModel):
             version.departure_reason = departure_reason
             version.departure_description = departure_description or ''
             version.departure_date = departure_date
-            version.save(update_fields=[
-                'departure_reason', 'departure_description', 'departure_date',
-            ])
+            version.save(
+                update_fields=[
+                    'departure_reason',
+                    'departure_description',
+                    'departure_date',
+                ]
+            )
 
         if set_date_end:
             # Corta el fin de contrato en TODAS las versiones del contrato
             # vigente (mismo criterio de sincronía que ``create_version``).
-            contract_versions = [version for version in active_versions
-                                 if version.contract_date_start]
+            contract_versions = [
+                version
+                for version in active_versions
+                if version.contract_date_start
+            ]
             for version in contract_versions:
                 HrVersion.objects.filter(
                     employee_id=version.employee_id,

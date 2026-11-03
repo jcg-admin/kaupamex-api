@@ -1,0 +1,10 @@
+{
+  "scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py": {
+    "executable_ast_unchanged": true,
+    "sha256": "aebf0d63d845f1cfae06d4fdfb9aeec3ceb17f8a041190bc49aea8124d349ee4"
+  },
+  "tests/unit/scripts/test_orm_property_view.py": {
+    "executable_ast_unchanged": true,
+    "sha256": "c0fafac77973ae241464c5e915ca4987aa202f145e23bed5e176b2f206940f77"
+  }
+}

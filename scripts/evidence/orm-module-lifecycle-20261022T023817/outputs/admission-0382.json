@@ -1,0 +1,36 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet/TaskUpdate.run",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "before": {
+    "task_id": "737",
+    "citation_id": "TASK-API-0382",
+    "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+    "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "input": {
+    "task_id": "737",
+    "owner": "codex-module-lifecycle"
+  },
+  "result": {
+    "content": "{\"task_id\":\"737\",\"updated\":true}",
+    "isError": false
+  },
+  "after": {
+    "task_id": "737",
+    "citation_id": "TASK-API-0382",
+    "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+    "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "authority": "User explicitly requested implementing the attached module-lifecycle batch. Existing task 0382 owns database-specific module lifecycle. Derived blocker 0264/443 is completed and DEC-AISL-05 accepted. Runtime probe demonstrates auto_install empty collection ignored; TASK-API-0164 only wired a caller and is completed, not equivalent active correction. Admit the bounded candidate-selection fix only; full lifecycle and registry composition remain unaccepted. Native ownership precedes implementation, no status transition. Ownership assigned natively before implementation; no status transition."
+}

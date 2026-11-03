@@ -23,6 +23,7 @@ al menos un caso por operación del álgebra (``&``, ``|``, ``~``, ``<=``, ``<``
 *Ciega a:* el rendimiento de la simplificación — ``test_a_huge_combination``
 comprueba el resultado, no el número de pasos que costó llegar a él.
 """
+
 import pytest
 
 from tools.set_expression import SetDefinitions
@@ -33,26 +34,31 @@ pytestmark = pytest.mark.unit
 @pytest.fixture(scope='module')
 def definitions():
     """Los dieciséis conjuntos del fixture de la fuente (``:12-31``)."""
-    return SetDefinitions({
-        1: {'ref': 'A'},
-        2: {'ref': 'A1', 'supersets': [1]},         # A1 <= A
-        3: {'ref': 'A11', 'supersets': [2]},        # A11 <= A1
-        4: {'ref': 'A2', 'supersets': [1]},         # A2 <= A
-        5: {'ref': 'A21', 'supersets': [4]},        # A21 <= A2
-        6: {'ref': 'A22', 'supersets': [4]},        # A22 <= A2
-        7: {'ref': 'B'},
-        8: {'ref': 'B1', 'supersets': [7]},         # B1 <= B
-        9: {'ref': 'B11', 'supersets': [8]},        # B11 <= B1
-        10: {'ref': 'B2', 'supersets': [7]},        # B2 <= B
-        11: {'ref': 'BX',
-             'supersets': [7],                      # BX <= B
-             'disjoints': [8, 10]},                 # BX disjunto de B1, B2
-        12: {'ref': 'A1B1', 'supersets': [2, 8]},   # A1B1 <= A1, B1
-        13: {'ref': 'C'},
-        14: {'ref': 'D', 'disjoints': [1, 7]},      # D disjunto de A, B
-        15: {'ref': 'E', 'disjoints': [1, 7, 14]},  # E disjunto de A, B, D
-        16: {'ref': 'E1', 'supersets': [15]},       # E1 <= E (y por tanto disjunto de A, B, D)
-    })
+    return SetDefinitions(
+        {
+            1: {'ref': 'A'},
+            2: {'ref': 'A1', 'supersets': [1]},  # A1 <= A
+            3: {'ref': 'A11', 'supersets': [2]},  # A11 <= A1
+            4: {'ref': 'A2', 'supersets': [1]},  # A2 <= A
+            5: {'ref': 'A21', 'supersets': [4]},  # A21 <= A2
+            6: {'ref': 'A22', 'supersets': [4]},  # A22 <= A2
+            7: {'ref': 'B'},
+            8: {'ref': 'B1', 'supersets': [7]},  # B1 <= B
+            9: {'ref': 'B11', 'supersets': [8]},  # B11 <= B1
+            10: {'ref': 'B2', 'supersets': [7]},  # B2 <= B
+            11: {
+                'ref': 'BX',
+                'supersets': [7],  # BX <= B
+                'disjoints': [8, 10],
+            },  # BX disjunto de B1, B2
+            12: {'ref': 'A1B1', 'supersets': [2, 8]},  # A1B1 <= A1, B1
+            13: {'ref': 'C'},
+            14: {'ref': 'D', 'disjoints': [1, 7]},  # D disjunto de A, B
+            15: {'ref': 'E', 'disjoints': [1, 7, 14]},  # E disjunto de A, B, D
+            # E1 <= E (y por tanto disjunto de A, B, D)
+            16: {'ref': 'E1', 'supersets': [15]},
+        }
+    )
 
 
 def test_a_parsed_set_is_hashable_and_prints_its_reference(definitions):
@@ -128,7 +134,10 @@ def test_the_union_distributes_over_the_intersection(definitions):
     assert str((a & b1) | b2) == "('A' & 'B1') | 'B2'"
     assert str(a | b1 & b2) == "'A' | ('B1' & 'B2')"
     assert str(a | a1 & universe) == "'A'"
-    assert str((a1 | a2) & (b1 | b2)) == "('A1' & 'B1') | ('A1' & 'B2') | ('A2' & 'B1') | ('A2' & 'B2')"
+    assert (
+        str((a1 | a2) & (b1 | b2))
+        == "('A1' & 'B1') | ('A1' & 'B2') | ('A2' & 'B1') | ('A2' & 'B2')"
+    )
     assert str(a | (a1 | empty)) == "'A'"
     assert str((a & a1) | empty) == "'A1'"
     assert str(a & (a1 | empty)) == "'A1'"
@@ -233,8 +242,11 @@ def test_the_complement_applies_demorgans_law(definitions):
     assert str(~((a & b1) | b2)) == "(~'A' & ~'B2') | (~'B1' & ~'B2')"
     assert str(~(a | (b1 & b2))) == "(~'A' & ~'B1') | (~'A' & ~'B2')"
     assert str(~(a | (b2 & b1))) == "(~'A' & ~'B1') | (~'A' & ~'B2')"
-    assert str(~((a1 & a2) | (b1 & b2))) == (
-        "(~'A1' & ~'B1') | (~'A1' & ~'B2') | (~'A2' & ~'B1') | (~'A2' & ~'B2')")
+    assert (
+        str(~((a1 & a2) | (b1 & b2)))
+        == "(~'A1' & ~'B1') | (~'A1' & ~'B2') | (~'A2' & ~'B1') | (~'A2' &"
+        " ~'B2')"
+    )
     assert str(~a & ~b2) == "~'A' & ~'B2'"
     assert str(~((a & b) | a1)) == "~'A' | (~'A1' & ~'B')"
     assert str(~(~a | (~a1 & ~b))) == "('A' & 'B') | 'A1'"
@@ -281,9 +293,26 @@ def test_complementary_terms_collapse_into_one(definitions):
     assert str((a & b) | (a & ~b)) == "'A'"
     assert str((a & b1 & b2) | (a & b1 & ~b2)) == "'A' & 'B1'"
     assert str((a & ~b2 & b1) | (a & b1 & b2)) == "'A' & 'B1'"
-    assert str((a & b1 & ~b2) | (a & ~b1 & b2)) == "('A' & 'B1' & ~'B2') | ('A' & ~'B1' & 'B2')"
-    assert str(((b2 & a1) | (b2 & a1 & a11)) | ((b2 & a11) | (~b2 & a1) | (~b2 & a1 & a11))) == "'A1'"
-    assert str(~(((b2 & a1) | (b2 & a1 & a11)) | ((b2 & a11) | (~b2 & a1) | (~b2 & a1 & a11)))) == "~'A1'"
+    assert (
+        str((a & b1 & ~b2) | (a & ~b1 & b2))
+        == "('A' & 'B1' & ~'B2') | ('A' & ~'B1' & 'B2')"
+    )
+    assert (
+        str(
+            ((b2 & a1) | (b2 & a1 & a11))
+            | ((b2 & a11) | (~b2 & a1) | (~b2 & a1 & a11))
+        )
+        == "'A1'"
+    )
+    assert (
+        str(
+            ~(
+                ((b2 & a1) | (b2 & a1 & a11))
+                | ((b2 & a11) | (~b2 & a1) | (~b2 & a1 & a11))
+            )
+        )
+        == "~'A1'"
+    )
     assert str(~((~a & b) | (a & b) | (a & ~b))) == "~'A' & ~'B'"
     assert str((~a & ~b2) & (b1 | b2)) == "~'A' & 'B1' & ~'B2'"
     assert str((~a & ~b2) & ~(~b1 & ~b2)) == "~'A' & 'B1' & ~'B2'"
@@ -351,10 +380,38 @@ def test_a_huge_combination_reduces_to_its_two_terms(definitions):
     e = definitions.parse('E')
 
     z1 = c | b2 | a1 | a11
-    z2 = (c) | (c & b2) | (c & b2 & a1) | (c & b2 & a11) | (c & ~b2) | (c & ~b2 & a1)
-    z3 = (c & ~b2 & a11) | (c & a1) | (c & a1 & b1) | (c & a11) | (c & a11 & b1) | (c & b1)
-    z4 = (b2 & a1) | (b2 & a1 & a11) | (b2 & a11) | (~b2 & a1) | (~b2 & a1 & a11)
-    z5 = (~b2 & a11) | (a1) | (a1 & a11) | (a1 & a11 & b1) | (a1 & b1) | (a11) | (a11 & b1)
+    z2 = (
+        (c)
+        | (c & b2)
+        | (c & b2 & a1)
+        | (c & b2 & a11)
+        | (c & ~b2)
+        | (c & ~b2 & a1)
+    )
+    z3 = (
+        (c & ~b2 & a11)
+        | (c & a1)
+        | (c & a1 & b1)
+        | (c & a11)
+        | (c & a11 & b1)
+        | (c & b1)
+    )
+    z4 = (
+        (b2 & a1)
+        | (b2 & a1 & a11)
+        | (b2 & a11)
+        | (~b2 & a1)
+        | (~b2 & a1 & a11)
+    )
+    z5 = (
+        (~b2 & a11)
+        | (a1)
+        | (a1 & a11)
+        | (a1 & a11 & b1)
+        | (a1 & b1)
+        | (a11)
+        | (a11 & b1)
+    )
     group1 = z1 & (z2 | z3 | z4 | z5)
 
     assert str(group1) == "'A1' | 'C'"
@@ -391,9 +448,15 @@ def test_invert_intersect_undoes_the_intersection(definitions):
 
     assert str((a1 & a2).invert_intersect(a2)) == "'A1'"
     assert str((a1 & b1 | a1 & b2).invert_intersect(a1)) == "'B1' | 'B2'"
-    assert str((a1 & b1 | a1 & b2 | a1 & a2).invert_intersect(a1)) == "'A2' | 'B1' | 'B2'"
+    assert (
+        str((a1 & b1 | a1 & b2 | a1 & a2).invert_intersect(a1))
+        == "'A2' | 'B1' | 'B2'"
+    )
     assert str((a1 & b1 | a2 & b1).invert_intersect(a1 | a2)) == "'B1'"
-    assert str((a1 & b1 | a1 & b2 | a2 & b1 | a2 & b2).invert_intersect(a1 | a2)) == "'B1' | 'B2'"
+    assert (
+        str((a1 & b1 | a1 & b2 | a2 & b1 | a2 & b2).invert_intersect(a1 | a2))
+        == "'B1' | 'B2'"
+    )
     assert a.invert_intersect(a | b) is None
     assert a.invert_intersect(a1 | a2) is None
     assert a.invert_intersect(a | d) is None
@@ -417,7 +480,9 @@ def test_invert_intersect_undoes_the_intersection(definitions):
     ]
     for left, right in cases:
         assert str((left & right).invert_intersect(right)) == str(left), (
-            f'debería poder invertir la intersección: {left & right}\npor: ({right})')
+            f'debería poder invertir la intersección: {left & right}\npor:'
+            f' ({right})'
+        )
 
 
 def test_matches_asks_whether_the_ids_satisfy_the_expression(definitions):
@@ -443,8 +508,10 @@ def test_matches_asks_whether_the_ids_satisfy_the_expression(definitions):
     ]
     for spec, group_ids in matching:
         assert spec.matches(group_ids), (
-            f'un usuario con los grupos {definitions.from_ids(group_ids, keep_subsets=True)} '
-            f'debería satisfacer {spec}')
+            'un usuario con los grupos'
+            f' {definitions.from_ids(group_ids, keep_subsets=True)} debería'
+            f' satisfacer {spec}'
+        )
 
     non_matching = [
         (a, {13}),
@@ -458,8 +525,10 @@ def test_matches_asks_whether_the_ids_satisfy_the_expression(definitions):
     ]
     for spec, group_ids in non_matching:
         assert not spec.matches(group_ids), (
-            f'un usuario con los grupos {definitions.from_ids(group_ids, keep_subsets=True)} '
-            f'no debería satisfacer {spec}')
+            'un usuario con los grupos'
+            f' {definitions.from_ids(group_ids, keep_subsets=True)} no debería'
+            f' satisfacer {spec}'
+        )
 
 
 def test_an_unknown_reference_still_composes(definitions):
@@ -518,18 +587,21 @@ def test_the_key_round_trips_through_from_key(definitions):
 
 # -- los tres accesores del ejemplo del docstring del módulo -----------------
 
+
 @pytest.fixture(scope='module')
 def numbers():
     """El ejemplo del docstring de ``SetDefinitions.__init__``, verbatim."""
-    return SetDefinitions({
-        1: {'ref': 'N', 'supersets': [2]},
-        2: {'ref': 'Z', 'supersets': [3]},
-        3: {'ref': 'Q', 'supersets': [4]},
-        4: {'ref': 'R', 'supersets': [6]},
-        5: {'ref': 'I', 'supersets': [6], 'disjoints': [4]},
-        6: {'ref': 'C'},
-        7: {'ref': 'R\\Q', 'supersets': [4]},
-    })
+    return SetDefinitions(
+        {
+            1: {'ref': 'N', 'supersets': [2]},
+            2: {'ref': 'Z', 'supersets': [3]},
+            3: {'ref': 'Q', 'supersets': [4]},
+            4: {'ref': 'R', 'supersets': [6]},
+            5: {'ref': 'I', 'supersets': [6], 'disjoints': [4]},
+            6: {'ref': 'C'},
+            7: {'ref': 'R\\Q', 'supersets': [4]},
+        }
+    )
 
 
 def test_get_superset_ids_climbs_the_transitive_closure(numbers):
@@ -564,7 +636,8 @@ def test_get_id_resolves_the_reference_and_the_universal_set(numbers):
 
 
 def test_from_ids_keeps_the_most_specific_set_of_each_chain(numbers):
-    """``keep_subsets`` se queda con el **menor** de la cadena, no con el mayor.
+    """
+    ``keep_subsets`` se queda con el **menor** de la cadena, no con el mayor.
 
     N <= Z <= Q: quien pertenece a N ya pertenece a Z y a Q por implicación,
     así que el que informa es N. El filtro descarta la hoja que tenga algún

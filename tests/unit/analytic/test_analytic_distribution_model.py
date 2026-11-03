@@ -1,10 +1,12 @@
 """Contrato de ``AccountAnalyticDistributionModel`` — construcción de
 dominio (Python puro, sin BD). Ver el docstring de ``test_analytic_plan.py``
-para por qué no se usa ``pytest.mark.django_db`` aquí: ``_get_applicable_models``
+para por qué no se usa ``pytest.mark.django_db`` aquí:
+``_get_applicable_models``
 ejecuta un ``QuerySet.filter`` real y necesitaría la tabla del addon
 (inexistente en este corte); se cubre sólo la construcción del ``Q``
 (``_create_domain``) y el diccionario default, que son puro Python.
 """
+
 from django.db.models import Q
 
 from addons.analytic.models import AccountAnalyticDistributionModel
@@ -16,11 +18,17 @@ class TestDefaultSearchDomainVals:
     ``res.partner.category`` portado)."""
 
     def test_no_partner_category_key(self):
-        vals = AccountAnalyticDistributionModel._get_default_search_domain_vals()
+        vals = (
+            AccountAnalyticDistributionModel._get_default_search_domain_vals()
+        )
         # account extiende el dict con product/product_categ (combine |,
         # account_analytic_distribution_model.py) — fiel a odoo19c: :81-84.
-        assert vals == {'company_id': None, 'partner_id': None,
-                        'product': None, 'product_categ': None}
+        assert vals == {
+            'company_id': None,
+            'partner_id': None,
+            'product': None,
+            'product_categ': None,
+        }
         assert 'partner_category_id' not in vals
 
 

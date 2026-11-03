@@ -1,0 +1,17 @@
+{
+  "head": "8630713f141cd47c678cdbbccceb634da0e8361d",
+  "source_hashes": {
+    "src/orm/fields.py": "2eeb673521ede8201ade7f6f3b3d2ea81a4b198675f954818ae1a660192b5fe9",
+    "tests/unit/orm/test_field_class_attributes.py": "08d0023f2b310bb68660c8ebbee4fc80331ed394c77c741951b4e55089762578",
+    "uv.lock": "b904766a721c24031dad0ee3d9250083744de681850891c6042a8e7d17d3b0df"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "nodeids": [
+    "tests/unit/orm/test_field_class_attributes.py::TestTheColumnTypeOfEachFamily::test_char_derives_its_size_from_the_instance",
+    "tests/unit/orm/test_field_class_attributes.py::TestTheColumnTypeOfEachFamily::test_float_without_declared_digits_is_a_double",
+    "tests/unit/orm/test_field_class_attributes.py::TestTheColumnTypeOfTheTwoTreeDivergences::test_the_primary_key_does_not_inherit_the_integer_column"
+  ],
+  "exit_code": 0,
+  "source_unchanged": true,
+  "scope": "Three existing behavior controls for instance-derived Char/Float properties and PK/integer inheritance distinction. Principal sources bound; not whole Field applicability or acceptance. SQL prohibited."
+}

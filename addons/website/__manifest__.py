@@ -22,7 +22,7 @@
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
-    'application': True,   # módulo vendible del catálogo L0
+    'application': True,  # módulo vendible del catálogo L0
     'installable': True,
     'auto_install': False,
 }

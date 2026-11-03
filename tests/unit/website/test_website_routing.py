@@ -1,4 +1,5 @@
-"""Contrato de la enumeración de páginas del modelo ``website`` (tarea **#545**).
+"""
+Contrato de la enumeración de páginas del modelo ``website`` (tarea **#545**).
 
 Adaptación de ``odoo19c: addons/website/models/website.py`` (:1519-1544,
 :1546-1668, :1714-1721, :1723-1768; ``odoo-tools@622ddc2a``, LGPL-3). Los
@@ -36,6 +37,7 @@ pytestmark = [
 
 
 # ── Las vistas del mapa de prueba ────────────────────────────────────────────
+
 
 def home(request):
     return HttpResponse('')
@@ -128,11 +130,16 @@ def _make_website(**overrides):
     # fixture los aporta igual que ``test_website_b6``.
     values = {'name': 'Routing', 'domain': 'https://routing.example.test'}
     if 'company' not in overrides:
-        values['company'] = ResCompany.objects.create(name='Kaupamex Routing QA')
+        values['company'] = ResCompany.objects.create(
+            name='Kaupamex Routing QA'
+        )
     if 'user' not in overrides:
-        existing = ResUsers.objects.filter(login='routing@kaupamex.test').first()
+        existing = ResUsers.objects.filter(
+            login='routing@kaupamex.test'
+        ).first()
         values['user'] = existing or ResUsers.objects.create_user(
-            login='routing@kaupamex.test')
+            login='routing@kaupamex.test'
+        )
     values.update(overrides)
     website = Website(**values)
     website.save()
@@ -142,16 +149,20 @@ def _make_website(**overrides):
 def _rule_for(view_name):
     # El URLPattern hoja cuyo callback (o su clase) es la vista dada.
     for _route, rule, _literal in _iter_url_patterns():
-        owner = (getattr(rule.callback, 'cls', None)
-                 or getattr(rule.callback, 'view_class', None)
-                 or rule.callback)
+        owner = (
+            getattr(rule.callback, 'cls', None)
+            or getattr(rule.callback, 'view_class', None)
+            or rule.callback
+        )
         if getattr(owner, '__name__', None) == view_name:
             return rule
     raise AssertionError('no URL rule found for view %s' % view_name)
 
 
 class TestRuleIsEnumerable:
-    """≙ ``rule_is_enumerable`` (``odoo19c: :1519-1544``), condición a condición."""
+    """
+    ≙ ``rule_is_enumerable`` (``odoo19c: :1519-1544``), condición a condición.
+    """
 
     def test_literal_frontend_route_is_enumerable(self):
         assert Website().rule_is_enumerable(_rule_for('about')) is True
@@ -180,8 +191,9 @@ class TestRuleIsEnumerable:
         assert Website().rule_is_enumerable(_rule_for('needs_arg')) is False
 
     def test_default_args_of_the_pattern_count_as_provided(self):
-        assert Website().rule_is_enumerable(
-            _rule_for('with_default_arg')) is True
+        assert (
+            Website().rule_is_enumerable(_rule_for('with_default_arg')) is True
+        )
 
     def test_non_pattern_object_is_not_enumerable(self):
         assert Website().rule_is_enumerable(object()) is False
@@ -204,7 +216,9 @@ class TestEnumeratePages:
 
     def test_unpublished_static_page_needs_force(self):
         website = _make_website()
-        page = StaticPage.objects.create(slug='faq', title='Preguntas frecuentes')
+        page = StaticPage.objects.create(
+            slug='faq', title='Preguntas frecuentes'
+        )
         default_locs = {r['loc'] for r in website._enumerate_pages()}
         forced_locs = {r['loc'] for r in website._enumerate_pages(force=True)}
         assert page.url not in default_locs
@@ -214,8 +228,11 @@ class TestEnumeratePages:
         website = _make_website()
         page = StaticPage.objects.create(slug='terms', title='Términos')
         StaticPageVersion.objects.create(
-            page=page, version=1, content='<p>t</p>',
-            status=StaticPageVersion.STATUS_PUBLISHED)
+            page=page,
+            version=1,
+            content='<p>t</p>',
+            status=StaticPageVersion.STATUS_PUBLISHED,
+        )
         records = {r['loc']: r for r in website._enumerate_pages()}
         record = records[page.url]
         assert record['id'] == page.pk
@@ -224,8 +241,10 @@ class TestEnumeratePages:
 
     def test_query_string_filters_by_url_fragment(self):
         website = _make_website()
-        locs = [r['loc'] for r in website._enumerate_pages(
-            query_string='about', force=True)]
+        locs = [
+            r['loc']
+            for r in website._enumerate_pages(query_string='about', force=True)
+        ]
         assert locs == ['/about-us']
 
 

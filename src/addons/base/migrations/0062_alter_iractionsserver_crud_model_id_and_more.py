@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="link_field_id",
-                help_text="Odoo link_field_id. Campo que ata el registro nuevo al registro sobre el que corre la acción.",
+                help_text=(
+                    "Odoo link_field_id. Campo que ata el registro nuevo al"
+                    " registro sobre el que corre la acción."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="link_server_actions",

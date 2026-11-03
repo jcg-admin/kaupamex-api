@@ -1,0 +1,9 @@
+{
+  "task": "TASK-API-0383",
+  "source_revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+  "acceptance": "not_verified",
+  "scope": "Fixture qualification and data isolation, not whole authentication or loader acceptance",
+  "ci_make_exit": 2,
+  "preexisting_database_and_sentinel_preserved": true,
+  "partial_schema_failure_cleaned_own_database": true
+}

@@ -38,6 +38,7 @@ El día que se porte el almacenamiento en adjunto, un campo lo pide con
 ``fields.Binary(attachment=True)`` — el kwarg ya existe y el atributo ya se
 lee. Lo que falta es el mecanismo detrás, no la declaración.
 """
+
 from operator import attrgetter
 
 from django.db import models
@@ -67,8 +68,9 @@ class Binary(models.BinaryField):
     #: ≙ ``:37`` — el valor depende de si se pide el contenido o su tamaño.
     _depends_context = ('bin_size',)
 
-    def __init__(self, *args, attachment=False, related=None, store=_UNSET,
-                 **kwargs):
+    def __init__(
+        self, *args, attachment=False, related=None, store=_UNSET, **kwargs
+    ):
         """≙ ``:39``. El default de ``attachment`` diverge — la razón, en el
         docstring del módulo.
 
@@ -120,8 +122,16 @@ class Image(models.ImageField):
     max_height = 0
     verify_resolution = True
 
-    def __init__(self, *args, max_width=0, max_height=0, related=None,
-                 store=_UNSET, verify_resolution=True, **kwargs):
+    def __init__(
+        self,
+        *args,
+        max_width=0,
+        max_height=0,
+        related=None,
+        store=_UNSET,
+        verify_resolution=True,
+        **kwargs,
+    ):
         """Los tres atributos de recorte, y el vocabulario de la fuente
         reenviado — mismo criterio que :class:`Binary`."""
         self.max_width = max_width

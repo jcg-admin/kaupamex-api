@@ -1,6 +1,7 @@
 """``_assert_can_auth`` / ``_on_login_cooldown`` — el enfriamiento de acceso.
 
-Porta el contrato de ``odoo19c: odoo/addons/base/models/res_users.py:1214-1306``:
+Porta el contrato de ``odoo19c:
+odoo/addons/base/models/res_users.py:1214-1306``:
 tras N fallos consecutivos desde el mismo origen, los intentos se **ignoran**
 durante un plazo, y un acierto borra la cuenta.
 
@@ -31,6 +32,7 @@ cuatro sobreviven». La cifra real es 4/9. Se deja anotado porque es el motivo
 de que el control exista: la intuicion sobre que mide cada caso no vale como
 evidencia. Ver ``metrica-decide-la-conclusion.md`` sub-patron D.
 """
+
 import datetime
 
 import pytest
@@ -57,10 +59,12 @@ def counter():
 @pytest.fixture
 def make_request():
     """Fija la peticion en la ``ContextVar`` y la retira al salir."""
+
     def _set(ip=PUBLIC_IP):
         request = RequestFactory().get('/', REMOTE_ADDR=ip)
         set_current_request(request)
         return request
+
     yield _set
     set_current_request(None)
 
@@ -68,15 +72,18 @@ def make_request():
 @pytest.fixture
 def policy(db):
     """Fija ``base.login_cooldown_after`` / ``_duration`` para el caso."""
+
     def _set(after=2, duration=60):
         SystemParameter.set_param('base.login_cooldown_after', after)
         SystemParameter.set_param('base.login_cooldown_duration', duration)
+
     return _set
 
 
 # --------------------------------------------------------------------------
 # _on_login_cooldown — el criterio
 # --------------------------------------------------------------------------
+
 
 def test_no_failures_means_no_cooldown(policy):
     policy(after=2, duration=60)
@@ -111,6 +118,7 @@ def test_after_zero_disables_the_mechanism(policy):
 # --------------------------------------------------------------------------
 # _assert_can_auth — el almacen y el gesto de envolver
 # --------------------------------------------------------------------------
+
 
 def test_outside_a_request_it_yields(counter):
     """Sin peticion no hay origen que contar: cron y arranque quedan fuera."""
@@ -180,12 +188,17 @@ def test_the_count_is_per_source(counter, make_request, policy):
     assert '198.51.100.9' not in counter
 
 
-def test_the_reverse_proxy_wins_over_remote_addr(counter, make_request, policy):
+def test_the_reverse_proxy_wins_over_remote_addr(
+    counter, make_request, policy
+):
     """``_client_ip`` lee ``X-Forwarded-For`` primero — el contador cuenta al
     cliente, no al proxy."""
     policy(after=5, duration=60)
     request = RequestFactory().get(
-        '/', REMOTE_ADDR=PRIVATE_IP, HTTP_X_FORWARDED_FOR=f'{PUBLIC_IP}, 10.0.0.1')
+        '/',
+        REMOTE_ADDR=PRIVATE_IP,
+        HTTP_X_FORWARDED_FOR=f'{PUBLIC_IP}, 10.0.0.1',
+    )
     set_current_request(request)
     with pytest.raises(AccessDenied):
         with ResUsers._assert_can_auth():
@@ -194,7 +207,9 @@ def test_the_reverse_proxy_wins_over_remote_addr(counter, make_request, policy):
     assert PRIVATE_IP not in counter
 
 
-def test_a_rate_limited_private_ip_warns_about_the_proxy(counter, make_request, policy, caplog):
+def test_a_rate_limited_private_ip_warns_about_the_proxy(
+    counter, make_request, policy, caplog
+):
     """El aviso de la fuente: si la IP limitada es privada, lo mas probable es
     que se este contando al proxy y el limitador castigue a todo el mundo."""
     policy(after=2, duration=60)
@@ -204,5 +219,7 @@ def test_a_rate_limited_private_ip_warns_about_the_proxy(counter, make_request, 
         with pytest.raises(AccessDenied):
             with ResUsers._assert_can_auth():
                 pass
-    assert any('privada' in r.message or 'privada' in r.getMessage()
-               for r in caplog.records)
+    assert any(
+        'privada' in r.message or 'privada' in r.getMessage()
+        for r in caplog.records
+    )

@@ -1,0 +1,42 @@
+{
+  "resource": "orm_bootstrap_1afbe4536686",
+  "provenance": "prior-qa-residual-reconciliation.json",
+  "steps": [
+    {
+      "operation": "Recheck inactive prior resource",
+      "exit_code": 0,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "operation": "Remove exact prior HBA marker",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "operation": "Reload existing PostgreSQL configuration",
+      "exit_code": 0,
+      "stdout": "t\n",
+      "stderr": ""
+    },
+    {
+      "operation": "Drop prior owned database",
+      "exit_code": 0,
+      "stdout": "DROP DATABASE\n",
+      "stderr": ""
+    },
+    {
+      "operation": "Drop prior owned role",
+      "exit_code": 0,
+      "stdout": "DROP ROLE\n",
+      "stderr": ""
+    },
+    {
+      "operation": "Verify exact prior database and role absent",
+      "exit_code": 0,
+      "stdout": "0\n",
+      "stderr": ""
+    }
+  ]
+}

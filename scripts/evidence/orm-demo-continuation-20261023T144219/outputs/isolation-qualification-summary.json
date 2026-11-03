@@ -1,0 +1,84 @@
+{
+  "objective": "completar-raiz-orm",
+  "instruction_complete": false,
+  "objective_complete": false,
+  "task": "TASK-API-0383",
+  "owner": "codex-module-lifecycle",
+  "official_status": "pending",
+  "official_states_changed": false,
+  "source_revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+  "package_description_revision": "948c523363b75ef2f0091c983a347f328dcfdc43",
+  "source_published": true,
+  "PR": 109,
+  "merged": false,
+  "accepted": false,
+  "fixture_changes": [
+    "Public django_db_blocker without db/TestCase private override",
+    "Random aliases and exclusive creation; refuse existing databases/aliases",
+    "ExitStack attempts cleanup of all acquired resources even after another cleanup fails",
+    "Existing complete company provisioner and native domain managers/rules",
+    "Disposable default guard;N1 write rolled back"
+  ],
+  "discriminating_verification": {
+    "initial_red": "8FAIL due new fixture interface absent, not8observed unsafe deletion defects",
+    "green": "8PASS mocked failure/ownership controls",
+    "guard_annulment": "2FAIL6PASS;exit1 expected;source unchanged on disk",
+    "real_resource_controls": "PASS sentinel preservation, actual partialDDL cleanup, extension failure resource retained for cleanup",
+    "functional": "5PASS2warnings915.37s;pytest_exit0;three historical cases reactivated plusN1 andschema/native connection controls",
+    "qualification_scope": "Real complete provisioner on two fresh companies plus own default. No root conftest seed replay in bounded run; full local CI separately measured. No whole HTTP login/authorization acceptance."
+  },
+  "harness_outcomes": {
+    "initial_probe_exit": 1,
+    "initial_reason": "Over-broad injected extension failure also intercepted maintenance; partial real controls retained",
+    "bounded_probe_exit": 1,
+    "bounded_reason": "Five cases passed, teardown removed aliases; post-pytest Django cleanup query correctly rejected by restored blocker",
+    "independent_cleanup_exit": 0,
+    "remaining_known_owned_roles": 0,
+    "remaining_known_owned_databases": 0,
+    "probe_postcheck_corrected_for_future_replay": true,
+    "full_probe_not_rerun_after_instrument_only_correction": true
+  },
+  "ci": {
+    "local": {
+      "revision": "4b67be0f",
+      "make_exit": 2,
+      "pytest_exit": 1,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 467.74
+    },
+    "remote": {
+      "revision": "948c5233",
+      "run": 40031305381,
+      "state": "COMPLETED",
+      "conclusion": "FAILURE",
+      "make_exit": 2,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 484.2
+    },
+    "first_failure": "ProductProduct.display_name",
+    "classification": "BASELINE_FAILURE",
+    "later_tests": "NOT_EVALUATED",
+    "full_head_or_whole_ORM_acceptance": false
+  },
+  "contract_scope": {
+    "module_graph": "Existing19named declarations and prior valid verifiers retained; not file acceptance",
+    "loading": "Existing bank now maps7functions, including force_demo/load_modules14elements not_verified; no new production loader claimed",
+    "package_description": "Executable AST unchanged; obsolete absence claims corrected",
+    "as_is": "Existing62TASK rows preserved;0381 added as related dependency only, not denominator expansion"
+  },
+  "continuation": "isolation-native-continuation.json; same unaccepted qualification item selected from2declared candidates; no global coverage/exhaustion or managed model execution inferred",
+  "remaining": [
+    "Metadata proposal review under DEC-AISL-05 and whole TASK acceptance",
+    "TASK-API-0381 request routing pending ownerNULL; full login/user identity/authorization/session replay across companies",
+    "Already-recorded but absent historical schemas: bounded recovery not implemented or applied",
+    "Effective per-base Registry/model composition, whole loader/hooks/state/installed_version/invalidation",
+    "Mandatory CI baseline compute issue and related unowned tasks; no ownership transfer",
+    "Provider discovery owner/dependency coverage and local model execution/integration qualification"
+  ],
+  "evidence_publication_authority": "Existing Git history/remote branch and PR109; final evidence commit verified after creation",
+  "observed_at": "2026-10-23T22:29:52.556129+00:00"
+}

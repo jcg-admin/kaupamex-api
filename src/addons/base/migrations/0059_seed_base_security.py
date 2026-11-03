@@ -1,7 +1,8 @@
 """Siembra la ACL y las record rules de ``base``.
 
 ≙ lo que la referencia carga al **instalar el módulo**: su
-``security/ir.model.access.csv`` (146 filas) y su ``security/base_security.xml``
+``security/ir.model.access.csv`` (146 filas) y su
+``security/base_security.xml``
 (``odoo19c: odoo/addons/base/security/``). Aquí no hay cargador de módulo, y
 hasta este pase las dos siembras existían **sólo en ``tests/conftest.py``**:
 una base de producción recién migrada quedaba con ``ir_model_access`` e
@@ -28,6 +29,7 @@ filas mientras ``django_migrations`` las sigue dando por aplicadas, así que
 ``tests/conftest.py`` necesita re-aplicar **la misma definición** — una sola,
 sin dos copias que puedan divergir (:ref:`h-api-337`).
 """
+
 from django.db import migrations
 
 from addons.base.security.base_security import seed_base_rules

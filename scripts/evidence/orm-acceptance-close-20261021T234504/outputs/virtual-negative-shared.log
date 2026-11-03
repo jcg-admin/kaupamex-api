@@ -1,0 +1,13 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control: cache identity only; pk and persistence untouched
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_unsaved_instances_have_separate_contextual_values ____________
+tests/unit/orm/test_res_groups_compute_contract.py:111: in test_unsaved_instances_have_separate_contextual_values
+    assert other.full_name == 'Support'
+E   AssertionError: assert 'Operations' == 'Support'
+E     - Support
+E     + Operations
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_unsaved_instances_have_separate_contextual_values
+1 failed in 0.12s

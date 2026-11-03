@@ -15,6 +15,7 @@ se prueba porque **no está portado**: ``ResCompany`` no declara
 ``income_account_id``. El test de abajo fija ese hueco explícitamente en vez
 de omitirlo, para que no se lea como cobertura.
 """
+
 import pathlib
 import sys
 
@@ -29,7 +30,11 @@ from addons.account.models import (
     AccountTax,
 )
 from addons.base.models import ResCompany
-from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
+from addons.product.models import (
+    ProductCategory,
+    ProductProduct,
+    ProductTemplate,
+)
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -42,26 +47,38 @@ def company():
 @pytest.fixture
 def cuentas(company):
     ingreso = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company)
+        code='401', name='Ventas', account_type='income', company=company
+    )
     gasto = AccountAccount.objects.create(
-        code='601', name='Compras', account_type='expense', company=company)
+        code='601', name='Compras', account_type='expense', company=company
+    )
     return ingreso, gasto
 
 
 class TestLaExtensionSeAplico:
     """El mecanismo — ``account`` cuelga campos de modelos que no declara."""
 
-    @pytest.mark.parametrize('campo', [
-        'taxes', 'supplier_taxes', 'property_account_income',
-        'property_account_expense', 'account_tags',
-    ])
+    @pytest.mark.parametrize(
+        'campo',
+        [
+            'taxes',
+            'supplier_taxes',
+            'property_account_income',
+            'property_account_expense',
+            'account_tags',
+        ],
+    )
     def test_product_template_recibe_sus_cinco_campos(self, campo):
         nombres = {f.name for f in ProductTemplate._meta.get_fields()}
         assert campo in nombres
 
-    @pytest.mark.parametrize('campo', [
-        'property_account_income_categ', 'property_account_expense_categ',
-    ])
+    @pytest.mark.parametrize(
+        'campo',
+        [
+            'property_account_income_categ',
+            'property_account_expense_categ',
+        ],
+    )
     def test_product_category_recibe_sus_dos_campos(self, campo):
         nombres = {f.name for f in ProductCategory._meta.get_fields()}
         assert campo in nombres
@@ -73,11 +90,14 @@ class TestLaExtensionSeAplico:
         adquirió una razón de cambio que es de contabilidad.
         """
         origen = pathlib.Path(
-            sys.modules[ProductTemplate.__module__].__file__).parent
+            sys.modules[ProductTemplate.__module__].__file__
+        ).parent
         medidos = sorted(origen.glob('*.py'))
         # El denominador va en el assert: un glob vacío daría verde sin medir
         # nada — el "cero falso" que H-DOCS-21 registró.
-        assert len(medidos) > 10, f'alcance sospechoso: {len(medidos)} archivos'
+        assert (
+            len(medidos) > 10
+        ), f'alcance sospechoso: {len(medidos)} archivos'
         with_account = [
             py.name for py in medidos if 'addons.account' in py.read_text()
         ]
@@ -90,12 +110,17 @@ class TestResolutionOfAccount:
     def test_la_cuenta_del_producto_gana(self, cuentas):
         ingreso, gasto = cuentas
         otra = AccountAccount.objects.create(
-            code='402', name='Otros ingresos', account_type='income',
-            company=ingreso.company)
+            code='402',
+            name='Otros ingresos',
+            account_type='income',
+            company=ingreso.company,
+        )
         categoria = ProductCategory.objects.create(
-            name='Collares', property_account_income_categ=otra)
+            name='Collares', property_account_income_categ=otra
+        )
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso)
+            name='Eleke', categ=categoria, property_account_income=ingreso
+        )
 
         assert producto._get_product_accounts()['income'] == ingreso
 
@@ -104,8 +129,11 @@ class TestResolutionOfAccount:
         categoria = ProductCategory.objects.create(
             name='Collares',
             property_account_income_categ=ingreso,
-            property_account_expense_categ=gasto)
-        producto = ProductTemplate.objects.create(name='Eleke', categ=categoria)
+            property_account_expense_categ=gasto,
+        )
+        producto = ProductTemplate.objects.create(
+            name='Eleke', categ=categoria
+        )
 
         cuentas_resueltas = producto._get_product_accounts()
         assert cuentas_resueltas['income'] == ingreso
@@ -119,7 +147,8 @@ class TestResolutionOfAccount:
         """
         ingreso, _ = cuentas
         abuela = ProductCategory.objects.create(
-            name='Religiosos', property_account_income_categ=ingreso)
+            name='Religiosos', property_account_income_categ=ingreso
+        )
         madre = ProductCategory.objects.create(name='Collares', parent=abuela)
         hija = ProductCategory.objects.create(name='Elekes', parent=madre)
         producto = ProductTemplate.objects.create(name='Eleke', categ=hija)
@@ -134,16 +163,21 @@ class TestResolutionOfAccount:
         Se fija aquí para que el hueco sea visible, no para celebrarlo.
         """
         categoria = ProductCategory.objects.create(name='Collares')
-        producto = ProductTemplate.objects.create(name='Eleke', categ=categoria)
+        producto = ProductTemplate.objects.create(
+            name='Eleke', categ=categoria
+        )
 
-        assert producto._get_product_accounts() == {'income': None,
-                                                    'expense': None}
+        assert producto._get_product_accounts() == {
+            'income': None,
+            'expense': None,
+        }
 
     def test_la_variante_delega_en_su_plantilla(self, cuentas):
         ingreso, _ = cuentas
         categoria = ProductCategory.objects.create(name='Collares')
         plantilla = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso)
+            name='Eleke', categ=categoria, property_account_income=ingreso
+        )
         variante = ProductProduct.objects.create(product_tmpl=plantilla)
 
         assert variante._get_product_accounts()['income'] == ingreso
@@ -158,16 +192,22 @@ class TestPositionFiscal:
         """
         ingreso, _ = cuentas
         destino = AccountAccount.objects.create(
-            code='403', name='Ventas exentas', account_type='income',
-            company=company)
+            code='403',
+            name='Ventas exentas',
+            account_type='income',
+            company=company,
+        )
         posicion = AccountFiscalPosition.objects.create(
-            name='Exento', company=company)
+            name='Exento', company=company
+        )
         AccountFiscalPositionAccount.objects.create(
-            position=posicion, account_src=ingreso, account_dest=destino)
+            position=posicion, account_src=ingreso, account_dest=destino
+        )
 
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso)
+            name='Eleke', categ=categoria, property_account_income=ingreso
+        )
 
         assert producto.get_product_accounts()['income'] == ingreso
         assert producto.get_product_accounts(posicion)['income'] == destino
@@ -181,13 +221,21 @@ class TestImpuestosYEtiquetas:
         ``product_taxes_rel`` y ``product_supplier_taxes_rel``.
         """
         iva_venta = AccountTax.objects.create(
-            name='IVA 16 venta', amount=16, type_tax_use='sale',
-            company=company)
+            name='IVA 16 venta',
+            amount=16,
+            type_tax_use='sale',
+            company=company,
+        )
         iva_compra = AccountTax.objects.create(
-            name='IVA 16 compra', amount=16, type_tax_use='purchase',
-            company=company)
+            name='IVA 16 compra',
+            amount=16,
+            type_tax_use='purchase',
+            company=company,
+        )
         categoria = ProductCategory.objects.create(name='Collares')
-        producto = ProductTemplate.objects.create(name='Eleke', categ=categoria)
+        producto = ProductTemplate.objects.create(
+            name='Eleke', categ=categoria
+        )
 
         producto.taxes.add(iva_venta)
         producto.supplier_taxes.add(iva_compra)
@@ -204,16 +252,21 @@ class TestImpuestosYEtiquetas:
         que #137 entre, este test falle y obligue a revisarlo.
         """
         categoria = ProductCategory.objects.create(name='Collares')
-        producto = ProductTemplate.objects.create(name='Eleke', categ=categoria)
+        producto = ProductTemplate.objects.create(
+            name='Eleke', categ=categoria
+        )
 
         assert producto.taxes.count() == 0
         assert producto.supplier_taxes.count() == 0
 
     def test_las_etiquetas_de_cuenta_cuelgan_del_producto(self, company):
         etiqueta = AccountAccountTag.objects.create(
-            name='Exportación', applicability='products')
+            name='Exportación', applicability='products'
+        )
         categoria = ProductCategory.objects.create(name='Collares')
-        producto = ProductTemplate.objects.create(name='Eleke', categ=categoria)
+        producto = ProductTemplate.objects.create(
+            name='Eleke', categ=categoria
+        )
 
         producto.account_tags.add(etiqueta)
 
@@ -230,7 +283,8 @@ class TestProtect:
         ingreso, _ = cuentas
         categoria = ProductCategory.objects.create(name='Collares')
         ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso)
+            name='Eleke', categ=categoria, property_account_income=ingreso
+        )
 
         with pytest.raises(ProtectedError):
             ingreso.delete()

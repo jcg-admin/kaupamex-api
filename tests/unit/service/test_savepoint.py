@@ -13,6 +13,7 @@ se mida el efecto en la base (sub-patrón D de
 ``metrica-decide-la-conclusion.md``). Por eso cada caso **escribe una fila** y
 comprueba su presencia o su ausencia, en vez de inspeccionar el objeto.
 """
+
 import pytest
 from django.db import DEFAULT_DB_ALIAS, connections
 
@@ -35,7 +36,9 @@ class TestTheSavepointReturns:
         savepoint.close(rollback=False)
 
     def test_rollback_can_be_called_more_than_once(self):
-        """«as many times as they want» — verbatim del docstring de la fuente."""
+        """
+        «as many times as they want» — verbatim del docstring de la fuente.
+        """
         savepoint = Savepoint(connections[DEFAULT_DB_ALIAS])
         ResCountry.objects.create(name='Sinelandia', code='ZY')
 

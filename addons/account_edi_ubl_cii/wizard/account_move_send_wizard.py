@@ -1,6 +1,7 @@
 r"""``account.move.send.wizard`` — lo que ``account_edi_ubl_cii`` le cuelga.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/wizard/account_move_send_wizard.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/wizard/account_move_send_wizard.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 21 líneas) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 
@@ -36,17 +37,21 @@ este mismo addon (portado allí) y ``_get_ubl_cii_formats_info`` lo cuelga
 aquí, con imports al top (``no-lazy-imports.md``) y sin ciclo — ninguno de los
 dos módulos importa este.
 """
+
 from orm.method_chain import chain_method
 from tools.translate import _
 
-from addons.account.wizard.account_move_send_wizard import AccountMoveSendWizard
+from addons.account.wizard.account_move_send_wizard import (
+    AccountMoveSendWizard,
+)
 from addons.base.models.res_partner import ResPartner
 
 from ..models.account_move_send import _get_ubl_available_attachments
 
 
-def _compute_attachments_not_supported(cls, invoice_edi_format=None,
-                                       mail_attachments_widget=None):
+def _compute_attachments_not_supported(
+    cls, invoice_edi_format=None, mail_attachments_widget=None
+):
     """≙ ``_compute_attachments_not_supported`` (``odoo19c: :6-21``).
 
     Devuelve ``{id_adjunto: motivo}`` para los adjuntos manuales que el formato
@@ -57,9 +62,11 @@ def _compute_attachments_not_supported(cls, invoice_edi_format=None,
     if not formats_info.get(invoice_edi_format):
         return {}
 
-    _attachments_to_embed, attachments_not_supported = \
+    _attachments_to_embed, attachments_not_supported = (
         _get_ubl_available_attachments(
-            cls, mail_attachments_widget, invoice_edi_format)
+            cls, mail_attachments_widget, invoice_edi_format
+        )
+    )
     return {
         attachment.id: _("Unsupported file type via %s", invoice_edi_format)
         for attachment in attachments_not_supported
@@ -69,8 +76,11 @@ def _compute_attachments_not_supported(cls, invoice_edi_format=None,
 def apply_account_edi_ubl_cii_send_wizard_extensions():
     """Cuelga sobre ``account.move.send.wizard`` el único método del archivo —
     ≙ ``_inherit``. La llama ``AccountEdiUblCiiConfig.ready()``."""
-    chain_method(AccountMoveSendWizard, '_compute_attachments_not_supported',
-                 classmethod(_compute_attachments_not_supported))
+    chain_method(
+        AccountMoveSendWizard,
+        '_compute_attachments_not_supported',
+        classmethod(_compute_attachments_not_supported),
+    )
 
 
 __all__ = ['apply_account_edi_ubl_cii_send_wizard_extensions']

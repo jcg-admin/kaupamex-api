@@ -1,0 +1,20 @@
+{
+  "resource": "orm_bootstrap_4bbec2db0478",
+  "result": "PASS",
+  "harness_exit": 0,
+  "mechanism": "Existing qa_context finally, user-authorized lifecycle",
+  "before": {
+    "exact_owner": "orm_bootstrap_4bbec2db0478",
+    "owned_databases": [
+      "orm_bootstrap_4bbec2db0478"
+    ],
+    "connections": 0
+  },
+  "after": {
+    "databases": 0,
+    "roles": 0,
+    "tagged_hba_lines": 0
+  },
+  "verification": "Independent native PostgreSQL catalog and exact HBA tag count; grep exit1 means no matching line",
+  "no_unrelated_cleanup": true
+}

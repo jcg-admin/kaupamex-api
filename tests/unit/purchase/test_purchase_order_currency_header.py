@@ -4,7 +4,8 @@
 Contrato adaptado de ``odoo19c: addons/purchase/models/purchase_order.py``,
 ``_compute_currency_id`` (``:459-466``) y ``_compute_currency_rate``
 (``:211-218``). ``ResCurrency._get_conversion_rate`` ya estaba portado
-(``src/addons/base/models/res_currency.py:462``) sin consumidor en ``purchase``;
+(``src/addons/base/models/res_currency.py:462``) sin consumidor en
+``purchase``;
 estos casos verifican que la cabecera lo usa de verdad, no sólo que el campo
 exista.
 
@@ -14,6 +15,7 @@ También cubre ``PurchaseOrderLine.company_id`` (stored, sincronizado en
 
 **Qué haría fallar a cada control se declara en su caso.**
 """
+
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -35,37 +37,44 @@ def mxn(db):
 
 @pytest.fixture
 def usd(db):
-    return ResCurrency.objects.create(name='Y27', symbol='US$', rounding='0.01')
+    return ResCurrency.objects.create(
+        name='Y27', symbol='US$', rounding='0.01'
+    )
 
 
 @pytest.fixture
 def company(db, mxn):
-    return ResCompany.objects.create(code='po-266-a', name='PO 266 Co A',
-                                     currency=mxn)
+    return ResCompany.objects.create(
+        code='po-266-a', name='PO 266 Co A', currency=mxn
+    )
 
 
 @pytest.fixture
 def other_company(db, mxn):
-    return ResCompany.objects.create(code='po-266-b', name='PO 266 Co B',
-                                     currency=mxn)
+    return ResCompany.objects.create(
+        code='po-266-b', name='PO 266 Co B', currency=mxn
+    )
 
 
 @pytest.fixture
 def supplier(db):
-    return ResUsers.objects.create_user(login='vendedor-266@kaupamex.mx',
-                                        password='x')
+    return ResUsers.objects.create_user(
+        login='vendedor-266@kaupamex.mx', password='x'
+    )
 
 
 @pytest.fixture
 def variant(db):
-    tmpl = ProductTemplate.objects.create(name='Producto 266',
-                                          list_price=Decimal('10.00'))
+    tmpl = ProductTemplate.objects.create(
+        name='Producto 266', list_price=Decimal('10.00')
+    )
     return ProductProduct.objects.create(product_tmpl=tmpl)
 
 
 def _rate(currency, day, value, company=None):
     return ResCurrencyRate.objects.create(
-        currency=currency, company=company, name=day, rate=Decimal(str(value)))
+        currency=currency, company=company, name=day, rate=Decimal(str(value))
+    )
 
 
 class TestCurrencyIdCompute:
@@ -84,7 +93,9 @@ class TestCurrencyIdCompute:
         MXN; si el cómputo ganara, ``currency_id`` terminaría en MXN, no en
         el USD que se pasó explícito.
         """
-        order = PurchaseOrder.objects.create(company_id=company, currency_id=usd)
+        order = PurchaseOrder.objects.create(
+            company_id=company, currency_id=usd
+        )
         order.refresh_from_db()
         assert order.currency_id == usd
 
@@ -105,16 +116,23 @@ class TestCurrencyIdCompute:
 
 
 class TestCurrencyRateCompute:
-    """≙ ``_compute_currency_rate`` (``odoo19c: purchase_order.py:211-218``)."""
+    """
+    ≙ ``_compute_currency_rate`` (``odoo19c: purchase_order.py:211-218``).
+    """
 
     def test_is_one_when_order_currency_matches_company(self, company, mxn):
-        """Corto-circuito de ``_get_conversion_rate`` — misma moneda, tasa 1."""
-        order = PurchaseOrder.objects.create(company_id=company, currency_id=mxn)
+        """
+        Corto-circuito de ``_get_conversion_rate`` — misma moneda, tasa 1.
+        """
+        order = PurchaseOrder.objects.create(
+            company_id=company, currency_id=mxn
+        )
         order.refresh_from_db()
         assert order.currency_rate == Decimal('1')
 
     def test_uses_the_real_conversion_rate_for_a_different_currency(
-            self, company, mxn, usd):
+        self, company, mxn, usd
+    ):
         """La empresa vale 1 y el dólar 0.05 el día de la orden.
 
         Qué haría fallar al control: quedarse en el default sin convertir.
@@ -125,7 +143,10 @@ class TestCurrencyRateCompute:
         _rate(mxn, day, 1, company)
         _rate(usd, day, Decimal('0.05'), company)
         order = PurchaseOrder.objects.create(
-            company_id=company, currency_id=usd, date_order=timezone.make_aware(datetime(2026, 1, 1)))
+            company_id=company,
+            currency_id=usd,
+            date_order=timezone.make_aware(datetime(2026, 1, 1)),
+        )
         order.refresh_from_db()
         assert order.currency_rate == Decimal('0.05')
 
@@ -143,8 +164,10 @@ class TestCurrencyRateCompute:
         _rate(usd, later, Decimal('0.10'), company)
 
         order = PurchaseOrder.objects.create(
-            company_id=company, currency_id=usd,
-            date_order=timezone.make_aware(datetime(2026, 1, 1)))
+            company_id=company,
+            currency_id=usd,
+            date_order=timezone.make_aware(datetime(2026, 1, 1)),
+        )
         order.refresh_from_db()
         assert order.currency_rate == Decimal('0.05')
 
@@ -168,24 +191,29 @@ class TestOrderLineCompanyAndCurrency:
         """
         order = PurchaseOrder.objects.create(company_id=company)
         line = PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('10.00'))
+            order_id=order, product_id=variant, price_unit=Decimal('10.00')
+        )
         line.refresh_from_db()
         assert line.company_id == company
 
     def test_line_company_id_resyncs_when_order_company_changes(
-            self, company, other_company, variant):
+        self, company, other_company, variant
+    ):
         """El campo es ``readonly`` desde la orden, no un valor congelado al
         crear — cada ``save()`` de la línea lo vuelve a leer."""
         order = PurchaseOrder.objects.create(company_id=company)
         line = PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('10.00'))
+            order_id=order, product_id=variant, price_unit=Decimal('10.00')
+        )
         order.company_id = other_company
         order.save()
         line.save()
         line.refresh_from_db()
         assert line.company_id == other_company
 
-    def test_line_currency_id_property_reads_the_order(self, company, usd, variant):
+    def test_line_currency_id_property_reads_the_order(
+        self, company, usd, variant
+    ):
         """``@property`` sin columna — navega ``order_id.currency_id``.
 
         Qué haría fallar al control: leer una columna propia en vez del FK.
@@ -193,12 +221,17 @@ class TestOrderLineCompanyAndCurrency:
         estuviera mal cableada, devolvería la moneda de la EMPRESA (MXN) en
         vez de la de la ORDEN (USD, fijada explícita).
         """
-        order = PurchaseOrder.objects.create(company_id=company, currency_id=usd)
+        order = PurchaseOrder.objects.create(
+            company_id=company, currency_id=usd
+        )
         line = PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('10.00'))
+            order_id=order, product_id=variant, price_unit=Decimal('10.00')
+        )
         assert line.currency_id == usd
 
     def test_line_currency_id_is_none_without_an_order(self, variant):
         """Degradación defensiva: sin ``order_id`` no hay de dónde leer."""
-        line = PurchaseOrderLine(product_id=variant, price_unit=Decimal('10.00'))
+        line = PurchaseOrderLine(
+            product_id=variant, price_unit=Decimal('10.00')
+        )
         assert line.currency_id is None

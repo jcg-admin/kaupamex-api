@@ -46,12 +46,12 @@ class PurchaseOrderLine(TimeStampedModel):
     """``purchase.order.line`` — una línea de la orden de compra."""
 
     order_id    = fields.Many2one(
-        'purchase.PurchaseOrder', on_delete=models.CASCADE, related_name='order_line',
+        'purchase.PurchaseOrder', null=False, on_delete=models.CASCADE, related_name='order_line',
         help_text='Odoo order_id.',
         db_column='order_id',
     )
     product_id  = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT,
+        'product.ProductProduct', on_delete=models.PROTECT, null=True, blank=True,
         related_name='purchase_order_lines', help_text='Odoo product_id.',
         db_column='product_id',
     )

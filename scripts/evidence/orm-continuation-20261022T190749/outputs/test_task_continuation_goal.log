@@ -1,0 +1,14 @@
+usage: test_task_continuation_goal.py [-h] {run,next,run-one} ...
+test_task_continuation_goal.py: error: unrecognized arguments: --goal /tmp/goal-declaration-nv783tkx/autonomy_goal.json
+usage: test_task_continuation_goal.py [-h] {run,next,run-one} ...
+test_task_continuation_goal.py: error: unrecognized arguments: --goal /tmp/goal-missing-5v45sofm/absent.json
+usage: test_task_continuation_goal.py [-h] {run,next,run-one} ...
+test_task_continuation_goal.py: error: unrecognized arguments: --goal /tmp/goal-declaration-l9qqlxcx/autonomy_goal.json
+usage: test_task_continuation_goal.py [-h] {run,next,run-one} ...
+test_task_continuation_goal.py: error: unrecognized arguments: --goal /tmp/goal-declaration-25f02p_l/autonomy_goal.json
+FALLA caso 1 una fila goal: esperado 1, obtenido 0
+FALLA caso 1 fila goal: esperado {'goal': 'END_TO_END_LOCAL_AUTONOMY', 'state': 'NOT_PROVEN', 'openCriteria': ['§3.9', '§4.13.1-12', '§5.15.1-16']}, obtenido None
+FALLA caso 2 el rehúse nombra la ruta: esperado True, obtenido False
+FALLA caso 3 criterios abiertos: esperado ['§4.13.1-12', '§5.15.1-16'], obtenido None
+FALLA caso 5 load_goal existe: esperado True, obtenido False
+test_task_continuation_goal: 3 OK, 5 FALLA

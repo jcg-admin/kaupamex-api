@@ -15,7 +15,8 @@ Los 2 símbolos de la fuente, con su bloqueo medido
 *Métrica:* entradas del cuerpo de ``class AccountMoveLine`` contadas por AST
 sobre la fuente. Son **3** con ``_inherit``; **2** sin él, ambos métodos, cero
 campos.
-*Ciega a:* lo que ``purchase`` (no este addon) le cuelga a ``account.move.line``
+*Ciega a:* lo que ``purchase`` (no este addon) le cuelga a
+``account.move.line``
 — en particular ``purchase_line_id``, que este archivo consume pero no declara.
 
 ``_get_price_unit_val_dif_and_relevant_qty`` (``odoo19c: :12-30``)
@@ -47,8 +48,10 @@ tiene nada específico de este stack.
 ``_get_stock_moves`` (``odoo19c: :32-33``)
 --------------------------------------------
 
-Una sola línea: ``return super()._get_stock_moves() | self.purchase_line_id.move_ids``.
-Es un **encadenamiento puro**: no aporta lógica, sólo suma los movimientos de la
+Una sola línea: ``return super()._get_stock_moves() |
+self.purchase_line_id.move_ids``.
+Es un **encadenamiento puro**: no aporta lógica, sólo suma los movimientos de
+la
 línea de compra a los que el ``super()`` ya devolvía.
 
 **Bloqueado por la ausencia del eslabón anterior.** Medido:

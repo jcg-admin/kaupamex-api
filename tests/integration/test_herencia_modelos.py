@@ -37,10 +37,15 @@ sí heredan ``TimeStampedModel``. Se retiran además los símbolos de
 ``test_user_NO_hereda_de_timestampedmodel``, cuya premisa se invierte —
 ``base.ResUsers`` **sí** hereda ``TimeStampedModel`` (``res_users.py:148``).
 """
+
 import pytest
 from decimal import Decimal
 from addons.base.models import TimeStampedModel
-from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
+from addons.product.models import (
+    ProductCategory,
+    ProductProduct,
+    ProductTemplate,
+)
 from addons.delivery.models import ShippingMethod
 from addons.payment.models import PaymentGateway
 from addons.website.models import StaticPage, StaticPageVersion
@@ -50,7 +55,11 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.delivery.models import DeliveryAddress
 from django.utils import timezone
 from datetime import timedelta
-from addons.loyalty.proxy_models import FixedVoucher, PercentageVoucher, FreeShippingVoucher
+from addons.loyalty.proxy_models import (
+    FixedVoucher,
+    PercentageVoucher,
+    FreeShippingVoucher,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -59,22 +68,31 @@ pytestmark = pytest.mark.integration
 # Fase 1 — TimeStampedModel
 # =============================================================================
 
+
 class TestTimeStampedModelHerencia:
     """Todos los modelos concretos heredan de TimeStampedModel."""
 
     def test_todos_los_modelos_heredan_de_timestampedmodel(self, db):
 
         models_concretos = [
-            ProductCategory, ProductTemplate, ProductProduct,
-            SaleOrder, SaleOrderLine, DeliveryAddress,
-            PaymentGateway, ShippingMethod,
-            StaticPage, StaticPageVersion,
-            Voucher, VoucherChangeLog,
+            ProductCategory,
+            ProductTemplate,
+            ProductProduct,
+            SaleOrder,
+            SaleOrderLine,
+            DeliveryAddress,
+            PaymentGateway,
+            ShippingMethod,
+            StaticPage,
+            StaticPageVersion,
+            Voucher,
+            VoucherChangeLog,
             WishlistItem,
         ]
         for model in models_concretos:
-            assert issubclass(model, TimeStampedModel), \
-                f'{model.__name__} no hereda de TimeStampedModel'
+            assert issubclass(
+                model, TimeStampedModel
+            ), f'{model.__name__} no hereda de TimeStampedModel'
 
     def test_timestampedmodel_es_abstracto(self, db):
         """TimeStampedModel no debe crear tabla propia."""
@@ -110,12 +128,18 @@ class TestTimestampsEspeciales:
 # Fase 2 — Proxy Models
 # =============================================================================
 
+
 class TestVoucherProxies:
-    """T-014: proxy models para Voucher con calculate_discount especializado."""
+    """
+    T-014: proxy models para Voucher con calculate_discount especializado.
+    """
 
     def _base_voucher_data(self):
-        return {'valid_from': timezone.now() - timedelta(days=1),
-                'min_order_amount': Decimal('0'), 'is_active': True}
+        return {
+            'valid_from': timezone.now() - timedelta(days=1),
+            'min_order_amount': Decimal('0'),
+            'is_active': True,
+        }
 
     def test_proxy_models_no_crean_tablas(self, db):
         for proxy in [FixedVoucher, PercentageVoucher, FreeShippingVoucher]:
@@ -123,15 +147,21 @@ class TestVoucherProxies:
             assert proxy._meta.proxy is True
 
     def test_fixed_voucher_calculate_discount(self, db):
-        v = FixedVoucher(**self._base_voucher_data(),
-                         code='FIX50', discount_value=Decimal('50'))
+        v = FixedVoucher(
+            **self._base_voucher_data(),
+            code='FIX50',
+            discount_value=Decimal('50'),
+        )
         assert v.calculate_discount(Decimal('200')) == Decimal('50')
         assert v.calculate_discount(Decimal('30')) == Decimal('30')  # min
 
     def test_percentage_voucher_con_tope(self, db):
-        v = PercentageVoucher(**self._base_voucher_data(),
-                              code='PCT15', discount_pct=Decimal('15'),
-                              max_discount=Decimal('100'))
+        v = PercentageVoucher(
+            **self._base_voucher_data(),
+            code='PCT15',
+            discount_pct=Decimal('15'),
+            max_discount=Decimal('100'),
+        )
         assert v.calculate_discount(Decimal('1000')) == Decimal('100')  # tope
         assert v.calculate_discount(Decimal('400')) == Decimal('60.00')  # 15%
 
@@ -141,27 +171,46 @@ class TestVoucherProxies:
 
     def test_as_typed_retorna_proxy_correcto(self, db):
 
-        v_fixed = Voucher(code='TF', voucher_type=Voucher.TYPE_FIXED,
-                          discount_value=Decimal('50'),
-                          valid_from=timezone.now(), is_active=True,
-                          min_order_amount=Decimal('0'))
+        v_fixed = Voucher(
+            code='TF',
+            voucher_type=Voucher.TYPE_FIXED,
+            discount_value=Decimal('50'),
+            valid_from=timezone.now(),
+            is_active=True,
+            min_order_amount=Decimal('0'),
+        )
         assert isinstance(v_fixed.as_typed(), FixedVoucher)
 
-        v_pct = Voucher(code='TP', voucher_type=Voucher.TYPE_PERCENTAGE,
-                        discount_pct=Decimal('10'),
-                        valid_from=timezone.now(), is_active=True,
-                        min_order_amount=Decimal('0'))
+        v_pct = Voucher(
+            code='TP',
+            voucher_type=Voucher.TYPE_PERCENTAGE,
+            discount_pct=Decimal('10'),
+            valid_from=timezone.now(),
+            is_active=True,
+            min_order_amount=Decimal('0'),
+        )
         assert isinstance(v_pct.as_typed(), PercentageVoucher)
 
     def test_fixed_voucher_manager_filtra_correctamente(self, db):
 
-        data = {'valid_from': timezone.now(), 'is_active': True,
-                'min_order_amount': Decimal('0')}
+        data = {
+            'valid_from': timezone.now(),
+            'is_active': True,
+            'min_order_amount': Decimal('0'),
+        }
 
-        Voucher.objects.create(code='F1', voucher_type='FIXED',
-                               discount_value=Decimal('10'), **data)
-        Voucher.objects.create(code='P1', voucher_type='PERCENTAGE',
-                               discount_pct=Decimal('5'), **data)
+        Voucher.objects.create(
+            code='F1',
+            voucher_type='FIXED',
+            discount_value=Decimal('10'),
+            **data,
+        )
+        Voucher.objects.create(
+            code='P1',
+            voucher_type='PERCENTAGE',
+            discount_pct=Decimal('5'),
+            **data,
+        )
 
         assert FixedVoucher.objects.count() == 1
         assert PercentageVoucher.objects.count() == 1

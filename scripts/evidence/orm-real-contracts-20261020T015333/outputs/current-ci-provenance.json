@@ -1,0 +1,12 @@
+{
+  "head": "61ea5e9f6c379a9808d71c2a5fd801fd150be0f0",
+  "run": "39352967635",
+  "job": "118401205862",
+  "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39352967635/job/118401205862",
+  "download_exit_code": 0,
+  "conclusion": "FAILURE",
+  "bytes": 50681616,
+  "sha256": "eca24b2ee2f50349b51022dc5492df5b82fcf56f19364011787bb353f6534801",
+  "contains_res_users_undefined": true,
+  "contains_sync_apps": true
+}

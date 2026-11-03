@@ -1,0 +1,8 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Increment admission: ERROR; global style, CI, integration and acceptance are NOT_EVALUATED
+Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.
+
+pre-commit: gates fallaron. Corrige los problemas o usa
+  git commit --no-verify
+(solo emergencias documentadas).

@@ -204,7 +204,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Identificador único que viaja en la URL como utm_campaign. Se deriva del nombre legible.",
+                        help_text=(
+                            "Identificador único que viaja en la URL como"
+                            " utm_campaign. Se deriva del nombre legible."
+                        ),
                         max_length=255,
                         verbose_name="Identificador de campaña",
                     ),
@@ -221,7 +224,10 @@ class Migration(migrations.Migration):
                     "is_auto_campaign",
                     models.BooleanField(
                         default=False,
-                        help_text="Permite filtrar las campañas relevantes de las generadas automáticamente.",
+                        help_text=(
+                            "Permite filtrar las campañas relevantes de las"
+                            " generadas automáticamente."
+                        ),
                         verbose_name="Campaña generada automáticamente",
                     ),
                 ),
@@ -259,7 +265,9 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="utm_tag_rel",
-                        help_text="Etiquetas con las que se clasifica la campaña.",
+                        help_text=(
+                            "Etiquetas con las que se clasifica la campaña."
+                        ),
                         related_name="campaign_ids",
                         to="utm.utmtag",
                         verbose_name="Etiquetas",

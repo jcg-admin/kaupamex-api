@@ -1,0 +1,17 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "interface": "session.task_continuation.node_frontier",
+  "selection": [
+    "ModuleGraph._remove"
+  ],
+  "unit_scope": "Pure graph removal and dependency/depth pruning helpers; preserve existing static public cycle rejection, do not claim loader integration",
+  "states": {
+    "ModuleNode.demo_installable": "failed",
+    "ModuleNode.phase": "failed",
+    "ModuleGraph._update_from_database": "failed"
+  },
+  "reasons": "First two units verified not accepted; database snapshot mapping unresolved; pure graph pruning independent from DB/version fields",
+  "claims": "Complete ledger after releasing own graph reservations",
+  "verification": "Unmodified pinned ModuleGraph methods and negative cycle/missing-name controls"
+}

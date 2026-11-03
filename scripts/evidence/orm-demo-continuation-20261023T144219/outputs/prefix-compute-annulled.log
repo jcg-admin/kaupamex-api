@@ -1,0 +1,21 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/account/test_analytic_prefix_compute_contract.py:41: assert False
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/src/orm/fields.py:1859: AttributeError: 'AccountAnalyticDistributionModel' object has no attribute 'default_get'
+/workspace/kaupamex-api/tests/unit/account/test_analytic_prefix_compute_contract.py:90: Failed: DID NOT RAISE <class 'ValueError'>
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/prefix-compute-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_prefix_is_computed_without_a_default_or_column
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[None-60, 61, 62]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[-60, 61, 62]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[ABC-60, 61, 62]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_new_record_reads_the_assigned_compute_value[550100-55, 56, 57]
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_distinct_new_records_cannot_share_a_computed_prefix
+FAILED tests/unit/account/test_analytic_prefix_compute_contract.py::test_compute_must_assign_instead_of_returning_a_value
+7 failed in 0.11s
+{"head": "27a195a8d966319480dbee9a6484ae3bd602e8ae", "index_tree": "df59a01cd2665c294eab0a191e3b1a33726613bf", "source_sha256": "a879623a78a847f6537c2ff2a1d02c78b9345a18acfcf4c3a7fe43bfb335a35a", "test_sha256": "6f6f9732e2333ef18a3d80577f5d10d5f2ec0acfb2749e89a73032c91f4355d0", "annulled_compute": true, "pytest_exit_code": 1, "provenance_unchanged": true, "scope": "Staged analytic source, actual Django model and descriptor; mocked account queries; SQL prohibited; not acceptance"}

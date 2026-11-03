@@ -1,0 +1,29 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/fields.py:414-437 _get_attrs; fields_relational.py:250,1255 constructors",
+  "behavior": "Reconstruct two compatible relational declarations retaining target/deletion policy and last declared overrides, fresh relation owner.",
+  "execution_flow": "Plain MRO declarations -> _collect_field_definitions -> merge _args__ -> reconstruct -> contribute -> Django model registry. Capture relation signature before Field loses it; merge before FK/M2M callbacks.",
+  "inputs_outputs": "Two ForeignKey declarations CASCADE then PROTECT -> new field with leaf target, PROTECT, fresh remote_field. M2M arguments and OneToOne unique retained. Scalar merge control unchanged.",
+  "side_effects": "Constructor capture applies to Django relational fields; related_query_name remains method, value retained on remote_field. No schema or model declaration changes.",
+  "dependencies": [
+    "Django6 signatures and ModelBase",
+    "Existing _args__/MRO collection/store contribution",
+    "0418 general NonStored adoption separate; real Django startup fixture reaches merge now"
+  ],
+  "consumers": [
+    "Django models with plain mixin field plus redeclaration",
+    "Existing installed addons through manage.py check; no assertion every production relation uses merge"
+  ],
+  "installed_mechanism": "Existing Field constructor capture and contribution wrappers; no new coordinator or persistence.",
+  "existing_adaptation": "Complete ForeignKey/M2M constructor args (OneToOne inherits); omit original rel on reconstruction. Remove related_query_name only from runtime attrs, not constructor capture.",
+  "verification": {
+    "target": "8 PASS exit0 including fresh application startup and query name",
+    "negative": "baseline79bc helpers/constructors restored in memory: 2 PASS,5 ERROR,1 FAIL exit1",
+    "regression": "55 PASS,3 BASELINE_FAILURE exit1; regression-query-name-fixed.log",
+    "full_registry": "manage.py check exit0 after correcting intermediate NEW_REGRESSION; before-query-name-fix-django-check.log retained",
+    "persistence": "not_verified for relational unit; no DB mutation or migration"
+  },
+  "equivalence": "Bounded TASK-API-0419 requirement proven. Not entire Odoo relation behavior, inheritance type resets or all SQL semantics.",
+  "limitations": "Native Odoo test execution, actual relational save/delete, all application integration and CI acceptance not_verified. Source-only tests do not establish whole ORM completion.",
+  "integration": "Prepared for existing API109, no merge, TaskStore unchanged; Codex engineering, no local Thyrox inference."
+}

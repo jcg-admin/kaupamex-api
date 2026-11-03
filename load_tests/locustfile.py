@@ -23,6 +23,7 @@ grupo comparando el P95 observado vs ``SLO_P95_MS`` y fija el exit code
 Estado: **esqueleto**. Los TODO marcan dónde inyectar auth (JWT),
 payloads reales y datos de seed antes de correrlo en CI.
 """
+
 from __future__ import annotations
 
 import os
@@ -45,7 +46,9 @@ class CatalogReadUser(HttpUser):
     @tag("read_simple")
     @task(5)
     def list_catalogue(self):
-        self.client.get("/api/v1/catalogue/", name="GET /catalogue [read_simple]")
+        self.client.get(
+            "/api/v1/catalogue/", name="GET /catalogue [read_simple]"
+        )
 
     @tag("read_simple")
     @task(3)
@@ -115,7 +118,7 @@ def check_slo(environment, **_kw):
         name = entry.name
         if "[" not in name or "]" not in name:
             continue
-        group = name[name.rfind("[") + 1:name.rfind("]")]
+        group = name[name.rfind("[") + 1: name.rfind("]")]
         slo = SLO_P95_MS.get(group)
         if slo is None or entry.num_requests == 0:
             continue
@@ -123,8 +126,10 @@ def check_slo(environment, **_kw):
         status = "PASS" if p95 <= slo else "FAIL"
         if status == "FAIL":
             failures.append((name, group, p95, slo))
-        print(f"[SLO {status}] {name}: P95={p95}ms <= {slo}ms "
-              f"({SLO_SOURCE.get(group, '?')})")
+        print(
+            f"[SLO {status}] {name}: P95={p95}ms <= {slo}ms "
+            f"({SLO_SOURCE.get(group, '?')})"
+        )
     if failures:
         print(f"\nSLO FAIL: {len(failures)} endpoint(s) exceden su P95.")
         environment.process_exit_code = 1

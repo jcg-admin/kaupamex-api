@@ -1,0 +1,121 @@
+{
+  "scope": "Acceptance criteria of activation instruction, not completion of whole ORM",
+  "criteria": [
+    {
+      "criterion": 1,
+      "result": "PASS",
+      "requirement": "Preservation",
+      "evidence": "preimages.zip; original working tree retained; explicit index blobs; no destructive Git operations"
+    },
+    {
+      "criterion": 2,
+      "result": "PASS",
+      "requirement": "Qualified recoverable implementation",
+      "evidence": "a3741a88 and4c3a992e; published qualification and bound hashes"
+    },
+    {
+      "criterion": 3,
+      "result": "PASS",
+      "requirement": "Real hook positive and negative controls",
+      "evidence": "real-hook fixtures and99-case qualification;1662b8af strengthens ERROR2 evidence"
+    },
+    {
+      "criterion": 4,
+      "result": "PASS",
+      "requirement": "Global interfaces preserved",
+      "evidence": "test_global_mode_remains_strict_after_hook_activation; original staged/all semantics"
+    },
+    {
+      "criterion": 5,
+      "result": "PASS",
+      "requirement": "No bypass or opportunistic exclusions",
+      "evidence": "ordinary actual hooks exit0; no Actions/protection modification; latent suppression debt measured"
+    },
+    {
+      "criterion": 6,
+      "result": "PASS",
+      "requirement": "Independent results",
+      "evidence": "JSON separates increment/global/CI/contract/integration/acceptance"
+    },
+    {
+      "criterion": 7,
+      "result": "PASS",
+      "requirement": "Mechanism publication",
+      "evidence": "PR109 includes a3741a88/4c3a992e"
+    },
+    {
+      "criterion": 8,
+      "result": "PASS",
+      "requirement": "Bounded0283 continuation",
+      "evidence": "78520aae published; three valid prior tests linked by AST/hashes; not acceptance"
+    },
+    {
+      "criterion": 9,
+      "result": "PASS",
+      "requirement": "Responsibility distinct from executor",
+      "evidence": "native TaskGet/Update preserves owner/status/dependencies; backend/devops/qa roles documented"
+    },
+    {
+      "criterion": 10,
+      "result": "PASS",
+      "requirement": "Contract and test traceability",
+      "evidence": "pinned Odoo abe4040ec1a45beee90fb694e4eae4453e46b389; contract14 and JUnit reuse proof"
+    },
+    {
+      "criterion": 11,
+      "result": "PASS",
+      "requirement": "Remote state verified",
+      "evidence": "PR109 head0ce23373 and PR154 head83ce4c764 verified before this bounded strengthening; new head verification follows publication"
+    },
+    {
+      "criterion": 12,
+      "result": "PASS",
+      "requirement": "Next eligible ORM unit",
+      "evidence": "native737/443 and claims measured; bounded ModuleGraph0ce23373 published; full loader remains pending"
+    }
+  ],
+  "new_verification_commit": "1662b8af9724a76d08b776ef58ac5257a9d953c4",
+  "integration": "BLOCKED_BY_REQUIRED_CI_FAILURE",
+  "acceptance": "PENDING",
+  "whole_orm": "NOT_COMPLETE",
+  "visibility": {
+    "result": "UNRESOLVED",
+    "last_user_confirmation": "No native block visible",
+    "historical_positive_confirmation": "2026-10-22; no cause proven",
+    "available_terminal_tool": "exec_command through functions.exec; write_stdin for active processes",
+    "binary_version": "codex-cli0.159.2",
+    "inspected_interfaces": [
+      "app-server --help",
+      "app-server proxy --help",
+      "ClientRequest.json",
+      "CommandExecOutputDeltaNotification schema"
+    ],
+    "protocol_finding": "command/exec output notifications are connection-scoped; a new proxy/server does not establish delivery to this chat",
+    "client_adapter_source_available": false,
+    "client_config": "empty read-only mounts; no changes made",
+    "missing_verification": "A real client-visible commandExecution event and user confirmation in this conversation",
+    "changes_not_performed": [
+      "binary patches",
+      "parallel app server",
+      "fabricated events",
+      "experimental configuration flags"
+    ]
+  },
+  "current_remote_observation": {
+    "headRefOid": "1662b8af9724a76d08b776ef58ac5257a9d953c4",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/40951428897/job/123720259666",
+        "name": "test",
+        "startedAt": "2026-10-29T20:42:33Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "api-tests"
+      }
+    ],
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109"
+  }
+}

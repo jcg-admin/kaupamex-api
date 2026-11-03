@@ -1,0 +1,11 @@
+{
+  "head": "f1e2386f89ea129dbf311ac063a6ca0ce7c08602",
+  "uncommitted_source_hashes": {
+    "src/modules/db.py": "bb44d2f25a974524c3a3c10cc819a47cc37c6634621289e6ee7d2164d1f38572",
+    "src/addons/base/models/ir_module.py": "e3cce7196628408c9dffbde16c67dfb57e431565ce2f3a359fc3730c4e5339c2",
+    "src/addons/base/management/commands/update_module_list.py": "747dd14df88c35badd9c646a65bc5975a7f9fd1660834e367ef1def2cd9c8192",
+    "src/addons/base/controllers/module_catalogue.py": "8e82150bc8462c34b5ad7db49e704b3e5ef5013e836dae61ace38e0afda07fb1",
+    "src/addons/base/migrations/0090_module_category_tree.py": "9a0009ebf482dbefe9cad37e14367921967f83c3c9b9f4dd76ee18edde3454f1",
+    "addons/authz/declaration.py": "6ad65f560aaa460f0511fa11311cdf4077d27dad903e55e20a002a9ceaaa444c"
+  }
+}

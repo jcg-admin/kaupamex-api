@@ -57,6 +57,7 @@ reverso del M2M, ``user.group_ids``
 caché que aquí no aplica porque la caché está un nivel más adentro, en
 ``ResGroups._get_lock_timeouts``.
 """
+
 from django.apps import apps as django_apps
 
 from orm.model_classes import extend_model
@@ -89,7 +90,8 @@ def _get_lock_timeouts(self):
     """
     ResGroups = django_apps.get_model('base', 'ResGroups')
     return ResGroups._get_lock_timeouts(
-        list(self.group_ids.values_list('pk', flat=True)))
+        list(self.group_ids.values_list('pk', flat=True))
+    )
 
 
 def _get_lock_timeout_inactivity(self):
@@ -106,8 +108,12 @@ def _get_lock_timeout_inactivity(self):
 def apply_authz_timeout_res_users_extensions():
     """Cuelga sobre ``res.users`` lo que el candado por tiempo le añade — ≙
     ``_inherit``."""
-    extend_model('base', 'ResUsers', metodos={
-        '_get_auth_methods': _get_auth_methods,
-        '_get_lock_timeouts': _get_lock_timeouts,
-        '_get_lock_timeout_inactivity': _get_lock_timeout_inactivity,
-    })
+    extend_model(
+        'base',
+        'ResUsers',
+        metodos={
+            '_get_auth_methods': _get_auth_methods,
+            '_get_lock_timeouts': _get_lock_timeouts,
+            '_get_lock_timeout_inactivity': _get_lock_timeout_inactivity,
+        },
+    )

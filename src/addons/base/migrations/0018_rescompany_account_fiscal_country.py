@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             name="account_fiscal_country",
             field=models.ForeignKey(
                 blank=True,
-                help_text="País cuyos reportes fiscales usa esta empresa (Odoo account_fiscal_country). Cae al país de la empresa cuando nadie lo fija.",
+                help_text=(
+                    "País cuyos reportes fiscales usa esta empresa (Odoo"
+                    " account_fiscal_country). Cae al país de la empresa"
+                    " cuando nadie lo fija."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",

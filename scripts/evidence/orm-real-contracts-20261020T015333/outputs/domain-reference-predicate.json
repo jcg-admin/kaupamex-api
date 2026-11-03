@@ -1,0 +1,71 @@
+{
+  "reference": {
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "symbol": "odoo/orm/domains.py::_optimize_any_with_rights",
+    "lines": [
+      1833,
+      1836
+    ]
+  },
+  "cases": [
+    {
+      "operator": "any",
+      "elevated": false,
+      "field_bypass": false,
+      "reference_operator": "any",
+      "consumer_operator": "any"
+    },
+    {
+      "operator": "any",
+      "elevated": true,
+      "field_bypass": false,
+      "reference_operator": "any!",
+      "consumer_operator": "any!"
+    },
+    {
+      "operator": "any",
+      "elevated": false,
+      "field_bypass": true,
+      "reference_operator": "any!",
+      "consumer_operator": "any!"
+    },
+    {
+      "operator": "any",
+      "elevated": true,
+      "field_bypass": true,
+      "reference_operator": "any!",
+      "consumer_operator": "any!"
+    },
+    {
+      "operator": "not any",
+      "elevated": false,
+      "field_bypass": false,
+      "reference_operator": "not any",
+      "consumer_operator": "not any"
+    },
+    {
+      "operator": "not any",
+      "elevated": true,
+      "field_bypass": false,
+      "reference_operator": "not any!",
+      "consumer_operator": "not any!"
+    },
+    {
+      "operator": "not any",
+      "elevated": false,
+      "field_bypass": true,
+      "reference_operator": "not any!",
+      "consumer_operator": "not any!"
+    },
+    {
+      "operator": "not any",
+      "elevated": true,
+      "field_bypass": true,
+      "reference_operator": "not any!",
+      "consumer_operator": "not any!"
+    }
+  ],
+  "negative_controls_detect_elevation_and_field_bypass": true,
+  "connection_attempts": [],
+  "scope": "operator rewrite predicate only; not row access enforcement, generated SQL, nested domains or full Odoo runtime"
+}

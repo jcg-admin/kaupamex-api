@@ -1,0 +1,14 @@
+{
+  "task": "TASK-API-0383",
+  "source_revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+  "acceptance": "not_verified",
+  "scope": "Fixture qualification and data isolation, not whole authentication or loader acceptance",
+  "ci_make_exit": 2,
+  "ci_reused_evidence": "isolation-ci.junit.xml; isolation-ci-and-functional.log; no repeated CI run",
+  "preexisting_database_and_sentinel_preserved": true,
+  "partial_schema_failure_cleaned_own_database": true,
+  "extension_failure_retains_owned_database_for_cleanup": true,
+  "isolation_pytest_exit": 0,
+  "qualification_limit": "No root conftest seed replay in bounded run; native provisioner applies all migrations. Full CI measured separately above.",
+  "aliases_after_teardown": []
+}

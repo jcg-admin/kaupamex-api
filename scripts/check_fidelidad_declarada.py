@@ -20,7 +20,8 @@ Por qué por AST y no por grep
 ==============================
 
 El primer instrumento fue ``grep -rlE "Adaptación fiel"`` con un ``.`` en lugar
-de la tilde, y devolvió **0**: en UTF-8 la ``ó`` son dos bytes y ``.`` casa uno.
+de la tilde, y devolvió **0**: en UTF-8 la ``ó`` son dos bytes y ``.`` casa
+uno.
 La misma palabra buscada sin comodín encontró 126 ocurrencias. Un grep de prosa
 por su forma superficial es justo el defecto que este gate mide en otros.
 
@@ -46,7 +47,8 @@ Ciega a
 Los **185** archivos que declaran fidelidad y no tienen par medible: 137 viven
 fuera de ``<addon>/models/`` —la única raíz que ``check_porte_completo``
 empareja— y 48 dentro, sin archivo homónimo en la referencia porque son propios
-del L0. Ninguno cuenta ni a favor ni en contra; esa mitad la cubre la tarea #52.
+del L0. Ninguno cuenta ni a favor ni en contra; esa mitad la cubre la tarea
+#52.
 
 Y ciega a una declaración de fidelidad escrita en un comentario en vez de un
 docstring, que el recorrido por AST no ve.
@@ -80,8 +82,11 @@ def declara_fidelidad(ruta):
     except (SyntaxError, UnicodeDecodeError, OSError):
         return False
     textos = [ast.get_docstring(arbol) or '']
-    textos += [ast.get_docstring(n) or '' for n in arbol.body
-               if isinstance(n, ast.ClassDef)]
+    textos += [
+        ast.get_docstring(n) or ''
+        for n in arbol.body
+        if isinstance(n, ast.ClassDef)
+    ]
     return bool(FIDELIDAD.search('\n'.join(textos)))
 
 
@@ -111,7 +116,11 @@ def hallazgos_del_porte(raiz_repo):
     """Los archivos a los que ``check_porte_completo`` encuentra hallazgo."""
     salida = subprocess.run(
         [sys.executable, str(GATE_PORTE)],
-        cwd=raiz_repo, capture_output=True, text=True, timeout=1800).stdout
+        cwd=raiz_repo,
+        capture_output=True,
+        text=True,
+        timeout=1800,
+    ).stdout
     conteo = {}
     for linea in salida.splitlines():
         casa = HALLAZGO.match(linea)
@@ -127,16 +136,25 @@ def hallazgos_del_porte(raiz_repo):
 def carga_baseline():
     if not BASELINE.is_file():
         return set()
-    return {l.strip() for l in BASELINE.read_text(encoding='utf-8').splitlines()
-            if l.strip() and not l.lstrip().startswith('#')}
+    return {
+        item.strip()
+        for item in BASELINE.read_text(encoding='utf-8').splitlines()
+        if item.strip() and not item.lstrip().startswith('#')
+    }
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--strict', action='store_true',
-                   help='exit 1 si hay incumplidores fuera del baseline')
-    p.add_argument('--write-baseline', action='store_true',
-                   help='congela los incumplidores de hoy')
+    p.add_argument(
+        '--strict',
+        action='store_true',
+        help='exit 1 si hay incumplidores fuera del baseline',
+    )
+    p.add_argument(
+        '--write-baseline',
+        action='store_true',
+        help='congela los incumplidores de hoy',
+    )
     p.add_argument('--quiet', action='store_true')
     args = p.parse_args()
 
@@ -155,26 +173,31 @@ def main():
             '# divergencias en `divergencias_declaradas.txt`, se QUITA su\n'
             '# linea: un baseline que conserva deuda ya pagada miente.\n'
             '#\n'
-            '# El conteo es de simbolos ausentes, no de hallazgos.\n\n')
+            '# El conteo es de simbolos ausentes, no de hallazgos.\n\n'
+        )
         cuerpo = '\n'.join(f'{a}  # {con_hallazgo[a]}' for a in incumplen)
         BASELINE.write_text(cabecera + cuerpo + '\n', encoding='utf-8')
         print(f'baseline escrito: {len(incumplen)} archivo(s).')
         return 0
 
     base = carga_baseline()
-    base_rutas = {l.split('#')[0].strip() for l in base}
+    base_rutas = {item.split('#')[0].strip() for item in base}
     nuevos = [a for a in incumplen if a not in base_rutas]
 
     if not args.quiet:
         for a in nuevos:
-            print(f'  {a}  — declara fidelidad y le faltan '
-                  f'{con_hallazgo[a]} simbolo(s)')
+            print(
+                f'  {a}  — declara fidelidad y le faltan '
+                f'{con_hallazgo[a]} simbolo(s)'
+            )
     total_sym = sum(con_hallazgo[a] for a in incumplen)
     veredicto = 'FAIL' if (nuevos and args.strict) else 'OK'
-    print(f'{veredicto}: {len(nuevos)} archivo(s) nuevo(s) con fidelidad falsa '
-          f'(alcance medido: {len(declaran)} declaran fidelidad; '
-          f'{len(incumplen)} incumplen con {total_sym} simbolo(s) ausentes; '
-          f'{len(base_rutas)} en baseline)')
+    print(
+        f'{veredicto}: {len(nuevos)} archivo(s) nuevo(s) con fidelidad falsa '
+        f'(alcance medido: {len(declaran)} declaran fidelidad; '
+        f'{len(incumplen)} incumplen con {total_sym} simbolo(s) ausentes; '
+        f'{len(base_rutas)} en baseline)'
+    )
     return 1 if (nuevos and args.strict) else 0
 
 

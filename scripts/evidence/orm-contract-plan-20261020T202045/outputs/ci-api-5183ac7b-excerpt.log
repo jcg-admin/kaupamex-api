@@ -1,0 +1,181 @@
+754: 2026-10-20T15:36:00.1179484Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+757: 2026-10-20T15:36:00.1181251Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+770: 2026-10-20T15:36:00.1192113Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+771: 2026-10-20T15:36:00.1193075Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+772: 2026-10-20T15:36:00.1193952Z     with connection.schema_editor() as editor:
+784: 2026-10-20T15:36:00.1203689Z     with self.db.wrap_database_errors:
+791: 2026-10-20T15:36:00.1208919Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+799: 2026-10-20T15:36:00.1215574Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+802: 2026-10-20T15:36:00.1217359Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+815: 2026-10-20T15:36:00.1227849Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+816: 2026-10-20T15:36:00.1228824Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+817: 2026-10-20T15:36:00.1229703Z     with connection.schema_editor() as editor:
+829: 2026-10-20T15:36:00.1239275Z     with self.db.wrap_database_errors:
+836: 2026-10-20T15:36:00.1244431Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+842: 2026-10-20T15:36:00.1249284Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+845: 2026-10-20T15:36:00.1251257Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+858: 2026-10-20T15:36:00.1261762Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+859: 2026-10-20T15:36:00.1262726Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+860: 2026-10-20T15:36:00.1263623Z     with connection.schema_editor() as editor:
+872: 2026-10-20T15:36:00.1273149Z     with self.db.wrap_database_errors:
+879: 2026-10-20T15:36:00.1278361Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+885: 2026-10-20T15:36:00.1283487Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+888: 2026-10-20T15:36:00.1285490Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+901: 2026-10-20T15:36:00.1316118Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+902: 2026-10-20T15:36:00.1317089Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+903: 2026-10-20T15:36:00.1317968Z     with connection.schema_editor() as editor:
+915: 2026-10-20T15:36:00.1327442Z     with self.db.wrap_database_errors:
+922: 2026-10-20T15:36:00.1332655Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+928: 2026-10-20T15:36:00.1337713Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+931: 2026-10-20T15:36:00.1339466Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+944: 2026-10-20T15:36:00.1350024Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+945: 2026-10-20T15:36:00.1350975Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+946: 2026-10-20T15:36:00.1351849Z     with connection.schema_editor() as editor:
+958: 2026-10-20T15:36:00.1361271Z     with self.db.wrap_database_errors:
+965: 2026-10-20T15:36:00.1366706Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+971: 2026-10-20T15:36:00.1371209Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+974: 2026-10-20T15:36:00.1372980Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+987: 2026-10-20T15:36:00.1383389Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+988: 2026-10-20T15:36:00.1384553Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+989: 2026-10-20T15:36:00.1385462Z     with connection.schema_editor() as editor:
+1001: 2026-10-20T15:36:00.1394743Z     with self.db.wrap_database_errors:
+1008: 2026-10-20T15:36:00.1399881Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1014: 2026-10-20T15:36:00.1404669Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1017: 2026-10-20T15:36:00.1406436Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1030: 2026-10-20T15:36:00.1416971Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1031: 2026-10-20T15:36:00.1417941Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1032: 2026-10-20T15:36:00.1418814Z     with connection.schema_editor() as editor:
+1044: 2026-10-20T15:36:00.1428158Z     with self.db.wrap_database_errors:
+1051: 2026-10-20T15:36:00.1433070Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1057: 2026-10-20T15:36:00.1438112Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1060: 2026-10-20T15:36:00.1439886Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1073: 2026-10-20T15:36:00.1450149Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1074: 2026-10-20T15:36:00.1451116Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1075: 2026-10-20T15:36:00.1452231Z     with connection.schema_editor() as editor:
+1087: 2026-10-20T15:36:00.1461616Z     with self.db.wrap_database_errors:
+1094: 2026-10-20T15:36:00.1466791Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1100: 2026-10-20T15:36:00.1471540Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1103: 2026-10-20T15:36:00.1473285Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1116: 2026-10-20T15:36:00.1483488Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1117: 2026-10-20T15:36:00.1484662Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1118: 2026-10-20T15:36:00.1485278Z     with connection.schema_editor() as editor:
+1130: 2026-10-20T15:36:00.1491297Z     with self.db.wrap_database_errors:
+1137: 2026-10-20T15:36:00.1494136Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1143: 2026-10-20T15:36:00.1497778Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1146: 2026-10-20T15:36:00.1498792Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1159: 2026-10-20T15:36:00.1505309Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1160: 2026-10-20T15:36:00.1506186Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1161: 2026-10-20T15:36:00.1506906Z     with connection.schema_editor() as editor:
+1173: 2026-10-20T15:36:00.1512815Z     with self.db.wrap_database_errors:
+1180: 2026-10-20T15:36:00.1515776Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1186: 2026-10-20T15:36:00.1518951Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1189: 2026-10-20T15:36:00.1520072Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1202: 2026-10-20T15:36:00.1526414Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1203: 2026-10-20T15:36:00.1527349Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1204: 2026-10-20T15:36:00.1527995Z     with connection.schema_editor() as editor:
+1216: 2026-10-20T15:36:00.1533834Z     with self.db.wrap_database_errors:
+1223: 2026-10-20T15:36:00.1536756Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1229: 2026-10-20T15:36:00.1539841Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1232: 2026-10-20T15:36:00.1540812Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1245: 2026-10-20T15:36:00.1547461Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1246: 2026-10-20T15:36:00.1548363Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1247: 2026-10-20T15:36:00.1548983Z     with connection.schema_editor() as editor:
+1259: 2026-10-20T15:36:00.1554946Z     with self.db.wrap_database_errors:
+1266: 2026-10-20T15:36:00.1557733Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1272: 2026-10-20T15:36:00.1560852Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1275: 2026-10-20T15:36:00.1561834Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1288: 2026-10-20T15:36:00.1568819Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1289: 2026-10-20T15:36:00.1569574Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1290: 2026-10-20T15:36:00.1570078Z     with connection.schema_editor() as editor:
+1302: 2026-10-20T15:36:00.1576115Z     with self.db.wrap_database_errors:
+1309: 2026-10-20T15:36:00.1579373Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1315: 2026-10-20T15:36:00.1582043Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1318: 2026-10-20T15:36:00.1583608Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1331: 2026-10-20T15:36:00.1590804Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+1332: 2026-10-20T15:36:00.1591335Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+1333: 2026-10-20T15:36:00.1591828Z     with connection.schema_editor() as editor:
+1345: 2026-10-20T15:36:00.1597755Z     with self.db.wrap_database_errors:
+1352: 2026-10-20T15:36:00.1601258Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+1358: 2026-10-20T15:36:00.1603849Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1361: 2026-10-20T15:36:00.1605024Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+1388: 2026-10-20T15:36:00.1618743Z     with self.db.wrap_database_errors:
+1401: 2026-10-20T15:36:00.1625744Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1431: 2026-10-20T15:36:00.1645058Z     with self.db.wrap_database_errors:
+1444: 2026-10-20T15:36:00.1651206Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1474: 2026-10-20T15:36:00.1667625Z     with self.db.wrap_database_errors:
+1487: 2026-10-20T15:36:00.1695985Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1517: 2026-10-20T15:36:00.1709034Z     with self.db.wrap_database_errors:
+1530: 2026-10-20T15:36:00.1714593Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1560: 2026-10-20T15:36:00.1729604Z     with self.db.wrap_database_errors:
+1573: 2026-10-20T15:36:00.1735693Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1603: 2026-10-20T15:36:00.1751010Z     with self.db.wrap_database_errors:
+1616: 2026-10-20T15:36:00.1757068Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1646: 2026-10-20T15:36:00.1771993Z     with self.db.wrap_database_errors:
+1659: 2026-10-20T15:36:00.1778022Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1689: 2026-10-20T15:36:00.1792830Z     with self.db.wrap_database_errors:
+1702: 2026-10-20T15:36:00.1798879Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1732: 2026-10-20T15:36:00.1813782Z     with self.db.wrap_database_errors:
+1745: 2026-10-20T15:36:00.1819752Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1775: 2026-10-20T15:36:00.1834622Z     with self.db.wrap_database_errors:
+1788: 2026-10-20T15:36:00.1840623Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1818: 2026-10-20T15:36:00.1855572Z     with self.db.wrap_database_errors:
+1831: 2026-10-20T15:36:00.1861688Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1861: 2026-10-20T15:36:00.1876607Z     with self.db.wrap_database_errors:
+1874: 2026-10-20T15:36:00.1882636Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1904: 2026-10-20T15:36:00.1897657Z     with self.db.wrap_database_errors:
+1917: 2026-10-20T15:36:00.1903716Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1947: 2026-10-20T15:36:00.1918973Z     with self.db.wrap_database_errors:
+1960: 2026-10-20T15:36:00.1925345Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+1990: 2026-10-20T15:36:00.1939934Z     with self.db.wrap_database_errors:
+2003: 2026-10-20T15:36:00.1945987Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2033: 2026-10-20T15:36:00.1960837Z     with self.db.wrap_database_errors:
+2046: 2026-10-20T15:36:00.1967108Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2076: 2026-10-20T15:36:00.1982613Z     with self.db.wrap_database_errors:
+2089: 2026-10-20T15:36:00.2025824Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2119: 2026-10-20T15:36:00.2040813Z     with self.db.wrap_database_errors:
+2132: 2026-10-20T15:36:00.2046993Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2162: 2026-10-20T15:36:00.2061647Z     with self.db.wrap_database_errors:
+2175: 2026-10-20T15:36:00.2067916Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2205: 2026-10-20T15:36:00.2082681Z     with self.db.wrap_database_errors:
+2218: 2026-10-20T15:36:00.2089011Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2248: 2026-10-20T15:36:00.2103756Z     with self.db.wrap_database_errors:
+2261: 2026-10-20T15:36:00.2110218Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2291: 2026-10-20T15:36:00.2125131Z     with self.db.wrap_database_errors:
+2304: 2026-10-20T15:36:00.2131464Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2334: 2026-10-20T15:36:00.2138759Z     with self.db.wrap_database_errors:
+2347: 2026-10-20T15:36:00.2141639Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2377: 2026-10-20T15:36:00.2147831Z     with self.db.wrap_database_errors:
+2390: 2026-10-20T15:36:00.2150038Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2420: 2026-10-20T15:36:00.2156216Z     with self.db.wrap_database_errors:
+2433: 2026-10-20T15:36:00.2158959Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2463: 2026-10-20T15:36:00.2165035Z     with self.db.wrap_database_errors:
+2476: 2026-10-20T15:36:00.2167421Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2506: 2026-10-20T15:36:00.2173692Z     with self.db.wrap_database_errors:
+2519: 2026-10-20T15:36:00.2176152Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2549: 2026-10-20T15:36:00.2182092Z     with self.db.wrap_database_errors:
+2562: 2026-10-20T15:36:00.2185037Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2592: 2026-10-20T15:36:00.2190851Z     with self.db.wrap_database_errors:
+2605: 2026-10-20T15:36:00.2193144Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2635: 2026-10-20T15:36:00.2206017Z     with self.db.wrap_database_errors:
+2648: 2026-10-20T15:36:00.2208547Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2678: 2026-10-20T15:36:00.2214725Z     with self.db.wrap_database_errors:
+2691: 2026-10-20T15:36:00.2217651Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2721: 2026-10-20T15:36:00.2223511Z     with self.db.wrap_database_errors:
+2734: 2026-10-20T15:36:00.2226305Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2764: 2026-10-20T15:36:00.2232137Z     with self.db.wrap_database_errors:
+2777: 2026-10-20T15:36:00.2235224Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2807: 2026-10-20T15:36:00.2241077Z     with self.db.wrap_database_errors:
+2820: 2026-10-20T15:36:00.2243331Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2850: 2026-10-20T15:36:00.2249547Z     with self.db.wrap_database_errors:
+2863: 2026-10-20T15:36:00.2252336Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2893: 2026-10-20T15:36:00.2258704Z     with self.db.wrap_database_errors:
+2906: 2026-10-20T15:36:00.2260890Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2936: 2026-10-20T15:36:00.2267640Z     with self.db.wrap_database_errors:
+2949: 2026-10-20T15:36:00.2269904Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2979: 2026-10-20T15:36:00.2275831Z     with self.db.wrap_database_errors:
+2992: 2026-10-20T15:36:00.2278754Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+3022: 2026-10-20T15:36:00.2284635Z     with self.db.wrap_database_errors:
+3035: 2026-10-20T15:36:00.2286968Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+3065: 2026-10-20T15:36:00.2315464Z     with self.db.wrap_database_errors:
+3078: 2026-10-20T15:36:00.2317869Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+467746: 2026-10-20T15:36:10.1676784Z 26 skipped, 1 xfailed, 18 warnings, 10617 errors in 1400.03s (0:23:20)

@@ -5,6 +5,7 @@ es un SQLite en disco; aquí la reemplaza el bucket ``stable`` del registro, por
 compañía, de modo que el WSDL de una autoridad tributaria se descarga una vez
 por proceso y no una por petición.
 """
+
 from types import SimpleNamespace
 
 import pytest
@@ -36,7 +37,9 @@ class TestTheBucketIsPerCompanyAndPersists:
         first = company._get_zeep_cache__()
         first['http://sat/wsdl'] = b'<definitions/>'
         assert company._get_zeep_cache__() is first
-        assert company._get_zeep_cache__()['http://sat/wsdl'] == b'<definitions/>'
+        assert (
+            company._get_zeep_cache__()['http://sat/wsdl'] == b'<definitions/>'
+        )
 
     def test_two_companies_do_not_share_the_bucket(self, company):
         other_company = ResCompany.objects.create(name='Otra company')
@@ -62,7 +65,9 @@ class TestTheCacheImplementsTheContractOfZeep:
 
     def test_add_writes_into_the_bucket_of_its_company(self, company):
         ZeepOrmCache(company).add('http://sat/wsdl', b'<definitions/>')
-        assert company._get_zeep_cache__()['http://sat/wsdl'] == b'<definitions/>'
+        assert (
+            company._get_zeep_cache__()['http://sat/wsdl'] == b'<definitions/>'
+        )
 
     def test_get_reads_back_what_add_wrote(self, company):
         cache = ZeepOrmCache(company)
@@ -86,13 +91,17 @@ class TestTheClientInstallsTheCacheOnlyWhenTheTransportHasNone:
         monkeypatch.setattr(zeep_lib, 'Client', fake)
         return captured
 
-    def test_a_transport_without_cache_gets_the_orm_one(self, company, zeep_client_spy):
+    def test_a_transport_without_cache_gets_the_orm_one(
+        self, company, zeep_client_spy
+    ):
         company._get_zeep_client__('http://sat/servicio?wsdl')
         cache = zeep_client_spy['kwargs']['transport'].cache
         assert isinstance(cache, ZeepOrmCache)
         assert cache.company == company
 
-    def test_a_transport_with_its_own_cache_is_not_overwritten(self, company, zeep_client_spy):
+    def test_a_transport_with_its_own_cache_is_not_overwritten(
+        self, company, zeep_client_spy
+    ):
         """El control que puede fallar: quien pasa su caché decide.
 
         Sin la guarda ``if not transport.cache`` el envoltorio la pisaría, y
@@ -100,11 +109,17 @@ class TestTheClientInstallsTheCacheOnlyWhenTheTransportHasNone:
         """
         own_cache = zeep_lib.cache.InMemoryCache()
         transport = zeep_lib.Transport(cache=own_cache)
-        company._get_zeep_client__('http://sat/servicio?wsdl', transport=transport)
+        company._get_zeep_client__(
+            'http://sat/servicio?wsdl', transport=transport
+        )
         assert zeep_client_spy['kwargs']['transport'].cache is own_cache
 
-    def test_the_cache_it_installs_is_written_through(self, company, zeep_client_spy):
+    def test_the_cache_it_installs_is_written_through(
+        self, company, zeep_client_spy
+    ):
         company._get_zeep_client__('http://sat/servicio?wsdl')
         cache = zeep_client_spy['kwargs']['transport'].cache
         cache.add('http://sat/wsdl', b'<definitions/>')
-        assert company._get_zeep_cache__()['http://sat/wsdl'] == b'<definitions/>'
+        assert (
+            company._get_zeep_cache__()['http://sat/wsdl'] == b'<definitions/>'
+        )

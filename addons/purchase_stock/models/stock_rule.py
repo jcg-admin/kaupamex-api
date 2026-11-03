@@ -1,4 +1,6 @@
-"""``stock.rule`` / ``stock.route`` — la regla que compra (Odoo ``purchase_stock``).
+"""
+``stock.rule`` / ``stock.route`` — la regla que compra (Odoo
+``purchase_stock``).
 
 Adaptación de Odoo ``purchase_stock/models/stock_rule.py``
 (``odoo19c: addons/purchase_stock/models/stock_rule.py``, 411 líneas, LGPL-3)
@@ -161,6 +163,7 @@ ordenar previamente** (recorre y acumula en un diccionario). El de
 ``itertools`` exige el orden. Aquí se agrupa con un diccionario explícito, que
 es lo que el de la fuente hace por dentro y conserva el orden de aparición.
 """
+
 from collections import defaultdict
 from datetime import date
 
@@ -221,7 +224,9 @@ def _group_preserving_order(items, key):
 
 def _buy_rules():
     """Las reglas con acción «comprar»."""
-    return apps.get_model('stock', 'StockRule').objects.filter(action=ACTION_BUY)
+    return apps.get_model('stock', 'StockRule').objects.filter(
+        action=ACTION_BUY
+    )
 
 
 def _sellers_of(product):
@@ -238,6 +243,7 @@ def _sellers_of(product):
 
 # --- stock.rule ------------------------------------------------------------
 
+
 def _get_message_dict(self):
     """≙ ``_get_message_dict`` (``odoo19c: :22-31``).
 
@@ -251,10 +257,10 @@ def _get_message_dict(self):
     __, destination, __, __ = self._get_message_values()
     return {
         ACTION_BUY: (
-            f'Cuando se necesiten productos en <b>{destination}</b>, <br/> '
-            'se crea una solicitud de cotización para cubrir la necesidad.<br/>'
-            'Nota: esta regla se usa en combinación con las reglas<br/>'
-            'de la ruta o rutas de recepción'
+            f'Cuando se necesiten productos en <b>{destination}</b>, <br/> se'
+            ' crea una solicitud de cotización para cubrir la'
+            ' necesidad.<br/>Nota: esta regla se usa en combinación con las'
+            ' reglas<br/>de la ruta o rutas de recepción'
         ),
     }
 
@@ -303,17 +309,25 @@ def run(cls, procurements, raise_user_error=True):
         routes = procurement.values.get('route_ids')
         if not routes:
             continue
-        if not any(rule_rec.action == ACTION_BUY
-                   for route in routes for rule_rec in route.rule_ids.all()):
+        if not any(
+            rule_rec.action == ACTION_BUY
+            for route in routes
+            for rule_rec in route.rule_ids.all()
+        ):
             continue
         company = procurement.company_id
         if company not in wh_by_comp:
             wh_by_comp[company] = list(
-                StockWarehouse.objects.filter(company=company))
-        reception_routes = [wh.reception_route for wh in wh_by_comp[company]
-                            if wh.reception_route_id]
+                StockWarehouse.objects.filter(company=company)
+            )
+        reception_routes = [
+            wh.reception_route
+            for wh in wh_by_comp[company]
+            if wh.reception_route_id
+        ]
         procurement.values['route_ids'] = list(routes) + [
-            r for r in reception_routes if r not in routes]
+            r for r in reception_routes if r not in routes
+        ]
     return None
 
 
@@ -333,8 +347,9 @@ def _filter_warehouse_routes(cls, product, warehouses, route):
     return None
 
 
-def _get_matching_supplier(cls, product_id, product_qty, product_uom,
-                           company_id, values):
+def _get_matching_supplier(
+    cls, product_id, product_qty, product_uom, company_id, values
+):
     """≙ ``_get_matching_supplier`` (``odoo19c: :174-201``).
 
     Quién va a surtir esta necesidad, en el orden de la fuente:
@@ -390,7 +405,8 @@ def _get_matching_supplier(cls, product_id, product_qty, product_uom,
     # no se delega en ``_prepare_sellers``.
     company_pk = getattr(company_id, 'pk', company_id)
     respaldo = [
-        s for s in product_id._prepare_sellers(False, company=company_id)
+        s
+        for s in product_id._prepare_sellers(False, company=company_id)
         if not s.company_id or s.company_id == company_pk
     ]
     return respaldo[0] if respaldo else None
@@ -439,7 +455,8 @@ def _get_lead_days(cls, rules, product, **values):
     seller = values.get('supplierinfo')
     if seller is None and product is not None:
         elegidas = product._select_seller(
-            quantity=None, company=buy_rules[0].company)
+            quantity=None, company=buy_rules[0].company
+        )
         seller = elegidas[0] if elegidas else None
 
     if seller is None:
@@ -447,8 +464,11 @@ def _get_lead_days(cls, rules, product, **values):
         delays['no_vendor_found_delay'] += NO_VENDOR_FOUND_DELAY
         if not bypass_delay_description:
             delay_description.append(
-                ('No se encontró proveedor',
-                 f'+ {NO_VENDOR_FOUND_DELAY} día(s)'))
+                (
+                    'No se encontró proveedor',
+                    f'+ {NO_VENDOR_FOUND_DELAY} día(s)',
+                )
+            )
         return delays, delay_description
 
     buy_rule = buy_rules[0]
@@ -459,15 +479,22 @@ def _get_lead_days(cls, rules, product, **values):
         if not bypass_delay_description:
             delay_description.append(('Fecha de recepción', supplier_delay))
             delay_description.append(
-                ('Plazo de entrega del proveedor', f'+ {supplier_delay} día(s)'))
+                (
+                    'Plazo de entrega del proveedor',
+                    f'+ {supplier_delay} día(s)',
+                )
+            )
 
     company_rec = buy_rule.company
-    days_to_order = getattr(company_rec, 'days_to_purchase', 0) or 0 if company_rec else 0
+    days_to_order = (
+        getattr(company_rec, 'days_to_purchase', 0) or 0 if company_rec else 0
+    )
     delays['total_delay'] += days_to_order
     if not bypass_delay_description:
         delay_description.append(('Fecha límite del pedido', days_to_order))
         delay_description.append(
-            ('Días para comprar', f'+ {days_to_order} día(s)'))
+            ('Días para comprar', f'+ {days_to_order} día(s)')
+        )
     return delays, delay_description
 
 
@@ -500,7 +527,8 @@ def _get_procurements_to_merge(cls, procurements):
     agrupador conserva el orden de aparición sin exigir entrada ordenada.
     """
     return _group_preserving_order(
-        procurements, key=cls._get_procurements_to_merge_groupby)
+        procurements, key=cls._get_procurements_to_merge_groupby
+    )
 
 
 def _merge_procurements(cls, procurements_to_merge):
@@ -521,22 +549,34 @@ def _merge_procurements(cls, procurements_to_merge):
             destinations = procurement.values.get('move_dest_ids')
             if destinations:
                 move_dest_ids.extend(
-                    m for m in destinations if m not in move_dest_ids)
-            if orderpoint_id is None and procurement.values.get('orderpoint_id'):
+                    m for m in destinations if m not in move_dest_ids
+                )
+            if orderpoint_id is None and procurement.values.get(
+                'orderpoint_id'
+            ):
                 orderpoint_id = procurement.values['orderpoint_id']
             quantity += procurement.product_qty
         if procurement is None:
             continue
         values = dict(procurement.values)
-        values.update({
-            'move_dest_ids': move_dest_ids,
-            'orderpoint_id': orderpoint_id,
-        })
-        merged_procurements.append(Procurement(
-            procurement.product_id, quantity, procurement.product_uom,
-            procurement.location_id, procurement.name, procurement.origin,
-            procurement.company_id, values,
-        ))
+        values.update(
+            {
+                'move_dest_ids': move_dest_ids,
+                'orderpoint_id': orderpoint_id,
+            }
+        )
+        merged_procurements.append(
+            Procurement(
+                procurement.product_id,
+                quantity,
+                procurement.product_uom,
+                procurement.location_id,
+                procurement.name,
+                procurement.origin,
+                procurement.company_id,
+                values,
+            )
+        )
     return merged_procurements
 
 
@@ -552,8 +592,13 @@ def _push_prepare_move_copy_values(self, move_to_copy, new_date):
     ``combine=_merge_vals``: la fuente parte del diccionario del ``super()``.
     """
     vals = {'purchase_line_id': None}
-    if self.location_dest is not None and self.location_dest.usage == 'supplier':
-        line, partner = move_to_copy._get_purchase_line_and_partner_from_chain()
+    if (
+        self.location_dest is not None
+        and self.location_dest.usage == 'supplier'
+    ):
+        line, partner = (
+            move_to_copy._get_purchase_line_and_partner_from_chain()
+        )
         vals['purchase_line_id'] = line
         vals['partner_id'] = partner
     return vals
@@ -567,13 +612,17 @@ def _get_partner_id(cls, values, rule):
     addons que extienden este método sí consumen.
     """
     return values.get('supplierinfo_name') or (
-        values.get('force_uom') and values.get('partner_id'))
+        values.get('force_uom') and values.get('partner_id')
+    )
 
 
 # --- stock.route -----------------------------------------------------------
 
+
 def _is_valid_resupply_route_for_product(self, product):
-    """≙ ``StockRoute._is_valid_resupply_route_for_product`` (``odoo19c: :408-411``).
+    """
+    ≙ ``StockRoute._is_valid_resupply_route_for_product`` (``odoo19c:
+    :408-411``).
 
     Una ruta de compra sólo reabastece a un producto que tenga proveedores. Si
     la ruta no compra, se cede al método previo devolviendo ``None``.
@@ -584,6 +633,7 @@ def _is_valid_resupply_route_for_product(self, product):
 
 
 # --- instalación -----------------------------------------------------------
+
 
 def _install_rule(model):
     """Añade la acción «comprar» y encadena los nueve ganchos de la regla."""
@@ -598,36 +648,67 @@ def _install_rule(model):
     # La política de borrado viaja con la ampliación, como en la fuente. Se
     # aplica sobre la lista del campo, que es la que consulta la validación de
     # Django y la que ``_process_ondelete`` lee.
-    extend_selection_choices(model, 'action',
-                             [(ACTION_BUY, ACTION_BUY_LABEL)],
-                             ondelete={ACTION_BUY: 'cascade'})
+    extend_selection_choices(
+        model,
+        'action',
+        [(ACTION_BUY, ACTION_BUY_LABEL)],
+        ondelete={ACTION_BUY: 'cascade'},
+    )
 
-    chain_method(model, '_get_message_dict', _get_message_dict,
-                 combine=_merge_vals)
-    chain_method(model, '_compute_picking_type_code_domain',
-                 _compute_picking_type_code_domain, combine=extend_list)
+    chain_method(
+        model, '_get_message_dict', _get_message_dict, combine=_merge_vals
+    )
+    chain_method(
+        model,
+        '_compute_picking_type_code_domain',
+        _compute_picking_type_code_domain,
+        combine=extend_list,
+    )
     chain_method(model, '_onchange_action', _onchange_action)
     chain_method(model, 'run', classmethod(run))
-    chain_method(model, '_filter_warehouse_routes',
-                 classmethod(_filter_warehouse_routes))
-    chain_method(model, '_get_matching_supplier',
-                 classmethod(_get_matching_supplier))
+    chain_method(
+        model,
+        '_filter_warehouse_routes',
+        classmethod(_filter_warehouse_routes),
+    )
+    chain_method(
+        model, '_get_matching_supplier', classmethod(_get_matching_supplier)
+    )
     chain_method(model, '_notify_responsible', _notify_responsible)
-    chain_method(model, '_get_lead_days', classmethod(_get_lead_days),
-                 combine=_merge_lead_days)
-    chain_method(model, '_get_procurements_to_merge_groupby',
-                 classmethod(_get_procurements_to_merge_groupby))
-    chain_method(model, '_get_procurements_to_merge',
-                 classmethod(_get_procurements_to_merge))
-    chain_method(model, '_merge_procurements', classmethod(_merge_procurements))
-    chain_method(model, '_push_prepare_move_copy_values',
-                 _push_prepare_move_copy_values, combine=_merge_vals)
+    chain_method(
+        model,
+        '_get_lead_days',
+        classmethod(_get_lead_days),
+        combine=_merge_lead_days,
+    )
+    chain_method(
+        model,
+        '_get_procurements_to_merge_groupby',
+        classmethod(_get_procurements_to_merge_groupby),
+    )
+    chain_method(
+        model,
+        '_get_procurements_to_merge',
+        classmethod(_get_procurements_to_merge),
+    )
+    chain_method(
+        model, '_merge_procurements', classmethod(_merge_procurements)
+    )
+    chain_method(
+        model,
+        '_push_prepare_move_copy_values',
+        _push_prepare_move_copy_values,
+        combine=_merge_vals,
+    )
     chain_method(model, '_get_partner_id', classmethod(_get_partner_id))
 
 
 def _install_route(model):
-    chain_method(model, '_is_valid_resupply_route_for_product',
-                 _is_valid_resupply_route_for_product)
+    chain_method(
+        model,
+        '_is_valid_resupply_route_for_product',
+        _is_valid_resupply_route_for_product,
+    )
 
 
 def apply_purchase_stock_stock_rule_extensions():

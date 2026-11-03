@@ -38,13 +38,13 @@ class MailingSubscription(TimeStampedModel):
     """
 
     contact_id = fields.Many2one(
-        MailingContact, on_delete=models.CASCADE,
+        MailingContact, null=False, on_delete=models.CASCADE,
         related_name='subscription_ids',
         help_text='Contacto (Odoo contact_id).',
         db_column='contact_id',
     )
     mailing_list = fields.Many2one(
-        MailingList, on_delete=models.CASCADE,
+        MailingList, null=False, on_delete=models.CASCADE,
         related_name='subscription_ids',
         help_text='Lista (Odoo list_id).',
     )

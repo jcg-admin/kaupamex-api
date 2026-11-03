@@ -1,0 +1,17 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"result": "PASS", "cases": ["catalogue alias, installed-state selection, identity/demo/version", "new dependent removed with uninstalled dependency", "new snapshot, update phase, loaded snapshot preserved; SELECT only", "duplicate extension performs no catalogue query", "uninstallable manifest and new cycle pruned", "catalogue unchanged by graph preparation"], "limit": "Two schemas in one owned database, not N>1 installation acceptance"}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

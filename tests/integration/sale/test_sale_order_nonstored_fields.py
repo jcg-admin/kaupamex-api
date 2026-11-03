@@ -18,6 +18,7 @@ Lo que cada bloque fija:
    se pueden filtrar. Es el control que distingue «portado como no almacenado»
    de «portado como columna», que es lo que el porte NO debía hacer.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -36,10 +37,17 @@ pytestmark = pytest.mark.django_db
 #: de ausencia de columna; si alguien añade un doceavo sin sumarlo aquí, el
 #: caso de conteo lo delata.
 NON_STORED_FIELDS = [
-    'country_code', 'company_price_include', 'tax_calculation_rounding_method',
-    'terms_type', 'show_update_fpos', 'show_update_pricelist',
-    'has_archived_products', 'has_active_pricelist', 'tax_country',
-    'type_name', 'duplicated_orders',
+    'country_code',
+    'company_price_include',
+    'tax_calculation_rounding_method',
+    'terms_type',
+    'show_update_fpos',
+    'show_update_pricelist',
+    'has_archived_products',
+    'has_active_pricelist',
+    'tax_country',
+    'type_name',
+    'duplicated_orders',
 ]
 
 
@@ -63,8 +71,9 @@ def company():
 @pytest.fixture
 def product():
     cat = make_category(name='Cat NS976')
-    return make_product(name='Prod NS976', price=Decimal('50.00'), stock=3,
-                        categ=cat)
+    return make_product(
+        name='Prod NS976', price=Decimal('50.00'), stock=3, categ=cat
+    )
 
 
 class TestTheFourRelatedWalkTheChainToTheCompany:
@@ -90,7 +99,9 @@ class TestTheFourRelatedWalkTheChainToTheCompany:
         assert order.terms_type == 'html'
 
     def test_country_code_is_none_without_a_fiscal_country(self, company):
-        """La empresa no declara país fiscal: el código sale vacío, no falla."""
+        """
+        La empresa no declara país fiscal: el código sale vacío, no falla.
+        """
         order = SaleOrder.objects.create(company=company)
         assert order.country_code is None
 
@@ -148,34 +159,58 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
     def test_type_name_says_sales_order_once_confirmed(self, company, product):
         order = SaleOrder.objects.create(company=company)
         SaleOrderLine.objects.create(
-            order=order, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=order,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         order.action_confirm()
         assert order.type_name == 'Orden de venta'
 
-    def test_type_name_says_quotation_again_once_cancelled(self, company, product):
-        """``cancel`` vuelve a ser cotización — la fuente lo agrupa con draft."""
+    def test_type_name_says_quotation_again_once_cancelled(
+        self, company, product
+    ):
+        """
+        ``cancel`` vuelve a ser cotización — la fuente lo agrupa con draft.
+        """
         order = SaleOrder.objects.create(company=company)
         SaleOrderLine.objects.create(
-            order=order, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=order,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         order.action_confirm()
         order.action_cancel()
         assert order.type_name == 'Cotización'
 
-    def test_no_archived_products_when_every_product_is_active(self, company, product):
+    def test_no_archived_products_when_every_product_is_active(
+        self, company, product
+    ):
         order = SaleOrder.objects.create(company=company)
         SaleOrderLine.objects.create(
-            order=order, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=order,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         assert order.has_archived_products is False
 
     def test_archiving_the_product_flips_the_flag(self, company, product):
-        """El control que hace real al caso anterior: si se archiva, sale True."""
+        """
+        El control que hace real al caso anterior: si se archiva, sale True.
+        """
         order = SaleOrder.objects.create(company=company)
         SaleOrderLine.objects.create(
-            order=order, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=order,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         product.active = False
         product.save(update_fields=['active'])
         order = SaleOrder.objects.get(pk=order.pk)
@@ -202,7 +237,8 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
     def test_an_inactive_pricelist_does_not_count(self, company):
         """El control del caso anterior: sin ``active=True`` no cuenta."""
         ProductPricelist.objects.create(
-            name='Tarifa NS976 inactiva', company=company, active=False)
+            name='Tarifa NS976 inactiva', company=company, active=False
+        )
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is False
 
@@ -241,32 +277,46 @@ class TestTheDuplicateDetector:
         assert list(order.duplicated_orders) == []
 
     def test_a_draft_sees_a_confirmed_one_sharing_the_client_reference(
-            self, company, product):
+        self, company, product
+    ):
         customer = _make_customer('cliente-ns976')
         confirmed = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976')
+            company=company, partner=customer, client_order_ref='PO-976'
+        )
         SaleOrderLine.objects.create(
-            order=confirmed, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=confirmed,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         confirmed.action_confirm()
 
         draft = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976')
+            company=company, partner=customer, client_order_ref='PO-976'
+        )
         assert list(draft.duplicated_orders) == [confirmed]
 
     def test_a_different_client_reference_is_not_a_duplicate(
-            self, company, product):
+        self, company, product
+    ):
         """El control: sin la referencia compartida no hay duplicado."""
         customer = _make_customer('cliente-ns976-b')
         confirmed = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976-a')
+            company=company, partner=customer, client_order_ref='PO-976-a'
+        )
         SaleOrderLine.objects.create(
-            order=confirmed, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=confirmed,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         confirmed.action_confirm()
 
         draft = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976-b')
+            company=company, partner=customer, client_order_ref='PO-976-b'
+        )
         assert list(draft.duplicated_orders) == []
 
     def test_another_company_is_not_a_duplicate(self, company, product):
@@ -274,31 +324,47 @@ class TestTheDuplicateDetector:
         customer = _make_customer('cliente-ns976-c')
         other = ResCompany.objects.create(code='ns-976-c', name='Otra NS976 c')
         confirmed = SaleOrder.objects.create(
-            company=other, partner=customer, client_order_ref='PO-976-c')
+            company=other, partner=customer, client_order_ref='PO-976-c'
+        )
         SaleOrderLine.objects.create(
-            order=confirmed, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=confirmed,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         confirmed.action_confirm()
 
         draft = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976-c')
+            company=company, partner=customer, client_order_ref='PO-976-c'
+        )
         assert list(draft.duplicated_orders) == []
 
     def test_a_confirmed_order_reports_no_duplicates(self, company, product):
         """La fuente sólo busca duplicados en borrador."""
         customer = _make_customer('cliente-ns976-d')
         primera = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976-d')
+            company=company, partner=customer, client_order_ref='PO-976-d'
+        )
         SaleOrderLine.objects.create(
-            order=primera, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=primera,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         primera.action_confirm()
 
         segunda = SaleOrder.objects.create(
-            company=company, partner=customer, client_order_ref='PO-976-d')
+            company=company, partner=customer, client_order_ref='PO-976-d'
+        )
         SaleOrderLine.objects.create(
-            order=segunda, product=product, name='Línea NS976',
-            price_unit=Decimal('50.00'), product_uom_qty=1)
+            order=segunda,
+            product=product,
+            name='Línea NS976',
+            price_unit=Decimal('50.00'),
+            product_uom_qty=1,
+        )
         segunda.action_confirm()
         assert list(segunda.duplicated_orders) == []
 

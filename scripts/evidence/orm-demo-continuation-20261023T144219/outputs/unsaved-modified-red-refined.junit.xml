@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="9" time="5.338" timestamp="2026-10-25T21:05:25.423009" hostname="c8a29a030cff"><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_saved_reverse_collection_still_reads_actual_rows" time="4.382" /><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_unsaved_partner_item_assignment_keeps_its_value_without_database" time="0.002"><failure message="ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.">tests/unit/orm/test_unsaved_modified.py:19: in test_unsaved_partner_item_assignment_keeps_its_value_without_database
+    record['name'] = 'After'
+src/orm/models.py:3589: in _model_setitem
+    setattr(self, key, value)
+src/orm/fields.py:1832: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.</failure></testcase><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_unsaved_reverse_many_to_one_has_no_persisted_rows" time="0.001"><failure message="ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.">tests/unit/orm/test_unsaved_modified.py:28: in test_unsaved_reverse_many_to_one_has_no_persisted_rows
+    assert _traverse_inverse([record], inverse) == []
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.</failure></testcase><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager" time="0.001"><failure message="ValueError: &quot;&lt;ResPartner: New categorized parent&gt;&quot; needs to have a value for field &quot;id&quot; before this many-to-many relationship can be used.">tests/unit/orm/test_unsaved_modified.py:35: in test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager
+    assert _traverse_inverse([record], inverse) == []
+src/orm/models.py:3675: in _traverse_inverse
+    value = getattr(row, name, None)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:647: in __get__
+    return self.related_manager_cls(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:1056: in __init__
+    raise ValueError(
+E   ValueError: "&lt;ResPartner: New categorized parent&gt;" needs to have a value for field "id" before this many-to-many relationship can be used.</failure></testcase><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_unsaved_forward_many_to_many_has_no_persisted_rows" time="0.001"><failure message="ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name">tests/unit/orm/test_unsaved_modified.py:42: in test_unsaved_forward_many_to_many_has_no_persisted_rows
+    assert _traverse_inverse([record], inverse) == []
+src/orm/models.py:3675: in _traverse_inverse
+    value = getattr(row, name, None)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:647: in __get__
+    return self.related_manager_cls(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:1059: in __init__
+    % (instance, self.pk_field_names[self.source_field_name])
+.venv/lib/python3.12/site-packages/django/db/models/base.py:611: in __repr__
+    return "&lt;%s: %s&gt;" % (self.__class__.__name__, self)
+src/addons/base/models/res_partner.py:3035: in __str__
+    return self.display_name
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name</failure></testcase><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_cached_new_partner_label_is_invalidated_without_database" time="0.002"><failure message="ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.">tests/unit/orm/test_unsaved_modified.py:49: in test_cached_new_partner_label_is_invalidated_without_database
+    record.name = 'Cached after'
+src/orm/fields.py:1832: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.</failure></testcase><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_new_contextual_cache_identity_does_not_invalidate_another_row" time="0.002"><failure message="ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.">tests/unit/orm/test_unsaved_modified.py:71: in test_new_contextual_cache_identity_does_not_invalidate_another_row
+    first.name = 'First updated'
+src/orm/fields.py:1832: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.</failure></testcase><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_cached_new_reverse_one_to_one_remains_traversable" time="0.001" /><testcase classname="tests.unit.orm.test_unsaved_modified" name="test_custom_in_memory_collection_is_not_skipped" time="0.002" /></testsuite></testsuites>

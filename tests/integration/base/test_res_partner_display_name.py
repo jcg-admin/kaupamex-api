@@ -6,7 +6,8 @@ Contrato adaptado de ``_compute_display_name``
 Por que no basta con ``_get_complete_name``
 ============================================
 
-``complete_name`` es el name para una lista: «Empresa, Persona». ``display_name``
+``complete_name`` es el name para una lista: «Empresa, Persona».
+``display_name``
 es ese name **enriquecido segun quien lo pide**: el mismo partner se muestra
 distinto en un selector de correo (con el buzon), en una pantalla de soporte
 (con el id de base) o en un documento fiscal (con el RFC).
@@ -26,6 +27,7 @@ Que haria fallar a cada control: quitar la lectura de su clave. El caso base
 un ``display_name`` que ignorara TODO el contexto seguiria pasando los cinco
 controles negativos.
 """
+
 import pytest
 
 from addons.base.models.res_partner import ResPartner
@@ -38,8 +40,13 @@ pytestmark = pytest.mark.integration
 def contact(db):
     company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
     return ResPartner.objects.create(
-        name='Ana Ruiz', parent=company, email='ana@kaupamex.mx',
-        vat='RUAA800101AAA', street='Reforma 1', city='CDMX')
+        name='Ana Ruiz',
+        parent=company,
+        email='ana@kaupamex.mx',
+        vat='RUAA800101AAA',
+        street='Reforma 1',
+        city='CDMX',
+    )
 
 
 class TestWithoutContext:
@@ -80,7 +87,9 @@ class TestContextKeys:
         assert '\n' in name, 'la direccion va en lineas propias'
         assert 'Reforma 1' in name
 
-    def test_show_vat_with_show_address_uses_the_other_separator(self, contact):
+    def test_show_vat_with_show_address_uses_the_other_separator(
+        self, contact
+    ):
         """CONTROL del par: la fuente separa el RFC con ``' \\n '`` cuando ya
         hay direccion y con ``' - '`` cuando no. Sin esa rama el RFC quedaria
         pegado a la ultima linea de la direccion."""
@@ -100,9 +109,12 @@ class TestFormattedDisplayName:
     def test_a_nameless_address_falls_back_to_its_type(self, db):
         """La fuente usa la etiqueta del tipo cuando no hay name, igual que
         ``_get_complete_name`` pero en esta forma."""
-        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
-        warehouse = ResPartner.objects.create(name='', parent=company,
-                                           type=ResPartner.TYPE_DELIVERY)
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True
+        )
+        warehouse = ResPartner.objects.create(
+            name='', parent=company, type=ResPartner.TYPE_DELIVERY
+        )
         with context_scope(formatted_display_name=True):
             assert warehouse.display_name == 'Kaupamex SA \t --Entrega--'
 
@@ -115,8 +127,11 @@ class TestFormattedDisplayName:
     def test_db_id_is_the_alternative_not_the_addition(self, contact):
         """CONTROL — aqui la fuente usa ``elif``: con correo NO se anexa el
         id. Es la diferencia con la otra rama, donde los dos se acumulan."""
-        with context_scope(formatted_display_name=True, show_email=True,
-                           partner_show_db_id=True):
+        with context_scope(
+            formatted_display_name=True,
+            show_email=True,
+            partner_show_db_id=True,
+        ):
             name = contact.display_name
         assert f'--{contact.pk}--' not in name
 

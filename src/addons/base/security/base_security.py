@@ -20,6 +20,7 @@ en ``sale/security/ir_rules.xml``). ``company_ids`` en el contexto de
 evaluación son las compañías ACTIVADAS (canal del dato, DEC-AISL-04): con
 cero activadas la regla da ``IN []`` → cero filas (fail-closed como dato).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_rule import IrRule as _IrRule
@@ -29,9 +30,7 @@ DOMAIN_MULTICOMPANY = "[('company_id', 'in', company_ids)]"
 
 #: (nombre de la regla, label Django del modelo). ``CompanySetting`` es el
 #: único modelo de ``base`` con columna ``company_id`` scopeada por fila.
-_RULES = (
-    ('Company Setting multi-company', 'base.CompanySetting'),
-)
+_RULES = (('Company Setting multi-company', 'base.CompanySetting'),)
 
 
 def _seed(IrRule, rules, using):

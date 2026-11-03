@@ -1,0 +1,13 @@
+{
+  "head": "f6b2e552dc47387ece9788ae8ebd1ef2064ad86e",
+  "index_tree": "e9245873f610b05c958f2d979ec9fa7f10d013cb",
+  "source_sha256": "4cd38c9811c3a7049dd6f599509fd04b50c1ad8cbb2cf2a33ce429373055db85",
+  "test_sha256": {
+    "tests/unit/modules/test_module_graph.py": "83abf6a3871ea239d9beeaf8e90917d8b8b8892739a49b969617d1233dad79d5",
+    "tests/unit/modules/test_module_graph_depth_limits.py": "52a3a6a03b489f530b6a7c8ad5bd1a7b2a356cdb74b0bc8d70fd0593abeb1549"
+  },
+  "annulled_depth": true,
+  "pytest_exit_code": 1,
+  "provenance_unchanged": true,
+  "scope": "Exact staged graph or declared in-memory annulment; minimal Django PostgreSQL settings; SQL prohibited; no acceptance"
+}

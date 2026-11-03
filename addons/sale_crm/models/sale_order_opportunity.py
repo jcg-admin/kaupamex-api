@@ -7,6 +7,7 @@ Adaptación de Odoo ``sale_crm``, que **extiende** ``sale.order`` con
 
 Bridge ``sale`` + ``crm``: atribuye cada orden a la oportunidad que la originó.
 """
+
 import fields
 import models
 
@@ -16,13 +17,19 @@ from addons.base.models import TimeStampedModel
 class SaleOrderOpportunity(TimeStampedModel):
     """Vincula una ``sale.order`` a su ``crm.lead`` (Odoo opportunity_id)."""
 
-    order       = models.OneToOneField(
-        'sale.SaleOrder', on_delete=models.CASCADE, related_name='opportunity_link',
+    order = models.OneToOneField(
+        'sale.SaleOrder',
+        on_delete=models.CASCADE,
+        related_name='opportunity_link',
         help_text='Orden de venta (Odoo sale.order).',
     )
     opportunity = fields.Many2one(
-        'crm.CrmLead', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='sale_orders', help_text='Oportunidad (Odoo opportunity_id).',
+        'crm.CrmLead',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='sale_orders',
+        help_text='Oportunidad (Odoo opportunity_id).',
     )
 
     class Meta:
@@ -35,5 +42,7 @@ class SaleOrderOpportunity(TimeStampedModel):
 
     @classmethod
     def order_count_for(cls, lead) -> int:
-        """Conteo de órdenes de una oportunidad (Odoo crm.lead.sale_order_count)."""
+        """
+        Conteo de órdenes de una oportunidad (Odoo crm.lead.sale_order_count).
+        """
         return cls.objects.filter(opportunity=lead).count()

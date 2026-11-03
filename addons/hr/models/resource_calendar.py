@@ -39,9 +39,12 @@ Divergencias declaradas
    calendarios itera, igual que el resto de los métodos de instancia de este
    árbol.
 """
+
 from django.utils import timezone
 
-from addons.resource.models.resource_calendar_leaves import ResourceCalendarLeaves
+from addons.resource.models.resource_calendar_leaves import (
+    ResourceCalendarLeaves,
+)
 from orm.model_classes import extend_model
 
 
@@ -54,10 +57,14 @@ def transfer_leaves_to(self, other_calendar, resources=None, from_date=None):
     medianoche si es ``None``).
     """
     from_date = from_date or timezone.now().replace(
-        hour=0, minute=0, second=0, microsecond=0,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
     leaves = ResourceCalendarLeaves.objects.filter(
-        calendar=self, date_from__gte=from_date,
+        calendar=self,
+        date_from__gte=from_date,
     )
     if resources is not None:
         leaves = leaves.filter(resource__in=list(resources))
@@ -65,7 +72,13 @@ def transfer_leaves_to(self, other_calendar, resources=None, from_date=None):
 
 
 def apply_hr_resource_calendar_extensions():
-    """Cuelga sobre ``resource.calendar`` lo que ``hr`` le añade — ≙ ``_inherit``."""
-    extend_model('resource', 'ResourceCalendar', metodos={
-        'transfer_leaves_to': transfer_leaves_to,
-    })
+    """
+    Cuelga sobre ``resource.calendar`` lo que ``hr`` le añade — ≙ ``_inherit``.
+    """
+    extend_model(
+        'resource',
+        'ResourceCalendar',
+        metodos={
+            'transfer_leaves_to': transfer_leaves_to,
+        },
+    )

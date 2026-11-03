@@ -1,0 +1,38 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "invocation": {
+    "argv": [
+      "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe"
+    ],
+    "cwd": "/workspace/kaupamex-api",
+    "THYROX_ROOT": "/workspace/thyrox"
+  },
+  "observed_at": "2026-10-23T18:50:21.609Z",
+  "tasks": [
+    {
+      "task_id": "737",
+      "citation_id": "TASK-API-0382",
+      "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+      "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "738",
+      "citation_id": "TASK-API-0383",
+      "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+      "description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ],
+  "scope": "Read only; no official status update or model inference"
+}

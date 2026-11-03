@@ -8,6 +8,7 @@ la referencia, apagada por default — ``get_param`` sin default) y la URL de
 la invitación (en la referencia es la acción del backoffice; el puente de
 portal la re-enruta por audiencia).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import SystemParameter
@@ -22,8 +23,10 @@ TOTP_MAIL_TEMPLATES = [
     {
         'name': 'authz_totp_mail: invitación 2FA',
         'model': 'base.ResUsers',
-        'subject': 'Invitación para activar la autenticación en dos pasos '
-                   'en tu cuenta',
+        'subject': (
+            'Invitación para activar la autenticación en dos pasos '
+            'en tu cuenta'
+        ),
         'body_html': (
             '<p>Hola {{ object.partner }},</p>'
             '<p>{{ inviter.partner }} te invita a activar la autenticación '
@@ -54,6 +57,9 @@ def seed(using=DEFAULT_DB_ALIAS):
         if not SystemParameter.objects.using(using).filter(key=key).exists():
             SystemParameter.objects.using(using).create(key=key, value=value)
     for spec in TOTP_MAIL_TEMPLATES:
-        if not MailTemplate.objects.using(using).filter(
-                name=spec['name']).exists():
+        if (
+            not MailTemplate.objects.using(using)
+            .filter(name=spec['name'])
+            .exists()
+        ):
             MailTemplate.objects.using(using).create(**spec)

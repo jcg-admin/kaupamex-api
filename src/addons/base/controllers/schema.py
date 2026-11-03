@@ -18,7 +18,15 @@ de simplejwt (``PYTokenObtainPairSerializerExtension`` y
 **dormido**, ADR-018). Si el login JWT despierta, sus extensiones
 vuelven con él.
 """
+
 from drf_spectacular.authentication import SessionScheme
+
+SPECTACULAR_TAGS = [
+    {
+        'name': 'technical-modules',
+        'description': 'Consulta del catálogo técnico de módulos.',
+    },
+]
 
 
 class CsrfExemptSessionScheme(SessionScheme):
@@ -30,5 +38,6 @@ class CsrfExemptSessionScheme(SessionScheme):
     esquema queda SIN ``securityScheme`` y cada vista emite una W001.
     Reutiliza el ``SessionScheme`` built-in (produce ``cookieAuth``).
     """
+
     target_class = 'addons.base.authentication.CsrfExemptSessionAuthentication'
     name = 'cookieAuth'

@@ -1,0 +1,45 @@
+{
+  "tasks": [
+    {
+      "citation_id": "TASK-API-0236",
+      "task_id": "407",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "RESUELTA — no había inexistentes, había una raíz sin medir",
+      "description": "Los 23 \"sin contraparte\" existen los 23 en 18.x/odoo.enterprise, que es la raiz que convencion-cita-referencia-odoo.rst declara como alias odoo18e: y que no habia medido. 7 LGPL-3 (63 def) + 16 OEEL-1 (426 def).\n\nNo hay veredicto por funcion que dar: entran al orden por dependencias como los otros 255. Ver H-API-632.",
+      "status": "completed",
+      "owner": null,
+      "identity_lookup": "TASK-API-0236"
+    },
+    {
+      "citation_id": "TASK-API-0239",
+      "task_id": "410",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "DECISIÓN: cuál de las tres raíces es Enterprise 18",
+      "description": "La convencion declara odoo18e: = 18.x/odoo.enterprise (1171 manifiestos) y afirma que 18.x/odoo-18/enterprise/odoo/addons (1292) es \"la misma poblacion empaquetada distinto\". Medido: FALSO — 1102 comunes, 70 solo en la declarada, 196 solo en la otra. Hay una tercera, 18.x/my-odoo-enterprise-18.0 (593), sin medir contra las dos.\n\nDecidir cual es la referencia de Enterprise 18, si las otras merecen alias propio, y corregir la afirmacion de la convencion. Cambia que es \"la referencia\" para 18, asi que es del ejecutor.\n\nAbierta por H-API-632.",
+      "status": "pending",
+      "owner": null,
+      "identity_lookup": "TASK-API-0239"
+    },
+    {
+      "citation_id": "TASK-API-0240",
+      "task_id": "411",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Gate: la raíz usada contra la raíz que el alias declara",
+      "description": "H-API-632: usé 18.x/odoo-18/enterprise/odoo/addons donde la convencion declara odoo18e: = 18.x/odoo.enterprise. Ningun gate lo vio — el de citas (H-DOCS-20) verifica que haya un alias junto a la cifra, no que la ruta detras del alias sea la correcta.\n\nMecanizable: un artefacto que cite odoo18e:/odoo19c:/etc y muestre en un code-block un comando con otra ruta es greppeable contra la tabla de la convencion.\n\nCondicion de cierre: el patron debe ver el positivo conocido de H-API-632 (el censo del 2026-08-15 citando odoo18e con la ruta excluida) antes de declararse util. Imprimir denominador.\n\nAbierta por H-API-632.",
+      "status": "pending",
+      "owner": null,
+      "identity_lookup": "TASK-API-0240"
+    },
+    {
+      "citation_id": "TASK-API-0241",
+      "task_id": "412",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Barrer los artefactos que midieron 18e sobre la raíz sin alias",
+      "description": "H-API-632 corrigio los tres artefactos del 2026-08-15. Falta barrer el resto de source/ buscando mediciones contra 18.x/odoo-18/enterprise/odoo/addons o contra $ODOO18E sin declarar su expansion.\n\nCaso conocido: analisis-familia-observability (iniciativa adaptar-familias-odoo-monolito-modular) midio sobre la raiz CORRECTA pero escribio $ODOO18E sin declarar a que ruta expande — su veredicto se sostiene, su reproducibilidad no.\n\nAbierta por H-API-632.",
+      "status": "pending",
+      "owner": null,
+      "identity_lookup": "TASK-API-0241"
+    }
+  ],
+  "eligibility": "Not demonstrated; no owner/dependency/acceptance reassignment; scope equivalence requires Consumer finding review"
+}

@@ -1,0 +1,3 @@
+{"kind": "launch", "instrument": "Existing inventory and differential contract verification", "started_at": "2026-10-22T14:23:14+00:00"}
+{"kind": "declaration", "question": "Reconcile pinned ModuleGraph using existing inventory and verify lifecycle frontier", "instrument": "inventory_reference_orm.file_inventory; counterpart_body.declarations_of; native TaskGet; differential probes", "metric": "Symbol occurrences and bounded behavioral obligations, separate denominators", "blind_to": "Whole ORM acceptance; native Odoo database execution; loader integration", "destination": "Existing inventory, AS IS and completar-raiz-orm authority"}
+{"kind": "settle", "exit_code": 1, "finished_at": "2026-10-22T14:29:15+00:00", "duration_seconds": 361.981495}

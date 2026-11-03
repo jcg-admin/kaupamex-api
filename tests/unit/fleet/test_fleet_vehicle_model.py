@@ -3,6 +3,7 @@
 Adaptación fiel de Odoo fleet/models/fleet_vehicle_model.py
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3).
 """
+
 import pytest
 
 from addons.fleet.models import (
@@ -51,10 +52,14 @@ class TestFleetVehicleModelComputedProperties:
 
     def test_co2_emission_unit_follows_range_unit(self, brand):
         km_model = FleetVehicleModel.objects.create(
-            name='Corolla', brand=brand, range_unit='km',
+            name='Corolla',
+            brand=brand,
+            range_unit='km',
         )
         mi_model = FleetVehicleModel.objects.create(
-            name='Camry', brand=brand, range_unit='mi',
+            name='Camry',
+            brand=brand,
+            range_unit='mi',
         )
         assert km_model.co2_emission_unit == 'g/km'
         assert mi_model.co2_emission_unit == 'g/mi'
@@ -74,6 +79,8 @@ class TestFleetVehicleModelCategoryLink:
     def test_category_reverse_relation(self, brand):
         category = FleetVehicleModelCategory.objects.create(name='Sedán')
         model = FleetVehicleModel.objects.create(
-            name='Corolla', brand=brand, category=category,
+            name='Corolla',
+            brand=brand,
+            category=category,
         )
         assert category.models.get(pk=model.pk) == model

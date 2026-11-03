@@ -52,6 +52,7 @@ de esa tarea, en el mismo pase que sus métodos base.
 Los tres primeros, además, dependen de ``stock.move.line``, que no existe como
 modelo (ver ``stock_move_line.py`` de este mismo addon).
 """
+
 from addons.stock.models import StockMove
 
 

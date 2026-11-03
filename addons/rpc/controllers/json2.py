@@ -5,7 +5,8 @@ LGPL-3 → copia con adaptación y atribución, DEC-KX-03).
 
 Es el endpoint programático del producto: el cliente nombra un modelo y un
 método, y el servidor los resuelve **en tiempo de petición**. Esa es justamente
-la razón de que el gate de ``get_public_method`` exista — en una vista declarada
+la razón de que el gate de ``get_public_method`` exista — en una vista
+declarada
 el método lo fija el código; aquí lo elige quien llama.
 
 Los dos gates, y el orden importa
@@ -56,6 +57,7 @@ Así que el análogo del recordset es el ``QuerySet``, y el análogo de
 ``Model.browse(ids)`` es ``filter(pk__in=ids)`` — con la misma propiedad que la
 referencia le pide: no toca la base hasta que alguien lo recorre.
 """
+
 import inspect
 
 from django.db import models
@@ -120,7 +122,8 @@ def resolve_call(model_name, method_name, ids, kwargs=None):
     records = model.objects.filter(pk__in=list(ids))
 
     # La firma la valida `inspect`, no un chequeo a mano: así el mensaje de
-    # error es el de Python y cubre argumentos de más, de menos y mal nombrados.
+    # error es el de Python y cubre argumentos de más, de menos y mal
+    # nombrados.
     signature = inspect.signature(func)
     try:
         if model_level:
@@ -137,16 +140,22 @@ def resolve_call(model_name, method_name, ids, kwargs=None):
     tags=['rpc'],
     summary='Invocar un método de modelo por su nombre',
     description=(
-        'Despacho genérico: el cuerpo lleva `ids` (los registros sobre los que '
-        'opera), `context` y el resto de argumentos con nombre del método. '
-        'Requiere la capacidad `rpc.call`; además, el método debe ser '
-        'invocable remotamente (público, no `@api.private`).'
+        'Despacho genérico: el cuerpo lleva `ids` (los registros sobre los que'
+        ' opera), `context` y el resto de argumentos con nombre del método.'
+        ' Requiere la capacidad `rpc.call`; además, el método debe ser'
+        ' invocable remotamente (público, no `@api.private`).'
     ),
     responses={
-        200: OpenApiResponse(description='El valor de retorno del método, en JSON.'),
-        403: OpenApiResponse(description='Sin capacidad, o método no invocable.'),
+        200: OpenApiResponse(
+            description='El valor de retorno del método, en JSON.'
+        ),
+        403: OpenApiResponse(
+            description='Sin capacidad, o método no invocable.'
+        ),
         404: OpenApiResponse(description='El modelo o el método no existen.'),
-        422: OpenApiResponse(description='Los argumentos no encajan con la firma.'),
+        422: OpenApiResponse(
+            description='Los argumentos no encajan con la firma.'
+        ),
     },
 )
 @api_view(['POST'])
@@ -169,8 +178,11 @@ def json2_rpc(request, model_name, method_name):
     # Si el método levanta `AccessError`, se deja pasar sin envolver: es
     # `PermissionDenied` de Django y el handler de DRF la mapea a 403. Un
     # `try/except ... raise` aquí no haría nada salvo esconder su origen.
-    result = func(**payload) if getattr(func, '_api_model', False) \
+    result = (
+        func(**payload)
+        if getattr(func, '_api_model', False)
         else func(records, **payload)
+    )
 
     if isinstance(result, models.QuerySet):
         result = list(result.values_list('pk', flat=True))

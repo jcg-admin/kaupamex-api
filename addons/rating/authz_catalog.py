@@ -9,6 +9,7 @@ Por qué estos códigos son de este addon:
 
 - ``moderation`` — ``rating`` dueña ``Review`` y su ciclo de moderación.
 """
+
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
 MODULES = [

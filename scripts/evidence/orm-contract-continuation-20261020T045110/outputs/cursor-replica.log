@@ -1,0 +1,235 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "cases": {
+    "writable_bypasses_replica": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    },
+    "readonly_no_replica": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    },
+    "replica_success": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 0,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 0,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    },
+    "operational_then_retry": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 1,
+          "failed_time": 100.0,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        },
+        {
+          "time": 101.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 2,
+          "replica_attempts": 1,
+          "failed_time": 100.0,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        },
+        {
+          "time": 1300.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 3,
+          "replica_attempts": 1,
+          "failed_time": 100.0,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        },
+        {
+          "time": 1300.001,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 3,
+          "replica_attempts": 2,
+          "failed_time": null,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        },
+        {
+          "time": 101.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 2,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        },
+        {
+          "time": 1300.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 3,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        },
+        {
+          "time": 1300.001,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 4,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        }
+      ]
+    },
+    "programming_error": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": null,
+          "error": {
+            "class": "ProgrammingError",
+            "message": "replica:programming"
+          },
+          "primary_attempts": 0,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        }
+      ]
+    },
+    "primary_error": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": null,
+          "error": {
+            "class": "OperationalError",
+            "message": "primary:operational"
+          },
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": null,
+          "error": {
+            "class": "OperationalError",
+            "message": "primary:operational"
+          },
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    }
+  },
+  "negative_controls": {
+    "cooldown_removed_detected": true,
+    "exception_broadened_detected": true
+  },
+  "evidence": "/workspace/scratch/orm-cursor-continuation/cursor-replica-observations.json"
+}

@@ -1,0 +1,27 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control: duplicate-file execution annulled only in memory
+F.....                                                                   [100%]
+=================================== FAILURES ===================================
+_________________ test_data_keeps_order_and_imports_duplicates _________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7efcdee5d940>
+
+    def test_data_keeps_order_and_imports_duplicates(caplog):
+        refs = {}
+        with mock.patch('modules.loading.convert_file') as convert:
+            assert load_data(refs, 'init', 'data', package(
+                init_xml=['old.xml'], data=['first.xml', 'old.xml']), using='default')
+>       assert convert.call_args_list == [
+            mock.call('contract_module', name, refs, 'init', noupdate=False, using='default')
+            for name in ['old.xml', 'first.xml', 'old.xml']
+        ]
+E       AssertionError: assert [call('contra...ng='default')] == [call('contra...ng='default')]
+E         Right contains one more item: call('contract_module', 'old.xml', {}, 'init', noupdate=False, using='default')
+E         Use -v to get more diff
+
+tests/unit/modules/test_loading.py:22: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:32 module contract_module: key 'init_xml' is deprecated in Odoo 19.
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_loading.py::test_data_keeps_order_and_imports_duplicates
+1 failed, 5 passed in 0.12s

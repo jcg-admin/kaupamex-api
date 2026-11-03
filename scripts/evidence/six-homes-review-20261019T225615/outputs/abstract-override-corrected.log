@@ -1,0 +1,10 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "abstract_override_constructed": true,
+  "parent_compute": "_compute_label",
+  "child_compute": null,
+  "child_inverse": "_inverse_label",
+  "child_max_length": 32,
+  "collected_links": 1,
+  "connection_attempts": []
+}

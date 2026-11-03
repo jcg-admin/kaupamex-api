@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="4.738" timestamp="2026-10-26T17:38:29.853035" hostname="c8a29a030cff"><testcase classname="tests.unit.stock.test_stock_move_persistence" name="test_display_name_joins_origin_code_and_both_locations" time="4.348"><failure message="ValueError: Compute method failed to assign stock.StockMove(109,).display_name">tests/unit/stock/test_stock_move_persistence.py:239: in test_display_name_joins_origin_code_and_both_locations
+    assert move.display_name == 'SO0042/CAM-M: Stock&gt;Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(109,).display_name</failure></testcase><testcase classname="tests.unit.stock.test_stock_move_persistence" name="test_display_name_is_invalidated_when_destination_changes" time="0.048"><failure message="ValueError: Compute method failed to assign stock.StockMove(110,).display_name">tests/unit/stock/test_stock_move_persistence.py:246: in test_display_name_is_invalidated_when_destination_changes
+    assert move.display_name == 'CAM-M: Stock&gt;Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(110,).display_name</failure></testcase><testcase classname="tests.unit.stock.test_stock_move_persistence" name="test_new_move_labels_keep_independent_values_without_sql" time="0.053"><failure message="ValueError: Compute method failed to assign stock.StockMove(None,).display_name">tests/unit/stock/test_stock_move_persistence.py:259: in test_new_move_labels_keep_independent_values_without_sql
+    assert first.display_name == 'CAM-M: Stock&gt;Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(None,).display_name</failure></testcase><testcase classname="tests.unit.stock.test_stock_move_persistence" name="test_display_name_drops_the_prefixes_that_are_absent" time="0.054"><failure message="ValueError: Compute method failed to assign stock.StockMove(111,).display_name">tests/unit/stock/test_stock_move_persistence.py:271: in test_display_name_drops_the_prefixes_that_are_absent
+    assert move.display_name == 'Stock&gt;Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(111,).display_name</failure></testcase></testsuite></testsuites>

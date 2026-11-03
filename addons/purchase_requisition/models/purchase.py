@@ -193,6 +193,7 @@ excluye las líneas ``cancel``/``purchase``; aquí el estado vive en la **orden*
 Es la misma intención —no tocar lo ya comprometido— sobre el campo que sí
 existe.
 """
+
 from collections import defaultdict
 
 from decimal import Decimal
@@ -243,6 +244,7 @@ class PurchaseOrderGroup(TimeStampedModel):
 
 # --- purchase.order --------------------------------------------------------
 
+
 def requisition_type(self):
     """≙ ``requisition_type`` (``odoo19c: :27``) —
     ``related='requisition_id.requisition_type'``, sin columna."""
@@ -260,10 +262,11 @@ def alternative_po_ids(self):
     model = type(self)
     if self.purchase_group_id is None:
         return model.objects.none()
-    return (model.objects
-            .filter(purchase_group=self.purchase_group)
-            .exclude(pk=self.pk)
-            .filter(state__in=[model.STATE_DRAFT, model.STATE_SENT]))
+    return (
+        model.objects.filter(purchase_group=self.purchase_group)
+        .exclude(pk=self.pk)
+        .filter(state__in=[model.STATE_DRAFT, model.STATE_SENT])
+    )
 
 
 def button_confirm(self):
@@ -327,7 +330,10 @@ def get_tender_best_lines(self):
     orders = [self] + list(self.alternative_po_ids)
 
     for order_rec in orders:
-        if order_rec.state in (type(self).STATE_CANCEL, type(self).STATE_PURCHASE):
+        if order_rec.state in (
+            type(self).STATE_CANCEL,
+            type(self).STATE_PURCHASE,
+        ):
             continue
         for line in order_rec.order_line.all():
             if not line.product_qty or not line.price_total_cc:
@@ -343,8 +349,9 @@ def get_tender_best_lines(self):
 
             current_subtotal = best_subtotal[key][0].price_total_cc
             reference_line = best_unit_price[key][0]
-            current_unit_price = (reference_line.price_total_cc
-                               / reference_line.product_qty)
+            current_unit_price = (
+                reference_line.price_total_cc / reference_line.product_qty
+            )
             if current_subtotal > subtotal:
                 best_subtotal[key] = [line]
             elif current_subtotal == subtotal:
@@ -354,8 +361,11 @@ def get_tender_best_lines(self):
             elif current_unit_price == unit_price:
                 best_unit_price[key].append(line)
 
-    best_price_ids = {l.pk for lines in best_subtotal.values() for l in lines}
-    best_price_unit_ids = {l.pk for lines in best_unit_price.values() for l in lines}
+    best_price_ids = {item.pk for lines in best_subtotal.values()
+                      for item in lines}
+    best_price_unit_ids = {
+        item.pk for lines in best_unit_price.values() for item in lines
+    }
     # D-3b: sin ``date_planned`` en la línea no hay mejor fecha que calcular.
     best_date_ids = []
     return list(best_price_ids), best_date_ids, list(best_price_unit_ids)
@@ -382,8 +392,14 @@ def _compute_price_total_cc(self):
     ``api: addons/purchase/models/purchase_order.py``).
     """
     order = self.order_id
-    rate = order.currency_rate if order is not None and order.currency_rate else Decimal('1.0')
-    self.price_total_cc = (self.price_subtotal() / rate).quantize(Decimal('0.01'))
+    rate = (
+        order.currency_rate
+        if order is not None and order.currency_rate
+        else Decimal('1.0')
+    )
+    self.price_total_cc = (self.price_subtotal() / rate).quantize(
+        Decimal('0.01')
+    )
 
 
 def save_price_total_cc(self, previous, *args, **kwargs):
@@ -407,8 +423,10 @@ def save_price_total_cc(self, previous, *args, **kwargs):
 
 # --- purchase.order.line ---------------------------------------------------
 
+
 def action_clear_quantities(self):
-    """≙ ``action_clear_quantities`` (``odoo19c: :295-308``) — D-4 del docstring.
+    """
+    ≙ ``action_clear_quantities`` (``odoo19c: :295-308``) — D-4 del docstring.
 
     Pone a cero las cantidades de las líneas que **todavía se pueden tocar**, y
     avisa si alguna quedó sin limpiar por estar ya comprometida.
@@ -422,15 +440,19 @@ def action_clear_quantities(self):
     devuelve la línea que no se pudo limpiar, que es la información útil.
     """
     order = self.order_id
-    if order is not None and order.state in (type(order).STATE_CANCEL,
-                                             type(order).STATE_PURCHASE):
+    if order is not None and order.state in (
+        type(order).STATE_CANCEL,
+        type(order).STATE_PURCHASE,
+    ):
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
                 'title': 'Algunas no se limpiaron',
-                'message': 'Algunas cantidades no se pusieron a cero porque su '
-                           'estado ya no es el de una solicitud de cotización.',
+                'message': (
+                    'Algunas cantidades no se pusieron a cero porque su '
+                    'estado ya no es el de una solicitud de cotización.'
+                ),
                 'sticky': False,
             },
         }
@@ -451,23 +473,34 @@ def apply_purchase_requisition_purchase_extensions():
     declara en el cuerpo del módulo, no por extensión.
     """
     extend_model(
-        'purchase', 'PurchaseOrder',
+        'purchase',
+        'PurchaseOrder',
         campos={
             'requisition': fields.Many2one(
                 'purchase_requisition.PurchaseRequisition',
-                null=True, blank=True, on_delete=models.SET_NULL,
-                db_index=True, related_name='purchase_ids',
+                null=True,
+                blank=True,
+                on_delete=models.SET_NULL,
+                db_index=True,
+                related_name='purchase_ids',
                 verbose_name='Acuerdo',
-                help_text='Acuerdo de compra del que nace esta orden '
-                          '(Odoo requisition_id).',
+                help_text=(
+                    'Acuerdo de compra del que nace esta orden '
+                    '(Odoo requisition_id).'
+                ),
             ),
             'purchase_group': fields.Many2one(
                 'purchase_requisition.PurchaseOrderGroup',
-                null=True, blank=True, on_delete=models.SET_NULL,
-                db_index=True, related_name='order_ids',
+                null=True,
+                blank=True,
+                on_delete=models.SET_NULL,
+                db_index=True,
+                related_name='order_ids',
                 verbose_name='Grupo de alternativas',
-                help_text='Grupo que reúne esta orden con sus alternativas '
-                          '(Odoo purchase_group_id).',
+                help_text=(
+                    'Grupo que reúne esta orden con sus alternativas '
+                    '(Odoo purchase_group_id).'
+                ),
             ),
         },
         propiedades={
@@ -479,16 +512,22 @@ def apply_purchase_requisition_purchase_extensions():
     )
 
     extend_model(
-        'purchase', 'PurchaseOrderLine',
+        'purchase',
+        'PurchaseOrderLine',
         campos={
             'price_total_cc': fields.Monetary(
-                null=True, blank=True, max_digits=12, decimal_places=2,
+                null=True,
+                blank=True,
+                max_digits=12,
+                decimal_places=2,
                 default=Decimal('0.00'),
                 verbose_name='Subtotal en moneda de la empresa',
-                help_text='Odoo price_total_cc ("Company Subtotal", compute, '
-                          "store=True, currency_field='company_currency_id' "
-                          '— sin receptor aquí, ver docstring del módulo). '
-                          '``price_subtotal`` / ``order_id.currency_rate``.',
+                help_text=(
+                    'Odoo price_total_cc ("Company Subtotal", compute, '
+                    'store=True, currency_field=\'company_currency_id\' '
+                    '— sin receptor aquí, ver docstring del módulo). '
+                    '``price_subtotal`` / ``order_id.currency_rate``.'
+                ),
             ),
         },
         propiedades={'company_currency_id': company_currency_id},

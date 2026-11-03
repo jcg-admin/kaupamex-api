@@ -2,14 +2,17 @@
 
 Rebanada 2 de H-API-08 (par simétrico de la rebanada 1): un servicio crea un
 ``account.move`` ``out_refund`` que **revierte** una factura ``out_invoice``
-publicada — cada apunte con débito/crédito intercambiados sobre la misma cuenta,
+publicada — cada apunte con débito/crédito intercambiados sobre la misma
+cuenta,
 de modo que el asiento queda balanceado por construcción. Análogo a Odoo
 ``account.move._reverse_moves`` (nota de crédito de cliente).
 
 Independiente de #185 (toma la factura, que ya tiene su ``company``) y de la
-deriva ``payment``/``payments`` (esta bloquea el *wiring* al flujo de reembolso,
+deriva ``payment``/``payments`` (esta bloquea el *wiring* al flujo de
+reembolso,
 no la mecánica de reversión).
 """
+
 import uuid
 from decimal import Decimal
 
@@ -36,15 +39,23 @@ def company(db):
 def chart(db, company):
     return {
         'journal': AccountJournal.objects.create(
-            name='Ventas', code='VEN', type='sale', company=company),
+            name='Ventas', code='VEN', type='sale', company=company
+        ),
         'receivable': AccountAccount.objects.create(
-            code='105', name='Clientes', account_type='asset_receivable',
-            company=company),
+            code='105',
+            name='Clientes',
+            account_type='asset_receivable',
+            company=company,
+        ),
         'income': AccountAccount.objects.create(
-            code='401', name='Ventas', account_type='income', company=company),
+            code='401', name='Ventas', account_type='income', company=company
+        ),
         'tax': AccountAccount.objects.create(
-            code='208', name='IVA trasladado',
-            account_type='liability_current', company=company),
+            code='208',
+            name='IVA trasladado',
+            account_type='liability_current',
+            company=company,
+        ),
     }
 
 
@@ -52,13 +63,21 @@ def chart(db, company):
 def posted_invoice(db, company, chart):
     cat = make_category('Cat')
     product = make_product(
-        name='Prod', default_code='REF-001', price=Decimal('116.00'),
-        stock=5, categ=cat)
+        name='Prod',
+        default_code='REF-001',
+        price=Decimal('116.00'),
+        stock=5,
+        categ=cat,
+    )
     order = SaleOrder.objects.create(
-        state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4())
+        state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4()
+    )
     order.order_line.create(
-        product=product, name='Prod', price_unit=Decimal('116.00'),
-        product_uom_qty=1)
+        product=product,
+        name='Prod',
+        price_unit=Decimal('116.00'),
+        product_uom_qty=1,
+    )
     invoice = create_invoice_from_sale_order(order, company)
     invoice.post()
     invoice.refresh_from_db()
@@ -99,14 +118,20 @@ class TestCreateRefundFromInvoice:
 
     def test_refuses_non_invoice_move(self, company, chart):
         entry = AccountMove.objects.create(
-            move_type='entry', company=company, journal=chart['journal'],
-            date=timezone.now().date())
+            move_type='entry',
+            company=company,
+            journal=chart['journal'],
+            date=timezone.now().date(),
+        )
         with pytest.raises(UserError):
             create_refund_from_invoice(entry)
 
     def test_refuses_draft_invoice(self, db, company, chart):
         draft = AccountMove.objects.create(
-            move_type='out_invoice', company=company, journal=chart['journal'],
-            date=timezone.now().date())
+            move_type='out_invoice',
+            company=company,
+            journal=chart['journal'],
+            date=timezone.now().date(),
+        )
         with pytest.raises(UserError):
             create_refund_from_invoice(draft)

@@ -32,19 +32,22 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la plantilla (Odoo name).", max_length=150
+                        help_text="Nombre de la plantilla (Odoo name).",
+                        max_length=150,
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
-                        default=True, help_text="Archivar sin borrar (Odoo active)."
+                        default=True,
+                        help_text="Archivar sin borrar (Odoo active).",
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de listado (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de listado (Odoo sequence).",
                     ),
                 ),
                 (
@@ -59,21 +62,28 @@ class Migration(migrations.Migration):
                     "number_of_days",
                     models.PositiveIntegerField(
                         default=0,
-                        help_text="Días de validez de la cotización (Odoo number_of_days).",
+                        help_text=(
+                            "Días de validez de la cotización (Odoo"
+                            " number_of_days)."
+                        ),
                     ),
                 ),
                 (
                     "require_signature",
                     models.BooleanField(
                         default=False,
-                        help_text="Requiere firma online (Odoo require_signature).",
+                        help_text=(
+                            "Requiere firma online (Odoo require_signature)."
+                        ),
                     ),
                 ),
                 (
                     "require_payment",
                     models.BooleanField(
                         default=False,
-                        help_text="Requiere pago online (Odoo require_payment).",
+                        help_text=(
+                            "Requiere pago online (Odoo require_payment)."
+                        ),
                     ),
                 ),
                 (
@@ -81,11 +91,17 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Porcentaje de anticipo (Odoo prepayment_percent).",
+                        help_text=(
+                            "Porcentaje de anticipo (Odoo prepayment_percent)."
+                        ),
                         max_digits=5,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0")),
-                            django.core.validators.MaxValueValidator(Decimal("100")),
+                            django.core.validators.MinValueValidator(
+                                Decimal("0")
+                            ),
+                            django.core.validators.MaxValueValidator(
+                                Decimal("100")
+                            ),
                         ],
                     ),
                 ),
@@ -115,7 +131,9 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Orden dentro de la plantilla (Odoo sequence).",
+                        help_text=(
+                            "Orden dentro de la plantilla (Odoo sequence)."
+                        ),
                     ),
                 ),
                 (
@@ -145,7 +163,10 @@ class Migration(migrations.Migration):
                             ("line_note", "Nota"),
                         ],
                         default="",
-                        help_text="Tipo de línea: producto/sección/nota (Odoo display_type).",
+                        help_text=(
+                            "Tipo de línea: producto/sección/nota (Odoo"
+                            " display_type)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -153,7 +174,9 @@ class Migration(migrations.Migration):
                     "product",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Producto (Odoo product_id); NULL en sección/nota.",
+                        help_text=(
+                            "Producto (Odoo product_id); NULL en sección/nota."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="sale_template_lines",

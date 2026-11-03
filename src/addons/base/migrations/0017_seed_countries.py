@@ -9,6 +9,7 @@ Sin esta migración, tres mecanismos ya escritos quedaban inertes — el país d
 las etiquetas fiscales, el que ``create_tax_tags`` asigna, y
 ``account_fiscal_country`` de la empresa. Ver :ref:`h-api-358`.
 """
+
 from django.db import migrations
 
 from addons.base.data.res_country_data import seed_countries
@@ -21,7 +22,10 @@ def seed(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0016_rescountry_address_format_rescountry_name_position_and_more'),
+        (
+            'base',
+            '0016_rescountry_address_format_rescountry_name_position_and_more',
+        ),
     ]
 
     operations = [

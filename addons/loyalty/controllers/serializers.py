@@ -1,4 +1,5 @@
 """Serializers del programa de referidos — ``loyalty``."""
+
 from rest_framework import serializers
 
 

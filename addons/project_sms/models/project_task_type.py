@@ -25,6 +25,7 @@ placeholders ``{campo}`` — así que no hay eje por el que acotar el dominio.
 Si ``sms.template`` gana el ancla por modelo, la restricción se declara en
 el serializer DRF que edite la etapa.
 """
+
 import fields
 import models
 
@@ -35,16 +36,22 @@ def apply_project_sms_project_task_type_extensions():
     """Cuelga sobre ``project.task.type`` la plantilla de SMS — ≙
     ``_inherit``. Se invoca desde ``ProjectSmsConfig.ready()``."""
     extend_model(
-        'project', 'ProjectTaskType',
+        'project',
+        'ProjectTaskType',
         campos={
             'sms_template': fields.Many2one(
-                'sms.SmsTemplate', null=True, blank=True,
-                on_delete=models.SET_NULL, related_name='task_stages',
+                'sms.SmsTemplate',
+                null=True,
+                blank=True,
+                on_delete=models.SET_NULL,
+                related_name='task_stages',
                 verbose_name='Plantilla de SMS',
-                help_text='Odoo sms_template_id — si está definida, al '
-                          'llegar una tarea a esta etapa se envía un SMS '
-                          'al cliente (su domain por modelo no se porta — '
-                          'ver la divergencia del docstring del módulo).',
+                help_text=(
+                    'Odoo sms_template_id — si está definida, al '
+                    'llegar una tarea a esta etapa se envía un SMS '
+                    'al cliente (su domain por modelo no se porta — '
+                    'ver la divergencia del docstring del módulo).'
+                ),
             ),
         },
     )

@@ -20,6 +20,7 @@ se detecta» de «la lista siempre trae ese valor». El 5 retira el eslabón y
 comprueba que el valor **cae** — sin él, un ``_get_auth_methods`` que
 devolviera los cuatro siempre pasaría los cuatro primeros.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -41,12 +42,14 @@ def user():
 
 # === 1. Sin nada configurado: sólo la contraseña ========================
 
+
 def test_only_password_by_default(user):
     """≙ la primera aserción de la fuente (``:24``)."""
     assert user._get_auth_methods() == ['password']
 
 
 # === 2. Con TOTP de app: el segundo factor precede a la contraseña ======
+
 
 def test_totp_precedes_password(user, monkeypatch):
     """≙ ``:34-35`` — el secreto TOTP añade ``'totp'`` **antes** de
@@ -57,11 +60,14 @@ def test_totp_precedes_password(user, monkeypatch):
     secreto porque lo que se mide aquí es el orden de la lista, no el alta
     del segundo factor (eso lo cubre ``tests/unit/authz_totp/``).
     """
-    monkeypatch.setattr(type(user), 'totp_enabled', property(lambda self: True))
+    monkeypatch.setattr(
+        type(user), 'totp_enabled', property(lambda self: True)
+    )
     assert user._get_auth_methods() == ['totp', 'password']
 
 
 # === 3. Con passkey: WebAuthn encabeza ==================================
+
 
 def test_passkey_heads_the_list(user):
     """≙ ``:38-46`` — la passkey añade ``'webauthn'`` en primera posición."""
@@ -76,9 +82,12 @@ def test_passkey_heads_the_list(user):
 
 # === 4. Los tres juntos, en el orden de la fuente =======================
 
+
 def test_all_three_in_order(user, monkeypatch):
     """≙ ``:46`` — ``["webauthn", "totp", "password"]``."""
-    monkeypatch.setattr(type(user), 'totp_enabled', property(lambda self: True))
+    monkeypatch.setattr(
+        type(user), 'totp_enabled', property(lambda self: True)
+    )
     PasskeyKey.objects.create(
         name='llave-de-prueba',
         credential_identifier='cred-candado-3',
@@ -89,6 +98,7 @@ def test_all_three_in_order(user, monkeypatch):
 
 
 # === 5. Control: retirar el eslabón hace caer su valor ==================
+
 
 def test_removing_the_passkey_drops_it_from_the_list(user):
     """El control que discrimina: sin este caso, los cuatro anteriores pasan

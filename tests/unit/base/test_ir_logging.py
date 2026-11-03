@@ -17,6 +17,7 @@ el modelo (DEC-AF-11).
 
 Toca DB → django_db.
 """
+
 import logging
 from datetime import timedelta
 
@@ -33,16 +34,19 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 def _make_ir_logging():
     return IrLogging.objects.create(
-        name='apps.x', level=IrLogging.LEVEL_INFO, message='hola')
+        name='apps.x', level=IrLogging.LEVEL_INFO, message='hola'
+    )
 
 
 # --- Importable desde el hogar canónico ------------------------------------
+
 
 def test_importable_desde_addons_base_models():
     assert IrLogging.__module__ == 'addons.base.models.ir_logging'
 
 
 # --- db_table fiel a Odoo ---------------------------------------------------
+
 
 def test_db_table_matches_reference():
     assert IrLogging._meta.db_table == 'ir_logging'
@@ -55,10 +59,19 @@ def test_hereda_append_only_model():
 
 # --- Campos fieles a Odoo (nombre + tipo/level con divergencias) -----------
 
+
 def test_campos_faithful_presentes():
     field_names = {f.name for f in IrLogging._meta.get_fields()}
-    for expected in ('name', 'type', 'dbname', 'level', 'message', 'path',
-                     'func', 'line'):
+    for expected in (
+        'name',
+        'type',
+        'dbname',
+        'level',
+        'message',
+        'path',
+        'func',
+        'line',
+    ):
         assert expected in field_names, f'falta el campo Odoo {expected!r}'
     # Columnas propias (no-Odoo, DEC-LOG-07):
     for extra in ('correlation_id', 'trace'):
@@ -71,6 +84,7 @@ def test_type_default_server():
 
 
 # --- Append-only (INSERT permitido / UPDATE-DELETE de instancia bloqueado) -
+
 
 def test_insert_allowed():
     row = _make_ir_logging()
@@ -101,6 +115,7 @@ def test_bulk_delete_permitido():
 
 
 # --- El log handler escribe en IrLogging (no en el AppLog previo) ----------
+
 
 @pytest.fixture
 def logger():
@@ -140,9 +155,11 @@ def test_database_log_handler_puebla_call_site(logger):
 # se conserva 90. Estos casos fijan que la ventana volvió a 30 **sin** tocar
 # la de los demás WARNING.
 
+
 def _age(pk, days):
     IrLogging.objects.filter(pk=pk).update(
-        created_at=timezone.now() - timedelta(days=days))
+        created_at=timezone.now() - timedelta(days=days)
+    )
 
 
 def _make(name, level, days):
@@ -190,7 +207,7 @@ def test_the_three_sets_are_disjoint_in_the_count():
     conteos = IrLogging._purge_expired(dry_run=True)
     assert conteos['IrLogging 4xx'] == 1
     assert conteos['IrLogging WARNING/ERROR'] == 0
-    assert IrLogging.objects.count() == 1   # dry_run no borra
+    assert IrLogging.objects.count() == 1  # dry_run no borra
 
 
 def test_the_4xx_discriminator_is_still_exact():

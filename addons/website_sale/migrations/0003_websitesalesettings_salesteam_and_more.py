@@ -38,6 +38,36 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def _sales_team_field(default):
+    return models.ForeignKey(
+        blank=True,
+        default=default,
+        help_text="Equipo de venta al que se atribuyen los pedidos de este sitio (Odoo website.salesteam_id).",
+        null=True,
+        on_delete=django.db.models.deletion.SET_NULL,
+        related_name="websites",
+        to="sales_team.crmteam",
+        verbose_name="Equipo de venta",
+    )
+
+
+def _backfill_local_sales_team(apps, schema_editor):
+    """Resolve only historical models and metadata in the migrated database."""
+    using = schema_editor.connection.alias
+    metadata = apps.get_model('base', 'IrModelData')
+    teams = apps.get_model('sales_team', 'CrmTeam')
+    sites = apps.get_model('website_sale', 'WebsiteSaleSettings')
+    reference = metadata.objects.using(using).filter(
+        module='sales_team', name='salesteam_website_sales').first()
+    if reference is None or not reference.res_id:
+        return
+    if reference.model.casefold() != teams._meta.label.casefold():
+        raise ValueError('Sales-team XMLID points to a different historical model')
+    team = teams.objects.using(using).filter(pk=reference.res_id, active=True).first()
+    if team is not None:
+        sites.objects.using(using).filter(salesteam__isnull=True).update(salesteam=team.pk)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -46,20 +76,17 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="websitesalesettings",
-            name="salesteam",
-            field=models.ForeignKey(
-                blank=True,
-                default=addons.website_sale.models.website._default_salesteam_id,
-                help_text="Equipo de venta al que se atribuyen los pedidos de este sitio (Odoo website.salesteam_id).",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="websites",
-                to="sales_team.crmteam",
-                verbose_name="Equipo de venta",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[migrations.AddField(
+                model_name="websitesalesettings", name="salesteam",
+                field=_sales_team_field(None),
+            )],
+            state_operations=[migrations.AddField(
+                model_name="websitesalesettings", name="salesteam",
+                field=_sales_team_field(addons.website_sale.models.website._default_salesteam_id),
+            )],
         ),
+        migrations.RunPython(_backfill_local_sales_team, migrations.RunPython.noop),
         migrations.AddIndex(
             model_name="websitesalesettings",
             index=models.Index(

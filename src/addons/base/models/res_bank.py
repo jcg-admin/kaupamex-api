@@ -5,7 +5,8 @@ Adaptación de ``odoo/addons/base/models/res_bank.py`` (Odoo Community, LGPL-3)
 institución (con su BIC/SWIFT y dirección), distinto de la cuenta bancaria
 (``res.partner.bank``, cuya validación IBAN vive en el addon ``base_iban``).
 
-Cross-app: ``country`` → ``base.ResCountry``; ``state`` → ``base.ResCountryState``.
+Cross-app: ``country`` → ``base.ResCountry``; ``state`` →
+``base.ResCountryState``.
 
 Ningún ``Char`` de aquí lleva tope
 ===================================
@@ -54,7 +55,8 @@ por ``country_code`` emite el dominio sobre la cadena.
 
 La referencia declara **las dos clases aquí**: ``odoo19c:
 odoo/addons/base/models/res_bank.py`` tiene ``ResBank`` (:16) y
-``ResPartnerBank`` (:73), y **no existe** ningún ``base/models/res_partner_bank.py``.
+``ResPartnerBank`` (:73), y **no existe** ningún
+``base/models/res_partner_bank.py``.
 Aquí la cuenta vivía en un archivo propio con ese nombre — el defecto de
 :ref:`h-api-578`, agravado porque el nombre ya significa otra cosa un addon más
 allá: ``account`` y ``hr`` sí declaran ``res_partner_bank.py``, y ahí aloja su
@@ -63,7 +65,8 @@ allá: ``account`` y ``hr`` sí declaran ``res_partner_bank.py``, y ahí aloja s
 Lo que bloqueaba el movimiento era la migración
 ``0021_alter_respartnerbank_acc_type``, que importaba el módulo viejo por su
 ruta para resolver ``_supported_account_types``. Se resolvió actualizando esa
-referencia al módulo nuevo: en PostgreSQL ``choices`` es validación, no DDL, así
+referencia al módulo nuevo: en PostgreSQL ``choices`` es validación, no DDL,
+así
 que el estado de la base no cambia — lo verifica
 ``makemigrations base --check --dry-run``.
 
@@ -84,7 +87,8 @@ Divergencias declaradas (DEC-KX-03)
    referencia es un ``Selection`` calculado por ``retrieve_acc_type()``, un
    método pensado para que un addon lo sobreescriba: ``base`` devuelve siempre
    ``'bank'`` y ``base_iban`` lo cambia a ``'iban'`` cuando el número valida
-   como IBAN (odoo19c: res_bank.py:135-139). ``base_iban`` es la **Ola 0 · T-06**
+   como IBAN (odoo19c: res_bank.py:135-139). ``base_iban`` es la **Ola 0 ·
+   T-06**
    y todavía no está portado, así que el punto de extensión se preserva como
    método de clase ``retrieve_acc_type()`` —sobreescribible igual que en la
    referencia— y el campo se rellena en ``save()``.
@@ -93,6 +97,7 @@ Divergencias declaradas (DEC-KX-03)
    res_bank.py:104): un índice de paleta para el cliente web de Odoo, que este
    producto no tiene.
 """
+
 import fields
 import models
 from tools.translate import _
@@ -115,7 +120,7 @@ def sanitize_account_number(acc_number):
     return ''.join(ch for ch in acc_number if ch.isalnum()).upper()
 
 
-class ResBank(models.Model):
+class ResBank(models.DefaultGetMixin, models.Model):
     """``res.bank`` — banco (institución) con su BIC y dirección."""
 
     _name = 'res.bank'
@@ -123,31 +128,43 @@ class ResBank(models.Model):
     _order = 'name, id'
     _rec_names_search = ['name', 'bic']
 
-    name         = fields.Char(help_text='Nombre del banco (Odoo name).')
-    bic          = fields.Char(
-        blank=True, default='', db_index=True,
-        help_text='Bank Identifier Code / SWIFT (Odoo bic). A veces se le '
-                  'llama BIC o Swift.',
+    name = fields.Char(help_text='Nombre del banco (Odoo name).')
+    bic = fields.Char(
+        blank=True,
+        default='',
+        db_index=True,
+        help_text=(
+            'Bank Identifier Code / SWIFT (Odoo bic). A veces se le '
+            'llama BIC o Swift.'
+        ),
     )
-    street       = fields.Char(blank=True, default='', help_text='Odoo street.')
-    street2      = fields.Char(blank=True, default='', help_text='Odoo street2.')
-    zip          = fields.Char(blank=True, default='', help_text='Odoo zip.')
-    city         = fields.Char(blank=True, default='', help_text='Odoo city.')
-    state        = fields.Many2one(
-        ResCountryState, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='banks', help_text='Estado/provincia (Odoo state).',
+    street = fields.Char(blank=True, default='', help_text='Odoo street.')
+    street2 = fields.Char(blank=True, default='', help_text='Odoo street2.')
+    zip = fields.Char(blank=True, default='', help_text='Odoo zip.')
+    city = fields.Char(blank=True, default='', help_text='Odoo city.')
+    state = fields.Many2one(
+        ResCountryState,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='banks',
+        help_text='Estado/provincia (Odoo state).',
     )
-    country      = fields.Many2one(
-        ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='banks', help_text='País (Odoo country).',
+    country = fields.Many2one(
+        ResCountry,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='banks',
+        help_text='País (Odoo country).',
     )
     #: ≙ ``country_code`` (``odoo19c: res_bank.py:29``). Sin ``store``, que es
     #: el defecto de la fuente para un ``related`` (``fields.py:455``): no
     #: ocupa columna y se calcula al leer.
     country_code = fields.Char('Country Code', related='country.code')
-    email        = fields.Char(blank=True, default='', help_text='Odoo email.')
-    phone        = fields.Char(blank=True, default='', help_text='Odoo phone.')
-    active       = fields.Boolean(default=True, help_text='Odoo active.')
+    email = fields.Char(blank=True, default='', help_text='Odoo email.')
+    phone = fields.Char(blank=True, default='', help_text='Odoo phone.')
+    active = fields.Boolean(default=True, help_text='Odoo active.')
 
     class Meta:
         db_table = 'res_bank'
@@ -183,8 +200,9 @@ class ResBank(models.Model):
         que busca sobre ``_rec_names_search``.
         """
         if operator in ('ilike', 'not ilike') and value:
-            domain = (Domain('bic', '=ilike', f'{value}%')
-                      | Domain('name', 'ilike', value))
+            domain = Domain('bic', '=ilike', f'{value}%') | Domain(
+                'name', 'ilike', value
+            )
             return ~domain if operator == 'not ilike' else domain
         return search_display_name(cls, operator, value)
 
@@ -207,7 +225,8 @@ class ResBank(models.Model):
         un banco puede quedar con «Jalisco» y país «Francia».
         """
         if self.country_id and self.country_id != (
-                self.state.country_id if self.state is not None else None):
+            self.state.country_id if self.state is not None else None
+        ):
             self.state = None
 
     def _onchange_state(self):
@@ -220,7 +239,9 @@ class ResBank(models.Model):
             self.country = self.state.country
 
     def save(self, *args, **kwargs):
-        """``create`` y ``write`` de la fuente, que aquí son la misma entrada."""
+        """
+        ``create`` y ``write`` de la fuente, que aquí son la misma entrada.
+        """
         self.bic = self._sanitize_bic(self.bic)
         return super().save(*args, **kwargs)
 
@@ -229,7 +250,8 @@ class ResBank(models.Model):
 
 
 def _supported_account_types():
-    """Vocabulario de ``acc_type`` — ≙ el ``selection=lambda`` de la referencia.
+    """
+    Vocabulario de ``acc_type`` — ≙ el ``selection=lambda`` de la referencia.
 
     ``odoo19c: res_bank.py:89`` declara el campo como
     ``Selection(selection=lambda x: x.env['res.partner.bank']
@@ -246,8 +268,12 @@ def _supported_account_types():
     return ResPartnerBank.get_supported_account_types()
 
 
-class ResPartnerBank(models.DefaultGetMixin, models.RecordLoaderMixin,
-                     models.CheckCompanyMixin, models.Model):
+class ResPartnerBank(
+    models.DefaultGetMixin,
+    models.RecordLoaderMixin,
+    models.CheckCompanyMixin,
+    models.Model,
+):
     """``res.partner.bank`` — cuenta bancaria de un contacto."""
 
     #: Los cuatro atributos de clase que la fuente declara
@@ -269,45 +295,69 @@ class ResPartnerBank(models.DefaultGetMixin, models.RecordLoaderMixin,
     #: asigna la funcion pelada porque alla el consumidor es un recordset,
     #: que es una instancia. Mismo simbolo, misma semantica; lo que cambia
     #: es sobre que se invoca.
-    _check_company_domain = classmethod(
-        models.check_company_domain_parent_of)
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
     acc_number = fields.Char(
         max_length=64,
-        help_text='Número de cuenta tal como lo escribió el usuario (Odoo '
-                  'acc_number, requerido).',
+        help_text=(
+            'Número de cuenta tal como lo escribió el usuario (Odoo '
+            'acc_number, requerido).'
+        ),
     )
     sanitized_acc_number = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
-        help_text='``acc_number`` sin separadores y en mayúsculas. Es la '
-                  'columna que hace única la cuenta y por la que se busca — '
-                  'sin ella, el mismo IBAN escrito con y sin espacios serían '
-                  'dos cuentas distintas (Odoo sanitized_acc_number).',
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text=(
+            '``acc_number`` sin separadores y en mayúsculas. Es la '
+            'columna que hace única la cuenta y por la que se busca — '
+            'sin ella, el mismo IBAN escrito con y sin espacios serían '
+            'dos cuentas distintas (Odoo sanitized_acc_number).'
+        ),
     )
     acc_type = fields.Selection(
-        max_length=16, default='bank', choices=_supported_account_types,
-        help_text='Tipo inferido del número: ``bank`` en el núcleo, ``iban`` '
-                  'cuando base_iban lo valide (Odoo acc_type; ver '
-                  'divergencia 2).',
+        max_length=16,
+        default='bank',
+        choices=_supported_account_types,
+        help_text=(
+            'Tipo inferido del número: ``bank`` en el núcleo, ``iban`` '
+            'cuando base_iban lo valide (Odoo acc_type; ver '
+            'divergencia 2).'
+        ),
     )
     clearing_number = fields.Char(
-        max_length=32, blank=True, default='',
-        help_text='Número de compensación, donde el país lo usa (Odoo '
-                  'clearing_number).',
+        max_length=32,
+        blank=True,
+        default='',
+        help_text=(
+            'Número de compensación, donde el país lo usa (Odoo '
+            'clearing_number).'
+        ),
     )
     acc_holder_name = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Titular de la cuenta, cuando difiere del nombre del '
-                  'contacto (Odoo acc_holder_name).',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Titular de la cuenta, cuando difiere del nombre del '
+            'contacto (Odoo acc_holder_name).'
+        ),
     )
     partner = fields.Many2one(
-        'base.ResPartner', on_delete=models.CASCADE,
+        'base.ResPartner',
+        null=False, on_delete=models.CASCADE,
         related_name='bank_accounts',
-        help_text='Contacto titular de la cuenta (Odoo partner_id, requerido, '
-                  'ondelete cascade).',
+        help_text=(
+            'Contacto titular de la cuenta (Odoo partner_id, requerido, '
+            'ondelete cascade).'
+        ),
     )
     bank = fields.Many2one(
-        'base.ResBank', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResBank',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='accounts',
         help_text='Institución donde está la cuenta (Odoo bank_id).',
     )
@@ -324,27 +374,36 @@ class ResPartnerBank(models.DefaultGetMixin, models.RecordLoaderMixin,
     #: columna.
     country_code = fields.Char('Country Code', related='partner.country_code')
     currency = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='bank_accounts',
         help_text='Divisa de la cuenta (Odoo currency_id).',
     )
     allow_out_payment = fields.Boolean(
         default=False,
-        help_text='La cuenta puede usarse para pagos salientes. Default False '
-                  'a propósito, fiel a la referencia: habilitar una cuenta '
-                  'para enviar dinero es un acto deliberado (Odoo '
-                  'allow_out_payment).',
+        help_text=(
+            'La cuenta puede usarse para pagos salientes. Default False '
+            'a propósito, fiel a la referencia: habilitar una cuenta '
+            'para enviar dinero es un acto deliberado (Odoo '
+            'allow_out_payment).'
+        ),
     )
     sequence = fields.Integer(
-        default=10, help_text='Orden de presentación (Odoo sequence).',
+        default=10,
+        help_text='Orden de presentación (Odoo sequence).',
     )
     active = fields.Boolean(
         default=True,
-        help_text='Cuenta vigente; desactivar la archiva sin borrarla (Odoo '
-                  'active).',
+        help_text=(
+            'Cuenta vigente; desactivar la archiva sin borrarla (Odoo active).'
+        ),
     )
     note = fields.Text(
-        blank=True, default='', help_text='Notas libres (Odoo note).',
+        blank=True,
+        default='',
+        help_text='Notas libres (Odoo note).',
     )
 
     class Meta:

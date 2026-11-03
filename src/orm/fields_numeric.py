@@ -34,11 +34,13 @@ cerrada de tipos que la fuente admite
 ``Monetary`` y allá es ``Float`` company_dependent es una decisión propia —
 tarea **#135**.
 """
+
 import decimal
 
 from django.db import models
 
 from orm.fields_company_dependent import make_dispatcher
+from tools.float_utils import float_round
 from orm.fields_nonstored import (
     _UNSET,
     annotate_related,
@@ -48,7 +50,61 @@ from orm.fields_nonstored import (
 __all__ = ['Integer', 'Float', 'Monetary']
 
 Integer = make_dispatcher('Integer', 'integer', models.IntegerField)
-Float = make_dispatcher('Float', 'float', models.FloatField)
+
+
+class NumericFloat(models.FloatField):
+    """Un ``Float`` con ``digits``: columna ``numeric``, valor ``float``.
+
+    ≙ ``Float._column_type`` (``odoo19c: odoo/orm/fields_numeric.py:125-133``),
+    verbatim en su decisión: con ``digits`` declarados la columna es
+    ``('numeric', 'numeric')`` —sin precisión: el redondeo lo hace
+    ``convert_to_column``— y sin ellos ``float8``. El valor de Python sigue
+    siendo ``float`` (``convert_to_cache``, ``:141-150``), así que la lectura
+    convierte el ``Decimal`` que ``psycopg`` entrega por una columna
+    ``numeric``.
+
+    Antes el ``FloatField`` guardaba ``digits`` como atributo y creaba
+    ``float8``: :ref:`h-api-1131`.
+    """
+
+    column_type = ('numeric', 'numeric')
+
+    def db_type(self, connection):
+        return 'numeric'
+
+    def from_db_value(self, value, expression, connection):
+        return None if value is None else float(value)
+
+    def get_db_prep_save(self, value, connection):
+        """Redondea a la escala de ``digits`` antes de escribir — ≙
+        ``Float.convert_to_column`` (``:155-163``): ``float_round`` con
+        ``precision_digits=scale``.
+
+        pendiente: ``digits`` como nombre de ``decimal.precision`` (la
+        fuente lo resuelve con ``get_digits(env)``); hoy sólo la tupla.
+        """
+        digits = getattr(self, 'digits', None)
+        if value is not None and isinstance(digits, tuple):
+            value = float_round(float(value), precision_digits=digits[1])
+        return super().get_db_prep_save(value, connection)
+
+
+_float_plain = make_dispatcher('Float', 'float', models.FloatField)
+_float_numeric = make_dispatcher('Float', 'float', NumericFloat)
+
+
+def Float(*args, digits=None, **kwargs):
+    """``fields.Float`` — el despachador de ``company_dependent`` de
+    siempre, que con ``digits`` construye un :class:`NumericFloat`."""
+    if digits is None:
+        return _float_plain(*args, **kwargs)
+    field = _float_numeric(*args, **kwargs)
+    field.digits = digits
+    return field
+
+
+Float.company_dependent_base_type = _float_plain.company_dependent_base_type
+Float.plain_field_class = _float_plain.plain_field_class
 
 
 def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
@@ -70,8 +126,12 @@ def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
     return annotate_related(field, related, related_attrs)
 
 
-def _integer_convert_to_column(self, value, record, values=None, validate=True):
-    """``Integer.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_numeric.py:32-33``.
+def _integer_convert_to_column(
+    self, value, record, values=None, validate=True
+):
+    """
+    ``Integer.convert_to_column`` — ≙ ``odoo19c:
+    odoo/orm/fields_numeric.py:32-33``.
 
     ``int(value or 0)``: el vocabulario de ausencia de un entero es el cero, no
     el ``NULL``. Es la sobrecarga que impide que la base lleve ``False`` a
@@ -107,7 +167,8 @@ def _float_convert_to_column(self, value, record, values=None, validate=True):
     el de la caché divergen en el último dígito y las comparaciones dejan de
     coincidir.
 
-    La fuente lee la precisión de ``self.get_digits(record.env)`` —un ajuste por
+    La fuente lee la precisión de ``self.get_digits(record.env)`` —un ajuste
+    por
     empresa— y aquí la declara el propio campo (``decimal_places``), que es
     donde este stack la pone. El registro no hace falta: por eso la firma lo
     acepta y el cuerpo no lo consulta.
@@ -120,7 +181,9 @@ def _float_convert_to_column(self, value, record, values=None, validate=True):
 models.FloatField.convert_to_column = _float_convert_to_column
 
 
-def _decimal_convert_to_column(self, value, record, values=None, validate=True):
+def _decimal_convert_to_column(
+    self, value, record, values=None, validate=True
+):
     """``Monetary.convert_to_column`` — ≙ el mismo reparto que ``Float``.
 
     ``DecimalField`` es el tipo con que este árbol declara el dinero, y su
@@ -136,8 +199,9 @@ def _decimal_convert_to_column(self, value, record, values=None, validate=True):
     scale = getattr(self, 'decimal_places', None)
     if scale is None:
         return value
-    return value.quantize(decimal.Decimal(1).scaleb(-scale),
-                          rounding=decimal.ROUND_HALF_UP)
+    return value.quantize(
+        decimal.Decimal(1).scaleb(-scale), rounding=decimal.ROUND_HALF_UP
+    )
 
 
 models.DecimalField.convert_to_column = _decimal_convert_to_column

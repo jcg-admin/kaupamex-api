@@ -4,7 +4,8 @@
 En la fuente un *recordset* es una sola cosa: un objeto que lleva a la vez el
 modelo (``_name``), los ids (``_ids``) y las filas. De ahí salen gratis
 ``records.browse(...)``, ``records._ids`` y ``record.id``. Aquí un conjunto de
-filas es una instancia de modelo de Django o un ``QuerySet``, así que ese objeto
+filas es una instancia de modelo de Django o un ``QuerySet``, así que ese
+objeto
 único no existe y la firma de la fuente no se puede portar literal: se parte en
 cuatro funciones de ``orm/utils.py``, y estos casos fijan el contrato de las
 cuatro.
@@ -22,23 +23,27 @@ filas es un ``QuerySet``— así que la firma no se puede portar literal y el
 mecanismo diverge en dos puntos que estos casos fijan:
 
 1. **El orden.** La fuente conserva el orden en que se pasaron los ids, porque
-   los guarda en una tupla. Un ``filter(pk__in=…)`` de Django devuelve las filas
+   los guarda en una tupla. Un ``filter(pk__in=…)`` de Django devuelve las
+   filas
    en el orden que decida el motor —o el ``Meta.ordering`` del modelo—, así que
    el orden hay que **reconstruirlo** con ``Case``/``When``.
 2. **La pereza.** La fuente no consulta nada: un id inexistente produce un
-   recordset que falla al leerse. Aquí la consulta decide qué filas hay, y un id
+   recordset que falla al leerse. Aquí la consulta decide qué filas hay, y un
+   id
    inexistente se cae del resultado en silencio.
 
 Qué haría fallar a estos casos
 ==============================
 
 ``ResPartner`` declara ``Meta.ordering = ['complete_name', '-id']``
-(``src/addons/base/models/res_partner.py:654``), así que el caso del orden es un
+(``src/addons/base/models/res_partner.py:654``), así que el caso del orden es
+un
 **control que discrimina**: si el ``Case``/``When`` desapareciera, la consulta
 saldría ordenada por nombre —no por la secuencia pedida— y el caso caería. Un
 caso que sólo comprobara *«browse devuelve las tres filas»* sería verde con y
 sin el mecanismo (sub-patrón D de ``metrica-decide-la-conclusion``).
 """
+
 import pytest
 from django.db.models import QuerySet
 
@@ -134,7 +139,9 @@ class TestTheBrowseAcceptsTheFourFormsOfItsArgument:
         assert record_ids(browse(ResPartner, partner.pk)) == (partner.pk,)
 
     def test_a_generator_is_consumed_once(self, django_assert_num_queries):
-        """Un generador vale como iterable — se materializa en el constructor."""
+        """
+        Un generador vale como iterable — se materializa en el constructor.
+        """
         partner = ResPartner.objects.create(name='Generador')
         ids = (pk for pk in [partner.pk])
         assert record_ids(browse(ResPartner, ids)) == (partner.pk,)
@@ -169,12 +176,18 @@ class TestTheDivergencesAreDeclaredAndMeasured:
         """
         partner = ResPartner.objects.create(name='Existe')
         nonexistent = ResPartner.objects.order_by('-pk').first().pk + 1000
-        assert record_ids(browse(ResPartner, [partner.pk, nonexistent])) == (partner.pk,)
+        assert record_ids(browse(ResPartner, [partner.pk, nonexistent])) == (
+            partner.pk,
+        )
 
     def test_a_repeated_id_appears_once(self):
-        """La fuente guarda ``(7, 7)``; una fila no se puede duplicar en SQL."""
+        """
+        La fuente guarda ``(7, 7)``; una fila no se puede duplicar en SQL.
+        """
         partner = ResPartner.objects.create(name='Repetido')
-        assert record_ids(browse(ResPartner, [partner.pk, partner.pk])) == (partner.pk,)
+        assert record_ids(browse(ResPartner, [partner.pk, partner.pk])) == (
+            partner.pk,
+        )
 
 
 @pytest.mark.django_db
@@ -196,7 +209,9 @@ class TestTheTripleWinsOverThePkOfTheRow:
 
     def test_a_multi_recordset_gives_its_ids(self):
         environment = Environment()
-        records = UtilsRecordsetProbe._from_ids(environment, (7, 18, 33), (7, 18, 33))
+        records = UtilsRecordsetProbe._from_ids(
+            environment, (7, 18, 33), (7, 18, 33)
+        )
         assert record_ids(records) == (7, 18, 33)
 
     def test_the_order_of_the_triple_survives(self):
@@ -224,7 +239,9 @@ class TestTheModelOfReadsTheClassOffTheRows:
         assert model_of(ResPartner.objects.all()) is ResPartner
 
     def test_an_empty_queryset_gives_it_too(self):
-        """Sin filas también: la clase la lleva la consulta, no el resultado."""
+        """
+        Sin filas también: la clase la lleva la consulta, no el resultado.
+        """
         assert model_of(ResPartner.objects.none()) is ResPartner
 
     def test_the_class_itself_passes_through(self):
@@ -280,7 +297,10 @@ class TestTheAsRecordListGivesTheRowsThemselves:
 
     def test_it_is_the_counterpart_of_record_ids(self):
         """Las dos mitades del mismo objeto: los ids y las filas."""
-        partners = [ResPartner.objects.create(name=f'Par {i}') for i in range(2)]
+        partners = [
+            ResPartner.objects.create(name=f'Par {i}') for i in range(2)
+        ]
         rowset = ResPartner.objects.filter(pk__in=[s.pk for s in partners])
-        assert (sorted(f.pk for f in as_record_list(rowset))
-                == sorted(record_ids(rowset)))
+        assert sorted(f.pk for f in as_record_list(rowset)) == sorted(
+            record_ids(rowset)
+        )

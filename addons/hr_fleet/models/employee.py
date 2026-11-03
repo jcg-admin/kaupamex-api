@@ -71,6 +71,7 @@ Divergencias declaradas
    para que el motor de dominios lo hiciera — aquí el motor es ``Q``).
 5. **``sudo()`` → acceso directo** — sin usuario ambiente no hay elevación.
 """
+
 import fields
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -89,7 +90,8 @@ def _compute_license_plate(self):
     vehículos del empleado más la de su coche particular, separadas por
     espacio."""
     car_plates = [
-        plate for plate in self.car_ids.values_list('license_plate', flat=True)
+        plate
+        for plate in self.car_ids.values_list('license_plate', flat=True)
         if plate
     ]
     if self.private_car_plate:
@@ -101,8 +103,9 @@ def _search_license_plate(cls, value, lookup='icontains'):
     """≙ ``_search_license_plate`` (``:40-43``) — el ``Q`` que busca por
     placa de vehículo asignado O placa del coche particular. Divergencia 4:
     sin rama de operadores negativos (negar con ``~``)."""
-    return (Q(**{f'car_ids__license_plate__{lookup}': value})
-            | Q(**{f'private_car_plate__{lookup}': value}))
+    return Q(**{f'car_ids__license_plate__{lookup}': value}) | Q(
+        **{f'private_car_plate__{lookup}': value}
+    )
 
 
 def _compute_employee_cars_count(self):
@@ -112,7 +115,8 @@ def _compute_employee_cars_count(self):
     if self.pk is None:
         return 0
     return FleetVehicleAssignationLog.objects.filter(
-        driver_employee=self, driver=self.work_contact,
+        driver_employee=self,
+        driver=self.work_contact,
     ).count()
 
 
@@ -138,8 +142,11 @@ def _check_work_contact_id(self):
         )
 
 
-@receiver(pre_save, sender=HrEmployee,
-          dispatch_uid='hr_fleet.employee_pre_save_capture_and_check')
+@receiver(
+    pre_save,
+    sender=HrEmployee,
+    dispatch_uid='hr_fleet.employee_pre_save_capture_and_check',
+)
 def _employee_pre_save(sender, instance, **kwargs):
     """La mitad previa del ``write`` de la referencia (``:63-66``) + el
     constrains (divergencias 2 y 3): valida el contacto de trabajo y
@@ -148,30 +155,41 @@ def _employee_pre_save(sender, instance, **kwargs):
     instance._hr_fleet_old_work_contact_id = None
     instance._hr_fleet_old_mobility_card = None
     if instance.pk is not None:
-        previous = (HrEmployee.objects.filter(pk=instance.pk)
-                    .values('work_contact_id', 'mobility_card').first())
+        previous = (
+            HrEmployee.objects.filter(pk=instance.pk)
+            .values('work_contact_id', 'mobility_card')
+            .first()
+        )
         if previous:
-            instance._hr_fleet_old_work_contact_id = previous['work_contact_id']
+            instance._hr_fleet_old_work_contact_id = previous[
+                'work_contact_id'
+            ]
             instance._hr_fleet_old_mobility_card = previous['mobility_card']
 
 
-@receiver(post_save, sender=HrEmployee,
-          dispatch_uid='hr_fleet.employee_post_save_sync_cars')
+@receiver(
+    post_save,
+    sender=HrEmployee,
+    dispatch_uid='hr_fleet.employee_post_save_sync_cars',
+)
 def _employee_post_save(sender, instance, created, **kwargs):
     """La mitad posterior del ``write`` de la referencia (``:68-92``) —
     propaga el cambio de contacto de trabajo a los vehículos (conductor
     actual y futuro) y refresca su tarjeta de movilidad."""
     if created:
         return
-    old_work_contact_id = getattr(instance, '_hr_fleet_old_work_contact_id', None)
+    old_work_contact_id = getattr(
+        instance, '_hr_fleet_old_work_contact_id', None
+    )
     old_mobility_card = getattr(instance, '_hr_fleet_old_mobility_card', None)
 
     if instance.work_contact_id != old_work_contact_id:
         cars = FleetVehicle.objects.filter(
             Q(driver_employee=instance) | Q(future_driver_employee=instance),
         )
-        new_work_contact = (instance.work_contact
-                            if instance.work_contact_id else None)
+        new_work_contact = (
+            instance.work_contact if instance.work_contact_id else None
+        )
         cars.filter(driver_employee=instance).update(driver=new_work_contact)
         cars.filter(future_driver_employee=instance).update(
             future_driver=new_work_contact,
@@ -196,13 +214,17 @@ def apply_hr_fleet_employee_extensions():
     conectan al importar este módulo (``ready()`` ya lo importa una vez;
     ``dispatch_uid`` los hace idempotentes)."""
     extend_model(
-        'hr', 'HrEmployee',
+        'hr',
+        'HrEmployee',
         campos={
             'mobility_card': fields.Char(
-                blank=True, default='',
+                blank=True,
+                default='',
                 verbose_name='Tarjeta de movilidad',
-                help_text='Odoo mobility_card (su groups= no se porta — '
-                          'divergencia 1 del docstring del módulo).',
+                help_text=(
+                    'Odoo mobility_card (su groups= no se porta — '
+                    'divergencia 1 del docstring del módulo).'
+                ),
             ),
         },
         metodos={
@@ -217,7 +239,8 @@ def apply_hr_fleet_employee_extensions():
         },
     )
     extend_model(
-        'hr', 'HrEmployeePublic',
+        'hr',
+        'HrEmployeePublic',
         propiedades={
             'mobility_card': mobility_card_public,
         },

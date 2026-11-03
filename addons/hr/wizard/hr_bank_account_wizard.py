@@ -45,6 +45,7 @@ Divergencias declaradas
    el contrato de ``hr.employee.salary_distribution`` ya portado
    (``hr_employee.py``).
 """
+
 from addons.hr.wizard.hr_bank_account_allocation_wizard_line import (
     BankAccountAllocationLineWizard,
 )
@@ -75,23 +76,29 @@ class BankAccountAllocationWizard(TransientModel):
         for bank_account in employee.bank_account.all():
             if str(bank_account.pk) not in distribution:
                 raise ValidationError(
-                    _('La cuenta bancaria %(account)s no aparece en la '
-                      'distribución de nómina del empleado',
-                      account=str(bank_account)),
+                    _(
+                        'La cuenta bancaria %(account)s no aparece en la '
+                        'distribución de nómina del empleado',
+                        account=str(bank_account),
+                    ),
                 )
             dist_entry = distribution.get(str(bank_account.pk))
-            wizard_lines.append({
-                'bank_account_id': bank_account.pk,
-                'amount': dist_entry.get('amount'),
-                'amount_type': ('percentage'
-                                if dist_entry.get('amount_is_percentage')
-                                else 'fixed'),
-                'trusted': bank_account.allow_out_payment,
-                'sequence': dist_entry.get(
-                    'sequence',
-                    BankAccountAllocationLineWizard.DEFAULT_SEQUENCE,
-                ),
-            })
+            wizard_lines.append(
+                {
+                    'bank_account_id': bank_account.pk,
+                    'amount': dist_entry.get('amount'),
+                    'amount_type': (
+                        'percentage'
+                        if dist_entry.get('amount_is_percentage')
+                        else 'fixed'
+                    ),
+                    'trusted': bank_account.allow_out_payment,
+                    'sequence': dist_entry.get(
+                        'sequence',
+                        BankAccountAllocationLineWizard.DEFAULT_SEQUENCE,
+                    ),
+                }
+            )
         return wizard_lines
 
     @classmethod
@@ -113,7 +120,9 @@ class BankAccountAllocationWizard(TransientModel):
         }
         for line in allocations:
             line_amount = float_round(
-                line['amount'], precision_digits=2, rounding_method='DOWN',
+                line['amount'],
+                precision_digits=2,
+                rounding_method='DOWN',
             )
             distribution[str(line['bank_account_id'])] = {
                 'amount': line_amount,
@@ -121,7 +130,9 @@ class BankAccountAllocationWizard(TransientModel):
                     'sequence',
                     BankAccountAllocationLineWizard.DEFAULT_SEQUENCE,
                 ),
-                'amount_is_percentage': line.get('amount_type') == 'percentage',
+                'amount_is_percentage': (
+                    line.get('amount_type') == 'percentage'
+                ),
             }
             if line.get('amount_type') == 'percentage':
                 total += line_amount
@@ -130,7 +141,9 @@ class BankAccountAllocationWizard(TransientModel):
             if bank_account is not None:
                 bank_account.allow_out_payment = bool(line.get('trusted'))
                 bank_account.save(update_fields=['allow_out_payment'])
-        if check_for_total and not float_is_zero(total - 100.0, precision_digits=4):
+        if check_for_total and not float_is_zero(
+            total - 100.0, precision_digits=4
+        ):
             raise ValidationError(
                 _('La asignación porcentual total debe sumar 100%.'),
             )

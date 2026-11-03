@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="account_account_account_tag",
-                help_text="Etiquetas de reporte de la cuenta (Odoo tag_ids). Una cuenta sin etiqueta propia hereda las de la cuenta de código inmediatamente anterior.",
+                help_text=(
+                    "Etiquetas de reporte de la cuenta (Odoo tag_ids). Una"
+                    " cuenta sin etiqueta propia hereda las de la cuenta de"
+                    " código inmediatamente anterior."
+                ),
                 related_name="accounts",
                 to="account.accountaccounttag",
             ),

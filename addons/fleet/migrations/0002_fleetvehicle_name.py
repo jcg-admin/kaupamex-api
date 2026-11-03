@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Marca/Modelo/Placa. Odoo name (compute + store): se almacena para poder ordenar y buscar por texto. Lo calcula save() con compute_vehicle_name().",
+                help_text=(
+                    "Marca/Modelo/Placa. Odoo name (compute + store): se"
+                    " almacena para poder ordenar y buscar por texto. Lo"
+                    " calcula save() con compute_vehicle_name()."
+                ),
                 max_length=255,
             ),
         ),

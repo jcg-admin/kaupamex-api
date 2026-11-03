@@ -25,7 +25,8 @@ contrato público, que se decide aparte... no se hace de rebote al adaptar
 el modelo"*.
 
 Eso no vuelve a ``load_web_menus`` un símbolo sin destino posible — se porta
-igual, como método de conjunto propio del manager (``CapabilityPrunedMenuManager``,
+igual, como método de conjunto propio del manager
+(``CapabilityPrunedMenuManager``,
 mismo lugar que ``load_menus``/``load_menus_tree``), disponible para quien
 lo necesite en ese shape. La razón para NO cablearlo en ``MyMenuView`` hoy es
 que cambiar el contrato público del endpoint es una decisión de scope propia
@@ -64,6 +65,7 @@ La resolución "si es app y no tiene acción propia, toma la del primer
 descendiente que sí tenga" (``while child and not action_id: ...``) sí se
 porta verbatim — es lógica de recorrido del árbol, no de formato de campo.
 """
+
 from orm.method_chain import chain_method
 
 from addons.base.models.ir_ui_menu import CapabilityPrunedMenuManager

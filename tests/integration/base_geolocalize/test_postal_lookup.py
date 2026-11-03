@@ -4,6 +4,7 @@
 direcciones (CP → municipio/estado + lista de colonias). Público (AllowAny):
 la captura de dirección puede ocurrir en checkout anónimo.
 """
+
 from addons.base_address_extended.models import CatalogPostalCode
 
 import pytest
@@ -14,11 +15,21 @@ pytestmark = pytest.mark.integration
 
 def _row(**over):
     data = dict(
-        postal_code='01000', settlement_name='San Ángel', settlement_type='Colonia',
-        municipality='Álvaro Obregón', state='Ciudad de México', city='Ciudad de México',
-        office_postal_code='01001', state_code='09', office_code='01001',
-        postal_code_internal_code='', settlement_type_code='09', municipality_code='010',
-        settlement_consecutive_id='0001', zone='Urbano', city_code='01',
+        postal_code='01000',
+        settlement_name='San Ángel',
+        settlement_type='Colonia',
+        municipality='Álvaro Obregón',
+        state='Ciudad de México',
+        city='Ciudad de México',
+        office_postal_code='01001',
+        state_code='09',
+        office_code='01001',
+        postal_code_internal_code='',
+        settlement_type_code='09',
+        municipality_code='010',
+        settlement_consecutive_id='0001',
+        zone='Urbano',
+        city_code='01',
     )
     data.update(over)
     return CatalogPostalCode.objects.create(**data)
@@ -54,8 +65,13 @@ def test_lookup_unknown_cp_returns_404(client):
 @pytest.mark.django_db
 def test_lookup_is_public(client):
     """Sin autenticación (checkout anónimo) el endpoint responde 200."""
-    _row(postal_code='28001', settlement_name='Centro',
-         municipality='Colima', state='Colima', settlement_consecutive_id='0001')
+    _row(
+        postal_code='28001',
+        settlement_name='Centro',
+        municipality='Colima',
+        state='Colima',
+        settlement_consecutive_id='0001',
+    )
     resp = client.get('/api/v2/geo/postal-codes/28001/')
     assert resp.status_code == 200
 
@@ -63,11 +79,23 @@ def test_lookup_is_public(client):
 @pytest.mark.django_db
 def test_lookup_filters_by_country(client):
     """El mismo CP en dos países se separa por el query param ``country``."""
-    _row(country='MX', postal_code='28001', settlement_name='Centro',
-         municipality='Colima', state='Colima', settlement_consecutive_id='0001')
-    _row(country='ES', postal_code='28001', settlement_name='Salamanca',
-         municipality='Madrid', state='Madrid', zone='',
-         settlement_consecutive_id='0001')
+    _row(
+        country='MX',
+        postal_code='28001',
+        settlement_name='Centro',
+        municipality='Colima',
+        state='Colima',
+        settlement_consecutive_id='0001',
+    )
+    _row(
+        country='ES',
+        postal_code='28001',
+        settlement_name='Salamanca',
+        municipality='Madrid',
+        state='Madrid',
+        zone='',
+        settlement_consecutive_id='0001',
+    )
     resp = client.get('/api/v2/geo/postal-codes/28001/?country=ES')
     assert resp.status_code == 200
     body = resp.json()

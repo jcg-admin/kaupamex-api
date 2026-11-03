@@ -11,6 +11,7 @@ the whole existing suite green (``UserFactory`` defaults to ``company=None``).
 
 TDD for the Kaupamex platform base loop (design-first -> construction).
 """
+
 import datetime
 
 import pytest
@@ -36,7 +37,9 @@ pytestmark = pytest.mark.django_db
 
 
 def _grant_graded(user, noun_code, level, module):
-    cap = Capability.objects.create(module=module, code=noun_code, name=noun_code)
+    cap = Capability.objects.create(
+        module=module, code=noun_code, name=noun_code
+    )
     role = Role.objects.create(code=f"r-{noun_code}", name=noun_code)
     RoleCapability.objects.create(role=role, capability=cap, level=level)
     RoleAssignment.objects.create(user=user, role=role)
@@ -45,9 +48,13 @@ def _grant_graded(user, noun_code, level, module):
 
 def _subscribe(company, module, active=True):
     return CompanyModuleSubscription.objects.create(
-        company=company, module=module,
-        status=(CompanyModuleSubscription.Status.ACTIVE if active
-                else CompanyModuleSubscription.Status.SUSPENDED),
+        company=company,
+        module=module,
+        status=(
+            CompanyModuleSubscription.Status.ACTIVE
+            if active
+            else CompanyModuleSubscription.Status.SUSPENDED
+        ),
     )
 
 
@@ -72,7 +79,8 @@ class TestCompanyModuleGate:
         assert {"orders.view", "orders.create", "orders.edit"} <= caps
 
     def test_unsubscribed_module_filters_its_caps(self):
-        # user belongs to a company that has NOT subscribed the module -> gated out
+        # user belongs to a company that has NOT subscribed the module
+        # -> gated out
         company = ResCompany.objects.create(code="acme", name="Acme")
         m_orders = Module.objects.create(code="orders", name="Órdenes")
         m_pos = Module.objects.create(code="pos", name="POS")
@@ -82,14 +90,17 @@ class TestCompanyModuleGate:
         _grant_graded(user, "pos", AccessLevel.FULL, m_pos)
         invalidate_capabilities(user.pk)
         caps = resolve_capabilities(user)
-        assert "orders.edit" in caps          # subscribed module survives
-        assert not any(c.startswith("pos.") for c in caps)  # unsubscribed gated out
+        assert "orders.edit" in caps  # subscribed module survives
+        assert not any(
+            c.startswith("pos.") for c in caps
+        )  # unsubscribed gated out
 
     def test_expired_subscription_filters_its_caps(self):
         company = ResCompany.objects.create(code="acme", name="Acme")
         m = Module.objects.create(code="orders", name="Órdenes")
         CompanyModuleSubscription.objects.create(
-            company=company, module=m,
+            company=company,
+            module=m,
             status=CompanyModuleSubscription.Status.ACTIVE,
             expires_at=timezone.now() - datetime.timedelta(days=1),
         )
@@ -111,7 +122,9 @@ class TestCompanyModuleGate:
     def test_direct_entitlement_is_also_gated(self):
         company = ResCompany.objects.create(code="acme", name="Acme")
         m_pos = Module.objects.create(code="pos", name="POS")
-        cap = Capability.objects.create(module=m_pos, code="pos.sell", name="sell")
+        cap = Capability.objects.create(
+            module=m_pos, code="pos.sell", name="sell"
+        )
         user = UserFactory(company=company)  # no pos subscription
         DirectEntitlement.objects.create(user=user, capability=cap)
         invalidate_capabilities(user.pk)

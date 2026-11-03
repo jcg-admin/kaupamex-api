@@ -1,0 +1,15 @@
+{
+  "direct_view_constant": "template",
+  "report_view_constant": "template",
+  "same_model": true,
+  "rows": [
+    {
+      "id": 1,
+      "key": "sale.report_saleorder",
+      "type": "qweb",
+      "active": true,
+      "mode": "primary",
+      "priority": 16
+    }
+  ]
+}

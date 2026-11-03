@@ -10,15 +10,19 @@ Django la instala) la cubre
 ``tests/unit/digest/test_digest_kpi_actions.py``. Sin fixtures de DB: a
 diferencia de ``crm``, esta acción no depende de grupos ni de ``user``.
 """
+
 from addons.hr_recruitment.models.digest import (
-    ACTION_OPEN_MY_EMPLOYEES, _compute_kpis_actions,
+    ACTION_OPEN_MY_EMPLOYEES,
+    _compute_kpis_actions,
 )
 
 
 def _previous(seed=None):
     """Mismo doble de prueba que ``tests/unit/crm/test_digest_kpi_actions``."""
+
     def previous(company, user):
         return dict(seed or {})
+
     return previous
 
 
@@ -27,11 +31,15 @@ class TestChainsWithThePrevious:
 
     def test_keeps_whatever_the_previous_link_already_set(self):
         res = _compute_kpis_actions(
-            None, _previous({'kpi_other_addon': 'other.action'}), None, None,
+            None,
+            _previous({'kpi_other_addon': 'other.action'}),
+            None,
+            None,
         )
         assert res['kpi_other_addon'] == 'other.action'
         assert res['kpi_hr_recruitment_new_colleagues'] == (
-            ACTION_OPEN_MY_EMPLOYEES)
+            ACTION_OPEN_MY_EMPLOYEES
+        )
 
     def test_mutates_and_returns_the_previous_dict(self):
         """Discriminante de forma, mismo criterio que ``crm``: si el
@@ -39,7 +47,8 @@ class TestChainsWithThePrevious:
         entregó, ``res is seed`` sería falso."""
         seed = {}
         res = _compute_kpis_actions(
-            None, lambda company, user: seed, None, None)
+            None, lambda company, user: seed, None, None
+        )
         assert res is seed
 
 
@@ -49,7 +58,8 @@ class TestAction:
         ``crm``, la acción es constante independientemente de ``user``."""
         res = _compute_kpis_actions(None, _previous(), None, None)
         assert res['kpi_hr_recruitment_new_colleagues'] == (
-            ACTION_OPEN_MY_EMPLOYEES)
+            ACTION_OPEN_MY_EMPLOYEES
+        )
 
     def test_action_is_the_unresolved_xmlid_not_a_url(self):
         """Discriminante de forma: nunca lleva ``?menu_id=`` — la

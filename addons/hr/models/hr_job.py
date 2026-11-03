@@ -9,6 +9,7 @@ Campos fieles-mínimos: sin ``hr.employee``. ``employee_ids`` /
 ``contract_type_id`` (``hr.contract.type``) quedan **deferidos**. NO se porta
 ``allowed_user_ids`` — la propia referencia lo marca ``TODO (master): remove``.
 """
+
 import fields
 import models
 
@@ -21,30 +22,51 @@ class HrJob(MailThread, TimeStampedModel):
 
     name = fields.Char(verbose_name='Puesto')  # D-3: ex title
     department = fields.Many2one(
-        'hr.HrDepartment', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='jobs', verbose_name='Departamento',
+        'hr.HrDepartment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='jobs',
+        verbose_name='Departamento',
     )
-    # D-2: FK directa a base.ResCompany (Odoo company_id), igual que HrDepartment.
+    # D-2: FK directa a base.ResCompany (Odoo company_id), igual que
+    # HrDepartment.
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_jobs', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_jobs',
+        verbose_name='Empresa',
         help_text='Empresa dueña del puesto (Odoo company_id).',
     )
     no_of_recruitment = fields.Integer(
-        default=1, verbose_name='Objetivo',
+        default=1,
+        verbose_name='Objetivo',
         help_text='Número de nuevos empleados que se espera reclutar.',
     )
-    description = fields.Html(blank=True, default='', verbose_name='Descripción')
-    requirements = fields.Text(blank=True, default='', verbose_name='Requisitos')
-    user = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='recruiter_jobs', verbose_name='Reclutador',
+    description = fields.Html(
+        blank=True, default='', verbose_name='Descripción'
     )
-    active = fields.Boolean(default=True, verbose_name='Activo')  # D-3: ex is_active
+    requirements = fields.Text(
+        blank=True, default='', verbose_name='Requisitos'
+    )
+    user = fields.Many2one(
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recruiter_jobs',
+        verbose_name='Reclutador',
+    )
+    active = fields.Boolean(
+        default=True, verbose_name='Activo'
+    )  # D-3: ex is_active
 
     # DEFERIDO (no stub): employee_ids, expected_employees, no_of_employee —
     # requieren hr.employee (GAP). DEFERIDO: contract_type_id — requiere
-    # hr.contract.type (GAP). NO se porta allowed_user_ids (TODO-remove upstream).
+    # hr.contract.type (GAP). NO se porta allowed_user_ids (TODO-remove
+    # upstream).
 
     class Meta:
         db_table = 'hr_job'

@@ -1,0 +1,101 @@
+[
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "383"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1167"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1168"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1192"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1193"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1194"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1199"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "333"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "400"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1319, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1315, in main\n    return args.func(args)\n           ^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1116, in _cmd_lookup\n    state, board_subject = board_subject_of(getattr(args, \"board\", None), args.tarea)\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/thyrox/src/task/task_ids.py\", line 1083, in board_subject_of\n    if not directory.is_dir():\n           ^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 875, in is_dir\n    return S_ISDIR(self.stat().st_mode)\n                   ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py\", line 840, in stat\n    return os.stat(self, follow_symlinks=follow_symlinks)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/root/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a'\n"
+  }
+]

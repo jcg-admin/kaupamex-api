@@ -31,6 +31,7 @@ Los controles que discriminan
   delegación, obligatoriedad y política de borrado— y hay un caso por cada
   una, más el control positivo sobre los declarantes vivos del árbol.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -83,8 +84,9 @@ class TestAddFieldHangsTheFieldOnTheBuiltClass:
 
     def test_it_hangs_a_manual_field_and_meta_finds_it(self):
         partner = registry.MODELS_BY_NAME['res.partner']
-        add_field(partner, 'x_probe_alta',
-                  models.CharField(max_length=8, null=True))
+        add_field(
+            partner, 'x_probe_alta', models.CharField(max_length=8, null=True)
+        )
         try:
             assert partner._meta.get_field('x_probe_alta') is not None
         finally:
@@ -92,10 +94,15 @@ class TestAddFieldHangsTheFieldOnTheBuiltClass:
 
     def test_it_marks_the_field_as_top_level(self):
         partner = registry.MODELS_BY_NAME['res.partner']
-        add_field(partner, 'x_probe_toplevel',
-                  models.CharField(max_length=8, null=True))
+        add_field(
+            partner,
+            'x_probe_toplevel',
+            models.CharField(max_length=8, null=True),
+        )
         try:
-            assert partner._meta.get_field('x_probe_toplevel')._toplevel is True
+            assert (
+                partner._meta.get_field('x_probe_toplevel')._toplevel is True
+            )
         finally:
             pop_field(partner, 'x_probe_toplevel')
 
@@ -143,8 +150,9 @@ class TestPopFieldTakesTheFieldOffAgain:
 
     def test_meta_stops_finding_it(self):
         partner = registry.MODELS_BY_NAME['res.partner']
-        add_field(partner, 'x_probe_meta',
-                  models.CharField(max_length=8, null=True))
+        add_field(
+            partner, 'x_probe_meta', models.CharField(max_length=8, null=True)
+        )
         pop_field(partner, 'x_probe_meta')
         with pytest.raises(Exception):
             partner._meta.get_field('x_probe_meta')
@@ -157,8 +165,9 @@ class TestPopFieldTakesTheFieldOffAgain:
         """EL CONTROL de la segunda mitad: un ``delattr`` pelado dejaría
         ``_rec_name`` apuntando a un campo que ya no existe."""
         partner = registry.MODELS_BY_NAME['res.partner']
-        add_field(partner, 'x_probe_rec',
-                  models.CharField(max_length=8, null=True))
+        add_field(
+            partner, 'x_probe_rec', models.CharField(max_length=8, null=True)
+        )
         previous = partner.__dict__.get('_rec_name')
         partner._rec_name = 'x_probe_rec'
         try:
@@ -192,8 +201,11 @@ class TestCheckInheritsValidatesTheDelegatedField:
         sin ese piso el bucle sobre una lista vacía sería verde por vacío,
         que es el sub-patrón D de ``metrica-decide-la-conclusion.md``.
         """
-        declarants = [model for model in registry.MODELS_BY_NAME.values()
-                      if model.__dict__.get('_inherits')]
+        declarants = [
+            model
+            for model in registry.MODELS_BY_NAME.values()
+            if model.__dict__.get('_inherits')
+        ]
         assert declarants, 'ningún modelo del árbol declara _inherits'
         for model in declarants:
             _check_inherits(model)

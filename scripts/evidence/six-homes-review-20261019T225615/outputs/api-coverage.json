@@ -1,0 +1,1059 @@
+[
+  {
+    "run": "analogue-in-the-client-20260830T192922",
+    "tracked_files": 3,
+    "question": "el cliente Claude Code —y los cuatro repos de referencia de AI— tienen un mecanismo analogo a .claude/eventos/, y COMO lo manejan?",
+    "instrument": [
+      "strings -n 4 sobre /opt/claude-code/bin/claude",
+      "grep -aoE sobre el volcado, por literal y por contexto"
+    ],
+    "metric": "lineas del volcado de cadenas que contienen cada literal (grep -ac), y ocurrencias con su contexto para desambiguar el sentido",
+    "blind_to": [
+      "un mecanismo que el cliente resuelva sin literal, construyendo el nombre en tiempo de ejecucion",
+      "la documentacion web de Anthropic, que no se midio: el cero de un literal acota lo que se puede afirmar del ejecutable, no lo que Anthropic describe",
+      "si un literal declarado esta cableado a algo — un nombre presente no prueba un mecanismo vivo",
+      "un mecanismo que un repo de referencia tenga sin nombrarlo en un .md, .json o .rs — la segunda poblacion se midio por nombre de directorio y por literal, no leyendo cada repo"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#220"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "any-con-permiso-concedido-20260830T235423",
+    "tracked_files": 8,
+    "question": "un any pierde el permiso del comodelo exactamente cuando la fuente dice, y no en otro caso?",
+    "instrument": [
+      "uv run pytest sobre la suite completa, -n 4 --reuse-db",
+      "sabotaje por comportamiento sobre src/orm/domains.py y src/orm/inherits.py, restaurado por md5 y no por git checkout"
+    ],
+    "metric": "casos passed / failed, y cuales caen con cada comportamiento anulado",
+    "blind_to": [
+      "las filas devueltas: los casos miden que operador queda tras la reescritura, no que registros llegan. En una base de pruebas sin reglas de fila sembradas any y any! devuelven lo mismo, asi que medir filas no distinguiria el permiso concedido del permiso ausente",
+      "el efecto sobre los 759 campos relacionales del arbol: el atributo se declara con default False, asi que ninguno cambia de conducta hasta que algo lo marque; cuales de las 48 declaraciones de la referencia hay que trasladar es la tarea #236",
+      "si algun modelo con _inherits pierde el filtrado que si debia aplicarse: la implicacion se porta porque la fuente la declara, y ningun caso mide un modelo delegante contra reglas de fila reales",
+      "el orden entre este optimizador y _optimize_m2o_bypass_comodel_id_lookup: los dos corren a nivel FULL y el segundo solo actua sobre los que llevan !, pero ningun caso fija que el primero corra antes"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#225",
+      "#227",
+      "#236"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "any-optimizers-20260830T221227",
+    "tracked_files": 2,
+    "question": "la familia any del registro necesita model.env para resolver el comodelo, o Django lo trae en el campo?",
+    "instrument": [
+      "lectura del campo relacional en el shell de Django, y la suite de tests/unit/orm/"
+    ],
+    "metric": "casos passed/failed del subconjunto bajo cada sabotaje, y de la suite completa",
+    "blind_to": [
+      "el SQL de la subconsulta: los casos miden el dominio optimizado, no el EXISTS que sale de el",
+      "una relacion cuyo comodelo Django no resuelva en el campo — related_model es None solo en una relacion sin resolver, y ningun caso ejercita ese estado",
+      "la profundidad: los casos anidan un solo nivel de any, no una cadena"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "atributos-de-clase-paridad-20260910T085330",
+    "tracked_files": 5,
+    "question": "De los atributos de clase que la referencia declara por clase, ¿cuántos declara su puerto — y cuántos declara el puerto que la referencia NO tiene?",
+    "instrument": "scripts/workbench/atributos-de-clase-paridad-20260910T085330/class_attr_parity.py",
+    "metric": "asignaciones `_*` en el cuerpo de cada clase, por AST, en las dos direcciones (missing = ref − puerto; extra = puerto − ref), sobre las clases emparejadas por tres claves: nombre literal, nombre sin guiones bajos, y tabla. La tabla de la referencia es su `_table` declarado, y sólo a falta de él la sustitución de `_name`. Los objetos de tabla (Constraint/Index/UniqueIndex) se apartan a un cubo propio: su hogar aquí es Meta.constraints/Meta.indexes, no un atributo de clase.",
+    "blind_to": "el VALOR del atributo — que `_order` exista no dice que ordene igual; el atributo portado bajo otro nombre (no hay tabla de equivalencia); la clase que ninguna de las tres claves empareja, que se reporta aparte y no se cuenta; y el contenido de Meta.constraints, del que sólo mide si está declarado.",
+    "tasks_as_historical_not_canonical": [
+      "#341"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "background-task-capacity-20260902T171637",
+    "tracked_files": 5,
+    "question": "cuantas tareas en segundo plano puede ejecutar esta sesion a la vez, sin despachar agentes?",
+    "instrument": "measure_background_capacity.py — lee del ejecutable el guard de la anchura de herramienta y busca un cap sobre el numero de tareas en segundo plano; lanza N procesos desprendidos y calcula el solape real barriendo sus marcas de inicio y fin. probes/measure_useful_width.py reparte una carga fija con CPU entre N trabajadores y mide el reloj de pared",
+    "metric": "tres ejes distintos: (1) el entero del guard CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY, (2) el maximo de procesos desprendidos vivos a la vez, contado por barrido de eventos, (3) la aceleracion del reloj de pared sobre una carga fija a 1, 2, 4, 8 y 16 trabajadores",
+    "blind_to": [
+      "la anchura de herramienta NO se mide por conducta desde dentro: quien la ejerce es el cliente, no este proceso. Se lee del guard, y el guard dice como resolveria, no cuantas llamadas emitio este turno",
+      "el eje 2 se midio con procesos dormidos: mide cuantos CABEN, no cuantos SIRVEN. Por eso existe el eje 3",
+      "la memoria: 24 durmientes no la ejercen. Un lote de 24 pytest con su base cada uno es otro perfil y no esta medido",
+      "el cap de subagentes: fuera de alcance por directiva del ejecutor (sin ejecutar agentes). El respaldo _e del guard FQn no se pudo resolver por nombre — el minificador reusa el identificador, y elegir uno de los cinco candidatos seria fabricar",
+      "la contencion de la base: los trabajadores de la sonda no tocan PostgreSQL. El reparto de pytest tiene su propio limite, ya medido aparte (-n 4, base por worker)"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#18"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "basemodel-contract-20260911T030334",
+    "tracked_files": 28,
+    "question": "De los 194 métodos que la referencia cuelga de BaseModel, ¿cuáles trae hecho el stack, cuáles cuelga ya nuestro propio árbol, y cuáles hay que construir?",
+    "instrument": [
+      "scripts/workbench/basemodel-contract-20260911T030334/census_reference_basemodel.py",
+      "scripts/workbench/basemodel-contract-20260911T030334/census_ours_models.py",
+      "scripts/workbench/basemodel-contract-20260911T030334/locate_in_our_tree.py",
+      "scripts/workbench/basemodel-contract-20260911T030334/census_class.py",
+      "scripts/workbench/basemodel-contract-20260911T030334/probe_stack_inventory.py"
+    ],
+    "metric": "hasattr() sobre Model, ModelBase, Manager y QuerySet de django 6.0.5, en DOS procesos —uno prístino con PYTHONPATH despojado y DJANGO_SETTINGS_MODULE vacío, otro tras django.setup() con config.settings.testing— para los 194 nombres que el censo extrae por AST del cuerpo de BaseModel (odoo/orm/models.py:334-7004). La diferencia entre los dos procesos es el tercer cubo.",
+    "blind_to": [
+      "el CONTRATO detrás de cada nombre: exists devuelve bool allá y recordset acá; create una instancia contra un recordset de N; update filas afectadas contra escritura en caché; __eq__/__lt__ comparan pk contra conjuntos de ids. El cubo TRAE autoriza a leer el binario, no a llamar",
+      "un símbolo que Django ofrezca bajo OTRO nombre: ningún hasattr por nombre literal puede verlo, y no hay tabla de equivalencia",
+      "lo que un addon de terceros cuelgue sobre models.Model sin pasar por src/orm: el segundo proceso lo contaría como nuestro",
+      "la familia de un símbolo cuyo nombre no la delate — 50 de los 159 quedan en «otros», el 31 % sin clasificar",
+      "el cuerpo de los 14 que nuestro árbol ya colgó: que el nombre esté no dice que haga lo que la referencia hace"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#318",
+      "#319"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "basemodel-id-access-20260911T035612",
+    "tracked_files": 10,
+    "question": "Para el `id` de BaseModel, ¿el stack trae el mecanismo de los tres regímenes de `Id.__get__` (vacío→False, singleton→ids[0], N→ValueError), o hay que construirlo? ¿Y `__slots__` verbatim sobre una base abstracta de Django es admisible?",
+    "instrument": [
+      "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_access.py",
+      "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_descriptor.py",
+      "scripts/workbench/basemodel-id-access-20260911T035612/probe_abstract_base.py",
+      "scripts/workbench/basemodel-id-access-20260911T035612/probe_id_setter.py"
+    ],
+    "metric": "Conducta observada de `.id` sobre instancias construidas por tres vías (object.__new__ pelado, +_state, +__dict__) y número de consultas SQL emitidas, con django.setup() y config.settings.testing; más el descriptor que `Sujeto.__dict__['id']` guarda en cada montaje (base llana contra receptor de `class_prepared`). Y: si el `Id.__set__` de la referencia (fields_misc.py:116-117) se puede portar verbatim, construyendo una fila con `Sujeto(id=99)` bajo un descriptor con `__set__` y bajo uno sin el.",
+    "blind_to": [
+      "el camino que SÍ puede consultar la base — `rs.<campo>` por DeferredAttribute → refresh_from_db; las sondas sólo ejercitan `.id`",
+      "el comportamiento bajo un modelo con pk no entera o con pk compuesta: los tres sujetos declaran AutoField implícito",
+      "si el receptor de class_prepared sobrevive a una recarga del registro de apps (migraciones, makemigrations) — no se midió",
+      "el coste de la indirección del descriptor: ninguna sonda mide tiempo",
+      "el punto exacto de Model.__init__ donde la asignacion falla: la sonda mide el desenlace de la construccion, no la linea que lo produce"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#318"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "basemodel-trae-contracts-20260911T050421",
+    "tracked_files": 8,
+    "question": "De los 21 símbolos que el cubo clasificó como TRAE —el stack ya lo tiene hecho—, ¿cuántos los trae de verdad una clase del stack, y cuántos sólo los resuelve `object` para toda clase de Python?",
+    "instrument": [
+      "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/probe_who_declares.py",
+      "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py"
+    ],
+    "metric": "por cada nombre del cubo TRAE, la clase del MRO que DEFINE el atributo (`__mro__` + `vars(clase)`), no `hasattr`, sobre cinco sujetos del stack instalado: django.Model, django.QuerySet, django.Manager, drf.Serializer y drf.ModelSerializer. El segundo instrumento extrae el cuerpo de los dos lados —referencia y stack— para leer qué hace cada uno, no si el nombre resuelve.",
+    "blind_to": [
+      "si el cuerpo del stack hace LO MISMO que el de la referencia: el instrumento localiza la definición y extrae el texto, pero el veredicto de equivalencia lo emite quien lee, no el guion",
+      "un símbolo que el stack traiga bajo otro nombre — no hay tabla de equivalencia",
+      "las clases del stack fuera de los cinco sujetos medidos; un sexto que lo declarara saldría AUSENTE aquí"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#319"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "campo-sin-columna-20260911T184129",
+    "tracked_files": 4,
+    "question": "cual es la FORMA de un campo sin columna en este stack, y donde se deriva store — antes o despues de fusionar la cadena de declaraciones?",
+    "instrument": "probes/probe_private_needs_no_column.py — tres brazos sobre una misma tabla de sonda que solo tiene id y plain: CharField llano (control positivo), CharField contribuido con private_only=True, y CharField con column=None ademas de private_only. Cada brazo hace create() + first() contra PostgreSQL real y publica la pertenencia del campo a concrete_fields/local_fields/private_fields y las columnas que el SELECT compila. Las dos decisiones de forma se midieron aparte: fronteras de _get_attrs por grep sobre la fuente, y .validators de dos instancias construidas de las dos maneras",
+    "metric": "veredicto PASA/FALLA de create()+first() por brazo, con la columna, concrete, y las tres pertenencias de _meta; y para la segunda medicion, la lista de validators de un CharField construido vacio+__dict__.update contra uno construido con los kwargs fusionados",
+    "blind_to": [
+      "el camino de escritura en lote — bulk_create no pasa por pre_save, y los tres brazos usan create() fila a fila",
+      "la herencia multi-tabla: los tres modelos son de una sola tabla sin padres concretos, asi que no se midio que hace un campo privado cuando _meta tiene parents",
+      "los otros diecinueve tipos de campo en la medicion de validators — se midio CharField, que es el unico cuyo __init__ materializa la cached_property por max_length; DecimalField sobrescribe validators como property y podria no envenenarse igual",
+      "si la forma private+column=None sobrevive a makemigrations --check sobre el arbol entero: se midio el camino de consulta, no el autodetector"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#346"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "cascara-de-store-del-consumidor-20260918T004745",
+    "tracked_files": 5,
+    "question": null,
+    "instrument": null,
+    "metric": null,
+    "blind_to": null,
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "census-open-api-tasks-20260912T111025",
+    "tracked_files": 2,
+    "question": "De las tareas de capa `api` que el store da por abiertas, ¿cuáles ya están cerradas DE HECHO — es decir, un commit de alguno de los seis árboles nombra su cita — y cuáles nunca se han trabajado?",
+    "instrument": [
+      "thyrox@36052983 — src/task/census_open_tasks.py --layer api --out-dir scripts/evidence",
+      "thyrox@36052983 — tests/task/test_census_open_tasks.py (30 aserciones; dos anulaciones: el filtro de capa corta exactamente 1b, y la derivación del descuento propio corta exactamente 3h y 3i)"
+    ],
+    "metric": "filas de `tasks` con `submodule = 'api'` y `status != 'completed'` (universo declarado: 473 filas de capa api en total, 284 abiertas — 268 `pending` + 16 `in_progress`), repartidas en tres cubos por su evidencia: `closed_in_tree` si su `citation_id` aparece en el mensaje de un commit de `git log --all` de las seis raíces (los cinco clones consumidores más el proveedor thyrox); `owned_but_open` si la cita el contenido de un archivo que no sea render del tablero; `orphan` si ninguna de las dos.",
+    "blind_to": [
+      "un commit que cierre la tarea SIN nombrar su cita — cae en `owned_but_open` o en `orphan`, y el censo no lo puede distinguir de una tarea nunca trabajada",
+      "si el trabajo del commit TERMINÓ: nombrar la cita prueba que el trabajo aterrizó, no que cerró. `closed_in_tree` es una lista de triaje para el ejecutor, no un veredicto de cierre",
+      "el criterio alterno de universo: `citation_id LIKE 'TASK-API-%'` da 427 filas y 252 abiertas, no 473/284. Los dos son válidos y miden poblaciones distintas — la columna `submodule` es clasificación y el prefijo de la cita es identidad (`correct_layer`: «el id es identidad, no clasificación»), así que una fila acuñada GEN y luego clasificada api entra por un criterio y no por el otro",
+      "una cita nombrada en el CUERPO de un commit de un repo que no esté en el alcance de las seis raíces",
+      "el `:estado:` de un hallazgo citante cuando el archivo vive fuera de las seis raíces: `finding_state` devuelve None y el cubo no se entera",
+      "un archivo que enumere el tablero y NO esté bajo el destino declarado ni en la lista fija — el descuento es por tramo de ruta, no por contenido; un volcado nuevo en una ruta nueva vuelve a contaminar hasta que alguien lo declare"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "TASK-DOCS-0405"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "compute-que-escribe-m2m-20260902T183544",
+    "tracked_files": 3,
+    "question": "cuantos computos del arbol escriben una relacion M2M sin que ningun campo los nombre, y por que el motor de #273/#305 no los podia recibir?",
+    "instrument": "measure_m2m_writing_computes.py — recorre por AST cada def _compute_* y anota los atributos que escribe con set/add/remove/clear, cruzados con los campos Many2many declarados en el mismo archivo; marca cual esta nombrado por un compute= de campo. probes/probe_m2m_compute_today.py mide la conducta del motor sobre uno de ellos antes de tocar nada",
+    "metric": "llamadas <algo>.<atributo>.<verbo>(...) dentro del cuerpo de un def _compute_*, con verbo en {set, add, remove, clear} y <atributo> declarado Many2many en el archivo; mas el TypeError que Django lanza al asignar por setattr sobre el lado directo de un M2M",
+    "blind_to": [
+      "un computo que escriba el M2M llamando a un ayudante en vez de hacerlo en su cuerpo — el recorrido no sigue la llamada",
+      "un M2M declarado en OTRO archivo del que el computo escribe (el cruce es por archivo, no por modelo resuelto)",
+      "la asignacion directa, que Django prohibe desde 1.10 y por tanto no deberia existir; si existiera, el instrumento no la veria",
+      "el coste real de .set() sobre una relacion grande: las tres medidas son de configuracion, de cardinalidad baja, y no se midio el techo"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#313"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "construccion-de-clase-de-modelo-20260903T020920",
+    "tracked_files": 10,
+    "question": "Que hace falta medir en el arbol vivo antes de portar la construccion de la clase de modelo de odoo19c: odoo/orm/model_classes.py — sus tres reglas de especie, el aviso de _description ausente y la derivacion de _table desde _name? De esas cuatro mediciones depende si el porte se instala sobre un baseline limpio o destapa deuda previa, y cual de las reglas de la fuente tiene superficie aqui.",
+    "instrument": [
+      "measure_inherited_model_kind.py — las tres reglas de especie sobre MODELS_BY_NAME",
+      "probes/count_models_without_description.py — el denominador del aviso portado",
+      "probes/list_tables_that_diverge_from_the_name.py — _table declarado contra el derivado de _name",
+      "probes/inspect_the_two_findings_of_the_check.py — los dos casos que el check destapo al correr",
+      "PYTHONPATH=src DJANGO_SETTINGS_MODULE=config.settings.testing uv run python <cada uno>",
+      "scripts/neutralize_and_measure.sh — el control de cada guarda, cinco corridas en scripts/evidence/neutering-332-*"
+    ],
+    "metric": "Cuatro conteos sobre los modelos de orm.registry.MODELS_BY_NAME con la base de pruebas cargada: (1) los que heredan de un padre CON _name declarado que difiere en especie, por cada una de las tres reglas de odoo19c: odoo/orm/model_classes.py:233-258; (2) los que no declaran _description en su propio __dict__; (3) los cuyo _table declarado difiere de _name.replace('.', '_'); (4) las divergencias que check_table_matches_name() ya publicaba antes del porte.",
+    "blind_to": [
+      "Un padre que declare su especie sin _name: el recorrido lo salta a proposito, porque la fuente recorre clases de definicion y no toda la MRO de Python.",
+      "Un modelo que nunca llega a MODELS_BY_NAME por no declarar _name: 290 del arbol estan asi hasta que se toquen.",
+      "La especie que un modelo adquiriria por una extension tardia via extend_model, que no crea clase y por tanto no pasa por class_prepared.",
+      "La mitad de _abstract de _check_model_extension, que aqui no tiene superficie: orm.registry._register rechaza el _name duplicado, asi que dos clases nunca se funden bajo un mismo nombre.",
+      "El conteo de _description es ciego a un modelo que lo herede de un mixin sin declararlo: se lee __dict__ y no getattr, que es exactamente la distincion que el aviso portado destapo en el codigo propio.",
+      "La derivacion de _table no dice si la tabla real existe en PostgreSQL — mide la cadena declarada contra la derivada, no el catalogo."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#332"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "convencion-sufijo-id-20260902T180313",
+    "tracked_files": 3,
+    "question": "usamos el sufijo _id en las FK portadas por alguna razon, o es deriva? Y contra que forma esta escrito quien las lee desde otro archivo?",
+    "instrument": "measure_fk_suffix_convention.py — recorre los ForeignKey y OneToOneField no auto-creados de todos los modelos registrados y los reparte por si su nombre declarado termina en _id, con el attname que Django deriva de cada uno",
+    "metric": "numero de FK declaradas por app, repartidas en dos cubos: nombre con sufijo _id (formas B y C de H-API-275) y nombre sin sufijo (forma A). El attname se registra junto a cada una para poder ver el _id_id que la forma C produce",
+    "blind_to": [
+      "la distincion entre forma B y forma C: las dos declaran el sufijo, y solo mirando db_column se separan. Este censo NO lo mira, asi que sus 142 con sufijo mezclan la forma de destino con la que produce la columna equivocada",
+      "las lecturas: mide como se DECLARA cada FK, no con que nombre la lee su consumidor desde otro archivo. Ese es el otro eje, y es donde vivia el defecto de H-API-1034",
+      "los campos sin columna (NonStored) y las property peladas que sustituyen a una FK de la fuente: no son ForeignKey, asi que no entran en el recorrido",
+      "los modelos no registrados en el arranque de pruebas: el censo mide apps.get_models(), no el arbol de archivos"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#143",
+      "#149",
+      "#311",
+      "#315"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "costura-de-fusion-de-campo-20260911T172315",
+    "tracked_files": 3,
+    "question": "¿Puede la regla de compatibilidad de tipo de _get_attrs (isinstance(self, type(field))) dispararse alguna vez entre un campo con columna y uno sin ella, tal como esta fachada los construye?",
+    "instrument": "scripts/workbench/costura-de-fusion-de-campo-20260911T172315/probe_merge_seam.py",
+    "metric": "la clase que fields.Char(...) devuelve con y sin store=False, el veredicto de isinstance en las dos direcciones, y los ancestros comunes de las dos clases.",
+    "blind_to": "las demás parejas de tipos (sólo mide Char con y sin columna); el caso en que la fachada enrute por otra vía —related=, company_dependent=—; y si la regla de la fuente se dispara o no en SU árbol, que este instrumento no ejecuta.",
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0416",
+      "TASK-API-0415"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "create-por-contenido-20260911T221144",
+    "tracked_files": 9,
+    "question": "el `create` del arbol (`DefaultGetMixin.create(cls, **values)`, una instancia) hace lo que `BaseModel.create(vals_list)` de la referencia hace — lista de dicts en orden, singleton via `model_create_multi`, `check_access`, `default_*` del contexto, `ValueError` por campo desconocido, lote de padres `_inherits`, M2M tras el alta — y los adoptantes de los mixins lo heredan?",
+    "instrument": [
+      "cuatro sondas Python bajo config.settings.testing y `sudo()`, una condicion por linea con `OK`/`FALLA` y got/expected",
+      "grep -rn sobre src, addons y tests para el censo de firmas y llamadores (scripts/evidence/census-create-2026-09-11T22-07-40-00{1..4}.log)",
+      "pytest del derivado (tests/unit/orm + adoptantes) y de la suite entera con -n 4"
+    ],
+    "metric": "condiciones OK sobre condiciones medidas por sonda (12 de 12 en probe_create_list_returns_ordered_rows), y casos passed/failed de pytest",
+    "blind_to": [
+      "un llamador que construya el dict de vals en tiempo de ejecucion sin nombrar `create(` en la misma linea — el censo es por linea",
+      "un override de `create` en un modelo que NO mezcla DefaultGetMixin: sigue siendo el `create` del manager de Django y la sonda no lo alcanza",
+      "la clave `bypass_search_access` del contexto: 0 usos en el arbol, asi que la sonda no puede discriminar su ausencia (TASK-API-0422)",
+      "el coste de INSERT fila a fila contra el INSERT por lote de la fuente: se midio la conducta, no el reloj"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0421",
+      "TASK-API-0402",
+      "TASK-API-0422"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "deferred-routing-20260911T181509",
+    "tracked_files": 4,
+    "question": "¿El reparto en dos clases de campo (CharField con columna / NonStored sin ella) es una restricción del stack, o el stack admite el orden de la fuente — capturar la declaración, recolectar por la MRO, fusionar, derivar store y enrutar UNA vez al final?",
+    "instrument": "scripts/workbench/deferred-routing-20260911T181509/probe_django_supports_one_class.py — construye modelos Django reales y mide a dónde aterriza cada campo (local_fields, private_fields, ModelState.from_model), con un control llano en cada medición.",
+    "metric": "Dos veredictos por conducta: (A) una clase de campo que al contribuir se registra con private=True queda fuera de local_fields y fuera del estado de migración, mientras su control llano sí lleva columna; (B) al redeclarar un campo de una base abstracta, el _meta del hijo conserva SOLO el suyo y el del padre sigue vivo en el _meta de la base, recuperable por reversed(__mro__).",
+    "blind_to": "Si el descriptor resultante COMPUTA el valor correcto — sólo mide el registro, no la lectura. Y al orden en que contribute_to_class ve la MRO cuando la base no es una abstracta de Django sino un mixin llano de Python (la Forma 2 de este árbol, p. ej. DisplayNameMixin), que no tiene _meta.",
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0416"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "deuda-identificadores-en-espanol-20260903T050800",
+    "tracked_files": 4,
+    "question": "La deuda heredada de 1024 identificadores en espanol, congelada en baseline, se puede barrer con el instrumento que ya existe, o hace falta construir algo?",
+    "instrument": [
+      "measure_spanish_identifier_debt.py",
+      "scripts/rename_identifiers.py (ya versionado: por token y por posicion, guard 3.12+)",
+      "scripts/check_identifier_language.py (el gate que produjo el baseline)"
+    ],
+    "metric": "Entradas archivo::identificador del baseline scripts/identifier_language_baseline.txt, agrupadas por palabra distinta, por archivo y por raiz (tests / addons / src). La unidad es la ENTRADA, no el identificador distinto: el mismo nombre en dos archivos cuenta dos veces, porque son dos renombres.",
+    "blind_to": [
+      "si dos entradas con el mismo nombre son la misma ligadura o dos distintas: eso lo decide el reescritor por posicion, no este censo",
+      "el identificador en espanol que el lexico del gate no sabe ver — el baseline es una cota inferior, no el universo",
+      "si una traduccion propuesta colisiona con un nombre ya ligado en ese ambito; lo destapa el renombre, no la medicion",
+      "los nombres de ARCHIVO en espanol, que mide otro gate (docs: check_script_naming.py --idioma)"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "fachadas-construyen-una-vez-20260911T193801",
+    "tracked_files": 52,
+    "question": "Por que un campo related= leido sobre una fila —BaseModel o modelo llano— falla con 'Compute method failed to assign' si el compute que setup_related declara si corre, y en que fase del arranque hay que elegir el descriptor para que el valor asignado aterrice en la cache del campo. Sonda A: ¿un ForeignKey/ManyToManyField con store=False queda sin columna, sin tabla de relación y sin accessor inverso (odoo19c fields_relational.py:1279)? Sonda B: ¿un CharField con store=False lee su default por el descriptor con la consulta fría de ir.default y ninguna en caliente? Sondas C/D/E: ¿un ForeignKey(related=..., store=False) sin `to` reapunta remote_field.model al final de la cadena, y la primera lectura de un related sobre una fila sin pk devuelve el valor que el compute asignó al almacén? Sondas F/G/H/I (2026-09-12, bloqueantes de TASK-API-0412): ¿se construye y se lee un relacional compute= + inverse= sin columna, que es la forma que odoo19c: addons/base/models/res_company.py:69-78 fija para las seis direcciones? ¿declarar el campo ausente ResCompany.country cierra la costura y resuelve las dos cadenas rotas? y al escribirlo, ¿se despacha el inverso declarado y llega el valor a la columna del partner? Sondas J/K/L/M (2026-09-12, bloqueantes de TASK-API-0412): ¿QUE descriptor recibe company.country = x, sabiendo que un relacional tiene DOS ranuras —name para el de Django, attname para el nuestro—? ¿el reventon del recolector de delete() lo causa el campo nuevo o ya estaba en el arbol? y ¿la politica del campo sin columna decide ese reventon? Sonda N (2026-09-12, bloqueante de TASK-API-0412): ¿en cual de los cuatro cubos de ComputedFieldDescriptor.__set__ aterriza cada camino de escritura, para saber donde puede vivir la marca de inverso pendiente sin que la lectura del compute la deje puesta? Sonda O (2026-09-12, cierre de TASK-API-0412): con los seis campos de direccion ya declarados EN EL ARBOL como compute='_compute_address' + inverse nombrado, cada uno de los cuatro caminos de escritura —create por el manager, write(), asignacion directa mas save(), y leer-y-guardar— despacha el inverso el numero de veces que le toca, y el valor llega a la COLUMNA del partner releida de la base?",
+    "instrument": [
+      "scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_plain_row_assignment_lands_in_cache.py",
+      "scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_related_resolves_after_setup_phase.py",
+      "PYTHONPATH=src DJANGO_SETTINGS_MODULE=config.settings.testing uv run python <sonda>.py",
+      "scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_private_field_has_no_column.py",
+      "probe_relational_store_false_on_real_types.py",
+      "probe_scalar_store_false_read_path.py",
+      "probe_relational_related_without_to.py",
+      "probe_relational_store_false_read_path.py",
+      "probe_related_fresh_row_trace.py",
+      "scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_related_write_reaches_the_target.py",
+      "probe_broken_related_chains.py",
+      "probe_relational_compute_inverse_build_and_read.py",
+      "probe_compute_inverse_dispatch_on_write.py",
+      "probe_declaring_the_missing_field_closes_the_seam.py",
+      "probe_company_address_write_reaches_the_partner.py",
+      "probe_which_descriptor_receives_the_assignment.py",
+      "probe_column_less_reverse_fks_break_the_delete_collector.py",
+      "probe_column_less_fk_with_set_null_breaks_country_delete.py",
+      "probe_column_less_fk_with_do_nothing_survives_country_delete.py",
+      "probe_which_set_bucket_each_write_path_lands_in.py",
+      "probe_declared_address_dispatches_its_inverse.py",
+      "census_related_spelling.py — censo por AST de las cadenas `related=` DECLARADAS (kwarg `related` con valor literal en un ast.Call bajo src/ y addons/), partidas por si su primer eslabón lleva el sufijo `_id` de la fuente. Corrige la cifra «285 de 295», que salía de un grep de literales y no de las cadenas: `grep -c \"related=\"` da 419 LÍNEAS, el AST da 19 CADENAS."
+    ],
+    "metric": "Traza por conducta de _model_setitem, _field_write, _filter_not_equal_ids y _update_cache durante field.compute_value(row), mas el contenido de la cache del campo despues (esperado {pk: 'Ada'}); y cuatro lecturas related por contenido —un salto, dos saltos, fila llana, FK nula— comparadas contra el valor esperado, no contra la presencia de un atributo. La tercera sonda mide, por contenido, si un campo Django contribuido con private_only o con column=None queda fuera del DDL y de concrete_fields y dentro de _meta.fields. Las sondas C/D/E comparan por contenido: remote_field.model y related_model tras ensure_field_setup(), el tipo y pk del registro leído por nombre y por attname, sobre fila traída de la base y sobre fila nueva sin pk, con las consultas contadas. Sondas F/G/H/I: por contenido y no por presencia — que el campo relacional se construya sin columna con store=False y readonly=False y conserve su comodelo tras el setup; que ensure_field_setup() sobre el árbol entero cierre sin excepción y las dos cadenas de SiteConfigSettings resuelvan; y que el país escrito en la compañía aparezca en res_partner.country_id RELEÍDA de la base, con un contador de invocaciones del inverso, porque el inverso no devuelve nada y su ejecución sólo es observable por efecto. Sondas J/K/L/M: por contenido y por CONDUCTA — el tipo que ocupa cada ranura (__dict__[name] contra __dict__[attname]) MAS el contador de invocaciones reales de __set__ de cada clase de descriptor durante una asignacion, porque la ranura leida de __dict__ no dice cual corre; el censo de FK sin columna del arbol entero con su politica de borrado, leido de _meta y por tanto no cegado por la costura rota; y el borrado real de un pais con el campo declarado, en dos variantes que difieren en UNA linea (la politica), con el marco del reventon nombrado. Sonda N: por conducta — se envuelve ComputedFieldDescriptor.__set__ con un testigo que reproduce el predicado de los cuatro cubos sin ejecutarlo, y se ejercitan cuatro caminos (create por kwargs, carga desde la base, lectura que dispara el compute, asignacion sobre fila real), reportando el cubo alcanzado por cada uno. Sonda O: por CONTENIDO y no por presencia — se compara res_partner.country_id RELEIDA de la base contra el pais escrito, en los cuatro caminos, con el contador de invocaciones del inverso al lado. El contador solo no basta (un 1 con el partner sin pais seria el inverso corriendo y no llegando, el defecto que probe_related_write_reaches_the_target midio con related=), y el contenido solo tampoco (no distinguiria un despacho de dos, que es lo que el alcance de proteccion de write() existe para impedir).",
+    "blind_to": [
+      "Un related= cuyo compute se declare por otra via que setup_related: la sonda solo ejercita la ruta odoo19c: odoo/orm/fields.py:632.",
+      "El campo que _meta.get_field devuelve frente al que el descriptor instalado guarda: la linea 'fase' imprime compute=None con setup_done=True mientras la lectura acierta, y esa discrepancia de instancia no se mide aqui.",
+      "El coste de re-elegir el descriptor en cada Field.setup sobre el arbol completo: la sonda mide dos modelos, no 417.",
+      "La escritura por inverse (TASK-API-0412): la sonda solo lee.",
+      "Si un campo Django con column=None sobrevive a save(), from_db y a las consultas por descriptor: la sonda mide _meta y el DDL recogido, no una fila persistida.",
+      "La consulta que ForwardManyToOneDescriptor.__get__ emite tras leer la clave de una fila nueva (medida: 1) se cuenta, no se evalúa: la sonda no mide si el comodelo ya estaba en fields_cache cuando Django decidió consultar.",
+      "Si el inverse declarado alcanza a save(): la sonda de escritura mide el resultado, no el despacho. Ese eje es TASK-API-0412.",
+      "El segundo eslabón roto de una misma cadena: walk_related_chain reporta sólo el primero que falta, así que ResCountry.country_group_codes podría fallar después y el conteo de cadenas rotas no lo vería.",
+      "Si el inverso se despacharía por otra vía que la sonda no ejerce —write() explícito en vez de asignación más save()—. Ese eje lo decide TASK-API-0412 antes de elegir el punto de despacho.",
+      "Las sondas H e I declaran el campo con contribute_to_class sobre un modelo YA preparado, no en el cuerpo de la clase: el reventón del recolector de delete() sobre una columna None puede ser artefacto de esa vía y no del campo. Se re-mide con el campo declarado en el árbol (TASK-API-0424).",
+      "La sonda J mide la asignacion, no el guardado: que nuestro descriptor reciba la asignacion no dice que el inverso se despache, y lo que recibe por la via del nombre es la CLAVE, no el objeto — la marca de pendiente tiene que registrar que el campo esta sucio, no el valor.",
+      "La sonda K mide el UNIVERSO de FK sin columna que apuntan a ResPartner, no cual de ellas revienta primero: el recolector aborta en la primera y las demas quedan sin ejercer.",
+      "Las sondas L/M miden el borrado de un pais con UN campo sin columna apuntandole; son ciegas a si otro campo sin columna del arbol reventaria el mismo borrado por su cuenta, que es lo que la sonda K si midio para ResPartner.",
+      "La sonda O mide cuatro caminos de escritura sobre UN campo (country); es ciega a si los otros cinco de la direccion —street, street2, zip, city, state— se comportan igual, y a un sexto camino que no ejercita: bulk_create y QuerySet.update, que no pasan por save() y por tanto no despachan (divergencia declarada en RecordLoaderMixin.save).",
+      "La sonda O es ciega al ORDEN entre el inverso y _check_company: mide que el valor llega, no en que punto de la cadena de save() se escribio.",
+      "La sonda O mide la direccion; es ciega a los OCHO @property que ResCompany todavia usa para delegar al partner (name, email, phone, website, vat, logo, billing_name, company_registry). Ninguna cadena related= puede navegarlos, que es el mismo defecto una capa mas arriba: TASK-GEN-0634.",
+      "El censo de cadenas `related=` sólo ve el literal en la declaración: una cadena compuesta en tiempo de ejecución, o pasada por `_args__`, no aparece. Su cero no prueba ausencia."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0417",
+      "TASK-API-0402",
+      "TASK-API-0412",
+      "TASK-API-0423",
+      "TASK-API-0424",
+      "TASK-API-0425",
+      "TASK-API-0426",
+      "TASK-API-0412",
+      "TASK-GEN-0633",
+      "TASK-GEN-0634"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "fetch-contract-20260911T093329",
+    "tracked_files": 3,
+    "question": "¿Qué le pregunta `fetch()` de la referencia a cada campo, y sabe responderlo nuestro árbol? La medición anterior contó `def <símbolo>` y publicó cinco piezas ausentes; la pregunta correcta es de conducta, no de presencia.",
+    "instrument": "scripts/workbench/fetch-contract-20260911T093329/probes/probe_fetch_dependencies.py — hace las nueve preguntas de `_determine_fields_to_fetch` y `_fetch_query` a campos concretos de base.ResPartner, con una relación inversa como control negativo",
+    "metric": "cuántas de las nueve preguntas NINGÚN campo concreto sabe responder, sobre 4 campos concretos de base.ResPartner + 1 relación inversa de control",
+    "blind_to": "la SEMÁNTICA de la respuesta — que `db_type` devuelva `bigint` no prueba que la fuente hubiera devuelto `('int4','int4')` para ese mismo campo, sólo que el predicado «¿tiene columna?» tiene quien lo responda; y a un campo cuya respuesta sea correcta en ResPartner y no en otro modelo, porque la población es un modelo y no el árbol",
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "field-type-vocabulary-20260830T211552",
+    "tracked_files": 6,
+    "question": "que publica field.type en cada familia de campo del arbol, y puede el registro de optimizadores despachar por el?",
+    "instrument": [
+      "probe_field_type.py — instancia una familia por clase de Django y compara el atributo declarado contra type_for()"
+    ],
+    "metric": "familias cuyo atributo type es no vacio, sobre las doce medidas",
+    "blind_to": [
+      "una familia de campo fuera de las doce de la sonda: el mapa DJANGO_TYPE_TO_TTYPE tiene mas entradas de las que la sonda instancia",
+      "un campo de tercero que redeclare type en su clase concreta y por tanto sombree la property, que la sonda no distingue de uno que la herede",
+      "si el valor publicado es el CORRECTO para la fuente: la sonda mide que type y type_for coincidan, no que type_for acierte"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "filter-function-de-properties-20260831T102803",
+    "tracked_files": 4,
+    "question": "Properties.filter_function se puede portar entero —las tres ramas de odoo19c: odoo/orm/fields_properties.py:663-672— y su guarda discrimina de verdad, o pasa en verde sin ejercerse?",
+    "instrument": [
+      "probes/probe_shapes.py — resolucion del comodelo por nombre de la referencia y por nombre de clase Django",
+      "probes/probe_relational_value.py — tipo real que devuelve el getter de una propiedad many2one con valor",
+      "probes/probe_falsy_getter.py — las tres formas del valor: con valor, declarada sin valor, NO declarada por el contenedor",
+      "scripts/neutralize_and_measure.sh — anula la guarda y mide que casos caen",
+      "uv run pytest tests/unit/orm/test_fields_properties.py -q --reuse-db"
+    ],
+    "metric": "casos que caen al anular la guarda (deben ser exactamente los que dependen de ella), y el tipo verbatim que el getter devuelve en cada una de las tres formas",
+    "blind_to": [
+      "que hace la fuente con su records.browse() en la rama 'in' — no se ejecuta Odoo; el sondeo del tipo devuelve False aqui y la rama queda portada sin disparo medido",
+      "si el predicado es correcto para un dominio anidado sobre la propiedad relacional — los casos miden discriminacion entre dos filas, no la semantica completa de Domain",
+      "el orden de import: la divergencia de direccion frente a la fuente se verifico por arranque (import OK), no por un analisis de ciclo completo del paquete orm"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#250",
+      "#260"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "frontera-orm-20260911T174036",
+    "tracked_files": 3,
+    "question": "¿Qué símbolos de nivel superior de odoo/orm/ no están en src/orm/, y dónde recoge la referencia las definiciones de campo que alimentan la fusión?",
+    "instrument": [
+      "python3 scripts/census_orm_reference.py --global",
+      "grep -rn _base_fields__ $ODOO19C/odoo/orm/",
+      "grep -rn _field_definitions $ODOO19C/odoo/orm/"
+    ],
+    "metric": "nombres ligados en el cuerpo del módulo por AST (ClassDef, FunctionDef, AsyncFunctionDef y el destino de un Assign simple) de cada odoo/orm/*.py, buscados en TODA la raíz src/orm/; más los sitios de población de _base_fields__ y _field_definitions en la referencia, contados por grep.",
+    "blind_to": "los métodos dentro de una clase — un Field con la mitad de sus métodos cuenta como presente, y para eso está check_porte_completo; el símbolo portado con OTRO nombre, que cuenta como ausente sin serlo; y el orden en que las cuatro etapas del flujo corren en tiempo de arranque, que este censo no ejecuta.",
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0416",
+      "#318",
+      "#319"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "fusion-de-declaraciones-de-campo-20260911T122051",
+    "tracked_files": 10,
+    "question": "Como fusiona la referencia varias declaraciones del mismo campo a lo largo de la herencia, y por que nuestro arbol pierde los parametros que una subclase declara sobre un campo heredado",
+    "instrument": [
+      "git show origin/main:<ruta> y sed -n sobre odoo/orm/fields.py de odoo19c (solo lectura)",
+      "lectura verbatim de _get_attrs (fields.py:414-465), separando el bucle de merge (:419-429) de los tres bloques de attrs (:443-465)",
+      "grep -rn sobre src/ para censar las declaraciones con NonStored y las asignaciones de _base_fields__",
+      "construccion de modelos desechables bajo django.setup() completo, leyendo el campo construido en proceso — M9",
+      "sonda mixin-abstracto/concreta que compara _meta.get_fields(), vars() por clase del __mro__ y el tipo del atributo resuelto — M10c",
+      "lectura de django/db/models/base.py::ModelBase.__new__ y add_to_class del paquete instalado"
+    ],
+    "metric": "El orden real en que la fuente compone attrs (merge primero, bloques despues); el estado del campo que NUESTRO arbol construye para la unica declaracion del arbol que hereda un compute (store, inverse, recursive, string); la particion de las seis declaraciones sin fachada; y por que via llega un campo heredado a la subclase (_meta contra __mro__)",
+    "blind_to": [
+      "El caso stored-over-stored: una base que declara un campo CON columna si lo copia _meta.local_fields y toma otro camino, que Django ya resuelve por ultimo-gana. Sucesor declarado, no portado a ciegas.",
+      "NonStored-over-NonStored y NonStored-sobre-stored: el primero no se ha medido, el segundo da 0 hoy (M6).",
+      "Un compute que llegue por una via que __mro__ no recorra (inyeccion posterior, contribute_to_class de tercero): medido sobre __mro__[1:], que es la via que Django usa.",
+      "La fachada Char NO acepta string= como parametro nombrado (unico hit es prosa de docstring en :242), asi que una reconstruccion tiene que pasar el string posicionalmente o ensenarselo a la fachada.",
+      "size= se traduce a max_length= dentro de la fachada, asi que un diccionario fusionado que lleve las dos claves no esta medido."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#332"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "identifier-gate-interpreter-verdict-20260910T192542",
+    "tracked_files": 8,
+    "question": "El gate de identificadores, ¿da el mismo veredicto sobre el mismo arbol cuando lo corre el python3 del sistema y cuando lo corre el interprete que uv construye para este repositorio? Y si no, ¿que lo decide?",
+    "instrument": [
+      "probes/probe_verdict_by_interpreter.py",
+      "probes/probe_corpus_exclusion.py",
+      "probes/probe_dict_key_population.py"
+    ],
+    "metric": "Codigo de salida y linea de veredicto de scripts/check_identifier_language.py —el PUNTO DE ENTRADA del consumidor, no el mecanismo del proveedor— sobre las raices por defecto, por interprete; mas corpus_available() de cada uno. Medir el mecanismo directo NO discrimina: rehusa con exit 2 en los dos porque el baseline lo declara el punto de entrada, no el proveedor. La segunda sonda mide, por palabra, su pertenencia al lexico cerrado, a las particulas y al criterio de corpus, POR SEPARADO. La tercera cuenta claves de dict literales de tipo str por raiz, filtradas por el mismo criterio que el gate aplica a un identificador.",
+    "blind_to": [
+      "si el desacuerdo entre interpretes es un defecto del gate o de la declaracion de dependencias: la sonda mide el desacuerdo, no su culpa",
+      "el resto de interpretes del contenedor, que no se enumeran — la sonda compara dos, no censa todos",
+      "las palabras fuera de la lista de sondas de probe_corpus_exclusion: es un control, no un censo del lexico",
+      "la clave de dict compuesta en tiempo de ejecucion, la que llega por **kwargs y la del JSON, que no es Python",
+      "si una clave es contrato externo —codigo_error lo es, y sale 269 veces— lo decide quien lee, no el conteo"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#302",
+      "#303",
+      "#304"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "jerarquia-child-of-parent-of-20260830T233548",
+    "tracked_files": 12,
+    "question": "child_of y parent_of se comportan como la fuente, y llegan a su optimizador desde el compilador?",
+    "instrument": [
+      "uv run pytest sobre el subconjunto derivado, -n 4 --reuse-db",
+      "sabotaje por comportamiento sobre src/orm/domains.py, restaurado por md5 y no por git checkout"
+    ],
+    "metric": "casos passed / failed, y cuales caen con cada comportamiento anulado",
+    "blind_to": [
+      "el numero de consultas de las ramas que no lo afirman: solo parent_of sobre ruta materializada lo cuenta; child_of se mide por la FORMA del retorno (Domain contra conjunto de ids) porque las dos ramas devuelven las mismas filas",
+      "la profundidad del arbol: los casos usan tres niveles, asi que un recorrido que se detuviera antes de agotar la cadena pasaria si el arbol fuera mas hondo",
+      "el rendimiento real del prefijo =like sobre parent_path contra el recorrido: ningun caso mide tiempo ni plan de consulta",
+      "los consumidores que llegan a to_q por herencia sin nombrarlo en su test, que es lo que el subconjunto derivado no puede ver",
+      "si el predicado en memoria consulta la base: el rodeo por FULL materializa ids, y ningun caso cuenta sus consultas (tarea #235)"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#225",
+      "#234",
+      "#235"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "nary-merges-20260830T215257",
+    "tracked_files": 3,
+    "question": "la mitad n-aria del registro de optimizadores estaba vacia: que hace falta para poblarla, y cambia la conducta?",
+    "instrument": [
+      "uv run pytest -n 4 -q --reuse-db sobre el arbol completo, y el subconjunto de tests/unit/orm/ con los tres sabotajes"
+    ],
+    "metric": "casos passed/failed de la suite completa, y del subconjunto bajo cada sabotaje",
+    "blind_to": [
+      "el SQL emitido: los casos miden el dominio optimizado, no la consulta que sale de el. Dos dominios equivalentes pueden compilar a SQL distinto y ninguno de estos casos lo veria",
+      "el rendimiento: la fusion existe para reducir subconsultas y ningun caso mide cuantas se emiten",
+      "un campo x2many con semantica propia fuera de many2many y one2many — la exclusion se lee por field.type, no por conducta"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "odoo-orm-reference-inventory-20260910T181517",
+    "tracked_files": 9,
+    "question": "TASK-API-0392 — que declara el ORM de la referencia por si mismo: cuantos archivos, cuantas clases, cuantas funciones y con que firmas. Es el espejo del censo de presencia (TASK-API-0391), que midio NUESTRO lado contra el suyo; aqui la referencia se mide sola, sin el eje de ausencia.",
+    "instrument": [
+      "inventory_reference_orm.py",
+      "probes/probe_orm_across_trees.py",
+      "probes/probe_stub_bodies.py",
+      "tests/test_inventory_reference_orm.py"
+    ],
+    "metric": "Ocurrencias declaradas en odoo/orm de odoo19c (odoo-tools@abe4040ec1), extraidas por AST: una clase, una funcion de modulo, o un metodo con su clase `owner`. La FIRMA se guarda entera (parametros en orden, banderas de opcional, vararg, kw-only, kwarg). ESTE RUN NO EXTIENDE COBERTURA: el censo de presencia ya alcanzo los 22 archivos no-__init__ de la referencia — cada uno tiene un archivo del mismo nombre en src/orm. Lo que cambia son dos cosas. (1) La UNIDAD: el censo empareja por nombre y su indice se queda con el primer homonimo, asi que su universo es de nombres UNICOS por archivo; aqui la unidad es la ocurrencia. Medido, la diferencia es 954 contra 792 — y ese 792 coincide EXACTAMENTE con los '792 simbolos de referencia' que el censo publico. Eso es CONSISTENCIA, no un control cruzado: los dos runs llaman al MISMO extractor sobre los MISMOS 22 archivos y deduplican igual, asi que la coincidencia confirma que la poblacion es la misma y no puede fallar por una razon interesante. Un control cruzado exigiria un segundo instrumento independiente, y este run no lo tiene. (2) El DESGLOSE: cada archivo lleva sus clases, cada clase sus metodos y cada funcion su firma, que es literalmente lo que el encargo pide contar.",
+    "blind_to": [
+      "Simbolos declarados dentro de un if o un try a nivel de modulo: solo se recorre tree.body. Medido, son 4 en todo odoo/orm y los cuatro viven en decorators.py: la clase 'deprecated' (:18), sus dos metodos (__init__ :19, __call__ :35) y el cierre 'wrapper' (:44) que vive DENTRO de __call__. No es una estimacion: se conto con un recorrido aparte.",
+      "Clases anidadas dentro de una clase: el recorrido baja un nivel. Medido, son 0 en odoo/orm — la ceguera existe y hoy no tiene poblacion.",
+      "Simbolos definidos dentro de una funcion (cierres): no entran, por decision del extractor que se importa. Son detalle de implementacion, no superficie.",
+      "Metodos ligados dinamicamente con setattr o por metaclase: MetaModel existe en models.py:206, asi que la ceguera es real; el AST no puede verlos.",
+      "types.py y __init__.py dan 0 simbolos y eso NO significa que esten vacios: el primero declara alias de tipo y el segundo re-exporta. Un 0 aqui es 'no declara def ni class', no 'no tiene contenido'.",
+      "El mapeo archivo-a-archivo entre el ORM PLANO de 18c y el paquete de 19c. La sonda mide donde vive el ORM en cada arbol y sus tamanios; NO afirma que odoo/api.py de 18 sea environments.py de 19. Eso exige emparejar simbolo a simbolo entre las dos formas y es otro analisis.",
+      "El IDIOMA de este run no lo defiende ningun gate del arbol, y por eso su primera version llego a commit con claves en español. Medido con control: check_identifier_language.py ve un `def` en español y NO ve una clave de dict con la misma morfologia (1 de 3 sujetos del banco), porque recorre simbolos DECLARADOS por AST y una clave es un literal — TASK-API-0394. Y check_vocabulario_prosa.py ni siquiera corre en api (sus dos listas viven solo en kaupamex-docs), y forzandolas da 0: sus ejes son `inventado` y `prohibido`, y «cubo», «dueño» y «defecto» son palabras españolas atestiguadas y no vetadas. Mide el significante; el defecto era de referente — TASK-API-0395.",
+      "El CUERPO como medida de completitud del lado de la referencia: el eje de fidelidad se resolvio en el run del censo, no en este. Lo que este run SI mide de los 38 'stub' es su clase, con probes/probe_stub_bodies.py — porque una version anterior de esta clave afirmaba sin medir que 'la mayoria son metodos de base abstracta'. Medido: 14 llevan @typing.overload (declaracion de firma para el verificador de tipos, con su implementacion real al lado, NO un `stub` sin implementar), 3 llevan otro decorador que cambia lo que el cuerpo significa (classproperty, api.model, api.private) y 21 no llevan ninguno. De esos 21, 17 tienen su nombre implementado con cuerpo en otra clase del paquete —base de jerarquia— y 4 no: BaseModel._register_hook y _unregister_hook (que los addons implementan, fuera de odoo/orm) y DummyRLock.acquire/release (no-op deliberado). Sigue ciega a la jerarquia REAL: el cruce es por nombre dentro del paquete, no por MRO."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0392",
+      "TASK-API-0394",
+      "TASK-API-0395"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "openapi-contract-20260902T202807",
+    "tracked_files": 3,
+    "question": "Cuantos endpoints del monolito declaran su contrato OpenAPI con @extend_schema y cuantos no — el insumo de #316 y la semilla del gate de #317.",
+    "instrument": [
+      "census_declared_contract.py",
+      "uv run python scripts/workbench/openapi-contract-20260902T202807/census_declared_contract.py"
+    ],
+    "metric": "Endpoints hallados por AST bajo *addons/**/controllers/*.py — funcion con @api_view, metodo HTTP de una clase de vista DRF, o metodo con @action — clasificados por si llevan @extend_schema propio o si su clase los nombra en @extend_schema_view.",
+    "blind_to": [
+      "La CALIDAD del contrato: un responses={} vacio o un request=None puesto por inercia cuentan como declarado igual que uno completo.",
+      "Un endpoint servido fuera de controllers/ — el recorrido esta acotado a esa carpeta y no mide urls.py ni vistas declaradas en otro sitio.",
+      "El registro por router: una clase [router] cuenta como UN endpoint, no como las cinco acciones de CRUD que el router expande.",
+      "Si el schema generado es valido: el instrumento mira el decorador, no corre spectacular."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#316",
+      "#317"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "operator-optimizers-suite-20260830T205315",
+    "tracked_files": 3,
+    "question": "el porte de la familia de optimizadores de operador, deja la suite verde?",
+    "instrument": [
+      "uv run pytest -n 4 -q --reuse-db, con las cuatro bases de worker calientes"
+    ],
+    "metric": "casos passed / failed / skipped y reloj de pared de la suite completa",
+    "blind_to": [
+      "un fallo que solo aparezca en frio: estas dos ejecuciones reusan las bases, y --create-db podria descubrir una migracion que no aplica",
+      "un fallo dependiente del orden: -p no:randomly fija el orden en serie, pero el reparto entre workers de xdist no es el mismo orden que la serie",
+      "todo lo que la suite no cubre: un verde mide los casos escritos, no el comportamiento no escrito"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "optimizadores-relacionales-20260830T230512",
+    "tracked_files": 6,
+    "question": "los dos optimizadores relacionales del registro se comportan como la fuente, y su salida compila a una consulta que corre?",
+    "instrument": [
+      "uv run pytest sobre el subconjunto derivado, -n 4 --reuse-db",
+      "sabotaje por comportamiento sobre src/orm/domains.py, restaurado por md5 y no por git checkout"
+    ],
+    "metric": "casos passed / failed, y cuales caen con cada comportamiento anulado",
+    "blind_to": [
+      "el SQL emitido: los casos miden las filas devueltas, no el plan; dos dominios equivalentes pueden compilar distinto sin que ningun caso lo vea",
+      "el rendimiento de la subconsulta frente a la travesia, que es para lo que el bypass de many2one existe y ningun caso cuenta subconsultas",
+      "el caso negativo del campo no relacional no discrimina su guarda: sin la rama any el compilador de hoja tambien levanta, por otra causa (tarea #233)"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#225",
+      "#232",
+      "#233"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "orm-body-axis-blindness-20260911T021435",
+    "tracked_files": 7,
+    "question": "OE-8 del alcance completar-raiz-orm declara que el único medidor de cuerpo empareja con `methods_of` y es «58.7 % ciego». ¿Cuánto ve realmente, y qué perdería un emparejamiento por (owner, name)?",
+    "instrument": [
+      "scripts/workbench/orm-body-axis-blindness-20260911T021435/measure_pairing_blindness.py",
+      "scripts/workbench/orm-body-axis-blindness-20260911T021435/measure_owner_agreement.py"
+    ],
+    "metric": "pares de símbolo del mismo nombre presentes en ambos lados del espejo, sobre src/orm y src/tools (77 archivos, 67 con contraparte), contados por dos extractores del propio motor: `methods_of` (métodos declarados en clase, colapsados por nombre) y `declarations_of` (clase, método de clase, función de módulo y asignación, sin colapsar). El segundo guion mide, de los pares que `methods_of` ve, en cuántos la clase dueña coincide entre lado y lado.",
+    "blind_to": [
+      "si los dos cuerpos de un par HACEN lo mismo — un par visible sólo dice que el instrumento los puede comparar",
+      "el símbolo portado bajo otro nombre: no hay tabla de equivalencia, así que un renombre se lee como ausencia",
+      "las raíces espejadas que no son src/orm ni src/tools (src/addons, addons/<x>), fuera del alcance medido",
+      "de qué par concreto salió el 1416 del alcance: el numerador (585) reproduce exacto y el denominador no lo hace ningún emparejamiento del árbol de hoy"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "orm-inventory-axis-20260902T205231",
+    "tracked_files": 6,
+    "question": "De los simbolos que faltan en src/orm, cuales caen en «el stack lo trae hecho» y cuales en «el stack tiene con que construirlo» — la mitad del veredicto que el censo hermano dejo abierta, y la directiva del ejecutor de revisar que tenemos NOSOTROS antes de implementar el ORM.",
+    "instrument": [
+      "locate_absent_symbols.py",
+      "uv run python scripts/workbench/orm-inventory-axis-20260902T205231/locate_absent_symbols.py --root orm --detalle"
+    ],
+    "metric": "Nombres declarados como def/class por AST, indexados en dos universos: el stack instalado (.venv/lib/python3.12/site-packages mas la stdlib del interprete) y nuestro arbol fuera de la raiz espejada (src/ y addons/ menos src/orm/). Cada simbolo ausente cae en uno de CINCO cubos, con la especificidad exigida en LOS DOS lados: un solo paquete del stack o un solo archivo nuestro. El quinto cubo, trae_renombrado, lo produce STACK_RENAME: filas nombre_referencia -> nombre_stack decididas una por una leyendo el cuerpo de la fuente, y sometidas a la MISMA exigencia de especificidad — un destino en dos o mas paquetes da nombre_generico, no trae_renombrado.",
+    "blind_to": [
+      "Que el simbolo encontrado HAGA lo que el de la fuente hace. El instrumento mide la forma —existe un nombre— y el veredicto es sobre el fondo: es el sub-patron C de metrica-decide-la-conclusion.md, declarado y no cometido. Por eso el guion NO emite el veredicto: emite el material.",
+      "El simbolo renombrado que NADIE puso en el mapa. STACK_RENAME cubre las tres familias que se midieron (composicion de SQL, DDL de columna, protocolo de descriptor), no el universo: un sin_rastro sigue pudiendo ser un TRAE que nadie ha leido, y el cubo terminal sigue siendo una cota SUPERIOR de «se construye». Lo que cambio es que la cota bajo de 264 a 251 con evidencia, no con una promesa.",
+      "Todo lo que un paquete expone por C, por __getattr__ o por reexportacion en __init__: psycopg, lxml y libharu tienen superficie que ningun AST de .py ve.",
+      "El renombre nuestro. Un simbolo portado aqui con otro nombre sale en sin_rastro.",
+      "La distincion entre un metodo de BaseModel que aterrizo en un addon consumidor y una homonimia. El cubo ya_esta_aqui la acota con la especificidad pero no la cierra: convert_to_column_insert en base_sparse_field es lo primero; check en ir_model.py, lo segundo.",
+      "Que el simbolo del DESTINO haga lo que hace el de la fuente. La fila justifica la equivalencia con el file:line de la referencia que se leyo, pero el instrumento solo comprueba que el destino este declarado: es el sub-patron C otra vez, un nivel mas abajo. La fila es una hipotesis firmada, no una medicion de conducta."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#209",
+      "#319"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "orm-rename-resolution-20260910T083919",
+    "tracked_files": 4,
+    "question": "¿Cuántos de los símbolos que el censo de la raíz llama «ausentes» están portados bajo el prefijo de disolución de este árbol?",
+    "instrument": "scripts/workbench/orm-rename-resolution-20260910T083919/resolve_renames.py",
+    "metric": "símbolos de la lista de ausentes que el CENSO publica por archivo, resueltos contra los símbolos declarados por AST en el mismo archivo de src/orm/ bajo uno de DISSOLUTION_PREFIXES ('_field_', '_model_', '_registry_'). El universo es el del censo, heredado a propósito.",
+    "blind_to": "el método portado con OTRO nombre (traducción, sinónimo) — el prefijo es una convención declarada, no un detector de renombres; y el CUERPO, igual que el censo: que `_field_read` exista no dice que haga lo que `Field.read` hace. Y ciega a los 9 archivos de la referencia sin lista de ausentes en el censo.",
+    "tasks_as_historical_not_canonical": [
+      "#211",
+      "#365"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "orm-root-census-20260902T203712",
+    "tracked_files": 7,
+    "question": "De los simbolos que la referencia declara en odoo/orm/, cuales estan aqui en el archivo que les corresponde, cuales viven en otro archivo, y cuales faltan — para saber si el porte del ORM esta cerrado antes de portar Cache y Starred.",
+    "instrument": [
+      "census_orm_root.py",
+      "uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle",
+      "probe_resolve_mro.py (ODOO19C declarado): comparación de cuerpo y mutación aislada, no un censo funcional global",
+      "probe_translated_storage.py: tipo PostgreSQL de un Char traducible frente al cuerpo original de Field.column_type"
+    ],
+    "metric": "Simbolos declarados por AST en cada archivo de odoo/orm/ (clases, funciones de modulo y metodos a cualquier profundidad, deduplicados por archivo), repartidos en cinco cubos contra el archivo homonimo de src/orm/: present, misplaced, dissolved, missing_classes y missing. El alcance de resolucion es EL ARCHIVO, no la raiz.",
+    "blind_to": [
+      "Los alias de tipo y las constantes de modulo: types.py declara DomainType, ContextType, ValuesType y ModelType, y el instrumento le mide 0 simbolos. Un archivo que sea solo re-exportacion y alias sale limpio sin estarlo.",
+      "El CUERPO del simbolo. Un metodo cuenta como presente por su nombre; que haga lo que el de la referencia hace no lo mide nadie aqui (porte-completo-no-parcial.md ya registra el conteo generoso).",
+      "El renombre. Un simbolo portado con otro nombre sale como ausente y como nuestro-sin-contraparte a la vez; no hay mapa de equivalencias como el de check_porte_completo.",
+      "Los atributos de clase (_name, _order, _inherit). No entran en ninguno de los cinco cubos — su gate es otro (atributos-de-clase-de-modelo.md).",
+      "La firma. Un simbolo con el mismo nombre y otros parametros cuenta como presente."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#209"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "orm-signature-parity-20260904T162214",
+    "tracked_files": 11,
+    "question": "Cuando un simbolo de odoo/orm ya esta portado en src/orm, la firma que declara aqui es la que declara la referencia?",
+    "instrument": [
+      "scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py",
+      "python3 scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py --detail"
+    ],
+    "metric": "Simbolos con contraparte en los 22 archivos de src/orm que espejan un archivo de odoo/orm, comparados por AST en cinco categorias de parametro: posicionales EN ORDEN, keyword-only COMO CONJUNTO, *args y **kwargs por presencia y nombre, y que parametros LLEVAN default. Un veredicto por simbolo, el mas estructural.",
+    "blind_to": [
+      "El VALOR del default: se mide su presencia, no cuanto vale.",
+      "La anotacion de tipo y el tipo de retorno: no entran en la comparacion.",
+      "El simbolo AUSENTE aqui: sale en not_ported y lo mide el censo de raiz, no este instrumento. Sumar las dos cifras infla el eje de firma con deuda que ya tiene su propio cubo (sub-patron A).",
+      "El nombre declarado mas de una vez en cualquiera de los dos lados: 85 nombres distintos quedan FUERA de la comparacion porque el par seria arbitrario. Su cierre exige calificar por clase, que este arbol no puede en models.py — BaseModel no existe aqui como clase.",
+      "El CUERPO del metodo: dos firmas identicas con comportamientos distintos salen como identicas. Eso lo mide porte-completo-no-parcial.md, no la firma.",
+      "El archivo de src/orm sin contraparte en odoo/orm: no se compara con nada."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0391"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "orm-symbol-presence-census-20260910T175850",
+    "tracked_files": 6,
+    "question": "De lo que src/orm y src/tools YA declaran, ¿cuánto tiene cuerpo? Los cinco instrumentos previos miden AUSENCIA; su criterio de cierre —«0 ausentes»— lo satisface un árbol de firmas vacías, porque ninguno mira el cuerpo. (TASK-API-0391)",
+    "instrument": "scripts/workbench/orm-symbol-presence-census-20260910T175850/census_symbol_presence.py",
+    "metric": "por archivo de las dos raíces espejadas: clases y funciones declaradas por AST (módulo y método; NO anidadas dentro de una función), cada una con su FIRMA —parámetros en orden sin el receptor, banderas de default, vararg, kw-only, kwarg— y su CLASE DE CUERPO. `stub` = retirado el docstring, el cuerpo queda vacío o es exactamente uno de `pass`, `...`, `raise NotImplementedError` (con o sin mensaje), `return` pelado o `return None`. Todo lo demás es `substantive`, incluido el que sólo delega en super(). La unión con odoo19c es por NOMBRE DE ARCHIVO dentro del par de FIXED_MIRRORED_ROOTS y por NOMBRE DE SÍMBOLO vía resolve() de orm-rename-resolution.",
+    "blind_to": "Cuatro cegueras, tres medidas en este mismo pase.\n(1) El PREFIJO DE DISOLUCIÓN que resolve() conoce se derivó de fields.py (`_field_`, `_model_`, `_registry_`). Los archivos que disuelven con otro prefijo cuentan sus símbolos como ausentes: medido por la sonda, 52 de 650 ocurrencias de la referencia (8 %) casarían por sufijo, concentradas en fields_temporal.py (20 de 23). La ausencia deduplicada tras descontarlas sigue siendo el eje dominante.\n(2) DESACUERDO DE UNIVERSO entre el censo y su propia sonda: el censo deduplica por nombre (1518 símbolos, 557 ausentes) y la sonda cuenta ocurrencias (650), porque `convert_to_column` existe en varias clases del mismo archivo. Las dos cifras son correctas y NO son comparables entre sí.\n(3) El emparejamiento por nombre de ARCHIVO: un símbolo cuyo homólogo vive en otro archivo de la referencia sale como ausente — es la misma ceguera declarada de check_mirrored_roots (H-API-855).\n(4) Un cuerpo de DOS statements no es stub aunque los dos sean vacíos: `__iter__` de domains.py hace `yield from ()` y luego `raise NotImplementedError`, y se cuenta como sustantivo. Y ciega, como todos los instrumentos previos, a que un cuerpo sustantivo HAGA lo que el de la referencia hace.",
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0391"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "precompute-antes-del-insert-20260902T190605",
+    "tracked_files": 5,
+    "question": "que campos del arbol declaran precompute=True, en que orden hay que calcularlos, y donde se enganchan sin envenenar el cache de una fila sin pk?",
+    "instrument": "probes/census_precompute_fields.py — recorre el registro de campos por modelo y lista los que declaran precompute=True con su compute y su readonly. probes/probe_init_signals.py mide que entrega cada senal de Django (pre_init da los kwargs verbatim; los posicionales mapean a _meta.concrete_fields en orden; post_init llega con la instancia ya construida). probes/probe_precompute_pass.py corre la pasada sobre una fila sin guardar y observa si el cache del campo recibe una clave None",
+    "metric": "campos con precompute=True por modelo, y para cada uno: el nombre de su metodo de computo, su readonly, y la posicion que le asigna el recorrido por registry.field_depends frente a su posicion de declaracion",
+    "blind_to": [
+      "un campo cuyo precompute se apague en tiempo de arranque por resolve_depends — el censo lee el atributo ya resuelto, asi que un campo apagado no aparece y no se distingue de uno que nunca lo pidio",
+      "un computo que lea un campo de OTRO modelo: registry.field_depends resuelve el primer segmento del dotted path y la pasada solo ordena computos del mismo modelo",
+      "el coste de la pasada sobre un create en lote — se midio fila a fila, no con bulk_create, que no dispara pre_save",
+      "un valor que el llamador entregue por una via que ni pre_init ni post_init observen (deserializacion desde la base, que llega por from_db)"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#312"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "rec-name-attname-display-name-20260910T090509",
+    "tracked_files": 3,
+    "question": "Declarar _rec_name verbatim cuando la fuente nombra el sufijo _id de una Many2one, ¿reproduce la etiqueta de la fuente o degrada a id crudo?",
+    "instrument": "tests/probe_rec_name_attname.py — instancia sin base un modelo cuyo _rec_name declarado es el attname de una FK y lee su display_name",
+    "metric": "el valor de display_name de IrUiViewCustom(id=1, user_id=7), y la resolucion de get_field por ambas caras del campo",
+    "blind_to": "la FK vacia (None), que cae en la guarda de _many2one_convert_to_display_name y devuelve False por otra via; y todo modelo cuyo _rec_name nombre la cara `name`, que ya funciona",
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "recoleccion-de-definiciones-20260911T175852",
+    "tracked_files": 9,
+    "question": "¿Puede la fusión de campos operar sobre la DECLARACIÓN del autor, como en la fuente, o nuestra fachada la consume al construir?",
+    "instrument": [
+      "probe_declaration_collection.py — firma de ModelBase.__new__ y orden de contribute_to_class",
+      "probe_what_the_attribute_holds.py — qué objeto guarda cada sitio en las dos formas de herencia",
+      "probe_the_override_loses_the_base.py — el caso de aceptación sobre TestOrmCategory real",
+      "probe_declarations_survive.py — claves de `_args__` contra las que el autor escribió"
+    ],
+    "metric": "por caso, el conjunto de claves presentes en `field._args__` contra el conjunto de claves que la declaración escribió; y el orden y la clase de los objetos que `vars()`, `_meta.local_fields` y `__mro__` guardan en las dos formas de herencia del árbol.",
+    "blind_to": "el VALOR de una clave conservada (el veredicto compara claves, no valores); una clave que la fachada renombre antes de delegar —`readonly` sale como `editable`, y el conjunto la acusa como perdida aunque el dato viaje con otro nombre—; y el comportamiento en tiempo de arranque del registro de la referencia, que esta sonda no ejecuta porque el árbol de la referencia no se instala.",
+    "tasks_as_historical_not_canonical": [
+      "TASK-API-0416",
+      "#346",
+      "#318"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "registry-field-axis-support-20260903T053330",
+    "tracked_files": 6,
+    "question": "de los ocho simbolos del eje de campos de Registry (odoo19c: odoo/orm/registry.py:506-682), cuales trae hechos este stack y cuales hay que construir con sus primitivas, y con que entrada del INVENTORY se paga cada uno?",
+    "instrument": "classify_field_axis_support.py — declara por simbolo los dotted paths que ya hacen el trabajo (installed) y los que hacen falta para construirlo (primitives), los resuelve por importlib mas getattr encadenado, y reparte en READY / BUILDABLE / BLOCKED",
+    "metric": "simbolos de la referencia repartidos en tres cubos: READY (todo installed resuelve, el porte es una llamada), BUILDABLE (nada installed pero todas las primitives resuelven) y BLOCKED (alguna primitive no resuelve, y se nombra)",
+    "blind_to": [
+      "la CONDUCTA del simbolo instalado: mide que el nombre resuelve, no que haga lo mismo que la referencia. Un READY dice que hay donde apoyarse, no que la semantica coincida",
+      "una primitiva que exista como atributo de instancia y no de clase: la resolucion es estatica, asi que remote_field de una instancia concreta no se puede declarar y en su lugar se declara ForeignObjectRel",
+      "el coste de construir: BUILDABLE no distingue diez lineas de doscientas",
+      "las dependencias de fuera del stack: si un simbolo necesitara un paquete no instalado, la primitiva no resolveria y saldria BLOCKED sin decir que la salida es instalarlo",
+      "los simbolos del eje que la referencia NO declara en este tramo: la poblacion son los ocho de :506 a :682, no Registry entero"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#342",
+      "#209"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "registry-signaling-axis-support-20260903T063526",
+    "tracked_files": 7,
+    "question": "de los siete simbolos del eje de senalizacion de Registry (odoo19c: odoo/orm/registry.py:1036-1186), cuales trae hechos este stack y cuales hay que construir con sus primitivas, y con que entrada del INVENTORY se paga cada uno?",
+    "instrument": "classify_signaling_axis_support.py — declara por simbolo los dotted paths que ya hacen el trabajo (installed) y los que hacen falta para construirlo (primitives), los resuelve por importlib mas getattr encadenado, y reparte en READY / BUILDABLE / BLOCKED",
+    "metric": "simbolos de la referencia repartidos en tres cubos: READY (todo installed resuelve, el porte es una llamada), BUILDABLE (nada installed pero todas las primitives resuelven) y BLOCKED (alguna primitive no resuelve, y se nombra)",
+    "blind_to": [
+      "la CONDUCTA del simbolo: mide que el nombre resuelve, no que haga lo mismo que la referencia. Un READY dice que hay donde apoyarse, no que la semantica coincida",
+      "el ESQUEMA: las siete tablas orm_signaling_<nombre> que setup_signaling crea en la fuente no existen aqui y el clasificador no las mira — aqui el DDL lo emiten las migraciones, asi que su ausencia no aparece como BLOCKED",
+      "el segundo proceso: el eje existe para que cuatro workers de gunicorn se enteren de la invalidacion del vecino, y una resolucion de nombres en un solo proceso no puede ver esa conducta",
+      "el coste de construir: BUILDABLE no distingue diez lineas de doscientas",
+      "los simbolos que la referencia declara fuera de este tramo: la poblacion son los siete de :1036 a :1186, no Registry entero"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#342",
+      "#256"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "resolucion-de-nombre-de-modelo-20260911T104904",
+    "tracked_files": 8,
+    "question": "Como resuelve la referencia un nombre de modelo punteado, y que le falta a nuestro arbol para que Django encuentre el destinatario de un Many2one declarado con ese nombre",
+    "instrument": [
+      "git show origin/main:<ruta> sobre odoo-tools (solo lectura)",
+      "grep -n sobre odoo/orm/fields_relational.py y odoo/orm/fields.py de odoo19c",
+      "django/db/models/utils.py::make_model_tuple y django/db/models/fields/related.py del paquete instalado",
+      "uv run pytest --reuse-db sobre la base QA caliente, leyendo el traceback de django_db_setup",
+      "construccion de modelos desechables (app_label='base') bajo django.setup() completo, con un fields.Many2one de 0, 1 y 3 puntos — M18",
+      "lectura de django/apps/registry.py::populate y de related.py::related_model para situar apps_ready / models_ready / ready en las tres fases — M19",
+      "collect_system_check_summary() en proceso, agrupando errors por id — M22",
+      "recorrido AST de constantes de cadena bajo src/ cruzado con apps.get_model bajo django.setup() — M23"
+    ],
+    "metric": "Simbolos y lineas verbatim de la referencia y de Django que participan en la resolucion del comodelo; el traceback real que produce un nombre punteado sin destinatario; y la CONDUCTA medida en proceso de make_model_tuple ante 0, 1 y 2+ puntos, cruzada con la distribucion por numero de puntos de los 224 _name del arbol",
+    "blind_to": [
+      "El comportamiento en runtime de la resolucion diferida: las trece mediciones leen codigo y un traceback, no ejercitan un resolutor que aun no existe",
+      "El radio de deconstruct(): si Many2one pasara a devolver una subclase de ForeignKey, makemigrations veria otra ruta de clase, y eso NO se ha medido aqui",
+      "El caso en que el addon test_orm no este en el arbol, donde sync_apps no ve sus modelos y la relacion muerta no existe",
+      "Los comodelos de otros addons (res.users, res.partner): siguen muertos tras el resolutor hasta que sus clases declaren _name",
+      "One2many y Many2many: One2many resuelve con apps.get_model(self.comodel_name) (fields_relational.py:354) — mismo fallo ante 2+ puntos por OTRO mecanismo, fuera del alcance de este resolutor. Sucesor declarado, no plegado aqui.",
+      "El campo declarado con ETIQUETA DE DJANGO ('base.ResPartner'), que hoy es la forma mayoritaria del arbol y no toma ninguno de los tres caminos medidos en M18.",
+      "El borde de import tardio (H-API-577): un modelo cuyo _name se prepara antes de que el receptor de orm.registry este conectado no lo ve la direccion (b), porque _ensure_seeded esta guardado por apps.ready (M19) y en Fase 2 vale False. MEDIDO que la cadena esta cerrada por construccion para todo modulo que use la fachada: fields/__init__.py:78 importa orm.fields_relational, que en su linea 82 hace 'from orm.registry import IR_MODELS, name_of'. La ceguera restante son los 17 archivos con _name que no importan ni fields ni orm (medido con grep -rlE sobre src/ y addons/).",
+      "Los system checks solo recorren el registro GLOBAL: un pendiente colgado dentro de un StateApps o de un isolate_apps no lo veria _check_lazy_references (M22).",
+      "El censo de etiquetas label_lower recorre CONSTANTES de cadena: una etiqueta compuesta en tiempo de ejecucion (f'{app}.{modelo}') es invisible, y addons/ quedo fuera del recorrido (M23).",
+      "Que los dos vocabularios no se solapen —0 de las 41 etiquetas es ademas un _name— es un hecho de HOY, no una propiedad: el dia que una cadena sea las dos cosas, el orden de las dos consultas de _deferred_comodel pasa a decidir."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#324",
+      "#332"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "search-on-nonstored-20260830T223855",
+    "tracked_files": 4,
+    "question": "un campo sin columna puede declarar search= y sustituir la condicion por un dominio, como en la referencia?",
+    "instrument": [
+      "sonda de conducta por implementacion x operador",
+      "el subconjunto derivado de pytest"
+    ],
+    "metric": "pares (implementacion, operador) que resuelven sin excepcion; casos passed/failed bajo cada sabotaje",
+    "blind_to": [
+      "el SQL que sale del dominio sustituido: los casos miden el dominio, no el WHERE",
+      "una sobrescritura de _search_display_name fuera de base y website: la sonda enumera las tres medidas, no un censo del arbol",
+      "el camino related=: Field._search_related no se ejercita en ninguna forma"
+    ],
+    "tasks_as_historical_not_canonical": null,
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "slug-de-producto-20260831T105114",
+    "tracked_files": 7,
+    "question": "El slug del escaparate coincide con ir.http._slug de la fuente, o dos serializers hermanos producen dos slugs distintos para el mismo nombre?",
+    "instrument": [
+      "probes/probe_two_slugifiers.py — los dos slugify sobre siete nombres, incluidos tres sin ASCII",
+      "probes/probe_empty_branch.py — que devuelve IrHttp.slugify_one ante un nombre sin caracteres de palabra",
+      "probes/probe_display_name_vs_name.py — si display_name difiere de name en ProductTemplate hoy",
+      "scripts/neutralize_and_measure.sh — anula la guarda del slug vacio y mide que casos caen",
+      "uv run pytest tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py -q --reuse-db"
+    ],
+    "metric": "nombres en que los dos slugify divergen (5 de 7; 3 dan cadena vacia con el de Django), y casos que caen al anular la guarda del slug vacio (4 de 15, exactamente los de esa clase)",
+    "blind_to": [
+      "un duplicador que llame al slugify de Django por otro camino — django.utils.text.slugify(...) sin from — y la raiz tests/, que el comando citado no barre",
+      "la composicion completa de _slug: la fuente la declara en addons/http_routing, que no esta portado, asi que el SITIO diverge y solo se porta el algoritmo",
+      "el override de website.IrHttp._slug, que prefiere seo_name: 0 hits en este arbol, no medido en conducta"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#250",
+      "#261"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "table-object-naming-20260830T201048",
+    "tracked_files": 4,
+    "question": "se dispara __set_name__ en el cuerpo de un modelo de Django, y que hay disponible en el owner cuando corre?",
+    "instrument": [
+      "dos sondas Python con django.setup() minimo, en probes/",
+      "una clase Python normal como control positivo, junto al modelo de Django"
+    ],
+    "metric": "si el protocolo se dispara (fired), con que nombre y sobre que owner; y que atributos existen en el owner en ese instante",
+    "blind_to": [
+      "el orden relativo entre __set_name__ y el resto del arranque de ModelBase: la sonda mide presencia de atributos, no secuencia",
+      "un modelo abstracto o proxy, que no se midieron",
+      "si el atributo sobrevive a una migracion: la sonda no toca la base"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#211"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "task-class-requirement-pairs-20261004T214332",
+    "tracked_files": 2,
+    "question": "¿Qué cambia para api al corregir las clases de tarea del proveedor a cuatro requisitos —mechanical, analysis, adversarial, max— en los que analysis y adversarial comparten el esfuerzo high y se separan por el rango mínimo, y sigue siendo correcta la escala de esfuerzo none < low < medium < high < xhigh < max?",
+    "instrument": [
+      "thyrox@c44439bee — src/packages/model-artifacts/__tests__/taskClassIdentifiers.test.ts (6 casos: valores canónicos, alias en español, frontier → max, valor desconocido, lectura y reescritura del almacén)",
+      "thyrox@c44439bee — src/packages/provider/__tests__/cost.test.ts, caso «una clase es un requisito, no un nivel»",
+      "rg sobre este clon: llamadas a --task-class, taskClass, headless-pool y agent-recommend (outputs/api-task-class-call-sites.txt)"
+    ],
+    "metric": "pares (minAdvisorRank, effort) de TASK_REQUIREMENTS: mechanical (1, low), analysis (3, high), adversarial (4, high), max (5, max); y número de archivos de api que invocan una clase de tarea: 0; cualquier otro nombre de clase (mecanica, analisis, frontera, frontier) se rehúsa sin traducirlo, como Ollama rehúsa un `think` que no es suyo.",
+    "blind_to": [
+      "una invocación de api que componga el nombre de la clase en tiempo de ejecución, sin el literal: el rg mide el texto, no la conducta",
+      "la traducción del esfuerzo a `think` de Ollama, que todavía no existe en el proveedor (Ollama 0.35.0 acepta low, medium, high, max, true o false: sin xhigh ni none)"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "TASK-THYROX-0959"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "trigger-graph-of-fields-20260902T134137",
+    "tracked_files": 4,
+    "question": "cuantas aristas campo->campo declara hoy este arbol, y cuantas de ellas costarian una consulta al recorrer la vuelta que el motor de recalculo necesita?",
+    "instrument": "measure_trigger_graph.py — recorre apps.get_models() con el registro poblado, resuelve cada depends con Field.resolve_depends y clasifica cada peldano de vuelta por si Django deja navegarlo o hay que buscarlo",
+    "metric": "aristas (campo_dependencia, camino_invertido, campo_dependiente) que resolve_depends devuelve, repartidas en tres cubos: MISMO_MODELO (un solo peldano, sin vuelta), POR_INVERSO (el peldano relacional deja accesor de vuelta) y POR_BUSQUEDA (la vuelta esta oculta y cuesta un search por peldano)",
+    "blind_to": [
+      "una dependencia declarada que resolve_depends no resuelve: el bucle rompe en el primer nombre que _meta.get_field no encuentra y no emite la arista, asi que un depends hacia un campo aun no portado cuenta como ausente y no como roto",
+      "el coste real de la consulta: cuenta peldanos que costarian un search, no filas ni milisegundos",
+      "el orden de recalculo: mide que aristas existen, no en que secuencia habria que recorrerlas",
+      "las dependencias que la referencia declara y este arbol todavia no: la poblacion es apps.get_models(), no odoo/addons",
+      "depends_context: el segundo mapa derivado no entra en el conteo",
+      "el dominio del inverso: la fuente descarta un inverso one2many/many2many CON domain y sigue buscando; el censo no lee domain, asi que puede contar POR_INVERSO una vuelta que la fuente rechazaria"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#273"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "two-caches-descriptor-20260911T053450",
+    "tracked_files": 8,
+    "question": "¿Puede el ORM consultar su caché de campo desde el descriptor sin encarecer el camino caliente de Django, y qué construye Django de verdad cuando `_from_ids` fabrica una fila con la terna del recordset?",
+    "instrument": [
+      "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py",
+      "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py",
+      "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py"
+    ],
+    "metric": "nanosegundos por lectura de `row.label` sobre 300 000 repeticiones con `__dict__` YA poblado, en tres formas: atributo llano, descriptor de NO datos (`__get__` solo) y descriptor de DATOS (`__get__` + `__set__`). Más dos sondas de conducta: si la caché de campo sobrevive a un Environment nuevo, y qué devuelve `rs.id` / `rs.pk` / `rs.label` sobre una terna de uno y de tres ids.",
+    "blind_to": [
+      "el coste del FALLO del almacén — ahí el cuerpo del descriptor sí corre, y es el caso que el porte quiere habilitar, no abaratar",
+      "el reloj de otra máquina: 22.8 ns es este contenedor con este CPython, no una constante del lenguaje",
+      "si la tabla existe en la base: la sonda de resolución de id corre sobre una sonda `managed = False`, así que `rs.label` termina en ProgrammingError cuando cae al camino de Django — eso mide el CAMINO, no el valor"
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#323",
+      "#324"
+    ],
+    "readme_present": false,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  },
+  {
+    "run": "ventana-de-lectura-20260903T174426",
+    "tracked_files": 6,
+    "question": "Al portar, leer el archivo entero cuesta mas tokens que una ventana sed/grep; en que tramo de tamano ese coste deja de pagar, y cuantos archivos hay en cada tramo — en nuestro arbol y en TODAS las poblaciones de la referencia, incluida la anidada sin alias?",
+    "instrument": [
+      "scripts/workbench/ventana-de-lectura-20260903T174426/measure_reading_window_cost.py",
+      "python3 measure_reading_window_cost.py api=src --reference"
+    ],
+    "metric": "Archivos .py por tramo de LINEAS (wc -l), con los bytes divididos entre cuatro como estimacion gruesa de tokens. Las raices de la referencia salen de scripts/reference_roots.py, no de literales. Cada tramo lleva su veredicto de lectura y la particion es total por construccion.",
+    "blind_to": [
+      "La razon real del tokenizador, que no es de cuatro bytes exactos: la estimacion sirve para decidir un tramo, no para presupuestar.",
+      "El coste de los episodios que la ventana estrecha produjo, que no se midio en tokens sino en trabajo rehecho — la comparacion es de orden de magnitud, no pareada.",
+      "Los archivos que no son .py: el .xml de datos y el .csv de ACL de la referencia se leen igual al portar y no entran en este conteo.",
+      "Si un archivo se lee una o veinte veces en la sesion; el tramo decide la politica, no el numero de lecturas reales.",
+      "Si los 29 addons comunes con licencia distinta entre el anidado y odoo18e cambian algun veredicto de porte ya emitido: aqui solo consta que difieren.",
+      "Las otras cinco raices de 18.x/ sin alias (my-odoo-enterprise-18.0, almas_12_1, app-odoo-18.0...), que quedan en la tarea #65 y no se recorren aqui."
+    ],
+    "tasks_as_historical_not_canonical": [
+      "#65",
+      "#352",
+      "#357"
+    ],
+    "readme_present": true,
+    "coverage": "metadata indexed; semantic depth varies; no blanket functional acceptance"
+  }
+]

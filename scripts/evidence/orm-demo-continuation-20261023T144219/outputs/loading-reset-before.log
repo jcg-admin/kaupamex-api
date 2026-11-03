@@ -1,0 +1,72 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_____________ test_recovery_rejects_caller_transaction[True-True] ______________
+
+atomic = True, autocommit = True
+
+    @pytest.mark.parametrize('atomic,autocommit', [(True, True), (False, False)])
+    def test_recovery_rejects_caller_transaction(atomic, autocommit):
+        database = mock.Mock(in_atomic_block=atomic)
+        database.get_autocommit.return_value = autocommit
+        with mock.patch.object(loading, 'connections', {'recovery': database}):
+            with pytest.raises(TransactionManagementError):
+>               loading.reset_modules_state('recovery')
+E               AttributeError: module 'modules.loading' has no attribute 'reset_modules_state'
+
+tests/unit/modules/test_loading_reset.py:16: AttributeError
+____________ test_recovery_rejects_caller_transaction[False-False] _____________
+
+atomic = False, autocommit = False
+
+    @pytest.mark.parametrize('atomic,autocommit', [(True, True), (False, False)])
+    def test_recovery_rejects_caller_transaction(atomic, autocommit):
+        database = mock.Mock(in_atomic_block=atomic)
+        database.get_autocommit.return_value = autocommit
+        with mock.patch.object(loading, 'connections', {'recovery': database}):
+            with pytest.raises(TransactionManagementError):
+>               loading.reset_modules_state('recovery')
+E               AttributeError: module 'modules.loading' has no attribute 'reset_modules_state'
+
+tests/unit/modules/test_loading_reset.py:16: AttributeError
+________________________ test_missing_catalogue_is_noop ________________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7f16048e57f0>
+
+    def test_missing_catalogue_is_noop(caplog):
+        database = mock.MagicMock(in_atomic_block=False)
+        database.get_autocommit.return_value = True
+        database.introspection.table_names.return_value = []
+        with mock.patch.object(loading, 'connections', {'recovery': database}), \
+                mock.patch.object(loading.transaction, 'atomic') as atomic:
+>           assert loading.reset_modules_state('recovery') is None
+E           AttributeError: module 'modules.loading' has no attribute 'reset_modules_state'
+
+tests/unit/modules/test_loading_reset.py:26: AttributeError
+________________ test_updates_are_bounded_and_errors_propagate _________________
+
+    def test_updates_are_bounded_and_errors_propagate():
+        database = mock.MagicMock(in_atomic_block=False)
+        database.get_autocommit.return_value = True
+        database.introspection.table_names.return_value = ['ir_module_module']
+        cursor = database.cursor.return_value.__enter__.return_value
+        cursor.execute.side_effect = [None, RuntimeError('second update failed')]
+        with mock.patch.object(loading, 'connections', {'recovery': database}), \
+                mock.patch.object(loading.transaction, 'atomic') as atomic:
+            with pytest.raises(RuntimeError, match='second update failed'):
+>               loading.reset_modules_state('recovery')
+E               AttributeError: module 'modules.loading' has no attribute 'reset_modules_state'
+
+tests/unit/modules/test_loading_reset.py:40: AttributeError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_loading_reset.py::test_recovery_rejects_caller_transaction[True-True]
+FAILED tests/unit/modules/test_loading_reset.py::test_recovery_rejects_caller_transaction[False-False]
+FAILED tests/unit/modules/test_loading_reset.py::test_missing_catalogue_is_noop
+FAILED tests/unit/modules/test_loading_reset.py::test_updates_are_bounded_and_errors_propagate
+4 failed, 1 warning in 0.13s

@@ -14,6 +14,7 @@ Va por **router**: es un recurso con colección y detalle, y un
 ``.as_view({...})`` manual sobre un ViewSet se salta las
 ``permission_classes`` por acción.
 """
+
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 

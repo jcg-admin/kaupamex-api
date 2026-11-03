@@ -23,11 +23,14 @@ Prediccion antes de correrlo: 1 cae. (Las predicciones anteriores de esta
 sesion fallaron dos de tres veces; se anota la de este por el mismo motivo
 que el control existe.)
 """
+
 import pytest
 
-from addons.base.models.res_partner import (FormatAddressMixin,
-                                            FormatVatLabelMixin,
-                                            ResPartnerCategory)
+from addons.base.models.res_partner import (
+    FormatAddressMixin,
+    FormatVatLabelMixin,
+    ResPartnerCategory,
+)
 from addons.base.models.res_country import ResCountry
 from exceptions import ValidationError
 from tests.conftest import matching_by_display_name
@@ -39,8 +42,11 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 # La jerarquia de etiquetas
 # --------------------------------------------------------------------------
 
+
 def test_the_class_attributes_are_the_references():
-    """``atributos-de-clase-de-modelo.md``: los cuatro que la fuente declara."""
+    """
+    ``atributos-de-clase-de-modelo.md``: los cuatro que la fuente declara.
+    """
     assert ResPartnerCategory._name == 'res.partner.category'
     assert ResPartnerCategory._description == 'Partner Tags'
     assert ResPartnerCategory._order == 'name, id'
@@ -54,7 +60,9 @@ def test_the_color_is_dealt_at_random_within_eleven():
 
 
 def test_an_explicit_color_is_respected():
-    """El default de la fuente es *callable*: corre al crear, no pisa lo dado."""
+    """
+    El default de la fuente es *callable*: corre al crear, no pisa lo dado.
+    """
     tag = ResPartnerCategory.objects.create(name='Fija', color=7)
     assert tag.color == 7
 
@@ -75,6 +83,52 @@ def test_display_name_is_the_whole_chain():
     leaf = ResPartnerCategory.objects.create(name='Norte', parent=middle)
     assert leaf.display_name == 'Clientes / Mayoristas / Norte'
     assert root.display_name == 'Clientes'
+
+
+def test_new_category_assigns_display_name_without_sql(django_db_blocker):
+    """El descriptor exige asignación aunque el registro aún no tenga PK."""
+    with django_db_blocker.block():
+        category = ResPartnerCategory(name='Nueva')
+        assert category.display_name == 'Nueva'
+        assert category.pk is None
+
+
+def test_category_name_change_invalidates_cached_label():
+    category = ResPartnerCategory.objects.create(name='Anterior')
+    assert category.display_name == 'Anterior'
+    category.name = 'Actual'
+    assert category.display_name == 'Actual'
+
+
+def test_reparenting_invalidates_cached_hierarchical_label():
+    first = ResPartnerCategory.objects.create(name='Primera')
+    second = ResPartnerCategory.objects.create(name='Segunda')
+    child = ResPartnerCategory.objects.create(name='Hija', parent=first)
+    assert child.display_name == 'Primera / Hija'
+    child.parent = second
+    assert child.display_name == 'Segunda / Hija'
+    assert child._compute_display_name() == 'Segunda / Hija'
+
+
+@pytest.mark.parametrize('by_id', [False, True])
+def test_parent_assignment_preserves_native_cache_and_no_sql(
+    by_id,
+    django_assert_num_queries,
+):
+    """Las dos entradas nativas conservan ID escalar y objeto relacionado."""
+    first = ResPartnerCategory.objects.create(name='Original')
+    second = ResPartnerCategory.objects.create(name='Destino')
+    child = ResPartnerCategory.objects.create(name='Hija', parent=first)
+    assert child.parent is first
+    assert child.display_name == 'Original / Hija'
+    with django_assert_num_queries(0):
+        if by_id:
+            child.parent_id = second.pk
+        else:
+            child.parent = second
+        assert child.parent_id == second.pk
+    assert child.parent.pk == second.pk
+    assert child.display_name == 'Destino / Hija'
 
 
 def test_the_materialized_path_is_kept():
@@ -110,13 +164,16 @@ def test_searching_by_name_brings_the_descendants():
 def test_a_negated_search_is_refused():
     """La fuente devuelve ``NotImplemented``: negar un ``child_of`` pediria
     el complemento de un arbol, que no es negar cada nombre."""
-    assert ResPartnerCategory._search_display_name(
-        'not like', 'x') is NotImplemented
+    assert (
+        ResPartnerCategory._search_display_name('not like', 'x')
+        is NotImplemented
+    )
 
 
 # --------------------------------------------------------------------------
 # Los dos mixins — la DECISION, no el XML
 # --------------------------------------------------------------------------
+
 
 def test_the_vat_label_comes_from_the_country():
     """``FormatVatLabelMixin`` (``:45-58``) — «RFC» en Mexico, «NIF» en
@@ -146,7 +203,14 @@ def test_the_address_order_follows_the_country_format():
     ``tests/integration/base/test_format_address_and_vat_label.py``.
     """
     country = ResCountry.objects.create(
-        name='Probeland', code='PB',
-        address_format='%(street)s\n%(city)s %(zip)s %(state_code)s\n%(country_name)s')
+        name='Probeland',
+        code='PB',
+        address_format=(
+            '%(street)s\n%(city)s %(zip)s %(state_code)s\n%(country_name)s'
+        ),
+    )
     assert FormatAddressMixin.field_order_for(country) == [
-        'city', 'zip', 'state_id']
+        'city',
+        'zip',
+        'state_id',
+    ]

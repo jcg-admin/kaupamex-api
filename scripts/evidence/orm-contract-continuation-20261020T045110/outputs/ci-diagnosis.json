@@ -1,0 +1,60 @@
+{
+  "observed_at_utc": "2026-10-20T05:15:48.829246+00:00",
+  "run": 39369826270,
+  "head": "90cc7b78ecf727c352c5edd602b0fdf199198069",
+  "status": "completed",
+  "conclusion": "failure",
+  "classification": "BASELINE_FAILURE",
+  "reference": "H-API-1120",
+  "failure_chain": [
+    "pytest_django.fixtures.django_db_setup",
+    "django.test.utils.setup_databases",
+    "django.core.management.commands.migrate.sync_apps",
+    "schema_editor.__exit__",
+    "ALTER TABLE test_orm_testormdiscussion ADD FOREIGN KEY moderator_id REFERENCES res_users(id)",
+    "psycopg.errors.UndefinedTable / django.db.utils.ProgrammingError: res_users missing"
+  ],
+  "origin_field": "src/addons/test_orm/models/test_orm.py:112",
+  "secondary_setup_observation": "kaupamex_qa already exists before test database creation; not proven sole cause",
+  "summary": {
+    "errors": 10617,
+    "skipped": 26,
+    "xfailed": 1,
+    "warnings": 18,
+    "seconds": 1349.83
+  },
+  "error_summary_rows": 10617,
+  "error_summary_causes": {
+    "django.db.utils.ProgrammingError: relation \"res_users\" does not exist": 10600,
+    "django.db.utils.InternalError: current transaction is aborted, commands ignored until end of transaction block": 17
+  },
+  "product_diff": {
+    "revisions": [
+      "694587d9a5b6715e1e0309e7c8b36c58d8ebdc2d",
+      "90cc7b78ecf727c352c5edd602b0fdf199198069"
+    ],
+    "scope": [
+      "src",
+      "tests",
+      "pyproject.toml",
+      "uv.lock",
+      ".github/workflows"
+    ],
+    "exit_code": 0,
+    "stdout": ""
+  },
+  "limits": [
+    "missing relation and common preparation failure chain are proven; full migration/model registration root cause not solved by this observation",
+    "baseline signature agrees with prior run39357612617 and unchanged product/test/dependency/workflow sources",
+    "CI failure is not acceptance; no gates/protections altered",
+    "no full test suite rerun locally or CI rerun triggered"
+  ],
+  "secondary_teardown_chain": [
+    "tests/conftest.py:428 pytest_runtest_teardown",
+    "seed()",
+    "src/addons/base/models/ir_config_parameter.py:252 init",
+    "QuerySet.exists()",
+    "InternalError: transaction aborted"
+  ],
+  "secondary_teardown_evidence": "transaction-aborted-excerpt.log"
+}

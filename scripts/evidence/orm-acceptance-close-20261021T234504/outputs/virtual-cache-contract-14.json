@@ -1,0 +1,29 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:ResGroups._compute_full_name / Field.__get__ / Field.compute_value / BaseModel._compute_field_value / Environment.cache_key",
+  "behavior": "Computed contextual values for unsaved Django instances retain separate context buckets and instance identity in the existing field cache; constructor values, explicit writes, invalidation and protected recursion remain observable.",
+  "execution_flow": "FieldDescriptor obtains private NewId for contextual nonstored pkNone -> existing cache bucket -> constructor insert or compute -> ComputedFieldDescriptor updates existing cache under that key -> later context reads use their own retained values. Public Django pk and persisted-record path remain unchanged.",
+  "inputs_outputs": "Two actual ResGroups instances with pkNone, privilege/name and short_display_name; expected distinct values, restored explicit normal-context value, constructor preservation, recompute after invalidation, bounded error for unassigned compute and protected recursive read.",
+  "side_effects": "Transient private cache identity and constructor-field metadata only; no new persistent field/schema/cache/registry, public ID mutation or BaseModel.new implementation.",
+  "dependencies": [
+    "Existing NewId implementation, Field._get_cache/_insert_cache/_update_cache and context-derived keys",
+    "TASK-API-0417 existing native identity and current user-authorized scoped correction",
+    "GEN0579 full virtual record constructor/origin/recordset protocols remain separate; not admitted or closed by cache adapter"
+  ],
+  "consumers": "Actual base.ResGroups.full_name, descriptor error path, current facade dispatch probes. Other returning compute methods and privilege access/elevation require their own acceptance; not swept globally.",
+  "installed_mechanism": "Existing FieldDescriptor/ComputedFieldDescriptor, derived registry.field_depends_context, Environment cache_key, transactional field buckets; existing decorators and get_context.",
+  "existing_adaptation": "Django single-object Consumer instead of Odoo recordset; name assignment per instance. Native Odoo sudo security semantics not inferred from these noSQL probes. Historical nine dispatch tests retain responsibilities but use current Field contribution and assignment contract.",
+  "verification": {
+    "focused": "compute-final.log131PASS",
+    "structural": "structural-regression.log214PASS/1inheritedXFAIL",
+    "red": "virtual-cache-before.log2FAIL/10PASS",
+    "negative_no_identity": "virtual-negative-none.log2FAIL exit1",
+    "negative_shared_identity": "virtual-negative-shared.log1FAIL exit1",
+    "original_consumer_replay": "virtual-context-recheck.log PASS first/short/restored,0SQL,pkNone",
+    "postgresql_regression": "recompute-regression.log16PASS, preserved0559 functions",
+    "final_composition": "native-pytest-final.log47PASS exit0 including teardown, full frozen Django migrations on new own PostgreSQL database; all currently final code loaded together"
+  },
+  "equivalence": "Bounded contextual cache/assignment behavior verified without completing all virtual-record behavior.",
+  "limitations": "Full BaseModel.new/origin, recordset protocols, persistence transition, general per-record virtual invalidation and all privilege/security flows are not qualified. No full ORM/Provider inference acceptance.",
+  "integration": "0fc622dc on feature branch; source publication/CI/review verified separately, no merges."
+}

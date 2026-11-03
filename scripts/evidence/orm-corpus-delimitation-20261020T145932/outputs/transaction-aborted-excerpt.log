@@ -1,0 +1,42 @@
+2026-10-20T05:46:29.6243864Z     return self.cursor.execute(sql)
+2026-10-20T05:46:29.6244044Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:29.6244135Z     raise ex.with_traceback(None)
+2026-10-20T05:46:29.6244548Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:29.6244940Z _ ERROR at teardown of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+2026-10-20T05:46:29.6245163Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T05:46:29.6245279Z     return self.cursor.execute(sql, params)
+2026-10-20T05:46:29.6245456Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:29.6245556Z     raise ex.with_traceback(None)
+2026-10-20T05:46:29.6245940Z E   psycopg.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T05:46:29.6245948Z 
+2026-10-20T05:46:29.6246205Z The above exception was the direct cause of the following exception:
+2026-10-20T05:46:29.6246350Z tests/conftest.py:428: in pytest_runtest_teardown
+2026-10-20T05:46:29.6246425Z     seed()
+2026-10-20T05:46:29.6246582Z src/addons/base/models/ir_config_parameter.py:252: in init
+2026-10-20T05:46:29.6246737Z     exists = cls.objects.using(using).filter(key=key).exists()
+2026-10-20T05:46:29.6246947Z .venv/lib/python3.12/site-packages/django/db/models/query.py:1337: in exists
+2026-10-20T05:46:29.6247062Z     return self.query.has_results(using=self.db)
+2026-10-20T05:46:29.6247299Z .venv/lib/python3.12/site-packages/django/db/models/sql/query.py:686: in has_results
+2026-10-20T05:46:29.6247401Z     return compiler.has_results()
+2026-10-20T05:46:29.6247647Z .venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1592: in has_results
+2026-10-20T05:46:29.6247753Z     return bool(self.execute_sql(SINGLE))
+2026-10-20T05:46:29.6247994Z .venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+2026-10-20T05:46:29.6248163Z     cursor.execute(sql, params)
+2026-10-20T05:46:29.6248374Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+2026-10-20T05:46:29.6248473Z     return self._execute_with_wrappers(
+2026-10-20T05:46:29.6248732Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+2026-10-20T05:46:29.6248842Z     return executor(sql, params, many, context)
+2026-10-20T05:46:29.6249054Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+2026-10-20T05:46:29.6249155Z     with self.db.wrap_database_errors:
+2026-10-20T05:46:29.6249338Z .venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+2026-10-20T05:46:29.6249494Z     raise dj_exc_value.with_traceback(traceback) from exc_value
+2026-10-20T05:46:29.6249701Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T05:46:29.6249818Z     return self.cursor.execute(sql, params)
+2026-10-20T05:46:29.6249997Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:29.6250157Z     raise ex.with_traceback(None)
+2026-10-20T05:46:29.6250494Z E   django.db.utils.InternalError: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T05:46:29.6250829Z _ ERROR at teardown of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+2026-10-20T05:46:29.6251036Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T05:46:29.6251140Z     return self.cursor.execute(sql, params)
+2026-10-20T05:46:29.6251318Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:29.6251410Z     raise ex.with_traceback(None)

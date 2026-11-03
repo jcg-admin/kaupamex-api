@@ -5,6 +5,7 @@ asistente (``models/base_module_install_request.py``) sigue bloqueado en su
 parte de instalación en caliente — ver su docstring para el veredicto por
 símbolo, ya acotado.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -18,9 +19,7 @@ class BaseInstallRequestConfig(AppConfig):
     #: Módulos que cuelgan algo de un modelo AJENO — ≙ los archivos que la
     #: referencia declara con ``_inherit``. Cada uno expone
     #: ``apply_base_install_request_extensions()``.
-    _EXTENSIONS = (
-        'addons.base_install_request.models.ir_module_module',
-    )
+    _EXTENSIONS = ('addons.base_install_request.models.ir_module_module',)
 
     def ready(self):
         """Aplica lo que este addon cuelga de ``base``.
@@ -31,4 +30,6 @@ class BaseInstallRequestConfig(AppConfig):
         ya está poblado en este punto.
         """
         for path in self._EXTENSIONS:
-            importlib.import_module(path).apply_base_install_request_extensions()
+            importlib.import_module(
+                path
+            ).apply_base_install_request_extensions()

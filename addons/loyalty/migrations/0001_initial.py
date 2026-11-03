@@ -33,7 +33,10 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Formato REF-{user.id}-{6 chars}. Siempre en mayusculas.",
+                        help_text=(
+                            "Formato REF-{user.id}-{6 chars}. Siempre en"
+                            " mayusculas."
+                        ),
                         max_length=50,
                         unique=True,
                         verbose_name="Codigo referral",
@@ -72,20 +75,27 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="True si la fila fue borrada via soft delete.",
+                        help_text=(
+                            "True si la fila fue borrada via soft delete."
+                        ),
                         verbose_name="Eliminado (logico)",
                     ),
                 ),
                 (
                     "deleted_at",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name="Fecha de borrado logico"
+                        blank=True,
+                        null=True,
+                        verbose_name="Fecha de borrado logico",
                     ),
                 ),
                 (
                     "code",
                     models.CharField(
-                        help_text="Siempre en mayusculas. Insensible a mayusculas en validacion.",
+                        help_text=(
+                            "Siempre en mayusculas. Insensible a mayusculas en"
+                            " validacion."
+                        ),
                         max_length=50,
                         unique=True,
                         verbose_name="Codigo del cupon",
@@ -109,11 +119,15 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Importe fijo a descontar. Solo para tipo FIXED.",
+                        help_text=(
+                            "Importe fijo a descontar. Solo para tipo FIXED."
+                        ),
                         max_digits=10,
                         null=True,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0.01"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0.01")
+                            )
                         ],
                         verbose_name="Valor del descuento (FIXED)",
                     ),
@@ -123,12 +137,19 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Porcentaje a descontar (0.01-100). Solo para tipo PERCENTAGE.",
+                        help_text=(
+                            "Porcentaje a descontar (0.01-100). Solo para tipo"
+                            " PERCENTAGE."
+                        ),
                         max_digits=5,
                         null=True,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0.01")),
-                            django.core.validators.MaxValueValidator(Decimal("100.00")),
+                            django.core.validators.MinValueValidator(
+                                Decimal("0.01")
+                            ),
+                            django.core.validators.MaxValueValidator(
+                                Decimal("100.00")
+                            ),
                         ],
                         verbose_name="Porcentaje de descuento",
                     ),
@@ -138,7 +159,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Tope para descuentos porcentuales. Null = sin tope.",
+                        help_text=(
+                            "Tope para descuentos porcentuales. Null = sin"
+                            " tope."
+                        ),
                         max_digits=10,
                         null=True,
                         verbose_name="Descuento maximo",
@@ -149,10 +173,15 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="El subtotal debe ser >= a este valor para aplicar el cupon.",
+                        help_text=(
+                            "El subtotal debe ser >= a este valor para aplicar"
+                            " el cupon."
+                        ),
                         max_digits=10,
                         validators=[
-                            django.core.validators.MinValueValidator(Decimal("0.00"))
+                            django.core.validators.MinValueValidator(
+                                Decimal("0.00")
+                            )
                         ],
                         verbose_name="Monto minimo del carrito",
                     ),
@@ -172,7 +201,10 @@ class Migration(migrations.Migration):
                         default=0, verbose_name="Usos actuales"
                     ),
                 ),
-                ("valid_from", models.DateTimeField(verbose_name="Vigente desde")),
+                (
+                    "valid_from",
+                    models.DateTimeField(verbose_name="Vigente desde"),
+                ),
                 (
                     "valid_until",
                     models.DateTimeField(
@@ -182,18 +214,26 @@ class Migration(migrations.Migration):
                         verbose_name="Vigente hasta",
                     ),
                 ),
-                ("is_active", models.BooleanField(db_index=True, default=True)),
+                (
+                    "is_active",
+                    models.BooleanField(db_index=True, default=True),
+                ),
                 (
                     "restricted_to_email",
                     models.EmailField(
                         blank=True,
-                        help_text="Si se indica, solo ese email puede usar el cupon.",
+                        help_text=(
+                            "Si se indica, solo ese email puede usar el cupon."
+                        ),
                         max_length=254,
                         null=True,
                         verbose_name="Solo para este email",
                     ),
                 ),
-                ("deactivated_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "deactivated_at",
+                    models.DateTimeField(blank=True, null=True),
+                ),
                 (
                     "created_by",
                     models.ForeignKey(
@@ -239,7 +279,10 @@ class Migration(migrations.Migration):
                 (
                     "status",
                     models.CharField(
-                        choices=[("PENDING", "Pendiente"), ("COMPLETED", "Completado")],
+                        choices=[
+                            ("PENDING", "Pendiente"),
+                            ("COMPLETED", "Completado"),
+                        ],
                         db_index=True,
                         default="PENDING",
                         max_length=20,
@@ -266,7 +309,10 @@ class Migration(migrations.Migration):
                     "reward_voucher",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Voucher de recompensa emitido al referidor (Subflujo C).",
+                        help_text=(
+                            "Voucher de recompensa emitido al referidor"
+                            " (Subflujo C)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="referral_rewards",
@@ -297,7 +343,10 @@ class Migration(migrations.Migration):
                 (
                     "changes",
                     models.JSONField(
-                        help_text="Dict de {campo: {before, after}} con los cambios aplicados."
+                        help_text=(
+                            "Dict de {campo: {before, after}} con los cambios"
+                            " aplicados."
+                        )
                     ),
                 ),
                 (

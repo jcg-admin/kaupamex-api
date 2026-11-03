@@ -9,6 +9,7 @@ Los casos se escribieron ANTES del modulo. Cubren las tres formas que
 instancia— por sus tres ramas de casteo (sin casteo, con casteo, y
 ``cast=None``, que descarta el valor).
 """
+
 import pytest
 
 from tools.facade import Proxy, ProxyAttr, ProxyFunc

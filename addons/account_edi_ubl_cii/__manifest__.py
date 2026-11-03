@@ -4,7 +4,8 @@
     'name': "Import/Export electronic invoices with UBL/CII",
     'version': '1.0',
     'category': 'Accounting/Accounting',
-    'description': """
+    'description': (
+        """
 Electronic invoicing module
 ===========================
 
@@ -20,7 +21,8 @@ linked to the invoice.
 Note that E-FFF, NLCIUS and XRechnung (UBL) are only available for Belgian,
 Dutch and German companies, respectively. UBL Bis 3 is only available for
 companies which country is present in the EAS list.
-    """,
+    """
+    ),
     # `depends` MEDIDO contra los imports reales de este addon:
     #   addons.account.tools                        -> dict_to_xml
     #   addons.account.models.account_move          -> AccountMove

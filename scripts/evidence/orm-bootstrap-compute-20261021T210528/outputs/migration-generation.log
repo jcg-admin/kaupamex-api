@@ -1,0 +1,28 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+System check identified some issues:
+
+WARNINGS:
+base.PropertiesBaseDefinition.properties_field: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+fleet.FleetVehicleLogServices.account_move_line: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+Migrations for 'test_orm':
+  src/addons/test_orm/migrations/0001_initial.py
+    + Create model TestOrmCategory
+    + Create model TestOrmDiscussion
+    + Add field discussions to testormcategory
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

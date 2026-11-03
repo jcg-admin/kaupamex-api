@@ -13,6 +13,7 @@ Un archivo por modelo (monolito modular, como ``base/models/``):
 Movidos desde el addon no-Odoo ``payments`` (que queda como controlador). La
 lógica específica de MercadoPago se disuelve en ``payment_mercado_pago``.
 """
+
 from .payment import Payment
 from .refund import Refund
 from .chargeback import Chargeback

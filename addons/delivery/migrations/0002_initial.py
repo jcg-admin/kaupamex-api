@@ -69,7 +69,10 @@ class Migration(migrations.Migration):
             name="product",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Producto de servicio para la línea de envío (Odoo delivery.carrier.product_id).",
+                help_text=(
+                    "Producto de servicio para la línea de envío (Odoo"
+                    " delivery.carrier.product_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="shipping_methods",

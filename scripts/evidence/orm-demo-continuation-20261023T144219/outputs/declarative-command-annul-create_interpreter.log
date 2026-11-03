@@ -1,0 +1,166 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+..FFFFF.F....................                                            [100%]
+=================================== FAILURES ===================================
+________________________ test_company_and_same_company _________________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2128: in get_prep_value
+    return int(value)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'tuple'
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_company_checks.py:61: in test_company_and_same_company
+    env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:853: in create
+    records = cls._create(data_list)
+src/orm/models.py:1021: in _create
+    getattr(record, name).set(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1320: in set
+    else self.target_field.get_prep_value(obj)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1191: in get_prep_value
+    return self.target_field.get_prep_value(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2130: in get_prep_value
+    raise e.__class__(
+E   TypeError: Field 'id' expected a number but got (4, 374, 0).
+______________________ test_company_and_different_company ______________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2128: in get_prep_value
+    return int(value)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'tuple'
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_company_checks.py:77: in test_company_and_different_company
+    env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:853: in create
+    records = cls._create(data_list)
+src/orm/models.py:1021: in _create
+    getattr(record, name).set(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1320: in set
+    else self.target_field.get_prep_value(obj)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1191: in get_prep_value
+    return self.target_field.get_prep_value(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2130: in get_prep_value
+    raise e.__class__(
+E   TypeError: Field 'id' expected a number but got (4, 377, 0).
+_________________________ test_company_and_no_company __________________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2128: in get_prep_value
+    return int(value)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'tuple'
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_company_checks.py:86: in test_company_and_no_company
+    env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:853: in create
+    records = cls._create(data_list)
+src/orm/models.py:1021: in _create
+    getattr(record, name).set(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1320: in set
+    else self.target_field.get_prep_value(obj)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1191: in get_prep_value
+    return self.target_field.get_prep_value(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2130: in get_prep_value
+    raise e.__class__(
+E   TypeError: Field 'id' expected a number but got (4, 379, 0).
+________________________ test_no_company_and_no_company ________________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2128: in get_prep_value
+    return int(value)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'tuple'
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_company_checks.py:95: in test_no_company_and_no_company
+    env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:853: in create
+    records = cls._create(data_list)
+src/orm/models.py:1021: in _create
+    getattr(record, name).set(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1320: in set
+    else self.target_field.get_prep_value(obj)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1191: in get_prep_value
+    return self.target_field.get_prep_value(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2130: in get_prep_value
+    raise e.__class__(
+E   TypeError: Field 'id' expected a number but got (4, 382, 0).
+_______________________ test_no_company_and_some_company _______________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2128: in get_prep_value
+    return int(value)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'tuple'
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_company_checks.py:111: in test_no_company_and_some_company
+    env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:853: in create
+    records = cls._create(data_list)
+src/orm/models.py:1021: in _create
+    getattr(record, name).set(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1320: in set
+    else self.target_field.get_prep_value(obj)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1191: in get_prep_value
+    return self.target_field.get_prep_value(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2130: in get_prep_value
+    raise e.__class__(
+E   TypeError: Field 'id' expected a number but got (4, 385, 0).
+______________________________ test_company_write ______________________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2128: in get_prep_value
+    return int(value)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'tuple'
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_company_checks.py:129: in test_company_write
+    child = env['test_orm.model_child'].create({
+src/orm/decorators.py:238: in create
+    return inner(self, vals_list, *args, **kwargs)
+src/orm/models.py:853: in create
+    records = cls._create(data_list)
+src/orm/models.py:1021: in _create
+    getattr(record, name).set(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:1320: in set
+    else self.target_field.get_prep_value(obj)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1191: in get_prep_value
+    return self.target_field.get_prep_value(value)
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:2130: in get_prep_value
+    raise e.__class__(
+E   TypeError: Field 'id' expected a number but got (4, 392, 0).
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_same_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_different_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_no_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_no_company_and_some_company
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_write
+6 failed, 23 passed, 8 warnings in 10.46s

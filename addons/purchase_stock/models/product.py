@@ -5,7 +5,8 @@ Adaptación de Odoo ``purchase_stock/models/product.py``
 (``odoo19c: addons/purchase_stock/models/product.py``, 330 líneas, LGPL-3) —
 atribución y aviso de licencia preservados (DEC-KX-03).
 
-Qué añade: el producto aprende a decir **cuánto se mueve al mes** y, a partir de
+Qué añade: el producto aprende a decir **cuánto se mueve al mes** y, a partir
+de
 ahí, **cuánto habría que comprar**. La ventana sobre la que se mide (30 días,
 una semana, un año, el mismo trimestre del año pasado…) es una elección del
 usuario, y el mismo mecanismo sirve para las tres preguntas: demanda mensual,
@@ -60,7 +61,8 @@ presencia, no conducta.
      - ya existe con otro nombre — ver abajo
    * - ``suggest_estimated_price`` + su compute (``odoo19c: :40``, ``:62-78``)
      - portado
-     - dos ``_select_seller`` en cascada — cantidad sugerida, luego mínima (#267)
+     - dos ``_select_seller`` en cascada — cantidad sugerida, luego mínima
+       (#267)
    * - ``_search_product_with_suggested_quantity`` (``:80-89``)
      - **bloqueado**
      - ``search_fetch``/``filtered_domain`` sobre un campo sin columna
@@ -134,6 +136,7 @@ comando— lo invoca y decide qué hacer con el aviso. Es la misma traducción q
 ``stock`` ya hizo con ``_onchange_tracking``
 (``addons/stock/models/product.py``).
 """
+
 import calendar
 from datetime import datetime, timedelta
 
@@ -154,6 +157,7 @@ ACTION_BUY = 'buy'
 
 # --- aritmética de calendario (D-1) ----------------------------------------
 
+
 def _shift_months(value, count):
     """≙ ``value - relativedelta(months=count)`` cuando ``count`` es negativo.
 
@@ -171,6 +175,7 @@ def _shift_months(value, count):
 
 # --- product.template ------------------------------------------------------
 
+
 def _onchange_buy_route(self):
     """≙ ``_onchange_buy_route`` (``odoo19c: :16-31``).
 
@@ -183,23 +188,28 @@ def _onchange_buy_route(self):
         return None
     StockRule = apps.get_model('stock', 'StockRule')
     buy_route_ids = set(
-        StockRule.objects
-        .filter(action=ACTION_BUY, picking_type__code='incoming', active=True)
-        .values_list('route', flat=True)
+        StockRule.objects.filter(
+            action=ACTION_BUY, picking_type__code='incoming', active=True
+        ).values_list('route', flat=True)
     )
     if not buy_route_ids:
         return None
     own_route_ids = set(self.route_ids.values_list('pk', flat=True))
     if buy_route_ids & own_route_ids:
-        return {'warning': {
-            'title': '¡Atención!',
-            'message': 'Este producto tiene marcada la ruta «Comprar» pero no '
-                       'es comprable.',
-        }}
+        return {
+            'warning': {
+                'title': '¡Atención!',
+                'message': (
+                    'Este producto tiene marcada la ruta «Comprar» pero no '
+                    'es comprable.'
+                ),
+            }
+        }
     return None
 
 
 # --- product.product: la demanda mensual -----------------------------------
+
 
 def _get_monthly_demand_range(self, based_on):
     """≙ ``_get_monthly_demand_range`` (``odoo19c: :221-246``).
@@ -253,22 +263,40 @@ def _get_monthly_demand_moves_location_domain(self):
     # excluye los movimientos cuyo destino es una devolución.
     non_return = ~Domain('move_dest_ids.origin_returned_move', '=', False)
     if not warehouse_id:
-        return Domain.AND([
-            Domain.OR([
-                Domain('location_dest.usage', 'in', ['customer', 'production']),
-                Domain('location_final.usage', 'in', ['customer', 'production']),
-            ]),
+        return Domain.AND(
+            [
+                Domain.OR(
+                    [
+                        Domain(
+                            'location_dest.usage',
+                            'in',
+                            ['customer', 'production'],
+                        ),
+                        Domain(
+                            'location_final.usage',
+                            'in',
+                            ['customer', 'production'],
+                        ),
+                    ]
+                ),
+                non_return,
+            ]
+        )
+    return Domain.AND(
+        [
+            Domain('location.warehouse', '=', warehouse_id),
+            Domain.OR(
+                [
+                    Domain('location_dest.warehouse', '!=', warehouse_id),
+                    Domain('location_final.warehouse', '!=', warehouse_id),
+                ]
+            ),
+            Domain(
+                'location_dest.usage', '!=', 'inventory'
+            ),  # excluye el desecho
             non_return,
-        ])
-    return Domain.AND([
-        Domain('location.warehouse', '=', warehouse_id),
-        Domain.OR([
-            Domain('location_dest.warehouse', '!=', warehouse_id),
-            Domain('location_final.warehouse', '!=', warehouse_id),
-        ]),
-        Domain('location_dest.usage', '!=', 'inventory'),   # excluye el desecho
-        non_return,
-    ])
+        ]
+    )
 
 
 def _compute_monthly_demand(self):
@@ -286,17 +314,25 @@ def _compute_monthly_demand(self):
     start_date, limit_date = self._get_monthly_demand_range(based_on)
 
     StockMove = apps.get_model('stock', 'StockMove')
-    move_domain = Domain.AND([
-        Domain('product', '=', self.pk),
-        Domain('state', 'in',
-               ['assigned', 'confirmed', 'partially_available', 'done']),
-        Domain('date', '>=', start_date),
-        Domain('date', '<', limit_date),
-        self._get_monthly_demand_moves_location_domain(),
-    ])
-    total = (StockMove.objects
-             .filter(to_q(move_domain, StockMove))
-             .aggregate(total=Sum('product_qty'))['total'] or 0)
+    move_domain = Domain.AND(
+        [
+            Domain('product', '=', self.pk),
+            Domain(
+                'state',
+                'in',
+                ['assigned', 'confirmed', 'partially_available', 'done'],
+            ),
+            Domain('date', '>=', start_date),
+            Domain('date', '<', limit_date),
+            self._get_monthly_demand_moves_location_domain(),
+        ]
+    )
+    total = (
+        StockMove.objects.filter(to_q(move_domain, StockMove)).aggregate(
+            total=Sum('product_qty')
+        )['total']
+        or 0
+    )
 
     factor = 1
     if based_on == 'one_year':
@@ -336,7 +372,7 @@ def _compute_suggested_quantity(self):
         if self.virtual_available >= 0:
             return 0
         qty = -self.virtual_available * percent / 100
-        return max(-(-qty // 1), 0)      # ceil sin importar math
+        return max(-(-qty // 1), 0)  # ceil sin importar math
 
     if based_on:
         demand = self.monthly_demand
@@ -354,7 +390,8 @@ def _compute_suggested_quantity(self):
 def suggested_qty(self):
     """≙ ``suggested_qty`` (``odoo19c: :39``) — ``compute`` sin ``store``.
 
-    Su ``search='_search_product_with_suggested_quantity'`` queda **bloqueado**:
+    Su ``search='_search_product_with_suggested_quantity'`` queda
+    **bloqueado**:
     el campo no tiene columna y el mecanismo de búsqueda sobre computados sin
     almacenar (``search_fetch`` + ``filtered_domain``) no existe en este árbol
     (medido: ``grep -rn "def search_fetch" addons/ src/`` → 0 definiciones).
@@ -363,7 +400,9 @@ def suggested_qty(self):
 
 
 def _resolve_context_ref(ctx, key, app_label, model_name):
-    """Un id de contexto resuelto a instancia, o ``None`` — ≙ ``env[modelo].browse(id)``.
+    """
+    Un id de contexto resuelto a instancia, o ``None`` — ≙
+    ``env[modelo].browse(id)``.
 
     La fuente usa ``self.env[modelo].browse(ctx.get(key))``, que con un id
     ausente o inexistente da un recordset vacío (falsy). Aquí el desenlace
@@ -399,22 +438,32 @@ def _compute_suggest_estimated_price(self):
         return 0.0
     ctx = get_context()
     seller_args = {
-        'partner_id': _resolve_context_ref(ctx, 'partner_id', 'base', 'ResPartner'),
+        'partner_id': _resolve_context_ref(
+            ctx, 'partner_id', 'base', 'ResPartner'
+        ),
         'params': {
             'order_id': _resolve_context_ref(
-                ctx, 'order_id', 'purchase', 'PurchaseOrder'),
+                ctx, 'order_id', 'purchase', 'PurchaseOrder'
+            ),
         },
     }
-    elegidas = (self._select_seller(quantity=self.suggested_qty, **seller_args)
-                or self._select_seller(quantity=None, ordered_by='min_qty',
-                                       **seller_args))
+    elegidas = self._select_seller(
+        quantity=self.suggested_qty, **seller_args
+    ) or self._select_seller(
+        quantity=None, ordered_by='min_qty', **seller_args
+    )
     seller = elegidas[0] if elegidas else None
-    price = seller.price_discounted if seller is not None else self.standard_price
+    price = (
+        seller.price_discounted if seller is not None else self.standard_price
+    )
     return price * self.suggested_qty
 
 
 def suggest_estimated_price(self):
-    """≙ ``suggest_estimated_price`` (``odoo19c: :40``) — ``compute`` sin ``store``."""
+    """
+    ≙ ``suggest_estimated_price`` (``odoo19c: :40``) — ``compute`` sin
+    ``store``.
+    """
     return self._compute_suggest_estimated_price()
 
 
@@ -429,9 +478,11 @@ def get_total_routes(self):
     if not self.product_tmpl.seller_ids.exists():
         return None
     StockRoute = apps.get_model('stock', 'StockRoute')
-    route_ids = (apps.get_model('stock', 'StockRule').objects
-                 .filter(action=ACTION_BUY)
-                 .values_list('route', flat=True))
+    route_ids = (
+        apps.get_model('stock', 'StockRule')
+        .objects.filter(action=ACTION_BUY)
+        .values_list('route', flat=True)
+    )
     return StockRoute.objects.filter(pk__in=set(route_ids))
 
 
@@ -453,6 +504,7 @@ def _union_routes(new, previous):
 
 # --- product.supplierinfo --------------------------------------------------
 
+
 def _compute_display_name(self):
     """≙ ``_compute_display_name`` (``odoo19c: :290-298``).
 
@@ -470,8 +522,10 @@ def _compute_display_name(self):
         return None
     currency = getattr(self.currency, 'symbol', '') if self.currency_id else ''
     uom = self.product_uom.name if self.product_uom_id else ''
-    return (f'{self.partner.display_name if self.partner_id else ""} '
-            f'({self.min_qty} {uom} - {currency}{self.price})')
+    return (
+        f'{self.partner.display_name if self.partner_id else ""} '
+        f'({self.min_qty} {uom} - {currency}{self.price})'
+    )
 
 
 def show_set_supplier_button(self):
@@ -495,7 +549,8 @@ def show_set_supplier_button(self):
 
 def apply_purchase_stock_product_extensions():
     """Cuelga sobre ``product.template``/``product.product``/
-    ``product.supplierinfo`` lo que ``purchase_stock`` les añade — ≙ ``_inherit``.
+    ``product.supplierinfo`` lo que ``purchase_stock`` les añade — ≙
+    ``_inherit``.
 
     ``ProductTemplate`` y ``ProductSupplierinfo`` se importan al top y reciben
     ``setattr`` directo (mismo idioma que ``addons/stock/models/product.py``);
@@ -509,14 +564,17 @@ def apply_purchase_stock_product_extensions():
     # para campos y catastrófico para overrides (:ref:`h-api-364`), y desde que
     # `DisplayNameMixin` es universal la guarda daría siempre falso — el
     # override no se instalaría nunca y nadie lo notaría.
-    chain_method(ProductSupplierinfo, '_compute_display_name',
-                 _compute_display_name)
+    chain_method(
+        ProductSupplierinfo, '_compute_display_name', _compute_display_name
+    )
     if not hasattr(ProductSupplierinfo, 'show_set_supplier_button'):
         ProductSupplierinfo.show_set_supplier_button = property(
-            show_set_supplier_button)
+            show_set_supplier_button
+        )
 
     extend_model(
-        'product', 'ProductProduct',
+        'product',
+        'ProductProduct',
         propiedades={
             'monthly_demand': monthly_demand,
             'suggested_qty': suggested_qty,
@@ -525,10 +583,13 @@ def apply_purchase_stock_product_extensions():
         metodos={
             '_compute_monthly_demand': _compute_monthly_demand,
             '_compute_suggested_quantity': _compute_suggested_quantity,
-            '_compute_suggest_estimated_price': _compute_suggest_estimated_price,
+            '_compute_suggest_estimated_price': (
+                _compute_suggest_estimated_price
+            ),
             '_get_monthly_demand_range': _get_monthly_demand_range,
-            '_get_monthly_demand_moves_location_domain':
-                _get_monthly_demand_moves_location_domain,
+            '_get_monthly_demand_moves_location_domain': (
+                _get_monthly_demand_moves_location_domain
+            ),
         },
         luego=_install_get_total_routes,
     )
@@ -536,5 +597,6 @@ def apply_purchase_stock_product_extensions():
 
 def _install_get_total_routes(model):
     """``get_total_routes`` necesita ``combine`` — escotilla ``luego=``."""
-    chain_method(model, 'get_total_routes', get_total_routes,
-                 combine=_union_routes)
+    chain_method(
+        model, 'get_total_routes', get_total_routes, combine=_union_routes
+    )

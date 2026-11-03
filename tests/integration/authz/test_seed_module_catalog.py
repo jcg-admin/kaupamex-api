@@ -5,6 +5,7 @@ Tras el seed, cada ``Module`` de Kaupamex lleva su metadata de catálogo:
 en el default ``free`` — el pricing (free/paid por módulo) es GAP 4 / #180 y no
 se fija aquí (no inventar precios). Idempotente: re-ejecutar no cambia nada.
 """
+
 import pytest
 from django.core.management import call_command
 
@@ -22,15 +23,28 @@ def _seed():
 # Management. Employee Management (HR/HCM) es familia futura — ningún módulo
 # actual la ocupa, pero es canónica. Valor = display string en inglés.
 ERP_FAMILIES = {
-    'Order Management', 'Supply Chain Management', 'Finance', 'CRM',
-    'Employee Management', 'Platform',
+    'Order Management',
+    'Supply Chain Management',
+    'Finance',
+    'CRM',
+    'Employee Management',
+    'Platform',
 }
 
 
 def test_sellable_modules_are_applications():
     _seed()
-    for code in ('catalogue', 'orders', 'payments', 'invoices', 'inventory',
-                 'logistics', 'finance', 'newsletter', 'support'):
+    for code in (
+        'catalogue',
+        'orders',
+        'payments',
+        'invoices',
+        'inventory',
+        'logistics',
+        'finance',
+        'newsletter',
+        'support',
+    ):
         m = Module.objects.get(code=code)
         assert m.is_application is True, code
         assert m.category in ERP_FAMILIES, (code, m.category)
@@ -62,7 +76,9 @@ def test_billing_pieces_are_order_management_not_finance():
     comercial Sales Order → Fulfill → Invoice → Payment → Returns)."""
     _seed()
     for code in ('orders', 'payments', 'invoices', 'returns', 'logistics'):
-        assert Module.objects.get(code=code).category == 'Order Management', code
+        assert (
+            Module.objects.get(code=code).category == 'Order Management'
+        ), code
 
 
 def test_all_categories_are_canonical_erp_families():
@@ -76,8 +92,16 @@ def test_all_categories_are_canonical_erp_families():
 
 def test_technical_modules_are_not_applications():
     _seed()
-    for code in ('audit', 'backups', 'permissions', 'platform', 'settings',
-                 'users', 'account', 'notifications'):
+    for code in (
+        'audit',
+        'backups',
+        'permissions',
+        'platform',
+        'settings',
+        'users',
+        'account',
+        'notifications',
+    ):
         m = Module.objects.get(code=code)
         assert m.is_application is False, code
 
@@ -91,10 +115,14 @@ def test_tier_stays_free_pricing_deferred():
 def test_seed_is_idempotent_for_catalog():
     _seed()
     apps_first = set(
-        Module.objects.filter(is_application=True).values_list('code', flat=True)
+        Module.objects.filter(is_application=True).values_list(
+            'code', flat=True
+        )
     )
     _seed()
     apps_second = set(
-        Module.objects.filter(is_application=True).values_list('code', flat=True)
+        Module.objects.filter(is_application=True).values_list(
+            'code', flat=True
+        )
     )
     assert apps_first == apps_second

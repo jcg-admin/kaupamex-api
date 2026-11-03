@@ -1,0 +1,15 @@
+{
+  "make_exit": 2,
+  "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+  "command": "make ci-verify",
+  "acceptance": false,
+  "pytest_exit": 1,
+  "passed": 146,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 474.59,
+  "first_failure": "ResCountry.DoesNotExist through ResCompany.country_code, TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+  "classification": "BASELINE_FAILURE: exact ae949aa8 focused case reproduces same ResCountry.DoesNotExist; new computed-group KeyError fixed separately",
+  "later_suite": "NOT_EVALUATED",
+  "new_regression_scope": "Related-setup stale group and category alias fallback found and fixed by bounded controls; unexecuted suite not declared regression-free"
+}

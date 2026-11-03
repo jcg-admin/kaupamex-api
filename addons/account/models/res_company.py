@@ -119,6 +119,7 @@ from django.db import models as dj_models
 from django.db.models import Q
 from django.utils import timezone
 
+import api
 import fields
 
 from addons.account.models.account_fiscal_position import AccountFiscalPosition
@@ -544,6 +545,26 @@ def partner_fiscal_country_codes(self):
     return ','.join(codes)
 
 
+@api.depends_context('company', 'allowed_company_ids')
+def _compute_session_fiscal_country_codes(self):
+    """Asigna el derivado de sesión de Uom mediante el descriptor existente."""
+    self.fiscal_country_codes = session_fiscal_country_codes(self)
+
+
+@api.depends('company')
+@api.depends_context('company', 'allowed_company_ids')
+def _compute_record_fiscal_country_codes(self):
+    """Conserva la precedencia de la compañía del registro sobre la sesión."""
+    self.fiscal_country_codes = record_fiscal_country_codes(self)
+
+
+@api.depends('country.code')
+@api.depends_context('company', 'allowed_company_ids')
+def _compute_partner_fiscal_country_codes(self):
+    """Asigna los países activos y el país propio sin cambiar la deduplicación."""
+    self.fiscal_country_codes = partner_fiscal_country_codes(self)
+
+
 def apply_account_extensions():
     """≙ ``_inherit = 'res.company'`` de ``account`` (``odoo19c: company.py``).
 
@@ -788,18 +809,25 @@ def apply_account_extensions():
     # (`odoo19c: account/models/partner.py:55`), NO entra: allá es
     # `related='company_country_id.code'` — mismo nombre, otro símbolo. Su
     # porte depende de `company_country_id`, del Bloque 1 (#137).
-    for model, funcion in (
-        (ResCurrency, session_fiscal_country_codes),
-        (ResBank, session_fiscal_country_codes),
-        (ResPartnerBank, session_fiscal_country_codes),
-        (Uom, session_fiscal_country_codes),
-        (ProductTemplate, record_fiscal_country_codes),
-        (AccountPaymentTerm, record_fiscal_country_codes),
-        (ResPartner, partner_fiscal_country_codes),
+    # La referencia fijada distingue tres defaults de sesión de cuatro
+    # cómputos. Un default Django no recibe self; los cómputos sí asignan
+    # mediante el descriptor y declaran sus dependencias y contexto.
+    for model in (ResCurrency, ResBank, ResPartnerBank):
+        if not hasattr(model, 'fiscal_country_codes'):
+            model.add_to_class('fiscal_country_codes', fields.Char(
+                store=False, default=get_fiscal_country_codes,
+                help_text='Códigos de país fiscal visibles en la sesión '
+                          '(Odoo fiscal_country_codes).',
+            ))
+    for model, compute in (
+        (Uom, _compute_session_fiscal_country_codes),
+        (ProductTemplate, _compute_record_fiscal_country_codes),
+        (AccountPaymentTerm, _compute_record_fiscal_country_codes),
+        (ResPartner, _compute_partner_fiscal_country_codes),
     ):
         if not hasattr(model, 'fiscal_country_codes'):
             model.add_to_class('fiscal_country_codes', fields.Char(
-                store=False, default=funcion,
+                store=False, compute=compute,
                 help_text='Códigos de país fiscal visibles en la sesión '
                           '(Odoo fiscal_country_codes).',
             ))

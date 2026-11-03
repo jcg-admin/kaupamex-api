@@ -149,6 +149,7 @@ from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from tools.image import binary_to_image, get_webp_size, image_data_uri
+from tools.mimetypes import guess_mimetype
 from tools.misc import file_open
 
 from addons.html_editor.models.ir_attachment import (
@@ -608,7 +609,7 @@ class HTML_Editor:
                 "Uploaded image's format is not supported. Try with: %s"
                 % ', '.join(SUPPORTED_IMAGE_MIMETYPES.values()))
             try:
-                mimetype = _guess_mimetype(data)
+                mimetype = guess_mimetype(data)
                 if mimetype not in SUPPORTED_IMAGE_MIMETYPES:
                     return {'error': format_error_msg,
                             'codigo_error': 'UNSUPPORTED_IMAGE_FORMAT'}
@@ -1140,34 +1141,6 @@ class HTML_Editor:
 def _html_escape(value):
     """≙ ``tools.html_escape``."""
     return str(escape(value))
-
-
-def _guess_mimetype(data):
-    """≙ ``odoo.tools.mimetypes.guess_mimetype``.
-
-    ``src/tools`` no declara ese módulo; su hogar es ``src/tools/mimetypes.py``
-    y está fuera de los archivos de este puerto. Aquí se resuelve por la firma
-    binaria de los siete formatos que ``SUPPORTED_IMAGE_MIMETYPES`` admite,
-    que es lo único que este addon le pide.
-
-    **Sucesor nombrado** (junto al de ``src/tools/image.py``): portar
-    ``odoo/tools/mimetypes.py``.
-    """
-    signatures = (
-        (b'\x89PNG\r\n\x1a\n', 'image/png'),
-        (b'\xff\xd8\xff', 'image/jpeg'),
-        (b'GIF87a', 'image/gif'),
-        (b'GIF89a', 'image/gif'),
-    )
-    for prefix, mimetype in signatures:
-        if data.startswith(prefix):
-            return mimetype
-    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
-        return 'image/webp'
-    head = data[:256].lstrip()
-    if head.startswith(b'<?xml') or head.startswith(b'<svg'):
-        return 'image/svg+xml'
-    return 'application/octet-stream'
 
 
 def _original_or_self(attachment):

@@ -69,7 +69,9 @@ def test_unknown_method_is_404():
 
 
 def test_reserved_method_propagates_access_error():
-    """403 por propagación, no por traducción — DRF ya mapea PermissionDenied."""
+    """
+    403 por propagación, no por traducción — DRF ya mapea PermissionDenied.
+    """
     with pytest.raises(AccessError):
         resolve_call('test.rpc.model', 'reserved', ())
 
@@ -86,13 +88,17 @@ def test_model_level_call_without_ids_resolves():
 
 
 def test_signature_mismatch_is_422():
-    """``inspect.signature().bind()`` es el que decide, no un chequeo a mano."""
+    """
+    ``inspect.signature().bind()`` es el que decide, no un chequeo a mano.
+    """
     with pytest.raises(UnprocessableEntity):
         resolve_call('test.rpc.model', 'add', (), {'no_such_argument': 1})
 
 
 def test_matching_signature_resolves():
-    model, func, records = resolve_call('test.rpc.model', 'add', (), {'a': 1, 'b': 2})
+    model, func, records = resolve_call(
+        'test.rpc.model', 'add', (), {'a': 1, 'b': 2}
+    )
     assert model is RpcModel
     assert func(records, a=1, b=2) == 3
 
@@ -100,8 +106,12 @@ def test_matching_signature_resolves():
 def test_unprocessable_entity_declares_422():
     """DRF 3.16.1 NO trae clase para 422 — su escalera salta de 415 a 429.
 
-    Medido en ``rest_framework/exceptions.py``: ``HTTP_422_UNPROCESSABLE_ENTITY``
-    existe en ``status.py`` pero ninguna ``APIException`` lo declara. Por eso la
+    Medido en ``rest_framework/exceptions.py``:
+    ``HTTP_422_UNPROCESSABLE_ENTITY``
+    existe en ``status.py`` pero ninguna ``APIException`` lo declara. Por eso
+    la
     clase se declara aquí, y este test es su ancla.
     """
-    assert UnprocessableEntity.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert (
+        UnprocessableEntity.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    )

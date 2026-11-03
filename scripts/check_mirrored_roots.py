@@ -13,7 +13,8 @@ listando el directorio de la referencia, no un gate.
 Las raíces espejadas
 =====================
 
-Diez pares, ``nuestra raíz`` ↔ ``raíz de la referencia`` (``FIXED_MIRRORED_ROOTS``
+Diez pares, ``nuestra raíz`` ↔ ``raíz de la referencia``
+(``FIXED_MIRRORED_ROOTS``
 más una familia dinámica, una por addon que ya tenemos portado)::
 
     src/api            ↔  odoo/api
@@ -89,8 +90,10 @@ Uso
 
     python3 scripts/check_mirrored_roots.py                 # las 4 raíces
     python3 scripts/check_mirrored_roots.py --quiet         # sólo el conteo
-    python3 scripts/check_mirrored_roots.py --strict        # exit 1 si hay incumplidores
-    python3 scripts/check_mirrored_roots.py --todos         # lista también lo declarado
+    python3 scripts/check_mirrored_roots.py --strict        # exit 1 si hay
+    incumplidores
+    python3 scripts/check_mirrored_roots.py --todos         # lista también lo
+    declarado
     python3 scripts/check_mirrored_roots.py src/orm         # una raíz concreta
     python3 scripts/check_mirrored_roots.py src/orm addons/account
 
@@ -98,21 +101,20 @@ Una ruta pedida que no es una raíz espejada conocida se avisa y se omite —
 **nunca** se interpreta como "barre todo". Sin el árbol de la referencia el
 gate no falla: informa y sale 0 (mide el entorno, no el código, si no está).
 """
+
 import argparse
 import os
 import pathlib
 import sys
-
-import sys as _s, os.path as _op
-_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+import sys as _s
+import os.path as _op
 from reference_roots import addon_root as _addon_root, tree as _tree
+
 
 #: Raíz del árbol que gobierna. Mismo nombre de variable de entorno que
 #: ``check_porte_completo.py`` y ``check_symbol_home.py`` — es el contrato ya
 #: establecido con quien clona el árbol de referencia aparte.
-REFERENCE_ROOT = pathlib.Path(
-    _tree('odoo19c')
-)
+REFERENCE_ROOT = pathlib.Path(_tree('odoo19c'))
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -137,15 +139,34 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 FIXED_MIRRORED_ROOTS = (
     ('src/api', REPO / 'src' / 'api', REFERENCE_ROOT / 'odoo' / 'api'),
     ('src/cli', REPO / 'src' / 'cli', REFERENCE_ROOT / 'odoo' / 'cli'),
-    ('src/fields', REPO / 'src' / 'fields', REFERENCE_ROOT / 'odoo' / 'fields'),
-    ('src/models', REPO / 'src' / 'models', REFERENCE_ROOT / 'odoo' / 'models'),
-    ('src/modules', REPO / 'src' / 'modules', REFERENCE_ROOT / 'odoo' / 'modules'),
+    (
+        'src/fields',
+        REPO / 'src' / 'fields',
+        REFERENCE_ROOT / 'odoo' / 'fields',
+    ),
+    (
+        'src/models',
+        REPO / 'src' / 'models',
+        REFERENCE_ROOT / 'odoo' / 'models',
+    ),
+    (
+        'src/modules',
+        REPO / 'src' / 'modules',
+        REFERENCE_ROOT / 'odoo' / 'modules',
+    ),
     ('src/orm', REPO / 'src' / 'orm', REFERENCE_ROOT / 'odoo' / 'orm'),
     ('src/osv', REPO / 'src' / 'osv', REFERENCE_ROOT / 'odoo' / 'osv'),
-    ('src/service', REPO / 'src' / 'service', REFERENCE_ROOT / 'odoo' / 'service'),
+    (
+        'src/service',
+        REPO / 'src' / 'service',
+        REFERENCE_ROOT / 'odoo' / 'service',
+    ),
     ('src/tools', REPO / 'src' / 'tools', REFERENCE_ROOT / 'odoo' / 'tools'),
-    ('src/addons/base', REPO / 'src' / 'addons' / 'base',
-     REFERENCE_ROOT / 'odoo' / 'addons' / 'base'),
+    (
+        'src/addons/base',
+        REPO / 'src' / 'addons' / 'base',
+        REFERENCE_ROOT / 'odoo' / 'addons' / 'base',
+    ),
 )
 
 #: Directorios cuyo contenido nunca tiene contraparte — mecanismo del
@@ -153,11 +174,14 @@ FIXED_MIRRORED_ROOTS = (
 #: ``check_symbol_home.py::clases_propias``.
 EXCLUDED_DIR_NAMES = frozenset({'__pycache__', 'migrations'})
 
-BASELINE_PATH = pathlib.Path(__file__).resolve().parent / 'mirrored_roots_baseline.txt'
+BASELINE_PATH = (
+    pathlib.Path(__file__).resolve().parent / 'mirrored_roots_baseline.txt'
+)
 
 
 def addon_roots():
-    """Un par ``(label, our_path, reference_path)`` por cada addon que YA TENEMOS
+    """
+    Un par ``(label, our_path, reference_path)`` por cada addon que YA TENEMOS
     y que la referencia también declara.
 
     Un addon nuestro sin par en la referencia (``authz``, ``helpdesk``,
@@ -212,16 +236,21 @@ def select_roots(requested_paths):
     all_roots = all_mirrored_roots()
     if not requested_paths:
         return all_roots
-    by_path = {str(ours.resolve()): (label, ours, reference)
-               for label, ours, reference in all_roots}
+    by_path = {
+        str(ours.resolve()): (label, ours, reference)
+        for label, ours, reference in all_roots
+    }
     selected = []
     for requested in requested_paths:
         candidates = _resolved_candidates(requested) & by_path.keys()
         if candidates:
             selected.append(by_path[next(iter(candidates))])
         else:
-            print(f'check_mirrored_roots: {requested!r} no es una raíz '
-                  f'espejada conocida — se omite.', file=sys.stderr)
+            print(
+                f'check_mirrored_roots: {requested!r} no es una raíz '
+                'espejada conocida — se omite.',
+                file=sys.stderr,
+            )
     return selected
 
 
@@ -244,7 +273,9 @@ def list_py_files(root):
 
 
 def repo_relative_path(path):
-    """La ruta, relativa a ``REPO`` y con ``/`` — la clave que usa el baseline."""
+    """
+    La ruta, relativa a ``REPO`` y con ``/`` — la clave que usa el baseline.
+    """
     return str(path.resolve().relative_to(REPO)).replace(os.sep, '/')
 
 
@@ -256,7 +287,7 @@ def compare_root(ours, reference):
     """
     our_files = list_py_files(ours)
     reference_files = list_py_files(reference)
-    porting_gaps = sorted(reference_files - our_files)         # dirección (a)
+    porting_gaps = sorted(reference_files - our_files)  # dirección (a)
     without_counterpart = sorted(our_files - reference_files)  # dirección (b)
     return our_files, reference_files, porting_gaps, without_counterpart
 
@@ -272,7 +303,11 @@ def load_baseline():
         return baseline
     for entry_line in BASELINE_PATH.read_text(encoding='utf-8').splitlines():
         entry_line = entry_line.strip()
-        if not entry_line or entry_line.startswith('#') or '::' not in entry_line:
+        if (
+            not entry_line
+            or entry_line.startswith('#')
+            or '::' not in entry_line
+        ):
             continue
         key, reason = entry_line.split('::', 1)
         baseline[key.strip()] = reason.strip()
@@ -281,19 +316,31 @@ def load_baseline():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('paths', nargs='*',
-                        help='raíces nuestras a auditar (por defecto, las cuatro)')
-    parser.add_argument('--quiet', action='store_true',
-                        help='sólo las líneas de conteo')
-    parser.add_argument('--strict', action='store_true',
-                        help='exit 1 si hay huecos o invenciones nuevas')
-    parser.add_argument('--todos', action='store_true',
-                        help='listar también lo ya declarado en el baseline')
+    parser.add_argument(
+        'paths',
+        nargs='*',
+        help='raíces nuestras a auditar (por defecto, las cuatro)',
+    )
+    parser.add_argument(
+        '--quiet', action='store_true', help='sólo las líneas de conteo'
+    )
+    parser.add_argument(
+        '--strict',
+        action='store_true',
+        help='exit 1 si hay huecos o invenciones nuevas',
+    )
+    parser.add_argument(
+        '--todos',
+        action='store_true',
+        help='listar también lo ya declarado en el baseline',
+    )
     args = parser.parse_args()
 
     if not REFERENCE_ROOT.is_dir():
-        print(f'check_mirrored_roots: árbol de referencia ausente '
-              f'({REFERENCE_ROOT}) — gate omitido, no es un fallo.')
+        print(
+            'check_mirrored_roots: árbol de referencia ausente '
+            f'({REFERENCE_ROOT}) — gate omitido, no es un fallo.'
+        )
         return 0
 
     roots = select_roots(args.paths)
@@ -303,14 +350,16 @@ def main():
 
     baseline = load_baseline()
 
-    porting_gaps = []       # dirección (a): en la referencia, no en nosotros
-    new_inventions = []     # dirección (b): en nosotros, no en la referencia
+    porting_gaps = []  # dirección (a): en la referencia, no en nosotros
+    new_inventions = []  # dirección (b): en nosotros, no en la referencia
     declared_inventions = []
     total_reference_files = 0
     total_our_files = 0
 
     for label, ours, reference in roots:
-        our_files, reference_files, gaps, without_counterpart = compare_root(ours, reference)
+        our_files, reference_files, gaps, without_counterpart = compare_root(
+            ours, reference
+        )
         total_our_files += len(our_files)
         total_reference_files += len(reference_files)
 
@@ -335,14 +384,19 @@ def main():
 
     # El denominador va junto al conteo: sin él, un instrumento ciego (que
     # nunca mira nada) y uno correcto publican el mismo cero
-    # (`hallazgo-abierto-genera-sucesor.md` / `metrica-decide-la-conclusion.md`).
-    print(f'check_mirrored_roots: {len(porting_gaps)} de la referencia sin '
-          f'contraparte nuestra (alcance medido: {total_reference_files} '
-          f'archivos de referencia en {len(roots)} raíces).')
-    print(f'check_mirrored_roots: {len(new_inventions)} nuestros sin '
-          f'contraparte en la referencia, {len(declared_inventions)} '
-          f'declarados en baseline (alcance medido: '
-          f'{total_our_files} archivos nuestros en {len(roots)} raíces).')
+    # (`hallazgo-abierto-genera-sucesor.md` /
+    # `metrica-decide-la-conclusion.md`).
+    print(
+        f'check_mirrored_roots: {len(porting_gaps)} de la referencia sin '
+        f'contraparte nuestra (alcance medido: {total_reference_files} '
+        f'archivos de referencia en {len(roots)} raíces).'
+    )
+    print(
+        f'check_mirrored_roots: {len(new_inventions)} nuestros sin '
+        f'contraparte en la referencia, {len(declared_inventions)} '
+        'declarados en baseline (alcance medido: '
+        f'{total_our_files} archivos nuestros en {len(roots)} raíces).'
+    )
 
     if args.strict and (porting_gaps or new_inventions):
         return 1

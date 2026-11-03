@@ -54,6 +54,7 @@ Los controles que exige el sub-patrón D de ``metrica-decide-la-conclusion.md``
     Un fallo silencioso de una notificación de seguridad — ver
     :ref:`h-api-830`.
 """
+
 from datetime import timedelta
 
 import pytest
@@ -63,7 +64,9 @@ from django.core import mail as django_mail
 from django.utils import timezone
 
 from addons.authz_totp.models.auth_totp import (
-    BROWSER_SCOPE, AuthTotpDevice, revoke_all_devices,
+    BROWSER_SCOPE,
+    AuthTotpDevice,
+    revoke_all_devices,
 )
 from addons.authz_totp_mail.data import seed as seed_totp_mail
 from orm.environments import sudo, user_scope
@@ -78,8 +81,9 @@ PASSWORD = 'DispositivoRetirado123!'
 
 def _device_alerts():
     """Los correos de la bandeja que son este aviso, y sólo ésos."""
-    return [m for m in django_mail.outbox
-            if m.subject == DEVICE_REMOVED_SUBJECT]
+    return [
+        m for m in django_mail.outbox if m.subject == DEVICE_REMOVED_SUBJECT
+    ]
 
 
 def _make_user(login, name):
@@ -90,7 +94,8 @@ def _add_device(user, name):
     """Emite un dispositivo de confianza para ``user`` con el nombre dado."""
     with user_scope(user.pk), sudo():
         AuthTotpDevice._generate(
-            BROWSER_SCOPE, name, timezone.now() + timedelta(days=90))
+            BROWSER_SCOPE, name, timezone.now() + timedelta(days=90)
+        )
     return AuthTotpDevice.objects.filter(user_id=user.pk, name=name).first()
 
 
@@ -103,7 +108,8 @@ def owner(db):
 
 
 def test_removing_one_device_alerts_its_owner(
-        owner, django_capture_on_commit_callbacks):
+    owner, django_capture_on_commit_callbacks
+):
     device = _add_device(owner, 'Firefox on Linux')
     django_mail.outbox.clear()
 
@@ -117,7 +123,8 @@ def test_removing_one_device_alerts_its_owner(
 
 
 def test_revoking_all_devices_sends_one_mail_with_every_name(
-        owner, django_capture_on_commit_callbacks):
+    owner, django_capture_on_commit_callbacks
+):
     nombres = ['Chrome on Windows', 'Safari on Macos', 'Firefox on Linux']
     for n in nombres:
         _add_device(owner, n)
@@ -127,14 +134,16 @@ def test_revoking_all_devices_sends_one_mail_with_every_name(
         assert revoke_all_devices(owner) == 3
 
     avisos = _device_alerts()
-    assert len(avisos) == 1, (
-        f'la fuente agrupa por usuario: un correo, no {len(avisos)}')
+    assert (
+        len(avisos) == 1
+    ), f'la fuente agrupa por usuario: un correo, no {len(avisos)}'
     for n in nombres:
         assert n in avisos[0].body, f'falta {n!r} en el aviso agrupado'
 
 
 def test_each_owner_gets_only_their_own_devices(
-        owner, django_capture_on_commit_callbacks):
+    owner, django_capture_on_commit_callbacks
+):
     vecino = _make_user('vecino.dispositivo@kaupamex.mx', 'Vecino')
     _add_device(owner, 'Chrome on Windows')
     _add_device(vecino, 'Safari on Macos')
@@ -166,26 +175,31 @@ def test_a_rolled_back_removal_does_not_alert(owner):
             device.delete()
             raise _Abortar
 
-    assert AuthTotpDevice.objects.filter(pk=device_pk).exists(), \
-        'el borrado no revirtió: el caso mide otra cosa'
-    assert _device_alerts() == [], \
-        'la fuente avisa antes del commit; aquí el aviso espera al commit'
+    assert AuthTotpDevice.objects.filter(
+        pk=device_pk
+    ).exists(), 'el borrado no revirtió: el caso mide otra cosa'
+    assert (
+        _device_alerts() == []
+    ), 'la fuente avisa antes del commit; aquí el aviso espera al commit'
 
 
 def test_deleting_the_owner_does_not_try_to_mail_them(
-        owner, django_capture_on_commit_callbacks):
+    owner, django_capture_on_commit_callbacks
+):
     _add_device(owner, 'Chrome on Windows')
     django_mail.outbox.clear()
 
     with django_capture_on_commit_callbacks(execute=True):
         owner.delete()
 
-    assert _device_alerts() == [], \
-        'no hay a quién avisar: la cascada se llevó al titular'
+    assert (
+        _device_alerts() == []
+    ), 'no hay a quién avisar: la cascada se llevó al titular'
 
 
 def test_a_rollback_does_not_poison_the_next_removal(
-        owner, django_capture_on_commit_callbacks):
+    owner, django_capture_on_commit_callbacks
+):
     """Dos transacciones seguidas: la primera revierte, la segunda debe avisar.
 
     Es el orden exacto que destapó el defecto. Correr cada mitad por separado
@@ -209,8 +223,10 @@ def test_a_rollback_does_not_poison_the_next_removal(
         real.delete()
 
     avisos = _device_alerts()
-    assert len(avisos) == 1, (
-        'el lote del rollback dejó sin aviso a la retirada siguiente')
+    assert (
+        len(avisos) == 1
+    ), 'el lote del rollback dejó sin aviso a la retirada siguiente'
     assert 'Chrome on Windows' in avisos[0].body
-    assert 'Safari on Macos' not in avisos[0].body, (
-        'el nombre del borrado revertido se coló en el aviso')
+    assert (
+        'Safari on Macos' not in avisos[0].body
+    ), 'el nombre del borrado revertido se coló en el aviso'

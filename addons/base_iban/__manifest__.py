@@ -5,8 +5,10 @@
     'name': 'Cuentas bancarias IBAN',
     'version': '1.0',
     'category': 'Accounting/Accounting',
-    'summary': 'Valida el checksum mod-97 del IBAN, deriva el BBAN y sus '
-               'tramos por país, y marca la cuenta como acc_type=iban.',
+    'summary': (
+        'Valida el checksum mod-97 del IBAN, deriva el BBAN y sus '
+        'tramos por país, y marca la cuenta como acc_type=iban.'
+    ),
     # `depends` MEDIDO contra los imports reales de este addon, no copiado de
     # la referencia (que declara `['account', 'web']`). Este addon sólo
     # importa `base.ResPartnerBank` para colgarle sus métodos; `web` es el
@@ -15,7 +17,7 @@
     # porque su `_get_supported_account_types` vive allí; aquí el terminal
     # está en `base` (`res_partner_bank.py`), así que no hace falta.
     'depends': [
-        'base',      # ResPartnerBank — el modelo que este addon extiende
+        'base',  # ResPartnerBank — el modelo que este addon extiende
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `base_iban` en Odoo es LGPL-3.

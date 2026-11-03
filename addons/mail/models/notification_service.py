@@ -20,6 +20,7 @@ La separacion es intencional: in-app dentro de la transaccion mantiene
 consistencia; email fuera evita enviar si el checkout/transicion falla.
 No se usa Celery — el stack del proyecto no incluye broker de tareas.
 """
+
 from django.db import transaction
 from addons.mail.models import Notification, NotificationType
 from .notification_emails import (
@@ -52,13 +53,16 @@ def notify_order_created(order, user, total_amount):
     )
 
     if user.email:
-        user_email  = user.email
-        name        = user.name or user.email
-        order_num   = order.name
-        total_str   = str(total_amount)
+        user_email = user.email
+        name = user.name or user.email
+        order_num = order.name
+        total_str = str(total_amount)
         transaction.on_commit(
             lambda: send_order_confirmation_email(
-                user_email, name, order_num, total_str,
+                user_email,
+                name,
+                order_num,
+                total_str,
             )
         )
 
@@ -88,8 +92,12 @@ def notify_order_status_changed(order, new_status):
     Solo notifica estados relevantes (FR-NOT-02.02).
     """
     notify_statuses = {
-        'PROCESSING', 'IN_PREPARATION', 'SHIPPED',
-        'DELIVERED', 'CANCELLED', 'REFUNDED',
+        'PROCESSING',
+        'IN_PREPARATION',
+        'SHIPPED',
+        'DELIVERED',
+        'CANCELLED',
+        'REFUNDED',
     }
     if new_status not in notify_statuses:
         return
@@ -99,12 +107,12 @@ def notify_order_status_changed(order, new_status):
         return
 
     _labels = {
-        'PROCESSING':      'Pago en proceso',
-        'IN_PREPARATION':  'Pedido en preparacion',
-        'SHIPPED':         'Pedido enviado',
-        'DELIVERED':       'Pedido entregado',
-        'CANCELLED':       'Orden cancelada',
-        'REFUNDED':        'Orden reembolsada',
+        'PROCESSING': 'Pago en proceso',
+        'IN_PREPARATION': 'Pedido en preparacion',
+        'SHIPPED': 'Pedido enviado',
+        'DELIVERED': 'Pedido entregado',
+        'CANCELLED': 'Orden cancelada',
+        'REFUNDED': 'Orden reembolsada',
     }
     label = _labels.get(new_status, new_status)
 
@@ -116,19 +124,25 @@ def notify_order_status_changed(order, new_status):
     )
 
     if user.email:
-        user_email   = user.email
-        name         = user.name or user.email
-        order_num    = order.name
-        shipping     = getattr(order, 'shipment_guide', None)
+        user_email = user.email
+        name = user.name or user.email
+        order_num = order.name
+        shipping = getattr(order, 'shipment_guide', None)
         tracking_num = shipping.tracking_number if shipping else None
         transaction.on_commit(
             lambda: send_order_status_email(
-                user_email, name, order_num, new_status, tracking_num,
+                user_email,
+                name,
+                order_num,
+                new_status,
+                tracking_num,
             )
         )
 
 
-def notify_shipping_updated(order, user, tracking_number=None, event_description=None):
+def notify_shipping_updated(
+    order, user, tracking_number=None, event_description=None
+):
     """
     UC-NOT-03: notificacion de actualizacion de envio.
     Llamar desde addons.delivery dentro de transaction.atomic().
@@ -140,18 +154,23 @@ def notify_shipping_updated(order, user, tracking_number=None, event_description
         user=user,
         type=NotificationType.ORDER_UPDATE,
         subject=f'Actualizacion de envio — #{order.name}',
-        body=event_description or f'Hay una actualizacion sobre el envio de tu orden #{order.name}.',
+        body=event_description
+        or f'Hay una actualizacion sobre el envio de tu orden #{order.name}.',
     )
 
     if user.email:
-        user_email  = user.email
-        name        = user.name or user.email
-        order_num   = order.name
-        tracking    = tracking_number
+        user_email = user.email
+        name = user.name or user.email
+        order_num = order.name
+        tracking = tracking_number
         description = event_description
         transaction.on_commit(
             lambda: send_shipping_update_email(
-                user_email, name, order_num, tracking, description,
+                user_email,
+                name,
+                order_num,
+                tracking,
+                description,
             )
         )
 
@@ -178,14 +197,18 @@ def notify_return_processed(order, user, return_status, reason=None):
     )
 
     if user.email:
-        user_email   = user.email
-        name         = user.name or user.email
-        order_num    = order.name
-        r_status     = return_status
-        r_reason     = reason
+        user_email = user.email
+        name = user.name or user.email
+        order_num = order.name
+        r_status = return_status
+        r_reason = reason
         transaction.on_commit(
             lambda: send_return_processed_email(
-                user_email, name, order_num, r_status, r_reason,
+                user_email,
+                name,
+                order_num,
+                r_status,
+                r_reason,
             )
         )
 
@@ -234,17 +257,23 @@ def notify_refund_processed(order, user, amount_refunded):
         user=user,
         type=NotificationType.RETURN_UPDATE,
         subject=f'Reembolso procesado — #{referencia}',
-        body=f'Tu reembolso de ${amount_refunded} para la orden #{referencia} fue procesado.',
+        body=(
+            f'Tu reembolso de ${amount_refunded} para la orden'
+            f' #{referencia} fue procesado.'
+        ),
     )
 
     if user.email:
-        user_email  = user.email
-        name        = user.name or user.email
-        order_num   = referencia
-        amount      = str(amount_refunded)
+        user_email = user.email
+        name = user.name or user.email
+        order_num = referencia
+        amount = str(amount_refunded)
         transaction.on_commit(
             lambda: send_refund_email(
-                user_email, name, order_num, amount,
+                user_email,
+                name,
+                order_num,
+                amount,
             )
         )
 
@@ -266,10 +295,7 @@ def notify_support_closed(ticket, user, closed_by_staff=False):
         )
     else:
         subject = f'Ticket #{ticket.pk} cerrado'
-        body = (
-            f'Tu ticket #{ticket.pk} "{ticket.subject}" '
-            f'ha sido cerrado.'
-        )
+        body = f'Tu ticket #{ticket.pk} "{ticket.subject}" ha sido cerrado.'
 
     Notification.objects.create(
         user=user,
@@ -279,14 +305,18 @@ def notify_support_closed(ticket, user, closed_by_staff=False):
     )
 
     if user.email:
-        user_email   = user.email
-        name         = user.name or user.email
-        ticket_id    = ticket.pk
-        ticket_subj  = ticket.subject
-        by_staff     = closed_by_staff
+        user_email = user.email
+        name = user.name or user.email
+        ticket_id = ticket.pk
+        ticket_subj = ticket.subject
+        by_staff = closed_by_staff
         transaction.on_commit(
             lambda: send_support_closed_email(
-                user_email, name, ticket_id, ticket_subj, by_staff,
+                user_email,
+                name,
+                ticket_id,
+                ticket_subj,
+                by_staff,
             )
         )
 
@@ -310,17 +340,20 @@ def notify_support_created(ticket, user):
         subject=f'Ticket #{ticket.pk} creado',
         body=(
             f'Recibimos tu ticket #{ticket.pk} "{ticket.subject}". '
-            f'Nuestro equipo te respondera a la brevedad.'
+            'Nuestro equipo te respondera a la brevedad.'
         ),
     )
 
     if user.email:
-        user_email   = user.email
-        name         = user.name or user.email
-        ticket_id    = ticket.pk
-        ticket_subj  = ticket.subject
+        user_email = user.email
+        name = user.name or user.email
+        ticket_id = ticket.pk
+        ticket_subj = ticket.subject
         transaction.on_commit(
             lambda: send_support_created_email(
-                user_email, name, ticket_id, ticket_subj,
+                user_email,
+                name,
+                ticket_id,
+                ticket_subj,
             )
         )

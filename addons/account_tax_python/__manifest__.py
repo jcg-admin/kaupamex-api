@@ -15,7 +15,7 @@
     'depends': [
         'account',  # AccountTax — el modelo que este addon extiende
         'product',  # Product — variable del entorno de la fórmula
-        'uom',      # Uom — la cantidad que la fórmula recibe
+        'uom',  # Uom — la cantidad que la fórmula recibe
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

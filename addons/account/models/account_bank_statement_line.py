@@ -1,4 +1,6 @@
-"""``account.bank.statement.line`` — Adaptación de Odoo addons/account/models/account_bank_statement_line.py
+"""
+``account.bank.statement.line`` — Adaptación de Odoo
+addons/account/models/account_bank_statement_line.py
 (odoo-tools@622ddc2a, odoo19c:).
 
 Línea de movimiento bancario: la referencia la declara ``_inherits =
@@ -60,6 +62,7 @@ fielmente (H-API-321):**
   recorrido ingenuo que sólo sume ``amount`` da un resultado distinto en
   cuanto hay más de un estado de cuenta en el rango.
 """
+
 from decimal import Decimal
 
 from django.db import connection
@@ -83,92 +86,148 @@ class AccountBankStatementLine(models.Model):
     # Enlace _inherits (Odoo move_id, account_bank_statement_line.py:25-30) —
     # Many2one required + cascade, NO herencia multi-tabla (ver docstring).
     move = fields.Many2one(
-        'account.AccountMove', on_delete=models.CASCADE,
+        'account.AccountMove',
+        null=False, on_delete=models.CASCADE,
         related_name='bank_statement_line',
-        help_text='Asiento contable del que esta línea es la extensión '
-                  'bancaria (Odoo move_id, _inherits). currency/date/state '
-                  'se delegan a él; journal/company se sincronizan en '
-                  'save() (ver docstring del módulo).',
+        help_text=(
+            'Asiento contable del que esta línea es la extensión '
+            'bancaria (Odoo move_id, _inherits). currency/date/state '
+            'se delegan a él; journal/company se sincronizan en '
+            'save() (ver docstring del módulo).'
+        ),
     )
     journal = fields.Many2one(
-        'account.AccountJournal', on_delete=models.PROTECT,
-        null=True, blank=True, related_name='bank_statement_lines',
-        help_text='Diario — denormalizado de move.journal (Odoo journal_id, '
-                  'related=move_id.journal_id, store=True, index=False # '
-                  'covered by _main_idx). Se sincroniza en save(); no se '
-                  'edita directo, se cambia linea.move.journal.',
+        'account.AccountJournal',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='bank_statement_lines',
+        help_text=(
+            'Diario — denormalizado de move.journal (Odoo journal_id, '
+            'related=move_id.journal_id, store=True, index=False # '
+            'covered by _main_idx). Se sincroniza en save(); no se '
+            'edita directo, se cambia linea.move.journal.'
+        ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE,
-        null=True, blank=True, related_name='bank_statement_lines',
-        help_text='Empresa — denormalizada de move.company (Odoo company_id, '
-                  'related=move_id.company_id, store=True). Se sincroniza en '
-                  'save(); no se edita directo, se cambia linea.move.company.',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='bank_statement_lines',
+        help_text=(
+            'Empresa — denormalizada de move.company (Odoo company_id, '
+            'related=move_id.company_id, store=True). Se sincroniza en '
+            'save(); no se edita directo, se cambia linea.move.company.'
+        ),
     )
     statement = fields.Many2one(
-        'account.AccountBankStatement', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='line_ids',
-        help_text='Estado de cuenta al que pertenece, si ya fue agrupada '
-                  '(Odoo statement_id).',
+        'account.AccountBankStatement',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='line_ids',
+        help_text=(
+            'Estado de cuenta al que pertenece, si ya fue agrupada '
+            '(Odoo statement_id).'
+        ),
     )
     sequence = fields.Integer(
         default=1,
-        help_text='Orden dentro del estado de cuenta (Odoo sequence; '
-                  'invertido dentro de internal_index, ver docstring del '
-                  'módulo).',
+        help_text=(
+            'Orden dentro del estado de cuenta (Odoo sequence; '
+            'invertido dentro de internal_index, ver docstring del '
+            'módulo).'
+        ),
     )
     partner = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='bank_statement_lines',
         help_text='Tercero de la transacción (Odoo partner_id).',
     )
     account_number = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Número de cuenta bancaria del tercero, previo a su '
-                  'creación como registro (Odoo account_number).',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text=(
+            'Número de cuenta bancaria del tercero, previo a su '
+            'creación como registro (Odoo account_number).'
+        ),
     )
     partner_name = fields.Char(
-        max_length=255, blank=True, default='',
-        help_text='Nombre del tercero tal como llega en el formato '
-                  'electrónico importado, cuando no se puede resolver a un '
-                  'partner (Odoo partner_name).',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=(
+            'Nombre del tercero tal como llega en el formato '
+            'electrónico importado, cuando no se puede resolver a un '
+            'partner (Odoo partner_name).'
+        ),
     )
     transaction_type = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Tipo de transacción, si el formato importado lo declara '
-                  '(Odoo transaction_type).',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text=(
+            'Tipo de transacción, si el formato importado lo declara '
+            '(Odoo transaction_type).'
+        ),
     )
     payment_ref = fields.Char(
-        max_length=255, blank=True, default='',
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Etiqueta/descripción de la transacción (Odoo payment_ref).',
     )
     amount = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
-        help_text='Monto de la transacción, en la moneda del diario (Odoo '
-                  'amount).',
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text=(
+            'Monto de la transacción, en la moneda del diario (Odoo amount).'
+        ),
     )
     foreign_currency = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='bank_statement_lines_foreign',
-        help_text='Moneda distinta a la del diario, si la transacción es '
-                  'multi-moneda (Odoo foreign_currency_id).',
+        help_text=(
+            'Moneda distinta a la del diario, si la transacción es '
+            'multi-moneda (Odoo foreign_currency_id).'
+        ),
     )
     amount_currency = fields.Monetary(
-        max_digits=16, decimal_places=2, null=True, blank=True,
-        help_text='Monto expresado en foreign_currency (Odoo amount_currency).',
+        max_digits=16,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=(
+            'Monto expresado en foreign_currency (Odoo amount_currency).'
+        ),
     )
     is_reconciled = fields.Boolean(
         default=False,
-        help_text='La línea ya fue conciliada contra sus apuntes (Odoo '
-                  'is_reconciled, computado — aquí bandera explícita que '
-                  'fija el flujo de conciliación).',
+        help_text=(
+            'La línea ya fue conciliada contra sus apuntes (Odoo '
+            'is_reconciled, computado — aquí bandera explícita que '
+            'fija el flujo de conciliación).'
+        ),
     )
     internal_index = fields.Char(
-        max_length=32, blank=True, default='',
-        help_text='Índice de orden: fecha + secuencia invertida + id, '
-                  'zero-padded (Odoo internal_index, compute='
-                  '_compute_internal_index, store=True). Se recalcula en '
-                  'save() — ver docstring del módulo.',
+        max_length=32,
+        blank=True,
+        default='',
+        help_text=(
+            'Índice de orden: fecha + secuencia invertida + id, '
+            'zero-padded (Odoo internal_index, compute='
+            '_compute_internal_index, store=True). Se recalcula en '
+            'save() — ver docstring del módulo.'
+        ),
     )
 
     class Meta:
@@ -243,7 +302,8 @@ class AccountBankStatementLine(models.Model):
             super().save(*args, **kwargs)
             self._compute_internal_index()
             type(self).objects.filter(pk=self.pk).update(
-                internal_index=self.internal_index)
+                internal_index=self.internal_index
+            )
         else:
             self._compute_internal_index()
             super().save(*args, **kwargs)
@@ -281,7 +341,8 @@ class AccountBankStatementLine(models.Model):
         ``store=True`` — ver docstring del módulo y
         ``_compute_running_balances`` abajo)."""
         return self._compute_running_balances([self.pk]).get(
-            self.pk, Decimal('0.00'))
+            self.pk, Decimal('0.00')
+        )
 
     @classmethod
     def _compute_running_balances(cls, line_ids):
@@ -314,8 +375,10 @@ class AccountBankStatementLine(models.Model):
         with connection.cursor() as cursor:
             for journal_id, journal_lines in by_journal.items():
                 indexes = sorted(
-                    line.internal_index for line in journal_lines
-                    if line.internal_index)
+                    line.internal_index
+                    for line in journal_lines
+                    if line.internal_index
+                )
                 if not indexes:
                     for line in journal_lines:
                         result[line.pk] = Decimal('0.00')
@@ -327,9 +390,10 @@ class AccountBankStatementLine(models.Model):
                 company = ResCompany.objects.filter(pk=company_id).first()
                 if company is not None and company.parent_path:
                     company_ids = list(
-                        ResCompany.objects
-                        .filter(parent_path__startswith=company.parent_path)
-                        .values_list('pk', flat=True))
+                        ResCompany.objects.filter(
+                            parent_path__startswith=company.parent_path
+                        ).values_list('pk', flat=True)
+                    )
 
                 cursor.execute(
                     """
@@ -375,8 +439,13 @@ class AccountBankStatementLine(models.Model):
                     params,
                 )
                 pending_ids = {line.pk for line in journal_lines}
-                for st_line_id, amount, is_anchor, balance_start, state \
-                        in cursor.fetchall():
+                for (
+                    st_line_id,
+                    amount,
+                    is_anchor,
+                    balance_start,
+                    state,
+                ) in cursor.fetchall():
                     if is_anchor:
                         current = Decimal(str(balance_start))
                     if state == 'posted':

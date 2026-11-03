@@ -1,0 +1,7 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+descriptor original      : FieldDescriptor
+solo __get__             : .id = 99
+__get__ + __set__ (ref)  : TypeError: field 'id' cannot be assigned
+INSTRUMENT_EXIT 0
+DECLARING_CLASS_VS_CODE_OWNER {"class": "django.db.models.Model", "attribute": "__getitem__", "implementation_module": "orm.models", "implementation_file": "/workspace/kaupamex-api/src/orm/models.py", "native_Django": false}
+DATABASE_ATTEMPTS []

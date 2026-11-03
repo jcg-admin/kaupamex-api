@@ -16,7 +16,8 @@ pedido que **no** pasan por ``so_line``: agregan sobre
 ``account.analytic.line.order``, la columna que ``models/hr_timesheet.py``
 cuelga en este mismo addon. Los dos se portan enteros, incluida la conversión
 de unidad — ``Uom.compute_quantity`` existe en este árbol
-(``api: addons/uom/models/uom_uom.py:310``) y ``ResCompany.project_time_mode_id``
+(``api: addons/uom/models/uom_uom.py:310``) y
+``ResCompany.project_time_mode_id``
 / ``timesheet_encode_uom_id`` los cuelga ``hr_timesheet``
 (``api: addons/hr_timesheet/models/res_company.py:96-107``).
 
@@ -37,10 +38,12 @@ Porte símbolo por símbolo
        ``project_time_mode_id → timesheet_encode_uom_id`` y el
        ``rounding_method='HALF-UP'`` verbatim de la fuente.
    * - ``timesheet_encode_uom_id`` (:15)
-     - **portado como property** — ``related='company_id.timesheet_encode_uom_id'``.
+     - **portado como property** —
+       ``related='company_id.timesheet_encode_uom_id'``.
    * - ``show_hours_recorded_button`` (:19)
      - **BLOQUEADO** — su compute (:70-73) lee ``project_count``
-       (``sale_project``, 0 hits aquí) y ``_get_order_with_valid_service_product``,
+       (``sale_project``, 0 hits aquí) y
+       ``_get_order_with_valid_service_product``,
        que a su vez depende de ``product.service_type``/``invoice_policy``.
 
 .. list-table:: Métodos — 2 portados, 8 con desenlace
@@ -83,6 +86,7 @@ Porte símbolo por símbolo
        ``_link_timesheets_to_invoice``, bloqueado a su vez en
        ``models/account_move.py``.
 """
+
 from orm.model_classes import extend_model
 
 from addons.analytic.models import AccountAnalyticLine
@@ -107,7 +111,8 @@ def timesheet_count(self):
     if self.pk is None:
         return 0
     return AccountAnalyticLine.objects.filter(
-        order=self, project__isnull=False).count()
+        order=self, project__isnull=False
+    ).count()
 
 
 def timesheet_total_duration(self):
@@ -128,15 +133,21 @@ def timesheet_total_duration(self):
         return 0
     total = 0.0
     for entry in AccountAnalyticLine.objects.filter(
-            order=self, project__isnull=False):
+        order=self, project__isnull=False
+    ):
         total += entry.unit_amount or 0.0
 
     company = self.company if self.company_id else None
-    source_uom = getattr(company, 'project_time_mode_id', None) if company else None
-    target_uom = getattr(company, 'timesheet_encode_uom_id', None) if company else None
+    source_uom = (
+        getattr(company, 'project_time_mode_id', None) if company else None
+    )
+    target_uom = (
+        getattr(company, 'timesheet_encode_uom_id', None) if company else None
+    )
     if source_uom is not None and target_uom is not None:
         total = source_uom.compute_quantity(
-            total, target_uom, rounding_method='HALF-UP')
+            total, target_uom, rounding_method='HALF-UP'
+        )
     return round(total)
 
 
@@ -149,7 +160,8 @@ def apply_sale_timesheet_sale_order_extensions():
     porque el destino no declara ``_name``.
     """
     extend_model(
-        'sale', 'SaleOrder',
+        'sale',
+        'SaleOrder',
         propiedades={
             'timesheet_encode_uom': timesheet_encode_uom,
             'timesheet_count': timesheet_count,

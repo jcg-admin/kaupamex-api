@@ -26,6 +26,7 @@ El caso 6 es el que exige el sub-patrón D de
 caso 4 no distingue «la precedencia es la de la fuente» de «el usuario nunca
 tuvo los dos métodos a la vez».
 """
+
 import pytest
 
 from orm.method_chain import chain_method
@@ -47,13 +48,15 @@ TOTP_URL = '/login/totp'
 @pytest.fixture
 def user():
     return ResUsers.objects.create_user(
-        login='mfa-chain@kaupamex.mx', password='Str0ng-Passw0rd!')
+        login='mfa-chain@kaupamex.mx', password='Str0ng-Passw0rd!'
+    )
 
 
 def _enable_app_totp(user):
     """El usuario tiene la app de 2FA configurada y confirmada."""
     TotpSecret.objects.create(
-        user=user, secret='JBSWY3DPEHPK3PXP', confirmed=True)
+        user=user, secret='JBSWY3DPEHPK3PXP', confirmed=True
+    )
 
 
 def _set_policy(value):
@@ -74,6 +77,7 @@ def _mfa_type_default_relay(self):
 
 # === 1. Sin ningún método activo: el eslabón base es el que responde =====
 
+
 def test_chain_returns_none_without_any_second_factor(user):
     _set_policy('')
     assert user._mfa_type() is None
@@ -82,12 +86,14 @@ def test_chain_returns_none_without_any_second_factor(user):
 
 def test_unconfirmed_secret_does_not_activate_the_second_factor(user):
     TotpSecret.objects.create(
-        user=user, secret='JBSWY3DPEHPK3PXP', confirmed=False)
+        user=user, secret='JBSWY3DPEHPK3PXP', confirmed=False
+    )
     _set_policy('')
     assert user._mfa_type() is None
 
 
 # === 2. Eslabón medio — la app de 2FA ====================================
+
 
 def test_configured_app_yields_totp(user):
     _enable_app_totp(user)
@@ -97,6 +103,7 @@ def test_configured_app_yields_totp(user):
 
 
 # === 3. Eslabón externo — el fallback por correo =========================
+
 
 def test_all_required_policy_without_app_yields_totp_mail(user):
     _set_policy('all_required')
@@ -109,12 +116,14 @@ def test_employee_required_policy_only_reaches_internal_users(user):
     assert user._mfa_type() is None, 'sin grupo interno la política no aplica'
 
     internal = ResGroups.objects.create(
-        name='Empleados', user_type=ResGroups.USER_TYPE_INTERNAL)
+        name='Empleados', user_type=ResGroups.USER_TYPE_INTERNAL
+    )
     internal.user_ids.add(user)
     assert user._mfa_type() == 'totp_mail'
 
 
 # === 4. La precedencia: el eslabón INTERNO gana ==========================
+
 
 def test_app_and_policy_together_yield_totp(user):
     """El caso que la fuente resuelve consultando ``super()`` primero.
@@ -131,8 +140,11 @@ def test_app_and_policy_together_yield_totp(user):
 
 # === 5. El consumidor: authz_timeout lee el resultado ====================
 
+
 def test_get_auth_methods_consumes_the_chain(user):
-    """``_get_auth_methods`` de ``authz_timeout`` no sabe cuántos eslabones hay."""
+    """
+    ``_get_auth_methods`` de ``authz_timeout`` no sabe cuántos eslabones hay.
+    """
     _enable_app_totp(user)
     _set_policy('')
     assert user._get_auth_methods() == ['totp', 'password']
@@ -142,6 +154,7 @@ def test_get_auth_methods_consumes_the_chain(user):
 
 
 # === 6. El control — sin ``keep_previous`` la precedencia se invierte ====
+
 
 def test_default_relay_would_invert_the_precedence(user):
     """Control del sub-patrón D: mide qué haría fallar al caso 4.

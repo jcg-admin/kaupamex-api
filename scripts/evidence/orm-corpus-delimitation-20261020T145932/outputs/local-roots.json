@@ -1,0 +1,144 @@
+{
+  "resolver": {
+    "git_blob": "6d7063440e7b4de11941dc02422f2fbff6889996",
+    "sha256": "5539a913d52bc4ea8b9987100c41f59f1b7694ee9812067271e0251ec09cf62a"
+  },
+  "actual_selected_nonsecret_path_variables": {
+    "ODOO_TOOLS": null,
+    "ODOO18C": null,
+    "ODOO18E": null,
+    "ODOO19C": null,
+    "ODOO19E": null
+  },
+  "actual": {
+    "odoo19c": {
+      "tree": "/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0",
+      "exists": false,
+      "addon_roots": [
+        {
+          "path": "/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons",
+          "exists": false
+        },
+        {
+          "path": "/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons",
+          "exists": false
+        }
+      ]
+    },
+    "odoo19e": {
+      "tree": "/home/user/odoo-tools/19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main",
+      "exists": false,
+      "addon_roots": [
+        {
+          "path": "/home/user/odoo-tools/19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main",
+          "exists": false
+        }
+      ]
+    },
+    "odoo18c": {
+      "tree": "/home/user/odoo-tools/18.x/odoo-18",
+      "exists": false,
+      "addon_roots": [
+        {
+          "path": "/home/user/odoo-tools/18.x/odoo-18/addons",
+          "exists": false
+        },
+        {
+          "path": "/home/user/odoo-tools/18.x/odoo-18/odoo/addons",
+          "exists": false
+        }
+      ]
+    },
+    "odoo18e": {
+      "tree": "/home/user/odoo-tools/18.x/odoo.enterprise",
+      "exists": false,
+      "addon_roots": [
+        {
+          "path": "/home/user/odoo-tools/18.x/odoo.enterprise",
+          "exists": false
+        }
+      ]
+    }
+  },
+  "explicit_audit_override": {
+    "ODOO_TOOLS": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "base_exists": true,
+    "has_git_metadata": false
+  },
+  "materialized": {
+    "odoo19c": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0",
+      "exists": true,
+      "relevant_paths": {
+        "odoo/orm": true,
+        "odoo/addons": true,
+        "addons": true
+      },
+      "materialized_files": [
+        "addons/mail/models/mail_render_mixin.py",
+        "odoo/addons/base/models/ir_cron.py",
+        "odoo/addons/base/models/ir_model.py",
+        "odoo/addons/base/tests/test_cache.py",
+        "odoo/addons/base/tests/test_orm.py",
+        "odoo/fields/__init__.py",
+        "odoo/orm/__init__.py",
+        "odoo/orm/commands.py",
+        "odoo/orm/decorators.py",
+        "odoo/orm/domains.py",
+        "odoo/orm/environments.py",
+        "odoo/orm/fields.py",
+        "odoo/orm/fields_binary.py",
+        "odoo/orm/fields_misc.py",
+        "odoo/orm/fields_numeric.py",
+        "odoo/orm/fields_properties.py",
+        "odoo/orm/fields_reference.py",
+        "odoo/orm/fields_relational.py",
+        "odoo/orm/fields_selection.py",
+        "odoo/orm/fields_temporal.py",
+        "odoo/orm/fields_textual.py",
+        "odoo/orm/identifiers.py",
+        "odoo/orm/model_classes.py",
+        "odoo/orm/models.py",
+        "odoo/orm/models_transient.py",
+        "odoo/orm/registry.py",
+        "odoo/orm/table_objects.py",
+        "odoo/orm/types.py",
+        "odoo/orm/utils.py",
+        "odoo/release.py",
+        "odoo/sql_db.py",
+        "odoo/tools/misc.py",
+        "odoo/tools/rendering_tools.py",
+        "odoo/tools/sql.py",
+        "odoo/tools/template_inheritance.py"
+      ],
+      "materialized_file_count": 35
+    },
+    "odoo19e": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main",
+      "exists": false,
+      "relevant_paths": {
+        "odoo/orm": false,
+        "odoo/addons": false,
+        "addons": false
+      }
+    },
+    "odoo18c": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/18.x/odoo-18",
+      "exists": false,
+      "relevant_paths": {
+        "odoo/orm": false,
+        "odoo/addons": false,
+        "addons": false
+      }
+    },
+    "odoo18e": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/18.x/odoo.enterprise",
+      "exists": false,
+      "relevant_paths": {
+        "odoo/orm": false,
+        "odoo/addons": false,
+        "addons": false
+      }
+    }
+  }
+}

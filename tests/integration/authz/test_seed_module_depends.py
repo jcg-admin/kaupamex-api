@@ -5,6 +5,7 @@ real graph to enforce (without a seed the graph is dead capability). The graph
 is conservative and functional: e.g. orders needs catalogue + inventory,
 payments/invoices/logistics/returns need orders, inventory needs catalogue.
 """
+
 import pytest
 from django.core.management import call_command
 
@@ -14,7 +15,9 @@ pytestmark = pytest.mark.django_db
 
 
 def _deps(code):
-    return set(Module.objects.get(code=code).depends.values_list('code', flat=True))
+    return set(
+        Module.objects.get(code=code).depends.values_list('code', flat=True)
+    )
 
 
 class TestSeededModuleDepends:

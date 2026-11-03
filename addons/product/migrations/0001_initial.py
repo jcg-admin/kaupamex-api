@@ -32,7 +32,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del atributo (Odoo product.attribute.name).",
+                        help_text=(
+                            "Nombre del atributo (Odoo"
+                            " product.attribute.name)."
+                        ),
                         max_length=100,
                     ),
                 ),
@@ -45,7 +48,9 @@ class Migration(migrations.Migration):
                             ("no_variant", "Nunca (no genera variante)"),
                         ],
                         default="always",
-                        help_text="Cuándo genera variante (Odoo create_variant).",
+                        help_text=(
+                            "Cuándo genera variante (Odoo create_variant)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -106,7 +111,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Número de artículo internacional. Único por compañía.",
+                        help_text=(
+                            "Número de artículo internacional. Único por"
+                            " compañía."
+                        ),
                         max_length=64,
                         verbose_name="Código de barras",
                     ),
@@ -125,7 +133,11 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Ids de los valores de atributo, ORDENADOS y separados por coma. Almacenado para poder buscar una combinación en una consulta.",
+                        help_text=(
+                            "Ids de los valores de atributo, ORDENADOS y"
+                            " separados por coma. Almacenado para poder buscar"
+                            " una combinación en una consulta."
+                        ),
                         max_length=255,
                         verbose_name="Índices de la combinación",
                     ),
@@ -135,7 +147,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Coste POR VARIANTE: dos tallas pueden costar distinto. Sobreescribe el de la ficha.",
+                        help_text=(
+                            "Coste POR VARIANTE: dos tallas pueden costar"
+                            " distinto. Sobreescribe el de la ficha."
+                        ),
                         max_digits=16,
                         verbose_name="Coste",
                     ),
@@ -144,7 +159,10 @@ class Migration(migrations.Migration):
                     "volume",
                     models.FloatField(
                         default=0,
-                        help_text="Sobreescribe el de la ficha: el envío se calcula sobre lo que se mueve.",
+                        help_text=(
+                            "Sobreescribe el de la ficha: el envío se calcula"
+                            " sobre lo que se mueve."
+                        ),
                         verbose_name="Volumen",
                     ),
                 ),
@@ -152,7 +170,9 @@ class Migration(migrations.Migration):
                     "weight",
                     models.FloatField(
                         default=0,
-                        help_text="Sobreescribe el de la ficha, por la misma razón.",
+                        help_text=(
+                            "Sobreescribe el de la ficha, por la misma razón."
+                        ),
                         verbose_name="Peso",
                     ),
                 ),
@@ -234,7 +254,11 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text='Ruta legible "Padre / Hijo". Almacenado y repropagado a los descendientes al renombrar un padre.',
+                        help_text=(
+                            'Ruta legible "Padre / Hijo". Almacenado y'
+                            ' repropagado a los descendientes al renombrar un'
+                            ' padre.'
+                        ),
                         max_length=1024,
                         verbose_name="Nombre completo",
                     ),
@@ -245,7 +269,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text='Ruta materializada de ids: responde "qué hay debajo" con un LIKE en vez de N consultas.',
+                        help_text=(
+                            'Ruta materializada de ids: responde "qué hay'
+                            ' debajo" con un LIKE en vez de N consultas.'
+                        ),
                         max_length=1024,
                         verbose_name="Ruta del árbol",
                     ),
@@ -255,7 +282,11 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=list,
-                        help_text="Esquema de propiedades libres que heredan los productos de esta categoría. La maquinaria que lo aplica vive en product_template.",
+                        help_text=(
+                            "Esquema de propiedades libres que heredan los"
+                            " productos de esta categoría. La maquinaria que"
+                            " lo aplica vive en product_template."
+                        ),
                         verbose_name="Propiedades del producto",
                     ),
                 ),
@@ -263,7 +294,10 @@ class Migration(migrations.Migration):
                     "parent",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo parent_id. El related_name es child_id, que es como la referencia llama al One2many inverso.",
+                        help_text=(
+                            "Odoo parent_id. El related_name es child_id, que"
+                            " es como la referencia llama al One2many inverso."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="child_id",
@@ -303,7 +337,11 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Orden de la elección dentro del menú. En la referencia es copy=False: al duplicar, el orden NO se hereda.",
+                        help_text=(
+                            "Orden de la elección dentro del menú. En la"
+                            " referencia es copy=False: al duplicar, el orden"
+                            " NO se hereda."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -311,7 +349,9 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Vacío = la elección sirve a todas las compañías.",
+                        help_text=(
+                            "Vacío = la elección sirve a todas las compañías."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="combo_ids",
@@ -345,7 +385,10 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Desmarcar archiva el documento sin borrar el adjunto.",
+                        help_text=(
+                            "Desmarcar archiva el documento sin borrar el"
+                            " adjunto."
+                        ),
                         verbose_name="Activo",
                     ),
                 ),
@@ -360,7 +403,11 @@ class Migration(migrations.Migration):
                 (
                     "ir_attachment",
                     models.ForeignKey(
-                        help_text="Odoo ir_attachment_id: el enlace de _inherits. FK real, NO herencia multi-tabla (ver el docstring del módulo).",
+                        help_text=(
+                            "Odoo ir_attachment_id: el enlace de _inherits. FK"
+                            " real, NO herencia multi-tabla (ver el docstring"
+                            " del módulo)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="product_document_ids",
                         to="base.irattachment",
@@ -407,7 +454,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=16,
-                        help_text="Desempate cuando varias tarifas encajan: gana la menor.",
+                        help_text=(
+                            "Desempate cuando varias tarifas encajan: gana la"
+                            " menor."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -415,7 +465,9 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Vacío = la tarifa sirve a todas las compañías.",
+                        help_text=(
+                            "Vacío = la tarifa sirve a todas las compañías."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="pricelist_ids",
@@ -427,7 +479,10 @@ class Migration(migrations.Migration):
                     "country_groups",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Decide qué tarifa ve un visitante según de dónde llega. No interviene en el cálculo.",
+                        help_text=(
+                            "Decide qué tarifa ve un visitante según de dónde"
+                            " llega. No interviene en el cálculo."
+                        ),
                         related_name="pricelist_ids",
                         to="base.rescountrygroup",
                         verbose_name="Grupos de países",
@@ -437,7 +492,9 @@ class Migration(migrations.Migration):
                     "currency",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Moneda en que sus reglas expresan los importes.",
+                        help_text=(
+                            "Moneda en que sus reglas expresan los importes."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="pricelist_ids",
@@ -472,7 +529,12 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Sobrecoste de elegir esta opción. En la referencia es Float; aquí Monetary porque se suma a list_price, que ya divergió a Monetary (ver el docstring del módulo).",
+                        help_text=(
+                            "Sobrecoste de elegir esta opción. En la"
+                            " referencia es Float; aquí Monetary porque se"
+                            " suma a list_price, que ya divergió a Monetary"
+                            " (ver el docstring del módulo)."
+                        ),
                         max_digits=16,
                         verbose_name="Precio adicional",
                     ),
@@ -480,7 +542,10 @@ class Migration(migrations.Migration):
                 (
                     "combo",
                     models.ForeignKey(
-                        help_text="La elección que ofrece esta opción. Al borrarla se borran sus opciones (Odoo ondelete=cascade).",
+                        help_text=(
+                            "La elección que ofrece esta opción. Al borrarla"
+                            " se borran sus opciones (Odoo ondelete=cascade)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="combo_item_ids",
                         to="product.productcombo",
@@ -492,7 +557,11 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         blank=True,
                         editable=False,
-                        help_text="Denormalizada desde la elección (Odoo related + store=True + precompute=True). Se fija en save(), no se captura.",
+                        help_text=(
+                            "Denormalizada desde la elección (Odoo related +"
+                            " store=True + precompute=True). Se fija en"
+                            " save(), no se captura."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="combo_item_ids",
@@ -503,7 +572,11 @@ class Migration(migrations.Migration):
                 (
                     "product",
                     models.ForeignKey(
-                        help_text='Odoo string="Options", ondelete=restrict: no se borra un producto que alguna elección todavía ofrece.',
+                        help_text=(
+                            'Odoo string="Options", ondelete=restrict: no se'
+                            ' borra un producto que alguna elección todavía'
+                            ' ofrece.'
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="combo_item_ids",
                         to="product.productproduct",
@@ -536,7 +609,10 @@ class Migration(migrations.Migration):
                     "image_1920",
                     models.ImageField(
                         blank=True,
-                        help_text="Odoo image_1920. Original; las derivadas salen de aquí.",
+                        help_text=(
+                            "Odoo image_1920. Original; las derivadas salen de"
+                            " aquí."
+                        ),
                         null=True,
                         upload_to="images/original/",
                         verbose_name="Imagen",
@@ -605,7 +681,9 @@ class Migration(migrations.Migration):
                 (
                     "description_purchase",
                     models.TextField(
-                        blank=True, default="", verbose_name="Descripción de compra"
+                        blank=True,
+                        default="",
+                        verbose_name="Descripción de compra",
                     ),
                 ),
                 (
@@ -613,7 +691,10 @@ class Migration(migrations.Migration):
                     models.TextField(
                         blank=True,
                         default="",
-                        help_text="Se copia a cada pedido, albarán y factura del cliente.",
+                        help_text=(
+                            "Se copia a cada pedido, albarán y factura del"
+                            " cliente."
+                        ),
                         verbose_name="Descripción de venta",
                     ),
                 ),
@@ -644,7 +725,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=1,
-                        help_text="Precio al que se vende al cliente. Monetary, no Float — ver el docstring del módulo.",
+                        help_text=(
+                            "Precio al que se vende al cliente. Monetary, no"
+                            " Float — ver el docstring del módulo."
+                        ),
                         max_digits=16,
                         verbose_name="Precio de venta",
                     ),
@@ -654,20 +738,32 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Valor del producto. En la referencia lo calcula la valoración AVCO del inventario; aquí es columna, y el cálculo automático no está portado.",
+                        help_text=(
+                            "Valor del producto. En la referencia lo calcula"
+                            " la valoración AVCO del inventario; aquí es"
+                            " columna, y el cálculo automático no está"
+                            " portado."
+                        ),
                         max_digits=16,
                         verbose_name="Coste",
                     ),
                 ),
-                ("volume", models.FloatField(default=0, verbose_name="Volumen")),
+                (
+                    "volume",
+                    models.FloatField(default=0, verbose_name="Volumen"),
+                ),
                 ("weight", models.FloatField(default=0, verbose_name="Peso")),
                 (
                     "sale_ok",
-                    models.BooleanField(default=True, verbose_name="Se puede vender"),
+                    models.BooleanField(
+                        default=True, verbose_name="Se puede vender"
+                    ),
                 ),
                 (
                     "purchase_ok",
-                    models.BooleanField(default=True, verbose_name="Se puede comprar"),
+                    models.BooleanField(
+                        default=True, verbose_name="Se puede comprar"
+                    ),
                 ),
                 (
                     "active",
@@ -679,7 +775,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "color",
-                    models.IntegerField(default=0, verbose_name="Índice de color"),
+                    models.IntegerField(
+                        default=0, verbose_name="Índice de color"
+                    ),
                 ),
                 (
                     "default_code",
@@ -693,13 +791,18 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "is_favorite",
-                    models.BooleanField(default=False, verbose_name="Favorito"),
+                    models.BooleanField(
+                        default=False, verbose_name="Favorito"
+                    ),
                 ),
                 (
                     "has_configurable_attributes",
                     models.BooleanField(
                         default=False,
-                        help_text="Odoo lo calcula y almacena: verdadero si alguna línea de atributo ofrece más de un valor.",
+                        help_text=(
+                            "Odoo lo calcula y almacena: verdadero si alguna"
+                            " línea de atributo ofrece más de un valor."
+                        ),
                         verbose_name="Producto configurable",
                     ),
                 ),
@@ -708,7 +811,10 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=dict,
-                        help_text="Pares libres cuyo esquema declara categ.product_properties_definition.",
+                        help_text=(
+                            "Pares libres cuyo esquema declara"
+                            " categ.product_properties_definition."
+                        ),
                         verbose_name="Propiedades",
                     ),
                 ),
@@ -716,7 +822,10 @@ class Migration(migrations.Migration):
                     "categ",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo categ_id. FK real: product.category ya está portado.",
+                        help_text=(
+                            "Odoo categ_id. FK real: product.category ya está"
+                            " portado."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="product_tmpl_ids",
@@ -728,7 +837,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Vacío = producto compartido por todas las compañías.",
+                        help_text=(
+                            "Vacío = producto compartido por todas las"
+                            " compañías."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="product_tmpl_ids",
@@ -740,7 +852,9 @@ class Migration(migrations.Migration):
                     "uom",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo uom_id. FK real: uom.uom ya está portado.",
+                        help_text=(
+                            "Odoo uom_id. FK real: uom.uom ya está portado."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="product_tmpl_ids",
@@ -774,7 +888,10 @@ class Migration(migrations.Migration):
                     "image_1920",
                     models.ImageField(
                         blank=True,
-                        help_text="Odoo image_1920. Original; las derivadas salen de aquí.",
+                        help_text=(
+                            "Odoo image_1920. Original; las derivadas salen de"
+                            " aquí."
+                        ),
                         null=True,
                         upload_to="images/original/",
                         verbose_name="Imagen",
@@ -826,7 +943,10 @@ class Migration(migrations.Migration):
                         max_length=255, unique=True, verbose_name="Nombre"
                     ),
                 ),
-                ("sequence", models.IntegerField(default=10, verbose_name="Secuencia")),
+                (
+                    "sequence",
+                    models.IntegerField(default=10, verbose_name="Secuencia"),
+                ),
                 (
                     "color",
                     models.CharField(
@@ -844,7 +964,11 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="product_tag_product_product_rel",
-                        help_text="Sólo variantes sueltas: su ficha debe tener atributos y NO estar ya etiquetada. Ver el docstring del módulo.",
+                        help_text=(
+                            "Sólo variantes sueltas: su ficha debe tener"
+                            " atributos y NO estar ya etiquetada. Ver el"
+                            " docstring del módulo."
+                        ),
                         related_name="additional_product_tag_ids",
                         to="product.productproduct",
                         verbose_name="Variantes de producto",
@@ -887,7 +1011,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Se usa al imprimir una solicitud de presupuesto. Vacío = se usa el nombre interno.",
+                        help_text=(
+                            "Se usa al imprimir una solicitud de presupuesto."
+                            " Vacío = se usa el nombre interno."
+                        ),
                         max_length=255,
                         verbose_name="Nombre del producto para el proveedor",
                     ),
@@ -897,7 +1024,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Idem con la referencia: vacío = se usa la interna.",
+                        help_text=(
+                            "Idem con la referencia: vacío = se usa la"
+                            " interna."
+                        ),
                         max_length=64,
                         verbose_name="Código del producto para el proveedor",
                     ),
@@ -906,7 +1036,9 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=1,
-                        help_text="Prioridad del proveedor en la lista. Menor gana.",
+                        help_text=(
+                            "Prioridad del proveedor en la lista. Menor gana."
+                        ),
                         verbose_name="Secuencia",
                     ),
                 ),
@@ -914,7 +1046,10 @@ class Migration(migrations.Migration):
                     "min_qty",
                     models.FloatField(
                         default=0,
-                        help_text="Cantidad a partir de la cual aplica este precio, expresada en la unidad del proveedor.",
+                        help_text=(
+                            "Cantidad a partir de la cual aplica este precio,"
+                            " expresada en la unidad del proveedor."
+                        ),
                         verbose_name="Cantidad mínima",
                     ),
                 ),
@@ -923,7 +1058,11 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Precio de compra en la unidad del proveedor. Monetary, no Float — ver el docstring del módulo.",
+                        help_text=(
+                            "Precio de compra en la unidad del proveedor."
+                            " Monetary, no Float — ver el docstring del"
+                            " módulo."
+                        ),
                         max_digits=16,
                         verbose_name="Precio unitario",
                     ),
@@ -933,7 +1072,11 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Porcentaje sobre el precio. Mismo tipo y precisión que purchase_order_line.discount, que es quien lo consume.",
+                        help_text=(
+                            "Porcentaje sobre el precio. Mismo tipo y"
+                            " precisión que purchase_order_line.discount, que"
+                            " es quien lo consume."
+                        ),
                         max_digits=5,
                         verbose_name="Descuento (%)",
                     ),
@@ -960,7 +1103,11 @@ class Migration(migrations.Migration):
                     "delay",
                     models.IntegerField(
                         default=1,
-                        help_text="Días entre confirmar la compra y recibir la mercancía. El planificador lo usa para calcular cuándo pedir.",
+                        help_text=(
+                            "Días entre confirmar la compra y recibir la"
+                            " mercancía. El planificador lo usa para calcular"
+                            " cuándo pedir."
+                        ),
                         verbose_name="Plazo de entrega (días)",
                     ),
                 ),
@@ -968,7 +1115,9 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Vacío = la tarifa sirve a todas las compañías.",
+                        help_text=(
+                            "Vacío = la tarifa sirve a todas las compañías."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="supplierinfo_ids",
@@ -980,7 +1129,11 @@ class Migration(migrations.Migration):
                     "currency",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Moneda en que el proveedor cotiza. Requerido en la referencia, con la de la compañía por defecto.",
+                        help_text=(
+                            "Moneda en que el proveedor cotiza. Requerido en"
+                            " la referencia, con la de la compañía por"
+                            " defecto."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="supplierinfo_ids",
@@ -991,7 +1144,10 @@ class Migration(migrations.Migration):
                 (
                     "partner",
                     models.ForeignKey(
-                        help_text="Odoo partner_id. Es el nombre por el que se muestra la fila (_rec_name en la referencia).",
+                        help_text=(
+                            "Odoo partner_id. Es el nombre por el que se"
+                            " muestra la fila (_rec_name en la referencia)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="supplierinfo_ids",
                         to="base.respartner",
@@ -1002,7 +1158,12 @@ class Migration(migrations.Migration):
                     "product",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Vacío = el precio aplica a TODAS las variantes de la plantilla. Con valor, sólo a esa — y gana sobre la fila de plantilla. El related_name no lo nombra la referencia.",
+                        help_text=(
+                            "Vacío = el precio aplica a TODAS las variantes de"
+                            " la plantilla. Con valor, sólo a esa — y gana"
+                            " sobre la fila de plantilla. El related_name no"
+                            " lo nombra la referencia."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="supplierinfo_ids",
@@ -1014,7 +1175,12 @@ class Migration(migrations.Migration):
                     "product_uom",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Unidad en que el proveedor cotiza, que puede no ser la del producto. Odoo la calcula y almacena; aquí se siembra en save() desde la variante o la plantilla.",
+                        help_text=(
+                            "Unidad en que el proveedor cotiza, que puede no"
+                            " ser la del producto. Odoo la calcula y almacena;"
+                            " aquí se siembra en save() desde la variante o la"
+                            " plantilla."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="supplierinfo_ids",
@@ -1025,7 +1191,10 @@ class Migration(migrations.Migration):
                 (
                     "product_tmpl",
                     models.ForeignKey(
-                        help_text="Obligatorio. Odoo lo calcula desde la variante cuando sólo se da ésta; aquí lo hace save().",
+                        help_text=(
+                            "Obligatorio. Odoo lo calcula desde la variante"
+                            " cuando sólo se da ésta; aquí lo hace save()."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="seller_ids",
                         to="product.producttemplate",
@@ -1044,7 +1213,10 @@ class Migration(migrations.Migration):
             model_name="productproduct",
             name="product_tmpl",
             field=models.ForeignKey(
-                help_text="Odoo product_tmpl_id. FK real, NO herencia multi-tabla: muchas variantes por ficha. Ver el docstring del módulo.",
+                help_text=(
+                    "Odoo product_tmpl_id. FK real, NO herencia multi-tabla:"
+                    " muchas variantes por ficha. Ver el docstring del módulo."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="product_variant_ids",
                 to="product.producttemplate",
@@ -1075,7 +1247,10 @@ class Migration(migrations.Migration):
                             ("3_global", "Todos los productos"),
                         ],
                         default="3_global",
-                        help_text="El prefijo numérico ES la precedencia — ver el docstring del módulo.",
+                        help_text=(
+                            "El prefijo numérico ES la precedencia — ver el"
+                            " docstring del módulo."
+                        ),
                         max_length=32,
                         verbose_name="Se aplica a",
                     ),
@@ -1084,7 +1259,10 @@ class Migration(migrations.Migration):
                     "min_quantity",
                     models.FloatField(
                         default=0,
-                        help_text="A igual alcance gana la regla de mínimo mayor: la más exigente.",
+                        help_text=(
+                            "A igual alcance gana la regla de mínimo mayor: la"
+                            " más exigente."
+                        ),
                         verbose_name="Cantidad mínima",
                     ),
                 ),
@@ -1150,7 +1328,11 @@ class Migration(migrations.Migration):
                     "price_markup",
                     models.FloatField(
                         default=0,
-                        help_text="Se usa EN LUGAR del descuento cuando la base es el coste; la fórmula lo aplica como descuento negativo.",
+                        help_text=(
+                            "Se usa EN LUGAR del descuento cuando la base es"
+                            " el coste; la fórmula lo aplica como descuento"
+                            " negativo."
+                        ),
                         verbose_name="Margen sobre coste (%)",
                     ),
                 ),
@@ -1158,7 +1340,10 @@ class Migration(migrations.Migration):
                     "price_round",
                     models.FloatField(
                         default=0,
-                        help_text="Se aplica ANTES del recargo — ver el docstring del módulo.",
+                        help_text=(
+                            "Se aplica ANTES del recargo — ver el docstring"
+                            " del módulo."
+                        ),
                         verbose_name="Redondeo",
                     ),
                 ),
@@ -1176,7 +1361,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Se mide contra la BASE, no contra el precio en curso.",
+                        help_text=(
+                            "Se mide contra la BASE, no contra el precio en"
+                            " curso."
+                        ),
                         max_digits=16,
                         verbose_name="Margen mínimo",
                     ),
@@ -1186,7 +1374,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Se mide contra la BASE, no contra el precio en curso.",
+                        help_text=(
+                            "Se mide contra la BASE, no contra el precio en"
+                            " curso."
+                        ),
                         max_digits=16,
                         verbose_name="Margen máximo",
                     ),
@@ -1257,7 +1448,12 @@ class Migration(migrations.Migration):
             name="product_tmpls",
             field=models.ManyToManyField(
                 blank=True,
-                help_text="Odoo declara este M2M en product.template como combo_ids; aquí se declara del lado del combo con ese related_name, así template.combo_ids es el mismo nombre de la fuente. La referencia no nombra el lado inverso.",
+                help_text=(
+                    "Odoo declara este M2M en product.template como combo_ids;"
+                    " aquí se declara del lado del combo con ese related_name,"
+                    " así template.combo_ids es el mismo nombre de la fuente."
+                    " La referencia no nombra el lado inverso."
+                ),
                 related_name="combo_ids",
                 to="product.producttemplate",
                 verbose_name="Productos combo que la usan",
@@ -1295,7 +1491,9 @@ class Migration(migrations.Migration):
                 (
                     "product_tmpl",
                     models.ForeignKey(
-                        help_text="Plantilla de producto (Odoo product_tmpl_id).",
+                        help_text=(
+                            "Plantilla de producto (Odoo product_tmpl_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="attribute_lines",
                         to="product.producttemplate",
@@ -1304,7 +1502,10 @@ class Migration(migrations.Migration):
                 (
                     "values",
                     models.ManyToManyField(
-                        help_text="Valores aplicables a este producto (Odoo value_ids).",
+                        help_text=(
+                            "Valores aplicables a este producto (Odoo"
+                            " value_ids)."
+                        ),
                         related_name="template_lines",
                         to="product.productattributevalue",
                     ),
@@ -1336,14 +1537,19 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Sobreprecio de esta opción (Odoo price_extra).",
+                        help_text=(
+                            "Sobreprecio de esta opción (Odoo price_extra)."
+                        ),
                         max_digits=12,
                     ),
                 ),
                 (
                     "attribute_value",
                     models.ForeignKey(
-                        help_text="Valor del atributo (Odoo product_attribute_value_id).",
+                        help_text=(
+                            "Valor del atributo (Odoo"
+                            " product_attribute_value_id)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="template_values",
                         to="product.productattributevalue",
@@ -1394,7 +1600,9 @@ class Migration(migrations.Migration):
                 (
                     "barcode",
                     models.CharField(
-                        db_index=True, max_length=64, verbose_name="Código de barras"
+                        db_index=True,
+                        max_length=64,
+                        verbose_name="Código de barras",
                     ),
                 ),
                 (
@@ -1436,7 +1644,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="productattributevalue",
             constraint=models.UniqueConstraint(
-                fields=("attribute", "name"), name="unique_attribute_value_name"
+                fields=("attribute", "name"),
+                name="unique_attribute_value_name",
             ),
         ),
         migrations.AddConstraint(
@@ -1448,7 +1657,8 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="producttemplateattributeline",
             constraint=models.UniqueConstraint(
-                fields=("product_tmpl", "attribute"), name="unique_template_attribute"
+                fields=("product_tmpl", "attribute"),
+                name="unique_template_attribute",
             ),
         ),
         migrations.AddConstraint(

@@ -2,7 +2,8 @@
 
 Adaptación de Odoo ``addons/account/models/account_analytic_line.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 183 líneas, 11 ``def``:
-medido por AST — ``_compute_general_account_id``, ``_check_general_account_id``,
+medido por AST — ``_compute_general_account_id``,
+``_check_general_account_id``,
 ``_compute_partner_id``, ``_compute_analytic_profitability``,
 ``on_change_unit_amount``, ``view_header_get``, ``create``, ``_field_to_sql``,
 ``_search_analytic_profitability``, ``write``, ``unlink``). Extiende
@@ -111,6 +112,7 @@ alcance de un pase futuro; portar ``AccountMoveLine.journal``/``partner``/
 y entonces recuperar ``journal``, ``_compute_partner_id``,
 ``create``/``write``/``unlink``.
 """
+
 from decimal import Decimal
 
 import fields
@@ -133,7 +135,9 @@ _CATEGORY_EXTRA = [
 #: ≙ ``['asset_current', 'asset_non_current', 'asset_fixed']``
 #: (odoo19c: :83).
 _ANALYTIC_PROFITABILITY_ASSET_TYPES = {
-    'asset_current', 'asset_non_current', 'asset_fixed',
+    'asset_current',
+    'asset_non_current',
+    'asset_fixed',
 }
 
 
@@ -146,10 +150,13 @@ def _extend_selection_choices(model, field_name, extra_choices):
     ``selection_add``, que es lo que la tarea **#205** construyó.
 
     Este campo **no declara política** en la referencia
-    (``odoo19c: account/models/account_analytic_line.py:11-14``), así que sus valores nuevos toman la de
+    (``odoo19c: account/models/account_analytic_line.py:11-14``), así que sus
+    valores nuevos toman la de
     por defecto, ``'set null'`` — igual que allá (``:131-133``).
     """
     return extend_selection_choices(model, field_name, extra_choices)
+
+
 def _add_if_absent(model, name, field):
     """Idempotente — mismo helper que ``account/models/product.py``."""
     if not any(f.name == name for f in model._meta.get_fields()):
@@ -158,7 +165,11 @@ def _add_if_absent(model, name, field):
 
 def _compute_general_account(instance):
     """≙ ``_compute_general_account_id`` (odoo19c: :62-65)."""
-    return instance.move_line.account if instance.move_line_id is not None else None
+    return (
+        instance.move_line.account
+        if instance.move_line_id is not None
+        else None
+    )
 
 
 def _default_analytic_profitability(instance):
@@ -167,9 +178,13 @@ def _default_analytic_profitability(instance):
     docstring del módulo (divergencia: sin framework de ``_search`` custom).
     El typo ``analytic_profitablity`` de la referencia (línea 87) NO se
     replica."""
-    account_type = getattr(instance.general_account, 'account_type', None) or ''
+    account_type = (
+        getattr(instance.general_account, 'account_type', None) or ''
+    )
     category = instance.category
-    amount = instance.amount if instance.amount is not None else Decimal('0.00')
+    amount = (
+        instance.amount if instance.amount is not None else Decimal('0.00')
+    )
     if (
         account_type.split('_')[0] == 'expense'
         or account_type in _ANALYTIC_PROFITABILITY_ASSET_TYPES
@@ -177,9 +192,8 @@ def _default_analytic_profitability(instance):
         or (not account_type and category == 'other' and amount < 0)
     ):
         return 'loss'
-    if (
-        account_type.split('_')[0] == 'income'
-        or (not account_type and category == 'other' and amount > 0)
+    if account_type.split('_')[0] == 'income' or (
+        not account_type and category == 'other' and amount > 0
     ):
         return 'revenue'
     return 'uncategorized'
@@ -204,9 +218,11 @@ def _check_general_account(self, *args, **kwargs):
         self.move_line_id is not None
         and self.general_account_id != self.move_line.account_id
     ):
-        raise ValidationError({
-            'general_account': 'ANALYTIC_LINE_GENERAL_ACCOUNT_MISMATCH',
-        })
+        raise ValidationError(
+            {
+                'general_account': 'ANALYTIC_LINE_GENERAL_ACCOUNT_MISMATCH',
+            }
+        )
     return None
 
 
@@ -219,49 +235,75 @@ def apply_account_extensions():
     mano; ver ``tests/unit/account/test_account_analytic_line.py``.
     """
     _add_if_absent(
-        AccountAnalyticLine, 'move_line',
+        AccountAnalyticLine,
+        'move_line',
         fields.Many2one(
-            'account.AccountMoveLine', on_delete=models.CASCADE,
-            null=True, blank=True, related_name='analytic_lines',
-            help_text='Odoo move_line_id (ondelete=cascade). El apunte '
-                       'contable que generó esta línea analítica.',
+            'account.AccountMoveLine',
+            on_delete=models.CASCADE,
+            null=True,
+            blank=True,
+            related_name='analytic_lines',
+            help_text=(
+                'Odoo move_line_id (ondelete=cascade). El apunte '
+                'contable que generó esta línea analítica.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticLine, 'general_account',
+        AccountAnalyticLine,
+        'general_account',
         fields.Many2one(
-            'account.AccountAccount', on_delete=models.PROTECT,
-            null=True, blank=True, related_name='analytic_lines',
-            help_text='Odoo general_account_id (ondelete=restrict, '
-                       'compute+store+readonly=False). Se deriva de '
-                       'move_line.account cuando no se fija a mano — ver '
-                       'docstring del módulo.',
+            'account.AccountAccount',
+            on_delete=models.PROTECT,
+            null=True,
+            blank=True,
+            related_name='analytic_lines',
+            help_text=(
+                'Odoo general_account_id (ondelete=restrict, '
+                'compute+store+readonly=False). Se deriva de '
+                'move_line.account cuando no se fija a mano — ver '
+                'docstring del módulo.'
+            ),
         ),
     )
     _add_if_absent(
-        AccountAnalyticLine, 'product',
+        AccountAnalyticLine,
+        'product',
         fields.Many2one(
-            'product.ProductProduct', on_delete=models.SET_NULL,
-            null=True, blank=True, related_name='analytic_lines',
+            'product.ProductProduct',
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name='analytic_lines',
             help_text='Odoo product_id.',
         ),
     )
     _add_if_absent(
-        AccountAnalyticLine, 'code',
-        fields.Char(max_length=8, blank=True, default='', help_text='Odoo code.'),
-    )
-    _add_if_absent(
-        AccountAnalyticLine, 'ref',
-        fields.Char(max_length=255, blank=True, default='', help_text='Odoo ref.'),
-    )
-    _add_if_absent(
-        AccountAnalyticLine, 'analytic_profitability',
+        AccountAnalyticLine,
+        'code',
         fields.Char(
-            store=False, default=_default_analytic_profitability,
-            help_text='Odoo analytic_profitability (compute, store=False). '
-                       'loss/revenue/uncategorized según general_account.'
-                       'account_type, category y amount — ver docstring del '
-                       'módulo (sin el framework de _search custom).',
+            max_length=8, blank=True, default='', help_text='Odoo code.'
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'ref',
+        fields.Char(
+            max_length=255, blank=True, default='', help_text='Odoo ref.'
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'analytic_profitability',
+        fields.Char(
+            store=False,
+            default=_default_analytic_profitability,
+            help_text=(
+                'Odoo analytic_profitability (compute, store=False). '
+                'loss/revenue/uncategorized según general_account.'
+                'account_type, category y amount — ver docstring del '
+                'módulo (sin el framework de _search custom).'
+            ),
         ),
     )
     _extend_selection_choices(AccountAnalyticLine, 'category', _CATEGORY_EXTRA)

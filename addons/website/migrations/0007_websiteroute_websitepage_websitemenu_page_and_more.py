@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
                     "path",
                     models.CharField(
                         blank=True,
-                        help_text='La ruta, tal como la declara la URLconf (Odoo path, "Route").',
+                        help_text=(
+                            'La ruta, tal como la declara la URLconf (Odoo'
+                            ' path, "Route").'
+                        ),
                         max_length=512,
                         null=True,
                     ),
@@ -63,14 +66,22 @@ class Migration(migrations.Migration):
                     models.BooleanField(
                         db_index=True,
                         default=False,
-                        help_text="Visible en la tienda. Por defecto NO — igual que _default_is_published de la referencia: dar de alta un producto no es publicarlo.",
+                        help_text=(
+                            "Visible en la tienda. Por defecto NO — igual que"
+                            " _default_is_published de la referencia: dar de"
+                            " alta un producto no es publicarlo."
+                        ),
                         verbose_name="Publicado",
                     ),
                 ),
                 (
                     "url",
                     models.CharField(
-                        help_text="Ruta de la página, p. ej. /acerca-de (Odoo url, required; el largo es el max_length del slugify de la fuente).",
+                        help_text=(
+                            "Ruta de la página, p. ej. /acerca-de (Odoo url,"
+                            " required; el largo es el max_length del slugify"
+                            " de la fuente)."
+                        ),
                         max_length=1024,
                     ),
                 ),
@@ -78,14 +89,20 @@ class Migration(migrations.Migration):
                     "website_indexed",
                     models.BooleanField(
                         default=True,
-                        help_text='Aparece en el sitemap y para los buscadores (Odoo website_indexed, "Is Indexed").',
+                        help_text=(
+                            'Aparece en el sitemap y para los buscadores (Odoo'
+                            ' website_indexed, "Is Indexed").'
+                        ),
                     ),
                 ),
                 (
                     "date_publish",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Fecha de publicación programada; antes de ella la página no es visible (Odoo date_publish).",
+                        help_text=(
+                            "Fecha de publicación programada; antes de ella la"
+                            " página no es visible (Odoo date_publish)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -93,14 +110,22 @@ class Migration(migrations.Migration):
                     "is_new_page_template",
                     models.BooleanField(
                         default=False,
-                        help_text='La página se ofrece como plantilla en "+Nueva", categoría Personalizadas (Odoo is_new_page_template).',
+                        help_text=(
+                            'La página se ofrece como plantilla en "+Nueva",'
+                            ' categoría Personalizadas (Odoo'
+                            ' is_new_page_template).'
+                        ),
                     ),
                 ),
                 (
                     "view",
                     models.ForeignKey(
                         db_column="view_id",
-                        help_text="La vista que da el contenido (Odoo view_id, required, ondelete=cascade). Es la FK de la delegación _inherits.",
+                        help_text=(
+                            "La vista que da el contenido (Odoo view_id,"
+                            " required, ondelete=cascade). Es la FK de la"
+                            " delegación _inherits."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="page_ids",
                         to="base.iruiview",
@@ -110,7 +135,11 @@ class Migration(migrations.Migration):
                     "website",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Sitio dueño de la página; vacía = genérica, visible en todos (Odoo website_id; aquí FK real — divergencia 2 del módulo).",
+                        help_text=(
+                            "Sitio dueño de la página; vacía = genérica,"
+                            " visible en todos (Odoo website_id; aquí FK real"
+                            " — divergencia 2 del módulo)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="pages",
@@ -124,7 +153,10 @@ class Migration(migrations.Migration):
                 "db_table": "website_page",
                 "ordering": ["website_id"],
             },
-            bases=(addons.website.models.mixins.WebsiteSearchableMixin, models.Model),
+            bases=(
+                addons.website.models.mixins.WebsiteSearchableMixin,
+                models.Model,
+            ),
         ),
         migrations.AddField(
             model_name="websitemenu",
@@ -132,7 +164,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="page_id",
-                help_text="Odoo page_id ('website.page', ondelete='cascade', index=btree_not_null). Null = el menú apunta a una ruta, no a una página.",
+                help_text=(
+                    "Odoo page_id ('website.page', ondelete='cascade',"
+                    " index=btree_not_null). Null = el menú apunta a una ruta,"
+                    " no a una página."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="menu_ids",
@@ -172,7 +208,9 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         db_index=True,
-                        help_text='URL de origen (Odoo url_from, "URL from", index).',
+                        help_text=(
+                            'URL de origen (Odoo url_from, "URL from", index).'
+                        ),
                         max_length=1024,
                         null=True,
                     ),
@@ -190,7 +228,14 @@ class Migration(migrations.Migration):
                     "redirect_type",
                     models.CharField(
                         default="302",
-                        help_text='Tipo de redirección/reescritura (Odoo redirect_type, "Action"): 301 el navegador cachea la URL nueva; 302 no la cachea; 404 retira una página/controlador; 308 renombra un controlador — ambas URL sirven y la vieja redirige a la nueva.',
+                        help_text=(
+                            'Tipo de redirección/reescritura (Odoo'
+                            ' redirect_type, "Action"): 301 el navegador'
+                            ' cachea la URL nueva; 302 no la cachea; 404'
+                            ' retira una página/controlador; 308 renombra un'
+                            ' controlador — ambas URL sirven y la vieja'
+                            ' redirige a la nueva.'
+                        ),
                         max_length=3,
                         verbose_name=[
                             ("404", "404 Not Found"),
@@ -204,14 +249,19 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=0,
-                        help_text="Orden de aplicación entre reglas (Odoo sequence).",
+                        help_text=(
+                            "Orden de aplicación entre reglas (Odoo sequence)."
+                        ),
                     ),
                 ),
                 (
                     "website",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Sitio al que aplica; vacía = todos (Odoo website_id, ondelete='cascade', index).",
+                        help_text=(
+                            "Sitio al que aplica; vacía = todos (Odoo"
+                            " website_id, ondelete='cascade', index)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="rewrites",
@@ -222,7 +272,10 @@ class Migration(migrations.Migration):
                     "route",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ruta del catálogo de la que parte la regla (Odoo route_id).",
+                        help_text=(
+                            "Ruta del catálogo de la que parte la regla (Odoo"
+                            " route_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="rewrites",

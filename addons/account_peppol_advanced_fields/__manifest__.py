@@ -8,7 +8,7 @@
     'name': '[DEPRECATED] Account Peppol Advanced Fields',
     'summary': (
         "Merged prematurly, not working correctly. Please don't use. "
-        'Better solution coming soon.'
+        "Better solution coming soon."
     ),
     'author': 'Odoo S.A.',
     'category': 'Accounting/Accounting',

@@ -31,7 +31,10 @@ class Migration(migrations.Migration):
                 (
                     "purchase_line",
                     models.OneToOneField(
-                        help_text="Línea de compra generada (Odoo purchase.order.line).",
+                        help_text=(
+                            "Línea de compra generada (Odoo"
+                            " purchase.order.line)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="sale_link",
                         to="purchase.purchaseorderline",
@@ -40,7 +43,10 @@ class Migration(migrations.Migration):
                 (
                     "sale_line",
                     models.ForeignKey(
-                        help_text="Línea de venta origen (Odoo purchase.order.line.sale_line_id).",
+                        help_text=(
+                            "Línea de venta origen (Odoo"
+                            " purchase.order.line.sale_line_id)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="purchase_links",
                         to="sale.saleorderline",

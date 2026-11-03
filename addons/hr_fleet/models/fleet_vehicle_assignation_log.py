@@ -41,6 +41,7 @@ Divergencias declaradas
 2. **``vehicle_id.company_id`` en el agrupamiento** — verbatim: el empleado
    se resuelve en la empresa del vehículo del log.
 """
+
 import fields
 import models
 from django.db.models.signals import pre_save
@@ -67,7 +68,8 @@ def _compute_driver_employee_id(self):
             self.vehicle.company_id if self.vehicle_id else None
         )
         employee = HrEmployee.objects.filter(
-            work_contact_id=self.driver_id, company_id=vehicle_company_id,
+            work_contact_id=self.driver_id,
+            company_id=vehicle_company_id,
         ).first()
     self.driver_employee = employee
     return employee
@@ -79,7 +81,8 @@ def _compute_attachment_number(self):
     if self.pk is None:
         return 0
     return IrAttachment.objects.filter(
-        res_model=ASSIGNATION_LOG_RES_MODEL, res_id=self.pk,
+        res_model=ASSIGNATION_LOG_RES_MODEL,
+        res_id=self.pk,
     ).count()
 
 
@@ -89,19 +92,26 @@ def attachment_number(self):
     return self._compute_attachment_number()
 
 
-@receiver(pre_save, sender=FleetVehicleAssignationLog,
-          dispatch_uid='hr_fleet.assignation_log_pre_save_driver_employee')
+@receiver(
+    pre_save,
+    sender=FleetVehicleAssignationLog,
+    dispatch_uid='hr_fleet.assignation_log_pre_save_driver_employee',
+)
 def _assignation_log_pre_save(sender, instance, **kwargs):
     """El ``@api.depends('driver_id')`` del compute almacenado, medido por
     diff contra BD. Respeta un empleado fijado a mano (divergencia 1)."""
     update_fields = kwargs.get('update_fields')
     if update_fields is not None and not (
-            set(update_fields) & {'driver', 'driver_employee'}):
+        set(update_fields) & {'driver', 'driver_employee'}
+    ):
         return
     old = {}
     if instance.pk is not None:
-        old = (FleetVehicleAssignationLog.objects.filter(pk=instance.pk)
-               .values('driver_id', 'driver_employee_id').first()) or {}
+        old = (
+            FleetVehicleAssignationLog.objects.filter(pk=instance.pk)
+            .values('driver_id', 'driver_employee_id')
+            .first()
+        ) or {}
     if instance.driver_employee_id != old.get('driver_employee_id'):
         return  # lo fijó el llamador — readonly=False
     if instance.driver_id != old.get('driver_id') or instance.pk is None:
@@ -113,15 +123,21 @@ def apply_hr_fleet_fleet_vehicle_assignation_log_extensions():
     necesita — ≙ ``_inherit``. Se invoca desde ``HrFleetConfig.ready()``.
     La columna nueva espera su migración en ``fleet/migrations/``."""
     extend_model(
-        'fleet', 'FleetVehicleAssignationLog',
+        'fleet',
+        'FleetVehicleAssignationLog',
         campos={
             'driver_employee': fields.Many2one(
-                'hr.HrEmployee', on_delete=models.SET_NULL, null=True,
-                blank=True, related_name='fleet_assignation_logs',
+                'hr.HrEmployee',
+                on_delete=models.SET_NULL,
+                null=True,
+                blank=True,
+                related_name='fleet_assignation_logs',
                 verbose_name='Driver (Employee)',
-                help_text='Odoo driver_employee_id (compute+store, '
-                          'readonly=False — lo deriva el receptor pre_save '
-                          'cuando el llamador no lo fija).',
+                help_text=(
+                    'Odoo driver_employee_id (compute+store, '
+                    'readonly=False — lo deriva el receptor pre_save '
+                    'cuando el llamador no lo fija).'
+                ),
             ),
         },
         metodos={

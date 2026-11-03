@@ -1,4 +1,6 @@
-"""``account.code.mapping`` — Odoo ``addons/account/models/account_code_mapping.py``.
+"""
+``account.code.mapping`` — Odoo
+``addons/account/models/account_code_mapping.py``.
 
 Adaptación de la referencia (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3,
 86 líneas, 6 ``def`` medidos por AST: ``create``, ``_search``,

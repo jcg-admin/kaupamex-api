@@ -41,6 +41,7 @@ Divergencia de mecanismo declarada
     motor rehúsa borrar el valor de atributo mientras alguien lo haya
     personalizado.
 """
+
 import fields
 import models
 
@@ -70,17 +71,25 @@ class ProductAttributeCustomValue(TimeStampedModel):
     _order = 'custom_product_template_attribute_value_id, id'
 
     custom_product_template_attribute_value_id = fields.Many2one(
-        'product.ProductTemplateAttributeValue', on_delete=models.PROTECT,
+        'product.ProductTemplateAttributeValue',
+        null=False, on_delete=models.PROTECT,
         db_column='custom_product_template_attribute_value_id',
-        related_name='custom_values', verbose_name='Valor del atributo',
-        help_text='Odoo custom_product_template_attribute_value_id. El valor '
-                  'de atributo que admite texto libre (is_custom).',
+        related_name='custom_values',
+        verbose_name='Valor del atributo',
+        help_text=(
+            'Odoo custom_product_template_attribute_value_id. El valor '
+            'de atributo que admite texto libre (is_custom).'
+        ),
     )
     custom_value = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Valor personalizado',
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='Valor personalizado',
         help_text='Odoo custom_value. Lo que el comprador escribió.',
     )
-    # ``name`` es el campo SIN columna de la fuente (``compute`` sin ``store``).
+    # ``name`` es el campo SIN columna de la fuente (``compute`` sin
+    # ``store``).
     # ``fields.NonStored`` es el equivalente construido de ese ``store=False``.
     name = fields.NonStored(default=_compute_name)
 
@@ -95,4 +104,3 @@ class ProductAttributeCustomValue(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.name
-

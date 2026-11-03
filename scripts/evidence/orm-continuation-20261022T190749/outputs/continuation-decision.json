@@ -1,0 +1,80 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "ModuleGraph.installed_version_persistence",
+      "prompt": "Existing0382 contract: version stores refreshed manifest, not installed snapshot",
+      "verify": "Version/provenance-specific Consumer evidence",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "ModuleGraph.database_snapshot_binding",
+      "prompt": "Existing0382 contract: version stores refreshed manifest, not installed snapshot",
+      "verify": "Version/provenance-specific Consumer evidence",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py"
+      ],
+      "dependsOn": [
+        "ModuleGraph.installed_version_persistence"
+      ]
+    },
+    {
+      "id": "ModuleGraph.imported_metadata_producer",
+      "prompt": "Existing0382 contract: No imported provenance field/producer demonstrated",
+      "verify": "Version/provenance-specific Consumer evidence",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "ModuleGraph.imported_metadata_binding",
+      "prompt": "Existing0382 contract: No imported provenance field/producer demonstrated",
+      "verify": "Version/provenance-specific Consumer evidence",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py"
+      ],
+      "dependsOn": [
+        "ModuleGraph.imported_metadata_producer"
+      ]
+    }
+  ],
+  "scoped_observation_states": {
+    "ModuleGraph.installed_version_persistence": "hard_block",
+    "ModuleGraph.imported_metadata_producer": "hard_block"
+  },
+  "official_task_state_changes": false,
+  "selected": [],
+  "coverage": "Two source-mutation boundaries in existing0382; not global ORM frontier",
+  "verified_not_accepted": [
+    "Explicit demo/phase/order/pruning",
+    "Reference optional imported column/query/order/cache"
+  ],
+  "acceptance_block": "Global ci-verify display_name baseline error; subsequent suite NOT_EVALUATED; PR109 unmerged",
+  "dependency_evidence": [
+    "ir-module-version-correspondence.json",
+    "imported-module-contract.json"
+  ],
+  "pending": [
+    "Version-faithful persistent snapshot and compatibility",
+    "Imported-module provenance producer and DB-bound loader",
+    "Other ORM families in existing AS IS, not claimed globally blocked"
+  ],
+  "global_admission_limit": "Provider task_source loses dependencies/ownership;1072/1111 already exist, foreign claims respected",
+  "operational_retry": "Native selector correctly rejected initial undeclared dependencies; corrected input includes both blocked dependency units. No TASK created or updated.",
+  "next_action": "Publish verified scoped changes and evidence, no merge; preserve unresolved boundaries for lawful ownership/admission"
+}

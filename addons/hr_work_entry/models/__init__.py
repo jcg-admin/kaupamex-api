@@ -10,6 +10,7 @@ está poblado en tiempo de import de este paquete.
 Orden: el tipo antes que la entrada — ``hr_work_entry.py`` importa
 ``HrWorkEntryType`` a nivel de módulo para sus defaults/helpers.
 """
+
 from .hr_work_entry_type import HrWorkEntryType
 from .hr_work_entry import HrWorkEntry
 from .hr_user_work_entry_employee import HrUserWorkEntryEmployee

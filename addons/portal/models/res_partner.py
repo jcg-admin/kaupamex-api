@@ -52,18 +52,29 @@ la entidad comercial allá y no aquí. Se retira el ayudante y se consulta el
 campo ya portado, que es el símbolo con la semántica correcta — columna desde
 #314, ``property`` antes.
 """
+
 from orm.model_classes import extend_model
 
-
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no
+#: es clase).
 _inherit = 'res.partner'
 
 
 def frontend_writable_fields():
     """≙ ``_get_frontend_writable_fields`` (res_partner.py:10-19)."""
     return {
-        'name', 'phone', 'email', 'street', 'street2', 'city', 'state_id',
-        'country_id', 'zip', 'zipcode', 'vat', 'company_name',
+        'name',
+        'phone',
+        'email',
+        'street',
+        'street2',
+        'city',
+        'state_id',
+        'country_id',
+        'zip',
+        'zipcode',
+        'vat',
+        'company_name',
     }
 
 
@@ -108,9 +119,8 @@ def can_be_edited_by(partner, user):
         return False
     if partner.pk == current.pk:
         return True
-    return (
-        partner.type in ('invoice', 'delivery', 'other')
-        and _is_child_of(partner, current.commercial_partner_id)
+    return partner.type in ('invoice', 'delivery', 'other') and _is_child_of(
+        partner, current.commercial_partner_id
     )
 
 

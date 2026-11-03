@@ -1,7 +1,9 @@
-"""El nombre automático y la superficie derivada de ``ir.actions.server`` (#117).
+"""
+El nombre automático y la superficie derivada de ``ir.actions.server`` (#117).
 
 ≙ ``odoo19c: addons/base/models/ir_actions.py:605-606`` (``name`` y
-``automated_name``), ``:819-848`` (``_generate_action_name``, ``_name_depends``,
+``automated_name``), ``:819-848`` (``_generate_action_name``,
+``_name_depends``,
 ``_compute_name``, ``_onchange_name``), ``:630`` y ``:799-800``
 (``allowed_states``), ``:637`` y ``:851-856`` (``available_model_ids``),
 ``:694-701`` y ``:1244-1257`` (``value_field_to_show``), ``:657`` y ``:667``
@@ -22,12 +24,16 @@ eso cada caso afirma **cuál de los dos** cambió.
 recibiría la cadena literal en vez del nombre a resolver. Comparar el
 ``Domain`` con otro ``Domain`` sería ciego a eso.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
 from addons.base.models.ir_actions import IrActionsServer
 from addons.base.models.ir_model import (
-    IrModel, IrModelFields, IrModelFieldsSelection)
+    IrModel,
+    IrModelFields,
+    IrModelFieldsSelection,
+)
 from orm.environments import context_scope
 
 PARTNER = 'base.ResPartner'
@@ -49,15 +55,18 @@ def _partner_model():
     vez del que declara. El montaje no controlaba lo que creía controlar.
     """
     row, _created = IrModel.objects.update_or_create(
-        model=PARTNER, defaults={'name': 'Contacto'})
+        model=PARTNER, defaults={'name': 'Contacto'}
+    )
     return row
 
 
 def _field(model_row, name, ttype='char'):
     """Ídem: la fila del campo se fuerza, no se hereda de lo ya sembrado."""
     row, _created = IrModelFields.objects.update_or_create(
-        model=PARTNER, name=name,
-        defaults={'model_id': model_row, 'ttype': ttype, 'state': 'base'})
+        model=PARTNER,
+        name=name,
+        defaults={'model_id': model_row, 'ttype': ttype, 'state': 'base'},
+    )
     return row
 
 
@@ -66,27 +75,34 @@ class TestTheGeneratedName:
     """≙ ``_generate_action_name``: el nombre que la acción se pone sola."""
 
     def test_object_create_names_itself_after_the_target_model(self):
-        action = _action(name='', state='object_create',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='', state='object_create', crud_model_id=_partner_model()
+        )
 
         assert action._generate_action_name() == 'Crear Contacto'
 
     def test_object_write_names_itself_after_the_target_model(self):
-        action = _action(name='', state='object_write',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='', state='object_write', crud_model_id=_partner_model()
+        )
 
         assert action._generate_action_name() == 'Actualizar Contacto'
 
     def test_object_copy_without_a_record_says_so(self):
-        """La fuente devuelve ``Duplicate ...`` cuando aún no hay referencia."""
-        action = _action(name='', state='object_copy',
-                         crud_model_id=_partner_model())
+        """
+        La fuente devuelve ``Duplicate ...`` cuando aún no hay referencia.
+        """
+        action = _action(
+            name='', state='object_copy', crud_model_id=_partner_model()
+        )
 
         assert action._generate_action_name() == 'Duplicar ...'
 
     def test_any_other_state_falls_back_to_its_label(self):
-        assert _action(state='webhook')._generate_action_name() == \
-            dict(IrActionsServer.STATE_CHOICES)['webhook']
+        assert (
+            _action(state='webhook')._generate_action_name()
+            == dict(IrActionsServer.STATE_CHOICES)['webhook']
+        )
 
 
 @pytest.mark.django_db
@@ -94,31 +110,40 @@ class TestTheAutomaticNameSurvivesOnlyWhileNobodyRenamesIt:
     """≙ ``_compute_name``: ``was_automated`` decide si ``name`` se pisa."""
 
     def test_an_action_without_a_name_gets_the_generated_one(self):
-        action = _action(name='', state='object_create',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='', state='object_create', crud_model_id=_partner_model()
+        )
 
         assert action.name == 'Crear Contacto'
         assert action.automated_name == 'Crear Contacto'
 
     def test_a_name_the_user_wrote_is_not_overwritten(self):
-        action = _action(name='La mia', state='object_create',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='La mia',
+            state='object_create',
+            crud_model_id=_partner_model(),
+        )
 
         assert action.name == 'La mia'
-        assert action.automated_name == 'Crear Contacto', \
-            'el automatico se calcula igual, aunque no gane'
+        assert (
+            action.automated_name == 'Crear Contacto'
+        ), 'el automatico se calcula igual, aunque no gane'
 
     def test_changing_the_state_regenerates_a_name_that_was_automatic(self):
-        action = _action(name='', state='object_create',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='', state='object_create', crud_model_id=_partner_model()
+        )
         action.state = 'object_write'
         action.save()
 
         assert action.name == 'Actualizar Contacto'
 
     def test_changing_the_state_respects_a_name_the_user_wrote(self):
-        action = _action(name='La mia', state='object_create',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='La mia',
+            state='object_create',
+            crud_model_id=_partner_model(),
+        )
         action.state = 'object_write'
         action.save()
 
@@ -127,8 +152,11 @@ class TestTheAutomaticNameSurvivesOnlyWhileNobodyRenamesIt:
 
     def test_emptying_the_name_brings_the_automatic_one_back(self):
         """≙ ``_onchange_name``: vaciar el campo lo repuebla."""
-        action = _action(name='La mia', state='object_create',
-                         crud_model_id=_partner_model())
+        action = _action(
+            name='La mia',
+            state='object_create',
+            crud_model_id=_partner_model(),
+        )
         action.name = ''
         action._onchange_name()
 
@@ -142,11 +170,14 @@ class TestTheAutomaticNameSurvivesOnlyWhileNobodyRenamesIt:
 
 @pytest.mark.django_db
 class TestTheDerivedSurface:
-    """Los campos que la fuente declara ``compute`` y aquí son no persistidos."""
+    """
+    Los campos que la fuente declara ``compute`` y aquí son no persistidos.
+    """
 
     def test_allowed_states_lists_every_state_of_the_selection(self):
-        assert _action().allowed_states == \
-            [value for value, __ in IrActionsServer.STATE_CHOICES]
+        assert _action().allowed_states == [
+            value for value, __ in IrActionsServer.STATE_CHOICES
+        ]
 
     def test_available_model_ids_are_the_reflected_models(self):
         _partner_model()
@@ -184,15 +215,21 @@ class TestWhichValueFieldTheFormShows:
         assert action.value_field_to_show == 'sequence_id'
 
     def test_a_relational_field_shows_the_reference(self):
-        assert self._with_field('many2one').value_field_to_show == 'resource_ref'
+        assert (
+            self._with_field('many2one').value_field_to_show == 'resource_ref'
+        )
 
     def test_a_selection_field_shows_the_selection(self):
-        assert self._with_field('selection').value_field_to_show == \
-            'selection_value'
+        assert (
+            self._with_field('selection').value_field_to_show
+            == 'selection_value'
+        )
 
     def test_a_boolean_field_shows_the_boolean(self):
-        assert self._with_field('boolean').value_field_to_show == \
-            'update_boolean_value'
+        assert (
+            self._with_field('boolean').value_field_to_show
+            == 'update_boolean_value'
+        )
 
     def test_an_html_field_shows_the_html(self):
         assert self._with_field('html').value_field_to_show == 'html_value'
@@ -274,15 +311,19 @@ class TestTheCopyIsMarkedAsOne:
 
 @pytest.mark.django_db
 class TestTheOnchangeSetters:
-    """≙ ``_set_crud_model_id``, ``_set_resource_ref``, ``_set_selection_value``."""
+    """
+    ≙ ``_set_crud_model_id``, ``_set_resource_ref``, ``_set_selection_value``.
+    """
 
     def test_a_link_field_of_another_model_is_dropped(self):
         model_row = _partner_model()
         other, _c = IrModel.objects.get_or_create(
-            model='base.ResCountry', defaults={'name': 'Pais'})
+            model='base.ResCountry', defaults={'name': 'Pais'}
+        )
         link = _field(model_row, 'ajeno', 'many2one')
-        action = _action(model_name=PARTNER, crud_model_id=other,
-                         link_field_id=link)
+        action = _action(
+            model_name=PARTNER, crud_model_id=other, link_field_id=link
+        )
 
         action._set_crud_model_id()
 
@@ -290,8 +331,10 @@ class TestTheOnchangeSetters:
 
     def test_the_reference_is_copied_into_the_value(self):
         model_row = _partner_model()
-        action = _action(update_field_id=_field(model_row, 'padre', 'many2one'),
-                         resource_ref_id=42)
+        action = _action(
+            update_field_id=_field(model_row, 'padre', 'many2one'),
+            resource_ref_id=42,
+        )
 
         action._set_resource_ref()
 
@@ -303,10 +346,16 @@ class TestTheOnchangeSetters:
         # ``bulk_create`` y no ``create``: el campo es **base**, y la guarda
         # de ``save`` cierra el alta interactiva sobre un campo base — igual
         # que la fuente. El reflejo escribe por esta misma vía.
-        [choice] = IrModelFieldsSelection.objects.bulk_create([
-            IrModelFieldsSelection(
-                field_id=field_row, value='delivery', name='Entrega',
-                sequence=1)])
+        [choice] = IrModelFieldsSelection.objects.bulk_create(
+            [
+                IrModelFieldsSelection(
+                    field_id=field_row,
+                    value='delivery',
+                    name='Entrega',
+                    sequence=1,
+                )
+            ]
+        )
         action = _action(update_field_id=field_row, selection_value=choice)
 
         action._set_selection_value()
@@ -344,8 +393,11 @@ class TestTheDefaultUpdatePath:
         alcance este caso devolvería la entidad federativa.
         """
         model_row = _partner_model()
-        without_the_first_four = [c for c in IrActionsServer.SENSIBLE_DEFAULT_FIELDS
-                          if c in ('state', 'active')]
+        without_the_first_four = [
+            c
+            for c in IrActionsServer.SENSIBLE_DEFAULT_FIELDS
+            if c in ('state', 'active')
+        ]
 
         with context_scope(default_model_id=model_row.pk):
             original = IrActionsServer.SENSIBLE_DEFAULT_FIELDS

@@ -1,12 +1,9 @@
-# GitHub Actions — api tests (db + api) — SKELETON greenfield.
-#
-# Estado: SKELETON. No se pudo ejecutar en el entorno del agente (no hay
-# runner de GitHub disponible). VALIDAR en el primer push: revisar logs
-# del job, ajustar nombres de schema/usuario y los TODO marcados abajo.
+# GitHub Actions — api tests (db + api), contrato local: make ci-verify.
+# TASK-API-0478: primer fallo bloquea la suite; conservar resultados parciales.
 #
 # Estrategia de DB: usa `services: postgres:16` (TCP en 127.0.0.1:5432).
 # En CI el service container expone TCP, no socket Unix, asi que DB_*_SOCKET
-# se deja sin setear: en libpq el socket ES el HOST, y declararlo apuntaria
+# se deja vacio: en libpq el socket ES el HOST, y declararlo apuntaria
 # al directorio equivocado dentro del runner (H-API-305).
 #
 # Alternativa (no usada aqui): levantar el cluster con el script del submodulo
@@ -32,6 +29,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     services:
       postgres:
@@ -41,7 +39,7 @@ jobs:
         image: postgres:16
         env:
           # Crea la base y el rol de QA al arrancar el contenedor.
-          POSTGRES_DB: kaupamex_qa
+          POSTGRES_DB: kaupamex_ci_${{ github.run_id }}_${{ github.run_attempt }}
           POSTGRES_USER: django_user
           # TODO: mover a secreto real del repo (GitHub Secrets) en vez de
           # hardcodear. Por ahora coincide con el default de testing.py.
@@ -49,7 +47,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U django_user -d kaupamex_qa"
+          --health-cmd="pg_isready -U django_user -d kaupamex_ci_${{ github.run_id }}_${{ github.run_attempt }}"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -62,7 +60,10 @@ jobs:
       # base.py:8 hace config('SECRET_KEY') sin default => obligatorio.
       # Valor de CI no sensible; en prod va por GitHub Secrets.
       SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-insecure-key-not-for-production' }}
-      DB_QA_NAME: kaupamex_qa
+      DB_QA_NAME: kaupamex_ci_${{ github.run_id }}_${{ github.run_attempt }}
+      CI_DATABASE_DISPOSABLE: kaupamex_ci_${{ github.run_id }}_${{ github.run_attempt }}
+      DB_QA_SOCKET: ''
+      DB_SOCKET: ''
       DB_QA_USER: django_user
       DB_QA_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
       DB_QA_HOST: 127.0.0.1
@@ -85,7 +86,7 @@ jobs:
       # solo os.environ. Apuntan al mismo service container; testing.py descarta
       # este DATABASES, pero el import debe resolver. DB_SSL_MODE/DB_SOCKET ya
       # tienen ``default=''`` en base.py (toggles opcionales), no van aqui.
-      DB_NAME: kaupamex_qa
+      DB_NAME: kaupamex_ci_${{ github.run_id }}_${{ github.run_attempt }}
       DB_USER: django_user
       DB_PASSWORD: ${{ secrets.DB_QA_PASSWORD || 'django_pass' }}
       DB_HOST: 127.0.0.1
@@ -102,19 +103,13 @@ jobs:
         uses: astral-sh/setup-uv@v5
         # TODO: pinear version de uv si se requiere reproducibilidad estricta.
 
-      - name: Set up Python
-        run: uv python install
-
-      - name: Install deps
-        run: uv sync
-
       # TODO (seed real): si la suite requiere datos semilla de catalogo,
       # agregar aqui `uv run python manage.py loaddata <fixture>` o ejecutar
       # el seed via `kaupamex-bin create_seed_catalog`. La suite
       # de integracion actual crea sus datos via factory-boy, por lo que el
       # seed puede no ser necesario — VALIDAR en el primer push.
 
-      - name: Build PDF helper (ADR-017)
+      - name: Install native build dependencies (ADR-017)
         run: |
           sudo apt-get update -qq
           # Las dos que declara src/tools/pdf/Makefile:16, NO libhpdf-dev.
@@ -123,13 +118,12 @@ jobs:
           # Lo que si hace falta es lo que ESAS fuentes incluyen —
           # hpdf_image_png.c:23 hace #include <png.h>— y lo que el enlace pide
           # (LDLIBS := -lpng -lz -lm). Sin ellas: "png.h: No such file".
-          sudo apt-get install -y -qq zlib1g-dev libpng-dev
-          make -C src/tools/pdf
+          sudo apt-get install -y -qq zlib1g-dev libpng-dev postgresql-client
         # UC-PAY-10 / UC-REP-05: las vistas invocan pdf_receipt/pdf_report
         # via subprocess; sin compilar => 500 PDF_GENERATION_FAILED.
 
-      - name: Run tests
-        run: uv run pytest --create-db -q
+      - name: Verify API (same contract locally)
+        run: make ci-verify
         # --create-db: recrea la base desde migraciones (greenfield CI).
         #
         # El `--ignore=tests/integration/reports/test_db_rpt_endpoints.py` se
@@ -139,3 +133,12 @@ jobs:
         # tests/integration/reports/ no existe y `grep -rl sp_rpt_` sobre
         # kaupamex-db devuelve 0 archivos. El flag protegia de un fallo
         # imposible y ocultaba que el archivo ya no estaba. Ver H-API-386.
+
+      - name: Preserve test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14

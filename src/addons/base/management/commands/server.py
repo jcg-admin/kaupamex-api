@@ -4,9 +4,12 @@ Equivalente de ``odoo19c: odoo/cli/server.py`` (``class Server(Command)``), que
 es el comando por defecto del binario y cuyo trabajo real lo hace
 ``odoo/service/server.py``.
 
-Aquí la partición es la misma con otros nombres: **este comando no implementa un
-servidor**, delega en Gunicorn, que desde ADR-027 viaja dentro del producto como
-dependencia de producción y trae su configuración en ``setup/gunicorn.conf.py``.
+Aquí la partición es la misma con otros nombres: **este comando no implementa
+un
+servidor**, delega en Gunicorn, que desde ADR-027 viaja dentro del producto
+como
+dependencia de producción y trae su configuración en
+``setup/gunicorn.conf.py``.
 Es el mismo criterio con el que ``src/service/server.py`` quedó como stub
 documentado: el runtime no se reimplementa.
 
@@ -47,26 +50,39 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--config', default=str(_CONF),
-            help='Ruta a la configuracion de Gunicorn (default: setup/gunicorn.conf.py).',
+            '--config',
+            default=str(_CONF),
+            help=(
+                'Ruta a la configuracion de Gunicorn (default:'
+                ' setup/gunicorn.conf.py).'
+            ),
         )
         parser.add_argument(
-            '--no-init', action='store_true',
-            help='No preparar la base antes de arrancar (equivale a saltar el bloque '
-                 'de auto-creacion de la referencia).',
+            '--no-init',
+            action='store_true',
+            help=(
+                'No preparar la base antes de arrancar (equivale a saltar el'
+                ' bloque de auto-creacion de la referencia).'
+            ),
         )
         parser.add_argument(
-            '--stop-after-init', action='store_true',
-            help='Preparar la base y salir, sin levantar el servidor '
-                 '(== stop_after_init de la referencia).',
+            '--stop-after-init',
+            action='store_true',
+            help=(
+                'Preparar la base y salir, sin levantar el servidor '
+                '(== stop_after_init de la referencia).'
+            ),
         )
 
     def handle(self, *args, **options):
         conf = Path(options['config'])
         if not conf.is_file():
             # Sin config no se arranca con defaults silenciosos: el bind, los
-            # workers y el timeout son decisiones del despliegue, no del binario.
-            self.stderr.write(f'configuracion de Gunicorn no encontrada: {conf}')
+            # workers y el timeout son decisiones del despliegue, no del
+            # binario.
+            self.stderr.write(
+                f'configuracion de Gunicorn no encontrada: {conf}'
+            )
             sys.exit(2)
 
         # `.get()` y no `[]`: el comando se instancia directo en los tests, sin
@@ -87,17 +103,20 @@ class Command(BaseCommand):
         Adaptacion de ``odoo19c: odoo/cli/server.py:100-110``, el bloque que
         corre ANTES de ``server.start()``. Alli el trabajo es
         ``db._create_empty_database(db_name)`` seguido de
-        ``config['init']['base'] = True``: crear la base **e instalar su nucleo**
+        ``config['init']['base'] = True``: crear la base **e instalar su
+        nucleo**
         en el mismo arranque.
 
-        Aqui la base la crea el aprovisionamiento (``db: provisioners/postgresql/
+        Aqui la base la crea el aprovisionamiento (``db:
+        provisioners/postgresql/
         db_setup.sh``), asi que lo que falta es su segunda mitad — el esquema y
         los datos de arranque: ``migrate`` (que aplica las migraciones de todos
         los addons instalados, el analogo de instalar ``base``) y
         ``createcachetable`` (que materializa ``cache_table``, sin la cual el
         backend ``DatabaseCache`` responde 500 en la primera peticion).
 
-        Se portan las tres propiedades del bloque de la referencia, que valen por
+        Se portan las tres propiedades del bloque de la referencia, que valen
+        por
         separado:
 
         1. **Idempotente.** Alla se traga ``db.DatabaseExists``; aqui los dos
@@ -105,15 +124,18 @@ class Command(BaseCommand):
         2. **No aborta por falta de privilegio.** La referencia baja a ``INFO``
            con su razon escrita en el codigo —*"avoid reporting unnecessary
            warnings on build environment using restricted database access"*— y
-           **sigue** hasta ``server.start()``. Igual aqui: el servidor arranca y
+           **sigue** hasta ``server.start()``. Igual aqui: el servidor arranca
+           y
            los workers fallaran en la primera peticion si la base no responde,
            que es la conducta que ``setup/kaupamex.service`` ya declara al usar
            ``Wants`` y no ``Requires`` para PostgreSQL.
-        3. **Corre antes de servir.** Por eso va antes del ``execvp``: despues no
+        3. **Corre antes de servir.** Por eso va antes del ``execvp``: despues
+           no
            habria proceso donde correrlo.
 
         Lo que NO hace, y es deliberado: sembrar una empresa o un superusuario.
-        La empresa inicial se declara en config (``BOOTSTRAP_COMPANY_CODE``, con
+        La empresa inicial se declara en config (``BOOTSTRAP_COMPANY_CODE``,
+        con
         ``default=''``) y la crea ``kaupamex-bin company_create``; con la clave
         vacia ``seed()`` es un no-op. La referencia tampoco nombra una empresa
         real al arrancar.
@@ -124,9 +146,12 @@ class Command(BaseCommand):
             except DatabaseError as err:
                 # INFO a proposito, igual que la referencia: un entorno con
                 # acceso restringido a la base no deberia llenar el arranque de
-                # advertencias por algo que puede ser correcto en su despliegue.
+                # advertencias por algo que puede ser correcto en su
+                # despliegue.
                 _logger.info(
-                    'No se pudo preparar la base con %s, se omite: %s', command, err,
+                    'No se pudo preparar la base con %s, se omite: %s',
+                    command,
+                    err,
                 )
                 self.stdout.write(f'{command}: omitido ({err})')
             else:

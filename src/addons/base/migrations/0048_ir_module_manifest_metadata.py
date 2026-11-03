@@ -16,7 +16,12 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text='Odoo author. NO cae a "Unknown": modules.module ya rellena el autor del proyecto cuando el manifest calla, así que ese literal guardaría un dato falso para un addon propio.',
+                help_text=(
+                    'Odoo author. NO cae a "Unknown": modules.module ya'
+                    ' rellena el autor del proyecto cuando el manifest calla,'
+                    ' así que ese literal guardaría un dato falso para un'
+                    ' addon propio.'
+                ),
             ),
         ),
         migrations.AddField(
@@ -25,7 +30,10 @@ class Migration(migrations.Migration):
             field=models.TextField(
                 blank=True,
                 default="",
-                help_text="Odoo contributors. La fuente la declara Text porque la lista se aplana a una cadena separada por comas.",
+                help_text=(
+                    "Odoo contributors. La fuente la declara Text porque la"
+                    " lista se aplana a una cadena separada por comas."
+                ),
             ),
         ),
         migrations.AddField(
@@ -33,7 +41,9 @@ class Migration(migrations.Migration):
             name="demo",
             field=models.BooleanField(
                 default=False,
-                help_text="Odoo demo: el addon tiene datos de demostración cargados.",
+                help_text=(
+                    "Odoo demo: el addon tiene datos de demostración cargados."
+                ),
             ),
         ),
         migrations.AddField(
@@ -51,7 +61,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo icon: la RUTA del icono, no el binario. El binario es icon_image, computado, y ése no se porta (ver el docstring).",
+                help_text=(
+                    "Odoo icon: la RUTA del icono, no el binario. El binario"
+                    " es icon_image, computado, y ése no se porta (ver el"
+                    " docstring)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -64,7 +78,11 @@ class Migration(migrations.Migration):
             name="to_buy",
             field=models.BooleanField(
                 default=False,
-                help_text="Odoo to_buy. Siempre False aquí: marca un módulo del catálogo comercial de la fuente, que este árbol no consulta.",
+                help_text=(
+                    "Odoo to_buy. Siempre False aquí: marca un módulo del"
+                    " catálogo comercial de la fuente, que este árbol no"
+                    " consulta."
+                ),
             ),
         ),
         migrations.AddField(
@@ -73,7 +91,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo url, con respaldo a live_test_url del manifest.",
+                help_text=(
+                    "Odoo url, con respaldo a live_test_url del manifest."
+                ),
             ),
         ),
         migrations.AddField(

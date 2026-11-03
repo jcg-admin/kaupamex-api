@@ -1,19 +1,25 @@
-"""Tests unitarios — modelos del addon ``product`` (ex ``catalogue``/``chartsize``).
+"""
+Tests unitarios — modelos del addon ``product`` (ex
+``catalogue``/``chartsize``).
 
-Los addons ``catalogue`` y ``chartsize`` fueron eliminados; sus responsabilidades
+Los addons ``catalogue`` y ``chartsize`` fueron eliminados; sus
+responsabilidades
 viven ahora en ``addons.product`` como una adaptación fiel de Odoo:
 
 - ``product.ProductTemplate`` — la ficha (antes ``catalogue.Product``).
 - ``product.ProductProduct`` — la variante (antes ``chartsize.ProductVariant``;
   el eje "variante" se colapsó: ``product.product`` YA es la variante).
-- ``product.ProductCategory`` — el árbol de categorías (antes ``catalogue.Category``).
-- ``product.ProductAttribute``/``ProductAttributeValue`` — atributos reutilizables
+- ``product.ProductCategory`` — el árbol de categorías (antes
+  ``catalogue.Category``).
+- ``product.ProductAttribute``/``ProductAttributeValue`` — atributos
+  reutilizables
   (antes ``chartsize.VariantType``/``VariantOption``, que eran por-producto).
 
 Cubre lo que no depende de la base de datos real de forma esencial (aunque usa
 ``@pytest.mark.django_db`` porque el ORM lo exige): construcción de nombres,
 invariantes de ``clean()``, combinación de variantes y delegación a la ficha.
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -46,6 +52,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 # =============================================================================
 # ProductCategory — árbol (complete_name, parent_path, product_count)
 # =============================================================================
+
 
 class TestProductCategory:
 
@@ -94,9 +101,9 @@ class TestProductCategory:
         propia ayuda diga lo contrario (odoo19c: product_category.py).
         """
         padre = ProductCategory.objects.create(name='Joyería')
-        hija  = ProductCategory.objects.create(name='Collares', parent=padre)
+        hija = ProductCategory.objects.create(name='Collares', parent=padre)
         ProductTemplate.objects.create(name='Eleke', categ=hija)
-        ProductTemplate.objects.create(name='Ide',   categ=padre)
+        ProductTemplate.objects.create(name='Ide', categ=padre)
         assert padre.product_count == 2
         assert hija.product_count == 1
 
@@ -109,11 +116,14 @@ class TestProductCategory:
 # ProductAttribute / ProductAttributeValue — reutilizables entre productos
 # =============================================================================
 
+
 class TestProductAttribute:
 
     def test_value_str_incluye_el_atributo(self):
         color = ProductAttribute.objects.create(name='Color')
-        rojo = ProductAttributeValue.objects.create(attribute=color, name='Rojo')
+        rojo = ProductAttributeValue.objects.create(
+            attribute=color, name='Rojo'
+        )
         assert str(rojo) == 'Color: Rojo'
 
     def test_unique_attribute_value_name(self):
@@ -135,17 +145,20 @@ class TestProductAttribute:
 # ProductTemplate — invariantes de tipo (consu/service/combo)
 # =============================================================================
 
+
 class TestProductTemplateClean:
 
     def test_service_con_peso_es_invalido(self):
         tmpl = ProductTemplate(
-            name='Consultoría', type=TYPE_SERVICE, weight=1.0)
+            name='Consultoría', type=TYPE_SERVICE, weight=1.0
+        )
         with pytest.raises(ValidationError):
             tmpl.clean()
 
     def test_service_con_volumen_es_invalido(self):
         tmpl = ProductTemplate(
-            name='Consultoría', type=TYPE_SERVICE, volume=1.0)
+            name='Consultoría', type=TYPE_SERVICE, volume=1.0
+        )
         with pytest.raises(ValidationError):
             tmpl.clean()
 
@@ -155,8 +168,8 @@ class TestProductTemplateClean:
 
     def test_combo_con_costo_propio_es_invalido(self):
         tmpl = ProductTemplate(
-            name='Menú', type=TYPE_COMBO,
-            standard_price=Decimal('10.00'))
+            name='Menú', type=TYPE_COMBO, standard_price=Decimal('10.00')
+        )
         with pytest.raises(ValidationError):
             tmpl.clean()
 
@@ -172,11 +185,11 @@ class TestProductTemplateClean:
 class TestProductTemplateComboInvariants:
 
     def test_combo_con_lineas_de_atributo_es_invalido(self):
-        tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO)
+        tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
         color = ProductAttribute.objects.create(name='Color')
         ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color)
+            product_tmpl=tmpl, attribute=color
+        )
         with pytest.raises(ValidationError):
             tmpl.check_combo_has_no_attributes()
 
@@ -184,20 +197,23 @@ class TestProductTemplateComboInvariants:
         tmpl = ProductTemplate.objects.create(name='Eleke')
         color = ProductAttribute.objects.create(name='Color')
         ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color)
+            product_tmpl=tmpl, attribute=color
+        )
         tmpl.check_combo_has_no_attributes()  # no debe levantar
 
     def test_combo_sin_elecciones_es_invalido(self):
-        tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO)
+        tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
         with pytest.raises(ValidationError):
             tmpl.check_combo_choices()
 
     def test_combo_con_eleccion_vendible_es_valido(self):
         tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO, sale_ok=True)
+            name='Menú', type=TYPE_COMBO, sale_ok=True
+        )
         bebida_tmpl = ProductTemplate.objects.create(name='Refresco')
-        bebida_variant = ProductProduct.objects.create(product_tmpl=bebida_tmpl)
+        bebida_variant = ProductProduct.objects.create(
+            product_tmpl=bebida_tmpl
+        )
         combo = ProductCombo.objects.create(name='Bebida')
         ProductComboItem.objects.create(combo=combo, product=bebida_variant)
         tmpl.combo_ids.add(combo)
@@ -205,10 +221,14 @@ class TestProductTemplateComboInvariants:
 
     def test_combo_a_la_venta_con_opcion_no_vendible_es_invalido(self):
         tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO, sale_ok=True)
+            name='Menú', type=TYPE_COMBO, sale_ok=True
+        )
         bebida_tmpl = ProductTemplate.objects.create(
-            name='Refresco agotado', sale_ok=False)
-        bebida_variant = ProductProduct.objects.create(product_tmpl=bebida_tmpl)
+            name='Refresco agotado', sale_ok=False
+        )
+        bebida_variant = ProductProduct.objects.create(
+            product_tmpl=bebida_tmpl
+        )
         combo = ProductCombo.objects.create(name='Bebida')
         ProductComboItem.objects.create(combo=combo, product=bebida_variant)
         tmpl.combo_ids.add(combo)
@@ -219,6 +239,7 @@ class TestProductTemplateComboInvariants:
 # =============================================================================
 # ProductProduct — la variante: combinación, delegación, precio
 # =============================================================================
+
 
 class TestProductProduct:
 
@@ -237,7 +258,8 @@ class TestProductProduct:
     def test_str_usa_default_code_cuando_existe(self):
         tmpl = ProductTemplate.objects.create(name='Eleke')
         variante = ProductProduct.objects.create(
-            product_tmpl=tmpl, default_code='ELK-001')
+            product_tmpl=tmpl, default_code='ELK-001'
+        )
         assert str(variante) == '[ELK-001] Eleke'
 
     def test_str_sin_default_code_usa_display_name(self):
@@ -253,13 +275,17 @@ class TestProductProduct:
 
     def test_refresh_combination_indices_usa_los_valores_reales(self):
         color = ProductAttribute.objects.create(name='Color')
-        rojo = ProductAttributeValue.objects.create(attribute=color, name='Rojo')
+        rojo = ProductAttributeValue.objects.create(
+            attribute=color, name='Rojo'
+        )
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color)
+            product_tmpl=tmpl, attribute=color
+        )
         line.values.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
-            line=line, attribute_value=rojo)
+            line=line, attribute_value=rojo
+        )
         variante = ProductProduct.objects.create(product_tmpl=tmpl)
         variante.product_template_attribute_values.set([ptav])
         variante.refresh_combination_indices()
@@ -267,14 +293,19 @@ class TestProductProduct:
 
     def test_lst_price_suma_el_extra_de_los_atributos(self):
         color = ProductAttribute.objects.create(name='Color')
-        dorado = ProductAttributeValue.objects.create(attribute=color, name='Dorado')
+        dorado = ProductAttributeValue.objects.create(
+            attribute=color, name='Dorado'
+        )
         tmpl = ProductTemplate.objects.create(
-            name='Eleke', list_price=Decimal('100.00'))
+            name='Eleke', list_price=Decimal('100.00')
+        )
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color)
+            product_tmpl=tmpl, attribute=color
+        )
         line.values.set([dorado])
         ptav = ProductTemplateAttributeValue.objects.create(
-            line=line, attribute_value=dorado, price_extra=Decimal('30.00'))
+            line=line, attribute_value=dorado, price_extra=Decimal('30.00')
+        )
         variante = ProductProduct.objects.create(product_tmpl=tmpl)
         variante.product_template_attribute_values.set([ptav])
         assert variante.list_price == Decimal('100.00')
@@ -288,13 +319,17 @@ class TestProductProduct:
         (getattr con default True), así que con un valor SÍ se distingue —
         se verifica el caso donde SÍ aparece en el nombre."""
         color = ProductAttribute.objects.create(name='Color')
-        rojo = ProductAttributeValue.objects.create(attribute=color, name='Rojo')
+        rojo = ProductAttributeValue.objects.create(
+            attribute=color, name='Rojo'
+        )
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color)
+            product_tmpl=tmpl, attribute=color
+        )
         line.values.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
-            line=line, attribute_value=rojo)
+            line=line, attribute_value=rojo
+        )
         variante = ProductProduct.objects.create(product_tmpl=tmpl)
         variante.product_template_attribute_values.set([ptav])
         assert variante.display_name == 'Eleke (Rojo)'
@@ -303,8 +338,7 @@ class TestProductProduct:
         """H-API-190: un combo SÍ puede tener variante (la línea de venta
         apunta a product.product); lo que se prohíbe es tener atributos,
         y esa regla vive en ProductTemplate, no aquí."""
-        tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO)
+        tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
         variante = ProductProduct.objects.create(product_tmpl=tmpl)
         variante.clean()  # no debe levantar
 
@@ -315,7 +349,8 @@ class TestGetImportTemplates:
     Hasta ``api@<este pase>`` el metodo se declinaba con una razon medida
     sobre ``src/`` — una raiz que no puede contener el simbolo, porque los
     addons viven en ``addons/``. Estos casos fijan la forma que la
-    referencia declara (``odoo19c: addons/product/models/product_supplierinfo.py:95-99``)
+    referencia declara (``odoo19c:
+    addons/product/models/product_supplierinfo.py:95-99``)
     para que un cambio de etiqueta o de ruta salga en rojo y no en prosa.
     """
 
@@ -325,7 +360,10 @@ class TestGetImportTemplates:
     def test_the_entry_carries_the_reference_label_and_path(self):
         entrada = ProductSupplierinfo.get_import_templates()[0]
         assert entrada['label'] == 'Import Template for Vendor Pricelists'
-        assert entrada['template'] == '/product/static/xls/product_supplierinfo.xls'
+        assert (
+            entrada['template']
+            == '/product/static/xls/product_supplierinfo.xls'
+        )
 
     def test_the_shape_matches_the_two_sibling_providers(self):
         """Las tres implementaciones del arbol declaran las MISMAS claves.
@@ -344,7 +382,8 @@ class TestGetImportTemplates:
 @pytest.mark.django_db
 class TestSelectSeller:
     """La cadena ``_prepare_sellers`` → ``_get_filtered_sellers`` →
-    ``_select_seller`` (``odoo19c: addons/product/models/product_product.py:1016-1071``).
+    ``_select_seller`` (``odoo19c:
+    addons/product/models/product_product.py:1016-1071``).
 
     Cada caso exige que el resultado **discrimine** entre dos filas: un
     ``return sellers[:1]`` desnudo pasaría cualquier caso que sólo afirmara
@@ -353,7 +392,8 @@ class TestSelectSeller:
 
     def _tariff(self, tmpl, partner, **kwargs):
         return ProductSupplierinfo.objects.create(
-            partner=partner, product_tmpl=tmpl, **kwargs)
+            partner=partner, product_tmpl=tmpl, **kwargs
+        )
 
     def _variant(self, name='Eleke'):
         tmpl = ProductTemplate.objects.create(name=name)
@@ -366,11 +406,12 @@ class TestSelectSeller:
         supplier = ResPartner.objects.create(name='Proveedor')
         late = self._tariff(tmpl, supplier, sequence=9, price=Decimal('1.00'))
         early_small = self._tariff(
-            tmpl, supplier, sequence=1, min_qty=1, price=Decimal('5.00'))
+            tmpl, supplier, sequence=1, min_qty=1, price=Decimal('5.00')
+        )
         early_large = self._tariff(
-            tmpl, supplier, sequence=1, min_qty=50, price=Decimal('5.00'))
-        assert variant._prepare_sellers() == [
-            early_large, early_small, late]
+            tmpl, supplier, sequence=1, min_qty=50, price=Decimal('5.00')
+        )
+        assert variant._prepare_sellers() == [early_large, early_small, late]
 
     def test_prepare_sellers_drops_a_tariff_of_another_variant(self):
         """Delega en ``_get_filtered_supplier``: la fila específica de otra
@@ -386,16 +427,18 @@ class TestSelectSeller:
         tmpl, variant = self._variant()
         supplier = ResPartner.objects.create(name='Proveedor')
         in_force = self._tariff(tmpl, supplier, price=Decimal('9.00'))
-        self._tariff(tmpl, supplier, price=Decimal('1.00'),
-                     date_end=date(2020, 1, 1))
+        self._tariff(
+            tmpl, supplier, price=Decimal('1.00'), date_end=date(2020, 1, 1)
+        )
         assert variant._get_filtered_sellers() == [in_force]
 
     def test_filtered_sellers_drops_a_tariff_not_yet_in_force(self):
         tmpl, variant = self._variant()
         supplier = ResPartner.objects.create(name='Proveedor')
         in_force = self._tariff(tmpl, supplier, price=Decimal('9.00'))
-        self._tariff(tmpl, supplier, price=Decimal('1.00'),
-                     date_start=date(2999, 1, 1))
+        self._tariff(
+            tmpl, supplier, price=Decimal('1.00'), date_start=date(2999, 1, 1)
+        )
         assert variant._get_filtered_sellers() == [in_force]
 
     def test_filtered_sellers_requires_the_minimum_quantity(self):
@@ -403,22 +446,30 @@ class TestSelectSeller:
         lo que distingue el filtro de un paso a través."""
         tmpl, variant = self._variant()
         supplier = ResPartner.objects.create(name='Proveedor')
-        single_unit = self._tariff(tmpl, supplier, min_qty=1, price=Decimal('9.00'))
+        single_unit = self._tariff(
+            tmpl, supplier, min_qty=1, price=Decimal('9.00')
+        )
         bulk = self._tariff(tmpl, supplier, min_qty=100, price=Decimal('4.00'))
         assert variant._get_filtered_sellers(quantity=5) == [single_unit]
         assert set(variant._get_filtered_sellers(quantity=100)) == {
-            single_unit, bulk}
+            single_unit,
+            bulk,
+        }
 
     def test_filtered_sellers_accepts_the_parent_partner_tariff(self):
         """Una tarifa firmada con la matriz sirve a la sucursal
         (``seller.partner_id not in [partner_id, partner_id.parent_id]``)."""
         tmpl, variant = self._variant()
         parent_company = ResPartner.objects.create(name='Matriz')
-        branch = ResPartner.objects.create(name='Sucursal', parent=parent_company)
+        branch = ResPartner.objects.create(
+            name='Sucursal', parent=parent_company
+        )
         unrelated = ResPartner.objects.create(name='Ajena')
         from_parent = self._tariff(tmpl, parent_company, price=Decimal('7.00'))
         self._tariff(tmpl, unrelated, price=Decimal('1.00'))
-        assert variant._get_filtered_sellers(partner_id=branch) == [from_parent]
+        assert variant._get_filtered_sellers(partner_id=branch) == [
+            from_parent
+        ]
 
     def test_select_seller_cuts_by_supplier_before_comparing_price(self):
         """**El caso que discrimina.** El segundo proveedor es más barato y
@@ -429,7 +480,8 @@ class TestSelectSeller:
         preferred = ResPartner.objects.create(name='Preferido')
         cheap_partner = ResPartner.objects.create(name='Barato')
         expensive_from_preferred = self._tariff(
-            tmpl, preferred, sequence=1, price=Decimal('50.00'))
+            tmpl, preferred, sequence=1, price=Decimal('50.00')
+        )
         self._tariff(tmpl, cheap_partner, sequence=2, price=Decimal('1.00'))
         assert variant._select_seller() == [expensive_from_preferred]
 
@@ -437,7 +489,9 @@ class TestSelectSeller:
         tmpl, variant = self._variant()
         supplier = ResPartner.objects.create(name='Proveedor')
         self._tariff(tmpl, supplier, sequence=1, price=Decimal('50.00'))
-        cheaper = self._tariff(tmpl, supplier, sequence=1, price=Decimal('8.00'))
+        cheaper = self._tariff(
+            tmpl, supplier, sequence=1, price=Decimal('8.00')
+        )
         assert variant._select_seller() == [cheaper]
 
     def test_select_seller_honours_the_discount(self):
@@ -447,8 +501,12 @@ class TestSelectSeller:
         supplier = ResPartner.objects.create(name='Proveedor')
         self._tariff(tmpl, supplier, sequence=1, price=Decimal('10.00'))
         discounted = self._tariff(
-            tmpl, supplier, sequence=1, price=Decimal('12.00'),
-            discount=Decimal('50.00'))
+            tmpl,
+            supplier,
+            sequence=1,
+            price=Decimal('12.00'),
+            discount=Decimal('50.00'),
+        )
         assert variant._select_seller() == [discounted]
 
     def test_ordered_by_takes_primacy_over_the_price(self):
@@ -456,13 +514,17 @@ class TestSelectSeller:
         tmpl, variant = self._variant()
         supplier = ResPartner.objects.create(name='Proveedor')
         low_min_qty = self._tariff(
-            tmpl, supplier, sequence=1, min_qty=0, price=Decimal('50.00'))
+            tmpl, supplier, sequence=1, min_qty=0, price=Decimal('50.00')
+        )
         self._tariff(
-            tmpl, supplier, sequence=1, min_qty=1, price=Decimal('8.00'))
+            tmpl, supplier, sequence=1, min_qty=1, price=Decimal('8.00')
+        )
         # Con ``quantity=10`` las dos superan su mínimo: el filtro deja de
         # decidir y lo que se mide es el orden, que es el objeto del caso.
         assert variant._select_seller(quantity=10) != [low_min_qty]
-        assert variant._select_seller(quantity=10, ordered_by='min_qty') == [low_min_qty]
+        assert variant._select_seller(quantity=10, ordered_by='min_qty') == [
+            low_min_qty
+        ]
 
     def test_select_seller_returns_empty_when_nothing_matches(self):
         tmpl, variant = self._variant()

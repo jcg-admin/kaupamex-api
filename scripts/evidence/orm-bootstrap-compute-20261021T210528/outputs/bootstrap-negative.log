@@ -1,0 +1,75 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Operations to perform:
+  Synchronize unmigrated apps: account_edi_ubl_cii, account_peppol, account_peppol_advanced_fields, account_qr_code_emv, authz_timeout, base_import, corsheaders, crm_sms, drf_spectacular, hr_fleet, hr_hourly_cost, hr_recruitment_sms, html_builder, http_routing, messages, payment_aps, payment_authorize, payment_custom, payment_demo, payment_mercado_pago, payment_paypal, payment_stripe, portal, postgres, project_account, project_hr_skills, project_sms, project_stock, project_todo, purchase_stock, rest_framework, rest_framework_simplejwt, rpc, staticfiles, test_orm, website_mass_mailing
+  Apply all migrations: account, account_add_gln, account_check_printing, account_debit_note, account_edi, account_edi_proxy_client, account_fleet, account_payment, account_tax_python, account_test, account_update_tax_tags, admin, analytic, auth, authz, authz_audit, authz_ldap, authz_oauth, authz_passkey, authz_password_policy, authz_reauth, authz_signup, authz_totp, authz_totp_mail, auto_backup, base, base_address_extended, base_automation, base_geolocalize, base_import_module, base_install_request, base_setup, base_sparse_field, bus, certificate, contenttypes, crm, delivery, digest, fleet, helpdesk, hr, hr_homeworking, hr_recruitment, hr_recruitment_skills, hr_skills, hr_timesheet, hr_work_entry, html_editor, loyalty, mail, mass_mailing, mrp, mrp_subcontracting, onboarding, payment, product, product_matrix, project, purchase, purchase_requisition, rating, resource, sale, sale_crm, sale_loyalty, sale_management, sale_margin, sale_mrp, sale_product_matrix, sale_project, sale_purchase, sale_sms, sale_stock, sale_subscription, sale_timesheet, sales_team, sessions, sms, stock, stock_account, stock_landed_costs, token_blacklist, uom, utm, web, website, website_sale, website_sale_wishlist
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table test_orm_testormcategory
+    Creating table test_orm_testormdiscussion
+    Running deferred SQL...
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 103, in _execute
+    return self.cursor.execute(sql)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.UndefinedTable: relation "res_users" does not exist
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/bootstrap_contract.py", line 14, in <module>
+    call_command('migrate', run_syncdb=True, interactive=False, verbosity=1)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/__init__.py", line 195, in call_command
+    return command.execute(*args, **defaults)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/base.py", line 111, in wrapper
+    res = handle_func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py", line 319, in handle
+    self.sync_apps(connection, executor.loader.unmigrated_apps)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py", line 466, in sync_apps
+    with connection.schema_editor() as editor:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 170, in __exit__
+    self.execute(sql, None)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/postgresql/schema.py", line 45, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 205, in execute
+    cursor.execute(sql, params)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 103, in _execute
+    return self.cursor.execute(sql)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+django.db.utils.ProgrammingError: relation "res_users" does not exist
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

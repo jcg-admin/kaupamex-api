@@ -35,7 +35,7 @@ from django.db import connections
 from orm import registry
 from orm.environments import (Environment, MAX_FIXPOINT_ITERATIONS,
                               _discard_connection_transaction, context_scope,
-                              env, get_current_uid, get_transaction,
+                              env, get_current_uid, get_transaction, sudo,
                               transaction_scope)
 from orm.utils import model_field_registry
 from tools.sql import SQL
@@ -80,6 +80,18 @@ class TestTheEnvironmentIsPooledByTransaction:
         """≙ ``if uid == SUPERUSER_ID: su = True`` (``:66-67``)."""
         with transaction_scope():
             assert Environment(uid=1)._su_override is True
+
+    def test_a_declared_user_is_not_elevated_by_default(self):
+        """≙ ``su: bool = False`` (``odoo19c: odoo/orm/environments.py:64``).
+
+        Con ``uid`` y sin ``su`` la fuente no eleva. Aquí el defecto ``None``
+        heredaba la elevación del bloque exterior, y un entorno de usuario
+        dentro de un ``sudo()`` saltaba sus reglas (H-API-1129).
+        """
+        with transaction_scope():
+            with sudo():
+                assert Environment(uid=7).su is False
+                assert Environment().su is True
 
     def test_it_registers_itself_in_the_transaction(self):
         with transaction_scope() as transaction:

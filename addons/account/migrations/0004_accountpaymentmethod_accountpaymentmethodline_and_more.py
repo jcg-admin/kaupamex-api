@@ -35,15 +35,22 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Identificación interna (Odoo code, requerido).",
+                        help_text=(
+                            "Identificación interna (Odoo code, requerido)."
+                        ),
                         max_length=64,
                     ),
                 ),
                 (
                     "payment_type",
                     models.CharField(
-                        choices=[("inbound", "Entrante"), ("outbound", "Saliente")],
-                        help_text="Tipo de pago (Odoo payment_type, requerido).",
+                        choices=[
+                            ("inbound", "Entrante"),
+                            ("outbound", "Saliente"),
+                        ],
+                        help_text=(
+                            "Tipo de pago (Odoo payment_type, requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -78,21 +85,27 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre visible (Odoo name, computado del método si vacío).",
+                        help_text=(
+                            "Nombre visible (Odoo name, computado del método"
+                            " si vacío)."
+                        ),
                         max_length=255,
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
                     "journal",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Diario donde queda habilitado (Odoo journal_id).",
+                        help_text=(
+                            "Diario donde queda habilitado (Odoo journal_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="payment_method_lines",
@@ -103,7 +116,10 @@ class Migration(migrations.Migration):
                     "payment_account",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cuenta de contrapartida (Odoo payment_account_id).",
+                        help_text=(
+                            "Cuenta de contrapartida (Odoo"
+                            " payment_account_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="payment_method_lines",
@@ -113,7 +129,10 @@ class Migration(migrations.Migration):
                 (
                     "payment_method",
                     models.ForeignKey(
-                        help_text="Método de pago (Odoo payment_method_id, requerido).",
+                        help_text=(
+                            "Método de pago (Odoo payment_method_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="method_line_ids",
                         to="account.accountpaymentmethod",
@@ -142,7 +161,9 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del plazo de pago (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre del plazo de pago (Odoo name, requerido)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -150,7 +171,10 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Si es falso, oculta el plazo sin borrarlo (Odoo active).",
+                        help_text=(
+                            "Si es falso, oculta el plazo sin borrarlo (Odoo"
+                            " active)."
+                        ),
                     ),
                 ),
                 (
@@ -164,14 +188,18 @@ class Migration(migrations.Migration):
                 (
                     "sequence",
                     models.IntegerField(
-                        default=10, help_text="Orden de presentación (Odoo sequence)."
+                        default=10,
+                        help_text="Orden de presentación (Odoo sequence).",
                     ),
                 ),
                 (
                     "display_on_invoice",
                     models.BooleanField(
                         default=True,
-                        help_text="Muestra las fechas de las cuotas en la factura (Odoo display_on_invoice).",
+                        help_text=(
+                            "Muestra las fechas de las cuotas en la factura"
+                            " (Odoo display_on_invoice)."
+                        ),
                     ),
                 ),
                 (
@@ -179,7 +207,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("2.0"),
-                        help_text="% de descuento por pronto pago (Odoo discount_percentage).",
+                        help_text=(
+                            "% de descuento por pronto pago (Odoo"
+                            " discount_percentage)."
+                        ),
                         max_digits=5,
                     ),
                 ),
@@ -187,7 +218,10 @@ class Migration(migrations.Migration):
                     "discount_days",
                     models.IntegerField(
                         default=10,
-                        help_text="Días antes de que expire el pronto pago (Odoo discount_days).",
+                        help_text=(
+                            "Días antes de que expire el pronto pago (Odoo"
+                            " discount_days)."
+                        ),
                     ),
                 ),
                 (
@@ -199,7 +233,13 @@ class Migration(migrations.Migration):
                             ("mixed", "Siempre (sobre la factura)"),
                         ],
                         default="included",
-                        help_text="Tratamiento fiscal del descuento (Odoo early_pay_discount_computation). Valor por defecto fijo — la derivación BE/NL por país de la compañía no está portada (ver docstring del módulo).",
+                        help_text=(
+                            "Tratamiento fiscal del descuento (Odoo"
+                            " early_pay_discount_computation). Valor por"
+                            " defecto fijo — la derivación BE/NL por país de"
+                            " la compañía no está portada (ver docstring del"
+                            " módulo)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -207,14 +247,19 @@ class Migration(migrations.Migration):
                     "early_discount",
                     models.BooleanField(
                         default=False,
-                        help_text="Activa el pronto pago (Odoo early_discount).",
+                        help_text=(
+                            "Activa el pronto pago (Odoo early_discount)."
+                        ),
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa (Odoo company_id; sin compañía = plazo global).",
+                        help_text=(
+                            "Empresa (Odoo company_id; sin compañía = plazo"
+                            " global)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="payment_terms",
@@ -246,7 +291,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[("percent", "Porcentaje"), ("fixed", "Fijo")],
                         default="percent",
-                        help_text="Tipo de valuación de la cuota (Odoo value, requerido).",
+                        help_text=(
+                            "Tipo de valuación de la cuota (Odoo value,"
+                            " requerido)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -255,7 +303,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("100.0"),
-                        help_text="Importe/porcentaje de la cuota (Odoo value_amount).",
+                        help_text=(
+                            "Importe/porcentaje de la cuota (Odoo"
+                            " value_amount)."
+                        ),
                         max_digits=7,
                     ),
                 ),
@@ -263,16 +314,28 @@ class Migration(migrations.Migration):
                     "delay_type",
                     models.CharField(
                         choices=[
-                            ("days_after", "Días después de la fecha de factura"),
-                            ("days_after_end_of_month", "Días después de fin de mes"),
+                            (
+                                "days_after",
+                                "Días después de la fecha de factura",
+                            ),
+                            (
+                                "days_after_end_of_month",
+                                "Días después de fin de mes",
+                            ),
                             (
                                 "days_after_end_of_next_month",
                                 "Días después de fin del mes siguiente",
                             ),
-                            ("days_end_of_month_on_the", "Fin de mes en el día"),
+                            (
+                                "days_end_of_month_on_the",
+                                "Fin de mes en el día",
+                            ),
                         ],
                         default="days_after",
-                        help_text="Base del cómputo de la fecha de vencimiento (Odoo delay_type).",
+                        help_text=(
+                            "Base del cómputo de la fecha de vencimiento (Odoo"
+                            " delay_type)."
+                        ),
                         max_length=32,
                     ),
                 ),
@@ -281,7 +344,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="10",
-                        help_text="Día del mes siguiente (Odoo days_next_month, sólo con delay_type=days_end_of_month_on_the).",
+                        help_text=(
+                            "Día del mes siguiente (Odoo days_next_month, sólo"
+                            " con delay_type=days_end_of_month_on_the)."
+                        ),
                         max_length=2,
                     ),
                 ),
@@ -294,7 +360,10 @@ class Migration(migrations.Migration):
                 (
                     "payment",
                     models.ForeignKey(
-                        help_text="Plazo de pago al que pertenece (Odoo payment_id, requerido).",
+                        help_text=(
+                            "Plazo de pago al que pertenece (Odoo payment_id,"
+                            " requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="line_ids",
                         to="account.accountpaymentterm",

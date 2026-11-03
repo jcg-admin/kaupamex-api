@@ -1,0 +1,27 @@
+{
+  "provider_revision": "c3c5d2f2868701b37644426e2266262613eb9c60",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-GEN-0558.recursive_pending_reentry",
+      "taskId": "TASK-GEN-0558",
+      "prompt": "Characterize reentrant callbacks consuming another pending Django row; correct only a proven duplicate-compute difference; preserve native batch branch",
+      "verify": "Pinned Odoo recursive queue membership; actual Field.compute_value callback reentry, newly queued outside-batch work, nested denial restoration; staged snapshots and negative guard annulment",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py",
+        "tests/unit/orm/test_recompute_reentry_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "node": "b501",
+  "selected": [
+    "TASK-GEN-0558.recursive_pending_reentry"
+  ],
+  "native_task": "session29a5e555-e34f-5a20-8c39-ad6cf2f19961 native306 TASK-GEN-0558 pending ownerVM-b501",
+  "native_authority": "recompute-visibility-known-task-revalidation.json",
+  "functional_dependencies": "Existing compute_value queue removal/protection/restoration and Django per-row callback adapter, native batching branch already verified; no SQL required",
+  "not_reimplementation": "Native branch remains independent; investigate previously unverified reentrant legacy pending queue",
+  "managed_inference": false
+}

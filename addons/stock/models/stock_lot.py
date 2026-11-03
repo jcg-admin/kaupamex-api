@@ -203,9 +203,11 @@ Constantes de módulo
 ---------------------
 
 ``PY_OPERATORS`` (12-21) se porta verbatim: es el mapa de operadores que
-``_search_product_qty`` aplica en Python sobre el agregado. No es un atributo de
+``_search_product_qty`` aplica en Python sobre el agregado. No es un atributo
+de
 ORM (ver la tercera categoría de ``atributos-de-clase-de-modelo.md``).
 """
+
 import operator as py_operator
 from collections import defaultdict
 from collections.abc import Iterable
@@ -250,47 +252,73 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
 
     name = fields.Char(
         max_length=120,
-        help_text='Número de lote / serie (Odoo name). Único por producto; si '
-                  'llega vacío lo genera la secuencia del producto.',
+        help_text=(
+            'Número de lote / serie (Odoo name). Único por producto; si '
+            'llega vacío lo genera la secuencia del producto.'
+        ),
     )
     ref = fields.Char(
-        max_length=120, blank=True, default='',
-        help_text='Referencia interna, para cuando difiere del número del '
-                  'fabricante (Odoo ref).',
+        max_length=120,
+        blank=True,
+        default='',
+        help_text=(
+            'Referencia interna, para cuando difiere del número del '
+            'fabricante (Odoo ref).'
+        ),
     )
     product = fields.Many2one(
-        'product.ProductProduct', on_delete=models.CASCADE, related_name='lots',
+        'product.ProductProduct',
+        null=False, on_delete=models.CASCADE,
+        related_name='lots',
         help_text='Producto (Odoo product_id).',
     )
     note = fields.Html(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='Descripción libre del lote (Odoo note).',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.PROTECT, null=True, blank=True,
-        related_name='stock_lots', db_index=True,
-        help_text='Empresa (Odoo company_id). Almacenada con compute: la '
-                  'resuelve _compute_company_id desde la del producto.',
+        'base.ResCompany',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='stock_lots',
+        db_index=True,
+        help_text=(
+            'Empresa (Odoo company_id). Almacenada con compute: la '
+            'resuelve _compute_company_id desde la del producto.'
+        ),
     )
     lot_properties = fields.Json(
-        null=True, blank=True, default=dict,
-        help_text='Propiedades del lote (Odoo lot_properties). Su definición '
-                  'vive en ProductProduct.lot_properties_definition.',
+        null=True,
+        blank=True,
+        default=dict,
+        help_text=(
+            'Propiedades del lote (Odoo lot_properties). Su definición '
+            'vive en ProductProduct.lot_properties_definition.'
+        ),
     )
     location = fields.Many2one(
-        'stock.StockLocation', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='single_location_lots', db_index=True,
-        help_text='Ubicación única del lote (Odoo location_id). Almacenada '
-                  'con compute e inverse: se llena cuando todos los quants con '
-                  'cantidad positiva están en una sola ubicación, y al '
-                  'escribirla se reubican.',
+        'stock.StockLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='single_location_lots',
+        db_index=True,
+        help_text=(
+            'Ubicación única del lote (Odoo location_id). Almacenada '
+            'con compute e inverse: se llena cuando todos los quants con '
+            'cantidad positiva están en una sola ubicación, y al '
+            'escribirla se reubican.'
+        ),
     )
 
     class Meta:
         db_table = 'stock_lot'
         constraints = [
             models.UniqueConstraint(
-                fields=['product', 'name'], name='unique_lot_product_name',
+                fields=['product', 'name'],
+                name='unique_lot_product_name',
             ),
         ]
         ordering = ['name', 'id']
@@ -309,7 +337,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
 
         Sin nombre, lo saca de la secuencia declarada en la plantilla del
         producto. La fuente llama ``lot_sequence_id.next_by_id()``; aquí el
-        equivalente es ``next_by_id()`` — ``next_by_id`` no existe en este árbol
+        equivalente es ``next_by_id()`` — ``next_by_id`` no existe en este
+        árbol
         (:ref:`h-api-619`).
         """
         if not self.name:
@@ -331,7 +360,9 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         """
         of_product = getattr(self.product, 'company', None)
         activas = get_current_companies()
-        if of_product is not None and of_product.pk not in {c.pk for c in activas}:
+        if of_product is not None and of_product.pk not in {
+            c.pk for c in activas
+        }:
             self.company = get_current_company()
         else:
             self.company = of_product
@@ -343,10 +374,13 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         positiva están en una: con dos o más, el lote no tiene ubicación única.
         """
         ubicaciones = {
-            q.location for q in self.quants.filter(quantity__gt=0)
+            q.location
+            for q in self.quants.filter(quantity__gt=0)
             if q.location is not None
         }
-        self.location = next(iter(ubicaciones)) if len(ubicaciones) == 1 else None
+        self.location = (
+            next(iter(ubicaciones)) if len(ubicaciones) == 1 else None
+        )
 
     def _set_single_location(self):
         """≙ ``_set_single_location`` (``odoo19c: :175-181``).
@@ -361,9 +395,12 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         quants = list(self.quants.filter(quantity__gt=0))
         ubicaciones = {q.location for q in quants if q.location is not None}
         if len(ubicaciones) > 1:
-            raise UserError(_(
-                'Sólo se puede mover un lote/serie a otra ubicación si está en '
-                'una sola.'))
+            raise UserError(
+                _(
+                    'Sólo se puede mover un lote/serie a otra ubicación si'
+                    ' está en una sola.'
+                )
+            )
         if not ubicaciones:
             return
         # ``unpack`` replica la fuente: si el paquete tiene más quants que los
@@ -400,13 +437,17 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         if to_date is None:
             return total
 
-        hechas_despues = self.move_line_ids.filter(state='done', move__date__gt=to_date)
+        hechas_despues = self.move_line_ids.filter(
+            state='done', move__date__gt=to_date
+        )
         entradas = hechas_despues.filter(
             location_dest__usage='internal',
         ).aggregate(s=Sum('quantity_product_uom'))['s'] or Decimal('0.00')
         salidas = hechas_despues.filter(
             location__usage='internal',
-        ).aggregate(s=Sum('quantity_product_uom'))['s'] or Decimal('0.00')
+        ).aggregate(
+            s=Sum('quantity_product_uom')
+        )['s'] or Decimal('0.00')
         return total - entradas + salidas
 
     # ------------------------------------------------------------------ #
@@ -479,8 +520,11 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         if not entregas:
             return []
         picking_model = apps.get_model('stock', 'StockPicking')
-        partners_by_picking = picking_model.objects.filter(
-            pk__in=entregas).order_by('-pk').values_list('partner_id', flat=True)
+        partners_by_picking = (
+            picking_model.objects.filter(pk__in=entregas)
+            .order_by('-pk')
+            .values_list('partner_id', flat=True)
+        )
         vistos, contactos = set(), []
         for contacto_id in partners_by_picking:
             if contacto_id is not None and contacto_id not in vistos:
@@ -501,7 +545,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         trae ninguno, le añade un ``0`` y reintenta — igual que la fuente.
 
         El desdoblamiento por ``initial_number`` conserva la sutileza del
-        original: ese número puede aparecer varias veces (``BAV023B00001S00001``),
+        original: ese número puede aparecer varias veces
+        (``BAV023B00001S00001``),
         y sólo la última aparición es la que se incrementa.
         """
         caught_initial_number = regex_findall(r"\d+", first_lot)
@@ -514,10 +559,15 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         suffix = splitted[-1]
         initial_number = int(initial_number)
 
-        return [{
-            'lot_name': '%s%s%s' % (
-                prefix, str(initial_number + i).zfill(padding), suffix),
-        } for i in range(0, count)]
+        return [
+            {
+                'lot_name': (
+                    '%s%s%s'
+                    % (prefix, str(initial_number + i).zfill(padding), suffix)
+                ),
+            }
+            for i in range(0, count)
+        ]
 
     @classmethod
     def _get_next_serial(cls, company, product):
@@ -529,9 +579,14 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         """
         if getattr(product, 'tracking', 'none') == 'none':
             return None
-        ultimo = cls.objects.filter(
-            Q(company=company) | Q(company__isnull=True), product=product,
-        ).order_by('-id').first()
+        ultimo = (
+            cls.objects.filter(
+                Q(company=company) | Q(company__isnull=True),
+                product=product,
+            )
+            .order_by('-id')
+            .first()
+        )
         if ultimo is None:
             return None
         return cls.generate_lot_names(ultimo.name, 2)[1]['lot_name']
@@ -541,15 +596,19 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     def _check_unique_lot(self):
-        """≙ ``_check_unique_lot`` (``odoo19c: :104-127``, ``@api.constrains``).
+        """
+        ≙ ``_check_unique_lot`` (``odoo19c: :104-127``, ``@api.constrains``).
 
         La pareja (producto, nombre) es única **dentro de una empresa, contando
         además los lotes sin empresa**. Esa segunda mitad es la que el
         ``UniqueConstraint`` de la tabla no puede expresar: un lote sin empresa
-        colisiona con el de cualquier empresa, y uno de la empresa A no colisiona
+        colisiona con el de cualquier empresa, y uno de la empresa A no
+        colisiona
         con el de la B.
         """
-        hermanos = type(self).objects.filter(product=self.product, name=self.name)
+        hermanos = type(self).objects.filter(
+            product=self.product, name=self.name
+        )
         if self.pk is not None:
             hermanos = hermanos.exclude(pk=self.pk)
         if self.company is None:
@@ -557,13 +616,17 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             colisiona = hermanos.exists()
         else:
             colisiona = hermanos.filter(
-                Q(company=self.company) | Q(company__isnull=True)).exists()
+                Q(company=self.company) | Q(company__isnull=True)
+            ).exists()
         if colisiona:
-            raise ValidationError(_(
-                'La pareja de lote/serie y producto debe ser única dentro de '
-                'una empresa, incluidos los lotes sin empresa definida. '
-                'Duplicado: producto %(product)s, lote %(lot)s.'
-            ) % {'product': self.product, 'lot': self.name})
+            raise ValidationError(
+                _(
+                    'La pareja de lote/serie y producto debe ser única dentro'
+                    ' de una empresa, incluidos los lotes sin empresa'
+                    ' definida. Duplicado: producto %(product)s, lote %(lot)s.'
+                )
+                % {'product': self.product, 'lot': self.name}
+            )
 
     def clean(self):
         """Corre las restricciones declaradas (≙ los ``@api.constrains``)."""
@@ -604,11 +667,17 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         if self.company == anterior.company:
             return
         de_la_ubicacion = getattr(anterior.location, 'company', None)
-        if (de_la_ubicacion is not None and self.company is not None
-                and de_la_ubicacion != self.company):
-            raise UserError(_(
-                'No se puede cambiar la empresa de un lote/serie que está en '
-                'una ubicación de otra empresa.'))
+        if (
+            de_la_ubicacion is not None
+            and self.company is not None
+            and de_la_ubicacion != self.company
+        ):
+            raise UserError(
+                _(
+                    'No se puede cambiar la empresa de un lote/serie que está'
+                    ' en una ubicación de otra empresa.'
+                )
+            )
 
     def _check_product_change(self, anterior):
         """Segunda guarda de ``write`` (``odoo19c: :195-201``).
@@ -619,10 +688,13 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         if self.product == anterior.product:
             return
         if anterior.move_line_ids.exclude(product=self.product).exists():
-            raise UserError(_(
-                'No se puede cambiar el producto de un número de serie o lote '
-                'si ya se crearon movimientos de existencias con él. Dejaría '
-                'inconsistente el inventario.'))
+            raise UserError(
+                _(
+                    'No se puede cambiar el producto de un número de serie o'
+                    ' lote si ya se crearon movimientos de existencias con él.'
+                    ' Dejaría inconsistente el inventario.'
+                )
+            )
 
     def copy_data(self, default=None):
         """≙ ``copy_data`` (``odoo19c: :204-210``).
@@ -649,7 +721,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         recorte que la fuente escribe en su dominio.
 
         Conserva la sutileza del original: cuando el predicado se cumple para
-        cero (``qty <= 5``, por ejemplo), los lotes **sin ningún quant** también
+        cero (``qty <= 5``, por ejemplo), los lotes **sin ningún quant**
+        también
         entran, porque su saldo es cero y no aparecen en la agregación.
         """
         op = PY_OPERATORS.get(operator)
@@ -683,7 +756,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
     def ids_matching_product_qty(cls, operator, value):
         """Azúcar de consulta sobre ``_search_product_qty``.
 
-        Existe porque el ``search=`` de la fuente lo invoca el motor de dominios
+        Existe porque el ``search=`` de la fuente lo invoca el motor de
+        dominios
         al resolver una expresión sobre el campo, y aquí no hay tal motor: el
         consumidor aplica el ``Q`` él mismo. No es un símbolo de la referencia
         — es el puente que su mecanismo necesita.
@@ -709,8 +783,9 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         primero se hallan los lotes que SÍ tienen contacto de entrega, y se
         devuelven los que no están ahí.
         """
-        if (operator in Domain.NEGATIVE_OPERATORS
-                or not isinstance(value, Iterable)):
+        if operator in Domain.NEGATIVE_OPERATORS or not isinstance(
+            value, Iterable
+        ):
             return NotImplemented
         valores = list(value)
         es_sin_contacto = operator == 'in' and valores == [False]
@@ -719,15 +794,20 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         if es_sin_contacto:
             condition &= Domain('picking.partner', 'not in', valores)
         else:
-            condition &= Domain.OR([
-                Domain('picking.partner', operator, value),
-                Domain('move.partner', operator, value),
-            ])
+            condition &= Domain.OR(
+                [
+                    Domain('picking.partner', operator, value),
+                    Domain('move.partner', operator, value),
+                ]
+            )
         criterio = to_q(condition) & cls._get_outgoing_domain()
 
         line_model = apps.get_model('stock', 'StockMoveLine')
         lot_ids = set(
-            line_model.objects.filter(criterio).values_list('lot_id', flat=True))
+            line_model.objects.filter(criterio).values_list(
+                'lot_id', flat=True
+            )
+        )
 
         if es_sin_contacto:
             return ~Q(pk__in=lot_ids)
@@ -778,9 +858,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         rel = apps.get_model('stock', 'StockMoveLineConsumeRel')
         in_production = set(
             rel.objects.values_list('produce_line_id', flat=True)
-        ) | set(
-            rel.objects.values_list('consume_line_id', flat=True)
-        )
+        ) | set(rel.objects.values_list('consume_line_id', flat=True))
         return (
             Q(picking__picking_type__code='outgoing')
             | Q(move__picking_type__code='outgoing')
@@ -803,27 +881,34 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             delivery_by_lot = {}
 
         lineas = self.move_line_ids.filter(
-            self._get_outgoing_domain(), state='done').distinct()
+            self._get_outgoing_domain(), state='done'
+        ).distinct()
         producen, esteriles = [], []
         for linea in lineas:
-            (producen if linea.produce_line_ids.exists() else esteriles).append(linea)
+            (
+                producen if linea.produce_line_ids.exists() else esteriles
+            ).append(linea)
 
         entregas = set()
         if producen:
             lot_path.add(self.pk)
             siguientes = {
-                l for linea in producen
-                for l in type(self).objects.filter(
-                    move_line_ids__in=linea.produce_line_ids.all())
-                if l.pk not in lot_path
+                item
+                for linea in producen
+                for item in type(self).objects.filter(
+                    move_line_ids__in=linea.produce_line_ids.all()
+                )
+                if item.pk not in lot_path
             }
             for lote in siguientes:
                 for lote_id, ids in lote._find_delivery_ids_by_lot(
-                        lot_path=lot_path, delivery_by_lot=delivery_by_lot).items():
-                    if lote_id in {l.pk for l in siguientes}:
+                    lot_path=lot_path, delivery_by_lot=delivery_by_lot
+                ).items():
+                    if lote_id in {item.pk for item in siguientes}:
                         entregas.update(ids)
         entregas.update(
-            l.picking.pk for l in esteriles if l.picking is not None)
+            item.picking.pk for item in esteriles if item.picking is not None
+        )
 
         delivery_by_lot[self.pk] = list(entregas)
         return delivery_by_lot
@@ -845,12 +930,14 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         cola = [self.pk]
         while cola:
             lineas = line_model.objects.filter(
-                self._get_outgoing_domain(), lot__in=cola, state='done').distinct()
+                self._get_outgoing_domain(), lot__in=cola, state='done'
+            ).distinct()
             cola = []
             for linea in lineas:
                 lote_id = linea.lot_id
                 hijos = list(
-                    linea.produce_line_ids.values_list('lot_id', flat=True))
+                    linea.produce_line_ids.values_list('lot_id', flat=True)
+                )
                 if hijos:
                     for hijo in hijos:
                         if hijo is not None:
@@ -867,8 +954,10 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             if not ids:
                 continue
             delivery_by_lot[lote_id].update(
-                line_model.objects.filter(pk__in=ids, picking__isnull=False)
-                .values_list('picking_id', flat=True))
+                line_model.objects.filter(
+                    pk__in=ids, picking__isnull=False
+                ).values_list('picking_id', flat=True)
+            )
             por_propagar.add(lote_id)
 
         while por_propagar:

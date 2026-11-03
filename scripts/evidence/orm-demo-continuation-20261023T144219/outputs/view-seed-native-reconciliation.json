@@ -1,0 +1,32 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet/TaskUpdate(description-only)/TaskGet",
+  "command": "bun native738 bootstrap seed-coherence reconciliation",
+  "before": {
+    "task_id": "738",
+    "citation_id": "TASK-API-0383",
+    "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+    "description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "update": {
+    "content": "{\"task_id\":\"738\",\"updated\":true}",
+    "isError": false
+  },
+  "after": {
+    "task_id": "738",
+    "citation_id": "TASK-API-0383",
+    "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+    "description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").\n\nBounded bootstrap/data-coherence follow-up after local CI2137fad6:838PASS1SKIP1FAIL. Pipeline probe identifies stored sale primary typeqweb while existing canonical resolver/model choices requiretemplate; direct C helper and XML combination retain Incoterm, report falls back because no canonical view selected. Base0070 already authoritatively renamesqweb->template (DEC-FW-05), but historicalsale0002/sale_stock0003 freezeqweb without an edge placing them before that rename. Actual fresh bootstrap leaves late seeds incompatible. Next unit completes the existing mapping using app-owned forward data repair migrations after own seed/current leaf andbase0070, historical models and selected alias. Do not edit old migrations/recorder/runtime resolver, introduce new enum/field/schema choice or reverse the accepted vocabulary. Preserve identity, XML, inheritance, visibility and unrelated types/keys; idempotence and caller transaction/alias controls, original PDF endpoint and fresh/historical bootstrap verification required. This is coherent full-domain migration/bootstrap under0383, not per-base installation granularity0382 or whole TASK acceptance. Use existing Django migration mechanism, no alternate loader/coordinator. No official state/owner/dependency change or local inference.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "invariants": "owner/status/dependencies unchanged"
+}

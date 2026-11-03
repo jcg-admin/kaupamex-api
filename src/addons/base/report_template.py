@@ -7,7 +7,8 @@ así que la plantilla puede ser HTML libre. Aquí el conversor es el helper de
 módulo define es el punto medio que preserva las dos propiedades que la
 directiva del ejecutor pide:
 
-- *lo que se lee* es un **registro en BD** (``ir.ui.view``, ``type='template'``,
+- *lo que se lee* es un **registro en BD** (``ir.ui.view``,
+  ``type='template'``,
   resuelto por ``key`` = ``report_name``) — igual que la referencia
   (``odoo19c: ir_actions_report.py:769-781`` resuelve ``ir.ui.view``);
 - *cómo llega el documento* es **interpretado**, no ejecutado: el arch es XML
@@ -84,6 +85,7 @@ DTL corre con ``autoescape`` **apagado**: el texto va a un dict de Python y
 dato llegaría al papel como ``&amp;`` (medido en
 ``analisis-motor-de-plantillas-django-y-el-descriptor-json``).
 """
+
 import io
 
 from django.template import Context, Engine, Variable, VariableDoesNotExist
@@ -137,7 +139,8 @@ def converter_for(widget):
     dato sí está.
     """
     return _converters_by_name().get(
-        'ir.qweb.field.' + widget, ir_field_converters.IrFieldConverter)
+        'ir.qweb.field.' + widget, ir_field_converters.IrFieldConverter
+    )
 
 
 def _converters_by_name(_cache={}):
@@ -204,7 +207,9 @@ def _condition_holds(node, context):
 
 
 def _loop_state(index, size):
-    """Lo que ``t-foreach`` expone y ``forloop`` de DTL sólo da dentro de un texto.
+    """
+    Lo que ``t-foreach`` expone y ``forloop`` de DTL sólo da dentro de un
+    texto.
 
     ``forloop`` es del ``{% for %}`` de una plantilla; aquí el bucle lo recorre
     el intérprete sobre el árbol, así que su estado lo construye él. La paridad
@@ -212,8 +217,8 @@ def _loop_state(index, size):
     ``divisibleby``— y en un descriptor se pide a menudo (fila cebreada).
     """
     return {
-        'index': index,          # base 0, como ``_index`` de la fuente
-        'number': index + 1,     # base 1, para el texto que ve el lector
+        'index': index,  # base 0, como ``_index`` de la fuente
+        'number': index + 1,  # base 1, para el texto que ve el lector
         'first': index == 0,
         'last': index == size - 1,
         'even': index % 2 == 0,
@@ -246,14 +251,16 @@ def _interpret_field(node, scope, widget_options=None):
     if not path:
         raise InvalidReportTemplate(
             _("Element <field name=%r> with widget %r needs a 'value' path")
-            % (node.get('name'), widget))
+            % (node.get('name'), widget)
+        )
     value = _resolve_path(path, Context(scope))
     options = (widget_options or {}).get(widget)
     return converter_for(widget).value_to_html(value, options)
 
 
-def _interpret_children(node, context, resolve_key=None, depth=0,
-                        widget_options=None):
+def _interpret_children(
+    node, context, resolve_key=None, depth=0, widget_options=None
+):
     """Recorre los hijos del nodo y produce su dict.
 
     El contexto se copia por nodo: un ``<set>`` liga un nombre para sus
@@ -270,46 +277,56 @@ def _interpret_children(node, context, resolve_key=None, depth=0,
         if not _condition_holds(child, scope):
             continue
         if child.tag == 'call':
-            _interpret_call(child, scope, result, resolve_key, depth,
-                            widget_options)
+            _interpret_call(
+                child, scope, result, resolve_key, depth, widget_options
+            )
             continue
         name = child.get('name')
         if not name:
             raise InvalidReportTemplate(
-                _("Element <%s> without 'name' in report template") % child.tag)
+                _("Element <%s> without 'name' in report template") % child.tag
+            )
         if child.tag == 'field':
             result[name] = _interpret_field(child, scope, widget_options)
         elif child.tag == 'set':
             value = child.get('value')
             if not value:
                 raise InvalidReportTemplate(
-                    _("Element <set name=%r> without 'value' path") % name)
+                    _("Element <set name=%r> without 'value' path") % name
+                )
             scope[name] = _resolve_path(value, Context(scope))
         elif child.tag == 'section':
-            result[name] = _interpret_children(child, scope, resolve_key, depth,
-                                               widget_options)
+            result[name] = _interpret_children(
+                child, scope, resolve_key, depth, widget_options
+            )
         elif child.tag == 'list':
             path = child.get('in')
             if not path:
                 raise InvalidReportTemplate(
-                    _("Element <list name=%r> without 'in' path") % name)
+                    _("Element <list name=%r> without 'in' path") % name
+                )
             rows = list(_resolve_path(path, Context(scope)))
             items = []
             for index, item in enumerate(rows):
-                item_scope = dict(scope, item=item,
-                                  loop=_loop_state(index, len(rows)))
+                item_scope = dict(
+                    scope, item=item, loop=_loop_state(index, len(rows))
+                )
                 items.append(
-                    _interpret_children(child, item_scope, resolve_key, depth,
-                                        widget_options))
+                    _interpret_children(
+                        child, item_scope, resolve_key, depth, widget_options
+                    )
+                )
             result[name] = items
         else:
             raise InvalidReportTemplate(
-                _("Unknown element <%s> in report template") % child.tag)
+                _("Unknown element <%s> in report template") % child.tag
+            )
     return result
 
 
-def _interpret_call(node, context, result, resolve_key, depth=0,
-                    widget_options=None):
+def _interpret_call(
+    node, context, result, resolve_key, depth=0, widget_options=None
+):
     """``<call key="…"/>`` — injerta los hijos de otro descriptor.
 
     El equivalente de ``{% include %}``, con la diferencia que la medición
@@ -327,23 +344,32 @@ def _interpret_call(node, context, result, resolve_key, depth=0,
     """
     if depth >= MAX_CALL_DEPTH:
         raise RecursionError(
-            'Report template infinite recursion (depth %d)' % MAX_CALL_DEPTH)
+            'Report template infinite recursion (depth %d)' % MAX_CALL_DEPTH
+        )
     key = node.get('key')
     if not key:
         raise InvalidReportTemplate(
-            _("Element <call> without 'key' in report template"))
+            _("Element <call> without 'key' in report template")
+        )
     if resolve_key is None:
         raise InvalidReportTemplate(
-            _("Element <call key=%r> needs a resolve_key to resolve it") % key)
+            _("Element <call key=%r> needs a resolve_key to resolve it") % key
+        )
     called = resolve_key(key)
     if called is None:
         raise InvalidReportTemplate(
-            _("Report template %r called by <call> does not exist") % key)
+            _("Report template %r called by <call> does not exist") % key
+        )
     if called.tag != 'descriptor':
         raise InvalidReportTemplate(
-            _("Report template %r called by <call> is not a <descriptor>") % key)
-    result.update(_interpret_children(called, context, resolve_key, depth + 1,
-                                      widget_options))
+            _("Report template %r called by <call> is not a <descriptor>")
+            % key
+        )
+    result.update(
+        _interpret_children(
+            called, context, resolve_key, depth + 1, widget_options
+        )
+    )
 
 
 def interpret_descriptor(arch, context, resolve_key=None, widget_options=None):
@@ -367,9 +393,11 @@ def interpret_descriptor(arch, context, resolve_key=None, widget_options=None):
     """
     if arch.tag != 'descriptor':
         raise InvalidReportTemplate(
-            _("Report template root must be <descriptor>, got <%s>") % arch.tag)
-    return _interpret_children(arch, context, resolve_key,
-                               widget_options=widget_options)
+            _("Report template root must be <descriptor>, got <%s>") % arch.tag
+        )
+    return _interpret_children(
+        arch, context, resolve_key, widget_options=widget_options
+    )
 
 
 # --- Serializadores del descriptor -----------------------------------------
@@ -415,7 +443,9 @@ def _html_block(body, level=1):
     for name, value in body.items():
         attribute = escape(name)
         if isinstance(value, dict):
-            parts.append(f'{indent}<div class="section" data-name="{attribute}">')
+            parts.append(
+                f'{indent}<div class="section" data-name="{attribute}">'
+            )
             parts.append(_html_block(value, level + 1))
             parts.append(f'{indent}</div>')
         elif isinstance(value, list):
@@ -432,13 +462,16 @@ def _html_block(body, level=1):
             # volver a escaparlo publicaría ``&lt;img …&gt;`` en el papel. El
             # de un ``<field>`` sin widget sale de DTL con ``autoescape=False``
             # y sí hay que escaparlo.
-            parts.append(f'{indent}<div class="field" data-name="{attribute}">'
-                          f'{conditional_escape(value)}</div>')
+            parts.append(
+                f'{indent}<div class="field" data-name="{attribute}">'
+                f'{conditional_escape(value)}</div>'
+            )
     return '\n'.join(parts)
 
 
 def descriptor_to_html(rendered, model=None):
-    """El descriptor como documento HTML — lo que ``report_type='html'`` promete.
+    """
+    El descriptor como documento HTML — lo que ``report_type='html'`` promete.
 
     :param rendered: el intermedio de ``_render_template``, o un descriptor.
     :param model: el modelo del reporte, para ``data-oe-model``.
@@ -454,7 +487,9 @@ def descriptor_to_html(rendered, model=None):
     model_attribute = f' data-oe-model="{escape(model)}"' if model else ''
     parts = ['<html><body>']
     for body, res_id in zip(bodies, ids):
-        id_attribute = '' if res_id is None else f' data-oe-id="{escape(res_id)}"'
+        id_attribute = (
+            '' if res_id is None else f' data-oe-id="{escape(res_id)}"'
+        )
         parts.append(f'<div class="article"{model_attribute}{id_attribute}>')
         bloque = _html_block(body)
         if bloque:
@@ -498,7 +533,8 @@ def descriptor_to_text(rendered):
     *Ciega a:* el valor que un conversor marcó como seguro llega aquí con sus
     etiquetas — ``ir.qweb.field.html`` devuelve marcado por contrato, y en
     texto plano eso se lee tal cual. Despojarlo exige decidir qué se pierde
-    (un ``<br>`` es un salto de línea; un ``<img>`` no tiene equivalente), y esa
+    (un ``<br>`` es un salto de línea; un ``<img>`` no tiene equivalente), y
+    esa
     decisión es del declarante que pida el formato, no de este serializador.
     """
     bodies, ids = _bodies_and_ids(rendered)
@@ -533,7 +569,8 @@ class UnknownImageFormat(Exception):
 
 
 def descriptor_to_image(rendered, width, height, image_format='jpg'):
-    """El descriptor como imagen raster — lo que ``_run_wkhtmltoimage`` entrega.
+    """
+    El descriptor como imagen raster — lo que ``_run_wkhtmltoimage`` entrega.
 
     :param rendered: el intermedio de ``_render_template``, o un descriptor.
     :param width: ancho en píxeles.
@@ -566,8 +603,12 @@ def descriptor_to_image(rendered, width, height, image_format='jpg'):
     pillow_format = IMAGE_FORMATS.get(str(image_format).lower())
     if pillow_format is None:
         raise UnknownImageFormat(
-            _("Unknown image format %(asked)s; expected one of %(known)s") % {
-                'asked': image_format, 'known': ', '.join(sorted(IMAGE_FORMATS))})
+            _("Unknown image format %(asked)s; expected one of %(known)s")
+            % {
+                'asked': image_format,
+                'known': ', '.join(sorted(IMAGE_FORMATS)),
+            }
+        )
 
     bodies, ids = _bodies_and_ids(rendered)
     lines = []
@@ -576,7 +617,9 @@ def descriptor_to_image(rendered, width, height, image_format='jpg'):
             lines.append(f'--- {res_id} ---')
         lines.extend(_text_block(body))
 
-    canvas = Image.new('RGB', (max(1, int(width)), max(1, int(height))), 'white')
+    canvas = Image.new(
+        'RGB', (max(1, int(width)), max(1, int(height))), 'white'
+    )
     draw = ImageDraw.Draw(canvas)
     font = ImageFont.load_default(size=IMAGE_FONT_SIZE)
     top = IMAGE_MARGIN

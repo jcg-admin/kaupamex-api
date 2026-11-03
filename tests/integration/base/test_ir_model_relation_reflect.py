@@ -1,4 +1,5 @@
-"""Tests — el registro de tablas intermedias de Many2many (``ir.model.relation``).
+"""
+Tests — el registro de tablas intermedias de Many2many (``ir.model.relation``).
 
 Contrato adaptado de ``odoo19c: odoo/addons/base/models/ir_model.py:2051-2069``
 (``_reflect_relation``) y ``:2022-2049`` (``_module_data_uninstall``).
@@ -33,6 +34,7 @@ Qué haría fallar a cada control
     mirar quién más declara el mismo nombre de tabla — que es el caso que la
     fuente comenta expresamente.
 """
+
 import pytest
 
 from addons.base.models.ir_model import IrModel, IrModelRelation
@@ -48,7 +50,8 @@ TABLE = 'res_device_log_prueba_rel'
 
 def _module(name):
     row, _ = IrModule.objects.get_or_create(
-        name=name, defaults={'shortdesc': name, 'state': 'installed'})
+        name=name, defaults={'shortdesc': name, 'state': 'installed'}
+    )
     return row
 
 
@@ -61,7 +64,8 @@ def _reflected_model():
     """
     row, _ = IrModel.objects.get_or_create(
         model=ResDeviceLog._meta.label,
-        defaults={'name': 'Registro de dispositivo'})
+        defaults={'name': 'Registro de dispositivo'},
+    )
     return row
 
 
@@ -72,7 +76,8 @@ class TestReflectRelation:
         _module('prueba_rel_a')
         _reflected_model()
         row = IrModelRelation._reflect_relation(
-            ResDeviceLog, TABLE, 'prueba_rel_a')
+            ResDeviceLog, TABLE, 'prueba_rel_a'
+        )
         assert row.name == TABLE
         assert row.module.name == 'prueba_rel_a'
         assert row.model.model == ResDeviceLog._meta.label
@@ -81,23 +86,27 @@ class TestReflectRelation:
         _module('prueba_rel_b')
         _reflected_model()
         first = IrModelRelation._reflect_relation(
-            ResDeviceLog, TABLE, 'prueba_rel_b')
+            ResDeviceLog, TABLE, 'prueba_rel_b'
+        )
         second = IrModelRelation._reflect_relation(
-            ResDeviceLog, TABLE, 'prueba_rel_b')
+            ResDeviceLog, TABLE, 'prueba_rel_b'
+        )
         assert first.pk == second.pk
         assert IrModelRelation.objects.filter(name=TABLE).count() == 1
 
     def test_an_unknown_module_is_refused_by_name(self, db):
         with pytest.raises(ValueError, match='prueba_rel_inexistente'):
             IrModelRelation._reflect_relation(
-                ResDeviceLog, TABLE, 'prueba_rel_inexistente')
+                ResDeviceLog, TABLE, 'prueba_rel_inexistente'
+            )
 
     def test_an_unregistered_model_is_refused_by_name(self, db):
         _module('prueba_rel_c')
         IrModel.objects.filter(model=ResDeviceLog._meta.label).delete()
         with pytest.raises(ValueError, match=ResDeviceLog._meta.label):
             IrModelRelation._reflect_relation(
-                ResDeviceLog, TABLE, 'prueba_rel_c')
+                ResDeviceLog, TABLE, 'prueba_rel_c'
+            )
 
 
 class TestModuleDataUninstall:
@@ -112,7 +121,8 @@ class TestModuleDataUninstall:
         _reflected_model()
         with sudo():
             IrModelRelation._reflect_relation(
-                ResDeviceLog, TABLE, 'prueba_rel_d')
+                ResDeviceLog, TABLE, 'prueba_rel_d'
+            )
             dropped = IrModelRelation._module_data_uninstall([module])
         assert dropped == [TABLE]
         assert not IrModelRelation.objects.filter(name=TABLE).exists()
@@ -123,9 +133,11 @@ class TestModuleDataUninstall:
         _reflected_model()
         with sudo():
             IrModelRelation._reflect_relation(
-                ResDeviceLog, TABLE, 'prueba_rel_e')
+                ResDeviceLog, TABLE, 'prueba_rel_e'
+            )
             IrModelRelation._reflect_relation(
-                ResDeviceLog, TABLE, 'prueba_rel_f')
+                ResDeviceLog, TABLE, 'prueba_rel_f'
+            )
             dropped = IrModelRelation._module_data_uninstall([mine])
         assert dropped == []
         assert IrModelRelation.objects.filter(name=TABLE).count() == 2

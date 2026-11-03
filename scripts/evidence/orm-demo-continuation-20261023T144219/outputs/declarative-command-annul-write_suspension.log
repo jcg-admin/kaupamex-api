@@ -1,0 +1,74 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........F....................                                            [100%]
+=================================== FAILURES ===================================
+______________________________ test_company_write ______________________________
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.13/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'company'
+
+During handling of the above exception, another exception occurred:
+tests/integration/test_orm/test_company_checks.py:143: in test_company_write
+    child.write({
+src/orm/models.py:2489: in write
+    setattr(self, fname, value)
+src/orm/models.py:4697: in __setattr__
+    super().__setattr__(name, value)
+src/orm/fields.py:2040: in __set__
+    instance._check_company([self.field.name])
+src/orm/models.py:1295: in _check_company
+    companies = [getattr(self, own_name, None)]
+.venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py:244: in __get__
+    has_value = None not in self.field.get_local_related_value(instance)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:808: in get_local_related_value
+    return self.get_instance_value_for_fields(instance, self.local_related_fields)
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:830: in get_instance_value_for_fields
+    ret.append(getattr(instance, field.attname))
+src/orm/fields.py:2017: in __get__
+    return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
+.venv/lib/python3.13/site-packages/django/db/models/query_utils.py:271: in __get__
+    instance.refresh_from_db(fields=[field_name])
+.venv/lib/python3.13/site-packages/django/db/models/base.py:765: in refresh_from_db
+    setattr(self, field.attname, getattr(db_instance, field.attname))
+src/orm/models.py:4697: in __setattr__
+    super().__setattr__(name, value)
+src/orm/fields.py:2040: in __set__
+    instance._check_company([self.field.name])
+src/orm/models.py:1317: in _check_company
+    raise UserError(self._company_inconsistency_message(inconsistencies))
+E   exceptions.UserError: Hay incoherencias de empresa:
+E   - «test_orm.model_child(128,)» pertenece a una empresa y «parent» (test_orm.model_parent(465,)) pertenece a otra.
+E   - «test_orm.model_child(128,)» pertenece a una empresa y «parent_ids» (test_orm.model_parent(465,)) pertenece a otra.
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_company_checks.py::test_company_write
+1 failed, 28 passed, 8 warnings in 10.43s

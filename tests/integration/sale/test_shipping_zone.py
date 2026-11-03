@@ -1,4 +1,6 @@
-"""Tests — la zona de envío ya no bloquea el checkout: retirado, sin endpoint HTTP.
+"""
+Tests — la zona de envío ya no bloquea el checkout: retirado, sin endpoint
+HTTP.
 
 Ejercía ``POST /api/v2/orders/`` (checkout) tras poblar el carrito con
 ``POST /api/v2/cart/items/``. Ninguna ruta existe — ver ``test_checkout.py``

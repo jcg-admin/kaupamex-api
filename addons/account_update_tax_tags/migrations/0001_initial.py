@@ -28,8 +28,10 @@ class Migration(migrations.Migration):
                 (
                     "line",
                     models.ForeignKey(
-                        help_text="Apunte base sobre el que se aplica el impuesto "
-                        "(≙ Odoo account.move.line.tax_ids, lado línea).",
+                        help_text=(
+                            "Apunte base sobre el que se aplica el impuesto "
+                            "(≙ Odoo account.move.line.tax_ids, lado línea)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="update_tax_tags_applied_taxes",
                         to="account.accountmoveline",
@@ -38,8 +40,10 @@ class Migration(migrations.Migration):
                 (
                     "tax",
                     models.ForeignKey(
-                        help_text="Impuesto aplicado a la línea (≙ Odoo tax_ids, "
-                        "lado impuesto).",
+                        help_text=(
+                            "Impuesto aplicado a la línea (≙ Odoo tax_ids, "
+                            "lado impuesto)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="update_tax_tags_move_lines",
                         to="account.accounttax",
@@ -47,8 +51,12 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "Impuesto aplicado a un apunte (puente tax_ids)",
-                "verbose_name_plural": "Impuestos aplicados a apuntes (puente tax_ids)",
+                "verbose_name": (
+                    "Impuesto aplicado a un apunte (puente tax_ids)"
+                ),
+                "verbose_name_plural": (
+                    "Impuestos aplicados a apuntes (puente tax_ids)"
+                ),
                 "db_table": "account_update_tax_tags_aml_tax_rel",
             },
         ),
@@ -67,8 +75,11 @@ class Migration(migrations.Migration):
                 (
                     "line",
                     models.OneToOneField(
-                        help_text="El apunte de impuesto mismo (≙ Odoo "
-                        "tax_repartition_line_id, leído desde el lado del apunte).",
+                        help_text=(
+                            "El apunte de impuesto mismo (≙ Odoo"
+                            " tax_repartition_line_id, leído desde el lado del"
+                            " apunte)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="update_tax_tags_repartition",
                         to="account.accountmoveline",
@@ -77,8 +88,11 @@ class Migration(migrations.Migration):
                 (
                     "repartition_line",
                     models.ForeignKey(
-                        help_text="Línea de reparto que generó este apunte de "
-                        "impuesto (≙ Odoo tax_repartition_line_id, lado reparto).",
+                        help_text=(
+                            "Línea de reparto que generó este apunte de"
+                            " impuesto (≙ Odoo tax_repartition_line_id, lado"
+                            " reparto)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="update_tax_tags_originated_lines",
                         to="account.accounttaxrepartitionline",
@@ -86,10 +100,14 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "Reparto que originó un apunte (puente "
-                "tax_repartition_line_id)",
-                "verbose_name_plural": "Repartos que originaron apuntes (puente "
-                "tax_repartition_line_id)",
+                "verbose_name": (
+                    "Reparto que originó un apunte (puente "
+                    "tax_repartition_line_id)"
+                ),
+                "verbose_name_plural": (
+                    "Repartos que originaron apuntes (puente "
+                    "tax_repartition_line_id)"
+                ),
                 "db_table": "account_update_tax_tags_aml_tax_repartition",
             },
         ),
@@ -108,8 +126,10 @@ class Migration(migrations.Migration):
                 (
                     "line",
                     models.ForeignKey(
-                        help_text="Apunte que lleva la casilla (≙ Odoo "
-                        "tax_tag_ids, lado línea).",
+                        help_text=(
+                            "Apunte que lleva la casilla (≙ Odoo "
+                            "tax_tag_ids, lado línea)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="update_tax_tags_tags",
                         to="account.accountmoveline",
@@ -118,8 +138,10 @@ class Migration(migrations.Migration):
                 (
                     "tag",
                     models.ForeignKey(
-                        help_text="Casilla fiscal vigente en el apunte (≙ Odoo "
-                        "tax_tag_ids, lado casilla).",
+                        help_text=(
+                            "Casilla fiscal vigente en el apunte (≙ Odoo "
+                            "tax_tag_ids, lado casilla)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="update_tax_tags_move_lines",
                         to="account.accountaccounttag",
@@ -127,23 +149,28 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "Casilla fiscal vigente de un apunte (puente "
-                "tax_tag_ids)",
-                "verbose_name_plural": "Casillas fiscales vigentes de apuntes "
-                "(puente tax_tag_ids)",
+                "verbose_name": (
+                    "Casilla fiscal vigente de un apunte (puente tax_tag_ids)"
+                ),
+                "verbose_name_plural": (
+                    "Casillas fiscales vigentes de apuntes "
+                    "(puente tax_tag_ids)"
+                ),
                 "db_table": "account_update_tax_tags_aml_tag_rel",
             },
         ),
         migrations.AddConstraint(
             model_name="accountmovelinetax",
             constraint=models.UniqueConstraint(
-                fields=("line", "tax"), name="account_update_tax_tags_aml_tax_uniq"
+                fields=("line", "tax"),
+                name="account_update_tax_tags_aml_tax_uniq",
             ),
         ),
         migrations.AddConstraint(
             model_name="accountmovelinetag",
             constraint=models.UniqueConstraint(
-                fields=("line", "tag"), name="account_update_tax_tags_aml_tag_uniq"
+                fields=("line", "tag"),
+                name="account_update_tax_tags_aml_tag_uniq",
             ),
         ),
     ]

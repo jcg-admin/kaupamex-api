@@ -17,14 +17,17 @@ objeto que declare ``contribute_to_class`` y pasa solo ``new_attrs`` a
 ``super_new`` (``django/db/models/base.py:116-122``); el campo nunca entra al
 espacio de nombres que ``type.__new__`` recibe, asi que Python jamas ejecuta el
 protocolo ``__set_name__`` sobre el. Django se lo entrega despues con
-``add_to_class`` (``:212``) -> ``contribute_to_class``. Portar el cuerpo bajo el
+``add_to_class`` (``:212``) -> ``contribute_to_class``. Portar el cuerpo bajo
+el
 nombre de la fuente seria codigo que nunca corre; va al enganche equivalente
 vivo, y la divergencia queda declarada en ``orm/fields.py``.
 
 **El sustrato ``_args__``.** La fuente lee ``self._args__`` —los parametros que
-``__init__`` recibio— para distinguir *"lo declaro el autor"* de *"es el defecto
+``__init__`` recibio— para distinguir *"lo declaro el autor"* de *"es el
+defecto
 de la clase"*, que es lo unico que permite rellenar solo lo no declarado. Aqui
-figuraba como default de clase con valor ``None`` y **cero sitios lo poblaban**;
+figuraba como default de clase con valor ``None`` y **cero sitios lo
+poblaban**;
 esta pieza lo puebla en el envoltorio de ``__init__``.
 
 **Los dos controles, y lo que cada uno NO ve.** Son distintos y hacen falta
@@ -39,6 +42,7 @@ los dos:
   lo declarado sobrevive trivialmente y el caso pasa. Eso no lo invalida;
   mide otro defecto, y esta escrito para que nadie lo lea como el primero.
 """
+
 import warnings
 
 import pytest
@@ -111,15 +115,17 @@ class TestCompanyDependentDerivations:
     def test_an_explicit_index_survives_the_company_derivation(self):
         """EL CONTROL DE LA DERIVACION: la fuente escribe ``attrs.get(...)``,
         no una asignacion — lo declarado gana."""
-        field = models.CharField(max_length=8, company_dependent=True,
-                                 index='btree')
+        field = models.CharField(
+            max_length=8, company_dependent=True, index='btree'
+        )
         field._setup_attrs__(_Owner, 'x')
 
         assert field.index == 'btree'
 
     def test_an_explicit_copy_survives_the_company_derivation(self):
-        field = models.CharField(max_length=8, company_dependent=True,
-                                 copy=True)
+        field = models.CharField(
+            max_length=8, company_dependent=True, copy=True
+        )
         field._setup_attrs__(_Owner, 'x')
 
         assert field.copy is True
@@ -172,7 +178,9 @@ class TestDependsRenaming:
 
 
 class TestGroupOperatorDeprecation:
-    """``:486-488`` — ``group_operator`` se renombra a ``aggregator`` y avisa."""
+    """
+    ``:486-488`` — ``group_operator`` se renombra a ``aggregator`` y avisa.
+    """
 
     def test_it_becomes_aggregator(self):
         field = models.CharField(max_length=8, group_operator='sum')
@@ -215,5 +223,7 @@ class TestOwnerIdentity:
         assert field.name == 'x'
 
     def test_a_field_of_the_tree_knows_its_model(self, partner_model):
-        assert model_field_registry(partner_model)['name'].model_name == \
-            'res.partner'
+        assert (
+            model_field_registry(partner_model)['name'].model_name
+            == 'res.partner'
+        )

@@ -1,0 +1,103 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "actual_branch": "feature/codex-workspace-bootstrap",
+  "interfaces": [
+    {
+      "path": "src/session/task_continuation.py",
+      "observed_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "prior_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/continuation_frontier.py",
+      "observed_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "prior_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/node_next_task.py",
+      "observed_blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "prior_blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/claim_fold.py",
+      "observed_blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "prior_blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/in_flight.py",
+      "observed_blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "prior_blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "unchanged": true
+    },
+    {
+      "path": "src/task/task_source.py",
+      "observed_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "prior_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "unchanged": true
+    },
+    {
+      "path": "src/task/implementation_order.py",
+      "observed_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "prior_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/local_plan.py",
+      "observed_blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "prior_blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/resource_admission.py",
+      "observed_blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "prior_blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/model_coordinator.sh",
+      "observed_blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "prior_blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/pool_integrate.sh",
+      "observed_blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "prior_blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "unchanged": true
+    },
+    {
+      "path": "src/packages/tools/src/tasks.ts",
+      "observed_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "prior_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "unchanged": true
+    },
+    {
+      "path": "src/packages/observability/src/store.ts",
+      "observed_blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "prior_blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "unchanged": true
+    }
+  ],
+  "runtime": {
+    "bun": "1.4.0",
+    "python": "Python 3.12.14"
+  },
+  "command": "git hash-object <each existing13interface path>; prior exact blobs compared; native TaskGet/claims/node_frontier calls separately recorded",
+  "selection_claims_task_read": "available_bounded_verified",
+  "population_coverage": "not_qualified: task_source owner/dependency loss; foreign claimed generic sources unchanged",
+  "managed_execution": "not_invoked_not_qualified; no qualified local artifact/template/tool/resource proof or selected-executed-verified-integrated cycle asserted",
+  "provider_edits": false,
+  "official_states_changed": false,
+  "current_gate_contract_key_qualification": {
+    "interface": "src/verify/check_identifier_language.py::canon_keys / IDENTIFIER_LANGUAGE_CANON_KEYS",
+    "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "command": "IDENTIFIER_LANGUAGE_CANON_KEYS=codigo_error ... git commit -F /tmp/catalogue-commit.txt; normal Consumer hook delegates to Provider interpreter",
+    "result": "PASS: 5 files measured, 3531 inherited baseline; commit5a84f1ff created; initial invocation without Consumer contract key exited1",
+    "failure_classification": "Consumer configuration missing; existing generic implementation available and functioning",
+    "evidence": "technical-catalogue-commit.log and technical-catalogue-contract-14.json",
+    "limits": "Not local-model qualification or autonomous execution/integration"
+  }
+}

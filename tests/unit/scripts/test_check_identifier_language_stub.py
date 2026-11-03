@@ -1,9 +1,12 @@
-"""El puente que delega en THYROX, medido — no el mecanismo, que ya no vive aquí.
+"""
+El puente que delega en THYROX, medido — no el mecanismo, que ya no vive aquí.
 
 Cierra el hueco que dejó mudar `check_identifier_language.py` a THYROX
-(DEC-04, actualizar-agentic-ai-thyrox): retirar `test_check_identifier_language.py`
+(DEC-04, actualizar-agentic-ai-thyrox): retirar
+`test_check_identifier_language.py`
 y `test_identifier_language_corpus.py` sin dejar nada en su lugar habría sido
-una PÉRDIDA de cobertura por ausencia, no una declaración — y el mecanismo (AST,
+una PÉRDIDA de cobertura por ausencia, no una declaración — y el mecanismo
+(AST,
 léxico, corpus) es ahora responsabilidad de la suite de thyrox
 (`thyrox: tests/gates/test_identifier_language*.py`), no de esta.
 
@@ -17,14 +20,12 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-
 import pytest
+import check_identifier_language as stub
+
 
 SCRIPTS = Path(__file__).resolve().parents[3] / 'scripts'
 STUB = SCRIPTS / 'check_identifier_language.py'
-sys.path.insert(0, str(SCRIPTS))
-
-import check_identifier_language as stub  # noqa: E402
 
 
 class TestStubResolvesTheProvider:
@@ -41,14 +42,18 @@ class TestStubResolvesTheProvider:
     def test_a_declared_thyrox_root_wins(self, tmp_path, monkeypatch):
         """La variable declarada gana sobre el hermano — mismo criterio que
         el resto del multi-repo (`THYROX_ROOT` en `lint_agents.py`)."""
-        fake_gate = tmp_path / 'src' / 'verify' / 'check_identifier_language.py'
+        fake_gate = (
+            tmp_path / 'src' / 'verify' / 'check_identifier_language.py'
+        )
         fake_gate.parent.mkdir(parents=True)
         fake_gate.write_text('# stand-in\n')
         monkeypatch.setenv('THYROX_ROOT', str(tmp_path))
         assert stub.thyrox_gate() == fake_gate
 
     def test_without_thyrox_it_refuses_with_2(self, monkeypatch):
-        """Sin proveedor alcanzable, NO se emite veredicto — exit 2, sin cifra."""
+        """
+        Sin proveedor alcanzable, NO se emite veredicto — exit 2, sin cifra.
+        """
         monkeypatch.setattr(stub, 'thyrox_gate', lambda: None)
         assert stub.main(['check_identifier_language.py']) == 2
 
@@ -67,7 +72,8 @@ class TestStubResolvesTheProvider:
         equivocada (el hermano), no porque la guarda de rehúse funcione."""
         assert stub.thyrox_gate() is not None, (
             'el hermano tiene que existir para que este test discrimine — '
-            'si no hay hermano, un `is None` sería un false-positive del fix')
+            'si no hay hermano, un `is None` sería un false-positive del fix'
+        )
         monkeypatch.setenv('THYROX_ROOT', '/no/existe/thyrox-root-inexistente')
         assert stub.thyrox_gate() is None
 
@@ -78,8 +84,12 @@ class TestStubPropagatesThisTreesBaseline:
     def _run(self, *args, env=None):
         e = dict(os.environ)
         e.update(env or {})
-        return subprocess.run([sys.executable, str(STUB), *args],
-                               capture_output=True, text=True, env=e)
+        return subprocess.run(
+            [sys.executable, str(STUB), *args],
+            capture_output=True,
+            text=True,
+            env=e,
+        )
 
     def test_an_english_only_file_passes(self, tmp_path):
         target = tmp_path / 'clean.py'
@@ -95,15 +105,19 @@ class TestStubPropagatesThisTreesBaseline:
         assert done.returncode == 1
         assert 'hallazgo_nuevo' in done.stdout
 
-    def test_an_explicit_baseline_override_wins_over_the_default(self, tmp_path):
+    def test_an_explicit_baseline_override_wins_over_the_default(
+        self, tmp_path
+    ):
         """`setdefault`: quien invoca puede declarar OTRO baseline — p. ej.
-        para medir un archivo aislado sin la deuda heredada real de por medio."""
+        para medir un archivo aislado sin la deuda heredada real de por medio.
+        """
         target = tmp_path / 'dirty.py'
         target.write_text('def hallazgo_nuevo():\n    return 1\n')
         baseline = tmp_path / 'baseline.txt'
         baseline.write_text(f'{target}::hallazgo_nuevo\n')
-        done = self._run(str(target),
-                          env={'IDENTIFIER_LANGUAGE_BASELINE': str(baseline)})
+        done = self._run(
+            str(target), env={'IDENTIFIER_LANGUAGE_BASELINE': str(baseline)}
+        )
         assert done.returncode == 0, done.stdout + done.stderr
 
 

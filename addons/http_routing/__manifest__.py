@@ -1,7 +1,8 @@
 # Adaptado de Odoo Community `http_routing/__manifest__.py` (LGPL-3) —
 # atribución y aviso de licencia preservados (DEC-KX-03). La licencia se leyó
 # del manifest de la fuente, no de la reputación del árbol:
-#   grep -oP "'license'\s*:\s*'\K[^']+" $ODOO19C/addons/http_routing/__manifest__.py
+# grep -oP "'license'\s*:\s*'\K[^']+"
+# $ODOO19C/addons/http_routing/__manifest__.py
 #   -> LGPL-3
 # Mecanismo que esa licencia habilita: copia + adaptación con atribución.
 {
@@ -20,7 +21,7 @@
     # `keep_query`.
     'depends': [
         'base',  # IrHttp, ResLang, IrDefault, IrTemplateExpressions, keep_query
-        'web',   # IrHttp.is_a_bot — la rama /3 de `_match`
+        'web',  # IrHttp.is_a_bot — la rama /3 de `_match`
     ],
     'license': 'LGPL-3',
     'application': False,

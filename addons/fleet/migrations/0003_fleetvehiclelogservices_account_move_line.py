@@ -17,7 +17,12 @@ class Migration(migrations.Migration):
             name="account_move_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Línea de factura de proveedor que originó este servicio (Odoo account_move_line_id, one2one). ``unique=True`` porque una línea genera a lo sumo un servicio (idempotencia verificada antes de crear).",
+                help_text=(
+                    "Línea de factura de proveedor que originó este servicio"
+                    " (Odoo account_move_line_id, one2one). ``unique=True``"
+                    " porque una línea genera a lo sumo un servicio"
+                    " (idempotencia verificada antes de crear)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="vehicle_log_services",

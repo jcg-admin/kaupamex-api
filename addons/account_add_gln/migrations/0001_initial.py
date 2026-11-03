@@ -30,7 +30,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Global Location Number (Odoo global_location_number).",
+                        help_text=(
+                            "Global Location Number (Odoo"
+                            " global_location_number)."
+                        ),
                         max_length=255,
                         verbose_name="GLN",
                     ),
@@ -38,7 +41,10 @@ class Migration(migrations.Migration):
                 (
                     "partner",
                     models.OneToOneField(
-                        help_text="Partner al que pertenece (Odoo _inherit res.partner).",
+                        help_text=(
+                            "Partner al que pertenece (Odoo _inherit"
+                            " res.partner)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="gln",
                         to="base.respartner",

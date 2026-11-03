@@ -1,0 +1,60 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.demo_contract_qualification",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify selected-alias initialized registry resolution, elevation/context/savepoint and complete failure persistence before demo execution",
+      "verify": "Existing Environment and demo models; current class-only probe is insufficient, optional failure behavior must match pinned source",
+      "route": "local",
+      "mutates": false,
+      "owned": [],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.demo_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Use existing data stage and native Django transaction after actual demo contracts are qualified",
+      "verify": "Real PG rollback/elevation/restoration and failure reporting; never infer whole loader acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0382.demo_contract_qualification"
+      ]
+    }
+  ],
+  "selected": [
+    "TASK-API-0382.demo_contract_qualification"
+  ],
+  "states": {},
+  "acceptance": "No unit marked accepted to unlock another; no TASK state change",
+  "scope": "Bounded existing0382 continuation, not whole-goal enumeration. No claim that no other independent work exists.",
+  "remaining_contracts": [
+    "Per-base effective registry and module loader lifecycle",
+    "Installed-version/state finalization after schema/data/hooks",
+    "Productive contenttypes placement and existing automation alias ownership/admission",
+    "Company bootstrap website_sale default metadata alias and complete migration",
+    "Demo contract qualification and execution",
+    "Existing skipped fixtures, independent review/CI/integration"
+  ],
+  "available_resources": "Own PostgreSQL harness available; owned resources cleaned; no active process. No qualified local-model dispatch.",
+  "blocked_tasks": {
+    "TASK-API-0383": "Full acceptance blocked by measured policy/alias consumer defects; legacy skipped cases pending",
+    "TASK-API-0417": "Native in_progress owner null, no admission; baseline display_name related ownership not exclusive by assumption",
+    "whole_goal_provider_route": "Existing1111/1072 capability limits/foreign claims retained; no alternate planner created"
+  },
+  "native_identity": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737/TASK-API-0382",
+  "evidence": "outputs/demo-runtime-dependencies.json; existing loading-contract-reconciliation.json",
+  "selected_unit_observation": {
+    "unit": "TASK-API-0382.demo_contract_qualification",
+    "exit_code": 0,
+    "evidence": "outputs/demo-initialized-qualification.json",
+    "result": "Partial dependency qualification: initialized registry canonical key fails but Django-label lookup succeeds; real PG rollback and active context/elevation restoration pass",
+    "acceptance": "not_verified: real failure record creation, long errors, optional todo resolution and company/automation alias integration remain. Not marked accepted; demo_execution stays dependent."
+  }
+}

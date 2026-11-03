@@ -38,6 +38,7 @@ Divergencias declaradas
    ``_get_alias_contact_description``; si algún día el addon ``mail`` lo
    porta, la cadena lo preserva sin tocar este archivo.
 """
+
 from orm.model_classes import extend_model
 from tools.translate import _
 
@@ -47,7 +48,8 @@ ALIAS_CONTACT_EMPLOYEES = 'employees'
 
 def _get_alias_contact_description(self):
     """Descripción legible de la política del alias — ≙
-    ``_get_alias_contact_description`` (``odoo19c: hr/models/mail_alias.py:14-17``).
+    ``_get_alias_contact_description`` (``odoo19c:
+    hr/models/mail_alias.py:14-17``).
 
     Devuelve ``None`` para cualquier otra política: es el relevo de
     ``chain_method`` hacia la implementación que ``mail`` instale (el
@@ -60,6 +62,10 @@ def _get_alias_contact_description(self):
 
 def apply_hr_mail_alias_extensions():
     """Cuelga sobre ``mail.alias`` lo que ``hr`` le añade — ≙ ``_inherit``."""
-    extend_model('mail', 'MailAlias', metodos={
-        '_get_alias_contact_description': _get_alias_contact_description,
-    })
+    extend_model(
+        'mail',
+        'MailAlias',
+        metodos={
+            '_get_alias_contact_description': _get_alias_contact_description,
+        },
+    )

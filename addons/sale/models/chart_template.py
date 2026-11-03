@@ -35,6 +35,7 @@ real**, que es lo que su consumidor busca en ``_meta``; escribir el de la
 fuente haría que la guarda lo descartara en silencio y la entrada no sembraría
 nada, que es la forma de :ref:`h-api-346`.
 """
+
 from addons.account.models.chart_template import property_accounts_override
 
 
@@ -43,7 +44,8 @@ def add_downpayment_account(chart_template_cls, property_accounts):
     """La cuenta de anticipo pertenece a la empresa — ≙ ``:7-10``.
 
     ``chart_template_cls`` es la clase del cargador, ≙ el ``self`` del
-    ``AbstractModel`` de la fuente: llega por si un ajuste necesita consultarla,
+    ``AbstractModel`` de la fuente: llega por si un ajuste necesita
+    consultarla,
     igual que los ajustes de ``ACCOUNTS_DATA_OVERRIDES``.
     """
     property_accounts['downpayment_account'] = 'res.company'

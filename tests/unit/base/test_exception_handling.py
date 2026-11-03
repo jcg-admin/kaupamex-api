@@ -29,6 +29,7 @@ defecto global: los otros catorce loggers apagados seguían mudos y nadie los
 reabría. Estos tres casos son ahora el **control positivo** de que el árbol
 está vivo: si alguien revierte la clave, fallan aquí.
 """
+
 import logging
 from unittest import mock
 
@@ -66,13 +67,14 @@ def test_delegates_to_drf_and_logs_the_error(caplog):
     with caplog.at_level(logging.WARNING, logger=LOGGER):
         resp = custom_exception_handler(exc, ctx)
 
-    # Cuerpo cliente intacto: es la respuesta 400 del handler por defecto de DRF.
+    # Cuerpo cliente intacto: es la respuesta 400 del handler por
+    # defecto de DRF.
     assert resp is not None
     assert resp.status_code == 400
 
     registro = caplog.records[-1]
-    assert registro.levelno == logging.WARNING     # 4xx no es fallo del servidor
-    assert registro.exc_info is None               # ...y su pila no aporta
+    assert registro.levelno == logging.WARNING  # 4xx no es fallo del servidor
+    assert registro.exc_info is None  # ...y su pila no aporta
     assert 'ValidationError' in registro.getMessage()
     assert '/x' in registro.getMessage()
     assert 'hunter2' not in registro.getMessage()  # redactado en el origen
@@ -83,12 +85,13 @@ def test_server_error_is_error_level_with_traceback(caplog):
 
     with caplog.at_level(logging.WARNING, logger=LOGGER):
         resp = custom_exception_handler(
-            exc, {'request': APIRequestFactory().get('/x')})
+            exc, {'request': APIRequestFactory().get('/x')}
+        )
 
     assert resp.status_code == 500
     registro = caplog.records[-1]
     assert registro.levelno == logging.ERROR
-    assert registro.exc_info is not None           # 500 sí lleva traceback
+    assert registro.exc_info is not None  # 500 sí lleva traceback
     assert 'tok_live_51H' not in registro.getMessage()
 
 
@@ -99,7 +102,8 @@ def test_non_blocking_on_logging_failure():
         side_effect=RuntimeError('canal roto'),
     ):
         resp = custom_exception_handler(
-            exc, {'request': APIRequestFactory().get('/x')})
+            exc, {'request': APIRequestFactory().get('/x')}
+        )
 
     # La respuesta de DRF se devuelve intacta pese al fallo de la emisión.
     assert resp is not None
@@ -111,7 +115,8 @@ def test_error_lands_in_ir_logging_through_the_db_handler():
     """El extremo del canal: el registro emitido acaba en ``ir.logging``.
 
     Se enchufa el handler a mano porque ``testing.py`` deja el árbol de logging
-    en ``NullHandler``; en producción lo enchufa ``LOGGING['loggers']['django']``.
+    en ``NullHandler``; en producción lo enchufa
+    ``LOGGING['loggers']['django']``.
     """
     cid = new_correlation_id()
     handler = DatabaseLogHandler()
@@ -122,7 +127,11 @@ def test_error_lands_in_ir_logging_through_the_db_handler():
     try:
         custom_exception_handler(
             exceptions.NotFound('sin producto'),
-            {'request': APIRequestFactory().get('/api/v2/catalogue/products/9')},
+            {
+                'request': (
+                    APIRequestFactory().get('/api/v2/catalogue/products/9')
+                )
+            },
         )
     finally:
         logger.removeHandler(handler)

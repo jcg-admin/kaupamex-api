@@ -12,13 +12,16 @@ Uso::
 
 Con un solo argumento imprime el inventario de la fuente sin comparar.
 """
+
 import ast
 import pathlib
 import sys
 
 
 def inventory(path):
-    """Devuelve ``{clase: {'metodos': [...], 'campos': [...], 'attrs': [...]}}``."""
+    """
+    Devuelve ``{clase: {'metodos': [...], 'campos': [...], 'attrs': [...]}}``.
+    """
     tree = ast.parse(pathlib.Path(path).read_text())
     out = {}
     for node in ast.walk(tree):
@@ -36,7 +39,11 @@ def inventory(path):
                         attrs.append((target.id, item.lineno))
                     else:
                         columns.append((target.id, item.lineno))
-        out[node.name] = {'metodos': methods, 'campos': columns, 'attrs': attrs}
+        out[node.name] = {
+            'metodos': methods,
+            'campos': columns,
+            'attrs': attrs,
+        }
     return out
 
 
@@ -45,7 +52,9 @@ def flat_names(path):
     tree = ast.parse(pathlib.Path(path).read_text())
     names = set()
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if isinstance(
+            node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
             names.add(node.name)
         elif isinstance(node, ast.Assign):
             for target in node.targets:

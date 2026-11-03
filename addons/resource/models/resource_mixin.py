@@ -31,7 +31,8 @@ Divergencias declaradas
    readonly=False``, es decir editable-que-escribe-al-recurso; aquí el
    llamador que quiera cambiarla escribe directo en ``self.resource.tz``).
 4. **DEFERIDO (no stub) — el mismo motor de intervalos que
-   ``resource.calendar``/``resource.resource``:** ``_get_work_days_data_batch``,
+   ``resource.calendar``/``resource.resource``:**
+   ``_get_work_days_data_batch``,
    ``_get_leave_days_data_batch``, ``_adjust_to_calendar``,
    ``_list_work_time_per_day``, ``list_leaves``, ``_get_calendars``. Todos
    delegan, directa o indirectamente, en los métodos de intervalos de
@@ -43,6 +44,7 @@ Divergencias declaradas
    sobre un modelo; el patrón de duplicación (si se necesita) lo define el
    futuro consumidor concreto, no este mixin.
 """
+
 import fields
 import models
 
@@ -55,12 +57,16 @@ class ResourceMixin(models.Model):
     ``resource.mixin``, abstracto)."""
 
     resource = fields.Many2one(
-        'resource.ResourceResource', on_delete=models.PROTECT,
+        'resource.ResourceResource',
+        null=False, on_delete=models.PROTECT,
         related_name='%(app_label)s_%(class)s_resource_mixin_set',
         help_text="Odoo resource_id (required, ondelete='restrict').",
     )
     company = fields.Many2one(
-        ResCompany, on_delete=models.SET_NULL, null=True, blank=True,
+        ResCompany,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='%(app_label)s_%(class)s_resource_mixin_company_set',
         help_text=(
             'Odoo company_id (related=resource_id.company_id, store=True, '
@@ -68,7 +74,10 @@ class ResourceMixin(models.Model):
         ),
     )
     resource_calendar = fields.Many2one(
-        'resource.ResourceCalendar', on_delete=models.SET_NULL, null=True, blank=True,
+        'resource.ResourceCalendar',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='%(app_label)s_%(class)s_resource_mixin_calendar_set',
         help_text=(
             'Odoo resource_calendar_id (related=resource_id.calendar_id, '

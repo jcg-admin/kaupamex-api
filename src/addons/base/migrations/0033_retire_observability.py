@@ -1,4 +1,5 @@
-"""Retira la tabla de ``BusinessEvent`` y el rastro del addon ``observability``.
+"""
+Retira la tabla de ``BusinessEvent`` y el rastro del addon ``observability``.
 
 El addon se retiró entero (decisión del ejecutor 2026-08-20, tarea #621). Su
 último modelo vivo, ``BusinessEvent``, tenía **un** emisor
@@ -20,6 +21,7 @@ todos declaran.
 tiene contraparte que reconstruir: el rastro de negocio vive en el chatter. El
 reverso es un no-op declarado, no un olvido.
 """
+
 from django.db import migrations
 
 

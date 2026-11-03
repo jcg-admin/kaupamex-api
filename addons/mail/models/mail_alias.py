@@ -1,4 +1,5 @@
-"""MailAlias — mapeo de una dirección de correo a un modelo (app ``addons.mail``).
+"""
+MailAlias — mapeo de una dirección de correo a un modelo (app ``addons.mail``).
 
 Portación **fiel** de Odoo ``mail.alias``
 (``odoo19c: addons/mail/models/mail_alias.py``, ``odoo-tools@622ddc2a``;
@@ -28,7 +29,8 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   registro reflejado ya portado en ``addons.base``).
 - ``ondelete='restrict'`` -> ``on_delete=models.PROTECT``;
   ``ondelete='cascade'`` -> ``models.CASCADE``.
-- ``_name_domain_unique = UniqueIndex('(alias_name, COALESCE(alias_domain_id, 0))')``
+- ``_name_domain_unique = UniqueIndex('(alias_name, COALESCE(alias_domain_id,
+  0))')``
   -> ``UniqueConstraint`` sobre el par. Odoo usa ``COALESCE`` porque en SQL
   ``NULL != NULL``: sin él, dos aliases con el mismo nombre y **sin** dominio
   no colisionarían. MariaDB tiene la misma semántica, así que se replica con
@@ -45,6 +47,7 @@ mensajes por modelo) no se porta aquí — depende del ORM de Odoo (``self.env``
 dinámico por nombre de modelo) y de ``mail.thread``. Lo que se porta es el
 **registro** del alias: su identidad, su saneo y su unicidad.
 """
+
 import re
 import unicodedata
 
@@ -99,33 +102,57 @@ class MailAlias(TimeStampedModel):
         else:
             right_part = False
         if sanitized_name:
-            sanitized_name = remove_accents(sanitized_name).lower().split('@')[0]
+            sanitized_name = (
+                remove_accents(sanitized_name).lower().split('@')[0]
+            )
             # no puede empezar ni terminar en punto
             sanitized_name = re.sub(r'^\.+|\.+$|\.+(?=\.)', '', sanitized_name)
             # subconjunto de caracteres permitidos
             sanitized_name = re.sub(
-                r"[^\w!#$%&'*+\-/=?^_`{|}~.]+", '-', sanitized_name)
+                r"[^\w!#$%&'*+\-/=?^_`{|}~.]+", '-', sanitized_name
+            )
             sanitized_name = sanitized_name.encode(
-                'ascii', errors='replace').decode()
+                'ascii', errors='replace'
+            ).decode()
         if not sanitized_name.strip():
             return False
-        return (f'{sanitized_name}@{right_part}'
-                if is_email and right_part else sanitized_name)
+        return (
+            f'{sanitized_name}@{right_part}'
+            if is_email and right_part
+            else sanitized_name
+        )
 
     # -- Definición del correo ---------------------------------------------
     alias_name = fields.Char(
-        max_length=255, null=True, blank=True,
-        help_text="Odoo ``alias_name``: nombre del alias, p. ej. 'jobs' para "
-                  "recibir correo en <jobs@example.com>.")
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=(
+            "Odoo ``alias_name``: nombre del alias, p. ej. 'jobs' para "
+            "recibir correo en <jobs@example.com>."
+        ),
+    )
     alias_full_name = fields.Char(
-        max_length=512, null=True, blank=True, db_index=True,
-        help_text="Odoo ``alias_full_name`` (compute+store): dirección "
-                  "completa. Almacenado para poder buscar por él.")
+        max_length=512,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Odoo ``alias_full_name`` (compute+store): dirección "
+            "completa. Almacenado para poder buscar por él."
+        ),
+    )
     alias_domain = fields.Many2one(
-        'mail.MailAliasDomain', on_delete=models.PROTECT,
-        null=True, blank=True, related_name='aliases',
-        help_text="Odoo ``alias_domain_id``: dominio del alias "
-                  "(``ondelete='restrict'``).")
+        'mail.MailAliasDomain',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='aliases',
+        help_text=(
+            "Odoo ``alias_domain_id``: dominio del alias "
+            "(``ondelete='restrict'``)."
+        ),
+    )
 
     # Columna generada que materializa el ``COALESCE(alias_domain_id, 0)`` del
     # índice de la referencia. No es un campo del modelo Odoo: es el soporte
@@ -141,32 +168,54 @@ class MailAlias(TimeStampedModel):
 
     # -- Destino: crear / actualizar ---------------------------------------
     alias_model = fields.Many2one(
-        'base.IrModel', on_delete=models.CASCADE, related_name='aliases',
-        help_text="Odoo ``alias_model_id``: modelo al que corresponde el "
-                  "alias. Todo correo entrante que no responda a un registro "
-                  "existente crea un registro nuevo de este modelo.")
+        'base.IrModel',
+        null=False, on_delete=models.CASCADE,
+        related_name='aliases',
+        help_text=(
+            "Odoo ``alias_model_id``: modelo al que corresponde el "
+            "alias. Todo correo entrante que no responda a un registro "
+            "existente crea un registro nuevo de este modelo."
+        ),
+    )
     alias_defaults = fields.Text(
         default='{}',
-        help_text="Odoo ``alias_defaults``: diccionario Python evaluado para "
-                  "proveer valores por defecto al crear registros.")
+        help_text=(
+            "Odoo ``alias_defaults``: diccionario Python evaluado para "
+            "proveer valores por defecto al crear registros."
+        ),
+    )
     alias_force_thread_id = fields.Integer(
-        null=True, blank=True,
-        help_text="Odoo ``alias_force_thread_id``: ID opcional de un hilo al "
-                  "que se adjuntan todos los mensajes entrantes aunque no lo "
-                  "respondan. Si se fija, deshabilita la creación de "
-                  "registros nuevos.")
+        null=True,
+        blank=True,
+        help_text=(
+            "Odoo ``alias_force_thread_id``: ID opcional de un hilo al "
+            "que se adjuntan todos los mensajes entrantes aunque no lo "
+            "respondan. Si se fija, deshabilita la creación de "
+            "registros nuevos."
+        ),
+    )
 
     # -- Propietario --------------------------------------------------------
     alias_parent_model = fields.Many2one(
-        'base.IrModel', on_delete=models.CASCADE,
-        null=True, blank=True, related_name='child_aliases',
-        help_text="Odoo ``alias_parent_model_id``: modelo que sostiene el "
-                  "alias, no necesariamente el mismo que ``alias_model`` "
-                  "(ejemplo: project sostiene el alias que crea task).")
+        'base.IrModel',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='child_aliases',
+        help_text=(
+            "Odoo ``alias_parent_model_id``: modelo que sostiene el "
+            "alias, no necesariamente el mismo que ``alias_model`` "
+            "(ejemplo: project sostiene el alias que crea task)."
+        ),
+    )
     alias_parent_thread_id = fields.Integer(
-        null=True, blank=True,
-        help_text="Odoo ``alias_parent_thread_id``: ID del registro padre "
-                  "que sostiene el alias.")
+        null=True,
+        blank=True,
+        help_text=(
+            "Odoo ``alias_parent_thread_id``: ID del registro padre "
+            "que sostiene el alias."
+        ),
+    )
 
     # -- Configuración de entrada (pasarela) --------------------------------
     CONTACT_EVERYONE = 'everyone'
@@ -178,20 +227,32 @@ class MailAlias(TimeStampedModel):
         (CONTACT_FOLLOWERS, 'Followers only'),
     ]
     alias_contact = fields.Char(
-        max_length=16, choices=CONTACT_CHOICES, default=CONTACT_EVERYONE,
-        help_text="Odoo ``alias_contact``: política para publicar en el "
-                  "documento vía la pasarela. everyone: cualquiera; "
-                  "partners: sólo partners autenticados; followers: sólo "
-                  "seguidores del documento.")
+        max_length=16,
+        choices=CONTACT_CHOICES,
+        default=CONTACT_EVERYONE,
+        help_text=(
+            "Odoo ``alias_contact``: política para publicar en el "
+            "documento vía la pasarela. everyone: cualquiera; "
+            "partners: sólo partners autenticados; followers: sólo "
+            "seguidores del documento."
+        ),
+    )
     alias_incoming_local = fields.Boolean(
         default=False,
-        help_text="Odoo ``alias_incoming_local``: detección de entrada "
-                  "basada en la parte local.")
+        help_text=(
+            "Odoo ``alias_incoming_local``: detección de entrada "
+            "basada en la parte local."
+        ),
+    )
     alias_bounced_content = fields.Text(
-        null=True, blank=True,
-        help_text="Odoo ``alias_bounced_content``: si se fija, este "
-                  "contenido se envía a usuarios no autorizados en lugar del "
-                  "mensaje por defecto.")
+        null=True,
+        blank=True,
+        help_text=(
+            "Odoo ``alias_bounced_content``: si se fija, este "
+            "contenido se envía a usuarios no autorizados en lugar del "
+            "mensaje por defecto."
+        ),
+    )
 
     STATUS_NOT_TESTED = 'not_tested'
     STATUS_VALID = 'valid'
@@ -202,9 +263,14 @@ class MailAlias(TimeStampedModel):
         (STATUS_INVALID, 'Invalid'),
     ]
     alias_status = fields.Char(
-        max_length=16, choices=STATUS_CHOICES, default=STATUS_NOT_TESTED,
-        help_text="Odoo ``alias_status`` (compute+store): estado evaluado "
-                  "sobre el último mensaje recibido.")
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_NOT_TESTED,
+        help_text=(
+            "Odoo ``alias_status`` (compute+store): estado evaluado "
+            "sobre el último mensaje recibido."
+        ),
+    )
 
     class Meta:
         db_table = 'mail_alias'

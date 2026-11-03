@@ -23,6 +23,7 @@ de alcance** que ``analytic_mixin.py``, no una barrera del motor: MariaDB
 11.8.8 tiene ``JSON_TABLE`` y ``JSON_OVERLAPS`` como equivalentes (medido
 2026-08-06). Se porta cuando se porte la consulta de la que depende.
 """
+
 import fields
 import models
 
@@ -37,16 +38,24 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
 
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     partner = fields.Many2one(
-        'base.ResPartner', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='analytic_distribution_models', verbose_name='Contacto',
+        'base.ResPartner',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='analytic_distribution_models',
+        verbose_name='Contacto',
         help_text=(
             'Odoo partner_id (ondelete=cascade). Selecciona un contacto '
             'para el que se usa esta distribución.'
         ),
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
-        related_name='analytic_distribution_models', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='analytic_distribution_models',
+        verbose_name='Empresa',
         help_text='Odoo company_id (ondelete=cascade).',
     )
 
@@ -57,7 +66,11 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
         verbose_name_plural = 'Modelos de distribución analítica'
 
     def __str__(self):
-        return f'Distribución analítica #{self.pk}' if self.pk else 'Distribución analítica (nueva)'
+        return (
+            f'Distribución analítica #{self.pk}'
+            if self.pk
+            else 'Distribución analítica (nueva)'
+        )
 
     # -- selección de modelo aplicable ---------------------------------------
 
@@ -79,7 +92,9 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
         """
         if value is None:
             return models.Q(**{f'{fname}__isnull': True})
-        return models.Q(**{fname: value}) | models.Q(**{f'{fname}__isnull': True})
+        return models.Q(**{fname: value}) | models.Q(
+            **{f'{fname}__isnull': True}
+        )
 
     @classmethod
     def _get_applicable_models(cls, vals):
@@ -99,9 +114,9 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
         docstring de ``analytic_mixin.py`` para la adaptación de
         ``__update__`` que este método alimenta).
         """
-        applicable_models = cls._get_applicable_models({
-            k: v for k, v in vals.items() if k != 'related_root_plan_ids'
-        })
+        applicable_models = cls._get_applicable_models(
+            {k: v for k, v in vals.items() if k != 'related_root_plan_ids'}
+        )
         res = {}
         applied_plans = set(vals.get('related_root_plan_ids') or ())
         for model in applicable_models:
@@ -111,7 +126,11 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
             }
             if current_plans and not (applied_plans & current_plans):
                 applied_plans |= current_plans
-                res = cls._merge_distribution(res, dict(model.analytic_distribution or {}) | {
-                    '__update__': list(current_plans),
-                })
+                res = cls._merge_distribution(
+                    res,
+                    dict(model.analytic_distribution or {})
+                    | {
+                        '__update__': list(current_plans),
+                    },
+                )
         return res

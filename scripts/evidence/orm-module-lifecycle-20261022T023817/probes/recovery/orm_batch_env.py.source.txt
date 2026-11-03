@@ -1,0 +1,9 @@
+import os,secrets,subprocess
+from pathlib import Path
+root=Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True).strip())
+env=dict(os.environ);env.update(SECRET_KEY=secrets.token_urlsafe(50),DJANGO_SETTINGS_MODULE='config.settings.testing',PYTHONPATH=str(root/'src'),UV_CACHE_DIR=str(root.parent/'.cache/uv'))
+for prefix in ('DB_','DB_QA_'):
+ for k,v in {'NAME':'kaupamex_core_qa','USER':'django_user','PASSWORD':secrets.token_hex(32),'HOST':'127.0.0.1','PORT':'5432','SSL_MODE':'disable','SOCKET':''}.items():env[prefix+k]=v
+if __name__=='__main__':
+ import sys
+ raise SystemExit(subprocess.run(sys.argv[1:],env=env).returncode)

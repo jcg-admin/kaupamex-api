@@ -60,6 +60,11 @@ class Vocabulary:
     side: str
     first: frozenset
     second: frozenset
+    #: Nombres que cuentan solo en una llamada sin argumentos posicionales.
+    #: Es la firma la que separa el homonimo: ``QuerySet.update(self,
+    #: **kwargs)`` no admite posicionales, asi que ``x.update(y)`` es un
+    #: ``set``/``dict.update`` y no escribe en ninguna tabla.
+    keyword_only: frozenset = frozenset()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -91,10 +96,26 @@ def called_names(node):
             yield sub.func.id
 
 
+def _vocabulary_calls(node, vocabulary):
+    """Los nombres invocados que el vocabulario admite con esa forma de llamada."""
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.Call):
+            continue
+        if isinstance(sub.func, ast.Attribute):
+            name = sub.func.attr
+        elif isinstance(sub.func, ast.Name):
+            name = sub.func.id
+        else:
+            continue
+        if name in vocabulary.keyword_only and sub.args:
+            continue
+        yield name
+
+
 def classify(node, vocabulary, axis):
     """La categoria del cuerpo segun el vocabulario de su lado."""
     first = second = False
-    for name in called_names(node):
+    for name in _vocabulary_calls(node, vocabulary):
         if name in vocabulary.first:
             first = True
         elif name in vocabulary.second:
@@ -297,10 +318,20 @@ class Pair:
     ours: object
     theirs: object
     route: str
+    #: La duena del lado de la REFERENCIA. Por la via ``BY_NAME`` no es
+    #: ``owner``: nuestro ``create`` vive en ``DefaultGetMixin`` y el suyo en
+    #: ``BaseModel``. Sin ella, quien identifica el simbolo por la referencia
+    #: no puede atribuirle el veredicto del par.
+    their_owner: str = ''
 
     @property
     def key(self):
         return f'{self.owner}.{self.name}' if self.owner else self.name
+
+    @property
+    def reference_key(self):
+        """El simbolo calificado del lado de la referencia."""
+        return f'{self.their_owner}.{self.name}' if self.their_owner else self.name
 
 
 def _functions(declarations):
@@ -359,7 +390,7 @@ def pair_declarations(our_path, their_path):
         if yours is not None and id(yours) not in taken:
             taken.add(id(yours))
             pairs.append(Pair(mine.name, mine.owner, mine.node, yours.node,
-                              BY_OWNER))
+                              BY_OWNER, yours.owner))
         else:
             remaining_ours.append(mine)
 
@@ -381,7 +412,7 @@ def pair_declarations(our_path, their_path):
         if candidates:
             yours = candidates.pop(0)
             pairs.append(Pair(mine.name, mine.owner, mine.node, yours.node,
-                              BY_NAME))
+                              BY_NAME, yours.owner))
     return pairs
 
 

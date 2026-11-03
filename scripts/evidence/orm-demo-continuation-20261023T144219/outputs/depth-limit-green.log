@@ -1,0 +1,146 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+...............EEEEE.....                                                [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state _
+.venv/lib/python3.12/site-packages/django/utils/connection.py:58: in __getitem__
+    return getattr(self._connections, alias)
+.venv/lib/python3.12/site-packages/asgiref/local.py:121: in __getattr__
+    return getattr(storage, key)
+E   AttributeError: '_thread._local' object has no attribute 'default'
+
+During handling of the above exception, another exception occurred:
+tests/unit/modules/test_module_graph.py:162: in bound_graph
+    graph = module_graph.ModuleGraph.from_database(
+src/modules/module_graph.py:137: in from_database
+    connections[using]
+.venv/lib/python3.12/site-packages/django/utils/connection.py:60: in __getitem__
+    if alias not in self.settings:
+.venv/lib/python3.12/site-packages/django/utils/functional.py:47: in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:45: in settings
+    self._settings = self.configure_settings(self._settings)
+.venv/lib/python3.12/site-packages/django/db/utils.py:151: in configure_settings
+    databases = super().configure_settings(databases)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:50: in configure_settings
+    settings = getattr(django_settings, self.settings_name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:75: in __getattr__
+    self._setup(name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:55: in _setup
+    raise ImproperlyConfigured(
+E   django.core.exceptions.ImproperlyConfigured: Requested setting DATABASES, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+____ ERROR at setup of test_bound_extension_prunes_uninstallable_manifests _____
+.venv/lib/python3.12/site-packages/django/utils/connection.py:58: in __getitem__
+    return getattr(self._connections, alias)
+.venv/lib/python3.12/site-packages/asgiref/local.py:121: in __getattr__
+    return getattr(storage, key)
+E   AttributeError: '_thread._local' object has no attribute 'default'
+
+During handling of the above exception, another exception occurred:
+tests/unit/modules/test_module_graph.py:162: in bound_graph
+    graph = module_graph.ModuleGraph.from_database(
+src/modules/module_graph.py:137: in from_database
+    connections[using]
+.venv/lib/python3.12/site-packages/django/utils/connection.py:60: in __getitem__
+    if alias not in self.settings:
+.venv/lib/python3.12/site-packages/django/utils/functional.py:47: in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:45: in settings
+    self._settings = self.configure_settings(self._settings)
+.venv/lib/python3.12/site-packages/django/db/utils.py:151: in configure_settings
+    databases = super().configure_settings(databases)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:50: in configure_settings
+    settings = getattr(django_settings, self.settings_name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:75: in __getattr__
+    self._setup(name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:55: in _setup
+    raise ImproperlyConfigured(
+E   django.core.exceptions.ImproperlyConfigured: Requested setting DATABASES, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+_____ ERROR at setup of test_bound_extension_prunes_new_dependency_cycles ______
+.venv/lib/python3.12/site-packages/django/utils/connection.py:58: in __getitem__
+    return getattr(self._connections, alias)
+.venv/lib/python3.12/site-packages/asgiref/local.py:121: in __getattr__
+    return getattr(storage, key)
+E   AttributeError: '_thread._local' object has no attribute 'default'
+
+During handling of the above exception, another exception occurred:
+tests/unit/modules/test_module_graph.py:162: in bound_graph
+    graph = module_graph.ModuleGraph.from_database(
+src/modules/module_graph.py:137: in from_database
+    connections[using]
+.venv/lib/python3.12/site-packages/django/utils/connection.py:60: in __getitem__
+    if alias not in self.settings:
+.venv/lib/python3.12/site-packages/django/utils/functional.py:47: in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:45: in settings
+    self._settings = self.configure_settings(self._settings)
+.venv/lib/python3.12/site-packages/django/db/utils.py:151: in configure_settings
+    databases = super().configure_settings(databases)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:50: in configure_settings
+    settings = getattr(django_settings, self.settings_name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:75: in __getattr__
+    self._setup(name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:55: in _setup
+    raise ImproperlyConfigured(
+E   django.core.exceptions.ImproperlyConfigured: Requested setting DATABASES, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+_ ERROR at setup of test_bound_extension_of_existing_nodes_does_not_reload_catalogue _
+.venv/lib/python3.12/site-packages/django/utils/connection.py:58: in __getitem__
+    return getattr(self._connections, alias)
+.venv/lib/python3.12/site-packages/asgiref/local.py:121: in __getattr__
+    return getattr(storage, key)
+E   AttributeError: '_thread._local' object has no attribute 'default'
+
+During handling of the above exception, another exception occurred:
+tests/unit/modules/test_module_graph.py:162: in bound_graph
+    graph = module_graph.ModuleGraph.from_database(
+src/modules/module_graph.py:137: in from_database
+    connections[using]
+.venv/lib/python3.12/site-packages/django/utils/connection.py:60: in __getitem__
+    if alias not in self.settings:
+.venv/lib/python3.12/site-packages/django/utils/functional.py:47: in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:45: in settings
+    self._settings = self.configure_settings(self._settings)
+.venv/lib/python3.12/site-packages/django/db/utils.py:151: in configure_settings
+    databases = super().configure_settings(databases)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:50: in configure_settings
+    settings = getattr(django_settings, self.settings_name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:75: in __getattr__
+    self._setup(name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:55: in _setup
+    raise ImproperlyConfigured(
+E   django.core.exceptions.ImproperlyConfigured: Requested setting DATABASES, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+____ ERROR at setup of test_bound_extension_reports_the_uninstallable_root _____
+.venv/lib/python3.12/site-packages/django/utils/connection.py:58: in __getitem__
+    return getattr(self._connections, alias)
+.venv/lib/python3.12/site-packages/asgiref/local.py:121: in __getattr__
+    return getattr(storage, key)
+E   AttributeError: '_thread._local' object has no attribute 'default'
+
+During handling of the above exception, another exception occurred:
+tests/unit/modules/test_module_graph.py:162: in bound_graph
+    graph = module_graph.ModuleGraph.from_database(
+src/modules/module_graph.py:137: in from_database
+    connections[using]
+.venv/lib/python3.12/site-packages/django/utils/connection.py:60: in __getitem__
+    if alias not in self.settings:
+.venv/lib/python3.12/site-packages/django/utils/functional.py:47: in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:45: in settings
+    self._settings = self.configure_settings(self._settings)
+.venv/lib/python3.12/site-packages/django/db/utils.py:151: in configure_settings
+    databases = super().configure_settings(databases)
+.venv/lib/python3.12/site-packages/django/utils/connection.py:50: in configure_settings
+    settings = getattr(django_settings, self.settings_name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:75: in __getattr__
+    self._setup(name)
+.venv/lib/python3.12/site-packages/django/conf/__init__.py:55: in _setup
+    raise ImproperlyConfigured(
+E   django.core.exceptions.ImproperlyConfigured: Requested setting DATABASES, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/depth-limit-green.junit.xml -
+=========================== short test summary info ============================
+ERROR tests/unit/modules/test_module_graph.py::test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state
+ERROR tests/unit/modules/test_module_graph.py::test_bound_extension_prunes_uninstallable_manifests
+ERROR tests/unit/modules/test_module_graph.py::test_bound_extension_prunes_new_dependency_cycles
+ERROR tests/unit/modules/test_module_graph.py::test_bound_extension_of_existing_nodes_does_not_reload_catalogue
+ERROR tests/unit/modules/test_module_graph.py::test_bound_extension_reports_the_uninstallable_root
+20 passed, 5 errors in 0.30s

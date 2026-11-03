@@ -1,0 +1,146 @@
+[
+  {
+    "path": "thyrox/src/paths/reach.py",
+    "sha256": "39c5dc97ebb5e905dfab120f1dbbc2a79bf4c3f0ae47bb68bd870723b36b63dc"
+  },
+  {
+    "path": "thyrox/src/agents/agent_store.py",
+    "sha256": "f718377a14e09fce7a73a5c508e35c9f2228ca6870a76a19bd48010f80bc5e75"
+  },
+  {
+    "path": "thyrox/src/task/task_source.py",
+    "sha256": "8882c56440af44a0d5086d82bb93aa8751f1a82f093de242c6a42f9619a27491"
+  },
+  {
+    "path": "thyrox/src/task/task_ids.py",
+    "sha256": "23b41c3036067a087bb073f96f6866f52661c3f6dea85ddb1f7e88e4118f74e8"
+  },
+  {
+    "path": "thyrox/src/session/node_next_task.py",
+    "sha256": "587d0dd1ae584a9c492fea576b251b9db196db6d6ba83adb85bf72ada8b82c64"
+  },
+  {
+    "path": "thyrox/src/session/continuation_frontier.py",
+    "sha256": "3776f2f9ba283b9bbb09e03b74aba74c57ced37cc58443bd3221ebdb8a44a4e1"
+  },
+  {
+    "path": "thyrox/src/session/document_intent.py",
+    "sha256": "b6b7a268bd73cb02f0ab6b8bbd96d11bfaa9939953aa6919052e9177ce7d1f0d"
+  },
+  {
+    "path": "thyrox/src/session/documentation_publisher.py",
+    "sha256": "8002cb3d3454cd47a7cc629872b39c935ed7176388b38d33e23efde7c1cb347f"
+  },
+  {
+    "path": "thyrox/src/agents/definitions/migration-porter.md",
+    "sha256": "544f9aa5258aee92384483a40ff43af5a3211130e51de618b2c663764e762ded"
+  },
+  {
+    "path": "kaupamex-api/Makefile",
+    "sha256": "3623e0b71b0c0f9d618635621fef5a0a3116494f3a7ebe86a8381c8d3db73a79"
+  },
+  {
+    "path": "kaupamex-api/.githooks/pre-commit",
+    "sha256": "49942de06bf11c8f7a3a34f0913b82b7c0d46f987f2a340d419bd2fa7fdd9d03"
+  },
+  {
+    "path": "kaupamex-api/addons/web/models/models.py",
+    "sha256": "487e7e880a0288593fad405578c6f5cbc6537b22c8d61346672791822b6e5c26"
+  },
+  {
+    "path": "kaupamex-api/CLAUDE.md",
+    "sha256": "07f435d314cd7db4cf71063599e7c62d618d005405007975512faaa87ceef06b"
+  },
+  {
+    "path": "kaupamex-api/AGENTS.md",
+    "sha256": "7fc9d24d719a6b3afce29e9b14998594af3cf1df9b5889adb821528776928d2f"
+  },
+  {
+    "path": "kaupamex-docs/AGENTS.md",
+    "sha256": "7b51966bc10f1a733cbb1ee239a588ff862b0187ade3993d36064d14e7d33689"
+  },
+  {
+    "path": "kaupamex-db/AGENTS.md",
+    "sha256": "8e363ec51684fbb7189d28d384015d842f7b6829ceedc4c45e4eac9991c8b922"
+  },
+  {
+    "path": "kaupamex-server/AGENTS.md",
+    "sha256": "fa4d52a79798f30d0d56b61d36b267f0c6ea7536b85d94d5d5671b5ec1a2de27"
+  },
+  {
+    "path": "kaupamex-ui/AGENTS.md",
+    "sha256": "cde1e1b778590ee579f4b1556aa2faf203d86a893977c16dcb2bd379e9e1c057"
+  },
+  {
+    "path": "thyrox/AGENTS.md",
+    "sha256": "e484f8b8878a391eced0360d664c6d19be84288e2822f35481b7002ed9b70e11"
+  },
+  {
+    "path": "thyrox/src/agents/definitions/workbench-instrumenter.md",
+    "sha256": "0278076600f34c366b42c660cd4cd327e374949b5c9a33c0657a0fadb080aa2a"
+  },
+  {
+    "path": "thyrox/src/agents/definitions/prueba-palancas.md",
+    "sha256": "37301a4298758157cfbe527794fe190d95830a4442eac1c89d55af95a82aae43"
+  },
+  {
+    "path": "thyrox/src/agents/definitions/packaging-porter-low.md",
+    "sha256": "75c66077d305f4bf6946ca5c23e76ffd49ca320477cd65c704069bd46f2642d7"
+  },
+  {
+    "path": "thyrox/src/agents/definitions/packaging-porter-high.md",
+    "sha256": "a3cd800e49370c032a56178adb02e70a69d99d1f5870df08146d6c5ae887de7a"
+  },
+  {
+    "path": "thyrox/src/task/snapshot-tasks.sh",
+    "sha256": "558ee9cd2f9f5b1804f6178782be855502251e512d5790293b25929a2fe1f258"
+  },
+  {
+    "path": "thyrox/src/task/refresh-board.sh",
+    "sha256": "db3729e064fca49a525d4453b6a6957a61877aeb9bb5488669f3137360adb11b"
+  },
+  {
+    "path": "thyrox/src/task/layer_signals.tsv",
+    "sha256": "85cc05f261a218f423e23f16b1a4aa09845346ef61f75b5eebd30012b5257e2a"
+  },
+  {
+    "path": "thyrox/src/task/agrupar_tareas_por_familia.py",
+    "sha256": "ae9d73f674d9e839d7221d227068eb6cc39e1105461d6a8702f11ee0b855ac41"
+  },
+  {
+    "path": "thyrox/src/task/__init__.py",
+    "sha256": "77c1832856c280c43656f967491df7ad71ebb5bd7a10c80a530ad184746efc49"
+  },
+  {
+    "path": "thyrox/src/session/user_wiring.py",
+    "sha256": "10678e9ecf5b7449c4c806ad515208e5ece4c0e7958c156102aa47ca4318b0e2"
+  },
+  {
+    "path": "thyrox/src/session/task_pool.py",
+    "sha256": "ea15c1e03f84fb58931b2d80adc2ffc8e9b782326f51191a25bb069555c55533"
+  },
+  {
+    "path": "thyrox/src/task/census_open_tasks.py",
+    "sha256": "549b0afb4c47354934cacf002cf721efb29d95122544a0df57e3a8b000c945c4"
+  },
+  {
+    "path": "thyrox/src/session/sync_local_settings.py",
+    "sha256": "9a5cd7b762f9abc67e5f149ed3ac2e136d01d469e92fcfac9178ec80985341e3"
+  },
+  {
+    "path": "thyrox/src/session/clone_bootstrap.py",
+    "sha256": "d3c9816b0ea69f4ec21fca5a92175f6297e79f112ce274fdad28e0ca25020bb1"
+  },
+  {
+    "path": "thyrox/src/session/bg.sh",
+    "sha256": "09a04b47063f34eb716dc63f5625b2504067154aa7764b32f1ab63ea634e33f6"
+  },
+  {
+    "path": "thyrox/src/session/job_runs.py",
+    "sha256": "20e14a195363a3f140a4283056dfd6826db9274af5dea635aeed8ae78ea0f9ce"
+  },
+  {
+    "path": "thyrox/src/session/job_ledger.py",
+    "sha256": "7692dccbe41f1c6e5da645d33e115154a6b5a8dd3bc26ac48f7a314542cdc3c3"
+  }
+]

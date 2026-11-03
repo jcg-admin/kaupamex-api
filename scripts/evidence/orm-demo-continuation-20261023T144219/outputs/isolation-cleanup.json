@@ -1,0 +1,13 @@
+{
+  "remaining_roles": [],
+  "remaining_databases": [],
+  "observed_at": "2026-10-23T22:27:28.277761+00:00",
+  "interface": "Native PostgreSQL maintenance connection via docker exec psql, independent of pytest Django blocker",
+  "exit_code": 0,
+  "scope": "Known owned resource names from both runs only; does not assert global server emptiness",
+  "functional_pytest_exit": 0,
+  "functional_cases_passed": 5,
+  "functional_seconds": 915.37,
+  "post_pytest_probe_exit": 1,
+  "postcheck_failure": "Public pytest Django blocker restored, rejected out-of-context Django query; no private guard disabled"
+}

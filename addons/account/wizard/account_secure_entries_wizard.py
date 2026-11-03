@@ -1,4 +1,6 @@
-"""``account.secure.entries.wizard`` — asegurar (hashear) asientos hasta una fecha.
+"""
+``account.secure.entries.wizard`` — asegurar (hashear) asientos hasta una
+fecha.
 
 Adaptación de Odoo ``addons/account/wizard/account_secure_entries_wizard.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3 —
@@ -65,6 +67,7 @@ verificación) es alcance de una iniciativa propia — al aterrizar, los NO de
 esta tabla se convierten en portes directos sin cambiar la firma de nada de
 lo ya escrito aquí.
 """
+
 from django.utils import timezone
 
 from addons.account.models.account_move import AccountMove
@@ -97,10 +100,12 @@ class AccountSecureEntriesWizard(TransientModel):
         return max_hash_date or timezone.now().date()
 
     @classmethod
-    def _get_unhashed_moves_in_hashed_period_domain(cls, company, hash_date,
-                                                     extra_filters=None):
+    def _get_unhashed_moves_in_hashed_period_domain(
+        cls, company, hash_date, extra_filters=None
+    ):
         """
-        Return the domain to find all moves before `self.hash_date` that have not been hashed yet.
+        Return the domain to find all moves before `self.hash_date` that have
+        not been hashed yet.
         We ignore whether hashing is activated for the journal or not.
         :return a search domain
 
@@ -116,7 +121,8 @@ class AccountSecureEntriesWizard(TransientModel):
         if not (company and hash_date):
             return AccountMove.objects.none()
         queryset = AccountMove.objects.filter(
-            date__lte=hash_date, company=company)
+            date__lte=hash_date, company=company
+        )
         if extra_filters:
             queryset = queryset.filter(**extra_filters)
         return queryset
@@ -126,7 +132,8 @@ class AccountSecureEntriesWizard(TransientModel):
         """≙ ``_get_draft_moves_in_hashed_period_domain`` — los borradores
         del periodo a asegurar."""
         return cls._get_unhashed_moves_in_hashed_period_domain(
-            company, hash_date, {'state': 'draft'})
+            company, hash_date, {'state': 'draft'}
+        )
 
     @classmethod
     def action_secure_entries(cls, company, hash_date, moves_to_hash=None):
@@ -135,11 +142,17 @@ class AccountSecureEntriesWizard(TransientModel):
         raise_if_gap=False)``) está bloqueada por el mecanismo de hash
         (ver el docstring del módulo) y falla en voz alta."""
         if not hash_date:
-            raise UserError(_(
-                'Set a date. The moves will be secured up to including '
-                'this date.'))
+            raise UserError(
+                _(
+                    'Set a date. The moves will be secured up to including '
+                    'this date.'
+                )
+            )
         if not moves_to_hash:
             return None
-        raise UserError(_(
-            'El hash inalterable de asientos no está portado todavía '
-            '(account.move._hash_moves) — ver el docstring de este wizard.'))
+        raise UserError(
+            _(
+                'El hash inalterable de asientos no está portado todavía '
+                '(account.move._hash_moves) — ver el docstring de este wizard.'
+            )
+        )

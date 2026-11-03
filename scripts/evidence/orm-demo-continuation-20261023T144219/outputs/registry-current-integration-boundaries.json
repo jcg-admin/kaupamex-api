@@ -1,0 +1,52 @@
+{
+  "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+  "task": "TASK-API-0382",
+  "native_id": "737",
+  "owner": "codex-module-lifecycle",
+  "official_status": "pending",
+  "decision_dependency": {
+    "task": "TASK-API-0264",
+    "native_id": "443",
+    "status": "completed",
+    "evidence": "registry-dependency-native-443.json",
+    "consequence": "historical decision blocker resolved; does not establish full loader acceptance"
+  },
+  "observations": [
+    {
+      "symbol": "Registry.new",
+      "behavior": "Stores update/install/upgrade/reinit arguments, registers instance before calling _ensure_seeded, then readyTrue; does not call current module loading stages",
+      "classification": "source-demonstrated incomplete integration, not whole Registry absence"
+    },
+    {
+      "symbol": "Registry.init/load",
+      "behavior": "Initial models copied from MODELS_BY_NAME; load adds imported app models; no current per-catalogue subtraction in these bodies",
+      "classification": "effective per-database model population not_verified"
+    },
+    {
+      "symbol": "Environment.registry",
+      "behavior": "Returns imported registry module",
+      "classification": "global accessor behavior confirmed; transition impact requires transaction/cache/consumer verification"
+    }
+  ],
+  "task_identity_limit": "Historical #342 not found in checked legacy session; 0391/0392 completed inventory-only, not implementation owner equivalence",
+  "existing_authorities": [
+    "module-graph-contract-reconciliation.json",
+    "loading-contract-reconciliation.json",
+    "orm-as-is-substantive-20261021T194156/outputs/task-assessments.json"
+  ],
+  "acceptance": "not_verified",
+  "native_selection_limit": "Prior full-loader candidate depends on unaccepted isolation; no accepted state or global exhaustion inferred",
+  "hashes": {
+    "src/orm/registry.py": "b4e17b664218b989255f88c6e5ae9f4ed60c4979c71a3a4a136797912521e4df",
+    "src/orm/environments.py": "1be396018fec24caa0d644a7abe360a2fea3bfbdeda316e38e6cfecdf20cf623",
+    "src/modules/loading.py": "e7f1396d427dfac5435263b09f6b716b2ce010cada0842172f5826bea32a7516"
+  },
+  "production_changes": false,
+  "current_factory_boundary": {
+    "source_revision": "ec089c9a598183a53292421c14c1a55daf2c6f30",
+    "behavior": "Lifecycle requests rejected before initialization/replacement; no-request metadata path unchanged",
+    "verification": "143registry familyPASS plus standalone real factory probe preserving previous object",
+    "contract": "registry-readiness-contract-14.json",
+    "remaining": "Original per-base composition/full-loader observations remain unaccepted; historical source099 observations retained"
+  }
+}

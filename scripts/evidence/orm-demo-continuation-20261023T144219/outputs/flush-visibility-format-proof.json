@@ -1,0 +1,7 @@
+{
+  "before_model_sha256": "bc79a4f028e582cdca158563601efb7abbea8083642ebd5617357b320eaa5c3a",
+  "after_model_sha256": "cc6fad58ff6c9f7e879da6ec2a6347fd0c013e60dd260c0927864877bbf0836b",
+  "model_AST_equal": true,
+  "working_AST_equal": true,
+  "test_AST_equal": true
+}

@@ -1,0 +1,26 @@
+{
+  "model": "base.IrModule",
+  "table": "ir_module_module",
+  "concrete_fields_for_reference_snapshot": {
+    "name": {
+      "column": "name",
+      "type": "CharField"
+    },
+    "demo": {
+      "column": "demo",
+      "type": "BooleanField"
+    },
+    "version": {
+      "column": "version",
+      "type": "CharField"
+    },
+    "state": {
+      "column": "state",
+      "type": "CharField"
+    }
+  },
+  "reference_required": "id,state,demo,latest_version AS installed_version -> id,state,demo,installed_version,load_version,load_state",
+  "connection_used": false,
+  "snapshot_acceptance": "not_verified; no arbitrary alias of version to installed version",
+  "next_dependency": "Reconcile persisted installed version separately from manifest version before full version-faithful snapshot"
+}

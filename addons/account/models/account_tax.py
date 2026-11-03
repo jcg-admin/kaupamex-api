@@ -137,6 +137,7 @@ UI que decide si mostrar el widget de alternativas) — ninguno de los dos
 altera el resultado de ``map_tax``. Grep de consumidores dentro de
 ``odoo19c: account_tax.py`` de ambos: 0 usos fuera de esas dos secciones UI.
 """
+
 from decimal import Decimal
 
 import fields
@@ -184,6 +185,7 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         ejemplo de la referencia lo dice entero — ``[G, B([A, D, F]), E, C]``
         se evalúa como ``[A, D, F, C, E, G]``.
         """
+
         def clave(tax):
             return (tax.sequence, tax.pk or 0)
 
@@ -200,8 +202,9 @@ class AccountTaxQuerySet(models.AccessQuerySet):
                 ordenados.append(tax)
         return ordenados, group_by_tax
 
-    def _batch_for_taxes_computation(self, special_mode=False,
-                                     filter_tax_function=None):
+    def _batch_for_taxes_computation(
+        self, special_mode=False, filter_tax_function=None
+    ):
         """≙ ``_batch_for_taxes_computation`` (``odoo19c: :924``).
 
         Agrupa los impuestos **consecutivos** que se evalúan juntos. Recorre
@@ -220,11 +223,15 @@ class AccountTaxQuerySet(models.AccessQuerySet):
             if lote:
                 same_batch = (
                     tax.amount_type == lote[0].amount_type
-                    and (special_mode
-                         or tax.price_include == lote[0].price_include)
+                    and (
+                        special_mode
+                        or tax.price_include == lote[0].price_include
+                    )
                     and tax.include_base_amount == lote[0].include_base_amount
-                    and ((tax.include_base_amount and not base_afectada)
-                         or not tax.include_base_amount)
+                    and (
+                        (tax.include_base_amount and not base_afectada)
+                        or not tax.include_base_amount
+                    )
                 )
                 if not same_batch:
                     for miembro in lote:
@@ -245,14 +252,16 @@ class AccountTaxQuerySet(models.AccessQuerySet):
     # -- propagación de base ------------------------------------------------
 
     @staticmethod
-    def _propagate_extra_taxes_base(ordenados, tax, taxes_data,
-                                    special_mode=False):
+    def _propagate_extra_taxes_base(
+        ordenados, tax, taxes_data, special_mode=False
+    ):
         """≙ ``_propagate_extra_taxes_base`` (``odoo19c: :978``).
 
         Los cuatro casos van verbatim de la referencia. No se simplifican
         aunque dos parezcan simétricos: los comentarios de la fuente traen los
         contraejemplos que muestran que no lo son.
         """
+
         def antes():
             for otro in ordenados:
                 if otro in taxes_data[tax.pk]['batch']:
@@ -302,10 +311,15 @@ class AccountTaxQuerySet(models.AccessQuerySet):
 
     # -- el motor -----------------------------------------------------------
 
-    def _get_tax_details(self, price_unit, quantity=1,
-                         precision_rounding=DEFAULT_ROUNDING,
-                         rounding_method='round_per_line',
-                         special_mode=False, filter_tax_function=None):
+    def _get_tax_details(
+        self,
+        price_unit,
+        quantity=1,
+        precision_rounding=DEFAULT_ROUNDING,
+        rounding_method='round_per_line',
+        special_mode=False,
+        filter_tax_function=None,
+    ):
         """≙ ``_get_tax_details`` (``odoo19c: :1139``). Las tres pasadas.
 
         Devuelve ``{'total_excluded', 'total_included', 'taxes_data'}``, donde
@@ -317,7 +331,8 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         redondear = rounding_method == 'round_per_line'
 
         lotes = self._batch_for_taxes_computation(
-            special_mode=special_mode, filter_tax_function=filter_tax_function)
+            special_mode=special_mode, filter_tax_function=filter_tax_function
+        )
         ordenados = lotes['sorted_taxes']
 
         taxes_data = {}
@@ -357,7 +372,8 @@ class AccountTaxQuerySet(models.AccessQuerySet):
                 importe = importe.quantize(precision_rounding)
             taxes_data[tax.pk]['tax_amount'] = importe
             self._propagate_extra_taxes_base(
-                ordenados, tax, taxes_data, special_mode=special_mode)
+                ordenados, tax, taxes_data, special_mode=special_mode
+            )
 
         # Pasada 1 — fijos (descendente): pueden afectar la base del lote
         # incluido-en-precio que viene después.
@@ -380,15 +396,22 @@ class AccountTaxQuerySet(models.AccessQuerySet):
             if 'tax_amount' not in datos:
                 continue
             total_batch = sum(
-                (taxes_data[otro.pk].get('tax_amount', Decimal('0'))
-                 for otro in datos['batch']),
+                (
+                    taxes_data[otro.pk].get('tax_amount', Decimal('0'))
+                    for otro in datos['batch']
+                ),
                 Decimal('0'),
             )
             base = raw_base + datos['extra_base_for_base']
-            if datos['price_include'] and special_mode in (False, 'total_included'):
+            if datos['price_include'] and special_mode in (
+                False,
+                'total_included',
+            ):
                 base -= total_batch
             datos['base'] = base
-            datos['taxes'] = list(posteriores) if tax.include_base_amount else []
+            datos['taxes'] = (
+                list(posteriores) if tax.include_base_amount else []
+            )
             if tax.is_base_affected:
                 posteriores.append(tax)
 
@@ -396,7 +419,8 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         if lista:
             total_excluded = lista[0]['base']
             total_included = total_excluded + sum(
-                (d['tax_amount'] for d in lista), Decimal('0'))
+                (d['tax_amount'] for d in lista), Decimal('0')
+            )
         else:
             total_excluded = total_included = raw_base
 
@@ -408,9 +432,17 @@ class AccountTaxQuerySet(models.AccessQuerySet):
 
     # -- la API pública -----------------------------------------------------
 
-    def compute_all(self, price_unit, currency=None, quantity=1,
-                    product=None, partner=None, is_refund=False,
-                    handle_price_include=True, rounding_method='round_per_line'):
+    def compute_all(
+        self,
+        price_unit,
+        currency=None,
+        quantity=1,
+        product=None,
+        partner=None,
+        is_refund=False,
+        handle_price_include=True,
+        rounding_method='round_per_line',
+    ):
         """≙ ``compute_all`` (``odoo19c: :4960``). El contrato clásico.
 
         :returns: ``{'total_excluded', 'total_included', 'total_void',
@@ -429,10 +461,12 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         se diga, que es lo que hace esta línea.
         """
         special_mode = False if handle_price_include else 'total_excluded'
-        precision = (currency.rounding if currency is not None
-                     else DEFAULT_ROUNDING)
+        precision = (
+            currency.rounding if currency is not None else DEFAULT_ROUNDING
+        )
         detalle = self._get_tax_details(
-            price_unit, quantity=quantity,
+            price_unit,
+            quantity=quantity,
             precision_rounding=_d(precision),
             rounding_method=rounding_method,
             special_mode=special_mode,
@@ -469,13 +503,19 @@ class AccountTaxAlternative(models.Model):
     """
 
     src_tax = fields.Many2one(
-        'account.AccountTax', on_delete=models.CASCADE, related_name='+',
+        'account.AccountTax',
+        null=False, on_delete=models.CASCADE,
+        related_name='+',
         help_text='Impuesto doméstico a reemplazar (Odoo src_tax_id).',
     )
     dest_tax = fields.Many2one(
-        'account.AccountTax', on_delete=models.CASCADE, related_name='+',
-        help_text='Impuesto de reemplazo — "this Replacement tax" en la '
-                  'referencia (Odoo dest_tax_id).',
+        'account.AccountTax',
+        null=False, on_delete=models.CASCADE,
+        related_name='+',
+        help_text=(
+            'Impuesto de reemplazo — "this Replacement tax" en la '
+            'referencia (Odoo dest_tax_id).'
+        ),
     )
 
     class Meta:
@@ -510,81 +550,120 @@ class AccountTax(models.Model):
 
     objects = AccountTaxQuerySet.as_manager()
 
-    name          = fields.Char(
-        max_length=255, help_text='Nombre del impuesto (Odoo name, requerido).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Nombre del impuesto (Odoo name, requerido).',
     )
-    amount        = fields.Monetary(
-        max_digits=16, decimal_places=4, default=Decimal('0.0'),
+    amount = fields.Monetary(
+        max_digits=16,
+        decimal_places=4,
+        default=Decimal('0.0'),
         help_text='Monto/porcentaje del impuesto (Odoo amount).',
     )
-    amount_type   = fields.Selection(
-        max_length=12, choices=AMOUNT_TYPES, default='percent',
+    amount_type = fields.Selection(
+        max_length=12,
+        choices=AMOUNT_TYPES,
+        default='percent',
         help_text='Forma de cómputo (Odoo amount_type, requerido).',
     )
-    type_tax_use  = fields.Selection(
-        max_length=12, choices=TYPE_TAX_USE, default='sale',
+    type_tax_use = fields.Selection(
+        max_length=12,
+        choices=TYPE_TAX_USE,
+        default='sale',
         help_text='Uso del impuesto (Odoo type_tax_use, requerido).',
     )
     price_include = fields.Boolean(
         default=False,
-        help_text='Precio con impuesto incluido (Odoo price_include). En la '
-                  'referencia es un compute sobre price_include_override + '
-                  'company_price_include; aquí es el booleano directo.',
+        help_text=(
+            'Precio con impuesto incluido (Odoo price_include). En la '
+            'referencia es un compute sobre price_include_override + '
+            'company_price_include; aquí es el booleano directo.'
+        ),
     )
-    sequence      = fields.Integer(
-        default=1, db_index=True,
-        help_text='Orden de aplicación de los impuestos de una línea (Odoo '
-                  'sequence). NO es decorativo: el motor evalúa por este '
-                  'orden y de él dependen los lotes.',
+    sequence = fields.Integer(
+        default=1,
+        db_index=True,
+        help_text=(
+            'Orden de aplicación de los impuestos de una línea (Odoo '
+            'sequence). NO es decorativo: el motor evalúa por este '
+            'orden y de él dependen los lotes.'
+        ),
     )
     include_base_amount = fields.Boolean(
         default=False,
-        help_text='Afecta la base de los impuestos posteriores (Odoo '
-                  'include_base_amount).',
+        help_text=(
+            'Afecta la base de los impuestos posteriores (Odoo '
+            'include_base_amount).'
+        ),
     )
     is_base_affected = fields.Boolean(
         default=True,
-        help_text='Su base puede ser afectada por impuestos anteriores (Odoo '
-                  'is_base_affected).',
+        help_text=(
+            'Su base puede ser afectada por impuestos anteriores (Odoo '
+            'is_base_affected).'
+        ),
     )
-    children      = fields.Many2many(
-        'account.AccountTax', blank=True, symmetrical=False,
-        related_name='parent_taxes', db_table='account_tax_filiation_rel',
-        help_text='Sub-impuestos cuando amount_type=group (Odoo '
-                  'children_tax_ids). symmetrical=False: la relación es '
-                  'dirigida, padre → hijos.',
+    children = fields.Many2many(
+        'account.AccountTax',
+        blank=True,
+        symmetrical=False,
+        related_name='parent_taxes',
+        db_table='account_tax_filiation_rel',
+        help_text=(
+            'Sub-impuestos cuando amount_type=group (Odoo '
+            'children_tax_ids). symmetrical=False: la relación es '
+            'dirigida, padre → hijos.'
+        ),
     )
-    active        = fields.Boolean(
-        default=True, help_text='Impuesto activo (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Impuesto activo (Odoo active).',
     )
-    company       = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='taxes',
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=False, on_delete=models.CASCADE,
+        related_name='taxes',
         help_text='Empresa (Odoo company_id).',
     )
-    tax_group     = fields.Many2one(
-        'account.AccountTaxGroup', on_delete=models.PROTECT, null=True, blank=True,
+    tax_group = fields.Many2one(
+        'account.AccountTaxGroup',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='taxes',
-        help_text='Grupo al que pertenece el impuesto (Odoo tax_group_id); '
-                  'agrupa los subtotales del documento.',
+        help_text=(
+            'Grupo al que pertenece el impuesto (Odoo tax_group_id); '
+            'agrupa los subtotales del documento.'
+        ),
     )
     original_tax_ids = fields.Many2many(
-        'account.AccountTax', through='account.AccountTaxAlternative',
-        through_fields=('dest_tax', 'src_tax'), related_name='+',
-        blank=True, verbose_name='Reemplaza a',
-        help_text='Impuestos que ESTE reemplaza al aplicar cualquiera de las '
-                  'posiciones fiscales estipuladas (Odoo original_tax_ids, '
-                  'string "Replaces"). Es la mitad de escritura del mecanismo '
-                  'de sustitución: sin ella, '
-                  'AccountFiscalPosition._compute_tax_map devuelve siempre '
-                  '{} (H-API-322).',
+        'account.AccountTax',
+        through='account.AccountTaxAlternative',
+        through_fields=('dest_tax', 'src_tax'),
+        related_name='+',
+        blank=True,
+        verbose_name='Reemplaza a',
+        help_text=(
+            'Impuestos que ESTE reemplaza al aplicar cualquiera de las '
+            'posiciones fiscales estipuladas (Odoo original_tax_ids, '
+            'string "Replaces"). Es la mitad de escritura del mecanismo '
+            'de sustitución: sin ella, '
+            'AccountFiscalPosition._compute_tax_map devuelve siempre '
+            '{} (H-API-322).'
+        ),
     )
     replacing_tax_ids = fields.Many2many(
-        'account.AccountTax', through='account.AccountTaxAlternative',
-        through_fields=('src_tax', 'dest_tax'), related_name='+',
-        editable=False, verbose_name='Reemplazado por',
-        help_text='Reverso de original_tax_ids: impuestos que reemplazan a '
-                  'ESTE (Odoo replacing_tax_ids, string "Replaced by", '
-                  'readonly=True en la referencia — de ahí editable=False).',
+        'account.AccountTax',
+        through='account.AccountTaxAlternative',
+        through_fields=('src_tax', 'dest_tax'),
+        related_name='+',
+        editable=False,
+        verbose_name='Reemplazado por',
+        help_text=(
+            'Reverso de original_tax_ids: impuestos que reemplazan a '
+            'ESTE (Odoo replacing_tax_ids, string "Replaced by", '
+            'readonly=True en la referencia — de ahí editable=False).'
+        ),
     )
 
     class Meta:
@@ -628,8 +707,11 @@ class AccountTax(models.Model):
         """
         if self.amount_type == 'percent':
             total = sum((_d(t.amount) for t in batch), Decimal('0')) / _CIEN
-            factor = (Decimal('1') / (Decimal('1') + total)
-                      if total != Decimal('-1') else Decimal('0'))
+            factor = (
+                Decimal('1') / (Decimal('1') + total)
+                if total != Decimal('-1')
+                else Decimal('0')
+            )
             return raw_base * factor * _d(self.amount) / _CIEN
         if self.amount_type == 'division':
             return raw_base * _d(self.amount) / _CIEN
@@ -641,8 +723,9 @@ class AccountTax(models.Model):
             return raw_base * _d(self.amount) / _CIEN
         if self.amount_type == 'division':
             total = sum((_d(t.amount) for t in batch), Decimal('0')) / _CIEN
-            divisor = (Decimal('1') if total == Decimal('1')
-                       else Decimal('1') - total)
+            divisor = (
+                Decimal('1') if total == Decimal('1') else Decimal('1') - total
+            )
             return raw_base * _d(self.amount) / _CIEN / divisor
         return None
 
@@ -653,7 +736,8 @@ class AccountTax(models.Model):
         reducido a ``[self]``, así que el atajo y el motor **no pueden
         divergir**: si mañana cambia una fórmula, cambia en un solo sitio.
         Lo que el atajo sigue sin ver es lo que depende de haber más de un
-        impuesto — lotes de dos porcentuales incluidos, ``include_base_amount``,
+        impuesto — lotes de dos porcentuales incluidos,
+        ``include_base_amount``,
         propagación de base. Para una línea real, ``compute_all``.
 
         **``division`` cambió de semántica aquí (H-API-342).** Antes calculaba
@@ -663,7 +747,8 @@ class AccountTax(models.Model):
         e.g 200 * (1 - 10%) = 180 (price included)"*). El resultado viejo
         coincidía con el nuevo sólo cuando ``amount`` era 0.
 
-        **Y ahora honra ``price_include``**, que antes ignoraba: un 16 % marcado
+        **Y ahora honra ``price_include``**, que antes ignoraba: un 16 %
+        marcado
         como incluido devuelve el impuesto *contenido* en el precio, no un 16 %
         añadido encima. Es la diferencia entre las dos ramas de la referencia
         (``:1110`` vs ``:1130``), y confundirlas era el defecto de fondo.
@@ -673,7 +758,11 @@ class AccountTax(models.Model):
             return _d(self.amount)
         contexto = {'price_unit': base, 'quantity': Decimal('1')}
         if self.price_include:
-            monto = self._eval_tax_amount_price_included([self], base, contexto)
+            monto = self._eval_tax_amount_price_included(
+                [self], base, contexto
+            )
         else:
-            monto = self._eval_tax_amount_price_excluded([self], base, contexto)
+            monto = self._eval_tax_amount_price_excluded(
+                [self], base, contexto
+            )
         return monto if monto is not None else Decimal('0')

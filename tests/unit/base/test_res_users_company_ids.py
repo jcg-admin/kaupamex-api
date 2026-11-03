@@ -13,6 +13,7 @@ columna de la tabla de relación, el constraint ``_check_user_company``
 (``:501-511``) y el filtro de compañías archivadas de ``_get_company_ids``
 (``:726-730``).
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
@@ -38,7 +39,9 @@ def usuario(db, companias):
 
 
 def test_tabla_de_relacion_usa_las_columnas_de_la_referencia():
-    """``cid``/``user_id``, no los ``rescompany_id``/``resusers_id`` de Django."""
+    """
+    ``cid``/``user_id``, no los ``rescompany_id``/``resusers_id`` de Django.
+    """
     columnas = {f.column for f in ResCompanyUsersRel._meta.fields}
     assert ResCompanyUsersRel._meta.db_table == 'res_company_users_rel'
     assert {'cid', 'user_id'} <= columnas
@@ -47,23 +50,30 @@ def test_tabla_de_relacion_usa_las_columnas_de_la_referencia():
 def test_company_ids_es_el_reverso_del_m2m(usuario, companias):
     alfa, beta = companias
     usuario.company_ids.add(alfa, beta)
-    assert set(usuario.company_ids.values_list('pk', flat=True)) == {alfa.pk, beta.pk}
+    assert set(usuario.company_ids.values_list('pk', flat=True)) == {
+        alfa.pk,
+        beta.pk,
+    }
     assert usuario in alfa.user_ids.all()
 
 
-def test_constraint_rechaza_company_fuera_de_las_permitidas(usuario, companias):
-    """``_check_user_company``: la compañía por defecto debe estar permitida."""
+def test_constraint_rechaza_company_fuera_de_las_permitidas(
+    usuario, companias
+):
+    """
+    ``_check_user_company``: la compañía por defecto debe estar permitida.
+    """
     _, beta = companias
-    usuario.company_ids.add(beta)          # permitida: sólo Beta
+    usuario.company_ids.add(beta)  # permitida: sólo Beta
     with pytest.raises(ValidationError) as exc:
-        usuario.clean()                     # company = Alfa
+        usuario.clean()  # company = Alfa
     assert 'no está entre las permitidas' in str(exc.value)
 
 
 def test_constraint_pasa_cuando_la_propia_esta_permitida(usuario, companias):
     alfa, beta = companias
     usuario.company_ids.add(alfa, beta)
-    usuario.clean()                         # no lanza
+    usuario.clean()  # no lanza
 
 
 def test_constraint_no_aplica_a_usuario_inactivo(usuario, companias):
@@ -71,7 +81,7 @@ def test_constraint_no_aplica_a_usuario_inactivo(usuario, companias):
     _, beta = companias
     usuario.company_ids.add(beta)
     usuario.active = False
-    usuario.clean()                         # no lanza
+    usuario.clean()  # no lanza
 
 
 def test_permitidas_ponen_la_propia_primero(usuario, companias):

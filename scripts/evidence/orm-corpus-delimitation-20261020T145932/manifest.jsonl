@@ -1,0 +1,4 @@
+{"kind": "launch", "instrument": "uv run --frozen python scripts/reference_roots.py --env", "started_at": "2026-10-20T14:59:32+00:00"}
+{"kind": "declaration", "question": "Que corpus de referencia esta configurado, disponible y examinado y cuales contratos pertenecen a completar-raiz-orm?", "instrument": "../../reference_roots.py", "metric": "Resolucion de cuatro alias, procedencia de arboles, disponibilidad acotada y trazabilidad de obligaciones a pruebas y repositorios", "blind_to": "No mide conformidad por cantidad de archivos, no ejecuta Odoo, no infiere alcance Enterprise ni aceptacion global", "destination": "/workspace/kaupamex-api/scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs"}
+{"kind": "settle", "exit_code": 0, "finished_at": "2026-10-20T15:06:56+00:00", "duration_seconds": 444.790863}
+{"kind": "settle", "exit_code": 0, "finished_at": "2026-10-20T15:08:25+00:00", "duration_seconds": 533.131968}

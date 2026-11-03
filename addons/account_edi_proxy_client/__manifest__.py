@@ -20,7 +20,7 @@
     # ``porte-completo-no-parcial.md`` aplica a símbolos, aquí aplicado a
     # un helper interno).
     'depends': [
-        'account',      # transitivo, vía account_edi
+        'account',  # transitivo, vía account_edi
         'account_edi',  # lock_for_update() reutilizado, no duplicado
         'certificate',  # CertificateKey._sign/_decrypt/_generate_rsa_private_key
     ],

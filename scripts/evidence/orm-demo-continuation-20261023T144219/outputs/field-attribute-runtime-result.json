@@ -1,0 +1,28 @@
+{
+  "interface": "check_field_class_attributes.py --strict",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "measured_observations": 297,
+  "installed_attribute_names": 45,
+  "observed_discrepancies": 9,
+  "preexisting_baseline_entries": 9,
+  "new_discrepancies": 0,
+  "native_exit_code": 0,
+  "baseline_sha256": "e5086901b708afd9cd4ba71663db7be4522d8712e0da0cbd24818afc4381281e",
+  "baseline_unchanged_from_HEAD": true,
+  "classification": "Prospective gate passes; full observed metadata agreement is not PASS",
+  "limitations": [
+    "Only installed Field class attributes with supported reference literal comparison",
+    "One2many unreachable by this class patch",
+    "Reference-computed _column_type and Consumer CharField descriptor require behavior controls",
+    "No complete attribute/property applicability denominator",
+    "Related instrumentation TASK do not automatically own every mismatch; owner eligibility not inferred"
+  ],
+  "consumer_head_at_observation": "da475beb5c7f21c9c475c63b6dda407c7cd05994",
+  "consumer_source_scope": "Working-tree runtime with pending Registry correction; full Field runtime source snapshot was not bound before the command",
+  "current_source_fingerprints": {
+    "scripts/check_field_class_attributes.py": "6d528f6cce111d4599cd4e5f9b83296a1e9a5584d3b7bcd14634873ceeeafd25",
+    "src/orm/fields.py": "2eeb673521ede8201ade7f6f3b3d2ea81a4b198675f954818ae1a660192b5fe9",
+    "scripts/field_class_attributes_baseline.txt": "e5086901b708afd9cd4ba71663db7be4522d8712e0da0cbd24818afc4381281e"
+  },
+  "reuse_as_current_contract_acceptance": false
+}

@@ -35,7 +35,10 @@ class Migration(migrations.Migration):
             name="user",
             field=models.ForeignKey(
                 db_column="user_id",
-                help_text="Odoo user_id (required, ondelete=cascade). Sin default a env.user — ver docstring del módulo.",
+                help_text=(
+                    "Odoo user_id (required, ondelete=cascade). Sin default a"
+                    " env.user — ver docstring del módulo."
+                ),
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="timesheet_calendar_filters",
                 to=settings.AUTH_USER_MODEL,

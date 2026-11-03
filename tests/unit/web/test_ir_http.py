@@ -13,6 +13,7 @@ un ``_sanitize_cookies`` real sobre ``IrHttp`` (aquí o en otro addon), el
 segundo grupo de abajo empieza a fallar y obliga a releer el docstring del
 módulo antes de aceptar el cambio — no se puede mutar en silencio.
 """
+
 import pytest
 
 from addons.base.models.ir_http import IrHttp
@@ -22,9 +23,19 @@ from addons.web.models.ir_http import BOTS
 def test_bots_list_is_the_verbatim_reference_list():
     """``BOTS`` — ``odoo19c: web/models/ir_http.py:30``, copiado literal."""
     assert BOTS == [
-        "bot", "crawl", "slurp", "spider", "curl", "wget",
-        "facebookexternalhit", "whatsapp", "trendsmapresolver", "pinterest",
-        "instagram", "google-pagerenderer", "preview",
+        "bot",
+        "crawl",
+        "slurp",
+        "spider",
+        "curl",
+        "wget",
+        "facebookexternalhit",
+        "whatsapp",
+        "trendsmapresolver",
+        "pinterest",
+        "instagram",
+        "google-pagerenderer",
+        "preview",
     ]
 
 
@@ -35,24 +46,30 @@ def test_the_web_extension_installs_the_reference_list_on_base_ir_http():
     assert IrHttp.bots == BOTS
 
 
-@pytest.mark.parametrize('user_agent', [
-    'curl/7.68.0',
-    'Wget/1.20.3 (linux-gnu)',
-    'Mozilla/5.0 (compatible; Googlebot-PageRenderer)',
-    'facebookexternalhit/1.1',
-    'WhatsApp/2.19.81 A',
-    'Some-Preview-Bot/1.0',
-])
+@pytest.mark.parametrize(
+    'user_agent',
+    [
+        'curl/7.68.0',
+        'Wget/1.20.3 (linux-gnu)',
+        'Mozilla/5.0 (compatible; Googlebot-PageRenderer)',
+        'facebookexternalhit/1.1',
+        'WhatsApp/2.19.81 A',
+        'Some-Preview-Bot/1.0',
+    ],
+)
 def test_is_a_bot_recognizes_known_crawler_substrings(user_agent):
     assert IrHttp.is_a_bot(user_agent) is True
 
 
-@pytest.mark.parametrize('user_agent', [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    '',
-    None,
-])
+@pytest.mark.parametrize(
+    'user_agent',
+    [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        '',
+        None,
+    ],
+)
 def test_is_a_bot_rejects_ordinary_browsers_and_empty_input(user_agent):
     assert IrHttp.is_a_bot(user_agent) is False
 
@@ -64,6 +81,7 @@ def test_is_a_bot_is_case_insensitive():
 
 
 # --- El control de la declinación: `_sanitize_cookies` no existe aquí -----
+
 
 def test_web_does_not_override_sanitize_cookies():
     """``web`` no encadena ``sanitize_cookies``: el símbolo que ``IrHttp``
@@ -79,8 +97,10 @@ def test_web_does_not_override_sanitize_cookies():
     ``chained``, definido en ``orm.method_chain`` — si alguien encadenara
     aquí, el módulo de origen dejaría de ser ``base``.
     """
-    assert (IrHttp.sanitize_cookies.__func__.__module__
-            == 'addons.base.models.ir_http')
+    assert (
+        IrHttp.sanitize_cookies.__func__.__module__
+        == 'addons.base.models.ir_http'
+    )
 
 
 def test_sanitize_cookies_does_not_reformat_a_cids_shaped_cookie():

@@ -1,0 +1,56 @@
+{
+  "dimension": "reference_corpus_coverage",
+  "role": "analytical observation only; no new persistent fields or states",
+  "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "alias": "odoo19c",
+  "scope": "odoo/addons/test_orm full module",
+  "resolution": "existing reference_roots.tree(odoo19c), explicit pinned extract",
+  "materialized": {
+    "files": 38,
+    "test_files": 23,
+    "tests_init_additional": true,
+    "all_git_blobs_verified": true,
+    "tree_truncated": false
+  },
+  "resources": {
+    "security/ir.model.access.csv": true,
+    "security/test_orm_security.xml": true,
+    "views/test_orm_views.xml": true,
+    "data/test_orm_data.xml": true
+  },
+  "assets": {
+    "test_orm/static/tests/tours/constraint.js": true,
+    "test_orm/static/tests/tours/x2many.js": true
+  },
+  "manifest_dependencies": [
+    {
+      "name": "base",
+      "depends": [],
+      "reference_manifest_found": true,
+      "consumer_present": true
+    },
+    {
+      "name": "web",
+      "depends": [
+        "base"
+      ],
+      "reference_manifest_found": true,
+      "consumer_present": true
+    },
+    {
+      "name": "web_tour",
+      "depends": [
+        "web"
+      ],
+      "reference_manifest_found": true,
+      "consumer_present": false
+    }
+  ],
+  "examined": "All38modulefiles fully read; source ledgers capture all definitions and resource records. Semantics/Consumer conformance/acceptance remain separately not_verified.",
+  "executed_reference_tests": 0,
+  "executed_consumer_tests_this_lot": 0,
+  "conformance": "not_verified",
+  "not_a_contract_denominator": "38 files/23 test modules measure materialization only",
+  "prior_scope": "odoo/orm and selected base/tests remain preserved; base/tests/test_orm.py is a separate file",
+  "source_examination_evidence": "full-module-content-coverage.json"
+}

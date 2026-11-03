@@ -12,6 +12,7 @@ El dataset oficial de Correos de México se versiona en el repo ``db``
 Licencia (Correos de México): el catálogo es de uso particular, no comercial,
 no redistribuible.
 """
+
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
@@ -21,28 +22,48 @@ from addons.base_address_extended.models import CatalogPostalCode
 
 # Orden oficial de columnas del .txt SEPOMEX -> campos del modelo.
 _FIELDS = [
-    'postal_code', 'settlement_name', 'settlement_type', 'municipality',
-    'state', 'city', 'office_postal_code', 'state_code', 'office_code',
-    'postal_code_internal_code', 'settlement_type_code', 'municipality_code',
-    'settlement_consecutive_id', 'zone', 'city_code',
+    'postal_code',
+    'settlement_name',
+    'settlement_type',
+    'municipality',
+    'state',
+    'city',
+    'office_postal_code',
+    'state_code',
+    'office_code',
+    'postal_code_internal_code',
+    'settlement_type_code',
+    'municipality_code',
+    'settlement_consecutive_id',
+    'zone',
+    'city_code',
 ]
 _DEFAULT_PATH = '/home/user/kaupamex-db/provisioners/mariadb/data/sepomex-codigos-postales.txt'
 
 
 class Command(BaseCommand):
-    help = 'Carga el catálogo SEPOMEX de códigos postales en catalog_postal_code.'
+    help = (
+        'Carga el catálogo SEPOMEX de códigos postales en catalog_postal_code.'
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--path', default=_DEFAULT_PATH,
-            help='Ruta al .txt oficial SEPOMEX (default: dataset versionado en db).',
+            '--path',
+            default=_DEFAULT_PATH,
+            help=(
+                'Ruta al .txt oficial SEPOMEX (default: dataset versionado en'
+                ' db).'
+            ),
         )
         parser.add_argument(
-            '--batch-size', type=int, default=5000,
+            '--batch-size',
+            type=int,
+            default=5000,
             help='Tamaño de lote para bulk_create (default 5000).',
         )
         parser.add_argument(
-            '--truncate', action='store_true',
+            '--truncate',
+            action='store_true',
             help='Vacía la tabla antes de cargar (recarga limpia).',
         )
 
@@ -77,7 +98,9 @@ class Command(BaseCommand):
             CatalogPostalCode.objects.bulk_create(rows, batch_size=batch_size)
 
         total = CatalogPostalCode.objects.count()
-        self.stdout.write(self.style.SUCCESS(
-            f'SEPOMEX cargado: {len(rows)} filas insertadas '
-            f'({skipped} malformadas omitidas). Total en tabla: {total}.'
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'SEPOMEX cargado: {len(rows)} filas insertadas '
+                f'({skipped} malformadas omitidas). Total en tabla: {total}.'
+            )
+        )

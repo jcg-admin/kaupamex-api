@@ -1,10 +1,12 @@
 """El chequeo de coherencia de ``auto_install`` en ``update_module_list``.
 
-La referencia corre el punto fijo de ``auto_install`` dentro de ``initialize()``
+La referencia corre el punto fijo de ``auto_install`` dentro de
+``initialize()``
 (``odoo19c: odoo/modules/db.py:91-124``) y marca ``state='to install'``:
 **instala**. Este árbol no tiene instalador dinámico —``INSTALLED_APPS`` es una
 lista explícita—, así que el mismo cálculo se usa para **verificar**: qué addon
-declara ``auto_install``, tiene sus dependencias requeridas presentes, y aun así
+declara ``auto_install``, tiene sus dependencias requeridas presentes, y aun
+así
 no está cargado.
 
 Estos tests fijan que el chequeo existe y **discrimina**. Sin el segundo, un
@@ -14,12 +16,14 @@ puede ver el fallo publica su silencio como éxito.
 Cierra :ref:`h-api-410` — ``ModuleGraph.auto_installable`` estaba portado, era
 fiel, y no lo llamaba nadie.
 """
+
 import io
 
 import pytest
 from django.conf import settings
 from django.core.management import call_command
 
+from addons.base.models import IrModule
 from modules import ModuleGraph
 from modules.module import get_modules
 
@@ -42,6 +46,12 @@ def module_graph():
 
 def test_the_command_reports_auto_install_coherence():
     """El chequeo corre dentro del comando, no es una función suelta."""
+    IrModule.objects.bulk_create(
+        [
+            IrModule(name=name, state=IrModule.STATE_INSTALLED)
+            for name in installed_addon_names()
+        ]
+    )
     out = io.StringIO()
     call_command('update_module_list', '--dry-run', stdout=out)
     salida = out.getvalue()
@@ -75,9 +85,13 @@ def test_the_published_scope_is_what_the_check_can_see():
 
     assert len(with_manifest) == len(modules), (
         'un addon del árbol perdió su __manifest__.py — el alcance del '
-        'chequeo vuelve a ser menor que el árbol (ver #296)')
-    assert (f'alcance medido: {len(with_manifest)} addon(s) con manifest '
-            f'de {len(modules)} en el árbol') in out.getvalue()
+        'chequeo vuelve a ser menor que el árbol (ver #296)'
+    )
+    assert (
+        f'alcance medido: {len(with_manifest)} addon(s) con manifest '
+        f'de {len(modules)} en el árbol'
+        in out.getvalue()
+    )
 
 
 def test_no_auto_install_addon_is_missing_from_installed_apps():
@@ -121,3 +135,12 @@ def test_an_addon_without_auto_install_never_appears():
 
     reduced = installed_addon_names() - {plain}
     assert plain not in graph.auto_installable(reduced)
+
+
+def test_imported_code_does_not_hide_auto_install_candidates_in_empty_catalog():
+    assert not IrModule.objects.exists()
+    out = io.StringIO()
+    call_command('update_module_list', '--dry-run', stdout=out)
+    assert 'auto_install coherente: 0 pendientes' not in out.getvalue()
+    assert '  base  (depends:' in out.getvalue()
+    assert not IrModule.objects.exists()

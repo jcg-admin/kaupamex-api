@@ -12,9 +12,11 @@ entrada de catálogo y sus capacidades en un módulo ``authz_catalog.py`` propio
 y el seed las recoge recorriendo ``INSTALLED_APPS``.
 
 **Por qué declaración y no señales (DEC-01=B).** El análisis de referencia
-(``analisis-mapeo-registro-permisos-pretix-vs-catalogo-db``) comparó el registro
+(``analisis-mapeo-registro-permisos-pretix-vs-catalogo-db``) comparó el
+registro
 por señales de pretix (``register_*_permission_groups``) contra un catálogo en
-tabla, y cerró la decisión a favor del segundo: es *"greppeable, consultable por
+tabla, y cerró la decisión a favor del segundo: es *"greppeable, consultable
+por
 SQL, auditable y versionado"*. Este contrato la respeta — el
 ``authz_catalog.py`` de cada addon es **dato declarativo**, no un receiver que
 ensambla en runtime, y sigue siendo greppeable::
@@ -65,7 +67,8 @@ Las capacidades tampoco tienen análogo en el manifest — en la referencia vive
 en ``security/ir.model.access.csv`` y los grupos. Son extensión nuestra y se
 declaran como tal.
 
-**Por qué ``authz_catalog.py`` y no ``catalog.py``.** ``addons/authz/catalog.py``
+**Por qué ``authz_catalog.py`` y no ``catalog.py``.**
+``addons/authz/catalog.py``
 ya existe con otro significado desde SOL-094 (consulta del catálogo sembrado:
 ``sensitive_codes``, ``unknown_capability_codes``). El prefijo evita la
 colisión y dice a qué subsistema alimenta el archivo.
@@ -83,6 +86,7 @@ Uso desde un addon::
         CapabilitySpec(code='catalogue', name='Catálogo'),
     ]
 """
+
 import ast
 import importlib
 import os
@@ -118,7 +122,9 @@ class ModuleSpec:
 
     __slots__ = ('code', 'name', 'is_application', 'category', 'depends')
 
-    def __init__(self, code, name, is_application=False, category='', depends=()):
+    def __init__(
+        self, code, name, is_application=False, category='', depends=()
+    ):
         self.code = code
         self.name = name
         self.is_application = is_application
@@ -165,11 +171,16 @@ MANIFEST_FILE = '__manifest__.py'
 # el vocabulario del titular, no nuestro: recortarlo obligaría a re-etiquetar
 # una fuente el día que aparezca, que es exactamente lo que DEC-KX-03 prohíbe.
 MANIFEST_LICENSES = (
-    'GPL-2', 'GPL-2 or any later version',
-    'GPL-3', 'GPL-3 or any later version',
-    'AGPL-3', 'LGPL-3',
+    'GPL-2',
+    'GPL-2 or any later version',
+    'GPL-3',
+    'GPL-3 or any later version',
+    'AGPL-3',
+    'LGPL-3',
     'Other OSI approved licence',
-    'OEEL-1', 'OPL-1', 'Other proprietary',
+    'OEEL-1',
+    'OPL-1',
+    'Other proprietary',
 )
 DEFAULT_LICENSE = 'LGPL-3'
 
@@ -205,8 +216,9 @@ def values_from_manifest(manifest):
     **Tres claves nuestras que la fuente no tiene**, y por qué:
 
     - ``category`` — la fuente la resuelve como FK (``category_id``) en
-      ``_update_category``, no en esta función. Aquí es un desnormalizado
-      provisional; su reestructuración a FK sigue pendiente.
+      ``_update_category``, no en esta función. Aquí devuelve la ruta fuente;
+      update_module_list la conserva como category_path y resuelve el FK
+      mediante modules.db.create_categories en la conexión seleccionada.
     - ``installable`` y ``depends`` — el ``state`` y el grafo se derivan de
       ellas, y el seed las consume y descarta. En la fuente ese trabajo lo
       hacen ``_update_from_terp`` y ``_update_dependencies``, que pertenecen al
@@ -219,23 +231,23 @@ def values_from_manifest(manifest):
     Se cae a cadena vacía, que es lo que ``blank=True, default=''`` expresa.
     """
     return {
-        'shortdesc':      manifest.get('name', ''),
-        'summary':        manifest.get('summary', ''),
-        'description':    dedent(manifest.get('description', '')),
-        'category':       manifest.get('category', 'Uncategorized'),
-        'version':        manifest.get('version', '1.0'),
-        'license':        manifest.get('license', DEFAULT_LICENSE),
-        'author':         manifest.get('author', ''),
-        'maintainer':     manifest.get('maintainer', ''),
-        'contributors':   ', '.join(manifest.get('contributors', ())),
-        'website':        manifest.get('website', ''),
-        'url':            manifest.get('url') or manifest.get('live_test_url', ''),
-        'icon':           manifest.get('icon') or '',
-        'to_buy':         False,
-        'application':    manifest.get('application', False),
-        'auto_install':   manifest.get('auto_install', False) is not False,
-        'installable':    manifest.get('installable', True),
-        'depends':        tuple(manifest.get('depends', ())),
+        'shortdesc': manifest.get('name', ''),
+        'summary': manifest.get('summary', ''),
+        'description': dedent(manifest.get('description', '')),
+        'category': manifest.get('category', 'Uncategorized'),
+        'version': manifest.get('version', '1.0'),
+        'license': manifest.get('license', DEFAULT_LICENSE),
+        'author': manifest.get('author', ''),
+        'maintainer': manifest.get('maintainer', ''),
+        'contributors': ', '.join(manifest.get('contributors', ())),
+        'website': manifest.get('website', ''),
+        'url': manifest.get('url') or manifest.get('live_test_url', ''),
+        'icon': manifest.get('icon') or '',
+        'to_buy': False,
+        'application': manifest.get('application', False),
+        'auto_install': manifest.get('auto_install', False) is not False,
+        'installable': manifest.get('installable', True),
+        'depends': tuple(manifest.get('depends', ())),
     }
 
 
@@ -263,9 +275,11 @@ def _import_declaration(app_config):
     2. ``<app>.authz_catalog`` — el layout plano histórico (raíz del addon).
 
     Retrocompatible: los addons planos siguen funcionando por la 2ª ruta; los
-    reestructurados a ``security/`` por la 1ª. Se usa ``importlib.import_module``
+    reestructurados a ``security/`` por la 1ª. Se usa
+    ``importlib.import_module``
     —una **llamada**, no un statement ``import``— porque el descubrimiento es
-    dinámico (``.claude/rules/no-lazy-imports.md`` excepción #4; pasa el gate AST).
+    dinámico (``.claude/rules/no-lazy-imports.md`` excepción #4; pasa el gate
+    AST).
     """
     for dotted_path in (
         f'{app_config.name}.security.{DECLARATION_MODULE}',
@@ -303,8 +317,9 @@ def discover():
         for spec in getattr(declared, 'MODULES', ()):
             if spec.code in modules:
                 raise DuplicateDeclaration(
-                    f'El módulo {spec.code!r} lo declaran {owners[spec.code]!r} '
-                    f'y {app_config.name!r}. Un código tiene un solo dueño.'
+                    f'El módulo {spec.code!r} lo declaran'
+                    f' {owners[spec.code]!r} y {app_config.name!r}. Un código'
+                    ' tiene un solo dueño.'
                 )
             modules[spec.code] = spec
             owners[spec.code] = app_config.name
@@ -328,7 +343,9 @@ def orphan_capabilities(modules, capabilities):
     capacidad huérfana rompe el seed con un ``KeyError`` opaco.
     """
     return sorted(
-        spec.code for spec in capabilities.values() if spec.module not in modules
+        spec.code
+        for spec in capabilities.values()
+        if spec.module not in modules
     )
 
 

@@ -6,6 +6,7 @@ Portación fiel de ``account_payment.py`` (Odoo 18/19). Campos núcleo:
 ``journal``, ``partner``, ``currency``, ``company``, ``memo``,
 ``is_reconciled``.
 """
+
 from decimal import Decimal
 
 from django.conf import settings
@@ -32,46 +33,67 @@ class AccountPayment(models.Model):
         ('rejected', 'Rechazado'),
     ]
 
-    amount        = fields.Monetary(
-        max_digits=16, decimal_places=2, default=Decimal('0.00'),
+    amount = fields.Monetary(
+        max_digits=16,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Importe del pago (Odoo amount).',
     )
-    payment_type  = fields.Selection(
-        max_length=8, choices=PAYMENT_TYPES, default='inbound',
+    payment_type = fields.Selection(
+        max_length=8,
+        choices=PAYMENT_TYPES,
+        default='inbound',
         help_text='Tipo de pago (Odoo payment_type, requerido).',
     )
-    partner_type  = fields.Selection(
-        max_length=8, choices=PARTNER_TYPES, default='customer',
+    partner_type = fields.Selection(
+        max_length=8,
+        choices=PARTNER_TYPES,
+        default='customer',
         help_text='Tipo de contraparte (Odoo partner_type, requerido).',
     )
-    state         = fields.Selection(
-        max_length=12, choices=STATES, default='draft',
+    state = fields.Selection(
+        max_length=12,
+        choices=STATES,
+        default='draft',
         help_text='Estado del pago (Odoo state).',
     )
-    journal       = fields.Many2one(
-        'account.AccountJournal', on_delete=models.PROTECT, related_name='payments',
+    journal = fields.Many2one(
+        'account.AccountJournal',
+        null=False, on_delete=models.PROTECT,
+        related_name='payments',
         help_text='Diario (Odoo journal_id).',
     )
-    partner       = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+    partner = fields.Many2one(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='account_payments',
         help_text='Contacto (Odoo partner_id → party).',
     )
-    currency      = fields.Many2one(
-        'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
+    currency = fields.Many2one(
+        'base.ResCurrency',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='payments',
         help_text='Moneda (Odoo currency_id).',
     )
-    company       = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='payments',
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=False, on_delete=models.CASCADE,
+        related_name='payments',
         help_text='Empresa (Odoo company_id).',
     )
-    memo          = fields.Char(
-        max_length=255, blank=True, default='',
+    memo = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Concepto (Odoo memo).',
     )
     is_reconciled = fields.Boolean(
-        default=False, help_text='Pago conciliado (Odoo is_reconciled).',
+        default=False,
+        help_text='Pago conciliado (Odoo is_reconciled).',
     )
 
     class Meta:
@@ -81,4 +103,6 @@ class AccountPayment(models.Model):
         verbose_name_plural = 'Pagos'
 
     def __str__(self) -> str:
-        return f'{self.get_payment_type_display()} {self.amount} ({self.state})'
+        return (
+            f'{self.get_payment_type_display()} {self.amount} ({self.state})'
+        )

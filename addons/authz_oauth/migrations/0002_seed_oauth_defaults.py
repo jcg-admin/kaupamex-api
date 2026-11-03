@@ -13,6 +13,7 @@ modelo **histórico** vía ``apps.get_model``.
 Idempotente y ``noupdate`` como el XML de la referencia: nunca pisa un valor
 que ya exista.
 """
+
 from django.db import migrations
 
 from addons.authz_oauth.data import OAUTH_PARAMETERS, OAUTH_PROVIDERS
@@ -27,8 +28,11 @@ def sembrar(apps, schema_editor):
         if not SystemParameter.objects.using(alias).filter(key=key).exists():
             SystemParameter.objects.using(alias).create(key=key, value=value)
     for spec in OAUTH_PROVIDERS:
-        if not OauthProvider.objects.using(alias).filter(
-                name=spec['name']).exists():
+        if (
+            not OauthProvider.objects.using(alias)
+            .filter(name=spec['name'])
+            .exists()
+        ):
             OauthProvider.objects.using(alias).create(**spec)
 
 

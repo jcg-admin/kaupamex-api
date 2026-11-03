@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="db_backup_id",
-                help_text="Configuración que produjo esta corrida (Odoo db_backup_id).",
+                help_text=(
+                    "Configuración que produjo esta corrida (Odoo"
+                    " db_backup_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="backup_details_ids",

@@ -1,4 +1,6 @@
-"""``account.account`` — etiqueta de naturaleza deudora/acreedora (Odoo ``l10n_mx``).
+"""
+``account.account`` — etiqueta de naturaleza deudora/acreedora (Odoo
+``l10n_mx``).
 
 Adaptado de Odoo Community ``l10n_mx/models/account_account.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3) — DEC-KX-03.
@@ -28,7 +30,8 @@ models/account_account.py`` no sobreescribe ``create()`` — el punto de
 extensión Odoo (``@api.model_create_multi``) no tiene análogo directo aquí.
 El equivalente idiomático ya establecido en este puerto para actuar tras
 crear una fila de OTRO addon es la señal ``post_save`` con ``created=True``
-(mismo patrón que ``account: models/res_company.py::load_chart_for_new_company``
+(mismo patrón que ``account:
+models/res_company.py::load_chart_for_new_company``
 y ``account: models/product.py::_inherit_company_default_taxes``).
 
 **Una sola empresa, no ``company_ids``.** La referencia lee
@@ -42,6 +45,7 @@ con ``account.tag_ids = [Command.link(tag_id)]``; ``tags`` aquí es un
 ``Many2many`` real de Django — ``instance.tags.add(tag)`` es el equivalente
 directo, sin capa de comandos.
 """
+
 from django.db.models.signals import post_save
 
 from addons.account.models import AccountAccount
@@ -54,7 +58,9 @@ DEBIT_CODES = ('1', '5', '6', '7')
 
 
 def _apply_l10n_mx_balance_tag(sender, instance, created, **kwargs):
-    """Etiqueta la cuenta MX nueva con su naturaleza — ≙ el ``create()`` de la referencia.
+    """
+    Etiqueta la cuenta MX nueva con su naturaleza — ≙ el ``create()`` de la
+    referencia.
 
     ≙ ``odoo19c: l10n_mx/models/account_account.py:7-21``
     (``odoo-tools@622ddc2a``). Sale sin efecto si:
@@ -71,9 +77,11 @@ def _apply_l10n_mx_balance_tag(sender, instance, created, **kwargs):
     if not created:
         return
     debit_tag = IrModelData.ref(
-        'l10n_mx.tag_debit_balance_account', raise_if_not_found=False)
+        'l10n_mx.tag_debit_balance_account', raise_if_not_found=False
+    )
     credit_tag = IrModelData.ref(
-        'l10n_mx.tag_credit_balance_account', raise_if_not_found=False)
+        'l10n_mx.tag_credit_balance_account', raise_if_not_found=False
+    )
     if debit_tag is None or credit_tag is None:
         return
     company = instance.company
@@ -95,6 +103,7 @@ def apply_l10n_mx_extensions():
     import el registro de modelos aún no está poblado.
     """
     post_save.connect(
-        _apply_l10n_mx_balance_tag, sender=AccountAccount,
+        _apply_l10n_mx_balance_tag,
+        sender=AccountAccount,
         dispatch_uid='l10n_mx.account_account.balance_tag',
     )

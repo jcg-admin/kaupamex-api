@@ -46,15 +46,22 @@ Los controles que discriminan
 - ``prepare_setup`` se mide por lo que **olvida**, que es su único trabajo: un
   ``_rec_name`` resuelto y un colector cacheado tienen que dejar de estarlo.
 """
+
 import pytest
 
 from addons.website.models.static_page import StaticPage
 from orm import registry
-from orm.model_classes import (_check_model_extension,
-                               _check_model_parent_extension,
-                               _init_model_class_attributes, _prepare_setup,
-                               check_model_bases, ensure_model_class_attributes,
-                               inherits_children, is_abstract, is_transient)
+from orm.model_classes import (
+    _check_model_extension,
+    _check_model_parent_extension,
+    _init_model_class_attributes,
+    _prepare_setup,
+    check_model_bases,
+    ensure_model_class_attributes,
+    inherits_children,
+    is_abstract,
+    is_transient,
+)
 from orm.models import AbstractModel
 from orm.models_transient import TransientModel
 
@@ -104,7 +111,9 @@ class TestCheckModelBasesRefusesAKindChange:
             _name = 'prueba.abstracta'
             _abstract = True
 
-        with pytest.raises(TypeError, match='cannot inherit from non-abstract'):
+        with pytest.raises(
+            TypeError, match='cannot inherit from non-abstract'
+        ):
             check_model_bases(_Abstract)
 
     def test_a_transient_that_inherits_a_regular_one_is_refused(self):
@@ -132,6 +141,7 @@ class TestCheckModelBasesRefusesAKindChange:
 
     def test_two_models_of_the_same_kind_pass(self):
         """EL CONTROL de cada regla: la herencia legítima no se rechaza."""
+
         class _Transient:
             _name = 'prueba.t1'
             _transient = True
@@ -144,6 +154,7 @@ class TestCheckModelBasesRefusesAKindChange:
     def test_a_parent_without_a_name_is_not_measured(self):
         """Un mixin sin ``_name`` no es un modelo: la fuente recorre las
         clases de definición, no toda la MRO de Python."""
+
         class _Mixin:
             pass
 
@@ -167,6 +178,7 @@ class TestInitModelClassAttributesFillsTheDefaultsFromTheName:
     def test_a_declared_description_wins(self):
         """EL CONTROL del default: si pisara lo declarado, los 1099 modelos de
         la fuente que declaran ``_description`` lo perderían."""
+
         class _Model:
             _name = 'prueba.con.descripcion'
             _description = 'Un nombre informal'
@@ -184,6 +196,7 @@ class TestInitModelClassAttributesFillsTheDefaultsFromTheName:
     def test_it_merges_inherits_across_the_bases(self):
         """La fuente recorre ``_base_classes__``; aquí es la MRO. Sin el
         recorrido, una delegación declarada en un mixin se perdería."""
+
         class _Mixin:
             _inherits = {'res.company': 'company'}
 
@@ -192,8 +205,10 @@ class TestInitModelClassAttributesFillsTheDefaultsFromTheName:
             _inherits = {'res.partner': 'partner'}
 
         _init_model_class_attributes(_Model)
-        assert _Model._inherits == {'res.company': 'company',
-                                    'res.partner': 'partner'}
+        assert _Model._inherits == {
+            'res.company': 'company',
+            'res.partner': 'partner',
+        }
 
     def test_the_own_declaration_wins_over_the_base(self):
         class _Mixin:
@@ -210,6 +225,7 @@ class TestInitModelClassAttributesFillsTheDefaultsFromTheName:
         """La fuente evita asignar un dict vacío *"to save memory"*
         (``:290``); aquí el efecto observable es que la clase no gana un
         atributo que no declaró."""
+
         class _Model:
             _name = 'prueba.sin.delegacion'
 
@@ -268,23 +284,30 @@ class TestTheWiringRunsOnTheLiveTree:
     """
 
     def test_every_registered_model_got_its_description(self):
-        sin = [name for name, cls in registry.MODELS_BY_NAME.items()
-               if not getattr(cls, '_description', None)]
+        sin = [
+            name
+            for name, cls in registry.MODELS_BY_NAME.items()
+            if not getattr(cls, '_description', None)
+        ]
         assert sin == []
 
     def test_a_model_without_a_declared_table_derives_it_from_the_name(self):
         """El default: ``_name`` con los puntos cambiados por guion bajo, que
         es lo que ``check_table_matches_name()`` verifica contra
         ``db_table``."""
-        mal = [name for name, cls in registry.MODELS_BY_NAME.items()
-               if '_table' not in cls.__dict__
-               and getattr(cls, '_table', None) != name.replace('.', '_')]
+        mal = [
+            name
+            for name, cls in registry.MODELS_BY_NAME.items()
+            if '_table' not in cls.__dict__
+            and getattr(cls, '_table', None) != name.replace('.', '_')
+        ]
         assert mal == []
 
     def test_a_declared_table_is_not_clobbered_by_the_default(self):
         """EL CONTROL del default, y sus declarantes son reales.
 
-        ``:275`` de la fuente hace ``_table = base._table or model_cls._table``:
+        ``:275`` de la fuente hace ``_table = base._table or
+        model_cls._table``:
         lo declarado gana. Dos del arbol lo declaran con el mismo valor que la
         referencia — ``odoo19c: odoo/addons/base/models/ir_actions.py:588`` y
         ``ir_actions_report.py:161``—, asi que si el default los pisara, el
@@ -294,13 +317,18 @@ class TestTheWiringRunsOnTheLiveTree:
         mide ``check_table_matches_name()``, que ya publica la unica
         divergencia viva (``base.SystemParameter``).
         """
-        declarantes = {name: cls for name, cls in registry.MODELS_BY_NAME.items()
-                        if '_table' in cls.__dict__}
+        declarantes = {
+            name: cls
+            for name, cls in registry.MODELS_BY_NAME.items()
+            if '_table' in cls.__dict__
+        }
         assert set(declarantes) >= {'ir.actions.server', 'ir.actions.report'}
         assert declarantes['ir.actions.server']._table == 'ir_act_server'
         assert declarantes['ir.actions.report']._table == 'ir_act_report_xml'
 
-    def test_a_model_that_inherits_a_name_without_declaring_one_is_skipped(self):
+    def test_a_model_that_inherits_a_name_without_declaring_one_is_skipped(
+        self,
+    ):
         """EL CONTROL que el aviso de la fuente destapó.
 
         ``getattr(cls, '_name')`` recorre la MRO, y ``StaticPage``
@@ -313,5 +341,6 @@ class TestTheWiringRunsOnTheLiveTree:
         assert '_table' not in StaticPage.__dict__
 
     def test_the_sweep_covers_every_registered_model(self):
-        assert (set(ensure_model_class_attributes())
-                == set(registry.MODELS_BY_NAME))
+        assert set(ensure_model_class_attributes()) == set(
+            registry.MODELS_BY_NAME
+        )

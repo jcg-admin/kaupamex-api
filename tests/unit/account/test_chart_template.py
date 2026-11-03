@@ -10,6 +10,7 @@ registros nazcan con identificador externo **por empresa**, que las referencias
 entre ellos se resuelvan por ese nombre, y que dos empresas obtengan planos
 independientes.
 """
+
 import pytest
 
 from addons.account.models import (
@@ -24,7 +25,9 @@ from addons.account.models import (
     ChartTemplate,
 )
 from addons.account.models.chart_template import TEMPLATE_REGISTRY, template
-from addons.account.models.account_tax_repartition_line import AccountTaxRepartitionLine
+from addons.account.models.account_tax_repartition_line import (
+    AccountTaxRepartitionLine,
+)
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
 from exceptions import UserError
@@ -40,7 +43,9 @@ def company(db):
 @pytest.mark.django_db
 class TestRegistry:
     def test_generic_chart_is_registered(self, db):
-        """Importar el módulo de la plantilla la registra — sin barrer clases."""
+        """
+        Importar el módulo de la plantilla la registra — sin barrer clases.
+        """
         assert 'generic_coa' in ChartTemplate.get_chart_template_mapping()
 
     def test_generic_wins_without_country(self, db):
@@ -57,7 +62,9 @@ class TestLoading:
         assert AccountAccount.objects.filter(company=company).count() == 50
         assert AccountTaxGroup.objects.filter(company=company).count() == 2
         assert AccountTax.objects.filter(company=company).count() == 4
-        assert AccountFiscalPosition.objects.filter(company=company).count() == 2
+        assert (
+            AccountFiscalPosition.objects.filter(company=company).count() == 2
+        )
 
     def test_each_record_gets_its_external_id(self, company):
         ChartTemplate.try_loading('generic_coa', company)
@@ -65,7 +72,8 @@ class TestLoading:
         account = ChartTemplate.ref('receivable', company)
         assert account.code == '121000'
         assert IrModelData.objects.filter(
-            module='account', name=f'{company.pk}_receivable').exists()
+            module='account', name=f'{company.pk}_receivable'
+        ).exists()
 
     def test_tax_points_to_its_group(self, company):
         """La referencia entre registros se resuelve **por nombre**, no por id.
@@ -95,7 +103,9 @@ class TestLoading:
         assert lines.filter(document_type='refund').count() == 2
 
         received = ChartTemplate.ref('tax_received', company)
-        tax_line = lines.filter(repartition_type='tax', document_type='invoice')
+        tax_line = lines.filter(
+            repartition_type='tax', document_type='invoice'
+        )
         assert tax_line.get().account == received
 
     def test_company_ends_up_with_default_taxes(self, company):
@@ -108,9 +118,11 @@ class TestLoading:
         company.refresh_from_db()
 
         assert company.account_sale_tax == ChartTemplate.ref(
-            'sale_tax_template', company)
+            'sale_tax_template', company
+        )
         assert company.account_purchase_tax == ChartTemplate.ref(
-            'purchase_tax_template', company)
+            'purchase_tax_template', company
+        )
 
 
 @pytest.mark.django_db
@@ -127,7 +139,13 @@ class TestBaseTemplate:
         journals = AccountJournal.objects.filter(company=company)
         assert journals.count() == 6
         assert set(journals.values_list('code', flat=True)) == {
-            'INV', 'BILL', 'MISC', 'EXCH', 'CABA', 'BNK1'}
+            'INV',
+            'BILL',
+            'MISC',
+            'EXCH',
+            'CABA',
+            'BNK1',
+        }
 
     def test_reconcile_models_are_created_with_their_line(self, company):
         """Transferencia interna y comisión bancaria, cada una con su línea.
@@ -156,7 +174,11 @@ class TestBaseTemplate:
         ChartTemplate.try_loading('generic_coa', company)
 
         sale_journal = AccountJournal.objects.get(company=company, type='sale')
-        assert (sale_journal.sequence, sale_journal.show_on_dashboard, sale_journal.color) == (5, True, 11)
+        assert (
+            sale_journal.sequence,
+            sale_journal.show_on_dashboard,
+            sale_journal.color,
+        ) == (5, True, 11)
 
         misc_journal = AccountJournal.objects.get(company=company, code='MISC')
         assert misc_journal.show_on_dashboard is False
@@ -166,7 +188,10 @@ class TestBaseTemplate:
         ChartTemplate.try_loading('generic_coa', company)
 
         codes = list(
-            AccountJournal.objects.filter(company=company).values_list('code', flat=True))
+            AccountJournal.objects.filter(company=company).values_list(
+                'code', flat=True
+            )
+        )
         assert codes[:3] == ['INV', 'BILL', 'BNK1']
 
     def test_sale_journal_is_the_one_the_entry_looks_up(self, company):
@@ -195,10 +220,13 @@ class TestLoadOnCompanyCreate:
         company.save(update_fields=['chart_template'])
 
         subsidiary = ResCompany.objects.create(
-            code='acme-mx', name='ACME México', parent=company)
+            code='acme-mx', name='ACME México', parent=company
+        )
 
         assert AccountAccount.objects.filter(company=subsidiary).count() == 46
-        assert AccountJournal.objects.filter(company=subsidiary, type='sale').exists()
+        assert AccountJournal.objects.filter(
+            company=subsidiary, type='sale'
+        ).exists()
 
     def test_nothing_loads_without_a_chart_on_the_root(self, company):
         """El receptor es no-op mientras nadie declare un plan.
@@ -209,14 +237,19 @@ class TestLoadOnCompanyCreate:
         assert company.chart_template is None
 
         subsidiary = ResCompany.objects.create(
-            code='acme-co', name='ACME Colombia', parent=company)
+            code='acme-co', name='ACME Colombia', parent=company
+        )
 
         assert AccountAccount.objects.filter(company=subsidiary).count() == 0
 
     def test_root_does_not_load_itself(self, db):
-        """Una raíz es su propio ``parent_ids[0]`` — sin el guard se cargaría sola."""
+        """
+        Una raíz es su propio ``parent_ids[0]`` — sin el guard se cargaría
+        sola.
+        """
         root = ResCompany.objects.create(
-            code='beta-root', name='BETA', chart_template='generic_coa')
+            code='beta-root', name='BETA', chart_template='generic_coa'
+        )
 
         assert AccountAccount.objects.filter(company=root).count() == 0
 
@@ -260,15 +293,23 @@ class TestRegistryComposes:
     def test_second_declaration_does_not_erase_the_first(self, company):
         @template(model='account.journal')
         def extra_journal(cls, template_code):
-            return {'extra': {
-                'name': 'Diario extra', 'type': 'general', 'code': 'XTRA'}}
+            return {
+                'extra': {
+                    'name': 'Diario extra',
+                    'type': 'general',
+                    'code': 'XTRA',
+                }
+            }
 
         try:
             ChartTemplate.try_loading('generic_coa', company)
-            codes = set(AccountJournal.objects
-                          .filter(company=company).values_list('code', flat=True))
-            assert 'XTRA' in codes          # la nueva entró
-            assert 'INV' in codes           # y la base sigue ahí
+            codes = set(
+                AccountJournal.objects.filter(company=company).values_list(
+                    'code', flat=True
+                )
+            )
+            assert 'XTRA' in codes  # la nueva entró
+            assert 'INV' in codes  # y la base sigue ahí
         finally:
             TEMPLATE_REGISTRY[None]['account.journal'].remove(extra_journal)
 
@@ -306,41 +347,60 @@ class TestAccountGroups:
     def test_a_declared_group_is_instantiated(self, company):
         @template(model='account.group')
         def extra_group(cls, template_code):
-            return {'assets': {
-                'name': 'Activo', 'code_prefix_start': '10',
-                'code_prefix_end': '19'}}
+            return {
+                'assets': {
+                    'name': 'Activo',
+                    'code_prefix_start': '10',
+                    'code_prefix_end': '19',
+                }
+            }
 
         try:
             ChartTemplate.try_loading('generic_coa', company)
 
             group = ChartTemplate.ref('assets', company)
             assert group is not None
-            assert (group.code_prefix_start, group.code_prefix_end) == ('10', '19')
+            assert (group.code_prefix_start, group.code_prefix_end) == (
+                '10',
+                '19',
+            )
         finally:
             TEMPLATE_REGISTRY[None]['account.group'].remove(extra_group)
 
     def test_a_company_that_already_has_groups_keeps_them(self, company):
-        """≙ el guard de ``_pre_reload_data`` (``odoo19c: chart_template.py:308-312``).
+        """
+        ≙ el guard de ``_pre_reload_data`` (``odoo19c:
+        chart_template.py:308-312``).
 
-        Los grupos son la estructura del plan, no su contenido: re-instanciarlos
+        Los grupos son la estructura del plan, no su contenido:
+        re-instanciarlos
         duplicaría el árbol de agrupación.
         """
         AccountGroup.objects.create(
-            company=company, name='Mío', code_prefix_start='10',
-            code_prefix_end='19')
+            company=company,
+            name='Mío',
+            code_prefix_start='10',
+            code_prefix_end='19',
+        )
 
         @template(model='account.group')
         def extra_group(cls, template_code):
-            return {'assets': {
-                'name': 'Activo', 'code_prefix_start': '20',
-                'code_prefix_end': '29'}}
+            return {
+                'assets': {
+                    'name': 'Activo',
+                    'code_prefix_start': '20',
+                    'code_prefix_end': '29',
+                }
+            }
 
         try:
             ChartTemplate.try_loading('generic_coa', company)
 
             assert AccountGroup.objects.filter(company=company).count() == 1
-            assert ChartTemplate.ref(
-                'assets', company, raise_if_not_found=False) is None
+            assert (
+                ChartTemplate.ref('assets', company, raise_if_not_found=False)
+                is None
+            )
         finally:
             TEMPLATE_REGISTRY[None]['account.group'].remove(extra_group)
 
@@ -365,7 +425,8 @@ class TestTaxTagMapper:
         created = {}
         for label in ('Base imponible', 'Cuota repercutida'):
             tag, _new = AccountAccountTag.objects.get_or_create(
-                name=label, applicability='taxes')
+                name=label, applicability='taxes'
+            )
             created[label] = tag
         return created
 
@@ -373,17 +434,21 @@ class TestTaxTagMapper:
     def _load_with_tags(company, raw_tags):
         @template(model='account.tax')
         def tagged_tax(cls, template_code):
-            return {'tagged_tax': {
-                'name': 'Impuesto etiquetado',
-                'amount': 16,
-                'type_tax_use': 'sale',
-                'repartition_line_ids': [{
-                    'repartition_type': 'base',
-                    'factor_percent': 100,
-                    'document_type': 'invoice',
-                    'tag_ids': raw_tags,
-                }],
-            }}
+            return {
+                'tagged_tax': {
+                    'name': 'Impuesto etiquetado',
+                    'amount': 16,
+                    'type_tax_use': 'sale',
+                    'repartition_line_ids': [
+                        {
+                            'repartition_type': 'base',
+                            'factor_percent': 100,
+                            'document_type': 'invoice',
+                            'tag_ids': raw_tags,
+                        }
+                    ],
+                }
+            }
 
         try:
             ChartTemplate.try_loading('generic_coa', company)
@@ -399,19 +464,22 @@ class TestTaxTagMapper:
 
     def test_the_delimiter_splits_two_names(self, company, tax_tags):
         landed = self._load_with_tags(
-            company, 'Base imponible||Cuota repercutida')
+            company, 'Base imponible||Cuota repercutida'
+        )
 
         assert set(landed) == set(tax_tags.values())
 
     def test_surrounding_whitespace_does_not_break_the_match(
-            self, company, tax_tags):
+        self, company, tax_tags
+    ):
         """≙ el ``re.sub(r'\\s+', ' ', tag.strip())`` de la referencia."""
         landed = self._load_with_tags(company, '  Base    imponible ')
 
         assert landed == [tax_tags['Base imponible']]
 
     def test_an_external_id_takes_the_other_branch(self, company, master_tags):
-        """``modulo.nombre`` con módulo instalado se resuelve como identificador.
+        """
+        ``modulo.nombre`` con módulo instalado se resuelve como identificador.
 
         La etiqueta maestra tiene ``applicability='accounts'``, así que **no**
         está en el mapa por nombre que el mapeador consulta: si aterriza, sólo
@@ -422,7 +490,8 @@ class TestTaxTagMapper:
         assert landed == [master_tags['account_tag_operating']]
 
     def test_a_dotted_name_of_an_unknown_module_is_not_an_external_id(
-            self, company, db):
+        self, company, db
+    ):
         """El punto no basta: el prefijo tiene que nombrar un módulo instalado.
 
         ``ventas.general`` **sí** casa la forma ``modulo.nombre`` —a diferencia
@@ -432,17 +501,20 @@ class TestTaxTagMapper:
         por nombre.
         """
         tag, _new = AccountAccountTag.objects.get_or_create(
-            name='ventas.general', applicability='taxes')
+            name='ventas.general', applicability='taxes'
+        )
 
         landed = self._load_with_tags(company, 'ventas.general')
 
         assert landed == [tag]
 
     def test_an_unknown_name_is_dropped_without_aborting_the_load(
-            self, company, tax_tags):
+        self, company, tax_tags
+    ):
         """≙ la rama ``ignore_missing_tags`` — el plan se carga igual."""
         landed = self._load_with_tags(
-            company, 'Base imponible||Etiqueta que no existe')
+            company, 'Base imponible||Etiqueta que no existe'
+        )
 
         assert landed == [tax_tags['Base imponible']]
         assert AccountAccount.objects.filter(company=company).exists()
@@ -475,8 +547,11 @@ class TestAccountCodeWidth:
         ChartTemplate.try_loading('generic_coa', company)
         company.refresh_from_db()
 
-        anchos = set(AccountAccount.objects.filter(
-            company=company).values_list('code', flat=True))
+        anchos = set(
+            AccountAccount.objects.filter(company=company).values_list(
+                'code', flat=True
+            )
+        )
         assert {len(code) for code in anchos} == {6}
         # Y la generada por ``resolve_account_code`` cae en el mismo ancho.
         assert len(company.account_journal_suspense_account.code) == 6
@@ -520,8 +595,12 @@ class TestUtilityBankAccounts:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        debit = ChartTemplate.ref('account_journal_payment_debit_account', company)
-        credit = ChartTemplate.ref('account_journal_payment_credit_account', company)
+        debit = ChartTemplate.ref(
+            'account_journal_payment_debit_account', company
+        )
+        credit = ChartTemplate.ref(
+            'account_journal_payment_credit_account', company
+        )
         assert {debit.code, credit.code} == {'101402', '101403'}
         assert debit.reconcile and credit.reconcile
 
@@ -537,10 +616,16 @@ class TestUtilityBankAccounts:
         company.refresh_from_db()
 
         assert company.default_cash_difference_income_account.code == '442000'
-        assert company.account_journal_early_pay_discount_loss_account.code == '443000'
-        assert AccountAccount.objects.filter(
-            company=company, code='999998').get().name == (
-                'Accumulated Retained Earnings')
+        assert (
+            company.account_journal_early_pay_discount_loss_account.code
+            == '443000'
+        )
+        assert (
+            AccountAccount.objects.filter(company=company, code='999998')
+            .get()
+            .name
+            == 'Accumulated Retained Earnings'
+        )
 
     def test_the_bank_fees_rule_gets_its_account(self, company):
         """La regla de comisiones nace apuntada — ≙ el cierre de ``_load``.
@@ -563,11 +648,14 @@ class TestUtilityBankAccounts:
         company.refresh_from_db()
 
         subsidiary = ResCompany.objects.create(
-            code='acme-sub', name='ACME Sub', parent=company)
+            code='acme-sub', name='ACME Sub', parent=company
+        )
         subsidiary.refresh_from_db()
 
-        assert (subsidiary.account_journal_suspense_account
-                == company.account_journal_suspense_account)
+        assert (
+            subsidiary.account_journal_suspense_account
+            == company.account_journal_suspense_account
+        )
 
 
 @pytest.fixture
@@ -585,7 +673,8 @@ def master_tags(db):
         ('account_tag_investing', 'Investing & Extraordinary Activities'),
     ):
         tag, _new = AccountAccountTag.objects.get_or_create(
-            name=label, applicability='accounts')
+            name=label, applicability='accounts'
+        )
         IrModelData.set_xmlid(tag, f'account.{name}', noupdate=True)
         created[name] = tag
     return created
@@ -601,7 +690,9 @@ class TestAccountTags:
     es la jerarquía que ningún campo declara.
     """
 
-    def test_the_csv_tag_column_lands_on_the_account(self, company, master_tags):
+    def test_the_csv_tag_column_lands_on_the_account(
+        self, company, master_tags
+    ):
         """La columna del CSV se resuelve por identificador externo.
 
         Antes se descartaba entera: ``resolve_values`` saltaba todo M2M con un
@@ -614,38 +705,56 @@ class TestAccountTags:
         assert list(sales.tags.all()) == [master_tags['account_tag_operating']]
 
     def test_an_account_without_its_own_tag_inherits_the_previous_one(
-            self, company, master_tags):
+        self, company, master_tags
+    ):
         """≙ ``_compute_account_tags`` con su ``_get_closest_parent_account``.
 
         ``4421`` no declara etiqueta, así que toma la de ``4420``. La búsqueda
         es por código ordenado y ``bisect_left``, igual que la referencia.
         """
         parent = AccountAccount.objects.create(
-            company=company, code='4420', name='Cash Difference Gain',
-            account_type='income_other')
+            company=company,
+            code='4420',
+            name='Cash Difference Gain',
+            account_type='income_other',
+        )
         parent.tags.set([master_tags['account_tag_investing']])
 
         child = AccountAccount.objects.create(
-            company=company, code='4421', name='Otra', account_type='income_other')
+            company=company,
+            code='4421',
+            name='Otra',
+            account_type='income_other',
+        )
 
         assert list(child.tags.all()) == [master_tags['account_tag_investing']]
 
     def test_an_explicit_tag_wins_over_the_inherited_one(
-            self, company, master_tags):
+        self, company, master_tags
+    ):
         """La guarda ``not account.tag_ids`` de la referencia, verbatim."""
         parent = AccountAccount.objects.create(
-            company=company, code='4420', name='Cash Difference Gain',
-            account_type='income_other')
+            company=company,
+            code='4420',
+            name='Cash Difference Gain',
+            account_type='income_other',
+        )
         parent.tags.set([master_tags['account_tag_investing']])
 
         child = AccountAccount.objects.create(
-            company=company, code='4421', name='Otra', account_type='income_other')
+            company=company,
+            code='4421',
+            name='Otra',
+            account_type='income_other',
+        )
         child.tags.set([master_tags['account_tag_operating']])
         child.save()
 
         assert list(child.tags.all()) == [master_tags['account_tag_operating']]
 
-    def test_an_account_without_a_type_inherits_the_previous_one(self, company):
+    def test_an_account_without_a_type_inherits_the_previous_one(
+        self, company
+    ):
         """≙ ``_compute_account_type``, el segundo consumidor del ayudante.
 
         Requerido y computado no se contradicen: la referencia declara el campo
@@ -653,32 +762,46 @@ class TestAccountTags:
         del insert. Aquí lo llama ``save`` antes de guardar.
         """
         AccountAccount.objects.create(
-            company=company, code='4420', name='Cash Difference Gain',
-            account_type='income_other')
+            company=company,
+            code='4420',
+            name='Cash Difference Gain',
+            account_type='income_other',
+        )
 
         child = AccountAccount.objects.create(
-            company=company, code='4421', name='Otra', account_type='')
+            company=company, code='4421', name='Otra', account_type=''
+        )
 
         assert child.account_type == 'income_other'
         assert child.internal_group == 'income'
 
     def test_the_first_account_of_the_chart_falls_back_to_the_default(
-            self, company):
-        """Sin cuenta anterior, ``asset_current`` — el default de la referencia."""
+        self, company
+    ):
+        """
+        Sin cuenta anterior, ``asset_current`` — el default de la referencia.
+        """
         first = AccountAccount.objects.create(
-            company=company, code='1010', name='Current Assets', account_type='')
+            company=company,
+            code='1010',
+            name='Current Assets',
+            account_type='',
+        )
 
         assert first.account_type == 'asset_current'
 
     def test_a_master_tag_cannot_be_deleted(self, master_tags):
-        """≙ ``_unlink_except_master_tags``: el plan las cita por identificador."""
+        """
+        ≙ ``_unlink_except_master_tags``: el plan las cita por identificador.
+        """
         with pytest.raises(UserError):
             master_tags['account_tag_investing'].delete()
 
     def test_a_plain_tag_can_be_deleted(self, db):
         """La guarda protege las tres maestras, no toda etiqueta."""
         tag = AccountAccountTag.objects.create(
-            name='Casilla 33', applicability='taxes')
+            name='Casilla 33', applicability='taxes'
+        )
 
         tag.delete()
 

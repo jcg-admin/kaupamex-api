@@ -1,0 +1,51 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [ 75%]
+.....F...F..F..........                                                  [100%]
+=================================== FAILURES ===================================
+_ TestTheConstructorAcceptsTheDeclaration.test_a_related_is_not_stored_by_default _
+tests/unit/orm/test_related_field_declaration.py:40: in test_a_related_is_not_stored_by_default
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: CharField
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)
+_ TestTheConstructorAcceptsTheDeclaration.test_the_dispatcher_family_accepts_it_too _
+tests/unit/orm/test_related_field_declaration.py:70: in test_the_dispatcher_family_accepts_it_too
+    assert isinstance(field, NonStored), constructor.__name__
+E   AssertionError: Boolean
+E   assert False
+E    +  where False = isinstance(<django.db.models.fields.BooleanField>, NonStored)
+_______ TestTheFourDeclaredInResBank.test_none_of_the_four_took_a_column _______
+tests/unit/orm/test_related_field_declaration.py:170: in test_none_of_the_four_took_a_column
+    assert field_name not in columns, (
+E   AssertionError: ResPartnerBank.bank_name tomó columna
+E   assert 'bank_name' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_related_field_declaration.py::TestReadingWalksTheChain::test_reading_the_related_gives_the_value_at_the_end
+tests/unit/orm/test_related_field_declaration.py::TestTheFourDeclaredInResBank::test_the_account_reads_the_name_and_the_bic_of_its_bank
+tests/unit/orm/test_registry_field_axis.py::TestFieldTriggers::test_it_is_the_map_of_the_process
+tests/unit/orm/test_registry_field_axis.py::TestDiscardFields::test_it_empties_the_trigger_memo
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_related_field_declaration.py::TestReadingWalksTheChain::test_reading_the_related_gives_the_value_at_the_end
+tests/unit/orm/test_related_field_declaration.py::TestTheFourDeclaredInResBank::test_the_account_reads_the_name_and_the_bic_of_its_bank
+tests/unit/orm/test_registry_field_axis.py::TestFieldTriggers::test_it_is_the_map_of_the_process
+tests/unit/orm/test_registry_field_axis.py::TestDiscardFields::test_it_empties_the_trigger_memo
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /workspace/kaupamex-api/src/orm/fields.py:4099: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/related-setup-green.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_related_field_declaration.py::TestTheConstructorAcceptsTheDeclaration::test_a_related_is_not_stored_by_default
+FAILED tests/unit/orm/test_related_field_declaration.py::TestTheConstructorAcceptsTheDeclaration::test_the_dispatcher_family_accepts_it_too
+FAILED tests/unit/orm/test_related_field_declaration.py::TestTheFourDeclaredInResBank::test_none_of_the_four_took_a_column
+3 failed, 92 passed, 10 warnings in 5.20s

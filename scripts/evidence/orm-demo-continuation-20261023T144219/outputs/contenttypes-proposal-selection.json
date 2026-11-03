@@ -1,0 +1,53 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.local_contenttypes_proposal",
+      "taskId": "TASK-API-0383",
+      "prompt": "Implement reviewable local metadata placement with sessions default, preserving aliases and fail-closed routing; not an approved global policy or TASK acceptance",
+      "verify": "Native routing positive/negative controls and full own default/company provisioning plus backend storage without override",
+      "route": "local",
+      "owned": [
+        "src/orm/routers.py",
+        "src/config/settings/base.py",
+        "tests/unit/orm/test_multidb_router.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.company_schema_verification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Resolve existing productive company migration/metadata alias contract under legitimate ownership",
+      "verify": "Full own company provisioner and isolation, not in-memory policy override",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "src/orm/routers.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_module_graph_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Integrate per-company loader only after selected database schema and model-composition contracts are verified",
+      "verify": "Per-company real registry/schema/data/hooks/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.company_schema_verification"
+      ]
+    }
+  ],
+  "states": {
+    "TASK-API-0383.company_schema_verification": "failed"
+  },
+  "claims_count": 307,
+  "selected": [
+    "TASK-API-0383.local_contenttypes_proposal"
+  ],
+  "qualified_inputs": "Actual experimental380migrations107localFK and native backend metadata/session checks PASS; original local table exclusion causes real productive FK failure. No fabricated accepted state.",
+  "scope": "Pending functionality only; previous verified implementations remain pending whole-task acceptance separately. Proposal implementation is not policy approval."
+}

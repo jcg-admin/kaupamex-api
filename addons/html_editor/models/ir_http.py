@@ -90,6 +90,7 @@ reporta al orquestador.
 *Ciega a:* qué pasaría con un tercer addon que también extendiera el método —
 el efecto depende del orden de ``ready()``, no de este archivo.
 """
+
 from addons.base.models.ir_http import IrHttp, get_current_request
 from orm.method_chain import chain_method, keep_previous
 
@@ -97,7 +98,8 @@ CONTEXT_KEYS = ['editable', 'edit_translations', 'translatable']
 
 
 def _prepend_previous(new, previous):
-    """``combine`` acumulativo con lo propio DELANTE — ≙ ``[propio, *super()]``.
+    """
+    ``combine`` acumulativo con lo propio DELANTE — ≙ ``[propio, *super()]``.
 
     El hermano de ``orm.method_chain.extend_list`` para el orden contrario.
     Vive aquí y no allá porque hoy lo pide un solo consumidor; su hogar
@@ -142,10 +144,18 @@ def _get_translation_frontend_modules_name(cls):
 
 def apply_html_editor_extensions():
     """Cuelga los tres métodos sobre ``base.IrHttp`` — ≙ ``_inherit``."""
-    chain_method(IrHttp, '_get_editor_context',
-                 classmethod(_get_editor_context))
-    chain_method(IrHttp, '_pre_dispatch', classmethod(_pre_dispatch),
-                 combine=keep_previous)
-    chain_method(IrHttp, '_get_translation_frontend_modules_name',
-                 classmethod(_get_translation_frontend_modules_name),
-                 combine=_prepend_previous)
+    chain_method(
+        IrHttp, '_get_editor_context', classmethod(_get_editor_context)
+    )
+    chain_method(
+        IrHttp,
+        '_pre_dispatch',
+        classmethod(_pre_dispatch),
+        combine=keep_previous,
+    )
+    chain_method(
+        IrHttp,
+        '_get_translation_frontend_modules_name',
+        classmethod(_get_translation_frontend_modules_name),
+        combine=_prepend_previous,
+    )

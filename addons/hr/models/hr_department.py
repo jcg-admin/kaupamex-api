@@ -11,6 +11,7 @@ campos que cuelgan de ``hr.employee`` (``manager_id``, ``member_ids``,
 **deferidos** —ausentes, no stubs— y se agregan en migración aditiva cuando
 esas tablas aterricen.
 """
+
 import fields
 import models
 
@@ -32,8 +33,12 @@ class HrDepartment(MailThread, TimeStampedModel):
     # DEC-KX-05). Opcional + SET_NULL como el resto de FKs de company del
     # proyecto (sale.order).
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_departments', verbose_name='Empresa',
+        'base.ResCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hr_departments',
+        verbose_name='Empresa',
         help_text='Empresa dueña del departamento (Odoo company_id).',
     )
     # ``subsidiary`` se disolvió (D-1 cerrada contra la referencia): la
@@ -41,13 +46,21 @@ class HrDepartment(MailThread, TimeStampedModel):
     # ('Branches', ``odoo19c: res_company.py:51-52``), que ``base.ResCompany``
     # ya porta. ``hr.department`` en la referencia solo lleva ``company_id``.
     parent = fields.Many2one(
-        'self', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='children', verbose_name='Departamento padre',
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        verbose_name='Departamento padre',
     )
     parent_path = fields.Char(
-        blank=True, default='', db_index=True,
+        blank=True,
+        default='',
+        db_index=True,
     )
-    active = fields.Boolean(default=True, verbose_name='Activo')  # D-3: ex is_active
+    active = fields.Boolean(
+        default=True, verbose_name='Activo'
+    )  # D-3: ex is_active
     note = fields.Text(blank=True, default='', verbose_name='Nota')
     color = fields.Integer(default=0, verbose_name='Índice de color')
 
@@ -79,7 +92,9 @@ class HrDepartment(MailThread, TimeStampedModel):
         return f'{self.parent.parent_path}{self.pk}/'
 
     def save(self, *args, **kwargs):
-        """Mantiene la ruta materializada, que en la referencia mantiene el ORM."""
+        """
+        Mantiene la ruta materializada, que en la referencia mantiene el ORM.
+        """
         super().save(*args, **kwargs)
         path = self._compute_parent_path()
         if path != self.parent_path:

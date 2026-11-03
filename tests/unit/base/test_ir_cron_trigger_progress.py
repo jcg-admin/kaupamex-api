@@ -42,17 +42,23 @@ condiciones por un ``transaction.on_commit`` incondicional, la suite pasa de
 negativos. El positivo sobrevive, y ahi esta el punto: un aviso incondicional
 lo dejaria verde igual, asi que el positivo **solo** no mide la guarda.
 """
+
 import logging
 from datetime import timedelta
 
 import pytest
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from addons.base.models import IrActionsServer, IrCron, SystemParameter
 from addons.base.models import ir_cron as modulo_ir_cron
-from addons.base.models.ir_cron import (CompletionStatus, IrCronProgress,
-                                        IrCronTrigger, ListLogHandler,
-                                        MIN_FAILURE_COUNT_BEFORE_DEACTIVATION)
+from addons.base.models.ir_cron import (
+    CompletionStatus,
+    IrCronProgress,
+    IrCronTrigger,
+    ListLogHandler,
+    MIN_FAILURE_COUNT_BEFORE_DEACTIVATION,
+)
 from orm.environments import context_scope
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -62,16 +68,24 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 def cron():
     """Un cron listo, con su accion servidor delegada."""
     action = IrActionsServer.objects.create(
-        name='Tarea de prueba', state='code',
-        model_name='base.SystemParameter', method_name='noop_test')
+        name='Tarea de prueba',
+        state='code',
+        model_name='base.SystemParameter',
+        method_name='noop_test',
+    )
     return IrCron.objects.create(
-        ir_actions_server=action, interval_number=1, interval_type='days',
-        nextcall=timezone.now() - timedelta(minutes=1), active=True)
+        ir_actions_server=action,
+        interval_number=1,
+        interval_type='days',
+        nextcall=timezone.now() - timedelta(minutes=1),
+        active=True,
+    )
 
 
 # --------------------------------------------------------------------------
 # ir.cron.trigger — el disparo puntual
 # --------------------------------------------------------------------------
+
 
 def test_the_action_of_a_cron_declares_its_usage(cron):
     """≙ ``vals['usage'] = 'ir_cron'`` de ``create`` (``:136-137``)."""
@@ -79,8 +93,9 @@ def test_the_action_of_a_cron_declares_its_usage(cron):
     assert cron.ir_actions_server.usage == 'ir_cron'
 
 
-def test_the_notice_stays_quiet_when_the_switch_is_off(cron, monkeypatch,
-                                                       django_capture_on_commit_callbacks):
+def test_the_notice_stays_quiet_when_the_switch_is_off(
+    cron, monkeypatch, django_capture_on_commit_callbacks
+):
     """Sin la variable puesta, escribir un cron NO avisa a los workers.
 
     Es el control negativo del caso siguiente: si el aviso se emitiera
@@ -94,7 +109,8 @@ def test_the_notice_stays_quiet_when_the_switch_is_off(cron, monkeypatch,
 
 
 def test_rescheduling_notifies_the_workers_when_the_switch_is_on(
-        cron, monkeypatch, django_capture_on_commit_callbacks):
+    cron, monkeypatch, django_capture_on_commit_callbacks
+):
     """≙ ``('nextcall' in vals or vals.get('active')) and os.getenv(...)``.
 
     La fuente registra ``_notifydb`` en ``postcommit`` (``:706-707``); el
@@ -110,7 +126,8 @@ def test_rescheduling_notifies_the_workers_when_the_switch_is_on(
 
 
 def test_touching_an_unrelated_field_does_not_notify(
-        cron, monkeypatch, django_capture_on_commit_callbacks):
+    cron, monkeypatch, django_capture_on_commit_callbacks
+):
     """La condicion de la fuente nombra ``nextcall`` y ``active``, no todo.
 
     Escribir solo ``interval_number`` no cambia cuando corre el cron, asi que
@@ -159,18 +176,56 @@ def test_a_trigger_makes_the_cron_ready(cron):
 
 
 def test_clear_schedule_only_removes_the_expired_ones(cron):
-    """``_clear_schedule`` (``:622-632``) borra los vencidos, no los futuros."""
-    cron._trigger([timezone.now() - timedelta(hours=1),
-                   timezone.now() + timedelta(hours=1)])
+    """
+    ``_clear_schedule`` (``:622-632``) borra los vencidos, no los futuros.
+    """
+    cron._trigger(
+        [
+            timezone.now() - timedelta(hours=1),
+            timezone.now() + timedelta(hours=1),
+        ]
+    )
     cron._clear_schedule(cron)
     assert IrCronTrigger.objects.filter(cron=cron).count() == 1
 
 
 def test_reschedule_asap_leaves_a_trigger_for_now(cron):
-    """``_reschedule_asap`` (``:659-669``) — el desenlace ``partially done``."""
+    """
+    ``_reschedule_asap`` (``:659-669``) — el desenlace ``partially done``.
+    """
     cron._reschedule_asap(cron)
     trigger = IrCronTrigger.objects.get(cron=cron)
     assert trigger.call_at <= timezone.now()
+
+
+def _saved_triggers(action):
+    """Los ``post_save`` de ``ir.cron.trigger`` que dispara ``action``."""
+    saved = []
+
+    def receiver(sender, instance, created, **kwargs):
+        saved.append(created)
+
+    post_save.connect(receiver, sender=IrCronTrigger)
+    try:
+        action()
+    finally:
+        post_save.disconnect(receiver, sender=IrCronTrigger)
+    return saved
+
+
+def test_trigger_list_creates_through_the_orm(cron):
+    """≙ ``self.env['ir.cron.trigger'].sudo().create([...])`` (``:779-782``):
+    cada disparo pasa por ``save()`` y su señal, no por un ``bulk_create``."""
+    manana = timezone.now() + timedelta(days=1)
+    pasado = timezone.now() + timedelta(days=2)
+    assert _saved_triggers(lambda: cron._trigger([manana, pasado])) == [True, True]
+
+
+def test_reschedule_asap_inserts_below_the_orm(cron):
+    """≙ ``INSERT INTO ir_cron_trigger`` (``:665-668``): la fuente baja a SQL a
+    propósito desde el ejecutor de cron; aquí no pasa por ``save()``."""
+    assert _saved_triggers(lambda: cron._reschedule_asap(cron)) == []
+    assert IrCronTrigger.objects.filter(cron=cron).count() == 1
 
 
 def test_the_collector_only_sweeps_inactive_crons(cron):
@@ -191,6 +246,7 @@ def test_the_collector_only_sweeps_inactive_crons(cron):
 # --------------------------------------------------------------------------
 # ir.cron.progress — el avance por lotes
 # --------------------------------------------------------------------------
+
 
 def test_add_progress_advances_the_timeout_counter(cron):
     """El ``timed_out_counter + 1`` de la fuente (``:817-819``): el contador
@@ -230,7 +286,8 @@ def test_the_progress_collector_sweeps_by_age(cron):
     ``create_date``, que aqui es ``created_at``."""
     _, progress = cron._add_progress()
     IrCronProgress.objects.filter(pk=progress.pk).update(
-        created_at=timezone.now() - timedelta(weeks=2))
+        created_at=timezone.now() - timedelta(weeks=2)
+    )
     hechos, quedan = IrCronProgress._gc_cron_progress()
     assert hechos >= 1
     assert quedan is False
@@ -239,6 +296,7 @@ def test_the_progress_collector_sweeps_by_age(cron):
 # --------------------------------------------------------------------------
 # El conteo de fallos y sus DOS umbrales
 # --------------------------------------------------------------------------
+
 
 def test_a_success_resets_the_counter(cron):
     cron.failure_count = 3
@@ -287,6 +345,7 @@ def test_five_failures_over_two_weeks_do_deactivate(cron):
 # --------------------------------------------------------------------------
 # Las piezas de modulo que el porte trajo
 # --------------------------------------------------------------------------
+
 
 def test_the_log_handler_captures_only_inside_the_block():
     """``ListLogHandler`` (``:67-88``) — lo consume

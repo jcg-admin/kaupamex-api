@@ -1,4 +1,6 @@
-r"""``uom.uom`` extendido por ``account`` — un campo ya portado, dos métodos bloqueados.
+r"""
+``uom.uom`` extendido por ``account`` — un campo ya portado, dos métodos
+bloqueados.
 
 Adaptación de ``addons/account/models/uom_uom.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 59 líneas) — atribución y

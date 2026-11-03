@@ -34,7 +34,10 @@ class Migration(migrations.Migration):
                     "is_subcontracting_location",
                     models.BooleanField(
                         default=True,
-                        help_text="La ubicación es de subcontratación (Odoo is_subcontracting_location).",
+                        help_text=(
+                            "La ubicación es de subcontratación (Odoo"
+                            " is_subcontracting_location)."
+                        ),
                     ),
                 ),
                 (
@@ -70,7 +73,10 @@ class Migration(migrations.Migration):
                 (
                     "location",
                     models.ForeignKey(
-                        help_text="Ubicación de stock del subcontratista (Odoo property_stock_subcontractor).",
+                        help_text=(
+                            "Ubicación de stock del subcontratista (Odoo"
+                            " property_stock_subcontractor)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="subcontractors",
                         to="stock.stocklocation",
@@ -109,7 +115,9 @@ class Migration(migrations.Migration):
                 (
                     "production",
                     models.OneToOneField(
-                        help_text="Orden de fabricación (Odoo mrp.production).",
+                        help_text=(
+                            "Orden de fabricación (Odoo mrp.production)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="subcontract",
                         to="mrp.mrpproduction",
@@ -118,7 +126,10 @@ class Migration(migrations.Migration):
                 (
                     "subcontractor",
                     models.ForeignKey(
-                        help_text="Subcontratista de la orden (Odoo subcontractor_id).",
+                        help_text=(
+                            "Subcontratista de la orden (Odoo"
+                            " subcontractor_id)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="subcontract_productions",
                         to=settings.AUTH_USER_MODEL,
@@ -170,7 +181,8 @@ class Migration(migrations.Migration):
                 "db_table": "mrp_bom_subcontractor",
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("bom", "subcontractor"), name="unique_bom_subcontractor"
+                        fields=("bom", "subcontractor"),
+                        name="unique_bom_subcontractor",
                     )
                 ],
             },

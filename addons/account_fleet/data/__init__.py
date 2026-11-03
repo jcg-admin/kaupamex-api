@@ -7,6 +7,10 @@ el bloque es un módulo Python con su especificación, y una data-migration lo
 aplica — mismo mecanismo que ``account/data/account_tags.py``
 (``:ref:`h-api-263```).
 """
-from .fleet_service_types import VENDOR_BILL_SERVICE_XMLID, seed_fleet_service_types
+
+from .fleet_service_types import (
+    VENDOR_BILL_SERVICE_XMLID,
+    seed_fleet_service_types,
+)
 
 __all__ = ['VENDOR_BILL_SERVICE_XMLID', 'seed_fleet_service_types']

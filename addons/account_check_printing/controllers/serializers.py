@@ -4,6 +4,7 @@ Un único endpoint de acción (UC-FIN-09): sin serializer de salida propio —
 la respuesta del caso exitoso hasta donde el mecanismo llega (ver
 ``views.py``) es un dict simple, no un recurso ``ModelSerializer``.
 """
+
 from rest_framework import serializers
 
 from addons.account.models import AccountPayment
@@ -19,11 +20,15 @@ class PrintPrenumberedChecksSerializer(serializers.Serializer):
     """
 
     payment_ids = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=AccountPayment.objects.all(),
-        help_text='Pagos con método "Cheques" a numerar, en el orden en que '
-                  'reciben el número.',
+        many=True,
+        queryset=AccountPayment.objects.all(),
+        help_text=(
+            'Pagos con método "Cheques" a numerar, en el orden en que '
+            'reciben el número.'
+        ),
     )
     next_check_number = serializers.CharField(
-        max_length=32, allow_blank=False,
+        max_length=32,
+        allow_blank=False,
         help_text='Número inicial de la serie; sólo dígitos.',
     )

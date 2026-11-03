@@ -1,0 +1,1932 @@
+{
+  "scope": "Analytical view over existing33descriptors/66source characterizations plus native55scoped task identities; not a new population/store or global denominator",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "implementation_revision": "35501644c380f5f198e407fee16357994ac43b27",
+  "working_source_sha256": {
+    "src/orm/models.py": "35c421a6f3906c473c5d5958b419dce4f6d0467e1bac2658f640a6ffe4bffd53",
+    "tests/unit/orm/test_missing_recompute.py": "e12ea6b49e557cefe5660ed251ea4acbf53206168b935659ed0a8902e2e2f755",
+    "tests/unit/orm/test_relational_reconstruction_persistence.py": "7808ee919b08915bb5255d7e3fca69fc01aee9f16898734130b373d5b58256a8"
+  },
+  "contracts": [
+    {
+      "descriptor": "record_identity_singleton",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/record_identity_singleton",
+      "diagnosis": "partial historical verification",
+      "observation": "BaseModel id/ensure_one evidence reused. 0402 constructor/from_db/save already install triple; no reimplementation. Singleton does not prove all recordset access.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-API-0397",
+        "TASK-API-0398",
+        "TASK-API-0401",
+        "TASK-API-0402"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "exists_recordset_semantics",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/exists_recordset_semantics",
+      "diagnosis": "not_verified",
+      "observation": "Empty branch has existing test. Persisted/new/id0 path still not verified; native QuerySet.exists bool is not equivalent.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-API-0397",
+        "TASK-API-0398"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "cache_value_and_miss",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/cache_value_and_miss",
+      "diagnosis": "partial historical verification",
+      "observation": "Existing Cache.get/set/miss adaptation and historical tests; completed GEN0575 is not acceptance of all cache contracts.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-GEN-0575"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "cache_across_user_environments",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/cache_across_user_environments",
+      "diagnosis": "not_verified",
+      "observation": "Exact two-user set/overwrite/remove flow still not demonstrated; transaction ownership tests are narrower.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-GEN-0575"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "selective_invalidation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/selective_invalidation",
+      "diagnosis": "partial historical verification",
+      "observation": "Existing Field/cache/Transaction removal tests and prior evidence; broader composed/context path not verified.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-GEN-0575",
+        "TASK-GEN-0578"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "row_rule_access",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/row_rule_access",
+      "diagnosis": "not_verified",
+      "observation": "AccessQuerySet and existing rule tests present; requires prepared security fixtures. Missing res_users blocks global setup, no independent security acceptance.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "cursor_transaction_lifecycle",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/cursor_transaction_lifecycle",
+      "diagnosis": "partial historical verification",
+      "observation": "Prior PostgreSQL transaction probe reused; ownership/replica/concurrency not accepted globally.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "cursor_replica_selection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/cursor_replica_selection",
+      "diagnosis": "confirmed divergence / protocol evidence",
+      "observation": "Prior six branch scenarios retained; cooldown/thread/ProgrammingError differences, no real replica qualification; no atomic TASK identity reconciled.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "inverse_dependency_navigation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/inverse_dependency_navigation",
+      "diagnosis": "partial historical verification",
+      "observation": "Registry inverse/trigger mechanisms and prior22cases retained; API0424 warns of searchable related chain, not automatically a bug.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-API-0424"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "domain_any_rights_optimization",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/domain_any_rights_optimization",
+      "diagnosis": "bounded historical verification",
+      "observation": "Prior eight predicate comparisons/negative controls reused; not full CRUD/domain/security conformance.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "invalidate_all_flush_before_invalidate",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/invalidate_all_flush_before_invalidate",
+      "diagnosis": "confirmed defect, identity blocked",
+      "observation": "Existing exact-body control shows Consumer ignores flush. Search still finds no exact TASK; do not implement under broad completed Cache task.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "flush_recompute_fixpoint",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/flush_recompute_fixpoint",
+      "diagnosis": "partial historical verification",
+      "observation": "Prior six orchestration scenarios and two mutants reused. New missing-row cleanup does not accept entire fixpoint or alter empty-dirty representation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-GEN-0575",
+        "TASK-API-0424"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "relational_field_reconstruction",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/relational_field_reconstruction",
+      "diagnosis": "bounded adapted equivalence",
+      "observation": "Published0419 correction preserved. Prior8cases + new5PostgreSQL cases verify forward/reverse/query,PROTECT/CASCADE,FK integrity,rollback. Whole Odoo relational semantics not accepted.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-API-0417",
+        "TASK-API-0418",
+        "TASK-API-0419"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "recompute_dependent_record_discovery",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/recompute_dependent_record_discovery",
+      "diagnosis": "partial, new bounded correction verified",
+      "observation": "GEN0559 missing persisted IDs after queryset filtering:7PASS, baseline3PASS/4FAIL. Native group cleanup, virtual/subset/compute-error preservation. No batch0558, relation-discovery0424 or stale-row mid-compute race acceptance.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-API-0424",
+        "TASK-GEN-0558",
+        "TASK-GEN-0559"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "translated_record_storage_query",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/translated_record_storage_query",
+      "diagnosis": "confirmed divergence, migration blocked",
+      "observation": "Prior varchar/jsonb evidence reused. GEN0060->GEN0062 raw dependency retained. API0283 metadata/PR110 is not storage acceptance; no migration authorized.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": [
+        "TASK-GEN-0060",
+        "TASK-GEN-0062",
+        "TASK-API-0283"
+      ],
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "company_relation_consistency",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/company_relation_consistency",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact existing TASK identity verified",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "domain_null_boolean_partition",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/domain_null_boolean_partition",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact TASK identity verified; do not relabel domain_any_rights_optimization",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "protected_compute_scope",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/protected_compute_scope",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "existing recompute_dependent_record_discovery expands; TASK-API-0424/GEN0558/0559 are related subcontracts, not exact identity",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "json_value_isolation_roundtrip",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/json_value_isolation_roundtrip",
+      "diagnosis": "bounded adapted equivalence",
+      "observation": "0420 literal nested isolation, serialization and real JSONB persistence evidence reused; current focused regression passes7JSONcases. Global CI setup and timezone drift remain acceptance blockers.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact existing TASK identity verified",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "relation_command_membership",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/relation_command_membership",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "TASK-API-0417→0418→0419 reconstruct relation metadata, related prerequisite for affected paths only; exact command task not verified",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "virtual_onchange_delta",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/virtual_onchange_delta",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact existing TASK identity verified",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "prefetch_batch_reuse",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/prefetch_batch_reuse",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "TASK-API-0399 fetch historically related; no exact current ownership/admission verified",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "property_definition_authority",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/property_definition_authority",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact existing TASK identity verified",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "field_storage_reflection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/field_storage_reflection",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "existing relation reconstruction tasks related; no new schema TASK inferred",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "relational_domain_query_semantics",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/relational_domain_query_semantics",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact existing TASK identity verified; any-rights contract remains separate",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "recordset_sort_order",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/recordset_sort_order",
+      "diagnosis": "implemented, full conformance not_verified",
+      "observation": "API0400 completed and _sorted_order_to_function present; selected historical tests do not establish full sort semantics/acceptance.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "TASK-API-0400 historical completed; current status/ownership not re-evaluated here",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "web_projection_access",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/web_projection_access",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact existing TASK identity verified; Consumer comment is not permission-policy acceptance",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "record_attribute_boundary",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/record_attribute_boundary",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "autovacuum_expiration",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/autovacuum_expiration",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "index_method_reconciliation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/index_method_reconciliation",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "float_render_precision",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/float_render_precision",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "browser_x2many_constraint_integration",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/browser_x2many_constraint_integration",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "integration": "not_verified; no merge authorized"
+    },
+    {
+      "descriptor": "default_view_field_projection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#records/default_view_field_projection",
+      "diagnosis": "not_verified",
+      "observation": "Existing reference characterization and candidate implementation retained; no new execution or admission for this obligation.",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "existing_tasks": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "integration": "not_verified; no merge authorized"
+    }
+  ],
+  "source_groups": [
+    {
+      "source_group": "model_registry_extension_semantics",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/model_registry_extension_semantics",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "computed_fixture_dependency_graph",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/computed_fixture_dependency_graph",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "relational_fixture_integrity",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/relational_fixture_integrity",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "custom_sql_model_identity",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/custom_sql_model_identity",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "fixture_access_matrix",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/fixture_access_matrix",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "xml_ui_fixture_contracts",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/xml_ui_fixture_contracts",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "catalog_constraint_message_identity",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/catalog_constraint_message_identity",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "field_access_boundary",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/field_access_boundary",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "compute_definition_trigger_setup",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/compute_definition_trigger_setup",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "compute_recompute_protection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/compute_recompute_protection",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "context_and_access_compute_cache",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/context_and_access_compute_cache",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "inverse_and_constraint_dispatch",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/inverse_and_constraint_dispatch",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "flush_precommit_completion",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/flush_precommit_completion",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "numeric_currency_conversion",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/numeric_currency_conversion",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "scalar_temporal_selection_reference",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/scalar_temporal_selection_reference",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "related_read_write_metadata",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/related_read_write_metadata",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "company_dependent_storage_fallback",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/company_dependent_storage_fallback",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "company_dependent_search",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/company_dependent_search",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "prefetch_security_missing_and_groups",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/prefetch_security_missing_and_groups",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "virtual_record_origin_and_conversion",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/virtual_record_origin_and_conversion",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "relational_search_context_order",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/relational_search_context_order",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "relation_membership_inverse_cache",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/relation_membership_inverse_cache",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "privilege_safe_relational_commands",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/privilege_safe_relational_commands",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "binary_image_attachment_conversion",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/binary_image_attachment_conversion",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "html_sanitize_authority_and_cache",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/html_sanitize_authority_and_cache",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "parent_store_tree_and_cycles",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/parent_store_tree_and_cycles",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "relational_ondelete_and_reference",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/relational_ondelete_and_reference",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "selection_registry_update_and_uninstall",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/selection_registry_update_and_uninstall",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "create_precompute_batch_and_storage",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/create_precompute_batch_and_storage",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "copy_translation_and_dynamic_field_lifecycle",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/copy_translation_and_dynamic_field_lifecycle",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "company_consistency",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/company_consistency",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "company_context",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/company_context",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_authority",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_authority",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_conversion",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_conversion",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_relational",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_relational",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_search",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_search",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_group",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_group",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_onchange",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_onchange",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_security",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_security",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_performance",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_performance",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "property_fixture",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/property_fixture",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Relational boolean search, related field security and existential witnesses",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Relational boolean search, related field security and existential witnesses",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Flush-before-search and selective search_fetch/cache visibility",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Flush-before-search and selective search_fetch/cache visibility",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Date-part relational search and noninteger SQL-view identity",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Date-part relational search and noninteger SQL-view identity",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "NULL/False/empty partitions, translation and relational any complements",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/NULL/False/empty partitions, translation and relational any complements",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Domain optimizer normalization, type algebra, contextual dates and property expressions",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Domain optimizer normalization, type algebra, contextual dates and property expressions",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Recordset stable ordering, nulls, collation, relational recursion and virtual IDs",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Recordset stable ordering, nulls, collation, relational recursion and virtual IDs",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Batch fetching, context-sensitive cache and mutation/recompute performance observables",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Batch fetching, context-sensitive cache and mutation/recompute performance observables",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Relational command membership and deletion ordering under constraints",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Relational command membership and deletion ordering under constraints",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Company default field optimization and skip-locked raw SQL exception",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Company default field optimization and skip-locked raw SQL exception",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "Timing harness, large-domain stress and measured—not asserted—linearity",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/Timing harness, large-domain stress and measured—not asserted—linearity",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "record_attribute_boundary",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/record_attribute_boundary",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "expiration_lifecycle",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/expiration_lifecycle",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "index_method_reconciliation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/index_method_reconciliation",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "translated_record_storage_query",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/translated_record_storage_query",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "json_cache_value_normalization",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/json_cache_value_normalization",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "many2many_search_security",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/many2many_search_security",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "onchange_virtual_record_compute",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/onchange_virtual_record_compute",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "one2many_inverse_cache_recompute",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/one2many_inverse_cache_recompute",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "float_rendering_adapter",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/float_rendering_adapter",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "related_translation_propagation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/related_translation_propagation",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "reflection_schema_and_indexes",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/reflection_schema_and_indexes",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "ui_consumer_constraints",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/ui_consumer_constraints",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "web_read_projection_security",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/web_read_projection_security",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "view_metadata_access_adaptation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/view_metadata_access_adaptation",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    },
+    {
+      "source_group": "web_save_serialization",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json#full_module_characterizations/web_save_serialization",
+      "diagnosis": "historical source analysis retained; current whole-group Consumer conformance not_verified",
+      "delta_limit": "0419/0420/GEN0559 are bounded subcontracts, not acceptance of an entire group"
+    }
+  ],
+  "task_view": [
+    {
+      "citation": "TASK-API-0216",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "383"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "[]",
+      "diagnosis": "blocked_by_contract_reconciliation",
+      "implementation_navigation": "src/orm/fields.py::__all__; src/addons/base/models/ir_model.py",
+      "observation": "Historical classes-only criterion conflicts with intentional factories. Do not implement an invalid guard.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0283",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "487"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "[]",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0397",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1167"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "not_verified; retain official in_progress",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0398",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1168"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "not_verified; retain official in_progress",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0399",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1170"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "pending_without_implementation for exact missing fetch path",
+      "implementation_navigation": "src/orm/models.py::mapped",
+      "observation": "Code still raises explicit NotImplementedError for large mapped batches; broad fetch plan deferred.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0400",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1171"
+      ],
+      "official_status": "completed",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "completed_but_unverified for whole contract",
+      "implementation_navigation": "src/orm/models.py::_sorted_order_to_function",
+      "observation": "Implementation present; reuse existing tests, no reimplementation.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0401",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1172"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "blocked_by_dependency / architectural decision",
+      "implementation_navigation": "src/orm/models.py::_read_field; src/orm/fields.py descriptors",
+      "observation": "Plain multi-record access decision/cost requires authority reconciliation; not generic descriptor rewrite.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0402",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1173"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "pending_with_existing_implementation",
+      "implementation_navigation": "src/orm/models.py BaseModel.__init__/from_db/_install_singleton_triple/save",
+      "observation": "Existing construction adaptation; preserve; no full TASK acceptance inferred.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0406",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1181"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0412",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1187"
+      ],
+      "official_status": "completed",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "completed_but_unverified for whole contract",
+      "implementation_navigation": "src/orm/fields.py::determine_inverse; src/orm/models.py::RecordLoaderMixin.save",
+      "observation": "Inverse dispatch present; transaction atomicity GEN0507 remains distinct.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0417",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1192"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "in_progress_with_verified_progress, residual not accepted",
+      "implementation_navigation": "src/orm/fields_nonstored.py; src/orm/field_source.py; tests/unit/orm/test_declared_source_vocabulary.py",
+      "observation": "20dc122b central derivation exists; three inherited failures retained. No arbitrary test weakening.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0418",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1193"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "blocked_by_scope_reconciliation",
+      "implementation_navigation": "src/orm/fields_nonstored.py::NonStored",
+      "observation": "General adoption residual; not a prerequisite for measured0419 mixin path.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0419",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1194"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "integration_pending",
+      "implementation_navigation": "src/orm/fields.py; tests/unit/orm/test_relational_field_reconstruction.py; tests/unit/orm/test_relational_reconstruction_persistence.py",
+      "observation": "6c11ddde existing correction + five new PostgreSQL verification cases; no reimplementation.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0420",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1195"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "integration_pending",
+      "implementation_navigation": "src/orm/fields_misc.py; tests/unit/orm/test_json_defaults.py",
+      "observation": "8aca3900 preserved; valid prior JSONB/default/migration controls. No global CI acceptance.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0421",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1196"
+      ],
+      "official_status": "completed",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "completed_but_unverified for whole contract",
+      "implementation_navigation": "src/orm/models.py::BaseModel.create",
+      "observation": "Existing dict/list adaptation and historical content evidence; not accepted merely by completed.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0424",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1199"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "verification_required_before_defect_claim",
+      "implementation_navigation": "src/orm/models.py modified/_recompute_field; src/orm/registry.py triggers",
+      "observation": "Related-chain searchability warning may be reference-faithful. New0559 cleanup is not this contract.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-API-0427",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "1207"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": null,
+      "diagnosis": "blocked diagnosis, no root cause attribution",
+      "implementation_navigation": "Existing lock investigation and current CI res_users log",
+      "observation": "Historical lock symptom is not proof of current missing-table cause; no speculative CI fix.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0060",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "333"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "[]",
+      "diagnosis": "blocked_by_persistence_and_migration_authority",
+      "implementation_navigation": "src/orm/fields_textual.py",
+      "observation": "Known storage divergence; no migration authorization.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0062",
+      "identity": [
+        "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "400"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "[\"333\"]",
+      "diagnosis": "blocked_by_dependency",
+      "implementation_navigation": "native same-session dependency333 resolves GEN0060, see raw rows/previous dependency evidence",
+      "observation": "Depends on GEN0060 despite lossy projection; not eligible from empty edges.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0461",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "209"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official in_progress",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0462",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "210"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0463",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "211"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official in_progress",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0464",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "212"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0465",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "213"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0470",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "218"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0476",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "224"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0477",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "225"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official in_progress",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0478",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "226"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0479",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "227"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0482",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "230"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0483",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "231"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0484",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "232"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0485",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "233"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0487",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "235"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0492",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "240"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0493",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "241"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0494",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "242"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0495",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "243"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0496",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "244"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0503",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "251"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0507",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "255"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0508",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "256"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0512",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "260"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0525",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "273"
+      ],
+      "official_status": "in_progress",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official in_progress",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0554",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "302"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0558",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "306"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "pending, existing per-row adaptation",
+      "implementation_navigation": "src/orm/fields.py::recompute/_invoke_compute_method",
+      "observation": "QuerySet batch/prefetch unit distinct; not prerequisite for removing missing persisted IDs after query.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0559",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "307"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [
+        {
+          "id": "c-ee87c612-6a9c-424c-aa8f-21b0a3099544",
+          "op": "claim",
+          "path": "src/orm/models.py",
+          "owner": "codex-missing-recompute",
+          "branch": "feature/codex-workspace-bootstrap",
+          "at": "2026-10-21T16:47:34.856Z",
+          "task": "TASK-GEN-0559",
+          "process_liveness": "not_verified across agents/VMs; claim alone is not progress"
+        },
+        {
+          "id": "c-b638ac38-7b0f-45c2-b900-ab2d93eee722",
+          "op": "claim",
+          "path": "tests/unit/orm/test_missing_recompute.py",
+          "owner": "codex-missing-recompute",
+          "branch": "feature/codex-workspace-bootstrap",
+          "at": "2026-10-21T16:47:34.862Z",
+          "task": "TASK-GEN-0559",
+          "process_liveness": "not_verified across agents/VMs; claim alone is not progress"
+        }
+      ],
+      "dependencies_raw": "null",
+      "diagnosis": "in_progress_with_verified_progress",
+      "implementation_navigation": "src/orm/models.py::_recompute_field; tests/unit/orm/test_missing_recompute.py",
+      "observation": "Bounded missing-row cleanup implemented/verified, official pending unchanged. Mid-compute deletion retry remains not_verified.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0562",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "310"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0570",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "318"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0575",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "323"
+      ],
+      "official_status": "completed",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "completed_but_unverified for whole contract",
+      "implementation_navigation": "src/orm/environments.py::Cache",
+      "observation": "Cache implementation and focused history exist; no global acceptance of28methods.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0578",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "326"
+      ],
+      "official_status": "completed",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "completed_but_unverified for whole contract",
+      "implementation_navigation": "src/orm/fields.py::_filter_not_equal/_update_inverse",
+      "observation": "Existing adaptation; related local verification is not whole-contract acceptance.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0579",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "327"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0581",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "329"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-GEN-0587",
+      "identity": [
+        "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "335"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "API for ORM contract; historical GEN layer does not change ownership automatically",
+      "claims": [],
+      "dependencies_raw": "null",
+      "diagnosis": "not_verified; retain official pending",
+      "implementation_navigation": "Existing scope authority and task-as-is.json native row",
+      "observation": "Scope or evidence insufficient for admission; no absence or correctness inferred from status.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    },
+    {
+      "citation": "TASK-THYROX-1072",
+      "identity": [
+        "844a0a13-9fd8-5607-beb0-74daab7018a3",
+        "140"
+      ],
+      "official_status": "pending",
+      "official_owner": null,
+      "functional_owner": "Thyrox",
+      "claims": [
+        {
+          "id": "c-844ca00b-019b-4297-a19f-39d1a7b4a6a0",
+          "op": "claim",
+          "path": "src/task/task_source.py",
+          "owner": "vm-r",
+          "branch": "feature/vm-r-impl",
+          "at": "2026-10-09T04:45:40.641Z",
+          "task": "TASK-THYROX-1072",
+          "process_liveness": "not_verified across agents/VMs; claim alone is not progress"
+        }
+      ],
+      "dependencies_raw": null,
+      "diagnosis": "claimed_without_observable_progress",
+      "implementation_navigation": "Thyrox src/task/task_source.py::records_from_store",
+      "observation": "Foreign vm-r claim retained; source still hardcodes blockedBy=[]. Cross-VM liveness/progress not verified.",
+      "verification": "specific evidence referenced above; otherwise not_verified",
+      "publication": "API109 published baseline35501644; new unit publication recorded in PR after commit",
+      "acceptance": "not_verified for whole TASK",
+      "integration": "not merged",
+      "next_action": "Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch"
+    }
+  ],
+  "unresolved_historical_refs": [
+    {
+      "ordinal": "341",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "346",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "347",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "348",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "349",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "353",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "365",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    },
+    {
+      "ordinal": "366",
+      "session_checked": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "citation": null,
+      "limit": "No fallback to another session; unresolved legacy citation is not a missing implementation"
+    }
+  ],
+  "no_reimplementation": [
+    "0420 Json deepcopy default",
+    "0419 relational constructor capture",
+    "0402 singleton triple injection",
+    "0400 sorted helper",
+    "Cache/grouping/removal and native Thyrox mechanisms"
+  ],
+  "unmapped_implementation_limit": "No exhaustive code-to-TASK correspondence claimed. Prior unmatched symbols are not automatic defects/TASK.",
+  "coverage_limit": "Complete current functional verification of all applicable obligations remains open; untouched mechanisms retain historical evidence with limitations, not new PASS."
+}

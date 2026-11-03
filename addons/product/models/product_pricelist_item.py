@@ -70,6 +70,7 @@ Qué NO se porta, con su medición
 - **``_compute_price_before_discount`` / ``name`` / ``price``**: los dos
   últimos son etiquetas calculadas para el formulario de Odoo.
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -120,61 +121,117 @@ class ProductPricelistItem(TimeStampedModel):
     """``product.pricelist.item`` — una regla dentro de una tarifa."""
 
     pricelist = fields.Many2one(
-        ProductPricelist, on_delete=models.CASCADE, db_index=True,
-        related_name='item_ids', verbose_name='Tarifa')
+        ProductPricelist,
+        on_delete=models.CASCADE, null=True, blank=True,
+        db_index=True,
+        related_name='item_ids',
+        verbose_name='Tarifa',
+    )
     applied_on = fields.Selection(
-        max_length=32, choices=APPLIED_ON_CHOICES, default=APPLIED_GLOBAL,
+        max_length=32,
+        choices=APPLIED_ON_CHOICES,
+        default=APPLIED_GLOBAL,
         verbose_name='Se aplica a',
-        help_text='El prefijo numérico ES la precedencia — ver el docstring '
-                  'del módulo.',
+        help_text=(
+            'El prefijo numérico ES la precedencia — ver el docstring '
+            'del módulo.'
+        ),
     )
     categ = fields.Many2one(
-        ProductCategory, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='pricelist_item_ids', verbose_name='Categoría')
+        ProductCategory,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='pricelist_item_ids',
+        verbose_name='Categoría',
+    )
     product_tmpl = fields.Many2one(
-        ProductTemplate, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='pricelist_rule_ids', verbose_name='Producto')
+        ProductTemplate,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='pricelist_rule_ids',
+        verbose_name='Producto',
+    )
     product = fields.Many2one(
-        ProductProduct, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='pricelist_rule_ids', verbose_name='Variante')
+        ProductProduct,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='pricelist_rule_ids',
+        verbose_name='Variante',
+    )
     min_quantity = fields.Float(
-        default=0, verbose_name='Cantidad mínima',
-        help_text='A igual alcance gana la regla de mínimo mayor: la más '
-                  'exigente.',
+        default=0,
+        verbose_name='Cantidad mínima',
+        help_text=(
+            'A igual alcance gana la regla de mínimo mayor: la más exigente.'
+        ),
     )
     date_start = fields.Datetime(
-        null=True, blank=True, verbose_name='Fecha de inicio')
+        null=True, blank=True, verbose_name='Fecha de inicio'
+    )
     date_end = fields.Datetime(
-        null=True, blank=True, verbose_name='Fecha de fin')
+        null=True, blank=True, verbose_name='Fecha de fin'
+    )
     base = fields.Selection(
-        max_length=32, choices=BASE_CHOICES, default=BASE_LIST_PRICE,
-        verbose_name='Basado en')
+        max_length=32,
+        choices=BASE_CHOICES,
+        default=BASE_LIST_PRICE,
+        verbose_name='Basado en',
+    )
     base_pricelist = fields.Many2one(
-        ProductPricelist, on_delete=models.PROTECT, null=True, blank=True,
-        related_name='derived_item_ids', verbose_name='Otra tarifa')
+        ProductPricelist,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='derived_item_ids',
+        verbose_name='Otra tarifa',
+    )
     compute_price = fields.Selection(
-        max_length=16, choices=COMPUTE_PRICE_CHOICES, default=COMPUTE_FIXED,
-        db_index=True, verbose_name='Cálculo del precio')
+        max_length=16,
+        choices=COMPUTE_PRICE_CHOICES,
+        default=COMPUTE_FIXED,
+        db_index=True,
+        verbose_name='Cálculo del precio',
+    )
     fixed_price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Precio fijo')
+        max_digits=16, decimal_places=2, default=0, verbose_name='Precio fijo'
+    )
     percent_price = fields.Float(default=0, verbose_name='Descuento (%)')
-    price_discount = fields.Float(default=0, verbose_name='Descuento de fórmula (%)')
+    price_discount = fields.Float(
+        default=0, verbose_name='Descuento de fórmula (%)'
+    )
     price_markup = fields.Float(
-        default=0, verbose_name='Margen sobre coste (%)',
-        help_text='Se usa EN LUGAR del descuento cuando la base es el coste; '
-                  'la fórmula lo aplica como descuento negativo.',
+        default=0,
+        verbose_name='Margen sobre coste (%)',
+        help_text=(
+            'Se usa EN LUGAR del descuento cuando la base es el coste; '
+            'la fórmula lo aplica como descuento negativo.'
+        ),
     )
     price_round = fields.Float(
-        default=0, verbose_name='Redondeo',
-        help_text='Se aplica ANTES del recargo — ver el docstring del módulo.')
+        default=0,
+        verbose_name='Redondeo',
+        help_text='Se aplica ANTES del recargo — ver el docstring del módulo.',
+    )
     price_surcharge = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Recargo')
+        max_digits=16, decimal_places=2, default=0, verbose_name='Recargo'
+    )
     price_min_margin = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Margen mínimo',
-        help_text='Se mide contra la BASE, no contra el precio en curso.')
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Margen mínimo',
+        help_text='Se mide contra la BASE, no contra el precio en curso.',
+    )
     price_max_margin = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Margen máximo',
-        help_text='Se mide contra la BASE, no contra el precio en curso.')
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Margen máximo',
+        help_text='Se mide contra la BASE, no contra el precio en curso.',
+    )
 
     class Meta:
         db_table = 'product_pricelist_item'
@@ -206,11 +263,16 @@ class ProductPricelistItem(TimeStampedModel):
             )
         if self.base == BASE_PRICELIST and not self.base_pricelist_id:
             raise ValidationError(
-                'Una regla basada en otra tarifa debe indicar cuál.')
-        if (self.date_start and self.date_end
-                and self.date_start > self.date_end):
+                'Una regla basada en otra tarifa debe indicar cuál.'
+            )
+        if (
+            self.date_start
+            and self.date_end
+            and self.date_start > self.date_end
+        ):
             raise ValidationError(
-                'La fecha de inicio no puede ser posterior a la de fin.')
+                'La fecha de inicio no puede ser posterior a la de fin.'
+            )
 
     # === APLICABILIDAD ====================================================
 
@@ -234,8 +296,9 @@ class ProductPricelistItem(TimeStampedModel):
         if self.applied_on == APPLIED_VARIANT:
             return getattr(product, 'pk', None) == self.product_id
         if self.applied_on == APPLIED_PRODUCT:
-            tmpl = getattr(product, 'product_tmpl_id', None) \
-                or getattr(product, 'pk', None)
+            tmpl = getattr(product, 'product_tmpl_id', None) or getattr(
+                product, 'pk', None
+            )
             return tmpl == self.product_tmpl_id
         if self.applied_on == APPLIED_CATEGORY:
             categ = getattr(product, 'categ', None)
@@ -274,6 +337,7 @@ class ProductPricelistItem(TimeStampedModel):
         docstring del módulo: el orden **es** el algoritmo, y los márgenes se
         miden contra la base, no contra el precio en curso.
         """
+
         def convert(amount):
             """Los importes de la regla van en la unidad del producto."""
             product_uom = getattr(product, 'uom', None)
@@ -287,23 +351,26 @@ class ProductPricelistItem(TimeStampedModel):
         base_price, _currency = self.base_price_for(product)
 
         if self.compute_price == COMPUTE_PERCENTAGE:
-            return base_price - (base_price * (self.percent_price / 100)) or 0.0
+            return (
+                base_price - (base_price * (self.percent_price / 100)) or 0.0
+            )
 
         # === formula ===
-        price_limit = base_price          # 1. la base, antes de tocarla
+        price_limit = base_price  # 1. la base, antes de tocarla
         discount = (
-            self.price_discount if self.base != BASE_STANDARD_PRICE
-            else -self.price_markup       # sobre coste se marca al alza
+            self.price_discount
+            if self.base != BASE_STANDARD_PRICE
+            else -self.price_markup  # sobre coste se marca al alza
         )
-        price = base_price - (base_price * (discount / 100))   # 2. descuento
+        price = base_price - (base_price * (discount / 100))  # 2. descuento
 
-        if self.price_round:              # 3. redondeo, ANTES del recargo
+        if self.price_round:  # 3. redondeo, ANTES del recargo
             price = float_round(price, precision_rounding=self.price_round)
 
-        if self.price_surcharge:          # 4. recargo
+        if self.price_surcharge:  # 4. recargo
             price += convert(self.price_surcharge)
 
-        if self.price_min_margin:         # 5. márgenes contra la BASE
+        if self.price_min_margin:  # 5. márgenes contra la BASE
             price = max(price, price_limit + convert(self.price_min_margin))
         if self.price_max_margin:
             price = min(price, price_limit + convert(self.price_max_margin))

@@ -14,9 +14,9 @@
     # código no tiene y el gate de destinos muertos no puede distinguir de un
     # olvido; el porte es de la Capa 1 (tarea #203).
     'depends': [
-        'base',        # ResPartner — el proveedor
+        'base',  # ResPartner — el proveedor
         'base_setup',  # los ajustes de compra por empresa
-        'product',     # Product — lo que se compra
+        'product',  # Product — lo que se compra
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

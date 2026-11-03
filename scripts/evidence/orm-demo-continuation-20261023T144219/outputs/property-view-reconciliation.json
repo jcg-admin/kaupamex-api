@@ -1,0 +1,81 @@
+{
+  "observed_at": "2026-10-31T02:44:21.254903+00:00",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_contract_commit": "8630713f141cd47c678cdbbccceb634da0e8361d",
+  "reference_inventory_instrument_unchanged": true,
+  "same_954_declaration_population": true,
+  "property_accessors": 42,
+  "logical_properties": 41,
+  "every_accessor_in_exactly_one_property": true,
+  "property_group_tests": 11,
+  "scope": "Existing reference root inventory only; inherited/dynamic/conditional properties and whole attribute population not qualified",
+  "coverage_by_category": [
+    {
+      "category": "files",
+      "observed_in_instrument_scope": 23,
+      "applicable_global": null,
+      "satisfied_global": null,
+      "missing_global": null,
+      "divergent_global": null,
+      "not_verified_global_count": null,
+      "approved_exclusions_global": null,
+      "reason": "Global applicability and corresponding acceptance population not qualified; no zeros inferred"
+    },
+    {
+      "category": "classes",
+      "observed_in_instrument_scope": 59,
+      "applicable_global": null,
+      "satisfied_global": null,
+      "missing_global": null,
+      "divergent_global": null,
+      "not_verified_global_count": null,
+      "approved_exclusions_global": null,
+      "reason": "Global applicability and corresponding acceptance population not qualified; no zeros inferred"
+    },
+    {
+      "category": "module_functions",
+      "observed_in_instrument_scope": 87,
+      "applicable_global": null,
+      "satisfied_global": null,
+      "missing_global": null,
+      "divergent_global": null,
+      "not_verified_global_count": null,
+      "approved_exclusions_global": null,
+      "reason": "Global applicability and corresponding acceptance population not qualified; no zeros inferred"
+    },
+    {
+      "category": "methods_excluding_accessors",
+      "observed_in_instrument_scope": 766,
+      "applicable_global": null,
+      "satisfied_global": null,
+      "missing_global": null,
+      "divergent_global": null,
+      "not_verified_global_count": null,
+      "approved_exclusions_global": null,
+      "reason": "Global applicability and corresponding acceptance population not qualified; no zeros inferred"
+    },
+    {
+      "category": "attributes",
+      "observed_in_instrument_scope": null,
+      "applicable_global": null,
+      "satisfied_global": null,
+      "missing_global": null,
+      "divergent_global": null,
+      "not_verified_global_count": null,
+      "approved_exclusions_global": null,
+      "reason": "Global applicability and corresponding acceptance population not qualified; no zeros inferred"
+    },
+    {
+      "category": "logical_properties",
+      "observed_in_instrument_scope": 41,
+      "applicable_global": null,
+      "satisfied_global": null,
+      "missing_global": null,
+      "divergent_global": null,
+      "not_verified_global_count": null,
+      "approved_exclusions_global": null,
+      "reason": "Global applicability and corresponding acceptance population not qualified; no zeros inferred"
+    }
+  ],
+  "identity_coherence": "Revision/path/qualified symbol/declaring owner disagreements rejected before grouping"
+}

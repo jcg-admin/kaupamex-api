@@ -1,20 +1,24 @@
 """Tests — H-API-22: las semillas de data-migration sobreviven a un flush.
 
 **El defecto.** Un test ``django_db(transaction=True)`` es un
-``TransactionTestCase``: Django hace ``flush`` de todas las tablas de modelos en
-su teardown. ``django_migrations`` no es tabla de modelo, así que sobrevive — la
+``TransactionTestCase``: Django hace ``flush`` de todas las tablas de modelos
+en
+su teardown. ``django_migrations`` no es tabla de modelo, así que sobrevive —
+la
 data-migration queda registrada como aplicada sobre una tabla vacía y **nunca
 vuelve a correr**. Todo test posterior de la sesión ve las semillas ausentes, y
 el fallo aparece lejos de la causa (``get_param`` que devuelve ``None``, un
 subtipo de mensaje que no existe).
 
-Medido el 2026-07-28 en ``kaupamex_core_qa``: tras re-aplicar las cuatro migraciones
+Medido el 2026-07-28 en ``kaupamex_core_qa``: tras re-aplicar las cuatro
+migraciones
 de semilla (``system_parameter``=3, ``mail_message_subtype``=2,
 ``base_geo_provider``=2), **un solo** test transaccional dejó las tres en 0.
 
 **La corrección.** Cada addon expone ``data.seed()`` idempotente — el
 equivalente nativo del ``data/*.xml`` que Odoo re-aplica al actualizar el
-módulo — y el fixture ``restore_migration_seeds`` del conftest lo re-aplica tras
+módulo — y el fixture ``restore_migration_seeds`` del conftest lo re-aplica
+tras
 un test transaccional. Estos tests fijan las dos mitades del contrato:
 
 1. ``seed()`` es idempotente (llamarlo dos veces no duplica).
@@ -39,6 +43,7 @@ seguiría verde con la red desconectada.
 El test 2 depende del orden dentro de esta clase (``-p no:randomly`` está en
 ``pytest.ini``): el transaccional corre antes que el que verifica.
 """
+
 import pytest
 from django.test import override_settings
 
@@ -65,12 +70,21 @@ import tests.conftest as conftest
 
 pytestmark = pytest.mark.django_db
 
-_SEED_KEYS = (tuple(PASSWORD_POLICY_PARAMETERS) + tuple(SIGNUP_PARAMETERS)
-              + tuple(TOTP_PARAMETERS))
+_SEED_KEYS = (
+    tuple(PASSWORD_POLICY_PARAMETERS)
+    + tuple(SIGNUP_PARAMETERS)
+    + tuple(TOTP_PARAMETERS)
+)
 
-_ALL_SEEDERS = (password_policy_seed, signup_flags_seed, totp_params_seed,
-                mail_subtypes_seed, geo_providers_seed, bootstrap_company_seed,
-                conftest._crons_seed)
+_ALL_SEEDERS = (
+    password_policy_seed,
+    signup_flags_seed,
+    totp_params_seed,
+    mail_subtypes_seed,
+    geo_providers_seed,
+    bootstrap_company_seed,
+    conftest._crons_seed,
+)
 
 # La empresa de bootstrap NO entra en ``_seeds_present``: su semilla depende de
 # ``BOOTSTRAP_COMPANY_CODE`` (DEC-3 — la app ya no nombra ninguna empresa L1 en
@@ -84,19 +98,28 @@ def _seeds_present():
     """Estado de todas las familias de semilla, como dict verificable."""
     return {
         'params': SystemParameter.objects.filter(key__in=_SEED_KEYS).count(),
-        'subtypes': MailMessageSubtype.objects.filter(
-            name__in=[s['name'] for s in CANONICAL_SUBTYPES],
-            res_model='').count(),
-        'geo': GeoProvider.objects.filter(
-            tech_name__in=[t for t, _ in GEO_PROVIDERS]).count(),
+        'subtypes': (
+            MailMessageSubtype.objects.filter(
+                name__in=[s['name'] for s in CANONICAL_SUBTYPES], res_model=''
+            ).count()
+        ),
+        'geo': (
+            GeoProvider.objects.filter(
+                tech_name__in=[t for t, _ in GEO_PROVIDERS]
+            ).count()
+        ),
         # Añadida 2026-08-26: las siete siembras de ``ir.cron`` estaban fuera
         # de la red de H-API-22. Medido antes del arreglo, ``ir_cron`` tenía
         # **0** filas en ``kaupamex_core_qa`` con sus migraciones registradas
         # como aplicadas, y los cuatro casos de ``auto_backup`` fallaban por
         # eso — a diez archivos de distancia de la causa.
-        'crons': IrCron.objects.filter(
-            ir_actions_server__method_name__in=[
-                s['method_name'] for s in conftest._CRON_SPECS]).count(),
+        'crons': (
+            IrCron.objects.filter(
+                ir_actions_server__method_name__in=[
+                    s['method_name'] for s in conftest._CRON_SPECS
+                ]
+            ).count()
+        ),
     }
 
 
@@ -139,7 +162,8 @@ class TestRestauracionTrasElFlush:
     Ese reordenamiento explica además la **forma real** del defecto: el flush
     cae al cierre de la sesión, así que el daño no se ve en la corrida que lo
     causa — se ve en la **siguiente**, que con ``--reuse-db`` arranca sobre una
-    BD ya vacía. Por eso las semillas "aplicadas" llevaban tanto tiempo en cero.
+    BD ya vacía. Por eso las semillas "aplicadas" llevaban tanto tiempo en
+    cero.
 
     Se verifica entonces el contrato que el hook usa: borrar todo y re-sembrar
     devuelve exactamente el estado de las migraciones.
@@ -150,9 +174,9 @@ class TestRestauracionTrasElFlush:
         MailMessageSubtype.objects.filter(res_model='').delete()
         GeoProvider.objects.all().delete()
         IrCron.objects.all().delete()
-        assert _seeds_present() != _ESPERADO      # el flush deja hueco real
+        assert _seeds_present() != _ESPERADO  # el flush deja hueco real
 
-        for seed in _ALL_SEEDERS:                 # lo que corre el hook
+        for seed in _ALL_SEEDERS:  # lo que corre el hook
             seed()
         assert _seeds_present() == _ESPERADO
 
@@ -176,15 +200,17 @@ class TestRestauracionDeLaEmpresaDeBootstrap:
     """
 
     def test_borrar_y_re_sembrar_restaura_la_empresa_declarada(self):
-        with override_settings(BOOTSTRAP_COMPANY_CODE=_BOOTSTRAP_CODE,
-                               BOOTSTRAP_COMPANY_NAME='Bootstrap Flush Test'):
+        with override_settings(
+            BOOTSTRAP_COMPANY_CODE=_BOOTSTRAP_CODE,
+            BOOTSTRAP_COMPANY_NAME='Bootstrap Flush Test',
+        ):
             bootstrap_company_seed()
             assert ResCompany.objects.filter(code=_BOOTSTRAP_CODE).exists()
 
             ResCompany.objects.filter(code=_BOOTSTRAP_CODE).delete()
             assert not ResCompany.objects.filter(code=_BOOTSTRAP_CODE).exists()
 
-            bootstrap_company_seed()              # lo que corre el hook
+            bootstrap_company_seed()  # lo que corre el hook
             assert ResCompany.objects.filter(code=_BOOTSTRAP_CODE).count() == 1
 
     def test_sin_codigo_declarado_el_sembrador_no_fabrica_empresas(self):

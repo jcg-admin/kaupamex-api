@@ -1,6 +1,7 @@
 """``utm.campaign`` — la campaña de marketing.
 
-Adaptación fiel de Odoo ``utm/models/utm_campaign.py`` (``odoo-tools@622ddc2a``,
+Adaptación fiel de Odoo ``utm/models/utm_campaign.py``
+(``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3). Los 3 símbolos de la fuente están portados.
 
 La campaña tiene **dos nombres**, y no es redundancia: ``title`` es el que lee
@@ -24,6 +25,7 @@ Divergencias declaradas:
   la forma en que la fuente declara *"calculado, pero editable y en columna"*.
   Aquí una columna normal escrita en ``save()`` es exactamente eso.
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -42,52 +44,69 @@ class UtmCampaign(TimeStampedModel):
 
     # ≙ ``active``.
     active = fields.Boolean(
-        default=True, verbose_name='Activo',
+        default=True,
+        verbose_name='Activo',
         help_text='Permite archivar la campaña sin borrarla.',
     )
     # ≙ ``name`` (``compute`` con ``store``, ``readonly=False``,
     # ``translate=False`` en la fuente).
     name = fields.Char(
-        max_length=255, verbose_name='Identificador de campaña',
-        help_text='Identificador único que viaja en la URL como utm_campaign. '
-                  'Se deriva del nombre legible.',
+        max_length=255,
+        verbose_name='Identificador de campaña',
+        help_text=(
+            'Identificador único que viaja en la URL como utm_campaign. '
+            'Se deriva del nombre legible.'
+        ),
     )
     # ≙ ``title`` (traducible en la fuente).
     title = fields.Char(
-        max_length=255, verbose_name='Nombre de campaña',
+        max_length=255,
+        verbose_name='Nombre de campaña',
         help_text='Nombre legible de la campaña.',
     )
     # ≙ ``user_id`` (requerido, con el usuario actual por defecto). Nullable en
     # columna porque el default se resuelve en ``save()``; ver el docstring.
     user_id = fields.Many2one(
-        'base.ResUsers', null=True, on_delete=models.PROTECT,
-        related_name='utm_campaign_ids', verbose_name='Responsable',
+        'base.ResUsers',
+        null=True,
+        on_delete=models.PROTECT,
+        related_name='utm_campaign_ids',
+        verbose_name='Responsable',
         help_text='Persona responsable de la campaña.',
         db_column='user_id',
     )
     # ≙ ``stage_id`` (requerido, ``ondelete=restrict``, ``copy=False``,
     # ``group_expand=_group_expand_stage_ids``).
     stage_id = fields.Many2one(
-        'utm.UtmStage', on_delete=models.PROTECT, related_name='campaign_ids',
+        'utm.UtmStage',
+        null=False, on_delete=models.PROTECT,
+        related_name='campaign_ids',
         verbose_name='Etapa',
         help_text='Etapa en la que se encuentra la campaña.',
         db_column='stage_id',
     )
     # ≙ ``tag_ids`` (M2M sobre la tabla ``utm_tag_rel``).
     tag_ids = fields.Many2many(
-        'utm.UtmTag', db_table='utm_tag_rel', related_name='campaign_ids',
-        blank=True, verbose_name='Etiquetas',
+        'utm.UtmTag',
+        db_table='utm_tag_rel',
+        related_name='campaign_ids',
+        blank=True,
+        verbose_name='Etiquetas',
         help_text='Etiquetas con las que se clasifica la campaña.',
     )
     # ≙ ``is_auto_campaign``.
     is_auto_campaign = fields.Boolean(
-        default=False, verbose_name='Campaña generada automáticamente',
-        help_text='Permite filtrar las campañas relevantes de las generadas '
-                  'automáticamente.',
+        default=False,
+        verbose_name='Campaña generada automáticamente',
+        help_text=(
+            'Permite filtrar las campañas relevantes de las generadas '
+            'automáticamente.'
+        ),
     )
     # ≙ ``color``.
     color = fields.Integer(
-        default=0, verbose_name='Índice de color',
+        default=0,
+        verbose_name='Índice de color',
         help_text='Color con el que se presenta la campaña.',
     )
 
@@ -99,7 +118,8 @@ class UtmCampaign(TimeStampedModel):
             # ≙ ``_unique_name = models.Constraint('UNIQUE(name)', 'The name
             # must be unique')`` (``odoo19c: :31-34``).
             models.UniqueConstraint(
-                fields=['name'], name='utm_campaign_unique_name',
+                fields=['name'],
+                name='utm_campaign_unique_name',
                 violation_error_message='The name must be unique',
             ),
         ]
@@ -111,7 +131,8 @@ class UtmCampaign(TimeStampedModel):
     # -- el identificador derivado del título ---------------------------------
 
     def _compute_name(self):
-        """≙ ``_compute_name`` (``odoo19c: :36-42``) — ``name`` sale de ``title``.
+        """
+        ≙ ``_compute_name`` (``odoo19c: :36-42``) — ``name`` sale de ``title``.
 
         Excluye el propio registro de la búsqueda de colisiones: sin eso, cada
         actualización incrementaría el contador aunque el título no cambie —
@@ -119,7 +140,8 @@ class UtmCampaign(TimeStampedModel):
         """
         skip = [self.pk] if self.pk else []
         self.name = UtmMixin._get_unique_names(
-            self._name, [self.title], skip_record_ids=skip)[0]
+            self._name, [self.title], skip_record_ids=skip
+        )[0]
         return self.name
 
     def save(self, *args, **kwargs):
@@ -136,11 +158,13 @@ class UtmCampaign(TimeStampedModel):
                 # ≙ ``default=lambda self: self.env.uid`` (``odoo19c: :19``).
                 self.user_id_id = get_current_uid()
             if self.stage_id_id is None:
-                # ≙ ``default=lambda self: self.env['utm.stage'].search([], limit=1)``
+                # ≙ ``default=lambda self:
+                # self.env['utm.stage'].search([], limit=1)``
                 # (``odoo19c: :22``) — la primera etapa por ``_order``.
                 self.stage_id = UtmStage.objects.first()
             self.name = UtmMixin._get_unique_names(
-                self._name, [self.name or self.title])[0]
+                self._name, [self.name or self.title]
+            )[0]
         return super().save(*args, **kwargs)
 
     # -- kanban ---------------------------------------------------------------

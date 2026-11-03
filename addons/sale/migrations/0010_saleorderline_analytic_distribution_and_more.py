@@ -24,7 +24,9 @@ class Migration(migrations.Migration):
             field=models.JSONField(
                 blank=True,
                 default=dict,
-                help_text='Odoo analytic_distribution: {"id1,id2,...": porcentaje}.',
+                help_text=(
+                    'Odoo analytic_distribution: {"id1,id2,...": porcentaje}.'
+                ),
                 null=True,
                 verbose_name="Distribución analítica",
             ),
@@ -34,7 +36,11 @@ class Migration(migrations.Migration):
             name="collapse_composition",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo collapse_composition ("Collapse Composition", copy=True). Si las líneas de esta sección se ocultan en el reporte y en el portal.',
+                help_text=(
+                    'Odoo collapse_composition ("Collapse Composition",'
+                    ' copy=True). Si las líneas de esta sección se ocultan en'
+                    ' el reporte y en el portal.'
+                ),
                 verbose_name="Colapsar composición",
             ),
         ),
@@ -43,7 +49,11 @@ class Migration(migrations.Migration):
             name="collapse_prices",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo collapse_prices ("Collapse Prices", copy=True). Si los precios de las líneas de esta sección se ocultan en el reporte y en el portal.',
+                help_text=(
+                    'Odoo collapse_prices ("Collapse Prices", copy=True). Si'
+                    ' los precios de las líneas de esta sección se ocultan en'
+                    ' el reporte y en el portal.'
+                ),
                 verbose_name="Colapsar precios",
             ),
         ),
@@ -53,7 +63,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="combo_item_id",
-                help_text="Odoo combo_item_id. El elemento del combo que esta línea materializa.",
+                help_text=(
+                    "Odoo combo_item_id. El elemento del combo que esta línea"
+                    " materializa."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="sale_order_lines",
@@ -67,7 +80,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="company_id",
-                help_text="Odoo company_id (related order_id.company_id, store, index, precompute). La empresa que vende.",
+                help_text=(
+                    "Odoo company_id (related order_id.company_id, store,"
+                    " index, precompute). La empresa que vende."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="sale_order_lines",
@@ -81,7 +97,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="currency_id",
-                help_text="Odoo currency_id (related order_id.currency_id, store, precompute). La divisa en que se expresan los importes.",
+                help_text=(
+                    "Odoo currency_id (related order_id.currency_id, store,"
+                    " precompute). La divisa en que se expresan los importes."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -95,7 +114,11 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text='Odoo customer_lead ("Lead Time", compute+store con readonly=False, required, precompute). Días entre la confirmación del pedido y el envío al cliente.',
+                help_text=(
+                    'Odoo customer_lead ("Lead Time", compute+store con'
+                    ' readonly=False, required, precompute). Días entre la'
+                    ' confirmación del pedido y el envío al cliente.'
+                ),
                 max_digits=16,
                 verbose_name="Plazo de entrega",
             ),
@@ -110,7 +133,10 @@ class Migration(migrations.Migration):
                     ("line_subsection", "Subsección"),
                     ("line_note", "Nota"),
                 ],
-                help_text="Odoo display_type. Si tiene valor, la línea NO es una venta sino una sección, subsección o nota del documento.",
+                help_text=(
+                    "Odoo display_type. Si tiene valor, la línea NO es una"
+                    " venta sino una sección, subsección o nota del documento."
+                ),
                 max_length=16,
                 null=True,
                 verbose_name="Tipo de despliegue",
@@ -122,7 +148,10 @@ class Migration(migrations.Migration):
             field=models.JSONField(
                 blank=True,
                 default=dict,
-                help_text="Odoo extra_tax_data. Campo técnico con los datos que el motor de cálculo de impuestos necesita conservar.",
+                help_text=(
+                    "Odoo extra_tax_data. Campo técnico con los datos que el"
+                    " motor de cálculo de impuestos necesita conservar."
+                ),
                 null=True,
                 verbose_name="Datos extra de impuesto",
             ),
@@ -133,7 +162,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="sale_order_line_invoice_rel",
-                help_text='Odoo invoice_lines ("Invoice Lines", relation sale_order_line_invoice_rel, copy=False). Las líneas de factura que facturan esta línea de pedido.',
+                help_text=(
+                    'Odoo invoice_lines ("Invoice Lines", relation'
+                    ' sale_order_line_invoice_rel, copy=False). Las líneas de'
+                    ' factura que facturan esta línea de pedido.'
+                ),
                 related_name="sale_line_ids",
                 to="account.accountmoveline",
                 verbose_name="Líneas de factura",
@@ -150,7 +183,9 @@ class Migration(migrations.Migration):
                     ("to invoice", "Por facturar"),
                     ("no", "Nada que facturar"),
                 ],
-                help_text='Odoo invoice_status ("Invoice Status", compute+store).',
+                help_text=(
+                    'Odoo invoice_status ("Invoice Status", compute+store).'
+                ),
                 max_length=16,
                 null=True,
                 verbose_name="Estado de facturación",
@@ -161,7 +196,11 @@ class Migration(migrations.Migration):
             name="is_downpayment",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo is_downpayment ("Is a down payment"). Los anticipos se crean al facturar desde el pedido; no se copian al duplicarlo.',
+                help_text=(
+                    'Odoo is_downpayment ("Is a down payment"). Los anticipos'
+                    ' se crean al facturar desde el pedido; no se copian al'
+                    ' duplicarlo.'
+                ),
                 verbose_name="Es anticipo",
             ),
         ),
@@ -170,7 +209,10 @@ class Migration(migrations.Migration):
             name="is_expense",
             field=models.BooleanField(
                 default=False,
-                help_text='Odoo is_expense ("Is expense"). Verdadero si la línea viene de un gasto o de una factura de proveedor.',
+                help_text=(
+                    'Odoo is_expense ("Is expense"). Verdadero si la línea'
+                    ' viene de un gasto o de una factura de proveedor.'
+                ),
                 verbose_name="Es gasto",
             ),
         ),
@@ -180,7 +222,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="linked_line_id",
-                help_text='Odoo linked_line_id ("Linked Order Line"). La línea de la que ésta depende — una opción de un combo, por ejemplo. Su inverso ES el One2many linked_line_ids de la fuente.',
+                help_text=(
+                    'Odoo linked_line_id ("Linked Order Line"). La línea de la'
+                    ' que ésta depende — una opción de un combo, por ejemplo.'
+                    ' Su inverso ES el One2many linked_line_ids de la fuente.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="linked_line_ids",
@@ -194,7 +240,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo linked_virtual_id. El enlace a otra línea por su virtual_id, para cuando ninguna de las dos tiene id todavía.",
+                help_text=(
+                    "Odoo linked_virtual_id. El enlace a otra línea por su"
+                    " virtual_id, para cuando ninguna de las dos tiene id"
+                    " todavía."
+                ),
                 max_length=64,
                 verbose_name="Id virtual enlazado",
             ),
@@ -205,7 +255,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="order_partner_id",
-                help_text='Odoo order_partner_id ("Customer", related order_id.partner_id, store, index, precompute).',
+                help_text=(
+                    'Odoo order_partner_id ("Customer", related'
+                    ' order_id.partner_id, store, index, precompute).'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="+",
@@ -219,7 +272,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_reduce_taxexcl ("Price Reduce Tax excl", compute+store, precompute).',
+                help_text=(
+                    'Odoo price_reduce_taxexcl ("Price Reduce Tax excl",'
+                    ' compute+store, precompute).'
+                ),
                 max_digits=12,
                 verbose_name="Precio con descuento sin impuestos",
             ),
@@ -230,7 +286,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo price_reduce_taxinc ("Price Reduce Tax incl", compute+store, precompute).',
+                help_text=(
+                    'Odoo price_reduce_taxinc ("Price Reduce Tax incl",'
+                    ' compute+store, precompute).'
+                ),
                 max_digits=12,
                 verbose_name="Precio con descuento con impuestos",
             ),
@@ -241,7 +300,11 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="sale_order_line_product_no_variant_rel",
-                help_text='Odoo product_no_variant_attribute_value_ids ("Extra Values"): los valores de atributo cuyo create_variant es no_variant — no generan variante pero sí precio extra.',
+                help_text=(
+                    'Odoo product_no_variant_attribute_value_ids ("Extra'
+                    ' Values"): los valores de atributo cuyo create_variant es'
+                    ' no_variant — no generan variante pero sí precio extra.'
+                ),
                 related_name="sale_order_lines_no_variant",
                 to="product.producttemplateattributevalue",
                 verbose_name="Valores extra",
@@ -253,7 +316,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="product_uom_id",
-                help_text='Odoo product_uom_id ("Unit", compute+store con readonly=False). La unidad en que se vende esta línea.',
+                help_text=(
+                    'Odoo product_uom_id ("Unit", compute+store con'
+                    ' readonly=False). La unidad en que se vende esta línea.'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="sale_order_lines",
@@ -267,7 +333,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text='Odoo qty_delivered ("Delivery Quantity", compute+store con readonly=False, copy=False).',
+                help_text=(
+                    'Odoo qty_delivered ("Delivery Quantity", compute+store'
+                    ' con readonly=False, copy=False).'
+                ),
                 max_digits=16,
                 verbose_name="Cantidad entregada",
             ),
@@ -277,8 +346,15 @@ class Migration(migrations.Migration):
             name="qty_delivered_method",
             field=models.CharField(
                 blank=True,
-                choices=[("manual", "Manual"), ("analytic", "Analítico, desde gastos")],
-                help_text='Odoo qty_delivered_method ("Method to update delivered qty", compute+store, precompute). Cómo se obtiene la cantidad entregada: a mano o desde gastos analíticos.',
+                choices=[
+                    ("manual", "Manual"),
+                    ("analytic", "Analítico, desde gastos"),
+                ],
+                help_text=(
+                    'Odoo qty_delivered_method ("Method to update delivered'
+                    ' qty", compute+store, precompute). Cómo se obtiene la'
+                    ' cantidad entregada: a mano o desde gastos analíticos.'
+                ),
                 max_length=16,
                 null=True,
                 verbose_name="Método de cantidad entregada",
@@ -290,7 +366,9 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text='Odoo qty_invoiced ("Invoiced Quantity", compute+store).',
+                help_text=(
+                    'Odoo qty_invoiced ("Invoiced Quantity", compute+store).'
+                ),
                 max_digits=16,
                 verbose_name="Cantidad facturada",
             ),
@@ -301,7 +379,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=4,
                 default=Decimal("0.0000"),
-                help_text='Odoo qty_to_invoice ("Quantity To Invoice", compute+store).',
+                help_text=(
+                    'Odoo qty_to_invoice ("Quantity To Invoice",'
+                    ' compute+store).'
+                ),
                 max_digits=16,
                 verbose_name="Cantidad por facturar",
             ),
@@ -312,7 +393,10 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 blank=True,
                 db_column="salesman_id",
-                help_text='Odoo salesman_id ("Salesperson", related order_id.user_id, store, precompute).',
+                help_text=(
+                    'Odoo salesman_id ("Salesperson", related'
+                    ' order_id.user_id, store, precompute).'
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="+",
@@ -332,7 +416,11 @@ class Migration(migrations.Migration):
                     ("cancel", "Cancelada"),
                 ],
                 db_index=True,
-                help_text='Odoo state ("Order Status", related order_id.state, store, precompute, copy=False). El vocabulario es el de la orden.',
+                help_text=(
+                    'Odoo state ("Order Status", related order_id.state,'
+                    ' store, precompute, copy=False). El vocabulario es el de'
+                    ' la orden.'
+                ),
                 max_length=10,
                 null=True,
                 verbose_name="Estado de la orden",
@@ -344,7 +432,10 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="sale_order_line_tax_rel",
-                help_text='Odoo tax_ids ("Taxes", compute+store con readonly=False, check_company). Los impuestos que gravan esta línea.',
+                help_text=(
+                    'Odoo tax_ids ("Taxes", compute+store con readonly=False,'
+                    ' check_company). Los impuestos que gravan esta línea.'
+                ),
                 related_name="sale_order_lines",
                 to="account.accounttax",
                 verbose_name="Impuestos",
@@ -356,7 +447,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text="Odoo technical_price_unit. El precio antes de que el usuario lo altere a mano; sirve para detectar el cambio.",
+                help_text=(
+                    "Odoo technical_price_unit. El precio antes de que el"
+                    " usuario lo altere a mano; sirve para detectar el cambio."
+                ),
                 max_digits=12,
                 verbose_name="Precio unitario técnico",
             ),
@@ -367,7 +461,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo untaxed_amount_invoiced ("Untaxed Invoiced Amount", compute+store).',
+                help_text=(
+                    'Odoo untaxed_amount_invoiced ("Untaxed Invoiced Amount",'
+                    ' compute+store).'
+                ),
                 max_digits=12,
                 verbose_name="Importe facturado sin impuestos",
             ),
@@ -378,7 +475,10 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text='Odoo untaxed_amount_to_invoice ("Untaxed Amount To Invoice", compute+store).',
+                help_text=(
+                    'Odoo untaxed_amount_to_invoice ("Untaxed Amount To'
+                    ' Invoice", compute+store).'
+                ),
                 max_digits=12,
                 verbose_name="Importe por facturar sin impuestos",
             ),
@@ -389,7 +489,11 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo virtual_id. Identifica la línea ANTES de que la base le dé un id — mientras el documento se edita en el cliente.",
+                help_text=(
+                    "Odoo virtual_id. Identifica la línea ANTES de que la base"
+                    " le dé un id — mientras el documento se edita en el"
+                    " cliente."
+                ),
                 max_length=64,
                 verbose_name="Id virtual",
             ),

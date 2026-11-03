@@ -1,0 +1,5 @@
+{
+  "ast_preserved": true,
+  "source_sha256": "1ecdb1c461c03b40d2cb35e8f771933a95cb6773fbcfeb22b3bf6130456a2474",
+  "reason": "Fix E131 in the edited field declaration; no unrelated style cleanup"
+}

@@ -30,6 +30,7 @@ desglose del canónico. Esa clase se eliminó: el serializer no existe en
 ningún addon vigente (``grep -rn "class OrderSerializer" src/`` → vacío),
 así que su sujeto desapareció junto con el espejo.
 """
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -42,7 +43,8 @@ from addons.sale.amounts import order_amounts
 from addons.sale.models import SaleOrder
 from addons.sale_loyalty.services import apply_voucher_to_draft
 from addons.sale.services import (
-    add_item_to_draft, confirm_draft_order,
+    add_item_to_draft,
+    confirm_draft_order,
 )
 from addons.sale_loyalty.models.sale_order import set_reward_line
 from django.utils import timezone
@@ -51,21 +53,27 @@ from tests.factories.product_factory import make_category, make_product
 pytestmark = pytest.mark.django_db
 
 ADDR = {
-    'recipient_name': 'E5pre', 'street': 'Calle 3', 'city': 'CDMX',
-    'state': 'CDMX', 'zip_code': '01000',
+    'recipient_name': 'E5pre',
+    'street': 'Calle 3',
+    'city': 'CDMX',
+    'state': 'CDMX',
+    'zip_code': '01000',
 }
 
 
 @pytest.fixture
 def producto():
     cat = make_category(name='Cat S')
-    return make_product(name='Prod S', price=Decimal('100.00'), stock=9, categ=cat)
+    return make_product(
+        name='Prod S', price=Decimal('100.00'), stock=9, categ=cat
+    )
 
 
 @pytest.fixture
 def metodo():
     return ShippingMethod.objects.create(
-        name='Estándar S', cost=Decimal('99.00'), estimated_days=3)
+        name='Estándar S', cost=Decimal('99.00'), estimated_days=3
+    )
 
 
 def _venta(producto, metodo, shipping=Decimal('99.00'), voucher=None):
@@ -75,14 +83,19 @@ def _venta(producto, metodo, shipping=Decimal('99.00'), voucher=None):
     confirma el mismo ``SaleOrder`` que recibe.
     """
     draft = SaleOrder.objects.create(
-        state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=metodo)
+        state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=metodo
+    )
     add_item_to_draft(draft, producto, quantity=1)
     if voucher is not None:
         apply_voucher_to_draft(draft, voucher.code)
     set_delivery_line(draft, shipping)
     set_reward_line(draft)
-    confirm_draft_order(draft, address_data=dict(ADDR),
-                        guest_email='s@test.mx', shipping_cost=shipping)
+    confirm_draft_order(
+        draft,
+        address_data=dict(ADDR),
+        guest_email='s@test.mx',
+        shipping_cost=shipping,
+    )
     draft.refresh_from_db()
     return draft
 
@@ -92,7 +105,12 @@ class TestContratoEstable:
     def test_las_cinco_claves_siguen_siendo_las_mismas(self, producto, metodo):
         venta = _venta(producto, metodo)
         assert set(order_amounts(venta)) == {
-            'subtotal', 'tax', 'shipping_cost', 'discount', 'total'}
+            'subtotal',
+            'tax',
+            'shipping_cost',
+            'discount',
+            'total',
+        }
 
     def test_el_desglose_sale_de_las_lineas(self, producto, metodo):
         venta = _venta(producto, metodo)
@@ -104,13 +122,16 @@ class TestContratoEstable:
 
     def test_el_descuento_se_presenta_en_positivo(self, producto, metodo):
         voucher = Voucher.objects.create(
-            code='E5PRE20', voucher_type=Voucher.TYPE_FIXED,
-            discount_value=Decimal('20.00'), is_active=True,
-            valid_from=timezone.now())
+            code='E5PRE20',
+            voucher_type=Voucher.TYPE_FIXED,
+            discount_value=Decimal('20.00'),
+            is_active=True,
+            valid_from=timezone.now(),
+        )
         venta = _venta(producto, metodo, voucher=voucher)
         a = order_amounts(venta)
-        assert a['discount'] == Decimal('20.00')     # la línea es -20.00
-        assert a['subtotal'] == Decimal('100.00')    # producto bruto
+        assert a['discount'] == Decimal('20.00')  # la línea es -20.00
+        assert a['subtotal'] == Decimal('100.00')  # producto bruto
         assert a['total'] == Decimal('179.00')
 
 
@@ -126,9 +147,11 @@ class TestElIvaIncluyeElEnvioEnSuBase:
     """
 
     def test_agregar_el_envio_aumenta_el_iva_de_la_venta(
-            self, producto, metodo):
+        self, producto, metodo
+    ):
         draft = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=metodo)
+            state=SaleOrder.STATE_DRAFT, cart_token=uuid4(), carrier=metodo
+        )
         add_item_to_draft(draft, producto, quantity=1)
         iva_solo_producto = draft.amount_tax
 
@@ -145,5 +168,10 @@ class TestDegradation:
     def test_sin_venta_que_renderizar_devuelve_ceros(self):
         a = order_amounts(None)
         assert a['total'] == Decimal('0.00')
-        assert set(a) == {'subtotal', 'tax', 'shipping_cost', 'discount',
-                          'total'}
+        assert set(a) == {
+            'subtotal',
+            'tax',
+            'shipping_cost',
+            'discount',
+            'total',
+        }

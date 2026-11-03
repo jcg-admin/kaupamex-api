@@ -64,7 +64,8 @@ existían las dos— sino por una tercera que no nombraba: el inverso
 ``odoo19c: website_sale/models/website.py:63-69``. Medido antes de portarlo:
 ``grep -rn "salesteam\|salesperson" addons/ src/ --include=*.py`` → **0 hits**.
 
-Cuatro de los cinco símbolos colgaban de él, porque ``_compute_abandoned_carts``
+Cuatro de los cinco símbolos colgaban de él, porque
+``_compute_abandoned_carts``
 **abre** con el guard (``odoo19c: :23``)::
 
     website_teams = self.filtered(lambda team: team.website_ids)
@@ -151,6 +152,7 @@ Porte BLOQUEADO — 1 de 5 símbolos
   decide la forma de las acciones de navegación para todo el addon — no una
   decisión por símbolo.
 """
+
 from django.apps import apps
 from django.db.models import Count, Sum
 
@@ -159,7 +161,9 @@ from orm.model_classes import extend_model
 
 
 def _abandoned_carts_of(team):
-    """Los carritos abandonados **recuperables** de un equipo: ``(cuenta, importe)``.
+    """
+    Los carritos abandonados **recuperables** de un equipo: ``(cuenta,
+    importe)``.
 
     El dominio de la fuente (``odoo19c: :24-28``), con sus tres condiciones y
     el comentario que las explica (``:20-22``): *"abandoned carts to recover
@@ -200,7 +204,8 @@ def _abandoned_carts_of(team):
     if not pks:
         return 0, 0
     agregado = sale_order_model.objects.filter(pk__in=pks).aggregate(
-        total=Sum('amount_total'), count=Count('id'),
+        total=Sum('amount_total'),
+        count=Count('id'),
     )
     # ≙ ``counts.get(team.id, 0)`` / ``amounts.get(team.id, 0)`` (``:32-33``):
     # la agregación vacía devuelve ``None``, que es su "no apareció".
@@ -245,25 +250,34 @@ def apply_website_sale_crm_team_extensions():
     motivo que ``models/sale_order.py`` deja escritos para ``sale.SaleOrder``.
     Completar su cabecera toca ``addons/sales_team``, fuera de este pase.
     """
-    extend_model('sales_team', 'CrmTeam', campos={
-        # Los dos son ``compute`` **sin** ``store=True`` en la fuente
-        # (``:12-17``): no generan columna, y por eso este archivo no trae
-        # migración. Es la misma forma que ``is_abandoned_cart`` en
-        # ``models/sale_order.py``.
-        'abandoned_carts_count': fields.NonStored(
-            default=_default_abandoned_carts_count,
-            help_text='Carritos abandonados aún recuperables de este equipo '
-                      '(Odoo abandoned_carts_count, store=False).',
-        ),
-        'abandoned_carts_amount': fields.NonStored(
-            default=_default_abandoned_carts_amount,
-            help_text='Importe total de esos carritos (Odoo '
-                      'abandoned_carts_amount, store=False). D-4: conserva la '
-                      'precisión monetaria; la fuente lo trunca a entero.',
-        ),
-    }, metodos={
-        '_compute_abandoned_carts': _compute_abandoned_carts,
-    })
+    extend_model(
+        'sales_team',
+        'CrmTeam',
+        campos={
+            # Los dos son ``compute`` **sin** ``store=True`` en la fuente
+            # (``:12-17``): no generan columna, y por eso este archivo no trae
+            # migración. Es la misma forma que ``is_abandoned_cart`` en
+            # ``models/sale_order.py``.
+            'abandoned_carts_count': fields.NonStored(
+                default=_default_abandoned_carts_count,
+                help_text=(
+                    'Carritos abandonados aún recuperables de este equipo '
+                    '(Odoo abandoned_carts_count, store=False).'
+                ),
+            ),
+            'abandoned_carts_amount': fields.NonStored(
+                default=_default_abandoned_carts_amount,
+                help_text=(
+                    'Importe total de esos carritos (Odoo '
+                    'abandoned_carts_amount, store=False). D-4: conserva la '
+                    'precisión monetaria; la fuente lo trunca a entero.'
+                ),
+            ),
+        },
+        metodos={
+            '_compute_abandoned_carts': _compute_abandoned_carts,
+        },
+    )
 
 
 __all__ = ['apply_website_sale_crm_team_extensions']

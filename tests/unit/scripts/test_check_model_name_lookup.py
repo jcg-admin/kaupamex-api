@@ -10,8 +10,10 @@ Y ese archivo real es el caso difícil, no uno cualquiera: declara ``_Base``
 **abstracta** heredando de ``models.Model`` y ``_Model`` **concreta**
 heredando de ``_Base``. Un emparejador que sólo mirara ``models.Model`` en las
 bases directas sería ciego justo al ofensor; uno que no mirara ``abstract =
-True`` señalaría a ``_Base``, que Django acepta. La prueba fija las dos mitades.
+True`` señalaría a ``_Base``, que Django acepta. La prueba fija las dos
+mitades.
 """
+
 import pathlib
 import subprocess
 
@@ -76,8 +78,14 @@ def _write(tmp_path, name, content):
 def _real_offender(tmp_path):
     """El archivo verbatim de ``api@91481df``, traído de git."""
     salida = subprocess.run(
-        ['git', 'show', '91481df:tests/unit/service/test_get_public_method.py'],
-        capture_output=True, text=True, check=True,
+        [
+            'git',
+            'show',
+            '91481df:tests/unit/service/test_get_public_method.py',
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
     )
     return _write(tmp_path, 'positivo_real.py', salida.stdout)
 
@@ -92,7 +100,7 @@ def test_the_real_offender_from_git_is_caught(tmp_path):
     nombres = {f[1] for f in findings}
     assert nombres == {'_Model'}, (
         f'esperado sólo _Model; medido {nombres} — si sale _Base, el gate no '
-        f'está mirando abstract = True'
+        'está mirando abstract = True'
     )
     assert findings[0][2] == 'models.E023'
 
@@ -115,7 +123,9 @@ def test_a_concrete_model_inheriting_a_local_abstract_is_recognised(tmp_path):
     path = _write(tmp_path, 'legal.py', LEGAL_TREE)
     assert scan_file(path) == []
     # Y con el nombre ilegal, la MISMA forma sí se señala.
-    ilegal = _write(tmp_path, 'ilegal.py', LEGAL_TREE.replace('Concrete', '_Concrete'))
+    ilegal = _write(
+        tmp_path, 'ilegal.py', LEGAL_TREE.replace('Concrete', '_Concrete')
+    )
     assert {f[1] for f in scan_file(ilegal)} == {'_Concrete'}
 
 
@@ -130,14 +140,18 @@ def test_the_double_underscore_rule_is_implemented_too(tmp_path):
 
 
 def test_an_abstract_model_may_keep_its_underscore(tmp_path):
-    assert scan_file(_write(tmp_path, 'abs.py', ABSTRACT_WITH_UNDERSCORE)) == []
+    assert (
+        scan_file(_write(tmp_path, 'abs.py', ABSTRACT_WITH_UNDERSCORE)) == []
+    )
 
 
 def test_a_plain_helper_class_is_not_a_model(tmp_path):
     assert scan_file(_write(tmp_path, 'helper.py', PLAIN_HELPER)) == []
 
 
-def test_main_returns_one_on_the_real_offender_and_zero_on_the_tree(tmp_path, capsys):
+def test_main_returns_one_on_the_real_offender_and_zero_on_the_tree(
+    tmp_path, capsys
+):
     """Los dos sentidos, con salida citable.
 
     El árbol limpio imprime su **denominador** junto al veredicto: sin él, un
@@ -158,7 +172,9 @@ def test_the_gate_agrees_with_django_on_the_rule_it_mirrors():
     que la condición sigue siendo la que el gate implementa. Si Django cambia
     la regla, esta prueba lo dice antes de que el gate mienta.
     """
-    fuente = pathlib.Path(django_model_base.__file__).read_text(encoding='utf-8')
+    fuente = pathlib.Path(django_model_base.__file__).read_text(
+        encoding='utf-8'
+    )
     assert 'model_name.startswith("_") or model_name.endswith("_")' in fuente
     assert 'id="models.E023"' in fuente
     assert 'elif LOOKUP_SEP in model_name' in fuente

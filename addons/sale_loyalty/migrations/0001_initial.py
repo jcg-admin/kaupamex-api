@@ -41,7 +41,10 @@ class Migration(migrations.Migration):
                     "voucher",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Cupón aplicado (Odoo sale_loyalty coupon; = cart.voucher).",
+                        help_text=(
+                            "Cupón aplicado (Odoo sale_loyalty coupon; ="
+                            " cart.voucher)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="sale_order_coupons",

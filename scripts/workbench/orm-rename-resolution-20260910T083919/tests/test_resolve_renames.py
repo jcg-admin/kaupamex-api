@@ -54,3 +54,14 @@ if __name__ == '__main__':
                 fallos += 1
     print(f'\naserciones: {sum(1 for n in globals() if n.startswith("test_"))}  fallo: {fallos}')
     raise SystemExit(1 if fallos else 0)
+
+
+def test_the_reference_name_token_is_dropped():
+    """Un simbolo de la fuente que lleva el nombre de la referencia vive aqui
+    sin ese token: lo exige ``scripts/check_identifier_reference_name.py``."""
+    assert resolve('_odoo_guess_mimetype', {'_guess_mimetype'}) == '_guess_mimetype'
+    assert resolve('odoo_resolver', {'resolver'}) == 'resolver'
+
+
+def test_the_token_is_dropped_only_as_a_whole_word():
+    assert resolve('odoolike', {'like'}) is None

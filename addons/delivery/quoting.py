@@ -27,6 +27,7 @@ Open-closed: ``CheckoutView`` consume el ``ShippingQuote`` y hace
 ``shipping_cost = quote.cost`` sea 0 o el costo derivado; el flujo del checkout
 no cambia cuando se ajusta la política de costo — sólo cambia este resolver.
 """
+
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
@@ -47,6 +48,7 @@ class ShippingQuote:
     :estimated_days_min: mínimo de días hábiles de entrega en la zona (o None).
     :estimated_days_max: máximo de días hábiles de entrega en la zona (o None).
     """
+
     cost: Decimal
     is_free: bool
     zone: Optional[ShippingZone]

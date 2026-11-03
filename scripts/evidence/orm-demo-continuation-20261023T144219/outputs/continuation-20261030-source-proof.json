@@ -1,0 +1,17 @@
+{
+  "commit": "573bff5418ad2c597f265b06fc20176b0c5620a7",
+  "only_behavior_delta": "one start INFO plus optional failure warning format",
+  "source_normalization_recovers_preimage_ast": true,
+  "paths": {
+    "src/modules/loading.py": {
+      "working_sha256": "c5b06195c6228cbcd11f4ad86ac29afe921a417df4586cacf0fe731108d87de0",
+      "committed_sha256": "c5b06195c6228cbcd11f4ad86ac29afe921a417df4586cacf0fe731108d87de0",
+      "executable_ast_equal": true
+    },
+    "tests/unit/modules/test_loading_demo.py": {
+      "working_sha256": "b2756c6a80c6e57fc3bad71223f6d2b23e06729e59948619cee0c45abbe2fc8c",
+      "committed_sha256": "b2756c6a80c6e57fc3bad71223f6d2b23e06729e59948619cee0c45abbe2fc8c",
+      "executable_ast_equal": true
+    }
+  }
+}

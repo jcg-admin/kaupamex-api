@@ -54,7 +54,8 @@ filtro la usa tal cual, que es lo correcto y lo que evita el defecto D-3 de
 
 **D-3 — el destino se nombra con el par de Django, no con ``'res.users'``.**
 ``extend_model`` admite las dos formas y la primera es la de la referencia,
-pero el nombre punteado exige que el modelo esté **registrado por ``_name``**, y
+pero el nombre punteado exige que el modelo esté **registrado por ``_name``**,
+y
 ``base.models.ResUsers`` no lo declara: medido en este pase,
 ``extend_model('res.users', …)`` levanta ``LookupError: Ningún modelo cargado
 declara _name='res.users'``.
@@ -68,6 +69,7 @@ mecanismo. **No se corrige aquí**: completar la cabecera de ``res.users`` toca
 del porte de ``stock`` mezclaría dos cambios con radios de impacto distintos.
 Sucesor: :ref:`h-api-618`, tarea **#385**.
 """
+
 from django.apps import apps
 
 from orm.environments import get_current_company
@@ -87,13 +89,20 @@ def _get_default_warehouse_id(self):
     """
     warehouse_model = apps.get_model('stock', 'StockWarehouse')
     return warehouse_model.objects.filter(
-        company_id=get_current_company()).first()
+        company_id=get_current_company()
+    ).first()
 
 
 def apply_stock_res_users_extensions():
-    """Cuelga sobre ``res.users`` lo que ``stock`` le añade — ≙ ``_inherit``."""
+    """
+    Cuelga sobre ``res.users`` lo que ``stock`` le añade — ≙ ``_inherit``.
+    """
     # Par de Django, no ``'res.users'``: ese modelo no declara ``_name``. Ver
     # la divergencia D-3 del docstring y :ref:`h-api-618`.
-    extend_model('base', 'ResUsers', metodos={
-        '_get_default_warehouse_id': _get_default_warehouse_id,
-    })
+    extend_model(
+        'base',
+        'ResUsers',
+        metodos={
+            '_get_default_warehouse_id': _get_default_warehouse_id,
+        },
+    )

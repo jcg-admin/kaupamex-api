@@ -31,6 +31,7 @@ referencia declara. Allí ``odoo/orm/`` no conoce ``Serialized`` —medido:
 ``addons/base_sparse_field/models/fields.py``— y por eso el addon tiene que
 publicar hacia la fachada en vez de que el núcleo lo importe.
 """
+
 import importlib
 
 from django.apps import AppConfig
@@ -58,11 +59,14 @@ class BaseSparseFieldConfig(AppConfig):
         ``ir_model_fields`` al tope del módulo correría ``add_to_class`` antes
         de que el registro esté poblado.
         """
-        sparse = importlib.import_module('addons.base_sparse_field.models.fields')
+        sparse = importlib.import_module(
+            'addons.base_sparse_field.models.fields'
+        )
         facade = importlib.import_module('fields')
         facade.Serialized = sparse.Serialized
         facade.Sparse = sparse.Sparse
 
         extensiones = importlib.import_module(
-            'addons.base_sparse_field.models.ir_model_fields')
+            'addons.base_sparse_field.models.ir_model_fields'
+        )
         extensiones.apply_base_sparse_field_extensions()

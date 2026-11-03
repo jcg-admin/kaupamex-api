@@ -1,4 +1,5 @@
 """AppConfig — ``addons.http_routing`` (familia ``web`` de la referencia)."""
+
 import importlib
 
 from django.apps import AppConfig
@@ -14,13 +15,17 @@ class HttpRoutingConfig(AppConfig):
     #: ``res.lang``, los tres declarados en ``base``. Mismo patrón que
     #: ``WebConfig._EXTENSIONES``.
     _EXTENSIONS = (
-        ('addons.http_routing.models.ir_http', 'apply_http_routing_extensions'),
+        (
+            'addons.http_routing.models.ir_http',
+            'apply_http_routing_extensions',
+        ),
         ('addons.http_routing.models.ir_qweb', 'apply_ir_qweb_extensions'),
         ('addons.http_routing.models.res_lang', 'apply_res_lang_extensions'),
     )
 
     def ready(self):
-        """Cuelga las extensiones de ``http_routing`` sobre modelos de ``base``.
+        """
+        Cuelga las extensiones de ``http_routing`` sobre modelos de ``base``.
 
         ``importlib.import_module`` y no un ``import`` al top — excepción #4
         de ``no-lazy-imports.md``: es una llamada de función, no un statement

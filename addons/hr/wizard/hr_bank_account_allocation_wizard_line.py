@@ -22,7 +22,8 @@ Porte símbolo por símbolo — 13 símbolos
      - portados verbatim como atributos de clase
    * - ``wizard_id`` (``:9``)
      - resuelto con otra forma — la pertenencia línea → wizard es la lista
-       que arma ``BankAccountAllocationWizard._prepare_allocations_from_employee``
+       que arma
+       ``BankAccountAllocationWizard._prepare_allocations_from_employee``
    * - ``bank_account_id`` (``:10``)
      - clave ``'bank_account_id'`` del dict de línea
    * - ``acc_number`` (``related``, ``:12``)
@@ -45,6 +46,7 @@ Porte símbolo por símbolo — 13 símbolos
    * - ``_get_amount_type_selection_vals`` (``:28-29``)
      - portado verbatim
 """
+
 from orm.models_transient import TransientModel
 
 
@@ -77,8 +79,11 @@ class BankAccountAllocationLineWizard(TransientModel):
         if line.get('amount_type') == 'fixed':
             if bank_account is not None and bank_account.currency_id:
                 return bank_account.currency.symbol
-            if (employee is not None and employee.company_id
-                    and employee.company.currency_id):
+            if (
+                employee is not None
+                and employee.company_id
+                and employee.company.currency_id
+            ):
                 return employee.company.currency.symbol
             return ''
         return '%'

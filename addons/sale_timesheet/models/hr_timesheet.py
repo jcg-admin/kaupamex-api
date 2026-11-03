@@ -180,6 +180,7 @@ Porte símbolo por símbolo
      - BLOQUEADO por ``so_line`` y por ``Project.account_id`` (mismo
        bloqueador que ``project_account`` ya declaró).
 """
+
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -248,12 +249,15 @@ def _is_not_billed(self):
     if not self.timesheet_invoice_id:
         return True
     invoice = self.timesheet_invoice
-    return (invoice.state == 'cancel'
-            and invoice.payment_state != _LEGACY_PAYMENT_STATE)
+    return (
+        invoice.state == 'cancel'
+        and invoice.payment_state != _LEGACY_PAYMENT_STATE
+    )
 
 
 def _get_employee_mapping_entry(self):
-    """≙ ``_get_employee_mapping_entry`` (``odoo19c: hr_timesheet.py:181-192``).
+    """
+    ≙ ``_get_employee_mapping_entry`` (``odoo19c: hr_timesheet.py:181-192``).
 
     Parcial declarado: la fuente tiene dos ramas. La primera —una sola
     compañía, o el empleado ya fijado en el apunte— se porta entera. La
@@ -264,7 +268,8 @@ def _get_employee_mapping_entry(self):
     if not (self.project_id and self.employee_id):
         return None
     return ProjectSaleLineEmployeeMap.objects.filter(
-        project=self.project, employee=self.employee,
+        project=self.project,
+        employee=self.employee,
     ).first()
 
 
@@ -336,7 +341,8 @@ def check_can_delete(self):
     """≙ ``_unlink_except_invoiced`` (``odoo19c: hr_timesheet.py:176-179``).
 
     Este árbol no tiene ``@api.ondelete``; el precedente de guardia explícita
-    es ``uom.Uom.check_can_delete`` (``api: addons/uom/models/uom_uom.py:243``).
+    es ``uom.Uom.check_can_delete`` (``api:
+    addons/uom/models/uom_uom.py:243``).
     """
     if self.timesheet_invoice_id and self.timesheet_invoice.state == 'posted':
         raise ValidationError(
@@ -347,40 +353,74 @@ def check_can_delete(self):
 
 def apply_sale_timesheet_hr_timesheet_extensions():
     """Cuelga las 4 columnas + 2 properties + 4 métodos sobre
-    ``analytic.AccountAnalyticLine`` — ≙ ``_inherit = 'account.analytic.line'``.
+    ``analytic.AccountAnalyticLine`` — ≙ ``_inherit =
+    'account.analytic.line'``.
 
     La llama ``SaleTimesheetConfig.ready()``.
     """
-    _add_if_absent(AccountAnalyticLine, 'timesheet_invoice', fields.Many2one(
-        AccountMove, on_delete=models.SET_NULL, null=True, blank=True,
-        db_index=True, related_name='timesheet_ids',
-        verbose_name='Factura',
-        help_text='Odoo timesheet_invoice_id (readonly, copy=False, '
-                  'index=btree_not_null). Factura creada a partir de la hoja '
-                  'de horas. El related_name es el timesheet_ids de '
-                  'account.move (odoo19c: account_move.py:185).',
-    ))
-    _add_if_absent(AccountAnalyticLine, 'order', fields.Many2one(
-        SaleOrder, on_delete=models.SET_NULL, null=True, blank=True,
-        db_index=True, related_name='timesheet_ids',
-        verbose_name='Pedido de venta',
-        help_text='Odoo order_id (related=so_line.order_id, store, index). '
-                  'Escribible directo: so_line no existe en este árbol — ver '
-                  'el bloqueo raíz del docstring del módulo.',
-    ))
-    _add_if_absent(AccountAnalyticLine, 'is_so_line_edited', fields.Boolean(
-        default=False, verbose_name='Línea de pedido fijada a mano',
-        help_text='Odoo is_so_line_edited.',
-    ))
     _add_if_absent(
-        AccountAnalyticLine, 'timesheet_invoice_type', fields.Selection(
-            max_length=20, choices=TIMESHEET_INVOICE_TYPES,
-            null=True, blank=True, default=None,
+        AccountAnalyticLine,
+        'timesheet_invoice',
+        fields.Many2one(
+            AccountMove,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            db_index=True,
+            related_name='timesheet_ids',
+            verbose_name='Factura',
+            help_text=(
+                'Odoo timesheet_invoice_id (readonly, copy=False, '
+                'index=btree_not_null). Factura creada a partir de la hoja '
+                'de horas. El related_name es el timesheet_ids de '
+                'account.move (odoo19c: account_move.py:185).'
+            ),
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'order',
+        fields.Many2one(
+            SaleOrder,
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            db_index=True,
+            related_name='timesheet_ids',
+            verbose_name='Pedido de venta',
+            help_text=(
+                'Odoo order_id (related=so_line.order_id, store, index). '
+                'Escribible directo: so_line no existe en este árbol — ver '
+                'el bloqueo raíz del docstring del módulo.'
+            ),
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'is_so_line_edited',
+        fields.Boolean(
+            default=False,
+            verbose_name='Línea de pedido fijada a mano',
+            help_text='Odoo is_so_line_edited.',
+        ),
+    )
+    _add_if_absent(
+        AccountAnalyticLine,
+        'timesheet_invoice_type',
+        fields.Selection(
+            max_length=20,
+            choices=TIMESHEET_INVOICE_TYPES,
+            null=True,
+            blank=True,
+            default=None,
             verbose_name='Tipo de facturación',
-            help_text='Odoo timesheet_invoice_type (compute, store, '
-                      'readonly). Derivación parcial declarada — ver '
-                      'timesheet_invoice_type_for.',
-        ))
+            help_text=(
+                'Odoo timesheet_invoice_type (compute, store, '
+                'readonly). Derivación parcial declarada — ver '
+                'timesheet_invoice_type_for.'
+            ),
+        ),
+    )
 
     if not hasattr(AccountAnalyticLine, 'commercial_partner'):
         AccountAnalyticLine.commercial_partner = property(commercial_partner)
@@ -391,7 +431,9 @@ def apply_sale_timesheet_hr_timesheet_extensions():
     if not hasattr(AccountAnalyticLine, '_is_not_billed'):
         AccountAnalyticLine._is_not_billed = _is_not_billed
     if not hasattr(AccountAnalyticLine, '_get_employee_mapping_entry'):
-        AccountAnalyticLine._get_employee_mapping_entry = _get_employee_mapping_entry
+        AccountAnalyticLine._get_employee_mapping_entry = (
+            _get_employee_mapping_entry
+        )
     if not hasattr(AccountAnalyticLine, 'check_can_delete'):
         AccountAnalyticLine.check_can_delete = check_can_delete
 

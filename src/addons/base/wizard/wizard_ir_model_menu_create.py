@@ -1,6 +1,7 @@
 """``wizard.ir.model.menu.create`` — dar entrada de menú a un modelo.
 
-Adaptación de ``odoo19c: odoo/addons/base/wizard/wizard_ir_model_menu_create.py``
+Adaptación de ``odoo19c:
+odoo/addons/base/wizard/wizard_ir_model_menu_create.py``
 (``odoo-tools@622ddc2a``, LGPL-3 — atribución y aviso de licencia preservados,
 DEC-KX-03).
 
@@ -26,6 +27,7 @@ en qué vistas—, y el ítem de menú se cuelga con la ruta del SPA que la abre
 correspondencia acción ↔ ruta la fija el llamador, que es quien conoce el
 router; sin él, inventarla aquí sería fabricar una convención.
 """
+
 from addons.base.models.ir_actions import IrActionsActWindow
 from addons.base.models.ir_ui_menu import IrUiMenu
 
@@ -37,7 +39,9 @@ class ModelMenuCreate:
     """≙ ``wizard.ir.model.menu.create`` (``odoo19c: :4-7``)."""
 
     @classmethod
-    def menu_create(cls, name, menu, model, route, view_mode=DEFAULT_VIEW_MODE):
+    def menu_create(
+        cls, name, menu, model, route, view_mode=DEFAULT_VIEW_MODE
+    ):
         """≙ ``menu_create`` (``odoo19c: :13-27``).
 
         :param name: etiqueta del ítem y de la acción — allá, el campo ``name``

@@ -9,6 +9,7 @@ los ``status_detail`` de rechazo mapeen a su motivo legible.
 Funcion pura: sin BD ni red.
 Fuente de verdad: analisis-estados-orders-catalogo.rst.
 """
+
 import pytest
 
 from addons.payment_mercado_pago.orders_status import (
@@ -31,21 +32,22 @@ class TestMapOrderPaymentStatus:
     @pytest.mark.parametrize(
         'status,expected',
         [
-            ('processed', APPROVED),        # cobro exitoso (accredited)
-            ('processing', IN_PROCESS),     # en proceso / revision manual
-            ('created', PENDING),           # creada, sin procesar
-            ('action_required', PENDING),   # accionable: no es rechazo
+            ('processed', APPROVED),  # cobro exitoso (accredited)
+            ('processing', IN_PROCESS),  # en proceso / revision manual
+            ('created', PENDING),  # creada, sin procesar
+            ('action_required', PENDING),  # accionable: no es rechazo
             ('canceled', REJECTED),
-            ('failed', REJECTED),           # RECHAZO de Orders
-            ('refunded', APPROVED),         # reembolso via webhook
-            ('charged_back', REJECTED),     # dinero revertido
+            ('failed', REJECTED),  # RECHAZO de Orders
+            ('refunded', APPROVED),  # reembolso via webhook
+            ('charged_back', REJECTED),  # dinero revertido
         ],
     )
     def test_known_statuses(self, status, expected):
         assert map_order_payment_status(status) == expected
 
     def test_processed_is_not_pending(self):
-        # El bug del mapa Payments-era: processed/accredited -> default pending.
+        # El bug del mapa Payments-era: processed/accredited -> default
+        # pending.
         assert map_order_payment_status('processed', 'accredited') == APPROVED
         assert map_order_payment_status('processed', 'accredited') != PENDING
 
@@ -56,7 +58,10 @@ class TestMapOrderPaymentStatus:
     def test_status_detail_does_not_change_class(self):
         # status_detail refina el motivo pero no la clase interna.
         assert map_order_payment_status('failed', 'high_risk') == REJECTED
-        assert map_order_payment_status('action_required', 'pending_challenge') == PENDING
+        assert (
+            map_order_payment_status('action_required', 'pending_challenge')
+            == PENDING
+        )
 
 
 class TestActionableDetails:
@@ -85,4 +90,7 @@ class TestRejectReason:
         assert reject_reason('') == 'El pago fue rechazado.'
 
     def test_insufficient_funds_message(self):
-        assert reject_reason('card_insufficient_amount') == 'Fondos insuficientes.'
+        assert (
+            reject_reason('card_insufficient_amount')
+            == 'Fondos insuficientes.'
+        )

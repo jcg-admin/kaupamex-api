@@ -10,7 +10,7 @@
     # el addon de ajustes de Settings de Odoo — sin uso en este corte, que no
     # porta vistas).
     'depends': [
-        'base',      # TimeStampedModel, ResCompany
+        'base',  # TimeStampedModel, ResCompany
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `certificate` en Odoo

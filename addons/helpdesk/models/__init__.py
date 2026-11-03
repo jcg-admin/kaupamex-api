@@ -6,6 +6,7 @@ Layout ``models/`` con un archivo por modelo, espejo de la referencia
 re-exporta la superficie pública: ``from addons.helpdesk.models import
 SupportTicket`` sigue siendo la forma de importar, igual que antes.
 """
+
 from addons.helpdesk.models.support_ticket import SupportTicket
 from addons.helpdesk.models.support_ticket_reply import SupportTicketReply
 

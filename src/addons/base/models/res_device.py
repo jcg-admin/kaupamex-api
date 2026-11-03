@@ -1,4 +1,6 @@
-"""``res.device.log`` + ``res.device`` — dispositivos desde los que se abre sesión.
+"""
+``res.device.log`` + ``res.device`` — dispositivos desde los que se abre
+sesión.
 
 Portación fiel de ``odoo19c: odoo/addons/base/models/res_device.py`` (LGPL-3,
 ``odoo-tools@622ddc2a``) — atribución y aviso de licencia preservados
@@ -21,7 +23,8 @@ VIEW`` (``res_device.py:250-256``).
 El ``_inherit`` de la referencia (herencia por prototipo: "reusa los campos")
 se adapta con una **base abstracta**, la forma Django de compartir campos entre
 dos modelos concretos con tablas distintas. La FK a usuario se declara en cada
-concreto para conservar su propio ``related_name`` (``device_logs`` / ``devices``),
+concreto para conservar su propio ``related_name`` (``device_logs`` /
+``devices``),
 que una base abstracta obligaría a nombrar con ``%(class)s``.
 
 **De dónde viene.** Reemplaza al ``UserSession`` que murió con el addon
@@ -78,6 +81,7 @@ subclasea: :func:`delete_sessions_from_identifiers` (la que borra) y
 dos comparten la misma restricción declarada — el log guarda un **prefijo** de
 la clave, así que sólo un almacén consultable por prefijo responde.
 """
+
 import importlib
 import logging
 from datetime import datetime, timedelta, timezone
@@ -121,31 +125,41 @@ class _ResDeviceFields(TimeStampedModel):
     """
 
     DEVICE_COMPUTER = 'computer'
-    DEVICE_MOBILE   = 'mobile'
+    DEVICE_MOBILE = 'mobile'
     DEVICE_TYPES = [
         (DEVICE_COMPUTER, 'Computadora'),
-        (DEVICE_MOBILE,   'Móvil'),
+        (DEVICE_MOBILE, 'Móvil'),
     ]
 
     session_identifier = fields.Char(
-        max_length=128, db_index=True,
+        max_length=128,
+        db_index=True,
         help_text='Identificador de la sesión (Odoo session_identifier).',
     )
-    platform    = fields.Char(max_length=64,  blank=True, default='')
-    browser     = fields.Char(max_length=64,  blank=True, default='')
-    ip_address  = fields.Char(max_length=45,  blank=True, default='',
-                              help_text='IPv4 o IPv6 (Odoo ip_address).')
-    country     = fields.Char(max_length=64,  blank=True, default='')
-    city        = fields.Char(max_length=120, blank=True, default='')
+    platform = fields.Char(max_length=64, blank=True, default='')
+    browser = fields.Char(max_length=64, blank=True, default='')
+    ip_address = fields.Char(
+        max_length=45,
+        blank=True,
+        default='',
+        help_text='IPv4 o IPv6 (Odoo ip_address).',
+    )
+    country = fields.Char(max_length=64, blank=True, default='')
+    city = fields.Char(max_length=120, blank=True, default='')
     device_type = fields.Selection(
-        max_length=16, choices=DEVICE_TYPES, null=True, blank=True,
+        max_length=16,
+        choices=DEVICE_TYPES,
+        null=True,
+        blank=True,
         help_text='Tipo de dispositivo (Odoo device_type).',
     )
     first_activity = fields.Datetime(null=True, blank=True)
-    last_activity  = fields.Datetime(null=True, blank=True, db_index=True)
-    revoked        = fields.Boolean(
+    last_activity = fields.Datetime(null=True, blank=True, db_index=True)
+    revoked = fields.Boolean(
         default=False,
-        help_text='Sesión revocada desde el panel de dispositivos (Odoo revoked).',
+        help_text=(
+            'Sesión revocada desde el panel de dispositivos (Odoo revoked).'
+        ),
     )
 
     class Meta:
@@ -154,8 +168,15 @@ class _ResDeviceFields(TimeStampedModel):
     # ------------------------------------------------------------------
     # Odoo ``_is_mobile`` (``res_device.py:70-75``)
     # ------------------------------------------------------------------
-    MOBILE_PLATFORMS = ('android', 'iphone', 'ipad', 'ipod',
-                        'blackberry', 'windows phone', 'webos')
+    MOBILE_PLATFORMS = (
+        'android',
+        'iphone',
+        'ipad',
+        'ipod',
+        'blackberry',
+        'windows phone',
+        'webos',
+    )
 
     @classmethod
     def _is_mobile(cls, platform):
@@ -198,20 +219,24 @@ class _ResDeviceFields(TimeStampedModel):
             en el orden en que el log las registró.
         """
         log = apps.get_model('base', 'ResDeviceLog')
-        identifiers = [d.session_identifier for d in devices if d.session_identifier]
+        identifiers = [
+            d.session_identifier for d in devices if d.session_identifier
+        ]
         if not identifiers:
             return {}
-        rows = (log.objects
-                 .filter(session_identifier__in=identifiers)
-                 .values('session_identifier', 'platform', 'browser')
-                 .annotate(ips=ArrayAgg('ip_address', order_by='id')))
+        rows = (
+            log.objects.filter(session_identifier__in=identifiers)
+            .values('session_identifier', 'platform', 'browser')
+            .annotate(ips=ArrayAgg('ip_address', order_by='id'))
+        )
         return {
             (f['session_identifier'], f['platform'], f['browser']): f['ips']
             for f in rows
         }
 
     def _compute_linked_ip_addresses(self, ip_map=None):
-        """≙ ``_compute_linked_ip_addresses`` (``odoo19c: res_device.py:50-63``).
+        """
+        ≙ ``_compute_linked_ip_addresses`` (``odoo19c: res_device.py:50-63``).
 
         Desde cuántas IP se usó **este** dispositivo, una por línea. El
         ``OrderedSet`` de la fuente (``:60``) es aquí ``dict.fromkeys``, que
@@ -243,15 +268,17 @@ class ResDeviceLog(_ResDeviceFields):
     _rec_names_search = ['platform', 'browser']
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        'base.ResUsers',
+        on_delete=models.CASCADE, null=True, blank=True,
+        db_index=True,
         related_name='device_logs',
         help_text='Usuario de la sesión (Odoo user_id).',
     )
 
     class Meta:
-        db_table            = 'res_device_log'
-        ordering            = ['-last_activity']
-        verbose_name        = 'Registro de dispositivo'
+        db_table = 'res_device_log'
+        ordering = ['-last_activity']
+        verbose_name = 'Registro de dispositivo'
         verbose_name_plural = 'Registros de dispositivo'
         # ≙ los dos objetos de tabla de la cabecera de la referencia
         # (``odoo19c: res_device.py:37-38``). Son **parciales**: la condición
@@ -270,8 +297,14 @@ class ResDeviceLog(_ResDeviceFields):
         # escritura que esquive el ``default``.
         indexes = [
             models.Index(
-                fields=['user', 'session_identifier', 'platform', 'browser',
-                        'last_activity', 'id'],
+                fields=[
+                    'user',
+                    'session_identifier',
+                    'platform',
+                    'browser',
+                    'last_activity',
+                    'id',
+                ],
                 condition=~models.Q(revoked=True),
                 name='res_device_log_composite_idx',
             ),
@@ -314,22 +347,30 @@ class ResDeviceLog(_ResDeviceFields):
         if not trace:
             return None
         session_key = getattr(request.session, 'session_key', None) or ''
-        fila = cls.objects.create(
+        # La fuente inserta por SQL (``:98-113``), sin el ``create`` del ORM:
+        # ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni señales.
+        [fila] = cls.objects.bulk_create([cls(
             session_identifier=session_key[:STORED_SESSION_BYTES],
             platform=trace['platform'] or '',
             browser=trace['browser'] or '',
             ip_address=trace['ip_address'] or '',
             country='',
             city='',
-            device_type=(cls.DEVICE_MOBILE if cls._is_mobile(trace['platform'])
-                         else cls.DEVICE_COMPUTER),
+            device_type=(
+                cls.DEVICE_MOBILE
+                if cls._is_mobile(trace['platform'])
+                else cls.DEVICE_COMPUTER
+            ),
             user_id=request.user.pk,
             first_activity=_as_datetime(trace['first_activity']),
             last_activity=_as_datetime(trace['last_activity']),
             revoked=False,
+        )])
+        _logger.info(
+            'Usuario %s inserta log de dispositivo (%s)',
+            request.user.pk,
+            fila.session_identifier,
         )
-        _logger.info('Usuario %s inserta log de dispositivo (%s)',
-                     request.user.pk, fila.session_identifier)
         return fila
 
     # ------------------------------------------------------------------
@@ -364,7 +405,9 @@ class ResDeviceLog(_ResDeviceFields):
         )
         if lastcall := get_context().get('lastcall'):
             superseding = superseding.filter(last_activity__gte=lastcall)
-        deleted, _rest = cls.objects.filter(models.Exists(superseding)).delete()
+        deleted, _rest = cls.objects.filter(
+            models.Exists(superseding)
+        ).delete()
         _logger.info('GC device logs delete %d entries', deleted)
 
     @classmethod
@@ -395,24 +438,37 @@ class ResDeviceLog(_ResDeviceFields):
         batch_size = 100_000
         offset = 0
         threshold = datetime.now(tz=timezone.utc) - timedelta(
-            seconds=get_session_max_inactivity())
+            seconds=get_session_max_inactivity()
+        )
 
         while True:
-            candidates = list(cls.objects.filter(
-                revoked=False, last_activity__lt=threshold,
-            ).order_by('id')[offset:offset + batch_size])
+            candidates = list(
+                cls.objects.filter(
+                    revoked=False,
+                    last_activity__lt=threshold,
+                ).order_by('id')[offset: offset + batch_size]
+            )
             if not candidates:
                 break
             offset += batch_size
 
             missing = get_missing_session_identifiers(
-                {c.session_identifier for c in candidates if c.session_identifier})
+                {
+                    c.session_identifier
+                    for c in candidates
+                    if c.session_identifier
+                }
+            )
             if not missing:
                 continue
 
-            to_revoke = [c.pk for c in candidates
-                         if c.session_identifier in missing]
-            cls.objects.filter(pk__in=to_revoke).update(revoked=True)
+            to_revoke = [
+                c for c in candidates if c.session_identifier in missing
+            ]
+            # ≙ ``to_revoke.write({'revoked': True})`` (``:167``): por el
+            # ``write`` del ORM, que fecha la escritura, y no por la tabla.
+            for row in to_revoke:
+                row.write({'revoked': True})
             offset -= len(to_revoke)
 
 
@@ -452,24 +508,36 @@ class ResDeviceQuerySet(models.AccessQuerySet):
 
         # ``unique(...)`` de la fuente (``:187``) — mismo criterio: un
         # identificador aparece una vez aunque lo compartan dos filas.
-        identifiers = list(dict.fromkeys(
-            device.session_identifier for device in self
-            if device.session_identifier))
+        identifiers = list(
+            dict.fromkeys(
+                device.session_identifier
+                for device in self
+                if device.session_identifier
+            )
+        )
         if not identifiers:
             return 0
 
         # La fuente marca ``is_current`` ANTES de borrar, porque después la
         # sesión ya no existe para comparar.
         must_logout = request is not None and any(
-            device.is_current(request) for device in self)
+            device.is_current(request) for device in self
+        )
 
         delete_sessions_from_identifiers(identifiers)
 
         log = apps.get_model('base', 'ResDeviceLog')
-        revoked = log.objects.filter(
-            session_identifier__in=identifiers).update(revoked=True)
-        _logger.info('Se revocan dispositivos (%s): %s filas de log',
-                     ', '.join(identifiers), revoked)
+        # ≙ ``revoked_devices.write({'revoked': True})`` (``:190``): por el
+        # ``write`` del ORM, que fecha la escritura de cada fila.
+        revoked = 0
+        for row in log.objects.filter(session_identifier__in=identifiers):
+            row.write({'revoked': True})
+            revoked += 1
+        _logger.info(
+            'Se revocan dispositivos (%s): %s filas de log',
+            ', '.join(identifiers),
+            revoked,
+        )
 
         if must_logout:
             django_logout(request)
@@ -495,8 +563,9 @@ class ResDeviceQuerySet(models.AccessQuerySet):
         argumento en vez de leerse de un global.
         """
         request = request if request is not None else get_current_request()
-        session_key = getattr(getattr(request, 'session', None),
-                              'session_key', None)
+        session_key = getattr(
+            getattr(request, 'session', None), 'session_key', None
+        )
         if not session_key:
             return self.order_by('-last_activity')
         prefix = session_key[:STORED_SESSION_BYTES]
@@ -523,7 +592,8 @@ class ResDevice(_ResDeviceFields):
 
     # Atributos de clase de modelo — los cinco de ``odoo19c: res_device.py:
     # 175-180``, verbatim. ``_auto = False`` y ``_order`` conviven con su forma
-    # Django (``Meta.managed`` y ``Meta.ordering``), que es lo que el motor lee.
+    # Django (``Meta.managed`` y ``Meta.ordering``), que es lo que el
+    # motor lee.
     _name = 'res.device'
     _inherit = ['res.device.log']
     _description = "Devices"
@@ -531,16 +601,18 @@ class ResDevice(_ResDeviceFields):
     _order = 'last_activity desc'
 
     user = fields.Many2one(
-        'base.ResUsers', on_delete=models.DO_NOTHING, db_index=True,
+        'base.ResUsers',
+        null=False, on_delete=models.DO_NOTHING,
+        db_index=True,
         related_name='devices',
         help_text='Usuario de la sesión (Odoo user_id).',
     )
 
     class Meta:
-        managed             = False
-        db_table            = 'res_device'
-        ordering            = ['-last_activity']
-        verbose_name        = 'Dispositivo'
+        managed = False
+        db_table = 'res_device'
+        ordering = ['-last_activity']
+        verbose_name = 'Dispositivo'
         verbose_name_plural = 'Dispositivos'
 
     objects = ResDeviceQuerySet.as_manager()
@@ -552,7 +624,9 @@ class ResDevice(_ResDeviceFields):
         desde un global; aquí la petición se pasa explícita, que es la forma
         Django de la misma pregunta.
         """
-        session_key = getattr(getattr(request, 'session', None), 'session_key', None)
+        session_key = getattr(
+            getattr(request, 'session', None), 'session_key', None
+        )
         if not session_key or not self.session_identifier:
             return False
         return session_key.startswith(self.session_identifier)
@@ -585,7 +659,9 @@ def delete_sessions_from_identifiers(identifiers):
         _logger.warning(
             'El motor de sesiones %s no expone su modelo: no se puede borrar '
             'por prefijo y las sesiones de %s quedan vivas.',
-            settings.SESSION_ENGINE, ', '.join(identifiers))
+            settings.SESSION_ENGINE,
+            ', '.join(identifiers),
+        )
         return 0
 
     query = models.Q()
@@ -639,13 +715,16 @@ def get_missing_session_identifiers(identifiers):
         _logger.warning(
             'El motor de sesiones %s no expone su modelo: no se puede '
             'preguntar por prefijo y ninguna sesión se da por muerta.',
-            settings.SESSION_ENGINE)
+            settings.SESSION_ENGINE,
+        )
         return set()
 
     query = models.Q()
     for identifier in identifiers:
         query |= models.Q(session_key__startswith=identifier)
-    live_keys = model().objects.filter(query).values_list('session_key', flat=True)
+    live_keys = (
+        model().objects.filter(query).values_list('session_key', flat=True)
+    )
     present = {
         identifier
         for identifier in identifiers
@@ -676,7 +755,10 @@ def get_session_max_inactivity():
     except (TypeError, ValueError):
         _logger.warning(
             "Valor inválido en 'sessions.max_inactivity_seconds' (%r): se usa "
-            'el respaldo %s.', raw, fallback)
+            "el respaldo %s.",
+            raw,
+            fallback,
+        )
         return fallback
 
 
@@ -710,15 +792,18 @@ def update_trace(request):
         return None
 
     platform, browser, _version, _language = parse_user_agent(
-        request.META.get('HTTP_USER_AGENT', ''))
+        request.META.get('HTTP_USER_AGENT', '')
+    )
     ip_address = _client_ip(request)
     ahora = int(datetime.now(tz=timezone.utc).timestamp())
 
     trazas = session.get(TRACE_SESSION_KEY) or []
     for traza in trazas:
-        if (traza.get('platform') == platform
-                and traza.get('browser') == browser
-                and traza.get('ip_address') == ip_address):
+        if (
+            traza.get('platform') == platform
+            and traza.get('browser') == browser
+            and traza.get('ip_address') == ip_address
+        ):
             if ahora - traza['last_activity'] >= TRACE_MAX_IDLE_SECONDS:
                 traza['last_activity'] = ahora
                 session[TRACE_SESSION_KEY] = trazas

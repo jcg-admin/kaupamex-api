@@ -1,0 +1,9 @@
+{
+  "task": "TASK-API-0383",
+  "scope": "Full Django migration verification only, not module installer execution or Task acceptance",
+  "databases": {},
+  "default_migration_skipped_for_bounded_diagnostic": true,
+  "default_migration_seconds": 0.0,
+  "experimental_override": "In-memory only: contenttypes follows selected company; sessions unchanged. Not production acceptance.",
+  "company_database_removed": true
+}

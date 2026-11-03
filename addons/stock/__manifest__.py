@@ -20,13 +20,13 @@
     # `authz` es el gate de capacidad de las vistas DRF, no dependencia de
     # datos — tampoco se declara (ver lote 2).
     'depends': [
-        'base',     # ResCompany, ResPartner, los mixins
+        'base',  # ResCompany, ResPartner, los mixins
         'product',  # Product — lo que se mueve y se cuenta
-        'mail',     # el aviso de reabastecimiento y de albarán listo
+        'mail',  # el aviso de reabastecimiento y de albarán listo
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
-    'application': True,   # módulo vendible del catálogo L0
+    'application': True,  # módulo vendible del catálogo L0
     'installable': True,
     'auto_install': False,
 }

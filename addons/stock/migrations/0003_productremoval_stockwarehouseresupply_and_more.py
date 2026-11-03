@@ -44,7 +44,10 @@ class Migration(migrations.Migration):
                 (
                     "method",
                     models.CharField(
-                        help_text="FIFO, LIFO... — aquí además FEFO, closest y least_packages (Odoo method).",
+                        help_text=(
+                            "FIFO, LIFO... — aquí además FEFO, closest y"
+                            " least_packages (Odoo method)."
+                        ),
                         max_length=32,
                         verbose_name="Method",
                     ),
@@ -97,7 +100,10 @@ class Migration(migrations.Migration):
             name="active",
             field=models.BooleanField(
                 default=True,
-                help_text="Al desmarcarlo se oculta la ubicación sin borrarla (Odoo active).",
+                help_text=(
+                    "Al desmarcarlo se oculta la ubicación sin borrarla (Odoo"
+                    " active)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -116,7 +122,10 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa; vacío si la ubicación es compartida (Odoo company_id).",
+                help_text=(
+                    "Empresa; vacío si la ubicación es compartida (Odoo"
+                    " company_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="stock_locations",
@@ -129,7 +138,10 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Nombre jerárquico completo (Odoo complete_name, almacenado).",
+                help_text=(
+                    "Nombre jerárquico completo (Odoo complete_name,"
+                    " almacenado)."
+                ),
                 max_length=512,
             ),
         ),
@@ -138,7 +150,10 @@ class Migration(migrations.Migration):
             name="cyclic_inventory_frequency",
             field=models.IntegerField(
                 default=0,
-                help_text="Días entre conteos cíclicos; 0 desactiva (Odoo cyclic_inventory_frequency).",
+                help_text=(
+                    "Días entre conteos cíclicos; 0 desactiva (Odoo"
+                    " cyclic_inventory_frequency)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -146,7 +161,9 @@ class Migration(migrations.Migration):
             name="last_inventory_date",
             field=models.DateField(
                 blank=True,
-                help_text="Fecha del último inventario (Odoo last_inventory_date).",
+                help_text=(
+                    "Fecha del último inventario (Odoo last_inventory_date)."
+                ),
                 null=True,
             ),
         ),
@@ -155,7 +172,10 @@ class Migration(migrations.Migration):
             name="next_inventory_date",
             field=models.DateField(
                 blank=True,
-                help_text="Próximo conteo planeado (Odoo next_inventory_date, almacenado).",
+                help_text=(
+                    "Próximo conteo planeado (Odoo next_inventory_date,"
+                    " almacenado)."
+                ),
                 null=True,
             ),
         ),
@@ -166,7 +186,9 @@ class Migration(migrations.Migration):
                 blank=True,
                 db_index=True,
                 default="",
-                help_text="Ruta materializada «1/4/9/» del árbol (Odoo parent_path).",
+                help_text=(
+                    "Ruta materializada «1/4/9/» del árbol (Odoo parent_path)."
+                ),
                 max_length=512,
             ),
         ),
@@ -175,7 +197,10 @@ class Migration(migrations.Migration):
             name="replenish_location",
             field=models.BooleanField(
                 default=False,
-                help_text="Dispara sugerencias de reabastecimiento (Odoo replenish_location).",
+                help_text=(
+                    "Dispara sugerencias de reabastecimiento (Odoo"
+                    " replenish_location)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -183,7 +208,11 @@ class Migration(migrations.Migration):
             name="company",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Empresa (Odoo company_id, related a location_id.company_id con store=True; se recalcula en save()).",
+                help_text=(
+                    "Empresa (Odoo company_id, related a"
+                    " location_id.company_id con store=True; se recalcula en"
+                    " save())."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="stock_quants",
@@ -195,7 +224,10 @@ class Migration(migrations.Migration):
             name="inventory_date",
             field=models.DateField(
                 blank=True,
-                help_text="Próximo conteo planeado (Odoo inventory_date, almacenado y editable: readonly=False en la referencia).",
+                help_text=(
+                    "Próximo conteo planeado (Odoo inventory_date, almacenado"
+                    " y editable: readonly=False en la referencia)."
+                ),
                 null=True,
             ),
         ),
@@ -205,7 +237,11 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=Decimal("0.00"),
-                help_text="Diferencia contada − teórica (Odoo inventory_diff_quantity, almacenado; lo recalcula compute_inventory_diff_quantity).",
+                help_text=(
+                    "Diferencia contada − teórica (Odoo"
+                    " inventory_diff_quantity, almacenado; lo recalcula"
+                    " compute_inventory_diff_quantity)."
+                ),
                 max_digits=12,
             ),
         ),
@@ -224,7 +260,10 @@ class Migration(migrations.Migration):
             name="inventory_quantity_set",
             field=models.BooleanField(
                 default=False,
-                help_text="Marca que alguien ya fijó la cantidad contada (Odoo inventory_quantity_set, almacenado y editable).",
+                help_text=(
+                    "Marca que alguien ya fijó la cantidad contada (Odoo"
+                    " inventory_quantity_set, almacenado y editable)."
+                ),
             ),
         ),
         migrations.AddField(
@@ -256,7 +295,9 @@ class Migration(migrations.Migration):
             name="location",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Ubicación padre que la contiene (Odoo location_id).",
+                help_text=(
+                    "Ubicación padre que la contiene (Odoo location_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="child_ids",
@@ -324,7 +365,10 @@ class Migration(migrations.Migration):
             name="removal_strategy",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Estrategia de retiro por defecto: FIFO, LIFO, cercanía, menos paquetes o FEFO (Odoo removal_strategy_id).",
+                help_text=(
+                    "Estrategia de retiro por defecto: FIFO, LIFO, cercanía,"
+                    " menos paquetes o FEFO (Odoo removal_strategy_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="location_ids",
@@ -350,7 +394,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=4,
                         default=Decimal("0.0000"),
-                        help_text="Cantidad en la unidad de la línea (Odoo quantity, compute+store con readonly=False).",
+                        help_text=(
+                            "Cantidad en la unidad de la línea (Odoo quantity,"
+                            " compute+store con readonly=False)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -359,7 +406,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=4,
                         default=Decimal("0.0000"),
-                        help_text="La misma cantidad en la unidad del producto (Odoo quantity_product_uom, compute+store).",
+                        help_text=(
+                            "La misma cantidad en la unidad del producto (Odoo"
+                            " quantity_product_uom, compute+store)."
+                        ),
                         max_digits=16,
                     ),
                 ),
@@ -367,14 +417,21 @@ class Migration(migrations.Migration):
                     "picked",
                     models.BooleanField(
                         default=False,
-                        help_text="La línea ya fue tomada (Odoo picked, compute+store con readonly=False).",
+                        help_text=(
+                            "La línea ya fue tomada (Odoo picked,"
+                            " compute+store con readonly=False)."
+                        ),
                     ),
                 ),
                 (
                     "lot_name",
                     models.CharField(
                         blank=True,
-                        help_text="Nombre del lote cuando aún no existe el registro (Odoo lot_name); lo materializa _create_and_assign_production_lot.",
+                        help_text=(
+                            "Nombre del lote cuando aún no existe el registro"
+                            " (Odoo lot_name); lo materializa"
+                            " _create_and_assign_production_lot."
+                        ),
                         max_length=255,
                         null=True,
                     ),
@@ -383,21 +440,31 @@ class Migration(migrations.Migration):
                     "is_entire_pack",
                     models.BooleanField(
                         default=False,
-                        help_text="La línea entró por un paquete completo (Odoo is_entire_pack).",
+                        help_text=(
+                            "La línea entró por un paquete completo (Odoo"
+                            " is_entire_pack)."
+                        ),
                     ),
                 ),
                 (
                     "date",
                     models.DateTimeField(
                         default=django.utils.timezone.now,
-                        help_text="Fecha de creación, actualizada al aumentar cantidad, al marcarse tomada o al terminar (Odoo date).",
+                        help_text=(
+                            "Fecha de creación, actualizada al aumentar"
+                            " cantidad, al marcarse tomada o al terminar (Odoo"
+                            " date)."
+                        ),
                     ),
                 ),
                 (
                     "state",
                     models.CharField(
                         blank=True,
-                        help_text="Estado heredado del movimiento (Odoo state, related+store; lo recalcula save()).",
+                        help_text=(
+                            "Estado heredado del movimiento (Odoo state,"
+                            " related+store; lo recalcula save())."
+                        ),
                         max_length=32,
                         null=True,
                     ),
@@ -406,7 +473,10 @@ class Migration(migrations.Migration):
                     "expiration_date",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Fecha en que la mercancía de esta línea deja de ser consumible (Odoo expiration_date).",
+                        help_text=(
+                            "Fecha en que la mercancía de esta línea deja de"
+                            " ser consumible (Odoo expiration_date)."
+                        ),
                         null=True,
                     ),
                 ),
@@ -414,14 +484,21 @@ class Migration(migrations.Migration):
                     "removal_date",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Fecha en que la mercancía debe retirarse; clave del orden FEFO (Odoo removal_date).",
+                        help_text=(
+                            "Fecha en que la mercancía debe retirarse; clave"
+                            " del orden FEFO (Odoo removal_date)."
+                        ),
                         null=True,
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
-                        help_text="Empresa (Odoo company_id, readonly+required; se recalcula en save() desde el movimiento o el albarán).",
+                        help_text=(
+                            "Empresa (Odoo company_id, readonly+required; se"
+                            " recalcula en save() desde el movimiento o el"
+                            " albarán)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="stock_move_lines",
                         to="base.rescompany",
@@ -430,7 +507,10 @@ class Migration(migrations.Migration):
                 (
                     "location",
                     models.ForeignKey(
-                        help_text="Ubicación de origen (Odoo location_id, compute+store).",
+                        help_text=(
+                            "Ubicación de origen (Odoo location_id,"
+                            " compute+store)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="move_line_ids",
                         to="stock.stocklocation",
@@ -439,7 +519,10 @@ class Migration(migrations.Migration):
                 (
                     "location_dest",
                     models.ForeignKey(
-                        help_text="Ubicación de destino (Odoo location_dest_id, compute+store).",
+                        help_text=(
+                            "Ubicación de destino (Odoo location_dest_id,"
+                            " compute+store)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="dest_move_line_ids",
                         to="stock.stocklocation",
@@ -460,7 +543,10 @@ class Migration(migrations.Migration):
                     "move",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Movimiento de inventario al que pertenece (Odoo move_id).",
+                        help_text=(
+                            "Movimiento de inventario al que pertenece (Odoo"
+                            " move_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="move_line_ids",
@@ -471,7 +557,10 @@ class Migration(migrations.Migration):
                     "owner",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Propietario de la mercancía en origen (Odoo owner_id).",
+                        help_text=(
+                            "Propietario de la mercancía en origen (Odoo"
+                            " owner_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="owned_move_lines",
@@ -482,7 +571,10 @@ class Migration(migrations.Migration):
                     "picking",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Transferencia donde se hizo el empaque (Odoo picking_id).",
+                        help_text=(
+                            "Transferencia donde se hizo el empaque (Odoo"
+                            " picking_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="move_line_ids",
@@ -492,7 +584,10 @@ class Migration(migrations.Migration):
                 (
                     "product",
                     models.ForeignKey(
-                        help_text="Producto (Odoo product_id; el dominio excluye servicios).",
+                        help_text=(
+                            "Producto (Odoo product_id; el dominio excluye"
+                            " servicios)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="stock_move_lines",
                         to="product.productproduct",
@@ -502,7 +597,11 @@ class Migration(migrations.Migration):
                     "product_uom",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Unidad de la línea (Odoo product_uom_id, compute+store; la recalcula _compute_product_uom_id).",
+                        help_text=(
+                            "Unidad de la línea (Odoo product_uom_id,"
+                            " compute+store; la recalcula"
+                            " _compute_product_uom_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="stock_move_lines",
@@ -550,7 +649,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Relación consumo/producción de líneas",
-                "verbose_name_plural": "Relaciones consumo/producción de líneas",
+                "verbose_name_plural": (
+                    "Relaciones consumo/producción de líneas"
+                ),
                 "db_table": "stock_move_line_consume_rel",
             },
         ),
@@ -559,7 +660,9 @@ class Migration(migrations.Migration):
             name="consume_line_ids",
             field=models.ManyToManyField(
                 blank=True,
-                help_text="Líneas consumidas por ésta (Odoo consume_line_ids).",
+                help_text=(
+                    "Líneas consumidas por ésta (Odoo consume_line_ids)."
+                ),
                 related_name="+",
                 through="stock.StockMoveLineConsumeRel",
                 through_fields=("consume_line", "produce_line"),
@@ -584,7 +687,9 @@ class Migration(migrations.Migration):
                     "name",
                     models.CharField(
                         db_index=True,
-                        help_text="Referencia del paquete (Odoo name, requerido).",
+                        help_text=(
+                            "Referencia del paquete (Odoo name, requerido)."
+                        ),
                         max_length=120,
                     ),
                 ),
@@ -593,7 +698,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre jerárquico «A > B > C» (Odoo complete_name, almacenado).",
+                        help_text=(
+                            "Nombre jerárquico «A > B > C» (Odoo"
+                            " complete_name, almacenado)."
+                        ),
                         max_length=512,
                     ),
                 ),
@@ -602,7 +710,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=3,
-                        help_text="Peso total declarado del paquete (Odoo shipping_weight).",
+                        help_text=(
+                            "Peso total declarado del paquete (Odoo"
+                            " shipping_weight)."
+                        ),
                         max_digits=12,
                         null=True,
                     ),
@@ -620,7 +731,10 @@ class Migration(migrations.Migration):
                         blank=True,
                         db_index=True,
                         default="",
-                        help_text="Ruta materializada del árbol de contenedores ACTUALES (Odoo parent_path).",
+                        help_text=(
+                            "Ruta materializada del árbol de contenedores"
+                            " ACTUALES (Odoo parent_path)."
+                        ),
                         max_length=512,
                     ),
                 ),
@@ -628,7 +742,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa, derivada de su contenido (Odoo company_id, computado y almacenado).",
+                        help_text=(
+                            "Empresa, derivada de su contenido (Odoo"
+                            " company_id, computado y almacenado)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="stock_packages",
@@ -639,7 +756,10 @@ class Migration(migrations.Migration):
                     "location",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación actual, derivada de su contenido (Odoo location_id, computado y almacenado).",
+                        help_text=(
+                            "Ubicación actual, derivada de su contenido (Odoo"
+                            " location_id, computado y almacenado)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="package_ids",
@@ -650,7 +770,10 @@ class Migration(migrations.Migration):
                     "package_dest",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Contenedor DESTINO al validar (Odoo package_dest_id).",
+                        help_text=(
+                            "Contenedor DESTINO al validar (Odoo"
+                            " package_dest_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="child_package_dest_ids",
@@ -661,7 +784,9 @@ class Migration(migrations.Migration):
                     "parent_package",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Contenedor ACTUAL (Odoo parent_package_id).",
+                        help_text=(
+                            "Contenedor ACTUAL (Odoo parent_package_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="child_package_ids",
@@ -705,7 +830,9 @@ class Migration(migrations.Migration):
             name="package",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Paquete que contiene esta existencia (Odoo package_id).",
+                help_text=(
+                    "Paquete que contiene esta existencia (Odoo package_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.RESTRICT,
                 related_name="quant_ids",
@@ -729,7 +856,10 @@ class Migration(migrations.Migration):
                 (
                     "package_name",
                     models.CharField(
-                        help_text="Nombre completo del paquete al momento del movimiento (Odoo package_name, requerido).",
+                        help_text=(
+                            "Nombre completo del paquete al momento del"
+                            " movimiento (Odoo package_name, requerido)."
+                        ),
                         max_length=512,
                     ),
                 ),
@@ -738,7 +868,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre del contenedor de origen (Odoo parent_orig_name).",
+                        help_text=(
+                            "Nombre del contenedor de origen (Odoo"
+                            " parent_orig_name)."
+                        ),
                         max_length=512,
                     ),
                 ),
@@ -747,7 +880,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Nombre del contenedor de destino (Odoo parent_dest_name).",
+                        help_text=(
+                            "Nombre del contenedor de destino (Odoo"
+                            " parent_dest_name)."
+                        ),
                         max_length=512,
                     ),
                 ),
@@ -775,7 +911,9 @@ class Migration(migrations.Migration):
                     "location_dest",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación de destino (Odoo location_dest_id).",
+                        help_text=(
+                            "Ubicación de destino (Odoo location_dest_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="package_history_destinations",
@@ -786,7 +924,10 @@ class Migration(migrations.Migration):
                     "outermost_dest",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Contenedor destino más externo (Odoo outermost_dest_id).",
+                        help_text=(
+                            "Contenedor destino más externo (Odoo"
+                            " outermost_dest_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="history_as_outermost_container",
@@ -796,7 +937,9 @@ class Migration(migrations.Migration):
                 (
                     "package",
                     models.ForeignKey(
-                        help_text="Paquete movido (Odoo package_id, requerido).",
+                        help_text=(
+                            "Paquete movido (Odoo package_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="history_ids",
                         to="stock.stockpackage",
@@ -806,7 +949,9 @@ class Migration(migrations.Migration):
                     "parent_dest",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Contenedor de destino (Odoo parent_dest_id).",
+                        help_text=(
+                            "Contenedor de destino (Odoo parent_dest_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="history_as_dest_container",
@@ -817,7 +962,9 @@ class Migration(migrations.Migration):
                     "parent_orig",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Contenedor de origen (Odoo parent_orig_id).",
+                        help_text=(
+                            "Contenedor de origen (Odoo parent_orig_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="history_as_origin_container",
@@ -828,7 +975,9 @@ class Migration(migrations.Migration):
                     "picking_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Transferencias implicadas (Odoo picking_ids).",
+                        help_text=(
+                            "Transferencias implicadas (Odoo picking_ids)."
+                        ),
                         related_name="package_history_ids",
                         to="stock.stockpicking",
                     ),
@@ -846,7 +995,10 @@ class Migration(migrations.Migration):
             name="package_history",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Instantánea del paquete al momento del movimiento (Odoo package_history_id).",
+                help_text=(
+                    "Instantánea del paquete al momento del movimiento (Odoo"
+                    " package_history_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="move_line_ids",
@@ -870,7 +1022,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del tipo de paquete (Odoo name, requerido).",
+                        help_text=(
+                            "Nombre del tipo de paquete (Odoo name,"
+                            " requerido)."
+                        ),
                         max_length=120,
                     ),
                 ),
@@ -878,7 +1033,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=1,
-                        help_text="Orden; el primero es el tipo por defecto (Odoo sequence).",
+                        help_text=(
+                            "Orden; el primero es el tipo por defecto (Odoo"
+                            " sequence)."
+                        ),
                     ),
                 ),
                 (
@@ -904,7 +1062,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Largo del embalaje (Odoo packaging_length).",
+                        help_text=(
+                            "Largo del embalaje (Odoo packaging_length)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -913,7 +1073,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Peso del propio embalaje vacío (Odoo base_weight).",
+                        help_text=(
+                            "Peso del propio embalaje vacío (Odoo"
+                            " base_weight)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -922,7 +1085,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Peso máximo embarcable en este embalaje (Odoo max_weight).",
+                        help_text=(
+                            "Peso máximo embarcable en este embalaje (Odoo"
+                            " max_weight)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -931,7 +1097,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Código de barras del tipo de paquete (Odoo barcode).",
+                        help_text=(
+                            "Código de barras del tipo de paquete (Odoo"
+                            " barcode)."
+                        ),
                         max_length=64,
                         null=True,
                     ),
@@ -944,7 +1113,12 @@ class Migration(migrations.Migration):
                             ("reusable", "Caja reutilizable (tote)"),
                         ],
                         default="disposable",
-                        help_text="Las cajas reutilizables se usan en preparación por lotes y se vacían después; al escanear una desechable, sus productos se añaden a la transferencia (Odoo package_use).",
+                        help_text=(
+                            "Las cajas reutilizables se usan en preparación"
+                            " por lotes y se vacían después; al escanear una"
+                            " desechable, sus productos se añaden a la"
+                            " transferencia (Odoo package_use)."
+                        ),
                         max_length=12,
                     ),
                 ),
@@ -963,7 +1137,10 @@ class Migration(migrations.Migration):
                     "sequence_ref",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Secuencia de numeración de los paquetes de este tipo (Odoo sequence_id).",
+                        help_text=(
+                            "Secuencia de numeración de los paquetes de este"
+                            " tipo (Odoo sequence_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="package_types",
@@ -1022,13 +1199,18 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=0,
-                        help_text="Orden en la vista «Todas las operaciones» (Odoo sequence).",
+                        help_text=(
+                            "Orden en la vista «Todas las operaciones» (Odoo"
+                            " sequence)."
+                        ),
                     ),
                 ),
                 (
                     "sequence_code",
                     models.CharField(
-                        help_text="Prefijo de la secuencia (Odoo sequence_code).",
+                        help_text=(
+                            "Prefijo de la secuencia (Odoo sequence_code)."
+                        ),
                         max_length=32,
                         verbose_name="Sequence Prefix",
                     ),
@@ -1050,49 +1232,70 @@ class Migration(migrations.Migration):
                     "show_entire_packs",
                     models.BooleanField(
                         default=False,
-                        help_text="Mostrar paquetes completos en vez de su contenido (Odoo show_entire_packs).",
+                        help_text=(
+                            "Mostrar paquetes completos en vez de su contenido"
+                            " (Odoo show_entire_packs)."
+                        ),
                     ),
                 ),
                 (
                     "set_package_type",
                     models.BooleanField(
                         default=False,
-                        help_text="Permite elegir el tipo de paquete al empaquetar (Odoo set_package_type).",
+                        help_text=(
+                            "Permite elegir el tipo de paquete al empaquetar"
+                            " (Odoo set_package_type)."
+                        ),
                     ),
                 ),
                 (
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Al desmarcarlo se archiva sin borrar (Odoo active).",
+                        help_text=(
+                            "Al desmarcarlo se archiva sin borrar (Odoo"
+                            " active)."
+                        ),
                     ),
                 ),
                 (
                     "use_create_lots",
                     models.BooleanField(
                         default=True,
-                        help_text="Permite crear lotes/series nuevos (Odoo use_create_lots, almacenado).",
+                        help_text=(
+                            "Permite crear lotes/series nuevos (Odoo"
+                            " use_create_lots, almacenado)."
+                        ),
                     ),
                 ),
                 (
                     "use_existing_lots",
                     models.BooleanField(
                         default=True,
-                        help_text="Permite elegir lotes/series existentes (Odoo use_existing_lots, almacenado).",
+                        help_text=(
+                            "Permite elegir lotes/series existentes (Odoo"
+                            " use_existing_lots, almacenado)."
+                        ),
                     ),
                 ),
                 (
                     "print_label",
                     models.BooleanField(
                         default=False,
-                        help_text="Genera etiqueta de envío al validar (Odoo print_label, almacenado).",
+                        help_text=(
+                            "Genera etiqueta de envío al validar (Odoo"
+                            " print_label, almacenado)."
+                        ),
                     ),
                 ),
                 (
                     "show_operations",
                     models.BooleanField(
                         default=False,
-                        help_text="Muestra las operaciones detalladas (Odoo show_operations).",
+                        help_text=(
+                            "Muestra las operaciones detalladas (Odoo"
+                            " show_operations)."
+                        ),
                     ),
                 ),
                 (
@@ -1104,7 +1307,10 @@ class Migration(migrations.Migration):
                             ("by_date", "Antes de la fecha prevista"),
                         ],
                         default="at_confirm",
-                        help_text="Cuándo se reservan los productos (Odoo reservation_method).",
+                        help_text=(
+                            "Cuándo se reservan los productos (Odoo"
+                            " reservation_method)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1112,42 +1318,61 @@ class Migration(migrations.Migration):
                     "reservation_days_before",
                     models.IntegerField(
                         default=0,
-                        help_text="Días máximos antes de la fecha prevista para reservar (Odoo reservation_days_before).",
+                        help_text=(
+                            "Días máximos antes de la fecha prevista para"
+                            " reservar (Odoo reservation_days_before)."
+                        ),
                     ),
                 ),
                 (
                     "reservation_days_before_priority",
                     models.IntegerField(
                         default=0,
-                        help_text="Días máximos para reservar cuando la transferencia es prioritaria (Odoo reservation_days_before_priority).",
+                        help_text=(
+                            "Días máximos para reservar cuando la"
+                            " transferencia es prioritaria (Odoo"
+                            " reservation_days_before_priority)."
+                        ),
                     ),
                 ),
                 (
                     "auto_show_reception_report",
                     models.BooleanField(
                         default=False,
-                        help_text="Muestra el informe de recepción al validar (Odoo auto_show_reception_report).",
+                        help_text=(
+                            "Muestra el informe de recepción al validar (Odoo"
+                            " auto_show_reception_report)."
+                        ),
                     ),
                 ),
                 (
                     "auto_print_delivery_slip",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime el albarán de entrega al validar (Odoo auto_print_delivery_slip).",
+                        help_text=(
+                            "Imprime el albarán de entrega al validar (Odoo"
+                            " auto_print_delivery_slip)."
+                        ),
                     ),
                 ),
                 (
                     "auto_print_return_slip",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime el comprobante de devolución al validar (Odoo auto_print_return_slip).",
+                        help_text=(
+                            "Imprime el comprobante de devolución al validar"
+                            " (Odoo auto_print_return_slip)."
+                        ),
                     ),
                 ),
                 (
                     "auto_print_product_labels",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime las etiquetas de producto al validar (Odoo auto_print_product_labels).",
+                        help_text=(
+                            "Imprime las etiquetas de producto al validar"
+                            " (Odoo auto_print_product_labels)."
+                        ),
                     ),
                 ),
                 (
@@ -1163,7 +1388,10 @@ class Migration(migrations.Migration):
                             ("zplxprice", "Etiquetas ZPL con precio"),
                         ],
                         default="2x7xprice",
-                        help_text="Formato de etiqueta de producto (Odoo product_label_format).",
+                        help_text=(
+                            "Formato de etiqueta de producto (Odoo"
+                            " product_label_format)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1171,7 +1399,10 @@ class Migration(migrations.Migration):
                     "auto_print_lot_labels",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime las etiquetas de lote/serie al validar (Odoo auto_print_lot_labels).",
+                        help_text=(
+                            "Imprime las etiquetas de lote/serie al validar"
+                            " (Odoo auto_print_lot_labels)."
+                        ),
                     ),
                 ),
                 (
@@ -1184,7 +1415,10 @@ class Migration(migrations.Migration):
                             ("zpl_units", "Etiquetas ZPL — una por unidad"),
                         ],
                         default="4x12_lots",
-                        help_text="Formato de etiqueta de lote/serie (Odoo lot_label_format).",
+                        help_text=(
+                            "Formato de etiqueta de lote/serie (Odoo"
+                            " lot_label_format)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1192,28 +1426,41 @@ class Migration(migrations.Migration):
                     "auto_print_reception_report",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime el informe de recepción al validar (Odoo auto_print_reception_report).",
+                        help_text=(
+                            "Imprime el informe de recepción al validar (Odoo"
+                            " auto_print_reception_report)."
+                        ),
                     ),
                 ),
                 (
                     "auto_print_reception_report_labels",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime las etiquetas del informe de recepción al validar (Odoo auto_print_reception_report_labels).",
+                        help_text=(
+                            "Imprime las etiquetas del informe de recepción al"
+                            " validar (Odoo"
+                            " auto_print_reception_report_labels)."
+                        ),
                     ),
                 ),
                 (
                     "auto_print_packages",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime los paquetes y su contenido al validar (Odoo auto_print_packages).",
+                        help_text=(
+                            "Imprime los paquetes y su contenido al validar"
+                            " (Odoo auto_print_packages)."
+                        ),
                     ),
                 ),
                 (
                     "auto_print_package_label",
                     models.BooleanField(
                         default=False,
-                        help_text="Imprime la etiqueta del paquete al empaquetar (Odoo auto_print_package_label).",
+                        help_text=(
+                            "Imprime la etiqueta del paquete al empaquetar"
+                            " (Odoo auto_print_package_label)."
+                        ),
                     ),
                 ),
                 (
@@ -1221,7 +1468,10 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[("pdf", "PDF"), ("zpl", "ZPL")],
                         default="pdf",
-                        help_text="Formato de la etiqueta de paquete (Odoo package_label_to_print).",
+                        help_text=(
+                            "Formato de la etiqueta de paquete (Odoo"
+                            " package_label_to_print)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -1243,7 +1493,10 @@ class Migration(migrations.Migration):
                             ("never", "Nunca"),
                         ],
                         default="ask",
-                        help_text="Qué hacer con lo que queda al validar (Odoo create_backorder).",
+                        help_text=(
+                            "Qué hacer con lo que queda al validar (Odoo"
+                            " create_backorder)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -1252,7 +1505,10 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=dict,
-                        help_text="Definición de propiedades de la transferencia (Odoo picking_properties_definition).",
+                        help_text=(
+                            "Definición de propiedades de la transferencia"
+                            " (Odoo picking_properties_definition)."
+                        ),
                         verbose_name="Picking Properties",
                     ),
                 ),
@@ -1264,7 +1520,10 @@ class Migration(migrations.Migration):
                             ("one", "Cuando todos los productos estén listos"),
                         ],
                         default="direct",
-                        help_text="Política de envío: parcial o todo junto (Odoo move_type).",
+                        help_text=(
+                            "Política de envío: parcial o todo junto (Odoo"
+                            " move_type)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -1272,7 +1531,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa dueña del tipo (Odoo company_id, requerido).",
+                        help_text=(
+                            "Empresa dueña del tipo (Odoo company_id,"
+                            " requerido)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="picking_types",
@@ -1283,7 +1545,10 @@ class Migration(migrations.Migration):
                     "default_location_dest",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación de destino por defecto (Odoo default_location_dest_id, almacenado).",
+                        help_text=(
+                            "Ubicación de destino por defecto (Odoo"
+                            " default_location_dest_id, almacenado)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="picking_types_dest",
@@ -1294,7 +1559,10 @@ class Migration(migrations.Migration):
                     "default_location_src",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación de origen por defecto (Odoo default_location_src_id, almacenado).",
+                        help_text=(
+                            "Ubicación de origen por defecto (Odoo"
+                            " default_location_src_id, almacenado)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="picking_types_src",
@@ -1305,7 +1573,10 @@ class Migration(migrations.Migration):
                     "favorite_user_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Usuarios que marcaron el tipo como favorito (Odoo favorite_user_ids).",
+                        help_text=(
+                            "Usuarios que marcaron el tipo como favorito (Odoo"
+                            " favorite_user_ids)."
+                        ),
                         related_name="favorite_picking_types",
                         through="stock.PickingTypeFavoriteUserRel",
                         to=settings.AUTH_USER_MODEL,
@@ -1315,7 +1586,10 @@ class Migration(migrations.Migration):
                     "return_picking_type",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Tipo de operación para devoluciones (Odoo return_picking_type_id).",
+                        help_text=(
+                            "Tipo de operación para devoluciones (Odoo"
+                            " return_picking_type_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="returned_by",
@@ -1326,7 +1600,9 @@ class Migration(migrations.Migration):
                     "sequence_id",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Secuencia de referencia (Odoo sequence_id).",
+                        help_text=(
+                            "Secuencia de referencia (Odoo sequence_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="picking_types",
@@ -1369,7 +1645,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la ruta (Odoo name, requerido, traducible).",
+                        help_text=(
+                            "Nombre de la ruta (Odoo name, requerido,"
+                            " traducible)."
+                        ),
                         max_length=120,
                     ),
                 ),
@@ -1377,41 +1656,58 @@ class Migration(migrations.Migration):
                     "active",
                     models.BooleanField(
                         default=True,
-                        help_text="Al desmarcarlo se oculta la ruta sin borrarla (Odoo active).",
+                        help_text=(
+                            "Al desmarcarlo se oculta la ruta sin borrarla"
+                            " (Odoo active)."
+                        ),
                     ),
                 ),
                 (
                     "sequence",
                     models.IntegerField(
-                        default=0, help_text="Orden de evaluación (Odoo sequence)."
+                        default=0,
+                        help_text="Orden de evaluación (Odoo sequence).",
                     ),
                 ),
                 (
                     "product_selectable",
                     models.BooleanField(
                         default=True,
-                        help_text="Seleccionable en la pestaña Inventario del producto (Odoo product_selectable).",
+                        help_text=(
+                            "Seleccionable en la pestaña Inventario del"
+                            " producto (Odoo product_selectable)."
+                        ),
                     ),
                 ),
                 (
                     "product_categ_selectable",
                     models.BooleanField(
                         default=False,
-                        help_text="Seleccionable en la categoría de producto (Odoo product_categ_selectable).",
+                        help_text=(
+                            "Seleccionable en la categoría de producto (Odoo"
+                            " product_categ_selectable)."
+                        ),
                     ),
                 ),
                 (
                     "warehouse_selectable",
                     models.BooleanField(
                         default=False,
-                        help_text="Seleccionable en el almacén; al elegirlo, es la ruta por defecto de lo que pase por él (Odoo warehouse_selectable).",
+                        help_text=(
+                            "Seleccionable en el almacén; al elegirlo, es la"
+                            " ruta por defecto de lo que pase por él (Odoo"
+                            " warehouse_selectable)."
+                        ),
                     ),
                 ),
                 (
                     "package_type_selectable",
                     models.BooleanField(
                         default=False,
-                        help_text="Seleccionable en el tipo de paquete (Odoo package_type_selectable).",
+                        help_text=(
+                            "Seleccionable en el tipo de paquete (Odoo"
+                            " package_type_selectable)."
+                        ),
                     ),
                 ),
                 (
@@ -1419,7 +1715,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="stock_route_categ",
-                        help_text="Categorías que declaran esta ruta (Odoo categ_ids).",
+                        help_text=(
+                            "Categorías que declaran esta ruta (Odoo"
+                            " categ_ids)."
+                        ),
                         related_name="route_ids",
                         to="product.productcategory",
                     ),
@@ -1428,7 +1727,10 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa; vacío si la ruta es compartida (Odoo company_id).",
+                        help_text=(
+                            "Empresa; vacío si la ruta es compartida (Odoo"
+                            " company_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="stock_routes",
@@ -1440,7 +1742,10 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         blank=True,
                         db_table="stock_route_product",
-                        help_text="Productos que declaran esta ruta (Odoo product_ids).",
+                        help_text=(
+                            "Productos que declaran esta ruta (Odoo"
+                            " product_ids)."
+                        ),
                         related_name="route_ids",
                         to="product.producttemplate",
                     ),
@@ -1458,7 +1763,9 @@ class Migration(migrations.Migration):
             name="route_ids",
             field=models.ManyToManyField(
                 blank=True,
-                help_text="Rutas aplicables a este tipo de paquete (Odoo route_ids).",
+                help_text=(
+                    "Rutas aplicables a este tipo de paquete (Odoo route_ids)."
+                ),
                 related_name="package_type_ids",
                 to="stock.stockroute",
             ),
@@ -1480,7 +1787,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre de la categoría de almacenamiento (Odoo name).",
+                        help_text=(
+                            "Nombre de la categoría de almacenamiento (Odoo"
+                            " name)."
+                        ),
                         max_length=120,
                     ),
                 ),
@@ -1489,7 +1799,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Peso máximo admitido (Odoo max_weight, digits Stock Weight).",
+                        help_text=(
+                            "Peso máximo admitido (Odoo max_weight, digits"
+                            " Stock Weight)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -1502,7 +1815,10 @@ class Migration(migrations.Migration):
                             ("mixed", "Permitir productos mezclados"),
                         ],
                         default="mixed",
-                        help_text="Criterio de mezcla al ingresar un producto nuevo (Odoo allow_new_product).",
+                        help_text=(
+                            "Criterio de mezcla al ingresar un producto nuevo"
+                            " (Odoo allow_new_product)."
+                        ),
                         max_length=8,
                     ),
                 ),
@@ -1543,7 +1859,10 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=0,
-                        help_text="Prioridad; mayor para la categoría más específica (Odoo sequence).",
+                        help_text=(
+                            "Prioridad; mayor para la categoría más específica"
+                            " (Odoo sequence)."
+                        ),
                     ),
                 ),
                 (
@@ -1561,7 +1880,10 @@ class Migration(migrations.Migration):
                             ("closest_location", "Ubicación más cercana"),
                         ],
                         default="no",
-                        help_text="Cómo elegir la sububicación concreta (Odoo sublocation).",
+                        help_text=(
+                            "Cómo elegir la sububicación concreta (Odoo"
+                            " sublocation)."
+                        ),
                         max_length=20,
                     ),
                 ),
@@ -1569,7 +1891,10 @@ class Migration(migrations.Migration):
                     "category",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Categoría de producto a la que aplica (Odoo category_id).",
+                        help_text=(
+                            "Categoría de producto a la que aplica (Odoo"
+                            " category_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="putaway_rule_ids",
@@ -1588,7 +1913,10 @@ class Migration(migrations.Migration):
                 (
                     "location_in",
                     models.ForeignKey(
-                        help_text="Ubicación donde llega el producto (Odoo location_in_id, requerido).",
+                        help_text=(
+                            "Ubicación donde llega el producto (Odoo"
+                            " location_in_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="putaway_rule_ids",
                         to="stock.stocklocation",
@@ -1597,7 +1925,10 @@ class Migration(migrations.Migration):
                 (
                     "location_out",
                     models.ForeignKey(
-                        help_text="Sububicación donde se almacena (Odoo location_out_id, requerido).",
+                        help_text=(
+                            "Sububicación donde se almacena (Odoo"
+                            " location_out_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="putaway_destination_ids",
                         to="stock.stocklocation",
@@ -1607,7 +1938,10 @@ class Migration(migrations.Migration):
                     "package_type_ids",
                     models.ManyToManyField(
                         blank=True,
-                        help_text="Tipos de paquete a los que aplica (Odoo package_type_ids).",
+                        help_text=(
+                            "Tipos de paquete a los que aplica (Odoo"
+                            " package_type_ids)."
+                        ),
                         related_name="putaway_rule_ids",
                         to="stock.stockpackagetype",
                     ),
@@ -1616,7 +1950,10 @@ class Migration(migrations.Migration):
                     "product",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Producto al que aplica la regla (Odoo product_id).",
+                        help_text=(
+                            "Producto al que aplica la regla (Odoo"
+                            " product_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="putaway_rule_ids",
@@ -1627,7 +1964,11 @@ class Migration(migrations.Migration):
                     "storage_category",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Categoría de almacenamiento exigida a la sububicación (Odoo storage_category_id, computado y almacenado).",
+                        help_text=(
+                            "Categoría de almacenamiento exigida a la"
+                            " sububicación (Odoo storage_category_id,"
+                            " computado y almacenado)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="putaway_rule_ids",
@@ -1647,7 +1988,9 @@ class Migration(migrations.Migration):
             name="storage_category",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Categoría de almacenamiento (Odoo storage_category_id).",
+                help_text=(
+                    "Categoría de almacenamiento (Odoo storage_category_id)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="location_ids",
@@ -1672,7 +2015,9 @@ class Migration(migrations.Migration):
                     "quantity",
                     models.DecimalField(
                         decimal_places=2,
-                        help_text="Cantidad admitida (Odoo quantity, requerido).",
+                        help_text=(
+                            "Cantidad admitida (Odoo quantity, requerido)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -1680,7 +2025,9 @@ class Migration(migrations.Migration):
                     "package_type",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Tipo de paquete acotado (Odoo package_type_id).",
+                        help_text=(
+                            "Tipo de paquete acotado (Odoo package_type_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="storage_category_capacity_ids",
@@ -1701,7 +2048,10 @@ class Migration(migrations.Migration):
                 (
                     "storage_category",
                     models.ForeignKey(
-                        help_text="Categoría a la que pertenece la regla (Odoo storage_category_id, requerido).",
+                        help_text=(
+                            "Categoría a la que pertenece la regla (Odoo"
+                            " storage_category_id, requerido)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="capacity_ids",
                         to="stock.stockstoragecategory",
@@ -1710,7 +2060,9 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "Capacidad de categoría de almacenamiento",
-                "verbose_name_plural": "Capacidades de categoría de almacenamiento",
+                "verbose_name_plural": (
+                    "Capacidades de categoría de almacenamiento"
+                ),
                 "db_table": "stock_storage_category_capacity",
                 "ordering": ["storage_category_id"],
             },
@@ -1732,7 +2084,10 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        help_text="Nombre del almacén (Odoo name; su default es el nombre de la empresa — ver _default_name).",
+                        help_text=(
+                            "Nombre del almacén (Odoo name; su default es el"
+                            " nombre de la empresa — ver _default_name)."
+                        ),
                         max_length=255,
                     ),
                 ),
@@ -1745,7 +2100,11 @@ class Migration(migrations.Migration):
                 (
                     "code",
                     models.CharField(
-                        help_text="Nombre corto que identifica el almacén; prefija los códigos de barras y las secuencias (Odoo code, size=5).",
+                        help_text=(
+                            "Nombre corto que identifica el almacén; prefija"
+                            " los códigos de barras y las secuencias (Odoo"
+                            " code, size=5)."
+                        ),
                         max_length=5,
                     ),
                 ),
@@ -1757,11 +2116,17 @@ class Migration(migrations.Migration):
                             ("two_steps", "Receive then Store (2 steps)"),
                             (
                                 "three_steps",
-                                "Receive, Quality Control, then Store (3 steps)",
+                                (
+                                    "Receive, Quality Control, then Store (3"
+                                    " steps)"
+                                ),
                             ),
                         ],
                         default="one_step",
-                        help_text="Ruta de entrada por defecto (Odoo reception_steps).",
+                        help_text=(
+                            "Ruta de entrada por defecto (Odoo"
+                            " reception_steps)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1771,10 +2136,15 @@ class Migration(migrations.Migration):
                         choices=[
                             ("ship_only", "Deliver (1 step)"),
                             ("pick_ship", "Pick then Deliver (2 steps)"),
-                            ("pick_pack_ship", "Pick, Pack, then Deliver (3 steps)"),
+                            (
+                                "pick_pack_ship",
+                                "Pick, Pack, then Deliver (3 steps)",
+                            ),
                         ],
                         default="ship_only",
-                        help_text="Ruta de salida por defecto (Odoo delivery_steps).",
+                        help_text=(
+                            "Ruta de salida por defecto (Odoo delivery_steps)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -1782,13 +2152,19 @@ class Migration(migrations.Migration):
                     "sequence",
                     models.IntegerField(
                         default=10,
-                        help_text="Orden de despliegue del almacén (Odoo sequence).",
+                        help_text=(
+                            "Orden de despliegue del almacén (Odoo sequence)."
+                        ),
                     ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
-                        help_text="Empresa (Odoo company_id, readonly+required: se toma de las preferencias del usuario y no se cambia después).",
+                        help_text=(
+                            "Empresa (Odoo company_id, readonly+required: se"
+                            " toma de las preferencias del usuario y no se"
+                            " cambia después)."
+                        ),
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="warehouses",
                         to="base.rescompany",
@@ -1798,7 +2174,10 @@ class Migration(migrations.Migration):
                     "delivery_route",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ruta de entrega generada por delivery_steps (Odoo delivery_route_id).",
+                        help_text=(
+                            "Ruta de entrega generada por delivery_steps (Odoo"
+                            " delivery_route_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.RESTRICT,
                         related_name="warehouses_as_delivery",
@@ -1830,7 +2209,10 @@ class Migration(migrations.Migration):
                 (
                     "lot_stock",
                     models.ForeignKey(
-                        help_text="La estantería: ubicación interna donde vive la existencia (Odoo lot_stock_id).",
+                        help_text=(
+                            "La estantería: ubicación interna donde vive la"
+                            " existencia (Odoo lot_stock_id)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="warehouses_as_stock",
                         to="stock.stocklocation",
@@ -1840,7 +2222,10 @@ class Migration(migrations.Migration):
                     "mto_pull",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Regla MTO del almacén dentro de la ruta global «Replenish on Order» (Odoo mto_pull_id).",
+                        help_text=(
+                            "Regla MTO del almacén dentro de la ruta global"
+                            " «Replenish on Order» (Odoo mto_pull_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="warehouses_as_mto",
@@ -1906,7 +2291,10 @@ class Migration(migrations.Migration):
                     "reception_route",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ruta de recepción generada por reception_steps (Odoo reception_route_id).",
+                        help_text=(
+                            "Ruta de recepción generada por reception_steps"
+                            " (Odoo reception_route_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.RESTRICT,
                         related_name="warehouses_as_reception",
@@ -1927,7 +2315,10 @@ class Migration(migrations.Migration):
                 (
                     "view_location",
                     models.ForeignKey(
-                        help_text="Ubicación raíz de tipo vista que cuelga de este almacén (Odoo view_location_id).",
+                        help_text=(
+                            "Ubicación raíz de tipo vista que cuelga de este"
+                            " almacén (Odoo view_location_id)."
+                        ),
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="warehouses_as_view",
                         to="stock.stocklocation",
@@ -1937,7 +2328,11 @@ class Migration(migrations.Migration):
                     "wh_input_stock_loc",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación de entrada (Odoo wh_input_stock_loc_id); activa sólo si reception_steps != one_step.",
+                        help_text=(
+                            "Ubicación de entrada (Odoo"
+                            " wh_input_stock_loc_id); activa sólo si"
+                            " reception_steps != one_step."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="warehouses_as_input",
@@ -1948,7 +2343,11 @@ class Migration(migrations.Migration):
                     "wh_output_stock_loc",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación de salida (Odoo wh_output_stock_loc_id); activa sólo si delivery_steps != ship_only.",
+                        help_text=(
+                            "Ubicación de salida (Odoo"
+                            " wh_output_stock_loc_id); activa sólo si"
+                            " delivery_steps != ship_only."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="warehouses_as_output",
@@ -1959,7 +2358,11 @@ class Migration(migrations.Migration):
                     "wh_pack_stock_loc",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Zona de empaque (Odoo wh_pack_stock_loc_id); activa sólo con delivery_steps == pick_pack_ship.",
+                        help_text=(
+                            "Zona de empaque (Odoo wh_pack_stock_loc_id);"
+                            " activa sólo con delivery_steps =="
+                            " pick_pack_ship."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="warehouses_as_pack",
@@ -1970,7 +2373,11 @@ class Migration(migrations.Migration):
                     "wh_qc_stock_loc",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Ubicación de control de calidad (Odoo wh_qc_stock_loc_id); activa sólo con reception_steps == three_steps.",
+                        help_text=(
+                            "Ubicación de control de calidad (Odoo"
+                            " wh_qc_stock_loc_id); activa sólo con"
+                            " reception_steps == three_steps."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="warehouses_as_qc",
@@ -2026,7 +2433,9 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 blank=True,
                 db_table="stock_route_warehouse",
-                help_text="Almacenes que declaran esta ruta (Odoo warehouse_ids).",
+                help_text=(
+                    "Almacenes que declaran esta ruta (Odoo warehouse_ids)."
+                ),
                 related_name="route_ids",
                 to="stock.stockwarehouse",
             ),
@@ -2036,7 +2445,9 @@ class Migration(migrations.Migration):
             name="warehouse",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Almacén dueño del tipo (Odoo warehouse_id, almacenado).",
+                help_text=(
+                    "Almacén dueño del tipo (Odoo warehouse_id, almacenado)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="picking_type_ids",
@@ -2048,7 +2459,10 @@ class Migration(migrations.Migration):
             name="warehouse",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Almacén cuya vista contiene esta ubicación (Odoo warehouse_id, almacenado).",
+                help_text=(
+                    "Almacén cuya vista contiene esta ubicación (Odoo"
+                    " warehouse_id, almacenado)."
+                ),
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="descendant_location_ids",
@@ -2058,7 +2472,8 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="stocklocation",
             index=models.Index(
-                fields=["parent_path", "id"], name="stock_location_parent_path_id"
+                fields=["parent_path", "id"],
+                name="stock_location_parent_path_id",
             ),
         ),
         migrations.AddConstraint(
@@ -2066,7 +2481,10 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("barcode", "company"),
                 name="stock_location_barcode_company_uniq",
-                violation_error_message="El código de barras de una ubicación debe ser único por empresa.",
+                violation_error_message=(
+                    "El código de barras de una ubicación debe ser único por"
+                    " empresa."
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -2074,7 +2492,9 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(("cyclic_inventory_frequency__gte", 0)),
                 name="stock_location_inventory_freq_nonneg",
-                violation_error_message="La frecuencia de inventario (días) no puede ser negativa.",
+                violation_error_message=(
+                    "La frecuencia de inventario (días) no puede ser negativa."
+                ),
             ),
         ),
         migrations.AddField(
@@ -2102,7 +2522,10 @@ class Migration(migrations.Migration):
             name="resupply_wh_ids",
             field=models.ManyToManyField(
                 blank=True,
-                help_text="Almacenes desde los que éste se reabastece; marcar uno crea su ruta inter-almacén (Odoo resupply_wh_ids).",
+                help_text=(
+                    "Almacenes desde los que éste se reabastece; marcar uno"
+                    " crea su ruta inter-almacén (Odoo resupply_wh_ids)."
+                ),
                 related_name="+",
                 through="stock.StockWarehouseResupply",
                 through_fields=("supplied_wh", "supplier_wh"),
@@ -2122,7 +2545,9 @@ class Migration(migrations.Migration):
                 condition=models.Q(
                     models.Q(
                         ("state__isnull", True),
-                        models.Q(("state__in", ("done", "cancel")), _negated=True),
+                        models.Q(
+                            ("state__in", ("done", "cancel")), _negated=True
+                        ),
                         _connector="OR",
                     ),
                     ("quantity_product_uom__gt", 0),
@@ -2152,7 +2577,10 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("barcode",),
                 name="stock_package_type_barcode_uniq",
-                violation_error_message="Un código de barras sólo puede asignarse a un tipo de paquete.",
+                violation_error_message=(
+                    "Un código de barras sólo puede asignarse a un tipo de"
+                    " paquete."
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -2200,7 +2628,9 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(("quantity__gt", 0)),
                 name="stock_storage_capacity_positive_quantity",
-                violation_error_message="La cantidad debe ser un número positivo.",
+                violation_error_message=(
+                    "La cantidad debe ser un número positivo."
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -2208,7 +2638,9 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("product", "storage_category"),
                 name="stock_storage_capacity_unique_product",
-                violation_error_message="Varias reglas de capacidad para un producto.",
+                violation_error_message=(
+                    "Varias reglas de capacidad para un producto."
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -2216,13 +2648,16 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("package_type", "storage_category"),
                 name="stock_storage_capacity_unique_package_type",
-                violation_error_message="Varias reglas de capacidad para un tipo de paquete.",
+                violation_error_message=(
+                    "Varias reglas de capacidad para un tipo de paquete."
+                ),
             ),
         ),
         migrations.AddConstraint(
             model_name="stockwarehouseresupply",
             constraint=models.UniqueConstraint(
-                fields=("supplied_wh", "supplier_wh"), name="unique_stock_wh_resupply"
+                fields=("supplied_wh", "supplier_wh"),
+                name="unique_stock_wh_resupply",
             ),
         ),
         migrations.AddConstraint(
@@ -2230,7 +2665,9 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("name", "company"),
                 name="warehouse_name_uniq",
-                violation_error_message="The name of the warehouse must be unique per company!",
+                violation_error_message=(
+                    "The name of the warehouse must be unique per company!"
+                ),
             ),
         ),
         migrations.AddConstraint(
@@ -2238,7 +2675,10 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 fields=("code", "company"),
                 name="warehouse_code_uniq",
-                violation_error_message="The short name of the warehouse must be unique per company!",
+                violation_error_message=(
+                    "The short name of the warehouse must be unique per"
+                    " company!"
+                ),
             ),
         ),
     ]

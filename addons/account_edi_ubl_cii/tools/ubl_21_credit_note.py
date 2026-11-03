@@ -1,6 +1,7 @@
 r"""Estructura del documento ``CreditNote`` de UBL 2.1, con sus nodos en orden.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/tools/ubl_21_credit_note.py``
+Adaptación de ``odoo19c:
+addons/account_edi_ubl_cii/tools/ubl_21_credit_note.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 71 líneas) — atribución y aviso de licencia
 preservados (DEC-KX-03).
 
@@ -8,6 +9,7 @@ preservados (DEC-KX-03).
 única que ``ubl_21_invoice.py``: la ruta del ``import`` (``odoo.addons.…`` →
 import relativo del mismo paquete).
 """
+
 from . import ubl_21_common as cac
 from . import ubl_21_extensions as ext
 

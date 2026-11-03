@@ -4,8 +4,10 @@
     'name': 'Portal',
     'version': '1.0',
     'category': 'Hidden/Tools',
-    'summary': 'Separación backoffice / cliente: compartición de documentos '
-               'por token y campos editables del cliente',
+    'summary': (
+        'Separación backoffice / cliente: compartición de documentos '
+        'por token y campos editables del cliente'
+    ),
     # La referencia declara ['web', 'html_editor', 'http_routing', 'mail',
     # 'auth_signup']. `web`/`html_editor`/`http_routing` son la capa QWeb/
     # frontend de Odoo (páginas del portal, pager, chatter) que este árbol NO

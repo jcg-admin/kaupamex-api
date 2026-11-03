@@ -21,6 +21,7 @@ El ``append`` corre al importar el paquete: es el momento más temprano
 disponible, porque Django resuelve ``addons.<x>`` mientras procesa
 ``INSTALLED_APPS``, antes de que se ejecute ningún punto de entrada nuestro.
 """
+
 from modules.module import initialize_sys_path
 
 initialize_sys_path(__path__)

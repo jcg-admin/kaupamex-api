@@ -50,6 +50,7 @@ solo ``full_clean()`` la rechaza. Por eso el respaldo a GMT de
 ``tests/integration/base/test_res_partner_labels.py`` tambien. Lo que se
 corrige alli es el docstring, que anunciaba que #107 retiraria ese caso.
 """
+
 import pytest
 from django.core.exceptions import ValidationError
 
@@ -63,8 +64,10 @@ class TestTimezoneVocabulary:
 
     def test_every_entry_is_a_pair_of_the_same_name(self):
         assert _tzs, 'la poblacion de zonas no puede estar vacia'
-        assert all(isinstance(row, tuple) and len(row) == 2 and row[0] == row[1]
-                   for row in _tzs)
+        assert all(
+            isinstance(row, tuple) and len(row) == 2 and row[0] == row[1]
+            for row in _tzs
+        )
 
     def test_posix_etc_entries_come_last(self):
         """El comentario de la fuente es el contrato, no una nota."""
@@ -104,14 +107,18 @@ class TestTimezoneVocabulary:
 
     def test_the_field_declares_that_vocabulary(self):
         field = ResPartner._meta.get_field('tz')
-        assert [name for name, _ in field.choices] == [name for name, _ in _tzs]
+        assert [name for name, _ in field.choices] == [
+            name for name, _ in _tzs
+        ]
 
 
 class TestTimezoneValidation:
     """La Selection acota lo que ``full_clean()`` admite."""
 
     def test_a_known_timezone_passes(self, db):
-        who = ResPartner(name='Ana', tz='America/Mexico_City', is_company=False)
+        who = ResPartner(
+            name='Ana', tz='America/Mexico_City', is_company=False
+        )
         who.full_clean(exclude=['company'])
 
     def test_an_unknown_timezone_is_rejected(self, db):
@@ -122,6 +129,8 @@ class TestTimezoneValidation:
         assert 'tz' in failure.value.error_dict
 
     def test_empty_stays_valid(self, db):
-        """La fuente admite el campo sin fijar: su ``default`` puede ser None."""
+        """
+        La fuente admite el campo sin fijar: su ``default`` puede ser None.
+        """
         who = ResPartner(name='Ana', tz='', is_company=False)
         who.full_clean(exclude=['company'])

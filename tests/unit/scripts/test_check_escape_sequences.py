@@ -11,6 +11,7 @@ Los dos casos reales son distintos entre sí a propósito, y eso importa:
 comando ``grep`` citado. Los dos se arreglan con el prefijo ``r`` en la cadena
 y ninguno duplicando la barra.
 """
+
 import subprocess
 import sys
 
@@ -54,7 +55,9 @@ def test_the_real_offenders_are_caught(tmp_path, content, expected):
     findings = find_invalid_escapes(path)
     assert len(findings) == 1
     lineno, message = findings[0]
-    assert lineno == 1, 'el docstring de módulo se reporta en su línea de apertura'
+    assert (
+        lineno == 1
+    ), 'el docstring de módulo se reporta en su línea de apertura'
     assert expected in message
 
 
@@ -77,7 +80,9 @@ def test_a_legitimate_escape_is_not_flagged(tmp_path):
 
 
 def test_a_broken_file_is_left_to_the_syntax_error(tmp_path):
-    """Un archivo que no compila devuelve vacío — no se apila ruido sobre ruido."""
+    """
+    Un archivo que no compila devuelve vacío — no se apila ruido sobre ruido.
+    """
     path = _write(tmp_path, 'roto.py', 'def f(\n')
     assert find_invalid_escapes(path) == []
 
@@ -105,7 +110,8 @@ def test_the_whole_tree_is_clean():
     """
     process = subprocess.run(
         [sys.executable, 'scripts/check_escape_sequences.py'],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert process.returncode == 0, process.stderr
     assert 'archivos del árbol' in process.stdout

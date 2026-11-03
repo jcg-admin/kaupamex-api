@@ -1,0 +1,86 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ALTER ROLE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Begin fresh disposable default schema for bounded verification only
+Fresh default schema ready; begin owned-resource controls
+Real resource safety controls PASS; begin five isolation cases
+============================= test session starts ==============================
+platform linux -- Python 3.12.14, pytest-7.4.4, pluggy-1.6.0 -- /workspace/kaupamex-api/.venv/bin/python
+cachedir: .pytest_cache
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /workspace/kaupamex-api
+configfile: pytest.ini
+plugins: Faker-40.20.0, django-4.7.0, xdist-3.6.1
+collecting ... collected 5 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default PASSED
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base PASSED
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope PASSED
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base PASSED
+tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections PASSED pg_reload_conf 
+----------------
+ t
+(1 row)
+
+
+
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/isolation-functional.junit.xml -
+================== 5 passed, 2 warnings in 915.37s (0:15:15) ===================
+{
+  "task": "TASK-API-0383",
+  "source_revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+  "acceptance": "not_verified",
+  "scope": "Fixture qualification and data isolation, not whole authentication or loader acceptance",
+  "ci_make_exit": 2,
+  "ci_reused_evidence": "isolation-ci.junit.xml; isolation-ci-and-functional.log; no repeated CI run",
+  "preexisting_database_and_sentinel_preserved": true,
+  "partial_schema_failure_cleaned_own_database": true,
+  "extension_failure_retains_owned_database_for_cleanup": true,
+  "isolation_pytest_exit": 0,
+  "qualification_limit": "No root conftest seed replay in bounded run; native provisioner applies all migrations. Full CI measured separately above.",
+  "aliases_after_teardown": []
+}
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_isolation_qualification.py", line 125, in <module>
+    with connections['default'].cursor() as cursor:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/utils/asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/base.py", line 320, in cursor
+    return self._cursor()
+           ^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/base.py", line 296, in _cursor
+    self.ensure_connection()
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/pytest_django/plugin.py", line 798, in _blocking_wrapper
+    raise RuntimeError(
+RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

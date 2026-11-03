@@ -27,6 +27,7 @@ llamadas activa). Aquí el equivalente es un ``set`` en un
 ``_process`` y se limpia al salir; un segundo intento del mismo par en la
 misma cadena de llamadas se salta.
 """
+
 import threading
 
 from django.db.models.signals import post_save, pre_delete, pre_save
@@ -75,9 +76,11 @@ def _skip(sender):
     ``MigrationRecorder`` inserta en ``django_migrations`` es un ``save()``
     normal (``recorder.py:102``) y disparaba la consulta — es el traceback
     medido del ``ProgrammingError``. Su ``app_label`` es ``migrations``."""
-    return (sender in (BaseAutomation, BaseAutomationAction)
-            or sender.__module__ == '__fake__'
-            or sender._meta.app_label == 'migrations')
+    return (
+        sender in (BaseAutomation, BaseAutomationAction)
+        or sender.__module__ == '__fake__'
+        or sender._meta.app_label == 'migrations'
+    )
 
 
 @receiver(pre_save, dispatch_uid='base_automation.capture_old_values')
@@ -89,7 +92,8 @@ def _capture_old_values(sender, instance, **kwargs):
         instance._base_automation_old_values = None
         return
     instance._base_automation_old_values = (
-        sender.objects.filter(pk=instance.pk).values().first())
+        sender.objects.filter(pk=instance.pk).values().first()
+    )
 
 
 @receiver(post_save, dispatch_uid='base_automation.dispatch_create_write')
@@ -114,16 +118,19 @@ def _dispatch_create_write(sender, instance, created, **kwargs):
         try:
             if created:
                 pks, domain_post = automation._filter_post_export_domain(
-                    sender, [instance.pk])
+                    sender, [instance.pk]
+                )
             else:
                 pre_pks = automation._filter_pre(sender, [instance.pk])
                 if not pre_pks:
                     continue
                 pks, domain_post = automation._filter_post_export_domain(
-                    sender, pre_pks)
+                    sender, pre_pks
+                )
             if pks:
                 automation._process(
-                    sender, pks, domain_post=domain_post, old_values=old_values)
+                    sender, pks, domain_post=domain_post, old_values=old_values
+                )
         finally:
             processing.discard(key)
 

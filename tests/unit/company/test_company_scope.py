@@ -12,6 +12,7 @@ Este slice entrega el **núcleo** (contextvar + manager) con
 sin migración). El rollout a los modelos de dominio + el middleware
 subdominio→company (UC-PLT-06) + la system-company son la iniciativa L3 mayor.
 """
+
 import pytest
 
 from addons.authz.models import Module
@@ -50,7 +51,8 @@ class TestRuleScopedManager:
     def _sub(self, company, code):
         m = Module.objects.create(code=code, name=code)
         return CompanyModuleSubscription.objects.create(
-            company=company, module=m,
+            company=company,
+            module=m,
             status=CompanyModuleSubscription.Status.ACTIVE,
         )
 
@@ -69,7 +71,9 @@ class TestRuleScopedManager:
         self._sub(acme, "catalogue")
         # no company set -> empty (deny by default), NOT all rows
         assert get_current_company() is None
-        assert CompanyModuleSubscription.scoped.for_current_company().count() == 0
+        assert (
+            CompanyModuleSubscription.scoped.for_current_company().count() == 0
+        )
 
     def test_default_manager_is_unscoped(self):
         # the default manager still sees everything (L0 cross-company access)

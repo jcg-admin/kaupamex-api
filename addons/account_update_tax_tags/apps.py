@@ -26,6 +26,7 @@ registrar ``addons.account_update_tax_tags`` en ``INSTALLED_APPS``
 registro Django no descubre esta app ni corre su migración inicial. Mismo
 límite ya declarado por ``account_debit_note/apps.py``.
 """
+
 from django.apps import AppConfig
 
 

@@ -1,0 +1,107 @@
+{
+  "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskList filtered existing titles/citations",
+  "matches": [
+    {
+      "task_id": "181",
+      "citation_id": "TASK-GEN-0433",
+      "subject": "Retirar el compilador portado del camino del descriptor (pieza 1 de 8)",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "194",
+      "citation_id": "TASK-GEN-0446",
+      "subject": "Cablear resolve_key al call del descriptor desde ir_actions_report",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "196",
+      "citation_id": "TASK-GEN-0448",
+      "subject": "Escribir los serializadores del descriptor a text y a html",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "198",
+      "citation_id": "TASK-GEN-0450",
+      "subject": "Acotar el ciclo entre descriptores que se llaman mutuamente",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "202",
+      "citation_id": "TASK-GEN-0454",
+      "subject": "Hacer que el helper de libharu consuma los ajustes de papel del descriptor",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "203",
+      "citation_id": "TASK-GEN-0455",
+      "subject": "Dibujar el raster de _run_wkhtmltoimage desde el descriptor, con Pillow",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "306",
+      "citation_id": "TASK-GEN-0558",
+      "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "307",
+      "citation_id": "TASK-GEN-0559",
+      "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "324",
+      "citation_id": "TASK-GEN-0576",
+      "subject": "Portar los 13 metodos ausentes de Environment y los 2 de Transaction",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "327",
+      "citation_id": "TASK-GEN-0579",
+      "subject": "Construir BaseModel.new: el registro virtual con origin, que la rama dict de",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ]
+}

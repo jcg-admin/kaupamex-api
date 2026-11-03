@@ -77,7 +77,7 @@ class ResUsersSettingsEmbeddedAction(models.Model):
     """
 
     user_setting_id = fields.Many2one(
-        ResUsersSettings, on_delete=models.CASCADE, db_index=True,
+        ResUsersSettings, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='embedded_actions_config_ids',
         verbose_name='Preferencias del usuario',
         help_text=(
@@ -87,7 +87,7 @@ class ResUsersSettingsEmbeddedAction(models.Model):
         db_column='user_setting_id',
     )
     action_id = fields.Many2one(
-        IrActionsActWindow, on_delete=models.CASCADE, db_index=True,
+        IrActionsActWindow, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='embedded_user_settings', verbose_name='Acción',
         help_text=(
             'Acción embebida a la que aplica el ajuste (Odoo action_id, '

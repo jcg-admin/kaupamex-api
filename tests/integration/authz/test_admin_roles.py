@@ -10,15 +10,22 @@ Contrato: read-only, gateado por ``permissions.full`` (misma capacidad que
 la asignación). Devuelve ``[{id, code, name, capabilities:[{code, level}]}]``
 (DEC-11: sustantivo + nivel).
 """
+
 from datetime import timedelta
 
 from addons.authz.models import (
-    AccessLevel, Capability, Module, Role, RoleAssignment,
+    AccessLevel,
+    Capability,
+    Module,
+    Role,
+    RoleAssignment,
     RoleCapability,
 )
 from addons.authz_reauth.models import ReauthSession
 from addons.authz.services import (
-    SUPERADMIN_ROLE_CODE, invalidate_capabilities, is_superadmin,
+    SUPERADMIN_ROLE_CODE,
+    invalidate_capabilities,
+    is_superadmin,
 )
 
 import pytest
@@ -43,15 +50,21 @@ def client():
 
 
 def _auth(client, user):
-    """Autentica y siembra una sesión reautenticada (DEC-12): editar permisos es
+    """
+    Autentica y siembra una sesión reautenticada (DEC-12): editar permisos es
     una mutación **sensible** (``permissions.full``) que exige re-auth fresca.
-    ``force_authenticate`` no crea sesión Django (``session_key=''``), así que la
+    ``force_authenticate`` no crea sesión Django (``session_key=''``), así que
+    la
     ventana se siembra para ese mismo key."""
     client.force_authenticate(user)
     ReauthSession.objects.update_or_create(
-        user_id=user.pk, session_key='',
-        defaults={'started_at': timezone.now(),
-                  'expires_at': timezone.now() + timedelta(seconds=900)})
+        user_id=user.pk,
+        session_key='',
+        defaults={
+            'started_at': timezone.now(),
+            'expires_at': timezone.now() + timedelta(seconds=900),
+        },
+    )
 
 
 def _user(email):
@@ -60,11 +73,14 @@ def _user(email):
 
 def _grant(role, code, level=AccessLevel.FULL):
     module, _ = Module.objects.get_or_create(
-        code=code.split('.', 1)[0], defaults={'name': code})
+        code=code.split('.', 1)[0], defaults={'name': code}
+    )
     cap, _ = Capability.objects.get_or_create(
-        code=code, defaults={'module': module, 'name': code})
+        code=code, defaults={'module': module, 'name': code}
+    )
     RoleCapability.objects.update_or_create(
-        role=role, capability=cap, defaults={'level': level})
+        role=role, capability=cap, defaults={'level': level}
+    )
     return cap
 
 
@@ -85,9 +101,10 @@ def test_forbidden_without_permissions_full(seeded, client):
     # Un usuario con otra capacidad (no permissions@FULL) recibe 403.
     u = _user('sup@e.com')
     RoleAssignment.objects.create(
-        user=u, role=_role_with_levels([('support', AccessLevel.FULL)]))
+        user=u, role=_role_with_levels([('support', AccessLevel.FULL)])
+    )
     invalidate_capabilities(u.id)
-    _auth(client,u)
+    _auth(client, u)
     assert client.get('/api/v2/admin/roles/').status_code == 403
 
 
@@ -95,9 +112,10 @@ def test_forbidden_without_permissions_full(seeded, client):
 def test_lists_catalog_for_permissions_manager(seeded, client):
     u = _user('mgr@e.com')
     RoleAssignment.objects.create(
-        user=u, role=_role_with_levels([('permissions', AccessLevel.FULL)]))
+        user=u, role=_role_with_levels([('permissions', AccessLevel.FULL)])
+    )
     invalidate_capabilities(u.id)
-    _auth(client,u)
+    _auth(client, u)
 
     resp = client.get('/api/v2/admin/roles/')
     assert resp.status_code == 200
@@ -123,9 +141,10 @@ def test_lists_catalog_for_permissions_manager(seeded, client):
 def test_superadmin_sees_catalog(seeded, client):
     u = _user('boss@e.com')
     RoleAssignment.objects.create(
-        user=u, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
+        user=u, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE)
+    )
     invalidate_capabilities(u.id)
-    _auth(client,u)
+    _auth(client, u)
     resp = client.get('/api/v2/admin/roles/')
     assert resp.status_code == 200
     codes = [r['code'] for r in resp.json()]
@@ -147,14 +166,21 @@ USERS_URL = '/api/v2/admin/users/'
 def test_manager_cannot_grant_superadmin(seeded, client):
     mgr = _user('mgr@e.com')
     RoleAssignment.objects.create(
-        user=mgr, role=_role_with_levels([('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]))
+        user=mgr,
+        role=_role_with_levels(
+            [('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]
+        ),
+    )
     invalidate_capabilities(mgr.id)
-    _auth(client,mgr)
+    _auth(client, mgr)
 
     target = _user('victim@e.com')
     superadmin_id = Role.objects.get(code=SUPERADMIN_ROLE_CODE).pk
-    resp = client.post(f'{USERS_URL}{target.pk}/permissions/',
-                       {'roles': [superadmin_id]}, format='json')
+    resp = client.post(
+        f'{USERS_URL}{target.pk}/permissions/',
+        {'roles': [superadmin_id]},
+        format='json',
+    )
     assert resp.status_code == 403
     assert resp.json()['codigo_error'] == 'CANNOT_GRANT_SUPERADMIN'
     # No se materializó la asignación.
@@ -165,17 +191,23 @@ def test_manager_cannot_grant_superadmin(seeded, client):
 def test_manager_cannot_revoke_superadmin(seeded, client):
     mgr = _user('mgr@e.com')
     RoleAssignment.objects.create(
-        user=mgr, role=_role_with_levels([('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]))
+        user=mgr,
+        role=_role_with_levels(
+            [('permissions', AccessLevel.FULL), ('users', AccessLevel.VIEW)]
+        ),
+    )
     invalidate_capabilities(mgr.id)
-    _auth(client,mgr)
+    _auth(client, mgr)
 
     boss = _user('boss@e.com')
     RoleAssignment.objects.create(
-        user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
+        user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE)
+    )
     invalidate_capabilities(boss.id)
     # El delegado intenta dejar a boss sin superadmin (roles vacíos).
-    resp = client.post(f'{USERS_URL}{boss.pk}/permissions/',
-                       {'roles': []}, format='json')
+    resp = client.post(
+        f'{USERS_URL}{boss.pk}/permissions/', {'roles': []}, format='json'
+    )
     assert resp.status_code == 403
     assert resp.json()['codigo_error'] == 'CANNOT_GRANT_SUPERADMIN'
     assert is_superadmin(boss) is True
@@ -185,14 +217,18 @@ def test_manager_cannot_revoke_superadmin(seeded, client):
 def test_superadmin_can_grant_superadmin(seeded, client):
     boss = _user('boss@e.com')
     RoleAssignment.objects.create(
-        user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE))
+        user=boss, role=Role.objects.get(code=SUPERADMIN_ROLE_CODE)
+    )
     invalidate_capabilities(boss.id)
-    _auth(client,boss)
+    _auth(client, boss)
 
     target = _user('promoted@e.com')
     superadmin_id = Role.objects.get(code=SUPERADMIN_ROLE_CODE).pk
-    resp = client.post(f'{USERS_URL}{target.pk}/permissions/',
-                       {'roles': [superadmin_id]}, format='json')
+    resp = client.post(
+        f'{USERS_URL}{target.pk}/permissions/',
+        {'roles': [superadmin_id]},
+        format='json',
+    )
     assert resp.status_code == 200
     invalidate_capabilities(target.id)
     assert is_superadmin(target) is True

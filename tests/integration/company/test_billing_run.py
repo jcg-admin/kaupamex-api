@@ -8,6 +8,7 @@ saca la company del ∩ L1 sin tocar el resolver, DEC-T4/T6).
 
 Los montos son datos de prueba arbitrarios (no se inventan precios de negocio).
 """
+
 from decimal import Decimal
 
 import pytest
@@ -28,9 +29,11 @@ pytestmark = pytest.mark.django_db
 def _priced_active_sub(company, code, price):
     m = Module.objects.create(code=code, name=code)
     sub = CompanyModuleSubscription(
-        company=company, module=m,
+        company=company,
+        module=m,
         status=CompanyModuleSubscription.Status.ACTIVE,
-        billing_cycle='monthly', price=Decimal(price),
+        billing_cycle='monthly',
+        price=Decimal(price),
     )
     sub.save()
     return sub
@@ -49,14 +52,20 @@ def test_amount_due_excludes_trial_and_unpriced():
     # Trial: no se cobra todavía.
     mt = Module.objects.create(code='orders', name='orders')
     CompanyModuleSubscription.objects.create(
-        company=c, module=mt, status=CompanyModuleSubscription.Status.TRIAL,
-        billing_cycle='monthly', price=Decimal('50.00'),
+        company=c,
+        module=mt,
+        status=CompanyModuleSubscription.Status.TRIAL,
+        billing_cycle='monthly',
+        price=Decimal('50.00'),
     )
     # Active sin precio (free / sin tarifa sembrada): no suma.
     mf = Module.objects.create(code='reports', name='reports')
     CompanyModuleSubscription.objects.create(
-        company=c, module=mf, status=CompanyModuleSubscription.Status.ACTIVE,
-        billing_cycle='monthly', price=None,
+        company=c,
+        module=mf,
+        status=CompanyModuleSubscription.Status.ACTIVE,
+        billing_cycle='monthly',
+        price=None,
     )
     assert billing.amount_due(c) == Decimal('199.00')
 
@@ -93,7 +102,9 @@ def test_run_billing_suspends_on_charge_failure():
 def test_run_billing_skips_companies_with_nothing_due():
     c = ResCompany.objects.create(code='empty', name='Empty')
     charged = []
-    results = billing.run_billing(lambda company, amount: charged.append(company) or True)
+    results = billing.run_billing(
+        lambda company, amount: charged.append(company) or True
+    )
     assert results['empty'] == 'skipped'
     assert charged == []
 
@@ -102,14 +113,20 @@ def test_run_billing_excludes_system_company():
     ResCompany.objects.create(code='acme', name='Acme')
     ResCompany.get_system()  # is_system=True — plataforma, no se autocobra
     seen = []
-    billing.run_billing(lambda company, amount: seen.append(company.code) or True)
+    billing.run_billing(
+        lambda company, amount: seen.append(company.code) or True
+    )
     codes = set(
-        ResCompany.objects.exclude(is_system=True).values_list('code', flat=True)
+        ResCompany.objects.exclude(is_system=True).values_list(
+            'code', flat=True
+        )
     )
     assert 'kaupamex_global' not in codes
 
 
-# --- Persistencia: run_billing ahora crea run + factura (H-API-02, slice 2) ---
+# --- Persistencia: run_billing ahora crea run + factura (H-API-02,
+# slice 2) ---
+
 
 def test_run_billing_persists_run_and_paid_invoice():
     c = ResCompany.objects.create(code='acme', name='Acme')
@@ -124,7 +141,7 @@ def test_run_billing_persists_run_and_paid_invoice():
 
     inv = SubscriptionInvoice.objects.get(company=c, period='2026-08')
     assert inv.status == SubscriptionInvoice.Status.PAID
-    assert inv.amount == Decimal('199.00')   # precio congelado
+    assert inv.amount == Decimal('199.00')  # precio congelado
     assert inv.paid_at is not None
     assert inv.run_id == run.id
 
@@ -142,10 +159,15 @@ def test_run_billing_idempotent_does_not_recharge_paid_invoice():
     billing.run_billing(charge, period='2026-08')
     billing.run_billing(charge, period='2026-08')
 
-    assert calls == [('acme', Decimal('199.00'))]       # cobrada UNA vez
-    assert SubscriptionInvoice.objects.filter(
-        company=c, period='2026-08',
-    ).count() == 1                                        # sin duplicar (EX-04)
+    assert calls == [('acme', Decimal('199.00'))]  # cobrada UNA vez
+    assert (
+        SubscriptionInvoice.objects.filter(
+            company=c,
+            period='2026-08',
+            # sin duplicar (EX-04)
+        ).count()
+        == 1
+    )
 
 
 def test_run_billing_failed_charge_marks_invoice_failed_and_suspends():
@@ -170,5 +192,6 @@ def test_run_billing_period_defaults_to_current_month():
     billing.run_billing(lambda company, amount: True)
     assert SubscriptionBillingRun.objects.filter(period=expected).exists()
     assert SubscriptionInvoice.objects.filter(
-        company=c, period=expected,
+        company=c,
+        period=expected,
     ).exists()

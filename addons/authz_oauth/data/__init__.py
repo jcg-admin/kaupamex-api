@@ -1,4 +1,5 @@
-"""Datos semilla del addon — equivalente nativo de ``data/auth_oauth_data.xml``.
+"""
+Datos semilla del addon — equivalente nativo de ``data/auth_oauth_data.xml``.
 
 La referencia siembra 3 proveedores (``noupdate="1"``): Google y Facebook
 **deshabilitados** (``enabled`` sin fijar → False) y "Odoo.com Accounts"
@@ -10,6 +11,7 @@ También el config-param del transporte del token (``authorization_header``,
 ``res_users.py:48``), sembrado vacío = query-param, como el default efectivo
 de la referencia (``get_param`` sin default → falsy).
 """
+
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.authz_oauth.models.oauth_provider import OauthProvider
@@ -49,6 +51,9 @@ def seed(using=DEFAULT_DB_ALIAS):
         if not SystemParameter.objects.using(using).filter(key=key).exists():
             SystemParameter.objects.using(using).create(key=key, value=value)
     for spec in OAUTH_PROVIDERS:
-        if not OauthProvider.objects.using(using).filter(
-                name=spec['name']).exists():
+        if (
+            not OauthProvider.objects.using(using)
+            .filter(name=spec['name'])
+            .exists()
+        ):
             OauthProvider.objects.using(using).create(**spec)

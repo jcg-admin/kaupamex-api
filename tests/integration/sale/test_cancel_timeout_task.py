@@ -1,6 +1,7 @@
 """Tests — vigencia de la cotización (tarea #256).
 
-Este archivo probaba ``cancel_timeout_orders``/``ORDER_PAYMENT_TIMEOUT_MINUTES``
+Este archivo probaba
+``cancel_timeout_orders``/``ORDER_PAYMENT_TIMEOUT_MINUTES``
 (UC-SYS-01), retirados con el addon ``orders`` (SOL-098, ``api@77bd1f0``) sin
 redomiciliar — 0 hits en ``src/``. El ``pytest.skip`` de módulo documentaba
 esa ausencia como trabajo abierto; se retira aquí, no porque el mecanismo de
@@ -14,6 +15,7 @@ pase: ``SaleOrder.is_expired`` (Odoo ``sale/models/sale_order.py:305,
 archivo desde este pase; su ausencia queda registrada en el mapa de rotura
 de la demolición que el docstring anterior citaba.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -36,14 +38,17 @@ class TestSaleOrderIsExpired:
     def test_is_expired_true_con_validity_date_pasada(self, company):
         ayer = timezone.now().date() - timedelta(days=1)
         order = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, company=company, validity_date=ayer,
+            state=SaleOrder.STATE_DRAFT,
+            company=company,
+            validity_date=ayer,
         )
         assert order.is_expired is True
 
     def test_is_expired_false_con_validity_date_futura(self, company):
         manana = timezone.now().date() + timedelta(days=1)
         order = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, company=company,
+            state=SaleOrder.STATE_DRAFT,
+            company=company,
             validity_date=manana,
         )
         assert order.is_expired is False
@@ -52,19 +57,25 @@ class TestSaleOrderIsExpired:
         # quotation_validity_days=0 desactiva el vencimiento automático
         # (Odoo, res_company.py:22-27): la empresa no fija validity_date.
         company_sin_vencimiento = ResCompany.objects.create(
-            code='acme-256-sin-vencimiento', name='ACME 256 sin vencimiento',
+            code='acme-256-sin-vencimiento',
+            name='ACME 256 sin vencimiento',
             quotation_validity_days=0,
         )
         order = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, company=company_sin_vencimiento,
+            state=SaleOrder.STATE_DRAFT,
+            company=company_sin_vencimiento,
         )
         # ``False``, no ``None``: es el vocabulario de la fuente para «sin
         # valor» en el camino de vuelta del campo
         # (``odoo19c: odoo/orm/fields.py:1053`` — ``return False if value is
         # None else value``, sin sobrecarga en ``fields_temporal.py``). La
         # COLUMNA sigue en ``NULL``; lo traduce ``convert_to_record`` al leer.
-        assert SaleOrder.objects.filter(pk=order.pk).values_list(
-            'validity_date', flat=True)[0] is None
+        assert (
+            SaleOrder.objects.filter(pk=order.pk).values_list(
+                'validity_date', flat=True
+            )[0]
+            is None
+        )
         assert order.validity_date is False
         assert order.is_expired is False
 
@@ -77,20 +88,25 @@ class TestSaleOrderIsExpired:
         # `fields.Date.context_today` de la referencia. Medir con UTC hacía que
         # el test fallara sólo en la ventana entre la medianoche UTC y la
         # local: 2026-08-14T00:20 UTC dio `2026-09-12` contra un esperado
-        # `2026-09-13`. El código no estaba mal; el instrumento medía otro huso.
+        # `2026-09-13`. El código no estaba mal; el instrumento medía
+        # otro huso.
         hoy = timezone.localdate()
         order = SaleOrder.objects.create(
-            state=SaleOrder.STATE_DRAFT, company=company,
+            state=SaleOrder.STATE_DRAFT,
+            company=company,
         )
         assert order.validity_date == hoy + timedelta(
-            days=company.quotation_validity_days)
+            days=company.quotation_validity_days
+        )
 
     def test_is_expired_false_cuando_orden_confirmada(self, company):
         # Odoo _compute_is_expired: sólo draft/sent vencen — una orden ya
         # confirmada (sale) no se marca vencida aunque la fecha haya pasado.
         ayer = timezone.now().date() - timedelta(days=1)
         order = SaleOrder.objects.create(
-            state=SaleOrder.STATE_SALE, company=company, validity_date=ayer,
+            state=SaleOrder.STATE_SALE,
+            company=company,
+            validity_date=ayer,
             amount_total=Decimal('0.00'),
         )
         assert order.is_expired is False

@@ -1,0 +1,20 @@
+{
+  "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+  "make_exit": 2,
+  "command": "make ci-verify",
+  "pytest_exit": 1,
+  "passed": 826,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 621.45,
+  "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+  "classification": "BASELINE_FAILURE: executable exact093cdfd7 focused comparison fails same Incoterm assertion",
+  "later_tests": "NOT_EVALUATED",
+  "acceptance": false,
+  "evidence": [
+    "computed-many2one-ci.log",
+    "computed-many2one-ci.junit.xml",
+    "incoterm-current.junit.xml",
+    "incoterm-baseline-093-executable.junit.xml"
+  ]
+}

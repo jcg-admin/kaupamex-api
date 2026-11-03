@@ -101,6 +101,7 @@ Divergencias declaradas
    con la bandera puesta no hace falta (los checks internos son consultas
    directas, no ``search`` re-verificado).
 """
+
 from contextlib import contextmanager
 from datetime import timedelta
 
@@ -112,7 +113,11 @@ from addons.hr.models import HrEmployee
 from addons.hr_work_entry.models.hr_work_entry_type import HrWorkEntryType
 from django.db import OperationalError
 from exceptions import UserError, ValidationError
-from orm.environments import get_context, get_current_companies, get_current_company
+from orm.environments import (
+    get_context,
+    get_current_companies,
+    get_current_company,
+)
 from tools.float_utils import float_compare
 from tools.translate import _
 
@@ -125,7 +130,8 @@ def _default_work_entry_type():
     """
     return (
         HrWorkEntryType.objects.order_by('pk')
-        .values_list('pk', flat=True).first()
+        .values_list('pk', flat=True)
+        .first()
     )
 
 
@@ -147,39 +153,63 @@ class HrWorkEntry(TimeStampedModel):
     name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
     employee = fields.Many2one(
-        'hr.HrEmployee', on_delete=models.CASCADE, db_index=True,
-        related_name='work_entries', verbose_name='Empleado',
-        help_text='Odoo employee_id (required, index). DIVERGENCIA: sin el '
-                  'domain= de compañía (filtro de formulario; lo aplica DRF).',
+        'hr.HrEmployee',
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='work_entries',
+        verbose_name='Empleado',
+        help_text=(
+            'Odoo employee_id (required, index). DIVERGENCIA: sin el '
+            'domain= de compañía (filtro de formulario; lo aplica DRF).'
+        ),
     )
     version = fields.Many2one(
-        'hr.HrVersion', on_delete=models.CASCADE, db_index=True,
-        related_name='work_entries', verbose_name='Employee Record',
+        'hr.HrVersion',
+        null=False, on_delete=models.CASCADE,
+        db_index=True,
+        related_name='work_entries',
+        verbose_name='Employee Record',
         help_text='Odoo version_id (required, index).',
     )
     date = fields.Date(help_text='Odoo date (required).')
     duration = fields.Float(default=8, verbose_name='Duration')
     work_entry_type = fields.Many2one(
-        HrWorkEntryType, on_delete=models.SET_NULL, null=True, blank=True,
-        db_index=True, related_name='work_entries',
+        HrWorkEntryType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='work_entries',
         default=_default_work_entry_type,
-        help_text='Odoo work_entry_type_id. El domain= dinámico es '
-                  '_get_work_entry_type_domain (D-7).',
+        help_text=(
+            'Odoo work_entry_type_id. El domain= dinámico es '
+            '_get_work_entry_type_domain (D-7).'
+        ),
     )
     state = fields.Selection(choices=STATES, default='draft')
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.PROTECT, null=True, blank=True,
-        related_name='work_entries', verbose_name='Company',
+        'base.ResCompany',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='work_entries',
+        verbose_name='Company',
         default=get_current_company,
-        help_text='Odoo company_id (required, readonly, default=env.company '
-                  '→ get_current_company). Nullable aquí porque el default de '
-                  'sesión puede ser None fuera de una petición; la mitad de '
-                  'alta de save() lo completa desde el empleado (≙ create).',
+        help_text=(
+            'Odoo company_id (required, readonly, default=env.company '
+            '→ get_current_company). Nullable aquí porque el default de '
+            'sesión puede ser None fuera de una petición; la mitad de '
+            'alta de save() lo completa desde el empleado (≙ create).'
+        ),
     )
     amount_rate = fields.Float(
-        null=True, blank=True, verbose_name='Pay rate',
-        help_text='Odoo amount_rate. None = sin fijar; la mitad de alta de '
-                  'save() lo toma del tipo (≙ create, :245-250).',
+        null=True,
+        blank=True,
+        verbose_name='Pay rate',
+        help_text=(
+            'Odoo amount_rate. None = sin fijar; la mitad de alta de '
+            'save() lo toma del tipo (≙ create, :245-250).'
+        ),
     )
 
     class Meta:
@@ -215,7 +245,11 @@ class HrWorkEntry(TimeStampedModel):
     def display_code(self):
         """≙ ``display_code`` (``related='work_entry_type_id.display_code'``,
         ``:35``)."""
-        return self.work_entry_type.display_code if self.work_entry_type_id else ''
+        return (
+            self.work_entry_type.display_code
+            if self.work_entry_type_id
+            else ''
+        )
 
     @property
     def code(self):
@@ -226,7 +260,11 @@ class HrWorkEntry(TimeStampedModel):
     def external_code(self):
         """≙ ``external_code`` (``related='work_entry_type_id.external_code'``,
         ``:37``)."""
-        return self.work_entry_type.external_code if self.work_entry_type_id else ''
+        return (
+            self.work_entry_type.external_code
+            if self.work_entry_type_id
+            else ''
+        )
 
     @property
     def color(self):
@@ -257,7 +295,9 @@ class HrWorkEntry(TimeStampedModel):
     def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:61-65``)."""
         duration = str(timedelta(hours=self.duration or 0)).split(':')
-        type_name = self.work_entry_type.name if self.work_entry_type_id else ''
+        type_name = (
+            self.work_entry_type.name if self.work_entry_type_id else ''
+        )
         return '%s - %sh%s' % (type_name, duration[0], duration[1])
 
     # ------------------------------------------------------------------
@@ -265,9 +305,13 @@ class HrWorkEntry(TimeStampedModel):
     # ------------------------------------------------------------------
 
     def _check_duration(self):
-        """≙ ``_check_duration`` (``@api.constrains('duration')``, ``:55-59``)."""
-        if (float_compare(self.duration or 0, 0, 3) <= 0
-                or float_compare(self.duration or 0, 24, 3) > 0):
+        """
+        ≙ ``_check_duration`` (``@api.constrains('duration')``, ``:55-59``).
+        """
+        if (
+            float_compare(self.duration or 0, 0, 3) <= 0
+            or float_compare(self.duration or 0, 24, 3) > 0
+        ):
             raise ValidationError(
                 'Duration must be positive and cannot exceed 24 hours.'
             )
@@ -287,10 +331,12 @@ class HrWorkEntry(TimeStampedModel):
         if not self.employee_id:
             self.name = _('Undefined')
         else:
-            type_name = (self.work_entry_type.name
-                         if self.work_entry_type_id else None)
+            type_name = (
+                self.work_entry_type.name if self.work_entry_type_id else None
+            )
             self.name = '%s: %s' % (
-                type_name or _('Undefined Type'), self.employee.name,
+                type_name or _('Undefined Type'),
+                self.employee.name,
             )
         return self.name
 
@@ -298,10 +344,16 @@ class HrWorkEntry(TimeStampedModel):
     def _set_current_contract(cls, vals):
         """≙ ``_set_current_contract`` (``:93-99``) — completa
         ``version_id`` en un dict de vals desde empleado + fecha."""
-        if not vals.get('version_id') and vals.get('date') and vals.get('employee_id'):
+        if (
+            not vals.get('version_id')
+            and vals.get('date')
+            and vals.get('employee_id')
+        ):
             employee = HrEmployee.objects.get(pk=vals['employee_id'])
             active_version = employee._get_version(vals['date'])
-            return dict(vals, version_id=active_version.pk if active_version else None)
+            return dict(
+                vals, version_id=active_version.pk if active_version else None
+            )
         return vals
 
     def action_split(self, vals):
@@ -311,7 +363,9 @@ class HrWorkEntry(TimeStampedModel):
         nueva con los valores de ésta, sobreescritos por ``vals``).
         """
         if self.duration < 1:
-            raise UserError("You can't split a work entry with less than 1 hour.")
+            raise UserError(
+                "You can't split a work entry with less than 1 hour."
+            )
         split_duration = vals['duration']
         if self.duration <= split_duration:
             raise UserError(
@@ -357,7 +411,9 @@ class HrWorkEntry(TimeStampedModel):
             pk__in=[e.pk for e in undefined_type],
         ).update(state='conflict')
         dates = [e.date for e in entries]
-        conflict = cls._mark_conflicting_work_entries(entries, min(dates), max(dates))
+        conflict = cls._mark_conflicting_work_entries(
+            entries, min(dates), max(dates)
+        )
         already_validated_days = cls._mark_already_validated_days(entries)
         return bool(undefined_type) or conflict or already_validated_days
 
@@ -374,7 +430,8 @@ class HrWorkEntry(TimeStampedModel):
             return False
         excessive_days = (
             cls.objects.filter(
-                active=True, date__range=(start, stop),
+                active=True,
+                date__range=(start, stop),
                 employee_id__in=employee_ids,
             )
             .values('employee_id', 'date')
@@ -383,7 +440,9 @@ class HrWorkEntry(TimeStampedModel):
         )
         day_filter = models.Q(pk__in=[])
         for day in excessive_days:
-            day_filter |= models.Q(employee_id=day['employee_id'], date=day['date'])
+            day_filter |= models.Q(
+                employee_id=day['employee_id'], date=day['date']
+            )
         conflict_qs = cls.objects.filter(active=True).filter(day_filter)
         conflict_ids = list(conflict_qs.values_list('pk', flat=True))
         cls.objects.filter(pk__in=conflict_ids).update(state='conflict')
@@ -393,8 +452,10 @@ class HrWorkEntry(TimeStampedModel):
     def _get_leaves_entries_outside_schedule(cls, entries):
         """≙ ``_get_leaves_entries_outside_schedule`` (``:181-182``)."""
         return [
-            e for e in entries
-            if e.work_entry_type_id and e.work_entry_type.is_leave
+            e
+            for e in entries
+            if e.work_entry_type_id
+            and e.work_entry_type.is_leave
             and e.state not in ('validated', 'cancelled')
         ]
 
@@ -406,13 +467,13 @@ class HrWorkEntry(TimeStampedModel):
         dates = [e.date for e in entries]
         validated = cls.objects.filter(
             state='validated',
-            date__lte=max(dates), date__gte=min(dates),
+            date__lte=max(dates),
+            date__gte=min(dates),
             company_id=get_current_company(),
         )
         validated_days = {(v.employee_id, v.date) for v in validated}
         invalid_ids = [
-            e.pk for e in entries
-            if (e.employee_id, e.date) in validated_days
+            e.pk for e in entries if (e.employee_id, e.date) in validated_days
         ]
         cls.objects.filter(pk__in=invalid_ids).update(state='conflict')
         return bool(invalid_ids)
@@ -421,13 +482,20 @@ class HrWorkEntry(TimeStampedModel):
     def _reset_conflicting_state(cls, entries):
         """≙ ``_reset_conflicting_state`` (``:289-290``)."""
         cls.objects.filter(
-            pk__in=[e.pk for e in entries], state='conflict',
+            pk__in=[e.pk for e in entries],
+            state='conflict',
         ).update(state='draft')
 
     @classmethod
     @contextmanager
-    def _error_checking(cls, start=None, stop=None, skip=False,
-                        employee_ids=False, entries=None):
+    def _error_checking(
+        cls,
+        start=None,
+        stop=None,
+        skip=False,
+        employee_ids=False,
+        entries=None,
+    ):
         """≙ ``_error_checking`` (``:292-328``) — context manager de
         verificación de conflictos sobre un rango de fechas.
 
@@ -437,16 +505,21 @@ class HrWorkEntry(TimeStampedModel):
         """
         work_entries = []
         try:
-            skip = skip or bool(get_context().get('hr_work_entry_no_check', False))
+            skip = skip or bool(
+                get_context().get('hr_work_entry_no_check', False)
+            )
             entry_dates = [e.date for e in (entries or [])]
             start = start or (min(entry_dates) if entry_dates else False)
             stop = stop or (max(entry_dates) if entry_dates else False)
             if not skip and start and stop:
                 in_range = cls.objects.filter(
-                    date__lte=stop, date__gte=start,
+                    date__lte=stop,
+                    date__gte=start,
                 ).exclude(state__in=('validated', 'cancelled'))
                 if employee_ids:
-                    in_range = in_range.filter(employee_id__in=list(employee_ids))
+                    in_range = in_range.filter(
+                        employee_id__in=list(employee_ids)
+                    )
                 work_entries = list(in_range)
                 cls._reset_conflicting_state(work_entries)
             yield
@@ -493,13 +566,17 @@ class HrWorkEntry(TimeStampedModel):
         """≙ ``_unlink_except_validated_work_entries`` (``@api.ondelete``,
         ``:279-282``)."""
         if self.state == 'validated':
-            raise UserError(_("This work entry is validated. You can't delete it."))
+            raise UserError(
+                _("This work entry is validated. You can't delete it.")
+            )
 
     def delete(self, *args, **kwargs):
         """≙ ``unlink`` (``:284-287``) + el guard ``@api.ondelete`` (D-5)."""
         self._unlink_except_validated_work_entries()
         employee_ids = [self.employee_id] if self.employee_id else []
-        with type(self)._error_checking(entries=[self], employee_ids=employee_ids):
+        with type(self)._error_checking(
+            entries=[self], employee_ids=employee_ids
+        ):
             return super().delete(*args, **kwargs)
 
     # ------------------------------------------------------------------
@@ -519,4 +596,6 @@ class HrWorkEntry(TimeStampedModel):
         )
         if len(country_ids) > 1:
             return models.Q(country__isnull=True)
-        return models.Q(country__isnull=True) | models.Q(country_id__in=country_ids)
+        return models.Q(country__isnull=True) | models.Q(
+            country_id__in=country_ids
+        )

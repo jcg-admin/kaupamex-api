@@ -1,0 +1,6 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"started": "orm-virtual-delete-91466473a585", "container_id": "fed2fc57d3c6c4c1af4eb706d51ead6f59c941cf70abeeac289360f74ac7ba0b", "bind": "127.0.0.1", "port": "32771"}
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"source_revision": "dae481b46ce8cce9a4a31b6449f01af69c6b50f4", "source_sha256": "013816a040d03f1d64f691b3738b714e405efe17b8724ec1ca00922a974b2c0e", "test_sha256": "657ffba1e71e2aeb80f2ddf2c109d91fbaf18eeb970d5efcaa6cc98744286bba", "postgresql_version": "PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit", "class_body_field_declaration": true, "published_factory_imported": true, "delete_target_succeeded": true, "source_row_preserved": true, "annulled_policy_error": "FieldError", "negative_target_preserved": true, "temporary_tables_only": true, "application_signals": "Enabled; empty temporary automation-rule fixture supplied", "acceptance": "Bounded delete behavior; not full TASK acceptance"}
+fed2fc57d3c6c4c1af4eb706d51ead6f59c941cf70abeeac289360f74ac7ba0b
+{"verification_exit": 0, "cleanup_verified": true}

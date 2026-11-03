@@ -16,6 +16,7 @@ La clave, la firma y el comportamiento de acierto/fallo son los de la fuente.
 Adaptado de Odoo Community ``odoo/tools/cache.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+
 # el decorador construye envoltorios con la misma API que la función envuelta
 from __future__ import annotations
 
@@ -49,7 +50,17 @@ _logger = logging.getLogger(__name__)
 
 class ormcache_counter:
     """Contadores de estadística de las entradas de caché."""
-    __slots__ = ['cache_name', 'err', 'gen_time', 'hit', 'miss', 'tx_err', 'tx_hit', 'tx_miss']
+
+    __slots__ = [
+        'cache_name',
+        'err',
+        'gen_time',
+        'hit',
+        'miss',
+        'tx_err',
+        'tx_hit',
+        'tx_miss',
+    ]
 
     def __init__(self):
         self.hit: int = 0
@@ -74,11 +85,14 @@ class ormcache_counter:
         return self.tx_hit + self.tx_miss
 
 
-_COUNTERS: defaultdict[Callable, ormcache_counter] = defaultdict(ormcache_counter)
+_COUNTERS: defaultdict[Callable, ormcache_counter] = defaultdict(
+    ormcache_counter
+)
 """Diccionario de contadores; mapea el método a su contador.
 
-La referencia lo indexa por ``(dbname, method)`` porque su ``Registry`` es por
-base de datos. Aquí el registry es de proceso, así que la clave es el método.
+La referencia lo indexa por ``(dbname, method)`` porque su ``Registry``
+es por base de datos. Aquí el registry es de proceso, así que la clave
+es el método.
 """
 
 
@@ -101,17 +115,29 @@ class ormcache:
     Los métodos que usen este decorador nunca deben devolver un conjunto de
     registros: la conexión subyacente acabará cerrada.
     """
+
     key: Callable[..., tuple]
 
-    def __init__(self, *args: str, cache: str = 'default', skiparg: int | None = None, **kwargs):
+    def __init__(
+        self,
+        *args: str,
+        cache: str = 'default',
+        skiparg: int | None = None,
+        **kwargs,
+    ):
         self.args = args
         self.skiparg = skiparg
         self.cache_name = cache
         if skiparg is not None:
-            warnings.warn("Deprecated since 19.0, ormcache(skiparg) will be removed", DeprecationWarning)
+            warnings.warn(
+                "Deprecated since 19.0, ormcache(skiparg) will be removed",
+                DeprecationWarning,
+            )
 
     def __call__(self, method: C) -> C:
-        assert not hasattr(self, 'method'), "ormcache is already bound to a method"
+        assert not hasattr(
+            self, 'method'
+        ), "ormcache is already bound to a method"
         self.method = method
         self.determine_key()
         assert self.key is not None, "ormcache.key not initialized"
@@ -119,6 +145,7 @@ class ormcache:
         @functools.wraps(method)
         def lookup(*args, **kwargs):
             return self.lookup(*args, **kwargs)
+
         lookup.__cache__ = self  # type: ignore
         return lookup
 
@@ -128,13 +155,20 @@ class ormcache:
         d[key] = cache_value
 
     def determine_key(self) -> None:
-        """Determina la función que computa la clave a partir de los argumentos."""
+        """
+        Determina la función que computa la clave a partir de los argumentos.
+        """
         assert self.method is not None
         if self.skiparg is not None:
             # función retrocompatible que usa self.skiparg
-            self.key = lambda *args, **kwargs: (args[0]._name, self.method, *args[self.skiparg:])
+            self.key = lambda *args, **kwargs: (
+                args[0]._name,
+                self.method,
+                *args[self.skiparg:],
+            )
             return
-        # construye una cadena que representa el código de la función y la evalúa
+        # construye una cadena que representa el código de la función y
+        # la evalúa
         parametros = list(signature(self.method).parameters.values())
         args = ', '.join(
             # sin anotaciones: una lambda no las admite
@@ -149,7 +183,10 @@ class ormcache:
         # es idéntico al de la fuente.
         receptor = parametros[0].name if parametros else 'self'
         values = [f'{receptor}._name', 'method', *self.args]
-        code = f"lambda {args}: ({''.join(a for arg in values for a in (arg, ','))})"
+        code = (
+            f"lambda {args}:"
+            f" ({''.join(a for arg in values for a in (arg, ','))})"
+        )
         self.key = unsafe_eval(code, {'method': self.method})
 
     def lookup(self, *args, **kwargs):
@@ -193,8 +230,10 @@ class ormcache:
 class ormcache_context(ormcache):
     """Variante de :class:`ormcache` con un parámetro extra ``keys`` que define
     una secuencia de claves de diccionario. Esas claves se buscan en el
-    parámetro ``context`` y se combinan con la clave que hace :class:`ormcache`.
+    parámetro ``context`` y se combinan con la clave que hace
+    :class:`ormcache`.
     """
+
     def __init__(self, *args: str, keys, skiparg=None, **kwargs):
         assert skiparg is None, "ormcache_context() no longer supports skiparg"
         warnings.warn(
@@ -208,7 +247,11 @@ class ormcache_context(ormcache):
     def determine_key(self) -> None:
         assert self.method is not None
         sign = signature(self.method)
-        cont_expr = "(context or {})" if 'context' in sign.parameters else "_get_context()"
+        cont_expr = (
+            "(context or {})"
+            if 'context' in sign.parameters
+            else "_get_context()"
+        )
         keys_expr = "tuple(%s.get(k) for k in %r)" % (cont_expr, self.keys)
         self.args += (keys_expr,)
         super().determine_key()
@@ -232,7 +275,10 @@ def _tx_lookups() -> set:
 
 
 def _get_context() -> dict:
-    """El contexto vigente, para ``ormcache_context`` — el de ``self.env.context``."""
+    """
+    El contexto vigente, para ``ormcache_context`` — el de
+    ``self.env.context``.
+    """
     return get_context()
 
 
@@ -255,7 +301,9 @@ def log_ormcache_stats() -> None:
         f"{'Gen Time [s]':>13},{'Hit Ratio':>10},{'TX Hit Ratio':>13},"
         f"{'TX Call':>8},  Method"
     )
-    for method, counter in sorted(_COUNTERS.items(), key=lambda kv: kv[0].__qualname__):
+    for method, counter in sorted(
+        _COUNTERS.items(), key=lambda kv: kv[0].__qualname__
+    ):
         log_msgs.append(
             f'{counter.cache_name:>25},'
             f'{counter.hit:6d},'
@@ -270,7 +318,9 @@ def log_ormcache_stats() -> None:
     _logger.info('\n'.join(log_msgs))
 
 
-def get_cache_key_counter(bound_method: Callable, *args, **kwargs) -> tuple[LRU, tuple, ormcache_counter]:
+def get_cache_key_counter(
+    bound_method: Callable, *args, **kwargs
+) -> tuple[LRU, tuple, ormcache_counter]:
     """Devuelve la caché, la clave y el contador de la llamada dada."""
     model = bound_method.__self__  # type: ignore
     ormcache_instance: ormcache = bound_method.__cache__  # type: ignore
@@ -281,12 +331,12 @@ def get_cache_key_counter(bound_method: Callable, *args, **kwargs) -> tuple[LRU,
 
 
 def get_cache_size(
-        obj,
-        *,
-        cache_info: str = '',
-        seen_ids: set[int] | None = None,
-        class_slots: dict[type, Iterable[str]] | None = None,
-    ) -> int:
+    obj,
+    *,
+    cache_info: str = '',
+    seen_ids: set[int] | None = None,
+    class_slots: dict[type, Iterable[str]] | None = None,
+) -> int:
     """Estimador recursivo, no seguro entre hilos, del tamaño de un objeto."""
     if seen_ids is None:
         # las constantes internas cuentan como 0 bytes
@@ -312,11 +362,17 @@ def get_cache_size(
             cur_obj_cls = type(cur_obj)
             attributes = class_slots.get(id(cur_obj_cls))
             if attributes is None:
-                class_slots[id(cur_obj_cls)] = attributes = tuple({
-                    f'_{cls.__name__}{attr}' if attr.startswith('__') else attr
-                    for cls in cur_obj_cls.mro()
-                    for attr in getattr(cls, '__slots__', ())
-                })
+                class_slots[id(cur_obj_cls)] = attributes = tuple(
+                    {
+                        (
+                            f'_{cls.__name__}{attr}'
+                            if attr.startswith('__')
+                            else attr
+                        )
+                        for cls in cur_obj_cls.mro()
+                        for attr in getattr(cls, '__slots__', ())
+                    }
+                )
             objects.extend(getattr(cur_obj, attr, None) for attr in attributes)
         if hasattr(cur_obj, '__dict__'):
             objects.append(object.__dict__)
@@ -324,7 +380,9 @@ def get_cache_size(
         if isinstance(cur_obj, Mapping):
             objects.extend(cur_obj.values())
             objects.extend(cur_obj.keys())
-        elif isinstance(cur_obj, Collection) and not isinstance(cur_obj, (str, bytes, bytearray)):
+        elif isinstance(cur_obj, Collection) and not isinstance(
+            cur_obj, (str, bytes, bytearray)
+        ):
             objects.extend(cur_obj)
 
     return total_size

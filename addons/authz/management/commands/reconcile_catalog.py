@@ -34,6 +34,7 @@ Uso::
     python manage.py reconcile_catalog --strict   # exit 1 si hay divergencias
     python manage.py reconcile_catalog --prune    # retira lo no declarado (con freno)
 """
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
@@ -45,23 +46,32 @@ from addons.sale_subscription.models import (
 
 
 class Command(BaseCommand):
-    help = 'Compara el catálogo sembrado en DB contra lo declarado por los addons.'
+    help = (
+        'Compara el catálogo sembrado en DB contra lo declarado por los'
+        ' addons.'
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--strict', action='store_true',
+            '--strict',
+            action='store_true',
             help='Sale con código 1 si hay cualquier divergencia (para CI).',
         )
         parser.add_argument(
-            '--prune', action='store_true',
-            help='Retira de la DB los módulos y capacidades que nadie declara. '
-                 'Se niega a tocar módulos con suscripciones vivas.',
+            '--prune',
+            action='store_true',
+            help=(
+                'Retira de la DB los módulos y capacidades que nadie declara. '
+                'Se niega a tocar módulos con suscripciones vivas.'
+            ),
         )
 
     def handle(self, *args, **options):
         declared_modules, declared_caps = discover()
 
-        db_modules = {m.code: m for m in Module.objects.prefetch_related('depends')}
+        db_modules = {
+            m.code: m for m in Module.objects.prefetch_related('depends')
+        }
         db_caps = {c.code: c for c in Capability.objects.all()}
 
         stale_modules = sorted(set(db_modules) - set(declared_modules))
@@ -71,23 +81,33 @@ class Command(BaseCommand):
         diverging = self._diverging_metadata(declared_modules, db_modules)
 
         self._report('Módulos sembrados que nadie declara', stale_modules)
-        self._report('Módulos declarados sin sembrar (falta seed_authz)',
-                       missing_modules)
+        self._report(
+            'Módulos declarados sin sembrar (falta seed_authz)',
+            missing_modules,
+        )
         self._report('Capacidades sembradas que nadie declara', stale_caps)
         self._report('Capacidades declaradas sin sembrar', missing_caps)
         self._report('Metadata divergente entre DB y declaración', diverging)
 
-        total = (len(stale_modules) + len(missing_modules) + len(stale_caps)
-                 + len(missing_caps) + len(diverging))
+        total = (
+            len(stale_modules)
+            + len(missing_modules)
+            + len(stale_caps)
+            + len(missing_caps)
+            + len(diverging)
+        )
 
         if options['prune']:
             self._prune(stale_modules, stale_caps, db_modules, db_caps)
 
         if total == 0:
-            self.stdout.write(self.style.SUCCESS(
-                f'Catálogo reconciliado: {len(declared_modules)} módulos y '
-                f'{len(declared_caps)} capacidades coinciden con la declaración.'
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Catálogo reconciliado: {len(declared_modules)} módulos y'
+                    f' {len(declared_caps)} capacidades coinciden con la'
+                    ' declaración.'
+                )
+            )
             return
 
         self.stdout.write(self.style.WARNING(f'{total} divergencia(s).'))
@@ -109,13 +129,16 @@ class Command(BaseCommand):
                 diffs.append(f'name {row.name!r}≠{spec.name!r}')
             if row.is_application != spec.is_application:
                 diffs.append(
-                    f'is_application {row.is_application}≠{spec.is_application}')
+                    'is_application'
+                    f' {row.is_application}≠{spec.is_application}'
+                )
             if row.category != spec.category:
                 diffs.append(f'category {row.category!r}≠{spec.category!r}')
             depends_db = set(row.depends.values_list('code', flat=True))
             if depends_db != set(spec.depends):
                 diffs.append(
-                    f'depends {sorted(depends_db)}≠{sorted(spec.depends)}')
+                    f'depends {sorted(depends_db)}≠{sorted(spec.depends)}'
+                )
             if diffs:
                 result.append(f'{code}: ' + ' · '.join(diffs))
         return result
@@ -133,17 +156,19 @@ class Command(BaseCommand):
             self.stdout.write(f'Retiradas {len(stale_caps)} capacidad(es).')
 
         with_subscription = set(
-            CompanyModuleSubscription.objects
-            .filter(module__code__in=stale_modules)
-            .values_list('module__code', flat=True)
+            CompanyModuleSubscription.objects.filter(
+                module__code__in=stale_modules
+            ).values_list('module__code', flat=True)
         )
         removed = 0
         for code in stale_modules:
             if code in with_subscription:
-                self.stdout.write(self.style.WARNING(
-                    f'  {code}: NO se retira — tiene suscripciones de company. '
-                    f'Cancelarlas o volver a declararlo.'
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'  {code}: NO se retira — tiene suscripciones de'
+                        ' company. Cancelarlas o volver a declararlo.'
+                    )
+                )
                 continue
             db_modules[code].delete()
             removed += 1

@@ -34,6 +34,7 @@ que rechaza un flujo de texto **se conserva**: es el contrato del simbolo, no
 una comprobacion defensiva — sin el, un ``StringIO`` pasaria por el decoder y
 fallaria mas adentro con un error que no nombra la causa.
 """
+
 import codecs
 import csv
 import io
@@ -49,9 +50,12 @@ def csv_reader(stream, **params):
     warnings.warn(
         "Deprecated since Odoo 18.0: can just use `csv.reader` with a text "
         "stream or use `TextIOWriter` or `codec.getreader` to transcode.",
-        DeprecationWarning, stacklevel=2)
-    assert not isinstance(stream, io.TextIOBase), \
-        "For cross-compatibility purposes, csv_reader takes a bytes stream"
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    assert not isinstance(
+        stream, io.TextIOBase
+    ), "For cross-compatibility purposes, csv_reader takes a bytes stream"
     return csv.reader(_reader(stream), **params)
 
 
@@ -60,9 +64,12 @@ def csv_writer(stream, **params):
     warnings.warn(
         "Deprecated since Odoo 18.0: can just use `csv.writer` with a text "
         "stream or use `TextIOWriter` or `codec.getwriter` to transcode.",
-        DeprecationWarning, stacklevel=2)
-    assert not isinstance(stream, io.TextIOBase), \
-        "For cross-compatibility purposes, csv_writer takes a bytes stream"
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    assert not isinstance(
+        stream, io.TextIOBase
+    ), "For cross-compatibility purposes, csv_writer takes a bytes stream"
     return csv.writer(_writer(stream), **params)
 
 
@@ -75,7 +82,8 @@ def to_text(source: typing.Any) -> str:
     * el resto se textifica
     """
     warnings.warn(
-        "Deprecated since Odoo 18.0.", DeprecationWarning, stacklevel=2)
+        "Deprecated since Odoo 18.0.", DeprecationWarning, stacklevel=2
+    )
     if source is None or source is False:
         return ''
 

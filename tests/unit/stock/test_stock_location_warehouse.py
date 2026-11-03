@@ -27,6 +27,7 @@ Los tres casos cubren, en este orden:
    ``view_location`` y sus hijos directos (``Q(location__in=raiz)``); una
    ubicación más profunda (nieta de ``view_location``) quedaba fuera.
 """
+
 import pytest
 
 from addons.base.models import ResCompany
@@ -50,23 +51,35 @@ def test_warehouse_created_after_its_locations_backfills_direct_child(company):
     invoca el ``classmethod create()``.
     """
     view = StockLocation.objects.create(
-        name='WH-667', usage=StockLocation.USAGE_VIEW, company=company,
-        barcode='H667-VIEW')
+        name='WH-667',
+        usage=StockLocation.USAGE_VIEW,
+        company=company,
+        barcode='H667-VIEW',
+    )
     shelf = StockLocation.objects.create(
-        name='WH-667/Stock', usage=StockLocation.USAGE_INTERNAL,
-        location=view, company=company, barcode='H667-STOCK')
+        name='WH-667/Stock',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=view,
+        company=company,
+        barcode='H667-STOCK',
+    )
     assert shelf.warehouse_id is None
 
     warehouse = StockWarehouse.objects.create(
-        name='WH 667', code='W667', company=company,
-        view_location=view, lot_stock=shelf)
+        name='WH 667',
+        code='W667',
+        company=company,
+        view_location=view,
+        lot_stock=shelf,
+    )
 
     shelf.refresh_from_db()
     assert shelf.warehouse_id == warehouse.pk
 
 
 def test_view_location_resolves_to_its_own_warehouse(company):
-    """Caso 2 — ``view_location.warehouse`` es su propio almacén, como la fuente.
+    """
+    Caso 2 — ``view_location.warehouse`` es su propio almacén, como la fuente.
 
     ``odoo19c: stock_location.py:171`` construye el conjunto de candidatos con
     ``loc.parent_path.split('/')[:-1]``. La ruta materializada **termina en
@@ -81,22 +94,34 @@ def test_view_location_resolves_to_its_own_warehouse(company):
     recorte; ver :ref:`h-api-676`.
     """
     view = StockLocation.objects.create(
-        name='WH-667b', usage=StockLocation.USAGE_VIEW, company=company,
-        barcode='H667B-VIEW')
+        name='WH-667b',
+        usage=StockLocation.USAGE_VIEW,
+        company=company,
+        barcode='H667B-VIEW',
+    )
     shelf = StockLocation.objects.create(
-        name='WH-667b/Stock', usage=StockLocation.USAGE_INTERNAL,
-        location=view, company=company, barcode='H667B-STOCK')
+        name='WH-667b/Stock',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=view,
+        company=company,
+        barcode='H667B-STOCK',
+    )
 
     warehouse = StockWarehouse.objects.create(
-        name='WH 667b', code='W667B', company=company,
-        view_location=view, lot_stock=shelf)
+        name='WH 667b',
+        code='W667B',
+        company=company,
+        view_location=view,
+        lot_stock=shelf,
+    )
 
     view.refresh_from_db()
     assert view.warehouse_id == warehouse.pk
 
 
 def test_backfill_reaches_grandchildren_not_just_direct_children(company):
-    """Caso 3 — una ubicación más profunda que un hijo directo también se cierra.
+    """
+    Caso 3 — una ubicación más profunda que un hijo directo también se cierra.
 
     El backfill manual retirado sólo alcanzaba ``view_location`` y sus hijos
     directos (``Q(location__in=raiz)``); una ubicación anidada un nivel más
@@ -105,19 +130,34 @@ def test_backfill_reaches_grandchildren_not_just_direct_children(company):
     que sí la alcanza.
     """
     view = StockLocation.objects.create(
-        name='WH-667c', usage=StockLocation.USAGE_VIEW, company=company,
-        barcode='H667C-VIEW')
+        name='WH-667c',
+        usage=StockLocation.USAGE_VIEW,
+        company=company,
+        barcode='H667C-VIEW',
+    )
     shelf = StockLocation.objects.create(
-        name='WH-667c/Stock', usage=StockLocation.USAGE_INTERNAL,
-        location=view, company=company, barcode='H667C-STOCK')
+        name='WH-667c/Stock',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=view,
+        company=company,
+        barcode='H667C-STOCK',
+    )
     bin_ = StockLocation.objects.create(
-        name='WH-667c/Stock/Bin-01', usage=StockLocation.USAGE_INTERNAL,
-        location=shelf, company=company, barcode='H667C-BIN')
+        name='WH-667c/Stock/Bin-01',
+        usage=StockLocation.USAGE_INTERNAL,
+        location=shelf,
+        company=company,
+        barcode='H667C-BIN',
+    )
     assert bin_.warehouse_id is None
 
     warehouse = StockWarehouse.objects.create(
-        name='WH 667c', code='W667C', company=company,
-        view_location=view, lot_stock=shelf)
+        name='WH 667c',
+        code='W667C',
+        company=company,
+        view_location=view,
+        lot_stock=shelf,
+    )
 
     bin_.refresh_from_db()
     assert bin_.warehouse_id == warehouse.pk

@@ -7,6 +7,7 @@ vuelta del TOTP con timestep 3600), la invitación omite a quienes ya tienen
 El transporte de correo corre síncrono en testing (DISPATCH_EMAIL_SYNC) y se
 asserta sobre ``mail.outbox``.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail as django_mail
@@ -15,7 +16,12 @@ from django.core.management import call_command
 from exceptions import AccessDenied
 
 from addons.authz.bootstrap import assign_buyer_role
-from addons.authz.models import Capability, Role, RoleAssignment, RoleCapability
+from addons.authz.models import (
+    Capability,
+    Role,
+    RoleAssignment,
+    RoleCapability,
+)
 from addons.authz.services import invalidate_capabilities
 from addons.authz_totp.models import TotpSecret
 from addons.authz_totp_mail.data import seed as seed_totp_mail
@@ -35,8 +41,7 @@ INVITE_URL = '/api/v2/authz/totp-mail/invite/'
 @pytest.fixture
 def user(db):
     seed_totp_mail()
-    return User.objects.create_user(
-        login='totpmail@kaupamex.mx', password='x')
+    return User.objects.create_user(login='totpmail@kaupamex.mx', password='x')
 
 
 class TestTotpMailCode:
@@ -91,12 +96,14 @@ class TestPolicy:
 
     def test_policy_all_required(self, user):
         SystemParameter.objects.update_or_create(
-            key='authz_totp.policy', defaults={'value': 'all_required'})
+            key='authz_totp.policy', defaults={'value': 'all_required'}
+        )
         assert user._mfa_type() == 'totp_mail'
 
     def test_policy_apagada(self, user):
         SystemParameter.objects.update_or_create(
-            key='authz_totp.policy', defaults={'value': ''})
+            key='authz_totp.policy', defaults={'value': ''}
+        )
         assert user._mfa_type() is None
 
     def test_con_totp_de_app_no_exige_mail(self, user):
@@ -107,7 +114,8 @@ class TestPolicy:
         registrarse, y un usuario con app activa recibiría códigos por correo.
         """
         SystemParameter.objects.update_or_create(
-            key='authz_totp.policy', defaults={'value': 'all_required'})
+            key='authz_totp.policy', defaults={'value': 'all_required'}
+        )
         TotpSecret.objects.create(user=user, secret='S3CRET', confirmed=True)
         assert user._mfa_type() == 'totp'
 
@@ -117,7 +125,8 @@ class TestInvite:
     def test_invita_solo_a_quienes_no_tienen_2fa(self, api_client, user, db):
         call_command('seed_authz')
         admin = User.objects.create_user(
-            login='admin-invite@kaupamex.mx', password='x')
+            login='admin-invite@kaupamex.mx', password='x'
+        )
         cap = Capability.objects.get(code='permissions.totp_invite')
         role = Role.objects.create(code='r-invite', name='Invita 2FA')
         RoleCapability.objects.create(role=role, capability=cap)
@@ -126,7 +135,8 @@ class TestInvite:
 
         with_2fa = User.objects.create_user(login='ya2fa@kaupamex.mx')
         TotpSecret.objects.create(
-            user=with_2fa, secret='S3CRET', confirmed=True)
+            user=with_2fa, secret='S3CRET', confirmed=True
+        )
         # El create anterior dispara la notificación "2FA Activated" (la
         # señal de este addon) — se limpia para asertar solo la invitación.
         assert len(django_mail.outbox) == 1
@@ -134,9 +144,13 @@ class TestInvite:
         django_mail.outbox.clear()
 
         api_client.force_authenticate(admin)
-        resp = api_client.post(INVITE_URL, {
-            'user_ids': [user.id, with_2fa.id],
-        }, format='json')
+        resp = api_client.post(
+            INVITE_URL,
+            {
+                'user_ids': [user.id, with_2fa.id],
+            },
+            format='json',
+        )
         assert resp.status_code == 200, resp.data
         assert len(resp.data['invited']) == 1
         assert len(django_mail.outbox) == 1
@@ -145,9 +159,14 @@ class TestInvite:
     def test_sin_capacidad_403(self, api_client, user, db):
         call_command('seed_authz')
         alguien = User.objects.create_user(
-            login='sin-invite@kaupamex.mx', password='x')
+            login='sin-invite@kaupamex.mx', password='x'
+        )
         api_client.force_authenticate(alguien)
-        resp = api_client.post(INVITE_URL, {
-            'user_ids': [user.id],
-        }, format='json')
+        resp = api_client.post(
+            INVITE_URL,
+            {
+                'user_ids': [user.id],
+            },
+            format='json',
+        )
         assert resp.status_code == 403

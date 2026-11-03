@@ -1,10 +1,13 @@
 """Models — addons.authz_audit (auditoría de autorización, DEC-07).
 
-``AuthzEvent`` extraído de ``addons.authz`` a su propio módulo (SOL-094 frente B,
+``AuthzEvent`` extraído de ``addons.authz`` a su propio módulo (SOL-094 frente
+B,
 DEC-01) manteniendo la tabla física ``authz_event`` (migración
-``SeparateDatabaseAndState``). Patrón Odoo: la auditoría es un módulo de feature
+``SeparateDatabaseAndState``). Patrón Odoo: la auditoría es un módulo de
+feature
 separado (``account_audit_trail``), no parte del core.
 """
+
 from django.conf import settings
 from django.db import models
 
@@ -22,6 +25,7 @@ class AuthzEvent(AppendOnlyModel):
     negocio (ver :ref:`h-api-753`). Sus códigos se acortaron para caber en el
     ``max_length=20`` del campo — ``ADMIN_ROLE_PERMISSIONS_CHANGED`` medía 29.
     """
+
     ACTION_DENY = 'DENY'
     ACTION_SENSITIVE_USE = 'SENSITIVE_USE'
     ACTION_ROLE_PERMS_CHANGED = 'ROLE_PERMS_CHANGED'
@@ -34,13 +38,26 @@ class AuthzEvent(AppendOnlyModel):
     ]
 
     actor = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='authz_events', verbose_name='Actor',
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='authz_events',
+        verbose_name='Actor',
     )
-    action = models.CharField(max_length=20, choices=ACTION_CHOICES, db_index=True, verbose_name='Acción')
-    capability_code = models.CharField(max_length=100, blank=True, default='', verbose_name='Capacidad')
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES,
+        db_index=True,
+        verbose_name='Acción',
+    )
+    capability_code = models.CharField(
+        max_length=100, blank=True, default='', verbose_name='Capacidad'
+    )
     ip_addr = models.GenericIPAddressField(null=True, blank=True)
-    correlation_id = models.CharField(max_length=32, blank=True, default='', db_index=True)
+    correlation_id = models.CharField(
+        max_length=32, blank=True, default='', db_index=True
+    )
     extra_json = models.JSONField(null=True, blank=True)
 
     class Meta:

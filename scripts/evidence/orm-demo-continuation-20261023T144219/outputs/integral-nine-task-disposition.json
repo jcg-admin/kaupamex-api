@@ -1,0 +1,180 @@
+{
+  "observed_at": "2026-10-31T23:29:19.027468-06:00",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "tasks": [
+    {
+      "citation_id": "TASK-API-0305",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "520"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Actual field descriptor, dispatcher and mocked account selection verified; company/dependency/persistence parity remains open",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Bounded prefix compute unit admitted and published60c9557c; full analytic task not accepted",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-API-0397",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1167"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Native recordset contracts require unit-specific dependency checks; predicted prefix cache collision not reproduced, so no cache change",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "No new root implementation admitted by this assignment",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-API-0417",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1192"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "apply_source_defaults delegates derive_source_attrs; Json uses one class; full facade/setup compatibility and suite acceptance not newly verified",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Historical implementation partly present; no blanket reimplementation",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-API-0418",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1193"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "NonStored still exists; dependency0417 acceptance and all constructor/descriptor consumers must be qualified before removal",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Not admitted for full class removal",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-API-0419",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1194"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Current _capture_relational_init and _merge_field_definitions AST equal published implementation; broad MRO acceptance remains separate",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Existing bounded reconstruction implementation6c11ddde preserved",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-API-0420",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1195"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Default factory body unchanged; historical7+7 and PG evidence retains original scope; CI/integration/acceptance outstanding",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Existing implementation8aca3900 preserved; no duplicate execution",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-API-0424",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1199"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Company country related/search semantics and native private-field delete collector need current class-body fixture; no arbitrary search implementation",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Warning/delete-path verdict requires bounded experimental verification",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-GEN-0558",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "306"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Actual _invoke_compute_method loops as_record_list and passes one row. Batch/preload requires recordset and existing callable-consumer compatibility proof",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Missing batch behavior confirmed; full implementation not admitted yet",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    },
+    {
+      "citation_id": "TASK-GEN-0559",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "307"
+      },
+      "functional_responsibility": "backend",
+      "current_owner": "VM-b501",
+      "authorized_executor": "VM-b501 under recovered conditional delegation",
+      "delegation_evidence": "integral-ownership-delegation-recovery.json",
+      "claims": {
+        "assignment_check": [],
+        "prefix_unit": "Acquired and released own source/test claims; src/orm/fields.py reservation released unchanged"
+      },
+      "dependencies": "Current recompute AST equal published implementation; historical retry/deletion controls exist; batching and full consumer acceptance separate",
+      "assignment_action": "Assigned via native TaskUpdate(owner only), before/after verified",
+      "admission_result": "Existing bounded retry3ffa958e preserved; no duplicate execution",
+      "acceptance": "not_verified; no state/dependency rewrites"
+    }
+  ],
+  "global_exhaustion": false,
+  "no_revocation_inferred": true,
+  "role_is_not_owner": true
+}

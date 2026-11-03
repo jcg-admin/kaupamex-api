@@ -1,7 +1,8 @@
 """``account.debit.note`` — el asistente "Crear nota de débito".
 
 Adaptación de ``odoo19c: addons/account_debit_note/wizard/
-account_debit_note.py`` (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``,
+account_debit_note.py``
+(``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``,
 LGPL-3 — atribución y aviso de licencia preservados, DEC-KX-03).
 
 ``TransientModel`` → clase con classmethods, no tabla
@@ -86,6 +87,7 @@ eso es UI, no la condición de negocio. Se porta el comportamiento
 condición muerta — replicarla tal cual habría sido reproducir un bug de la
 referencia sin ningún lector que lo note.
 """
+
 from addons.account_debit_note.models.account_move import AccountMoveDebitNote
 from exceptions import UserError
 from orm.models_transient import TransientModel
@@ -106,7 +108,12 @@ class AccountDebitNoteWizard(TransientModel):
     #: ≙ el ``UserError`` de ``default_get`` (``odoo19c: account_debit_note/
     #: wizard/account_debit_note.py:38``): sólo estos cuatro tipos son
     #: debitables.
-    ALLOWED_MOVE_TYPES = ('out_invoice', 'in_invoice', 'out_refund', 'in_refund')
+    ALLOWED_MOVE_TYPES = (
+        'out_invoice',
+        'in_invoice',
+        'out_refund',
+        'in_refund',
+    )
     #: Tipos "nota de crédito" — cambian de tipo al debitarse (in_refund →
     #: in_invoice, out_refund → out_invoice) y nunca copian líneas.
     REFUND_MOVE_TYPES = ('in_refund', 'out_refund')
@@ -114,8 +121,14 @@ class AccountDebitNoteWizard(TransientModel):
     #: es ``True`` — el subconjunto de columnas propias de la línea (sin
     #: ``move``, que apunta al nuevo movimiento).
     LINE_COPY_FIELDS = (
-        'account', 'name', 'debit', 'credit', 'display_type',
-        'quantity', 'price_unit', 'currency',
+        'account',
+        'name',
+        'debit',
+        'credit',
+        'display_type',
+        'quantity',
+        'price_unit',
+        'currency',
     )
 
     @classmethod
@@ -125,20 +138,29 @@ class AccountDebitNoteWizard(TransientModel):
         moves = list(moves)
         if any(move.state != 'posted' for move in moves):
             raise UserError(_('Sólo se pueden debitar asientos publicados.'))
-        if any(AccountMoveDebitNote.origin_for(move) is not None
-               for move in moves):
-            raise UserError(_(
-                "No se puede crear una nota de débito de una factura que "
-                "ya está vinculada a otra nota de débito."))
+        if any(
+            AccountMoveDebitNote.origin_for(move) is not None for move in moves
+        ):
+            raise UserError(
+                _(
+                    "No se puede crear una nota de débito de una factura que "
+                    "ya está vinculada a otra nota de débito."
+                )
+            )
         if any(move.move_type not in cls.ALLOWED_MOVE_TYPES for move in moves):
-            raise UserError(_(
-                "Sólo se puede crear una nota de débito de una factura de "
-                "cliente, una nota de crédito de cliente, una factura de "
-                "proveedor o una nota de crédito de proveedor."))
+            raise UserError(
+                _(
+                    "Sólo se puede crear una nota de débito de una factura de "
+                    "cliente, una nota de crédito de cliente, una factura de "
+                    "proveedor o una nota de crédito de proveedor."
+                )
+            )
         return moves
 
     @classmethod
-    def prepare_default_values(cls, move, date=None, reason=None, journal=None):
+    def prepare_default_values(
+        cls, move, date=None, reason=None, journal=None
+    ):
         """Los valores del nuevo movimiento — ≙ ``_prepare_default_values``.
 
         Incluye ``partner``/``currency``/``company``, que la referencia
@@ -146,7 +168,11 @@ class AccountDebitNoteWizard(TransientModel):
         módulo: aquí no existe ``copy()`` genérico).
         """
         if move.move_type in cls.REFUND_MOVE_TYPES:
-            move_type = 'in_invoice' if move.move_type == 'in_refund' else 'out_invoice'
+            move_type = (
+                'in_invoice'
+                if move.move_type == 'in_refund'
+                else 'out_invoice'
+            )
         else:
             move_type = move.move_type
         ref = f'{move.name}, {reason}' if reason else move.name
@@ -172,12 +198,15 @@ class AccountDebitNoteWizard(TransientModel):
         """
         line_model = source_move.line_ids.model
         for line in source_move.line_ids.all():
-            values = {field: getattr(line, field) for field in cls.LINE_COPY_FIELDS}
+            values = {
+                field: getattr(line, field) for field in cls.LINE_COPY_FIELDS
+            }
             line_model.objects.create(move=target_move, **values)
 
     @classmethod
-    def create_debit(cls, moves, date=None, reason=None, journal=None,
-                      copy_lines=False):
+    def create_debit(
+        cls, moves, date=None, reason=None, journal=None, copy_lines=False
+    ):
         """Crea una nota de débito por cada movimiento — ≙ ``create_debit``.
 
         Devuelve la lista de movimientos creados (aquí no hay
@@ -188,7 +217,8 @@ class AccountDebitNoteWizard(TransientModel):
         new_moves = []
         for move in moves:
             values = cls.prepare_default_values(
-                move, date=date, reason=reason, journal=journal)
+                move, date=date, reason=reason, journal=journal
+            )
             new_move = type(move).objects.create(**values)
             AccountMoveDebitNote.objects.create(move=new_move, origin=move)
             if copy_lines:

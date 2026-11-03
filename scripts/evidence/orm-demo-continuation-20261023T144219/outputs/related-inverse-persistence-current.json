@@ -1,0 +1,33 @@
+{
+  "source_revision": "1539be5abe95341e0b7244e0e82090f3245718b4",
+  "consumer_fields_sha256": "2b28b83c141ea6c5293089daed2396f9e1c0f35b3ea1ce977fc34bc5d6b9d977",
+  "task": "TASK-GEN-0633 historical related-write triage; TASK-API-0412 completed predecessor, not reopened",
+  "cases": [
+    {
+      "source_field": "bank_name",
+      "target_field": "name",
+      "compute": "<bound method _field_compute_related of <django.db.models.fields.CharField: bank_name>>",
+      "inverse": "<bound method _field_inverse_related of <django.db.models.fields.CharField: bank_name>>",
+      "assignment_queries": 0,
+      "before_save": "Original bank",
+      "target_cache_after_save": "Updated bank",
+      "target_database_after_save": "Updated bank",
+      "expected_database_after_save": "Updated bank",
+      "persistent_contract_satisfied": true
+    },
+    {
+      "source_field": "bank_bic",
+      "target_field": "bic",
+      "compute": "<bound method _field_compute_related of <django.db.models.fields.CharField: bank_bic>>",
+      "inverse": "<bound method _field_inverse_related of <django.db.models.fields.CharField: bank_bic>>",
+      "assignment_queries": 0,
+      "before_save": "ORIGMXMM",
+      "target_cache_after_save": "FIXDMXMM",
+      "target_database_after_save": "FIXDMXMM",
+      "expected_database_after_save": "FIXDMXMM",
+      "persistent_contract_satisfied": true
+    }
+  ],
+  "business_row_counts_unchanged": true,
+  "scope": "Diagnostic of two actual stored scalar targets via existing save; no state change or whole inverse-family acceptance"
+}

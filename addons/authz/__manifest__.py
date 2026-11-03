@@ -16,10 +16,12 @@
     # (`scripts/check_addon_cycles.py`) es su dueño; el desenlace, la tarea
     # #322:
     #
-    #   authz_audit        services.py, controllers/main.py, controllers/admin_main.py
+    # authz_audit        services.py, controllers/main.py,
+    # controllers/admin_main.py
     #   authz_reauth       services.py:35, controllers/main.py:19
     #   sale_subscription  management/commands/reconcile_catalog.py:42
-    #   website            controllers/main.py:18, management/commands/seed_menu.py:19
+    # website            controllers/main.py:18,
+    # management/commands/seed_menu.py:19
     #
     # `observability` salió de la lista el 2026-08-20: sus dos consumos desde
     # `admin_main.py` eran eventos de **autorización** emitidos contra
@@ -36,5 +38,7 @@
     'license': 'propio',
     'application': False,
     'installable': True,
-    'auto_install': True,  # ninguna vista DRF resuelve sin el motor de capacidad
+    'auto_install': (
+        True
+    ),  # ninguna vista DRF resuelve sin el motor de capacidad
 }

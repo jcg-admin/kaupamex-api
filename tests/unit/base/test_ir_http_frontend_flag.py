@@ -9,6 +9,7 @@ lo estampa ``CompanyContextMiddleware.__call__`` y la promoción la hace su
 
 Sin base de datos: el mecanismo es puro objeto-petición + vista despachada.
 """
+
 from django.views.generic import View
 from rest_framework.views import APIView
 
@@ -36,7 +37,9 @@ def _middleware(capture):
 
 
 class _FrontendAPIView(APIView):
-    """Vista DRF que se declara de cara pública — ≙ ``@route(website=True)``."""
+    """
+    Vista DRF que se declara de cara pública — ≙ ``@route(website=True)``.
+    """
 
     is_frontend = True
 
@@ -58,7 +61,9 @@ class _FrontendGenericView(View):
 
 
 class TestDefaultStamp:
-    """El default lo pone ``__call__`` — el papel del post-init de la fuente."""
+    """
+    El default lo pone ``__call__`` — el papel del post-init de la fuente.
+    """
 
     def test_request_is_stamped_false_before_dispatch(self):
         capture = {}
@@ -77,12 +82,15 @@ class TestDefaultStamp:
 
 
 class TestProcessView:
-    """El estampado desde la declaración de la vista despachada — ≙ ``_match``."""
+    """
+    El estampado desde la declaración de la vista despachada — ≙ ``_match``.
+    """
 
     def _stamp(self, view_func):
         request = _Request()
         result = CompanyContextMiddleware(lambda req: 'ok').process_view(
-            request, view_func, (), {})
+            request, view_func, (), {}
+        )
         return request, result
 
     def test_drf_view_declaring_frontend_marks_the_request(self):
@@ -132,7 +140,9 @@ class TestProcessView:
 
 
 class TestEndToEndOrder:
-    """Default en ``__call__`` + promoción en ``process_view`` componen bien."""
+    """
+    Default en ``__call__`` + promoción en ``process_view`` componen bien.
+    """
 
     def test_default_then_promotion_inside_the_same_request(self):
         request = _Request()
@@ -144,7 +154,8 @@ class TestEndToEndOrder:
             # Simula el punto en que Django, con la URL ya resuelta, invoca
             # process_view antes de la vista — el orden real del handler.
             middleware_holder['mw'].process_view(
-                req, _FrontendAPIView.as_view(), (), {})
+                req, _FrontendAPIView.as_view(), (), {}
+            )
             seen['is_frontend'] = req.is_frontend
             return 'ok'
 

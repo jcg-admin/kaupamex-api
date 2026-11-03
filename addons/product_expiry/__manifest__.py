@@ -15,7 +15,7 @@
     # FEFO), así que nombra los dos.
     'depends': [
         'product',  # ProductTemplate — donde viven los días de caducidad
-        'stock',    # StockLot, StockQuant, StockMove — las fechas y FEFO
+        'stock',  # StockLot, StockQuant, StockMove — las fechas y FEFO
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

@@ -29,24 +29,39 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(max_length=150, verbose_name="Nombre")),
+                (
+                    "name",
+                    models.CharField(max_length=150, verbose_name="Nombre"),
+                ),
                 (
                     "parent_path",
                     models.CharField(
                         blank=True, db_index=True, default="", max_length=255
                     ),
                 ),
-                ("active", models.BooleanField(default=True, verbose_name="Activo")),
-                ("note", models.TextField(blank=True, default="", verbose_name="Nota")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activo"),
+                ),
+                (
+                    "note",
+                    models.TextField(
+                        blank=True, default="", verbose_name="Nota"
+                    ),
+                ),
                 (
                     "color",
-                    models.IntegerField(default=0, verbose_name="Índice de color"),
+                    models.IntegerField(
+                        default=0, verbose_name="Índice de color"
+                    ),
                 ),
                 (
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa dueña del departamento (Odoo company_id).",
+                        help_text=(
+                            "Empresa dueña del departamento (Odoo company_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="hr_departments",
@@ -87,12 +102,18 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(max_length=150, verbose_name="Puesto")),
+                (
+                    "name",
+                    models.CharField(max_length=150, verbose_name="Puesto"),
+                ),
                 (
                     "no_of_recruitment",
                     models.IntegerField(
                         default=1,
-                        help_text="Número de nuevos empleados que se espera reclutar.",
+                        help_text=(
+                            "Número de nuevos empleados que se espera"
+                            " reclutar."
+                        ),
                         verbose_name="Objetivo",
                     ),
                 ),
@@ -104,14 +125,21 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "requirements",
-                    models.TextField(blank=True, default="", verbose_name="Requisitos"),
+                    models.TextField(
+                        blank=True, default="", verbose_name="Requisitos"
+                    ),
                 ),
-                ("active", models.BooleanField(default=True, verbose_name="Activo")),
+                (
+                    "active",
+                    models.BooleanField(default=True, verbose_name="Activo"),
+                ),
                 (
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Empresa dueña del puesto (Odoo company_id).",
+                        help_text=(
+                            "Empresa dueña del puesto (Odoo company_id)."
+                        ),
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="hr_jobs",

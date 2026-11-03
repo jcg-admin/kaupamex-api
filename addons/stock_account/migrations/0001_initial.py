@@ -34,11 +34,16 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("standard", "Precio estándar"),
-                            ("fifo", "Primeras entradas, primeras salidas (FIFO)"),
+                            (
+                                "fifo",
+                                "Primeras entradas, primeras salidas (FIFO)",
+                            ),
                             ("average", "Costo promedio (AVCO)"),
                         ],
                         default="average",
-                        help_text="Método de costeo (Odoo property_cost_method).",
+                        help_text=(
+                            "Método de costeo (Odoo property_cost_method)."
+                        ),
                         max_length=16,
                     ),
                 ),
@@ -86,7 +91,10 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Cantidad valuada; negativa en salidas (Odoo quantity).",
+                        help_text=(
+                            "Cantidad valuada; negativa en salidas (Odoo"
+                            " quantity)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -95,7 +103,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=4,
                         default=Decimal("0.0000"),
-                        help_text="Valor unitario del movimiento (Odoo unit_cost).",
+                        help_text=(
+                            "Valor unitario del movimiento (Odoo unit_cost)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -104,7 +114,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Valor total; negativo en salidas (Odoo value).",
+                        help_text=(
+                            "Valor total; negativo en salidas (Odoo value)."
+                        ),
                         max_digits=14,
                     ),
                 ),
@@ -113,7 +125,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Saldo por consumir en FIFO (Odoo remaining_qty).",
+                        help_text=(
+                            "Saldo por consumir en FIFO (Odoo remaining_qty)."
+                        ),
                         max_digits=12,
                     ),
                 ),
@@ -122,7 +136,9 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         decimal_places=2,
                         default=Decimal("0.00"),
-                        help_text="Valor del saldo FIFO (Odoo remaining_value).",
+                        help_text=(
+                            "Valor del saldo FIFO (Odoo remaining_value)."
+                        ),
                         max_digits=14,
                     ),
                 ),

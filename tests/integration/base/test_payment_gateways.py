@@ -11,6 +11,7 @@ src/`` -> 0 hits; ``/api/v2/admin/gateways/`` no esta montado en
 intacta), con su cifrado Fernet de credenciales — eso es lo que este archivo
 cubre ahora.
 """
+
 import pytest
 
 from addons.payment.models import PaymentGateway
@@ -21,8 +22,12 @@ pytestmark = pytest.mark.integration
 class TestPaymentGatewayModel:
 
     def test_set_y_get_credentials_roundtrip(self, db):
-        gw = PaymentGateway.objects.create(gateway='MERCADOPAGO', name='MercadoPago', is_active=False)
-        gw.set_credentials({'access_token': 'TEST-VALID-abc123', 'public_key': 'pk-test'})
+        gw = PaymentGateway.objects.create(
+            gateway='MERCADOPAGO', name='MercadoPago', is_active=False
+        )
+        gw.set_credentials(
+            {'access_token': 'TEST-VALID-abc123', 'public_key': 'pk-test'}
+        )
         gw.save()
         gw.refresh_from_db()
         creds = gw.get_credentials()
@@ -30,8 +35,12 @@ class TestPaymentGatewayModel:
         assert creds['public_key'] == 'pk-test'
 
     def test_credentials_no_es_el_valor_en_claro(self, db):
-        gw = PaymentGateway.objects.create(gateway='PAYPAL', name='PayPal', is_active=False)
-        gw.set_credentials({'client_id': 'TEST-VALID-client', 'client_secret': 'supersecret'})
+        gw = PaymentGateway.objects.create(
+            gateway='PAYPAL', name='PayPal', is_active=False
+        )
+        gw.set_credentials(
+            {'client_id': 'TEST-VALID-client', 'client_secret': 'supersecret'}
+        )
         gw.save()
         assert 'supersecret' not in str(gw.credentials)  # BinaryField
 
@@ -43,5 +52,7 @@ class TestPaymentGatewayModel:
         assert masked['access_token'].endswith('EFGH')
 
     def test_get_credentials_sin_datos_retorna_dict_vacio(self, db):
-        gw = PaymentGateway(gateway='MERCADOPAGO', name='MercadoPago', credentials=b'')
+        gw = PaymentGateway(
+            gateway='MERCADOPAGO', name='MercadoPago', credentials=b''
+        )
         assert gw.get_credentials() == {}

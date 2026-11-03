@@ -8,7 +8,8 @@ la re-exporta como el namespace ``api``.
 
 Django no tiene el motor de dependencias del ORM de Odoo: el cómputo se ejecuta
 en ``save()`` y la validación en ``clean()``. Estos decoradores **no cambian el
-comportamiento** (devuelven la función tal cual) y anotan el metadato ``_odoo_*``
+comportamiento** (devuelven la función tal cual) y anotan el metadato
+``_odoo_*``
 con los campos declarados; permiten conservar el decorador sobre el método
 portado para expresar la intención Odoo — el ``save()``/``clean()`` del modelo
 es quien realmente los llama.
@@ -18,8 +19,16 @@ import collections.abc
 import functools
 
 __all__ = [
-    'attrsetter', 'depends', 'depends_context', 'constrains', 'onchange',
-    'ondelete', 'model', 'model_create_multi', 'returns', 'autovacuum',
+    'attrsetter',
+    'depends',
+    'depends_context',
+    'constrains',
+    'onchange',
+    'ondelete',
+    'model',
+    'model_create_multi',
+    'returns',
+    'autovacuum',
 ]
 
 
@@ -34,6 +43,7 @@ def attrsetter(attr, value):
     apilados sobre el mismo método dejan las dos marcas, porque el de dentro
     entrega al de fuera lo mismo que recibió.
     """
+
     def setter(method):
         setattr(method, attr, value)
         return method
@@ -61,13 +71,16 @@ def depends(*args):
     callable(deps) else deps``.
 
     **La guarda de ``id``** reparte por ``split('.')``, no por subcadena: cae
-    ``'partner_id.id'`` y no cae ``'partner_id'``. Un ``'id' in arg`` rechazaría
+    ``'partner_id.id'`` y no cae ``'partner_id'``. Un ``'id' in arg``
+    rechazaría
     los dos.
     """
     if args and callable(args[0]):
         args = args[0]
     elif any('id' in arg.split('.') for arg in args):
-        raise NotImplementedError("Compute method cannot depend on field 'id'.")
+        raise NotImplementedError(
+            "Compute method cannot depend on field 'id'."
+        )
     return attrsetter('_depends', args)
 
 
@@ -156,13 +169,17 @@ def ondelete(*, at_uninstall):
 
 
 def _mark(method, attr):
-    """Deja ``attr`` en la función, atravesando ``classmethod``/``staticmethod``.
+    """
+    Deja ``attr`` en la función, atravesando ``classmethod``/``staticmethod``.
 
     Un objeto ``classmethod`` no admite atributos arbitrarios, pero su
-    ``__func__`` sí — y ``getattr`` sobre el método ligado delega en él, así que
+    ``__func__`` sí — y ``getattr`` sobre el método ligado delega en él, así
+    que
     el marcador se lee igual desde la clase. Hace falta porque en este árbol un
-    método de nivel de modelo se escribe ``@api.model`` sobre un ``classmethod``
-    (``addons/product/models/product_template.py:400``), forma que la referencia
+    método de nivel de modelo se escribe ``@api.model`` sobre un
+    ``classmethod``
+    (``addons/product/models/product_template.py:400``), forma que la
+    referencia
     no tiene.
 
     El cuerpo es :func:`attrsetter` con el valor fijo en ``True``; lo único
@@ -175,9 +192,11 @@ def _mark(method, attr):
 
 
 def model(method):
-    """≙ ``odoo19c: odoo/orm/decorators.py:313`` — ``method._api_model = True``.
+    """
+    ≙ ``odoo19c: odoo/orm/decorators.py:313`` — ``method._api_model = True``.
 
-    Marca el método como de **nivel de modelo**: opera sobre el modelo, no sobre
+    Marca el método como de **nivel de modelo**: opera sobre el modelo, no
+    sobre
     registros concretos. El dispatcher ``/json/2`` lo lee para rechazar con 422
     una llamada que además traiga ``ids``.
 
@@ -199,7 +218,8 @@ def model_create_multi(method):
     Dos adaptaciones, declaradas:
 
     - **Se apila bajo o sobre ``classmethod``.** La fuente decora un método de
-      instancia; aquí ``create`` es ``classmethod`` (``DefaultGetMixin.create``)
+      instancia; aquí ``create`` es ``classmethod``
+      (``DefaultGetMixin.create``)
       y el árbol escribe el decorador en los dos órdenes. Si llega un objeto
       ``classmethod`` se envuelve su ``__func__`` y se devuelve otro
       ``classmethod``; si llega la función, se devuelve la función.
@@ -224,6 +244,7 @@ def model_create_multi(method):
 def returns(*args, **kwargs):
     def deco(func):
         return func
+
     return deco
 
 

@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="fiscalyear_last_day",
             field=models.IntegerField(
                 default=31,
-                help_text="Día del mes en que cierra el ejercicio fiscal de esta compañía (Odoo fiscalyear_last_day).",
+                help_text=(
+                    "Día del mes en que cierra el ejercicio fiscal de esta"
+                    " compañía (Odoo fiscalyear_last_day)."
+                ),
                 verbose_name="Último día del ejercicio fiscal",
             ),
         ),
@@ -38,7 +41,10 @@ class Migration(migrations.Migration):
                     ("12", "December"),
                 ],
                 default="12",
-                help_text="Mes en que cierra el ejercicio fiscal de esta compañía (Odoo fiscalyear_last_month).",
+                help_text=(
+                    "Mes en que cierra el ejercicio fiscal de esta compañía"
+                    " (Odoo fiscalyear_last_month)."
+                ),
                 max_length=2,
                 verbose_name="Último mes del ejercicio fiscal",
             ),

@@ -1,0 +1,28 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input": [
+    {
+      "id": "TASK-API-0305.prefix_compute_contract",
+      "taskId": "TASK-API-0305",
+      "prompt": "Restore prefix_placeholder assignment-compute contract and qualify unsaved record cache isolation using existing field identity mechanism",
+      "verify": "Actual analytic field metadata and descriptor read with SQL prohibited, source account selection mocked explicitly, distinct new records, negative no-assignment callback; exact candidate verified separately",
+      "route": "local",
+      "owned": [
+        "addons/account/models/account_analytic_distribution_model.py",
+        "src/orm/fields.py",
+        "tests/unit/account/test_analytic_prefix_compute_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "selected": [
+    "TASK-API-0305.prefix_compute_contract"
+  ],
+  "claims_count": 600,
+  "native_task_evidence": "integral-native-owner-assignment.json;0305native520in_progressVM-b501,0397native1167in_progressVM-b501",
+  "functional_dependencies": "Actual analytic model, AccountAccount read selection, existing compute dispatcher, FieldDescriptor and NewId helper exist. No schema or full loader acceptance needed for the bounded no-SQL descriptor contract.",
+  "related_owned_task": "TASK-API-0397 owns root record identity/cache part; no full BaseModel acceptance inferred",
+  "managed_inference": false
+}

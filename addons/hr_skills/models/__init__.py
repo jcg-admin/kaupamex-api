@@ -12,6 +12,7 @@ NO se importan aquí — van por ``apps.py.ready()`` vía ``importlib`` (mismo
 patrón que ``addons/hr/models/__init__.py``, que tampoco importa sus propias
 extensiones ``res_company.py``/``res_partner.py``/``resource.py``/etc.).
 """
+
 from .hr_skill_type import HrSkillType
 from .hr_skill import HrSkill
 from .hr_skill_level import HrSkillLevel
@@ -22,6 +23,12 @@ from .hr_employee_skill import HrEmployeeSkill
 from .hr_job_skill import HrJobSkill
 
 __all__ = [
-    'HrEmployeeSkill', 'HrIndividualSkillMixin', 'HrJobSkill', 'HrResumeLine',
-    'HrResumeLineType', 'HrSkill', 'HrSkillLevel', 'HrSkillType',
+    'HrEmployeeSkill',
+    'HrIndividualSkillMixin',
+    'HrJobSkill',
+    'HrResumeLine',
+    'HrResumeLineType',
+    'HrSkill',
+    'HrSkillLevel',
+    'HrSkillType',
 ]

@@ -32,6 +32,7 @@ presencia de ``__set__`` en el descriptor de clase.
 un modelo que no declare ``_name`` — ahí cae a la etiqueta de Django, que es
 divergencia declarada en el propio ``fields.py``, no un defecto de este caso.
 """
+
 import pytest
 from django.apps import apps
 from django.db import models
@@ -81,7 +82,9 @@ class TestTheNameIsWritableAsTheSourceDeclaresIt:
 class TestTheDerivationSurvives:
     """La mitad que NO se retira: sin ella un ``ForeignKey`` daría ``None``."""
 
-    def test_a_relational_field_without_a_value_derives_its_comodel(self, bank):
+    def test_a_relational_field_without_a_value_derives_its_comodel(
+        self, bank
+    ):
         field = bank._meta.get_field('country')
 
         assert 'comodel_name' not in field.__dict__

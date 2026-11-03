@@ -14,6 +14,7 @@ inyectar métodos en el modelo de otra app, así que el archivo conserva el
   funciones de este archivo, que el flujo de cambio de contraseña de cuenta
   (``account.password``) invoca antes de tocar el password local.
 """
+
 import logging
 
 from addons.authz_ldap.models.res_company_ldap import CompanyLdap
@@ -36,7 +37,8 @@ def change_password(user, old_passwd, new_passwd):
     if new_passwd:
         for conf in CompanyLdap.objects._get_ldap_dicts():
             changed = CompanyLdap._change_password(
-                conf, user.login, old_passwd, new_passwd)
+                conf, user.login, old_passwd, new_passwd
+            )
             if changed:
                 _set_empty_password(user)
                 return True

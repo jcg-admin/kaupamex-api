@@ -24,6 +24,7 @@ Porte símbolo por símbolo — 4 de 4 campos
    * - ``active`` (``:15``)
      - portado
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -40,12 +41,17 @@ class HrApplicantRefuseReason(TimeStampedModel):
     sequence = fields.Integer(default=10)
     name = fields.Char(verbose_name='Descripción')
     template = fields.Many2one(
-        'mail.MailTemplate', on_delete=models.SET_NULL, null=True, blank=True,
+        'mail.MailTemplate',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='hr_applicant_refuse_reasons',
         verbose_name='Plantilla de correo',
-        help_text='Odoo template_id: plantilla usada al notificar el rechazo '
-                  '(domain hr.applicant filtrado en la capa de formulario, '
-                  'no aquí).',
+        help_text=(
+            'Odoo template_id: plantilla usada al notificar el rechazo '
+            '(domain hr.applicant filtrado en la capa de formulario, '
+            'no aquí).'
+        ),
     )
     active = fields.Boolean(default=True, verbose_name='Activo')
 

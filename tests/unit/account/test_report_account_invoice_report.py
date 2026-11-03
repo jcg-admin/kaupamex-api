@@ -14,6 +14,7 @@ La forma del SQL que los cuatro productores emiten se mide en
 (atributos de clase, ``Meta``, campos) y que el bloqueo restante siga siendo
 ruidoso.
 """
+
 import pytest
 
 from addons.base.models.res_company import ResCompany
@@ -56,8 +57,13 @@ class TestModelClassAttributes:
 
     def test_depends_covers_the_same_models_as_the_source(self):
         expected_models = {
-            'account.move', 'account.move.line', 'product.product',
-            'product.template', 'uom.uom', 'res.currency.rate', 'res.partner',
+            'account.move',
+            'account.move.line',
+            'product.product',
+            'product.template',
+            'uom.uom',
+            'res.currency.rate',
+            'res.partner',
         }
         assert set(AccountInvoiceReport._depends) == expected_models
 
@@ -80,16 +86,37 @@ class TestFieldCount:
 
     def test_has_all_27_reference_fields(self):
         expected_field_names = {
-            'move_id', 'journal_id', 'company_id', 'company_currency_id',
-            'partner_id', 'commercial_partner_id', 'country_id',
-            'invoice_user_id', 'move_type', 'state', 'payment_state',
-            'fiscal_position_id', 'invoice_date', 'quantity', 'product_id',
-            'product_uom_id', 'product_categ_id', 'invoice_date_due',
-            'account_id', 'price_subtotal_currency', 'price_subtotal',
-            'price_total', 'price_total_currency', 'price_average',
-            'price_margin', 'inventory_value', 'currency_id',
+            'move_id',
+            'journal_id',
+            'company_id',
+            'company_currency_id',
+            'partner_id',
+            'commercial_partner_id',
+            'country_id',
+            'invoice_user_id',
+            'move_type',
+            'state',
+            'payment_state',
+            'fiscal_position_id',
+            'invoice_date',
+            'quantity',
+            'product_id',
+            'product_uom_id',
+            'product_categ_id',
+            'invoice_date_due',
+            'account_id',
+            'price_subtotal_currency',
+            'price_subtotal',
+            'price_total',
+            'price_total_currency',
+            'price_average',
+            'price_margin',
+            'inventory_value',
+            'currency_id',
         }
-        actual_field_names = {f.name for f in AccountInvoiceReport._meta.get_fields()}
+        actual_field_names = {
+            f.name for f in AccountInvoiceReport._meta.get_fields()
+        }
         assert expected_field_names <= actual_field_names
         assert len(expected_field_names) == 27
 
@@ -99,7 +126,10 @@ class TestMoveTypeChoices:
 
     def test_has_exactly_the_four_invoice_move_types(self):
         assert [key for key, _ in MOVE_TYPE_CHOICES] == [
-            'out_invoice', 'in_invoice', 'out_refund', 'in_refund',
+            'out_invoice',
+            'in_invoice',
+            'out_refund',
+            'in_refund',
         ]
 
     def test_labels_come_from_account_move_verbatim(self):
@@ -139,15 +169,20 @@ class TestBlockedQueryMethods:
 
     def test_the_four_sql_producers_no_longer_raise(self, db):
         company = ResCompany.objects.create(
-            code='air-desbloqueo', name='Desbloqueo',
+            code='air-desbloqueo',
+            name='Desbloqueo',
             currency=ResCurrency.objects.get_or_create(
-                name='MXN', defaults={'symbol': '$'})[0])
+                name='MXN', defaults={'symbol': '$'}
+            )[0],
+        )
         with company_scope(company.pk):
             report = AccountInvoiceReport()
-            for produced in (AccountInvoiceReport._select(),
-                             AccountInvoiceReport._from(),
-                             AccountInvoiceReport._where(),
-                             report._table_query):
+            for produced in (
+                AccountInvoiceReport._select(),
+                AccountInvoiceReport._from(),
+                AccountInvoiceReport._where(),
+                report._table_query,
+            ):
                 assert isinstance(produced, SQL)
                 assert produced.code.strip()
 
@@ -162,7 +197,6 @@ class TestBlockedQueryMethods:
         assert '_field_to_sql si existe' in mensaje
 
 
-
 class TestReportAccountReportInvoice:
     """El ensamblador de ``doc_ids``/``doc_model``/``docs`` -- portado y
     funcional. Los codigos QR se prueban aparte (dependen de la base para
@@ -170,22 +204,31 @@ class TestReportAccountReportInvoice:
     """
 
     def test_report_name(self):
-        assert ReportAccountReportInvoice.REPORT_NAME == 'account.report_invoice'
+        assert (
+            ReportAccountReportInvoice.REPORT_NAME == 'account.report_invoice'
+        )
 
     def test_qr_code_urls_is_a_noop_for_an_empty_docs_collection(self):
-        assert ReportAccountReportInvoice._qr_code_urls(docs=[], data=None) == {}
+        assert (
+            ReportAccountReportInvoice._qr_code_urls(docs=[], data=None) == {}
+        )
 
     def test_qr_code_urls_raises_loudly_for_a_non_empty_collection(self):
         with pytest.raises(NotImplementedError) as excinfo:
-            ReportAccountReportInvoice._qr_code_urls(docs=[object()], data=None)
+            ReportAccountReportInvoice._qr_code_urls(
+                docs=[object()], data=None
+            )
         assert 'display_qr_code' in str(excinfo.value)
 
 
 class TestReportAccountReportInvoiceWithPayments:
     def test_report_name(self):
-        assert (ReportAccountReportInvoiceWithPayments.REPORT_NAME
-                == 'account.report_invoice_with_payments')
+        assert (
+            ReportAccountReportInvoiceWithPayments.REPORT_NAME
+            == 'account.report_invoice_with_payments'
+        )
 
     def test_inherits_from_the_base_report(self):
         assert issubclass(
-            ReportAccountReportInvoiceWithPayments, ReportAccountReportInvoice)
+            ReportAccountReportInvoiceWithPayments, ReportAccountReportInvoice
+        )

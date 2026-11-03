@@ -29,7 +29,8 @@ Porte símbolo por símbolo — 6 de 10, 4 BLOQUEADOS
 Divergencias y bloqueos declarados
 =====================================
 
-1. **``job_id.company_id.alias_domain_id`` / ``self.env.company.alias_domain_id``
+1. **``job_id.company_id.alias_domain_id`` /
+   ``self.env.company.alias_domain_id``
    no existen.** Medido: ``grep -rn "alias_domain" src/addons/base/models/
    res_company.py`` → 0 hits — ``base.ResCompany`` no tiene la columna que la
    referencia agrega vía ``mail: models/res_company.py`` (``_inherit =
@@ -46,6 +47,7 @@ Divergencias y bloqueos declarados
    porte ``res_company.py`` (alias_domain_id) y ``base`` complete
    ``IrModel``, este archivo se completa con las tres piezas.
 """
+
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -55,8 +57,11 @@ from addons.utm.models.utm_source import UtmSourceMixin
 
 
 def _default_medium():
-    """≙ ``default=lambda self: self.env['utm.medium']._fetch_or_create_utm_medium('website')``
-    (``odoo19c: hr_recruitment_source.py:15``). ``default=`` no acepta lambda."""
+    """
+    ≙ ``default=lambda self:
+    self.env['utm.medium']._fetch_or_create_utm_medium('website')``
+    (``odoo19c: hr_recruitment_source.py:15``). ``default=`` no acepta lambda.
+    """
     return UtmMedium._fetch_or_create_utm_medium('website').pk
 
 
@@ -68,21 +73,38 @@ class HrRecruitmentSource(UtmSourceMixin, TimeStampedModel):
     _description = 'Source of Applicants'
 
     job = fields.Many2one(
-        'hr.HrJob', on_delete=models.CASCADE, null=True, blank=True,
-        db_index=True, related_name='recruitment_sources',
+        'hr.HrJob',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
+        related_name='recruitment_sources',
         verbose_name='Puesto',
     )
     alias = fields.Many2one(
-        'mail.MailAlias', on_delete=models.PROTECT, null=True, blank=True,
-        related_name='recruitment_sources', verbose_name='Alias de correo',
+        'mail.MailAlias',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='recruitment_sources',
+        verbose_name='Alias de correo',
     )
     medium = fields.Many2one(
-        'utm.UtmMedium', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', default=_default_medium, verbose_name='Medio',
+        'utm.UtmMedium',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        default=_default_medium,
+        verbose_name='Medio',
     )
     campaign = fields.Many2one(
-        'utm.UtmCampaign', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', verbose_name='Campaña',
+        'utm.UtmCampaign',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        verbose_name='Campaña',
     )
 
     class Meta:

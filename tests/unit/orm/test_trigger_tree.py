@@ -26,6 +26,7 @@ La clave del arbol es un ``Field``, pero **la anotacion no crea dependencia**:
 la clase es un ``dict`` y no invoca nada del campo. Por eso se porta sin
 esperar a ``Field``, que es el ciclo duro de siete que #217 midio.
 """
+
 import pytest
 
 from orm.registry import DummyRLock, TriggerTree
@@ -114,7 +115,9 @@ class TestTheTreeOfTheDocstring:
         root, f = tree
         visited = list(root.depth_first())
         assert visited.index(root) < visited.index(root[f['X']])
-        assert visited.index(root[f['X']]) < visited.index(root[f['X']][f['W']])
+        assert visited.index(root[f['X']]) < visited.index(
+            root[f['X']][f['W']]
+        )
 
 
 class TestMerging:
@@ -141,7 +144,8 @@ class TestMerging:
     def test_select_discards_the_fields_it_rejects(self):
         keep, drop = _Field('keep'), _Field('drop', keep=False)
         merged = TriggerTree.merge(
-            [TriggerTree([keep, drop])], select=lambda field: field.keep)
+            [TriggerTree([keep, drop])], select=lambda field: field.keep
+        )
         assert list(merged.root) == [keep]
 
     def test_a_subtree_left_empty_by_select_is_not_kept(self):
@@ -221,7 +225,8 @@ class TestTheKeyIsOnlyAKey:
         assert set(merged[key].root) == {first, second}
 
     def test_only_the_select_predicate_reads_the_field(self):
-        """El control del control: si el predicado lee, el error es del predicado.
+        """
+        El control del control: si el predicado lee, el error es del predicado.
 
         Un ``select`` que lea la clave SI levanta — y eso demuestra que la
         sonda funciona, no que el arbol lea. La distincion es la que separa

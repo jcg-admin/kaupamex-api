@@ -9,6 +9,7 @@ cuelga propiedades/métodos sobre un modelo ajeno (``setattr``/
 nunca desde este ``__init__``, para no depender del orden de
 ``INSTALLED_APPS`` ni arriesgar ``AppRegistryNotReady``.
 """
+
 from .links import (
     AccountMoveTransactionLink,
     AccountPaymentMethodLineProvider,

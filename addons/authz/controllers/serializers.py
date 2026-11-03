@@ -14,6 +14,7 @@ El **payload no cambia** con la mudanza: los nombres públicos ``label`` /
 ``web_icon`` / ``sequence``. Renombrar el contrato que consume el SPA es una
 decisión aparte de adaptar el modelo, y no se toma de rebote.
 """
+
 from rest_framework import serializers
 
 
@@ -30,7 +31,9 @@ class MenuNodeSerializer(serializers.Serializer):
     icon = serializers.CharField(source='web_icon', read_only=True)
     order = serializers.IntegerField(source='sequence', read_only=True)
     capability = serializers.CharField(
-        source='group.code', default=None, read_only=True,
+        source='group.code',
+        default=None,
+        read_only=True,
     )
     children = serializers.SerializerMethodField()
 

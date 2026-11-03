@@ -1,0 +1,12 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_django_native_clone_is_positive_control (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_django_native_clone_is_positive_control) ... ok
+test_foreign_key_preserves_target_policy_and_fresh_relation (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_foreign_key_preserves_target_policy_and_fresh_relation) ... ok
+test_last_foreign_key_target_wins (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_last_foreign_key_target_wins) ... ok
+test_many_to_many_preserves_constructor_arguments (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_many_to_many_preserves_constructor_arguments) ... ok
+test_real_model_mro_is_reachable_before_nonstored_removal (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_real_model_mro_is_reachable_before_nonstored_removal) ... ok
+test_scalar_declared_overrides_remain_intact (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_scalar_declared_overrides_remain_intact) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.003s
+
+OK

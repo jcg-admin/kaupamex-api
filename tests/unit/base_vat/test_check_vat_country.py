@@ -11,6 +11,7 @@ escribirlos. El de México es el ejemplo de por qué — la fuente valida
 **formato y fecha**, no el dígito verificador (``odoo19c: :533-553``), así que
 un par que cambiara el último carácter habría pasado en los dos lados.
 """
+
 import pytest
 
 from addons.base_vat.models import res_partner as vat
@@ -20,24 +21,36 @@ pytestmark = pytest.mark.django_db
 
 # --- Los validadores propios: ganan sobre stdnum -------------------------
 
-@pytest.mark.parametrize('checker, valid, invalid, reason', [
-    (vat.check_vat_mx, 'AAA010101AAA', 'AAA011301AAA', 'mes 13 no es fecha'),
-    (vat.check_vat_ie, '1234567FA', '1234567FB', 'carácter de control'),
-    (vat.check_vat_ru, '7830002293', '783000229', 'longitud del INN'),
-    (vat.check_vat_gr, '123456783', '123456780', 'dígito verificador'),
-    (vat.check_vat_de, '136695976', '136695970', 'dígito verificador'),
-])
+
+@pytest.mark.parametrize(
+    'checker, valid, invalid, reason',
+    [
+        (
+            vat.check_vat_mx,
+            'AAA010101AAA',
+            'AAA011301AAA',
+            'mes 13 no es fecha',
+        ),
+        (vat.check_vat_ie, '1234567FA', '1234567FB', 'carácter de control'),
+        (vat.check_vat_ru, '7830002293', '783000229', 'longitud del INN'),
+        (vat.check_vat_gr, '123456783', '123456780', 'dígito verificador'),
+        (vat.check_vat_de, '136695976', '136695970', 'dígito verificador'),
+    ],
+)
 def test_country_checker_discriminates(checker, valid, invalid, reason):
     """El validador acepta el bien formado y rechaza el corrupto."""
     assert checker(None, valid), f'{valid} debía ser válido ({reason})'
     assert not checker(None, invalid), f'{invalid} debía fallar por {reason}'
 
 
-@pytest.mark.parametrize('numero', [
-    'AAA011301AAA',   # mes 13
-    'AAA010230AAA',   # 30 de febrero
-    'AA010101AAA',    # tres letras de persona moral, no dos
-])
+@pytest.mark.parametrize(
+    'numero',
+    [
+        'AAA011301AAA',  # mes 13
+        'AAA010230AAA',  # 30 de febrero
+        'AA010101AAA',  # tres letras de persona moral, no dos
+    ],
+)
 def test_check_vat_mx_rejects_impossible_dates_and_shapes(numero):
     """≙ ``check_vat_mx`` (``odoo19c: :533-553``) — formato **y** fecha.
 
@@ -60,6 +73,7 @@ def test_check_vat_mx_maps_two_digit_year_across_the_century():
 
 # --- El despachador ------------------------------------------------------
 
+
 def test_dispatcher_prefers_our_own_checker_over_stdnum():
     """≙ ``_check_vat_number`` (``odoo19c: :927-934``).
 
@@ -68,12 +82,15 @@ def test_dispatcher_prefers_our_own_checker_over_stdnum():
     que responde ``False`` **siempre**: si el despachador consultara ``stdnum``
     primero, el RFC bien formado saldría válido y el caso fallaría.
     """
+
     class PartnerWithAlwaysFalse:
         @staticmethod
         def check_vat_mx(number):
             return False
 
-    assert not vat._check_vat_number(PartnerWithAlwaysFalse(), 'MX', 'AAA010101AAA')
+    assert not vat._check_vat_number(
+        PartnerWithAlwaysFalse(), 'MX', 'AAA010101AAA'
+    )
     # y sin el propio, el mismo número lo resuelve la ruta de stdnum
     assert vat._check_vat_number(object(), 'MX', 'AAA010101AAA')
 
@@ -99,12 +116,17 @@ def test_dispatcher_returns_true_for_country_without_rules():
 
 # --- _split_vat ----------------------------------------------------------
 
-@pytest.mark.parametrize('value, expected', [
-    ('MXAAA010101AAA', ('MX', 'AAA010101AAA')),
-    ('be0477472701', ('BE', '0477472701')),   # normaliza el prefijo a mayúscula
-    ('BE 0477 472 701', ('BE', '0477472701')),   # y quita los espacios
-    ('12345678', ('', '12345678')),           # prefijo no alfabético: sin país
-])
+
+@pytest.mark.parametrize(
+    'value, expected',
+    [
+        ('MXAAA010101AAA', ('MX', 'AAA010101AAA')),
+        # normaliza el prefijo a mayúscula
+        ('be0477472701', ('BE', '0477472701')),
+        ('BE 0477 472 701', ('BE', '0477472701')),  # y quita los espacios
+        ('12345678', ('', '12345678')),  # prefijo no alfabético: sin país
+    ],
+)
 def test_split_vat(value, expected):
     """≙ ``_split_vat`` (``odoo19c: :214-219``)."""
     assert vat._split_vat(object(), value) == expected

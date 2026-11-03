@@ -1,0 +1,15 @@
+{
+  "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+  "result": "PASS",
+  "proof": [
+    {
+      "path": "addons/sale/migrations/0013_align_report_template_type.py",
+      "executable_ast_unchanged": true
+    },
+    {
+      "path": "addons/sale_stock/migrations/0004_align_report_template_type.py",
+      "executable_ast_unchanged": true
+    }
+  ],
+  "scope": "Explicaciones en espa\u00f1ol de M\u00e9xico; sin cambio ejecutable"
+}

@@ -14,9 +14,9 @@
     # declara igual, por fidelidad al encuadre de la referencia: sin `account`
     # este addon no tiene razón de existir.
     'depends': [
-        'base',     # ResCompany — la política de valoración es por empresa
+        'base',  # ResCompany — la política de valoración es por empresa
         'product',  # ProductCategory — donde vive el método de coste
-        'stock',    # StockMove, StockQuant — lo que se valora
+        'stock',  # StockMove, StockQuant — lo que se valora
         'account',  # AccountMove — el destino del asiento de valoración
     ],
     'author': 'Odoo S.A.',

@@ -4,6 +4,7 @@ Adaptación fiel de Odoo ``crm/models/crm_lost_reason.py``
 (``crm.lost.reason``): motivo por el que una oportunidad se pierde. Se portan
 los tres campos y los dos métodos que la referencia declara.
 """
+
 from django.db.models import Count
 import fields
 import models
@@ -19,12 +20,14 @@ class CrmLostReason(TimeStampedModel):
     _description = 'Opp. Lost Reason'
 
     # Odoo name (crm_lost_reason.py:11, required, translate).
-    name   = fields.Char(
-        max_length=255, help_text='Descripción del motivo (Odoo name).',
+    name = fields.Char(
+        max_length=255,
+        help_text='Descripción del motivo (Odoo name).',
     )
     # Odoo active (crm_lost_reason.py:12, default True).
     active = fields.Boolean(
-        default=True, help_text='Archivar sin borrar (Odoo active).',
+        default=True,
+        help_text='Archivar sin borrar (Odoo active).',
     )
 
     class Meta:
@@ -60,9 +63,11 @@ class CrmLostReason(TimeStampedModel):
         # no-lazy-imports (misma resolución sancionada que su excepción #4)
         # y rompe el ciclo real crm_lost_reason -> crm_lead -> crm_lost_reason.
         CrmLead = models.apps.get_model('crm', 'CrmLead')
-        grouped = dict(CrmLead.objects.filter(lost_reason_id__in=ids)
-                     .values_list('lost_reason_id')
-                     .annotate(n=Count('pk')))
+        grouped = dict(
+            CrmLead.objects.filter(lost_reason_id__in=ids)
+            .values_list('lost_reason_id')
+            .annotate(n=Count('pk'))
+        )
         return {i: grouped.get(i, 0) for i in ids}
 
     def action_lost_leads(self):

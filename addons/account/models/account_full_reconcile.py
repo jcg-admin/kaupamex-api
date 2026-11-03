@@ -1,4 +1,5 @@
-"""``account.full.reconcile`` — número de conciliación total (Odoo ``account``).
+"""
+``account.full.reconcile`` — número de conciliación total (Odoo ``account``).
 
 Adaptación de Odoo ``addons/account/models/account_full_reconcile.py``
 (odoo-tools@622ddc2a, odoo19c:, LGPL-3) — atribución y aviso de licencia
@@ -17,9 +18,12 @@ usa ``QuerySet.update()`` — mismo efecto observable, sin la optimización de
 bulk SQL (no es comportamiento, es implementación; ver divergencia #5 de
 ``account_partial_reconcile.py``).
 """
+
 import models
 from addons.account.models.account_move_line import AccountMoveLine
-from addons.account.models.account_partial_reconcile import AccountPartialReconcile
+from addons.account.models.account_partial_reconcile import (
+    AccountPartialReconcile,
+)
 
 
 class AccountFullReconcile(models.Model):
@@ -45,9 +49,12 @@ class AccountFullReconcile(models.Model):
         que lee ``full_reconcile_id`` de las líneas del grupo).
         """
         full = cls.objects.create()
-        line_ids = set(partials.values_list('debit_move', flat=True)) | \
-            set(partials.values_list('credit_move', flat=True))
-        AccountMoveLine.objects.filter(pk__in=line_ids).update(full_reconcile=full)
+        line_ids = set(partials.values_list('debit_move', flat=True)) | set(
+            partials.values_list('credit_move', flat=True)
+        )
+        AccountMoveLine.objects.filter(pk__in=line_ids).update(
+            full_reconcile=full
+        )
         partials.update(full_reconcile=full)
         AccountPartialReconcile._update_matching_number(
             AccountMoveLine.objects.filter(pk__in=line_ids)

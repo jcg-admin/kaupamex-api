@@ -1,0 +1,16 @@
+[
+  {
+    "path": "src/orm/environments.py",
+    "before_sha256": "254ef0348b6fa118e5962150662fb69bb7fab6baeb2959d2593e692546460446",
+    "after_sha256": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "ast_equal": true,
+    "scope": "Only diagnostics introduced/invalidated in record-env-binding-admission.json; comments/blank lines"
+  },
+  {
+    "path": "src/orm/fields.py",
+    "before_sha256": "026c98496313bce95126f98c81f2186b6dc8c5279743613e4d18bae6bfb22ce0",
+    "after_sha256": "7f8cd2489cca4e0e2cf6de6fa8c56f4b10f686fb59a41772d93d128e8495619e",
+    "ast_equal": true,
+    "scope": "Only diagnostics introduced/invalidated in record-env-binding-admission.json; comments/blank lines"
+  }
+]
