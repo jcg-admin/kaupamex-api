@@ -122,6 +122,11 @@ def typed_symbols(path):
     """Los registros del censo hermano con el tipo ``property`` separado."""
     records = []
     for record in _census.declared_symbols(path):
+        if any(d in ('overload', 'typing.overload') for d in record['decorators']):
+            # Una sobrecarga de tipado declara una firma, no un cuerpo: el
+            # contrato es la definicion que la sigue. Contarla duplicaba
+            # ``mapped``, ``grouped`` y ``__getitem__``.
+            continue
         record = dict(record)
         if record['kind'] == 'method' and _is_property(record):
             record['kind'] = 'property'

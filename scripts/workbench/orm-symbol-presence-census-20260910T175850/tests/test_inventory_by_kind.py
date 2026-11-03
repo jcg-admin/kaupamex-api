@@ -11,12 +11,18 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import inventory_by_kind as inv  # noqa: E402
 
 REFERENCE = '''
+import typing
+
+
 class Field:
     type = 'base'
     store = True
 
     def setup(self, model):
         return model
+
+    @typing.overload
+    def convert(self, value: int, record) -> int: ...
 
     def convert(self, value, record):
         return value
@@ -134,3 +140,10 @@ def test_categories_are_exclusive_and_sum(tmp_path, monkeypatch):
     counts = inv.table([('rev', m, q, k, c, '') for (m, q, k), c in rows.items()])
     for kind in inv.KINDS:
         assert set(counts[kind]) <= set(inv.CATEGORIES)
+
+
+def test_a_typing_overload_is_not_another_obligation(tmp_path, monkeypatch):
+    reference = tmp_path / 'ref' / 'fields.py'
+    rows = _rows(tmp_path, monkeypatch)
+    assert [k for k in rows if k[1] == 'Field.convert'] == [('fields.py', 'Field.convert', 'method')]
+    assert sum(1 for r in inv.typed_symbols(reference) if r['name'] == 'convert') == 1
