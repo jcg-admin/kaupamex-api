@@ -241,3 +241,9 @@ src/tools/mimetypes.py	_odoo_guess_mimetype	function	tests/unit/tools/test_mimet
 src/tools/mimetypes.py	neuter_mimetype	function	tests/unit/tools/test_mimetypes_discriminants.py::test_neuter_mimetype_degrades_markup_unless_system
 src/tools/mimetypes.py	get_extension	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_get_extension
 src/tools/mimetypes.py	fix_filename_extension	function	tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_fix_extension
+src/tools/xml_utils.py	remove_control_characters	function	tests/unit/tools/test_xml_utils.py::test_remove_control_characters_keeps_tab_newline_and_text
+src/tools/xml_utils.py	create_xml_node_chain	function	tests/unit/tools/test_xml_utils.py::test_create_xml_node_chain_nests_and_sets_the_last_text
+src/tools/xml_utils.py	create_xml_node	function	tests/unit/tools/test_xml_utils.py::test_create_xml_node_chain_nests_and_sets_the_last_text
+src/tools/xml_utils.py	cleanup_xml_node	function	tests/unit/tools/test_xml_utils.py::test_cleanup_xml_node_drops_blank_leaves_and_indents
+src/tools/xml_utils.py	find_xml_value	function	tests/unit/tools/test_xml_utils.py::test_find_xml_value_returns_the_first_text_or_none
+src/tools/xml_utils.py	_check_with_xsd	function	tests/unit/tools/test_xml_utils.py::test_check_with_xsd_raises_user_error_with_the_schema_log

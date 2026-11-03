@@ -6,8 +6,10 @@ del contenido (*magic bytes*) con la biblioteca estándar; si ``python-magic``
 está instalado, ``guess_mimetype`` lo usa y cae al detector propio en los
 casos que libmagic no separa, como allá.
 
-Una sola adaptación de forma: la fuente importa ``magic`` dentro de un
-``try`` a mitad del módulo. Aquí el import opcional va al bloque inicial —la
+Dos adaptaciones de forma. El detector propio se llama ``_guess_mimetype``:
+ningún identificador de este árbol lleva el nombre de la referencia
+(``scripts/check_identifier_reference_name.py``). Y la fuente importa
+``magic`` dentro de un ``try`` a mitad del módulo. Aquí el import opcional va al bloque inicial —la
 forma que ``check_no_lazy_imports`` admite para una dependencia opcional— y
 la elección de implementación se hace con ``if``. El comportamiento no cambia.
 """
@@ -164,7 +166,7 @@ _mime_mappings = (
 )
 
 
-def _odoo_guess_mimetype(bin_data: bytes, default='application/octet-stream'):
+def _guess_mimetype(bin_data: bytes, default='application/octet-stream'):
     """ Attempts to guess the mime type of the provided binary data, similar
     to but significantly more limited than libmagic
 
@@ -206,7 +208,7 @@ if magic is not None:
             raise TypeError('`bin_data` must be bytes or bytearray')
         mimetype = magic.from_buffer(bin_data[:MIMETYPE_HEAD_SIZE], mime=True)
         if mimetype == 'application/octet-stream':
-            mimetype = _odoo_guess_mimetype(bin_data)
+            mimetype = _guess_mimetype(bin_data)
         if mimetype in ('application/CDFV2', 'application/x-ole-storage'):
             # Those are the generic file format that Microsoft Office
             # was using before 2006, use our own check to further
@@ -239,7 +241,7 @@ if magic is not None:
         return mimetype
 
 else:
-    guess_mimetype = _odoo_guess_mimetype
+    guess_mimetype = _guess_mimetype
 
 
 def neuter_mimetype(mimetype, user):

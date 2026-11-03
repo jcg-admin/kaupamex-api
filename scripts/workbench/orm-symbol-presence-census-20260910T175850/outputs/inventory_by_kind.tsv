@@ -2462,19 +2462,19 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/view_validation.py	schema_val
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/which.py		file	satisfied	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/which.py	which_files	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_which.py::test_a_bare_name_is_searched_on_the_path
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/which.py	which	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_which.py::test_which_returns_the_first_match
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py		file	not_verified	mirror=no
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	remove_control_characters	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	odoo_resolver	class	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	odoo_resolver.__init__	method	not_verified	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	odoo_resolver.resolve	method	not_verified	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	_validate_xml	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	_check_with_xsd	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	create_xml_node_chain	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	create_xml_node	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	cleanup_xml_node	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	load_xsd_files_from_url	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	validate_xml_from_attachment	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	find_xml_value	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py		file	not_verified	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	remove_control_characters	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_xml_utils.py::test_remove_control_characters_keeps_tab_newline_and_text
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	odoo_resolver	class	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	odoo_resolver.__init__	method	not_verified	structural=paired_by_name:resolver.__init__;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	odoo_resolver.resolve	method	not_verified	structural=paired_by_name:resolver.resolve;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	_validate_xml	function	not_verified	structural=match;write_path=agree;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	_check_with_xsd	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_xml_utils.py::test_check_with_xsd_raises_user_error_with_the_schema_log
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	create_xml_node_chain	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_xml_utils.py::test_create_xml_node_chain_nests_and_sets_the_last_text
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	create_xml_node	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_xml_utils.py::test_create_xml_node_chain_nests_and_sets_the_last_text
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	cleanup_xml_node	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_xml_utils.py::test_cleanup_xml_node_drops_blank_leaves_and_indents
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	load_xsd_files_from_url	function	not_verified	structural=match;write_path=agree;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	validate_xml_from_attachment	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/xml_utils.py	find_xml_value	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_xml_utils.py::test_find_xml_value_returns_the_first_text_or_none
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/zeep/client.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/zeep/client.py	Client	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/zeep/client.py	Client.__init__	method	not_verified	structural=match;write_path=-;evidence=-

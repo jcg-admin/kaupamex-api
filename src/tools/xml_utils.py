@@ -8,6 +8,8 @@ adaptaciones de forma, sin cambio de conducta:
   imports perezosos (``check_no_lazy_imports``).
 - los imports de ``odoo.exceptions`` y ``odoo.tools.misc`` apuntan a sus
   espejos, ``exceptions`` y ``tools.misc``.
+- ``odoo_resolver`` se llama ``resolver``: ningún identificador de este árbol
+  lleva el nombre de la referencia (``scripts/check_identifier_reference_name.py``).
 
 Sustituye a las dos copias vendorizadas que esperaban este archivo:
 ``_remove_control_characters`` de ``account/tools/dict_to_xml.py`` y
@@ -57,7 +59,7 @@ def remove_control_characters(byte_node):
     )
 
 
-class odoo_resolver(etree.Resolver):
+class resolver(etree.Resolver):
     """Odoo specific file resolver that can be added to the XML Parser.
 
     It will search filenames in the ir.attachments
@@ -118,7 +120,7 @@ def _check_with_xsd(tree_or_str, stream, env=None, prefix=None):
         tree_or_str = etree.fromstring(tree_or_str)
     parser = etree.XMLParser()
     if env:
-        parser.resolvers.add(odoo_resolver(env, prefix))
+        parser.resolvers.add(resolver(env, prefix))
         if isinstance(stream, str) and stream.endswith('.xsd'):
             attachment = env['ir.attachment'].search([('name', '=', stream)])
             if not attachment:

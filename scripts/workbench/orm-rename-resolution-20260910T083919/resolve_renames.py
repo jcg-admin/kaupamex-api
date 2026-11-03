@@ -19,6 +19,7 @@ el censo: que `_field_read` exista no dice que haga lo que `Field.read` hace.
 import argparse
 import ast
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -40,6 +41,12 @@ def resolve(symbol, declared):
     """
     if symbol in declared:
         return symbol
+    # El token de la referencia no viaja a nuestros nombres
+    # (``scripts/check_identifier_reference_name.py``): ``_odoo_guess_mimetype``
+    # vive como ``_guess_mimetype``.
+    without_token = re.sub(r'(?:^|(?<=_))odoo_|_odoo$', '', symbol)
+    if without_token != symbol and without_token in declared:
+        return without_token
     base = symbol.lstrip('_')
     for prefix in DISSOLUTION_PREFIXES:
         candidate = f'{prefix}{base}'
