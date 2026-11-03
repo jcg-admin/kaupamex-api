@@ -36,6 +36,9 @@ class TestTableKind:
             assert sql.table_kind(cr, 'probe_kind_mat') is sql.TableKind.Materialized
             assert sql.table_kind(cr, 'probe_kind_seq') is sql.TableKind.Other
             assert sql.table_kind(cr, 'probe_kind_missing') is None
+            # La consulta de la fuente filtra por ``current_schema``: una tabla
+            # temporal vive en ``pg_temp_N`` y no aparece.
+            assert sql.table_kind(cr, 'probe_kind_temp') is None
 
     def test_drop_view_if_exists_drops_views_only(self):
         """≙ ``drop_view_if_exists`` (``:632-637``)."""

@@ -432,22 +432,17 @@ def escape_psql(to_escape):
     return to_escape.replace('\\', r'\\').replace('%', r'\%').replace('_', r'\_')
 
 
-def table_exists(cursor, table_name, schema=None):
-    """== ``odoo.tools.sql.table_exists``: ¿existe la tabla?
+def table_exists(cr, tablename):
+    """¿Existe la relación? — ≙ ``table_exists`` (``odoo19c:
+    odoo/tools/sql.py:216-218``). Docstring de la fuente, verbatim: *"Return
+    whether the given table exists."*
 
-    ``schema=None`` → el schema de la conexión (``current_schema``).
+    Es :func:`existing_tables` con un nombre, así que cuenta tabla, vista y
+    vista materializada. La versión anterior preguntaba a
+    ``information_schema.tables``, que no lista las materializadas, y llevaba
+    un parámetro ``schema`` que la fuente no tiene.
     """
-    if schema is None:
-        cursor.execute(
-            'SELECT 1 FROM information_schema.tables '
-            'WHERE table_schema = current_schema AND table_name = %s',
-            [table_name])
-    else:
-        cursor.execute(
-            'SELECT 1 FROM information_schema.tables '
-            'WHERE table_schema = %s AND table_name = %s',
-            [schema, table_name])
-    return cursor.fetchone() is not None
+    return len(existing_tables(cr, {tablename})) == 1
 
 
 class TableKind(enum.Enum):
@@ -479,18 +474,7 @@ def table_kind(cr, tablename):
     """, [tablename])
     row = cr.fetchone()
     if row is None:
-        # Una tabla temporal vive en ``pg_temp``, no en ``current_schema``:
-        # la fuente la encuentra porque su ``current_schema`` es el de la
-        # sesión; aquí se pregunta también a ``pg_my_temp_schema()``.
-        cr.execute("""
-            SELECT c.relkind, c.relpersistence
-              FROM pg_class c
-             WHERE c.relname = %s
-               AND c.relnamespace = pg_my_temp_schema()
-        """, [tablename])
-        row = cr.fetchone()
-        if row is None:
-            return None
+        return None
     kind, persistence = row
     if kind == 'r':
         return TableKind.Temporary if persistence == 't' else TableKind.Regular
@@ -525,53 +509,42 @@ def create_model_table(cr, tablename, comment=None, columns=()):
     _schema.debug("Table %r: created", tablename)
 
 
-def column_exists(cursor, table_name, column_name, schema=None):
-    """== ``odoo.tools.sql.column_exists``: ¿existe la columna?"""
-    if schema is None:
-        cursor.execute(
-            'SELECT 1 FROM information_schema.columns '
-            'WHERE table_schema = current_schema AND table_name = %s AND column_name = %s',
-            [table_name, column_name])
-    else:
-        cursor.execute(
-            'SELECT 1 FROM information_schema.columns '
-            'WHERE table_schema = %s AND table_name = %s AND column_name = %s',
-            [schema, table_name, column_name])
-    return cursor.fetchone() is not None
-
-
-def table_columns(cursor, table_name, schema=None):
-    """== ``odoo.tools.sql.table_columns``: columnas de la tabla y su forma.
-
-    Devuelve ``{nombre: {udt_name, character_maximum_length, is_nullable}}``.
-    Fiel a ``odoo19c: odoo/tools/sql.py`` — incluida su omisión deliberada de
-    ``character_octet_length``, que su comentario justifica: en hospedaje
-    compartido (Heroku, OVH) el rol de la aplicación puede no tener permiso
-    para leer esa columna, y pedirla haría fallar la consulta entera.
-
-    La referencia devuelve el ``row`` de ``dictfetchall()``; aquí se arma el
-    diccionario a mano porque el cursor de Django devuelve tuplas.
+def column_exists(cr, tablename, columnname):
+    """¿Existe la columna? — ≙ ``column_exists`` (``odoo19c:
+    odoo/tools/sql.py:315-323``). Docstring de la fuente, verbatim: *"Return
+    whether the given column exists."* Con la firma de la fuente: sin el
+    ``schema`` que este árbol añadía; el schema es el de la conexión.
     """
-    if schema is None:
-        cursor.execute(
-            'SELECT column_name, udt_name, character_maximum_length, is_nullable '
-            'FROM information_schema.columns '
-            'WHERE table_name = %s AND table_schema = current_schema',
-            [table_name])
-    else:
-        cursor.execute(
-            'SELECT column_name, udt_name, character_maximum_length, is_nullable '
-            'FROM information_schema.columns '
-            'WHERE table_name = %s AND table_schema = %s',
-            [table_name, schema])
+    cr.execute(
+        'SELECT 1 FROM information_schema.columns '
+        'WHERE table_name = %s AND column_name = %s AND table_schema = current_schema',
+        [tablename, columnname])
+    return cr.fetchone() is not None
+
+
+def table_columns(cr, tablename):
+    """Las columnas de la tabla y su forma — ≙ ``table_columns`` (``odoo19c:
+    odoo/tools/sql.py:299-312``).
+
+    Devuelve ``{nombre: {column_name, udt_name, character_maximum_length,
+    is_nullable}}``, sin ``character_octet_length``: su comentario lo
+    justifica, en hospedaje compartido el rol puede no tener permiso para
+    leerla. La fuente devuelve el ``row`` de ``dictfetchall()``; aquí el
+    diccionario se arma a mano porque el cursor de Django devuelve tuplas.
+    """
+    cr.execute(
+        'SELECT column_name, udt_name, character_maximum_length, is_nullable '
+        'FROM information_schema.columns '
+        'WHERE table_name = %s AND table_schema = current_schema',
+        [tablename])
     return {
-        fila[0]: {
-            'column_name': fila[0],
-            'udt_name': fila[1],
-            'character_maximum_length': fila[2],
-            'is_nullable': fila[3],
+        row[0]: {
+            'column_name': row[0],
+            'udt_name': row[1],
+            'character_maximum_length': row[2],
+            'is_nullable': row[3],
         }
-        for fila in cursor.fetchall()
+        for row in cr.fetchall()
     }
 
 

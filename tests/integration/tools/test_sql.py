@@ -19,19 +19,16 @@ def test_table_exists():
         assert sql.table_exists(c, 'tabla_que_no_existe') is False
 
 
-def test_table_exists_with_explicit_schema():
-    # ``schema`` designa un NAMESPACE dentro de la base, no otra base: el
-    # explícito es ``public``, no ``settings_dict['NAME']`` como bajo MariaDB.
+def test_table_exists_counts_views_and_materialized_views():
+    """≙ ``table_exists`` (``odoo19c: odoo/tools/sql.py:216-218``), que es
+    ``existing_tables`` con ``relkind IN ('r', 'v', 'm')``: un modelo servido
+    por una vista materializada TIENE su relación. ``information_schema.tables``
+    no lista las materializadas, y con él esta pregunta daba ``False``."""
     with connection.cursor() as c:
-        assert (
-            sql.table_exists(c, 'django_migrations', schema='public') is True
-        )
-        assert (
-            sql.table_exists(
-                c, 'django_migrations', schema='information_schema'
-            )
-            is False
-        )
+        c.execute('CREATE VIEW probe_exists_view AS SELECT 1 AS x')
+        c.execute('CREATE MATERIALIZED VIEW probe_exists_mat AS SELECT 1 AS x')
+        assert sql.table_exists(c, 'probe_exists_view') is True
+        assert sql.table_exists(c, 'probe_exists_mat') is True
 
 
 def test_column_exists():
