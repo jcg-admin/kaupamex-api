@@ -189,3 +189,55 @@ def test_computed_inverse_one2many(env):
     fresh = env['test_orm.computed_inverse_one2many'].browse(record.ids)
     assert len(fresh.low_priority_line_ids.ids) == 2
     assert len(fresh.all_line_ids.ids) == 2
+
+
+# ``One2manyCase.operations`` y los cuatro casos que crean las líneas con
+# ``create`` o con comandos (``:45-112``). Los de ``new()`` esperan ese
+# mecanismo. Adaptación declarada: ``line.name = 'hello'`` se escribe con
+# ``write``, que es lo que esa asignación hace en la fuente.
+
+
+@pytest.fixture
+def multi(env):
+    return env['test_orm.multi'].create({})
+
+
+def _operations(env, multi):
+    Multi = env['test_orm.multi']
+    lines = Multi.browse(multi.ids).lines
+    assert sorted(lines.mapped('name')) == sorted(str(i) for i in range(10))
+    lines[0].write({'name': 'hello'})
+    record = Multi.browse(multi.ids)
+    record.lines = record.lines[:-1]
+    record = Multi.browse(multi.ids)
+    assert len(record.lines) == 9
+    assert 'hello' in record.lines.mapped('name')
+
+
+def test_create_one_by_one(env, multi):
+    Line = env['test_orm.multi.line']
+    for name in range(10):
+        record = env['test_orm.multi'].browse(multi.ids)
+        record.lines |= Line.create({'name': str(name)})
+    _operations(env, multi)
+
+
+def test_create_single(env, multi):
+    Line = env['test_orm.multi.line']
+    record = env['test_orm.multi'].browse(multi.ids)
+    record.lines = Line.browse(
+        [Line.create({'name': str(name)}).id for name in range(10)])
+    _operations(env, multi)
+
+
+def test_rpcstyle_one_by_one(env, multi):
+    for name in range(10):
+        record = env['test_orm.multi'].browse(multi.ids)
+        record.lines = [Command.create({'name': str(name)})]
+    _operations(env, multi)
+
+
+def test_rpcstyle_single(env, multi):
+    record = env['test_orm.multi'].browse(multi.ids)
+    record.lines = [Command.create({'name': str(name)}) for name in range(10)]
+    _operations(env, multi)
