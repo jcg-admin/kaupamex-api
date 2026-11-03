@@ -32,6 +32,7 @@ Qué haría fallar a cada control
 """
 
 import pytest
+from django.db.models.signals import post_save
 
 from addons.base.models.res_partner import ResPartner
 from orm.environments import context_scope
@@ -213,3 +214,66 @@ class TestLoopGuard:
         company.save()
         who.refresh_from_db()
         assert who.city == 'Zapopan'
+
+
+class TestSyncWritesThroughTheOrm:
+    """≙ ``self.write(sync_vals)`` / ``children_to_sync.write(sync_vals)``
+    (``odoo19c: odoo/addons/base/models/res_partner.py``): la sincronización
+    llega a cada fila por el ``write`` del ORM —su ``save()``, su señal, su
+    fecha—, no por ``QuerySet.update``."""
+
+    @staticmethod
+    def _saved_during(action):
+        saved = []
+
+        def receiver(sender, instance, **kwargs):
+            saved.append((instance.pk, kwargs.get('update_fields')))
+
+        post_save.connect(receiver, sender=ResPartner)
+        try:
+            action()
+        finally:
+            post_save.disconnect(receiver, sender=ResPartner)
+        return saved
+
+    def test_descendants_are_written(self, db):
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True, vat='KAU010101AAA')
+        who = ResPartner.objects.create(
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+
+        def change_vat():
+            company.vat = 'KAU020202BBB'
+            company.save()
+
+        saved = self._saved_during(change_vat)
+        who.refresh_from_db()
+        assert who.vat == 'KAU020202BBB'
+        assert any(pk == who.pk for pk, _fields in saved), saved
+
+    def test_a_new_contact_is_written_from_its_company(self, db):
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True, vat='KAU010101AAA')
+
+        def create_contact():
+            ResPartner.objects.create(
+                name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+
+        saved = self._saved_during(create_contact)
+        written = [fields for _pk, fields in saved if fields and 'vat' in fields]
+        assert written, saved
+
+    def test_the_parent_is_written_upstream(self, db):
+        company = ResPartner.objects.create(
+            name='Kaupamex SA', is_company=True, vat='KAU010101AAA')
+        who = ResPartner.objects.create(
+            name='Ana', parent=company, type=ResPartner.TYPE_CONTACT)
+
+        def change_from_contact():
+            who.vat = 'KAU030303CCC'
+            who.save()
+
+        saved = self._saved_during(change_from_contact)
+        company.refresh_from_db()
+        assert company.vat == 'KAU030303CCC'
+        assert any(pk == company.pk for pk, _fields in saved), saved

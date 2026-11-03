@@ -1049,9 +1049,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             return
         sync_vals = commercial_partner._get_commercial_values()
         if sync_vals:
-            type(self).objects.filter(pk=self.pk).update(**sync_vals)
-            for key, value in sync_vals.items():
-                setattr(self, key, value)
+            # ``self.write(sync_vals)``: por ``save()``, que reentra en
+            # ``_fields_sync`` sólo con lo que de verdad cambió.
+            self.write(sync_vals)
             self._commercial_sync_to_descendants()
         self._company_dependent_commercial_sync()
 
@@ -1094,12 +1094,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                 # los de la activa de fuera.
                 sync_vals = (self.commercial_partner_id
                              ._convert_fields_to_values(fields_to_sync))
-                for key, value in sync_vals.items():
-                    setattr(self, key, value)
-                type(self).objects.filter(pk=self.pk).update(
-                    **{fname: type(self)._meta.get_field(fname)
-                       .raw_company_values(self)
-                       for fname in sync_vals})
+                # ``self_in_company.write(...)``: el descriptor del campo
+                # dependiente de empresa escribe el valor de ESTA empresa.
+                self.write(sync_vals)
 
     def _commercial_sync_to_descendants(self, fields_to_sync=None):
         """≙ ``_commercial_sync_to_descendants`` (``odoo19c: :751-768``).
@@ -1133,8 +1130,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                 children_ids_to_sync.add(child.pk)
             child._commercial_sync_to_descendants(fields_to_sync)
         if children_ids_to_sync:
-            type(self).objects.filter(
-                pk__in=list(children_ids_to_sync)).update(**sync_vals)
+            # ``children_to_sync.write(sync_vals)``, fila a fila.
+            for child in type(self).objects.filter(
+                    pk__in=list(children_ids_to_sync)):
+                child.write(sync_vals)
 
     # ------------------------------------------------------------------
     # Restricciones y onchange — ``odoo19c: res_partner.py:546-599`` y ``:647``.
@@ -1354,7 +1353,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         if commercial_to_upstream:
             new_synced = self._get_synced_commercial_values()
             if new_synced:
-                type(self).objects.filter(pk=self.parent_id).update(**new_synced)
+                # ``self.parent_id.write(...)``: la entidad de arriba se
+                # escribe por el ORM, y su propio ``save`` baja a los hijos.
+                self.parent.write(new_synced)
 
         # 3. De aquí hacia los hijos
         self._children_sync(values)
