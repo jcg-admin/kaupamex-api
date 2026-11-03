@@ -47,6 +47,7 @@ import logging
 from datetime import timedelta
 
 import pytest
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from addons.base.models import IrActionsServer, IrCron, SystemParameter
@@ -195,6 +196,36 @@ def test_reschedule_asap_leaves_a_trigger_for_now(cron):
     cron._reschedule_asap(cron)
     trigger = IrCronTrigger.objects.get(cron=cron)
     assert trigger.call_at <= timezone.now()
+
+
+def _saved_triggers(action):
+    """Los ``post_save`` de ``ir.cron.trigger`` que dispara ``action``."""
+    saved = []
+
+    def receiver(sender, instance, created, **kwargs):
+        saved.append(created)
+
+    post_save.connect(receiver, sender=IrCronTrigger)
+    try:
+        action()
+    finally:
+        post_save.disconnect(receiver, sender=IrCronTrigger)
+    return saved
+
+
+def test_trigger_list_creates_through_the_orm(cron):
+    """≙ ``self.env['ir.cron.trigger'].sudo().create([...])`` (``:779-782``):
+    cada disparo pasa por ``save()`` y su señal, no por un ``bulk_create``."""
+    manana = timezone.now() + timedelta(days=1)
+    pasado = timezone.now() + timedelta(days=2)
+    assert _saved_triggers(lambda: cron._trigger([manana, pasado])) == [True, True]
+
+
+def test_reschedule_asap_inserts_below_the_orm(cron):
+    """≙ ``INSERT INTO ir_cron_trigger`` (``:665-668``): la fuente baja a SQL a
+    propósito desde el ejecutor de cron; aquí no pasa por ``save()``."""
+    assert _saved_triggers(lambda: cron._reschedule_asap(cron)) == []
+    assert IrCronTrigger.objects.filter(cron=cron).count() == 1
 
 
 def test_the_collector_only_sweeps_inactive_crons(cron):
