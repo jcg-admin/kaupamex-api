@@ -90,6 +90,7 @@ donde el eje ``store`` queda medido tipo por tipo.
 de las 54 declaraciones de producto. Ver la rama en :func:`Many2one`.
 """
 import collections.abc
+import functools
 import itertools
 
 from django.apps import apps
@@ -1526,6 +1527,35 @@ models.ForeignKey.convert_to_cache = _many2one_convert_to_cache
 models.ForeignKey.convert_to_display_name = _many2one_convert_to_display_name
 models.ForeignKey._update_inverse = _many2one_update_inverse
 models.ManyToManyField._update_inverse = _relational_multi_update_inverse
+
+
+def _reverse_one2many_get_cache(self, env):
+    """El caché del One2many inverso de un Many2one — ≙ ``Field._get_cache``.
+
+    Aquí el One2many es el ``ManyToOneRel`` de Django y no un campo, así que
+    no tenía caché propio. Lo necesita en un registro de ``new()``: sin fila
+    que apunte a él, su conjunto de líneas sólo existe en caché. Sin cubos de
+    contexto, como el ``One2many`` de la fuente.
+    """
+    return env.transaction.field_data[self]
+
+
+def _reverse_one2many_cache_accessor(self):
+    """``_get_cache`` sólo para el uno-a-muchos: el inverso de un
+    ``OneToOneField`` es un registro, no una tupla de ids."""
+    if isinstance(self, models.OneToOneRel):
+        raise AttributeError('_get_cache')
+    return functools.partial(_reverse_one2many_get_cache, self)
+
+
+def _reverse_one2many_update_inverse_accessor(self):
+    if isinstance(self, models.OneToOneRel):
+        raise AttributeError('_update_inverse')
+    return functools.partial(_relational_multi_update_inverse, self)
+
+
+models.ManyToOneRel._get_cache = property(_reverse_one2many_cache_accessor)
+models.ManyToOneRel._update_inverse = property(_reverse_one2many_update_inverse_accessor)
 models.ManyToManyField._update_cache = _relational_multi_update_cache
 models.ManyToManyField.convert_to_display_name = (
     _relational_multi_convert_to_display_name)

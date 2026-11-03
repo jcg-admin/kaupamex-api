@@ -260,3 +260,30 @@ def test_new_single(env, multi):
     record.lines = Line.browse(
         [Line.new({'name': str(name)}).id for name in range(10)])
     _operations(env, multi)
+
+
+def test_rpcstyle_one_by_one_on_new(env):
+    """≙ :96 — comandos ``CREATE`` sobre el One2many de un registro nuevo.
+
+    ``operations`` termina antes de invalidar: el registro no tiene ``id``.
+    """
+    multi = env['test_orm.multi'].new({})
+    for name in range(10):
+        multi.lines = [Command.create({'name': str(name)})]
+    _new_operations(multi)
+
+
+def test_rpcstyle_single_on_new(env):
+    """≙ :109 — los diez ``CREATE`` en una sola asignación."""
+    multi = env['test_orm.multi'].new({})
+    multi.lines = [Command.create({'name': str(name)}) for name in range(10)]
+    _new_operations(multi)
+
+
+def _new_operations(multi):
+    """La parte de ``operations`` que corre sobre un registro sin ``id``."""
+    assert sorted(multi.lines.mapped('name')) == sorted(str(i) for i in range(10))
+    multi.lines[0].name = 'hello'
+    multi.lines = multi.lines[:-1]
+    assert len(multi.lines) == 9
+    assert 'hello' in multi.lines.mapped('name')

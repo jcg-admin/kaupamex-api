@@ -4789,6 +4789,12 @@ def _x2many_descriptor_get(self, instance, cls=None):
         return _DJANGO_X2MANY_GET(self, instance, cls)
     if instance.pk is None:
         return comodel._from_ids(env(), (), ())
+    if (isinstance(instance.pk, NewId)
+            and not isinstance(self, _related_descriptors.ManyToManyDescriptor)):
+        # Un registro de ``new()`` no tiene filas que apunten a él: su One2many
+        # vive sólo en el caché de la transacción (``_write_new_one2many``).
+        ids = env().transaction.field_data[self.rel].get(instance.pk, ())
+        return comodel._from_ids(env(), ids, ids)
     if not isinstance(self, _related_descriptors.ManyToManyDescriptor):
         # El inverso puede estar pendiente de cálculo (un Many2one
         # ``compute=..., store=True``): la fuente lo vuelca antes de leer,
@@ -4825,6 +4831,9 @@ def _x2many_descriptor_set(self, instance, value):
     if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
             and issubclass(comodel, BaseModel)):
         return _DJANGO_X2MANY_SET(self, instance, value)
+    if isinstance(instance.pk, NewId):
+        _write_new_one2many(self.rel, instance, value)
+        return None
     if not is_command_list(value):
         ids = getattr(value, '_ids', None)
         if ids is not None and not all(ids):
@@ -4835,6 +4844,44 @@ def _x2many_descriptor_set(self, instance, value):
             value = [Command.set(list(ids))]
     apply_one2many_commands(instance, self.rel, value)
     return None
+
+
+def _write_new_one2many(rel, owner, value):
+    """El One2many de un registro de ``new()`` — ≙ ``One2many.write_new``
+    (``odoo19c: odoo/orm/fields_relational.py:1121``).
+
+    Nada se escribe en la base: el conjunto de líneas queda en el caché de la
+    transacción, indexado por el ``NewId`` del dueño, y cada ``CREATE`` es una
+    línea de ``new()`` cuyo inverso apunta al dueño, como en la fuente.
+    """
+    comodel = rel.related_model
+    inverse = rel.field.name
+    cache = env().transaction.field_data[rel]
+    ids = list(cache.get(owner.pk, ()))
+    if not is_command_list(value):
+        ids = getattr(value, '_ids', None)
+        if ids is None:
+            ids = [getattr(item, 'pk', item) for item in (value or ())]
+        cache[owner.pk] = tuple(ids)
+        return
+    for command in value:
+        operation = command[0]
+        if operation == Command.CREATE:
+            line = comodel.new(dict(command[2] or {}), ref=command[1] or None)
+            line._update_cache({inverse: owner}, validate=False)
+            ids.append(line.id)
+        elif operation == Command.UPDATE:
+            comodel.browse(command[1])._update_cache(command[2], validate=False)
+        elif operation in (Command.DELETE, Command.UNLINK):
+            ids = [id_ for id_ in ids if id_ != command[1]]
+        elif operation == Command.LINK:
+            if command[1] not in ids:
+                ids.append(command[1])
+        elif operation == Command.CLEAR:
+            ids = []
+        elif operation == Command.SET:
+            ids = list(command[2])
+    cache[owner.pk] = tuple(ids)
 
 
 def _new_lines_as_commands(rel, value):
@@ -4875,6 +4922,24 @@ def _origin_of(value):
 
 
 _related_descriptors.ReverseManyToOneDescriptor.__set__ = _x2many_descriptor_set
+_DJANGO_FORWARD_GET_OBJECT = _related_descriptors.ForwardManyToOneDescriptor.get_object
+
+
+def _forward_get_object(self, instance):
+    """Un Many2one que apunta a un registro de ``new()`` lo devuelve sin
+    consultar la base: ese registro no tiene fila, sólo caché. ≙ la lectura
+    de la fuente, que convierte el id del caché con ``browse``
+    (``Many2one.convert_to_record``, ``odoo19c: odoo/orm/
+    fields_relational.py:356``)."""
+    comodel = self.field.remote_field.model
+    value = self.field.get_local_related_value(instance)
+    if (len(value) == 1 and isinstance(value[0], NewId)
+            and isinstance(comodel, type) and issubclass(comodel, BaseModel)):
+        return comodel._from_ids(env(), value, value)
+    return _DJANGO_FORWARD_GET_OBJECT(self, instance)
+
+
+_related_descriptors.ForwardManyToOneDescriptor.get_object = _forward_get_object
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 
@@ -4931,15 +4996,16 @@ class RecordCache(collections.abc.Mapping):
         objetos ``Field``, y todos tienen caché. Aquí lo provee ``_meta``, que
         incluye además los descriptores de relación **inversa** de Django
         —``ManyToOneRel``, ``OneToOneRel``, ``ManyToManyRel``—, que no son
-        campos y no tienen dónde cachear: la fuente los modela como
-        ``One2many``, que allá sí es un ``Field``.
+        campos: la fuente los modela como ``One2many``, que allá sí es un
+        ``Field``. Desde que ``new()`` necesita el One2many de un registro sin
+        fila, el ``ManyToOneRel`` tiene caché (``fields_relational.py``,
+        ``_reverse_one2many_get_cache``); ``OneToOneRel`` y ``ManyToManyRel``
+        siguen sin él, y por ellos la guarda sigue.
 
-        *Métrica:* atributos de ``res.partner`` en ``_fields`` con
-        ``_get_cache``: **86 de 128**; los 42 restantes son 36 ``ManyToOneRel``,
-        4 ``OneToOneRel`` y 2 ``ManyToManyRel``.
+        *Métrica (2026-08, antes de ese caché):* atributos de ``res.partner``
+        en ``_fields`` con ``_get_cache``: **86 de 128**; los 42 restantes
+        eran 36 ``ManyToOneRel``, 4 ``OneToOneRel`` y 2 ``ManyToManyRel``.
         *Ciega a:* un campo que tuviera caché y no la expusiera con ese nombre.
-        La guarda se retira cuando el uno-a-muchos sea un campo propio con su
-        caché — tareas **#243** y **#244**.
         """
         record = self._record
         id_ = record.id
