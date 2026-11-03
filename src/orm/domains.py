@@ -121,6 +121,7 @@ from orm.utils import COLLECTION_TYPES, parse_field_expr
 from orm import registry
 from tools.date_utils import parse_date, parse_iso_date, utc
 from tools.func import classproperty
+from tools.json import register_domain_type
 from tools.misc import OrderedSet, partition, str2bool
 from tools.query import Query
 from tools.sql import SQL
@@ -3201,3 +3202,8 @@ def _one2many_related_domain(self, model, operator, value):
 DeclaredOne2many.type = 'one2many'
 DeclaredOne2many.search = True
 DeclaredOne2many.determine_domain = _one2many_related_domain
+
+
+#: ``tools.json.json_default`` serializa un ``Domain`` como su lista
+#: (``odoo19c: odoo/tools/json.py:74``); el tipo se registra desde aquí.
+register_domain_type(Domain)

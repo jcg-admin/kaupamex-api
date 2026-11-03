@@ -27,6 +27,7 @@ from orm.fields_nonstored import (
     annotate_related,
     apply_source_defaults,
 )
+from tools.json import json_default
 
 __all__ = ['Boolean', 'Json']
 
@@ -126,18 +127,14 @@ def _json_convert_to_cache(self, value, record, validate=True):
     (un ``models.JSONField`` con el vocabulario de Django, o un ``Json`` con
     ``null=False``) el falso se conserva, porque ``NULL`` fallaría al volcar.
 
-    **Segunda divergencia, de mecanismo:** la fuente serializa con
-    ``tools.json.json_default``; aquí con el ``encoder``/``decoder`` del propio
-    campo, que es lo que ``JSONField.get_prep_value`` usa al volcar (la misma
-    delegación que ``convert_to_column`` declara arriba). Así la caché guarda
-    exactamente lo que persistirá. Importar ``tools.json`` desde este módulo
-    cierra un ciclo con ``orm.domains``.
+    Serializa con ``tools.json.json_default``, como la fuente: un instante
+    sale como ``Datetime.to_string``, una fecha como ``Date.to_string`` y un
+    ``Domain`` como su lista.
     """
     if not value:
         return None if self.null else value
-    return json.loads(
-        json.dumps(value, cls=self.encoder, ensure_ascii=False),
-        cls=self.decoder)
+    return json.loads(json.dumps(value, ensure_ascii=False,
+                                 default=json_default))
 
 
 def _json_convert_to_record(self, value, record):

@@ -34,7 +34,7 @@ Rama                         De dónde sale su pieza aquí
                              instala como atributo (``:440``, ``:451``).
 ``lazy``                     portada en ``tools/func.py`` por esta tarea
 ``ReadonlyDict``             portada en ``tools/misc.py`` por esta tarea
-``Domain``                   ``orm.domains.Domain``, ya existente
+``Domain``                   ``orm.domains.Domain``, registrado por ese módulo
 ``bytes`` / resto            stdlib
 ===========================  ==================================================
 
@@ -66,7 +66,6 @@ from datetime import date, datetime
 
 import markupsafe
 
-from orm.domains import Domain
 from orm.fields_temporal import Date, Datetime
 from tools.func import lazy
 from tools.misc import ReadonlyDict
@@ -132,6 +131,21 @@ class JSON:
 scriptsafe = JSON()
 
 
+#: Los tipos que se serializan como su lista — ``Domain`` (``json.py:74``).
+#: Lo registra ``orm.domains`` al cargarse: este módulo no puede importarlo,
+#: porque ``orm.domains`` arrastra ``orm.fields`` y éste a ``orm.fields_misc``,
+#: que serializa con :func:`json_default`. El registro invierte esa arista en
+#: vez de diferir el import.
+_DOMAIN_TYPES = ()
+
+
+def register_domain_type(domain_type):
+    """Declara un tipo que :func:`json_default` entrega como lista."""
+    global _DOMAIN_TYPES
+    if domain_type not in _DOMAIN_TYPES:
+        _DOMAIN_TYPES = (*_DOMAIN_TYPES, domain_type)
+
+
 def json_default(obj):
     """El ``default=`` de ``json.dumps`` — ≙ ``json.py:62-76``.
 
@@ -159,7 +173,7 @@ def json_default(obj):
         return dict(obj)
     if isinstance(obj, bytes):
         return obj.decode()
-    if isinstance(obj, Domain):
+    if isinstance(obj, _DOMAIN_TYPES):
         return list(obj)
     return str(obj)
 

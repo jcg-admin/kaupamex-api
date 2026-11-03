@@ -17,11 +17,14 @@ El fixture crea la discusión sólo con ``name``, como la fuente: su
 ``moderator`` es opcional desde que H-API-1122 se resolvió para ``test_orm``.
 """
 
+import datetime
+
 import pytest
 
 import fields
 
 from addons.test_orm.models.test_orm import TestOrmDiscussion
+from orm.domains import Domain
 from orm.environments import env as get_environment
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
@@ -108,3 +111,18 @@ def test_the_cache_of_a_falsy_value_is_none():
     assert field.null is True
     for falsy in ({}, [], '', 0, False, None):
         assert field.convert_to_cache(falsy, None) is None
+
+
+def test_the_cache_serializes_with_json_default():
+    """``convert_to_cache`` serializa con ``json_default``
+    (``odoo19c: odoo/orm/fields_misc.py:73``): un instante sale como
+    ``Datetime.to_string``, una fecha como ``Date.to_string`` y un ``Domain``
+    como su lista."""
+    field = TestOrmDiscussion._meta.get_field('history')
+    value = field.convert_to_cache({
+        'at': datetime.datetime(2026, 11, 3, 4, 5, 6),
+        'on': datetime.date(2026, 11, 3),
+        'domain': Domain('name', '=', 'x'),
+    }, None)
+    assert value == {'at': '2026-11-03 04:05:06', 'on': '2026-11-03',
+                     'domain': [['name', '=', 'x']]}
