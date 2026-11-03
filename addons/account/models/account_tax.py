@@ -151,6 +151,7 @@ from decimal import Decimal
 
 import fields
 import models
+from tools.float_utils import float_is_zero
 from tools.misc import frozendict
 
 #: Precisión por defecto del redondeo por línea, igual que la referencia
@@ -776,6 +777,69 @@ class AccountTax(models.Model):
                 [self], base, contexto
             )
         return monto if monto is not None else Decimal('0')
+
+    # -- reparto de un delta de redondeo (odoo19c: :1824-1893) -------------
+
+    @classmethod
+    def _normalize_target_factors(cls, target_factors):
+        """ Normalize the factors passed as parameter to have a distribution
+        having a sum of 1.
+
+        ≙ ``_normalize_target_factors`` (``odoo19c: :1824-1838``): devuelve
+        pares ``<índice, factor normalizado>``, del factor mayor al menor; si
+        todos valen cero, cada uno recibe la misma parte.
+        """
+        factors = [(i, abs(target_factor['factor']))
+                   for i, target_factor in enumerate(target_factors)]
+        factors.sort(key=lambda x: x[1], reverse=True)
+        sum_of_factors = sum(x[1] for x in factors)
+        return [(i, factor / sum_of_factors if sum_of_factors
+                 else 1 / len(factors)) for i, factor in factors]
+
+    @classmethod
+    def _distribute_delta_amount_smoothly(cls, precision_digits, delta_amount,
+                                          target_factors):
+        """ Distribute 'delta_amount' across the factors passed as parameter.
+
+        ≙ ``_distribute_delta_amount_smoothly`` (``odoo19c: :1841-1893``).
+        Ejemplo de la fuente: *"if 'delta_amount' = 0.03 and precision_digits
+        is 3 and target factors is a list of 3 factors [0.4, 0.3, 0.3] [...]
+        The result of this method will be [0.012, 0.009, 0.009]."* Primero
+        reparte por factor; los céntimos que sobran van, uno por factor, del
+        mayor al menor.
+        """
+        precision_rounding = float(f"1e-{precision_digits}")
+        amounts_to_distribute = [0.0] * len(target_factors)
+        if float_is_zero(delta_amount, precision_digits=precision_digits):
+            return amounts_to_distribute
+
+        sign = -1 if delta_amount < 0.0 else 1
+        nb_of_errors = round(abs(delta_amount / precision_rounding))
+        remaining_errors = nb_of_errors
+
+        # Distribute using the factor first.
+        factors = cls._normalize_target_factors(target_factors)
+        for i, factor in factors:
+            if not remaining_errors:
+                break
+
+            nb_of_amount_to_distribute = min(
+                round(factor * nb_of_errors),
+                remaining_errors,
+            )
+            remaining_errors -= nb_of_amount_to_distribute
+            amount_to_distribute = (
+                sign * nb_of_amount_to_distribute * precision_rounding)
+            amounts_to_distribute[i] += amount_to_distribute
+
+        # Distribute the remaining cents across the factors.
+        # There are sorted by the biggest first.
+        # Since the factors are normalized, the residual number of cents
+        # can't be higher than the number of factors.
+        for i in range(remaining_errors):
+            amounts_to_distribute[factors[i][0]] += sign * precision_rounding
+
+        return amounts_to_distribute
 
     # -- agregación de detalles por clave (odoo19c: :2512-2712) ------------
     #
