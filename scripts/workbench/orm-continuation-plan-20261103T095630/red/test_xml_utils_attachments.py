@@ -33,7 +33,8 @@ MAIN = b"""<?xml version="1.0"?>
 
 
 def _attach(name, raw):
-    return env()['ir.attachment'].create({'name': name, 'raw': raw, 'public': True})
+    return env()['ir.attachment'].create(
+        {'name': name, 'raw': raw, 'public': True})
 
 
 def test_the_resolver_finds_an_include_among_the_prefixed_attachments():
@@ -89,11 +90,13 @@ def test_load_xsd_files_from_url_unpacks_a_zip_with_its_filter(monkeypatch):
     saved = xml_utils.load_xsd_files_from_url(
         env(), 'https://x.test/pack.zip', xsd_name_prefix='probe_zip',
         xsd_names_filter=['main.xsd', 'types.xsd'])
-    assert sorted(saved.mapped('name')) == ['probe_zip.main.xsd', 'probe_zip.types.xsd']
+    names = sorted(saved.mapped('name'))
+    assert names == ['probe_zip.main.xsd', 'probe_zip.types.xsd']
 
 
 def test_load_xsd_files_from_url_reports_a_connection_error(monkeypatch):
     def refuse(url, timeout):
         raise requests.exceptions.ConnectionError('refused')
     monkeypatch.setattr(requests, 'get', refuse)
-    assert xml_utils.load_xsd_files_from_url(env(), 'https://x.test/a.xsd') is False
+    url = 'https://x.test/a.xsd'
+    assert xml_utils.load_xsd_files_from_url(env(), url) is False

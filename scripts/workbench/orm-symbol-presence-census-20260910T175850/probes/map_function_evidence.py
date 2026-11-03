@@ -1,7 +1,11 @@
 """EXPERIMENTAL — medición exploratoria: empareja funciones de módulo con casos
 de prueba que las importan desde ese módulo y las llaman. No es autoridad."""
-import ast, pathlib, sys
-pairs = [l.split('\t') for l in pathlib.Path(sys.argv[1]).read_text().splitlines()]
+import ast
+import pathlib
+import sys
+
+rows = pathlib.Path(sys.argv[1]).read_text().splitlines()
+pairs = [row.split('\t') for row in rows]
 want = {}
 for mod, fn in pairs:
     dotted = mod[len('src/'):-3].replace('/', '.')
@@ -20,13 +24,15 @@ for test in sorted(pathlib.Path('tests').rglob('test_*.py')):
                     imported[a.asname or a.name] = (n.module, a.name)
     if not imported:
         continue
+
     def visit(node, prefix):
         for n in getattr(node, 'body', []):
             if isinstance(n, ast.ClassDef):
                 visit(n, prefix + n.name + '::')
             elif isinstance(n, ast.FunctionDef) and n.name.startswith('test'):
                 called = {c.func.id for c in ast.walk(n)
-                          if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+                          if isinstance(c, ast.Call)
+                          and isinstance(c.func, ast.Name)}
                 for local, (module, fn) in imported.items():
                     key = (module, fn)
                     if local in called and key not in found:

@@ -59,7 +59,8 @@ if __name__ == '__main__':
 def test_the_reference_name_token_is_dropped():
     """Un simbolo de la fuente que lleva el nombre de la referencia vive aqui
     sin ese token: lo exige ``scripts/check_identifier_reference_name.py``."""
-    assert resolve('_odoo_guess_mimetype', {'_guess_mimetype'}) == '_guess_mimetype'
+    resolved = resolve('_odoo_guess_mimetype', {'_guess_mimetype'})
+    assert resolved == '_guess_mimetype'
     assert resolve('odoo_resolver', {'resolver'}) == 'resolver'
 
 
