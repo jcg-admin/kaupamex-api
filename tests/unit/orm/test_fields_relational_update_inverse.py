@@ -50,10 +50,11 @@ El control que discrimina la cuarta divergencia es
 valor llegaría vacío y el caso caería. Un caso que sólo comprobara *"patch no
 revienta"* sería verde con las dos versiones — el verde que no discrimina.
 
-Y la rama ``dict`` de ``convert_to_cache`` se mide por su **excepción**, no por
-su ausencia: levanta ``NotImplementedError`` con el número de su sucesor
-dentro, así que el día que la tarea #327 construya ``BaseModel.new`` el caso
-cae y obliga a portar la rama en vez de dejarla olvidada.
+La rama ``dict`` de ``convert_to_cache`` se medía aquí por su excepción
+—levantaba ``NotImplementedError`` con la tarea #327 dentro— para que cayera
+el día que ``BaseModel.new`` existiera. Cayó (H-API-1135); su conducta portada
+se mide ahora en ``tests/integration/test_orm/test_new_record.py``, que tiene
+el comodelo ``BaseModel`` que ``new()`` necesita.
 """
 
 import itertools
@@ -222,18 +223,6 @@ class TestTheMany2oneConvertsToTheCacheFormat:
     def test_anything_else_is_none(self):
         assert fk_field().convert_to_cache('cinco', None) is None
         assert fk_field().convert_to_cache(None, None) is None
-
-    def test_a_dict_declares_its_blockage_and_names_its_successor(self):
-        """La rama que la fuente resuelve con ``comodel.new()``.
-
-        No se emite media mecánica: portar sólo el ``NewId`` y tirar las demás
-        claves del ``dict`` sería el conteo generoso que
-        ``porte-completo-no-parcial`` prohíbe. El bloqueo lleva su sucesor
-        dentro, y ese número es lo que hace caer el caso cuando se cierre.
-        """
-        with pytest.raises(NotImplementedError) as failure:
-            fk_field().convert_to_cache({'name': 'Nuevo'}, None)
-        assert '#327' in str(failure.value)
 
     @pytest.mark.django_db
     def test_delegation_wraps_the_id_when_every_row_is_new(self):

@@ -62,3 +62,16 @@ def test_ref_is_carried_by_the_id(env):
 def test_an_unknown_field_is_rejected(env):
     with pytest.raises(ValueError, match='Invalid field'):
         env['test_orm.multi.line'].new({'no_such_field': 1})
+
+
+def test_a_many2one_dict_value_becomes_a_new_record(env):
+    """≙ ``Many2one.convert_to_cache``, rama ``dict`` (``odoo19c: odoo/orm/
+    fields_relational.py:339-343``): el ``dict`` es un registro nuevo del
+    comodelo, con su ``id`` como origen."""
+    multi = env['test_orm.multi'].create({})
+    Line = env['test_orm.multi.line']
+    line = Line.new({})
+    value = Line._fields['multi'].convert_to_cache({'id': multi.id}, line)
+    assert isinstance(value, NewId)
+    assert value.origin == multi.id
+    assert env['test_orm.multi'].browse((value,))._origin == multi

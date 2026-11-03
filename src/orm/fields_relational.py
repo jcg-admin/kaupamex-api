@@ -1375,21 +1375,16 @@ def _relational_update_inverse(self, records, value):
 def _many2one_convert_to_cache(self, value, record, validate=True):
     """``Many2one.convert_to_cache`` — ≙ ``:328-351``. Formato: id o ``None``.
 
-    Las cinco ramas de la fuente, con una divergencia de forma y un bloqueo
-    medido:
+    Las cinco ramas de la fuente, con una divergencia de forma:
 
     - ``isinstance(value, BaseModel)`` se abre aquí a **instancia o
       ``QuerySet``**, que son las dos formas en que este árbol representa un
       conjunto de filas, y el modelo se compara con
       :func:`~orm.utils.model_of` en vez de con ``value._name``.
-    - la rama de ``dict`` **no se porta**: la fuente construye un registro
-      virtual con ``comodel.new(value, origin=…)`` y ``BaseModel.new`` no
-      existe todavía en este árbol (``src/orm/models.py:376`` declara que su
-      equivalente es ``Model(**valores)``, sin registro que devuelva la fila
-      por su ``NewId``). Emitir sólo el ``NewId`` y descartar las demás claves
-      del ``dict`` sería un porte generoso —el método existiría sin hacer lo
-      que hace el de la fuente—, así que levanta ``NotImplementedError`` y su
-      sucesor está registrado como la tarea **#327**.
+    - la rama de ``dict`` construye el registro virtual con
+      ``comodel.new(value, origin=…)``, como la fuente. Levantaba
+      ``NotImplementedError`` mientras ``BaseModel.new`` no existía (tarea
+      **#327**, H-API-1135).
 
     La guarda final es la que da sentido a ``delegate``: si **todas** las filas
     son nuevas, el padre al que delegan también lo es, y su id se envuelve en
@@ -1406,11 +1401,10 @@ def _many2one_convert_to_cache(self, value, record, validate=True):
         # el valor es un par (id, nombre), o una tupla de ids
         id_ = value[0] if value else None
     elif isinstance(value, dict):
-        raise NotImplementedError(
-            "%s.convert_to_cache no admite un dict: la fuente construye el "
-            "registro virtual con comodel.new(), que este arbol todavia no "
-            "tiene (tarea #327)" % (self.name,)
-        )
+        # return a new record (with the given field 'id' as origin)
+        comodel = self.related_model
+        origin = comodel.browse(value.get('id'))
+        id_ = comodel.new(value, origin=origin).id
     else:
         id_ = None
 
