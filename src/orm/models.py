@@ -4380,10 +4380,55 @@ def flush_recordset(self, fnames=None):
         _flush(rows)
 
 
+def _invalidate_cache(self, fnames=None, ids=None):
+    """Retira de la caché los campos dados, en las filas dadas o en todas.
+
+    ≙ ``BaseModel._invalidate_cache`` (``odoo19c: odoo/orm/models.py``). Una
+    lista de ids vacía no invalida nada —*"Avoid invalidating field_inverses
+    for no reason"*—; ``None`` invalida el modelo entero.
+    """
+    if ids is not None and not ids:
+        return
+    fields = (self._fields.values() if fnames is None
+              else [self._fields[fname] for fname in fnames])
+    # La clase hace de recordset vacío y no lleva entorno propio: el suyo es
+    # el activo, que es el que ``env['x']`` le daría en la fuente.
+    environment = env() if isinstance(self, type) else self.env
+    for field in fields:
+        invalidate = getattr(field, '_invalidate_cache', None)
+        if invalidate is not None:
+            invalidate(environment, ids)
+
+
+def invalidate_model(self, fnames=None, flush=True):
+    """Invalida la caché de todas las filas del modelo de ``self``.
+
+    ≙ ``BaseModel.invalidate_model`` (``odoo19c: odoo/orm/models.py``).
+    Docstring de la fuente: para cuando lo cacheado ya no corresponde a la
+    base; con ``flush`` (el defecto) se vuelca antes lo pendiente, que es lo
+    que garantiza la coherencia.
+    """
+    if flush:
+        flush_model(self, fnames)
+    _invalidate_cache(self, fnames)
+
+
+def invalidate_recordset(self, fnames=None, flush=True):
+    """Invalida la caché de las filas de ``self``.
+
+    ≙ ``BaseModel.invalidate_recordset`` (``odoo19c: odoo/orm/models.py``).
+    Mismo contrato que :func:`invalidate_model`, acotado a estas filas.
+    """
+    if flush:
+        flush_recordset(self, fnames)
+    _invalidate_cache(self, fnames, tuple(record_ids(as_record_list(self))))
+
+
 for _engine_method in (modified, _modified, _modified_triggers,
                        _recompute_model, _recompute_recordset,
                        _recompute_field, _flush, flush_model,
-                       flush_recordset):
+                       flush_recordset, _invalidate_cache, invalidate_model,
+                       invalidate_recordset):
     setattr(Model, _engine_method.__name__, _engine_method)
     setattr(QuerySet, _engine_method.__name__, _engine_method)
 
@@ -5413,6 +5458,12 @@ class BaseModel(DefaultGetMixin, Model):
     def search_count(cls, domain, limit=None):
         """Cuántos registros cumplen ``domain`` — ≙ ``search_count`` (``:1347``)."""
         return cls._search(domain, limit=limit).count()
+
+    #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
+    #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
+    #: da el recordset vacío del entorno activo, como a ``browse``.
+    flush_model = _on_empty_recordset(flush_model)
+    invalidate_model = _on_empty_recordset(invalidate_model)
 
     @_on_empty_recordset
     @api.private

@@ -328,6 +328,14 @@ def as_record_list(records):
     """
     if records is None:
         return []
+    # Un recordset de ``BaseModel`` ES una instancia de modelo y puede portar
+    # N ids; tratarlo como una fila devolvía ``[recordset]`` y el consumidor
+    # moría al pedirle ``pk`` (*Expected singleton*). Iterarlo da sus filas,
+    # una por id, como en la fuente. Mismo orden que :func:`record_ids`: la
+    # terna gana sobre la instancia.
+    own_ids = getattr(records, '_ids', None)
+    if own_ids is not None and len(own_ids) != 1:
+        return list(records)
     if isinstance(records, models.Model):
         return [records]
     return list(records)

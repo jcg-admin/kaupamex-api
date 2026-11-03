@@ -1640,7 +1640,20 @@ class FieldDescriptor(DeferredAttribute):
             # ventana de ``_to_prefetch`` en una consulta; aquí la unidad es la
             # fila, así que la ventana no ahorraría ninguna. Es la misma
             # divergencia 1 de :func:`recompute`, con el mismo sucesor: **#306**.
-            value = super().__get__(instance, cls)
+            # La recarga de Django asigna con ``setattr``, que es nuestro
+            # ``__set__``: sin la marca de construcción, una LECTURA se tomaba
+            # por escritura del usuario y dejaba el campo sucio, y el volcado
+            # siguiente reescribía la base con lo leído. La marca es la misma
+            # que usa ``from_db``: el valor entra en caché, limpio.
+            building = instance.__dict__.get('_orm_building')
+            instance.__dict__['_orm_building'] = True
+            try:
+                value = super().__get__(instance, cls)
+            finally:
+                if building is None:
+                    instance.__dict__.pop('_orm_building', None)
+                else:
+                    instance.__dict__['_orm_building'] = building
             field._update_cache(
                 instance, field.convert_to_cache(value, instance, validate=False))
 
