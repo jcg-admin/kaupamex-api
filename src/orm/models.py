@@ -2635,8 +2635,17 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # conjunto que Django valida —no con una copia— para que no
                 # haya dos fuentes de verdad.
                 writable = self._meta._non_pk_concrete_field_names
-                self.save(update_fields=[fname for fname in values
-                                         if fname in writable])
+                update_fields = [fname for fname in values if fname in writable]
+                # ≙ ``vals.setdefault('write_date', ...)`` (``odoo19c:
+                # odoo/orm/models.py:4394-4396``): con ``_log_access`` toda
+                # escritura se fecha. Aquí la fecha es ``auto_now`` y la pone
+                # ``pre_save``, pero un ``save`` con ``update_fields`` sólo
+                # guarda lo nombrado, así que la columna se nombra.
+                if (getattr(type(self), '_log_access', True)
+                        and 'updated_at' in writable
+                        and 'updated_at' not in update_fields):
+                    update_fields.append('updated_at')
+                self.save(update_fields=update_fields)
             if reparented:
                 _parent_store_update(self)
             if relational:

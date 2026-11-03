@@ -14,6 +14,7 @@ Cubre las tres piezas que la referencia gobierna (``odoo-tools@622ddc2a``):
 from datetime import timedelta
 
 import pytest
+from django.db.models.signals import post_save
 from django.test import RequestFactory
 from django.utils import timezone
 
@@ -153,6 +154,22 @@ def test_update_device_inserta_una_fila(usuario):
     assert (fila.platform, fila.browser) == ('linux', 'chrome')
     assert fila.device_type == ResDeviceLog.DEVICE_COMPUTER
     assert fila.revoked is False
+
+
+def test_update_device_inserts_below_the_orm(usuario):
+    """≙ ``INSERT INTO res_device_log`` (``odoo19c: res_device.py:98-113``):
+    la fuente inserta por SQL; aquí ``bulk_create`` sin ``save()`` ni señal."""
+    saved = []
+
+    def receiver(sender, instance, **kwargs):
+        saved.append(instance.pk)
+
+    post_save.connect(receiver, sender=ResDeviceLog)
+    try:
+        fila = ResDeviceLog._update_device(_request(usuario=usuario))
+    finally:
+        post_save.disconnect(receiver, sender=ResDeviceLog)
+    assert fila.pk and saved == []
 
 
 def test_update_device_no_reinserta_dentro_de_la_hora(usuario):

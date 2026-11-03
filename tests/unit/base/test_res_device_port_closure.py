@@ -252,6 +252,21 @@ def test_update_revoked_marks_the_row_whose_session_is_gone(db):
     assert row.revoked is True
 
 
+def test_update_revoked_writes_through_the_orm(db):
+    """≙ ``to_revoke.write({'revoked': True})`` (``:167``): un ``write`` del
+    ORM fecha la escritura; un ``QuerySet.update`` no lo hace."""
+    user = _make_user('revoca-fecha@ejemplo.mx')
+    long_ago = timezone.now() - datetime.timedelta(days=30)
+    row = _make_log(user, 'z' * 42, last_activity=long_ago)
+    ResDeviceLog.objects.filter(pk=row.pk).update(updated_at=long_ago)
+
+    ResDeviceLog._ResDeviceLog__update_revoked()
+
+    row.refresh_from_db()
+    assert row.revoked is True
+    assert row.updated_at > long_ago
+
+
 def test_update_revoked_leaves_a_live_session_alone(db):
     """La otra mitad: una sesión que sí existe no se revoca."""
     user = _make_user('revoca-viva@ejemplo.mx')

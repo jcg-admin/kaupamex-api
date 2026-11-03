@@ -347,7 +347,9 @@ class ResDeviceLog(_ResDeviceFields):
         if not trace:
             return None
         session_key = getattr(request.session, 'session_key', None) or ''
-        fila = cls.objects.create(
+        # La fuente inserta por SQL (``:98-113``), sin el ``create`` del ORM:
+        # ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni señales.
+        [fila] = cls.objects.bulk_create([cls(
             session_identifier=session_key[:STORED_SESSION_BYTES],
             platform=trace['platform'] or '',
             browser=trace['browser'] or '',
@@ -363,7 +365,7 @@ class ResDeviceLog(_ResDeviceFields):
             first_activity=_as_datetime(trace['first_activity']),
             last_activity=_as_datetime(trace['last_activity']),
             revoked=False,
-        )
+        )])
         _logger.info(
             'Usuario %s inserta log de dispositivo (%s)',
             request.user.pk,
@@ -461,9 +463,12 @@ class ResDeviceLog(_ResDeviceFields):
                 continue
 
             to_revoke = [
-                c.pk for c in candidates if c.session_identifier in missing
+                c for c in candidates if c.session_identifier in missing
             ]
-            cls.objects.filter(pk__in=to_revoke).update(revoked=True)
+            # ≙ ``to_revoke.write({'revoked': True})`` (``:167``): por el
+            # ``write`` del ORM, que fecha la escritura, y no por la tabla.
+            for row in to_revoke:
+                row.write({'revoked': True})
             offset -= len(to_revoke)
 
 
@@ -522,9 +527,12 @@ class ResDeviceQuerySet(models.AccessQuerySet):
         delete_sessions_from_identifiers(identifiers)
 
         log = apps.get_model('base', 'ResDeviceLog')
-        revoked = log.objects.filter(
-            session_identifier__in=identifiers
-        ).update(revoked=True)
+        # ≙ ``revoked_devices.write({'revoked': True})`` (``:190``): por el
+        # ``write`` del ORM, que fecha la escritura de cada fila.
+        revoked = 0
+        for row in log.objects.filter(session_identifier__in=identifiers):
+            row.write({'revoked': True})
+            revoked += 1
         _logger.info(
             'Se revocan dispositivos (%s): %s filas de log',
             ', '.join(identifiers),
