@@ -55,7 +55,7 @@ presencia, no conducta.
      - ``chain_method`` con ``combine`` de conjuntos
    * - ``ProductSupplierinfo._compute_display_name`` (``:290-298``)
      - portado
-     - f-string en vez de ``formatLang`` (D-2)
+     - ``formatLang`` con la moneda de la tarifa, como la fuente
    * - ``purchase_order_line_ids`` (``:37``)
      - **divergencia**
      - ya existe con otro nombre — ver abajo
@@ -100,11 +100,11 @@ destino, recortado al último día cuando no existe. Es el mismo criterio y casi
 el mismo código que ``addons/base_automation/models/base_automation.py:165``
 (``advance_date``), que este archivo cita en vez de re-derivar.
 
-**D-2 — ``formatLang`` no existe en este árbol.** Medido: 0 definiciones (los 6
-hits de ``grep -rn formatLang`` son menciones en docstrings de ``account`` que
-declaran exactamente esta misma divergencia). El nombre para mostrar del
-proveedor usa una f-string con el símbolo de la moneda, que es lo que
-``formatLang`` produce sin el formato por locale.
+**D-2 — cerrada.** Decía que ``formatLang`` no existía; existe en
+``tools.misc`` desde ``api@8dbe26e4`` y el nombre para mostrar del proveedor lo
+llama como la fuente. Al portarlo se midió además que el cómputo devolvía la
+etiqueta sin asignarla, y el descriptor de ``display_name`` rechazaba toda
+tarifa con «Compute method failed to assign»; ahora la asigna.
 
 **D-3 — ``_compute_quantities_dict`` no se puede encadenar.** La fuente
 **modifica el argumento ``to_date`` antes** de llamar al ``super()``.
@@ -145,9 +145,10 @@ from django.db.models import Sum
 
 from addons.product.models import ProductSupplierinfo, ProductTemplate
 from orm.domains import Domain, to_q
-from orm.environments import get_context
+from orm.environments import env, get_context
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
+from tools.misc import formatLang
 
 #: ≙ ``'buy'`` — el valor de ``stock.rule.action`` que este addon añade. Se
 #: declara aquí como literal y no se importa de ``stock_rule.py`` del mismo
@@ -515,17 +516,27 @@ def _compute_display_name(self):
     ``self.partner.display_name`` sería adivinar qué hace la base: la base es
     ``orm.models.DisplayNameMixin``, que resuelve por ``_rec_name``.
 
-    D-2 del docstring: ``formatLang`` no existe aquí, así que el precio se
-    formatea con f-string más el símbolo de la moneda.
+    El precio sale de ``formatLang(self.env, supplier.price,
+    currency_obj=supplier.currency_id)``, como en la fuente; ``self.env`` es
+    aquí el entorno activo, y el precio pasa a ``float`` porque el
+    ``Monetary`` de este stack devuelve ``Decimal`` y los helpers de
+    ``float_utils`` operan en ``float``, como en la fuente (mismo criterio que
+    ``orm/fields_numeric.py``). La etiqueta se **asigna**, que es lo que el
+    descriptor de ``display_name`` exige (``DisplayNameMixin``); el retorno
+    queda como señal para ``chain_method``.
     """
     if get_context().get('use_simplified_supplier_name'):
         return None
-    currency = getattr(self.currency, 'symbol', '') if self.currency_id else ''
+    price_str = formatLang(env(), float(self.price),
+                           currency_obj=self.currency if self.currency_id
+                           else None)
     uom = self.product_uom.name if self.product_uom_id else ''
-    return (
+    label = (
         f'{self.partner.display_name if self.partner_id else ""} '
-        f'({self.min_qty} {uom} - {currency}{self.price})'
+        f'({self.min_qty} {uom} - {price_str})'
     )
+    self.display_name = label
+    return label
 
 
 def show_set_supplier_button(self):
