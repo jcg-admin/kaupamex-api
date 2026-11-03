@@ -27,6 +27,14 @@ def historical_schema():
     with mock.patch.dict(settings.DATABASES, {ALIAS: configuration}):
         connections.databases[ALIAS] = configuration
         database = connections[ALIAS]
+        # Django 6 rehúsa en ``ensure_connection`` el primer uso de un alias
+        # configurado que la prueba no declara («Database threaded connections
+        # … are not allowed»). Declararlo no sirve: presente en el setup y el
+        # teardown, el router pasa a multibase y el vaciado de ``default`` exige
+        # ``company_scope``. La guarda sólo actúa con la conexión sin abrir, y
+        # ``connect`` no está envuelto para un alias creado tras preparar la
+        # clase: se abre aquí, de forma explícita.
+        database.connect()
         state = ProjectState()
         definitions = [
             ('base', 'IrModelData', [('module', models.CharField(max_length=100)),
