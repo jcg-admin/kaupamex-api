@@ -147,7 +147,7 @@ def test_precompiled_regexes_hang_on_the_class(name):
     ), f'{name} no es un patrón'
 
 
-# --- Los cinco bloqueados: fallan RUIDOSAMENTE ----------------------------
+# --- Los cuatro bloqueados: fallan RUIDOSAMENTE ----------------------------
 
 
 @pytest.mark.parametrize(
@@ -157,7 +157,6 @@ def test_precompiled_regexes_hang_on_the_class(name):
         ('_onchange_vat', ()),
         ('_get_country_specific_vat_variants', ('MXAAA010101AAA', 'MX')),
         ('_get_vat_required_valid', ()),
-        ('_check_vies_iap', ()),
     ],
 )
 def test_blocked_symbols_raise_instead_of_returning_a_wrong_answer(name, args):

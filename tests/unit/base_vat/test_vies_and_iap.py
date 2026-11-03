@@ -1,13 +1,12 @@
 """La mitad VIES de ``base_vat``: la casilla de empresa, el par IAP y el cron.
 
-Los símbolos que consultan al proxy están **bloqueados** por
-``tools.hash_sign`` (sucesor #461) y sus casos viven en
-``test_extension_wiring.py``. Aquí se ejerce todo lo que **sí** se porta: el
-predicado que decide si hay que preguntar, el par de credenciales, la elección
-de endpoint y el guardado del estado.
+Aquí se ejerce el predicado que decide si hay que preguntar, el par de
+credenciales, la elección de endpoint, la consulta al proxy —con el
+``webhook_token`` firmado por ``tools.hash_sign``— y el guardado del estado.
 """
 
 import pytest
+import requests
 
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.res_company import ResCompany
@@ -15,7 +14,8 @@ from addons.base.models.res_country import ResCountry
 from addons.base.models.res_partner import ResPartner
 from addons.base_vat.models import res_partner as vat
 from exceptions import ValidationError
-from orm.environments import context_scope, set_current_company
+from orm.environments import context_scope, env, set_current_company
+from tools.misc import verify_hash_signed
 
 pytestmark = pytest.mark.django_db
 
@@ -215,3 +215,60 @@ def test_no_vat_validation_reads_the_context():
     with context_scope(no_vat_validation=True):
         assert vat._no_vat_validation() is True
     assert vat._no_vat_validation() is False
+
+
+# --- _check_vies_iap ------------------------------------------------------
+
+
+class _Reply:
+    def __init__(self, payload, error=None):
+        self.payload = payload
+        self.error = error
+
+    def raise_for_status(self):
+        if self.error:
+            raise self.error
+
+    def json(self):
+        return self.payload
+
+
+def _partner_with_vat(value):
+    """Un partner con VAT, en una base con ``web.base.url``: la fuente la
+    siembra al crear la base (``_default_parameters``)."""
+    SystemParameter.set_param('web.base.url', 'https://kaupamex.test')
+    return ResPartner.objects.create(name='Partner VIES', vat=value)
+
+
+def test_check_vies_iap_posts_a_signed_webhook_token(monkeypatch):
+    """≙ ``_check_vies_iap`` (``odoo19c: :267-293``): el ``webhook_token`` es
+    ``hash_sign`` del VAT en el ámbito ``vies_check``, y sólo esa base lo
+    sabe verificar de vuelta."""
+    sent = {}
+
+    def post(url, data, timeout):
+        sent.update(url=url, data=data, timeout=timeout)
+        return _Reply({'status': 'pending'})
+
+    monkeypatch.setattr(requests, 'post', post)
+    partner = _partner_with_vat('BE0477472701')
+    assert vat._check_vies_iap(partner) == 'pending'
+    assert sent['url'].endswith('/api/vies/1/check_validity')
+    assert sent['timeout'] == 20
+    assert sent['data']['vat'] == 'BE0477472701'
+    assert sent['data']['webhook_url'] == 'https://kaupamex.test/base_vat/1/webhook_update_vies'
+    assert verify_hash_signed(env(), 'vies_check', sent['data']['webhook_token']) == 'BE0477472701'
+    assert verify_hash_signed(env(), 'otro', sent['data']['webhook_token']) is None
+
+
+def test_check_vies_iap_reports_fault_when_the_proxy_fails(monkeypatch):
+    def post(url, data, timeout):
+        return _Reply({}, requests.exceptions.HTTPError('503'))
+
+    monkeypatch.setattr(requests, 'post', post)
+    assert vat._check_vies_iap(_partner_with_vat('BE0477472701')) == 'fault'
+
+
+def test_check_vies_iap_reports_fault_without_status(monkeypatch):
+    monkeypatch.setattr(requests, 'post', lambda url, data, timeout: _Reply({}))
+    assert vat._check_vies_iap(_partner_with_vat('BE0477472701')) == 'fault'

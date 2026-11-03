@@ -5,11 +5,11 @@ Adaptación de ``odoo19c: addons/base_vat/models/res_partner.py``
 preservados (DEC-KX-03). Su manifiesto declara ``LGPL-3``, así que el
 mecanismo es **copia + adaptación** del fuente, no reimplementación.
 
-Porte BLOQUEADO — 59 de 64 símbolos
+Porte BLOQUEADO — 60 de 64 símbolos
 ====================================
 
-Los cinco que no se portan tienen su arista declarada símbolo a símbolo, y
-todos apuntan a **dos** destinos medidos, no a cinco causas distintas:
+Los cuatro que no se portan tienen su arista declarada símbolo a símbolo, y
+todos apuntan a **un** destino medido:
 
 - ``account.res.partner._check_vat`` y sus tres hermanos de la misma familia
   (``_run_vat_checks`` base, ``_get_vat_required_valid``,
@@ -22,10 +22,10 @@ todos apuntan a **dos** destinos medidos, no a cinco causas distintas:
   empareja esta misma cita y devolvía 1 — un reclamo que se contaba a sí
   mismo, que es lo que ``check_stale_zero_claims`` destapó.
   Sucesor: tarea **#460**.
-- ``tools.hash_sign`` — la firma con la que el webhook de vuelta se autentica.
-  Medido: ``grep -rc "def hash_sign" --include=*.py src/`` da **0**, y
-  ``addons/account_peppol/models/account_edi_proxy_user.py:182`` ya lo
-  declaraba ausente antes de este pase. Sucesor: tarea **#461**.
+
+``_check_vies_iap`` estuvo bloqueado por ``tools.hash_sign``, la firma con la
+que el webhook de vuelta se autentica; ese ayudante ya existe en
+``src/tools/misc.py`` y el método se porta entero.
 
 Los 64 se cuentan como **métodos de la clase**, que es la unidad que
 ``check_porte_completo`` compara. Los cuatro símbolos de módulo (``_lt``,
@@ -76,9 +76,8 @@ Símbolo a símbolo — los métodos
      - portado
      - ver la divergencia 4 abajo
    * - ``_check_vies_iap`` (``:267``)
-     - bloqueado
-     - BLOQUEADO por ``tools.hash_sign`` — firma el ``webhook_token`` y el
-       ayudante no existe en este árbol. Sucesor: **#461**
+     - portado
+     - firma el ``webhook_token`` con ``tools.hash_sign``
    * - ``_cron_check_vies_iap`` (``:296``)
      - portado
      - el agrupado va por el ORM de Django (divergencia 3)
@@ -227,7 +226,7 @@ Divergencias declaradas — de mecanismo, no de alcance
 Lo que este archivo no cierra
 ==============================
 
-Los cinco símbolos bloqueados de arriba (sucesores **#460** y **#461**) y la
+Los cuatro símbolos bloqueados de arriba (sucesor **#460**) y la
 reconciliación de ``validators.py`` con ``check_vat_mx`` (**#462**).
 """
 import datetime
@@ -254,6 +253,7 @@ from addons.base_vat.validators import validate_rfc
 from exceptions import ValidationError
 from orm.environments import env, get_context, get_current_company, sudo
 from orm.model_classes import extend_model
+from tools.misc import hash_sign
 from tools.translate import _
 
 #: ≙ ``_lt = LazyTranslate(__name__)`` (``odoo19c: :19``). El ``_`` de este
@@ -408,12 +408,9 @@ def _compute_vies_valid(self):
     Docstring de la fuente, verbatim: *"Check the VAT number with VIES, if
     enabled."*
 
-    BLOQUEADO por ``tools.hash_sign`` — razón: la rama que consulta de verdad
-    llama a :func:`_check_vies_iap`, que necesita firmar el ``webhook_token``
-    y ese ayudante no existe en este árbol (medido en el encabezado del
-    módulo: 0 definiciones). Sucesor: tarea **#461**. Las dos ramas que **no**
-    consultan —ninguna empresa con la casilla encendida, y el partner que
-    hereda del padre— sí hacen lo que la fuente hace.
+    Las tres ramas son las de la fuente: ninguna empresa con la casilla
+    encendida, el partner que hereda del padre, y la consulta al proxy con
+    :func:`_check_vies_iap`.
     """
     with sudo():
         enabled = _companies_with_vies_check().exists()
@@ -516,20 +513,43 @@ def _base_vat_module_is_demo():
 
 
 def _check_vies_iap(self):
-    """BLOQUEADO por ``tools.hash_sign`` — razón: el cuerpo firma el
-    ``webhook_token`` con ``hash_sign(self.sudo().env, "vies_check", self.vat,
-    expiration_hours=24 * 7)`` (``odoo19c: :285``) y ese ayudante no existe en
-    este árbol; medido en el encabezado del módulo, 0 definiciones. Sin la
-    firma el proxy no puede devolver el resultado y el par
-    ``webhook_update_vies`` queda abierto. Sucesor: tarea **#461**.
+    """≙ ``_check_vies_iap`` (``odoo19c: :267-293``).
 
     Docstring de la fuente, verbatim: *"Called when VAT is manually edited to
     query IAP for the validity of the VAT"*.
+
+    El ``webhook_token`` es ``hash_sign`` del VAT en el ámbito
+    ``vies_check`` con siete días de vida: el proxy lo devuelve al webhook
+    ``/base_vat/1/webhook_update_vies`` y sólo esta base sabe verificarlo.
+    ``self.ensure_one()`` no se escribe: aquí ``self`` es una fila Django, que
+    ya es una sola.
     """
-    raise NotImplementedError(
-        '_check_vies_iap está bloqueado: tools.hash_sign no existe en este '
-        'árbol y sin él el webhook de vuelta no se puede autenticar '
-        '(tarea #461).')
+    endpoint = self._get_iap_vies_endpoint()
+    client_identifier, client_token = self._get_iap_vies_credentials()
+    with sudo():
+        webhook_token = hash_sign(env(), 'vies_check', self.vat, expiration_hours=24 * 7)
+    try:
+        req = requests.post(
+            endpoint + '/api/vies/1/check_validity',
+            data={
+                "vat": self.vat,
+                "db_uuid": SystemParameter.get_param('database.uuid'),
+                "client_identifier": client_identifier,
+                "client_token": client_token,
+                "webhook_url": self.get_base_url() + '/base_vat/1/webhook_update_vies',
+                "webhook_token": webhook_token,
+            },
+            timeout=20,
+        )
+        req.raise_for_status()
+    except requests.exceptions.RequestException:
+        _logger.exception("VIES check: call to IAP failed")
+        return "fault"
+    resp = req.json()
+    if not resp.get("status"):
+        _logger.error("VIES check: no status returned. Response: %s", resp)
+        return "fault"
+    return resp["status"]
 
 
 def _cron_check_vies_iap(self):
