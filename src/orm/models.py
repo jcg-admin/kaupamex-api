@@ -6360,6 +6360,66 @@ class BaseModel(DefaultGetMixin, Model):
 
     # === existencia =======================================================
 
+    @_on_empty_recordset
+    def _determine_fields_to_fetch(self, field_names=None,
+                                   ignore_when_in_cache=False):
+        """Los campos que hay que traer de la base entre ``field_names``,
+        siguiendo las dependencias de los campos calculados.
+
+        ≙ ``_determine_fields_to_fetch`` (``odoo19c: odoo/orm/models.py:
+        3820-3877``). Lo usan :meth:`fetch` y ``search_fetch``.
+
+        :param field_names: los nombres pedidos, o ``None`` para todos los
+            campos legibles marcados ``prefetch=True``.
+        :param ignore_when_in_cache: si se omiten los campos que ya están en
+            caché para ``self``.
+        :raise ValueError: ante un nombre que el modelo no declara.
+        :raise AccessError: ante un campo que el usuario no puede leer.
+        """
+        if field_names is None:
+            return [
+                field for field in self._fields.values()
+                if getattr(field, 'prefetch', None) is True
+                and self._has_field_access(field, 'read')
+            ]
+
+        if not field_names:
+            return []
+
+        fields_to_fetch = []
+        pending_fields = collections.deque()
+        fields_done = {self._fields['id']}  # el id no se trae
+        for field_name in field_names:
+            try:
+                field = self._fields[field_name]
+            except KeyError as error:
+                raise ValueError(
+                    f'Invalid field {field_name!r} on {self._name!r}'
+                ) from error
+            self._check_field_access(field, 'read')
+            pending_fields.append(field)
+
+        while pending_fields:
+            field = pending_fields.popleft()
+            if field in fields_done:
+                continue
+            fields_done.add(field)
+            if (ignore_when_in_cache
+                    and not any(field._cache_missing_ids(self))):
+                continue
+            if field.store:
+                fields_to_fetch.append(field)
+            else:
+                # sólo se traen las dependencias almacenadas del cálculo
+                for dotname in registry.field_depends[field]:
+                    dep_field = self._fields[dotname.split('.', 1)[0]]
+                    if (not dep_field.store) or (
+                            getattr(dep_field, 'prefetch', None) is True
+                            and self._has_field_access(dep_field, 'read')):
+                        pending_fields.append(dep_field)
+
+        return fields_to_fetch
+
     def _as_query(self, ordered=True):
         """≙ ``_as_query`` (``odoo19c: odoo/orm/models.py:5396-5404``): la
         :class:`Query` cuyo resultado es el recordset ``self``.
