@@ -133,9 +133,11 @@ class TestCamposColgados:
         assert nueva.proxy_value == ''
 
     def test_display_qr_setting_y_country_proxy_keys_son_nonstored(self):
-        """No aparecen en ``_meta.get_fields()`` — es la propiedad que
-        distingue un campo ``store=False`` de uno con columna real."""
-        nombres = {f.name for f in ResPartnerBank._meta.get_fields()}
+        """No aparecen en ``_meta.concrete_fields`` — es la propiedad que
+        distingue un campo ``store=False`` de uno con columna real.
+        ``get_fields`` lista también los privados, que es como la costura
+        contribuye un campo sin columna desde TASK-API-0417."""
+        nombres = {f.name for f in ResPartnerBank._meta.concrete_fields}
         assert 'display_qr_setting' not in nombres
         assert 'country_proxy_keys' not in nombres
         assert 'include_reference' in nombres

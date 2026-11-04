@@ -14,16 +14,16 @@ Portado 1:1 — 5 campos, 14 métodos, cita PROVEN de cada uno
 ===================================  =======================================
 Símbolo de la referencia (línea)     Dónde queda en este puerto
 ===================================  =======================================
-``display_qr_setting`` (13)          campo, ``NonStored``
+``display_qr_setting`` (13)          campo, ``fields.Boolean`` con ``compute=``
 ``include_reference`` (14)           campo, ``fields.Boolean``
 ``proxy_type`` (15)                  campo, ``fields.Selection``
-``country_proxy_keys`` (16)          campo, ``NonStored`` vía ``fields.Char``
+``country_proxy_keys`` (16)          campo, ``fields.Char`` con ``compute=``
 ``proxy_value`` (17)                 campo, ``fields.Char``
 ``_serialize`` (19-24)               método homónimo
 ``_remove_accents`` (26-28)          método homónimo — delega en
 ``strip_accents``
-``_compute_country_proxy_keys`` (30-32) → ``compute_country_proxy_keys``
-``_compute_display_qr_setting`` (34-37) → ``compute_display_qr_setting``
+``_compute_country_proxy_keys`` (30-32) homónimo
+``_compute_display_qr_setting`` (34-37) homónimo
 ``_get_crc16`` (39-49)               método homónimo
 ``_get_merchant_account_info`` (51-52) método homónimo
 ``_get_additional_data_field`` (54-55) método homónimo
@@ -161,25 +161,25 @@ def strip_accents(input_str):
 #    apply_account_qr_code_emv_extensions() -----------------------------
 
 
-def compute_display_qr_setting(self):
+def _compute_display_qr_setting(self):
     """≙ ``_compute_display_qr_setting`` (``odoo19c: res_bank.py:34-37``).
 
     Constante ``False`` en el puente: cada localización que quiera mostrar
     su sección de ajustes EMV sobreescribe este cómputo (o el campo
-    directamente). ``@api.depends('country_code') @api.depends_context
-    ('company')`` de la referencia no tiene análogo — este campo es
-    ``NonStored``, se recalcula en cada lectura, no hay caché que invalidar.
+    directamente). Asigna, como la fuente; su ``@api.depends('country_code')``
+    viaja en el ``depends=`` del campo. ``@api.depends_context('company')``
+    no tiene receptor aquí: el valor es constante.
     """
-    return False
+    self.display_qr_setting = False
 
 
-def compute_country_proxy_keys(self):
+def _compute_country_proxy_keys(self):
     """≙ ``_compute_country_proxy_keys`` (``odoo19c: res_bank.py:30-32``).
 
     Constante ``''`` en el puente — mismo criterio que
-    ``compute_display_qr_setting``.
+    ``_compute_display_qr_setting``.
     """
-    return ''
+    self.country_proxy_keys = ''
 
 
 def _serialize(self, header, value):
@@ -504,8 +504,9 @@ def apply_account_qr_code_emv_extensions():
     if not hasattr(ResPartnerBank, 'display_qr_setting'):
         ResPartnerBank.add_to_class(
             'display_qr_setting',
-            fields.NonStored(
-                default=compute_display_qr_setting,
+            fields.Boolean(
+                compute=_compute_display_qr_setting,
+                depends=['country_code'],
                 help_text=(
                     'Visibilidad de la sección de ajustes EMV (Odoo '
                     'display_qr_setting, compute, store=False). '
@@ -518,8 +519,7 @@ def apply_account_qr_code_emv_extensions():
         ResPartnerBank.add_to_class(
             'country_proxy_keys',
             fields.Char(
-                store=False,
-                default=compute_country_proxy_keys,
+                compute=_compute_country_proxy_keys,
                 help_text=(
                     'Claves de proxy válidas para el país de la cuenta '
                     '(Odoo country_proxy_keys, compute, store=False). '

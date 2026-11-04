@@ -76,9 +76,10 @@ class ResCity(models.Model):
         y asigna a ``city.display_name``; aquí ``self`` es una instancia y el
         valor se **devuelve**, que es lo que ``__str__`` consume.
         """
-        return (
+        self.display_name = label = (
             self.name if not self.zipcode else f'{self.name} ({self.zipcode})'
         )
+        return label
 
     def __str__(self) -> str:
         """El nombre visible — lo sirve :meth:`_compute_display_name`."""

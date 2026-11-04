@@ -53,6 +53,7 @@ from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
+from orm.environments import get_transaction
 from orm.registry import clear_cache
 from pytest_django.plugin import blocking_manager_key
 
@@ -101,7 +102,10 @@ def _pg_probe():
 
 
 def _pg_clusters():
-    """[(version, nombre, estado)] segun ``pg_lsclusters``. Vacio si no esta."""
+    """[(version, nombre, estado)] segun ``pg_lsclusters``.
+
+    Vacio si no esta.
+    """
     if shutil.which('pg_lsclusters') is None:
         return []
     out = subprocess.run(
@@ -135,7 +139,8 @@ def _pg_try_start():
         return False
     for _ in range(_PG_START_RETRIES):
         # pg_isready ya bloquea hasta --timeout: la espera la pone el, no un
-        # sleep nuestro. Un `sleep` incondicional aqui seria H-API-384 otra vez.
+        # sleep nuestro. Un `sleep` incondicional aqui seria H-API-384 otra
+        # vez.
         if _pg_probe() == 0:
             return True
     return False
@@ -181,8 +186,7 @@ def pytest_sessionstart(session):
 # ─── Paths del repositorio ───────────────────────────────────────────────────
 # Construidos relativos a este archivo — portables entre entornos.
 _TESTS_DIR = Path(__file__).resolve().parent        # tests/
-_REPO_ROOT  = _TESTS_DIR.parent                     # kaupamex-api/
-
+_REPO_ROOT = _TESTS_DIR.parent                      # kaupamex-api/
 
 
 @pytest.fixture
@@ -285,6 +289,7 @@ def clear_rate_limit_cache():
     yield
     clear_rl()
 
+
 @pytest.fixture(autouse=True)
 def _reset_system_parameter_cache():
     """Aísla la caché de parámetros entre tests.
@@ -317,10 +322,10 @@ def _reset_system_parameter_cache():
 # divergir.
 #
 # Cubre las semillas de **configuración y catálogo** — las que producción
-# siempre tiene y cuya ausencia vuelve order-dependent a los tests. NO cubre las
-# data-migrations que son **portes históricos** de una sola vez (copiar applog a
-# irlogging, retirar los modelos de cart, portar borradores a sale…): re-correr
-# esas sería incorrecto, no una restauración.
+# siempre tiene y cuya ausencia vuelve order-dependent a los tests. NO cubre
+# las data-migrations que son **portes históricos** de una sola vez (copiar
+# applog a irlogging, retirar los modelos de cart, portar borradores a
+# sale…): volver a ejecutarlas sería incorrecto, no una restauración.
 #
 # Exclusión deliberada: ``orders/0002_seed_shipping_zones``. Sembrar zonas de
 # envío en cada test colisiona con los tests que crean las suyas y afirman
@@ -364,7 +369,7 @@ _SEEDERS = (
     geo_providers_seed,         # base_geolocalize/0002
     install_request_template_seed,  # base_install_request/0002
     departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
-    bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
+    bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op sin declarar)
     base_rules_seed,            # base/security (record rules multi-company)
     base_acl_seed,              # base/security (ir.model.access, 23 filas)
     sale_rules_seed,            # sale/security/ir_rules
@@ -463,3 +468,19 @@ def matching_by_display_name(model_cls, operator, value):
     """El caso particular de ``_search_display_name``, que es el más usado."""
     return matching_by_search_method(
         model_cls, '_search_display_name', operator, value)
+
+
+@pytest.fixture(autouse=True)
+def _clear_the_orm_transaction():
+    """Vacía la transacción del ORM al terminar cada prueba.
+
+    En la fuente el ``rollback`` de cada prueba llama a ``cr.clear()``, que
+    delega en ``transaction.clear()`` (``odoo19c: odoo/sql_db.py:137-139``,
+    ``:188-192``): la caché de campos muere con la transacción. Aquí la
+    transacción del ORM cuelga de la conexión y el ``rollback`` de
+    pytest-django no la toca, así que un valor calculado sobrevivía a la
+    prueba: el slug de un producto con ``pk=42`` salía con el nombre de la
+    prueba anterior.
+    """
+    yield
+    get_transaction().clear()

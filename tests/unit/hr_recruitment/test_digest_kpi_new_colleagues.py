@@ -143,6 +143,6 @@ class TestTheValueFieldHasNoColumn:
     columna, y aquí tampoco — lo sirve el descriptor ``NonStored``."""
 
     def test_it_is_an_attribute_and_not_a_model_field(self):
-        names = {f.name for f in DigestDigest._meta.get_fields()}
+        names = {f.name for f in DigestDigest._meta.concrete_fields}
         assert 'kpi_hr_recruitment_new_colleagues_value' not in names
         assert hasattr(DigestDigest, 'kpi_hr_recruitment_new_colleagues_value')

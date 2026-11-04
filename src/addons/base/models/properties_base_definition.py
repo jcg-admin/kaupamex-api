@@ -181,13 +181,16 @@ class PropertiesBaseDefinition(TimeStampedModel):
         que la fuente.
         """
         if not self.properties_field_id:
-            return False
+            self.display_name = label = False
+            return label
         model_name = getattr(self.properties_field, 'model', '')
         if not model_name:
-            return False
+            self.display_name = label = False
+            return label
         model_cls = registry.MODELS_BY_NAME.get(model_name)
         description = getattr(model_cls, '_description', None) or model_name
-        return f'{description} Properties'
+        self.display_name = label = f'{description} Properties'
+        return label
 
     def __str__(self):
         """Enganche de Django — delega en ``_compute_display_name``."""

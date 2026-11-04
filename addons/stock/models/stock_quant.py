@@ -347,7 +347,8 @@ from osv import expression
 from tools.sql import SQL
 from tools.translate import _
 
-#: ≙ ``PackageLevel`` — el nodo del A* de ``_run_least_packages_removal_strategy_astar``
+#: ≙ ``PackageLevel`` — el nodo del A* de
+#: ``_run_least_packages_removal_strategy_astar``
 #: (``odoo19c: :630-739``): un paquete con su cantidad disponible.
 PackageQty = namedtuple('PackageQty', ['package_id', 'available_qty'])
 
@@ -409,7 +410,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                   'clave de orden de la estrategia FIFO).',
     )
 
-    # -- campos de ajuste de inventario (≙ el bloque "Inventory Fields", :95-117) --
+    # -- campos de ajuste de inventario --
+    # (≙ el bloque "Inventory Fields", :95-117)
 
     inventory_quantity      = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
@@ -1162,7 +1164,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             partes.append(str(self.package))
         if self.owner is not None:
             partes.append(str(self.owner))
-        return ' - '.join(partes)
+        self.display_name = label = ' - '.join(partes)
+        return label
 
     def check_product_id(self):
         """≙ ``check_product_id`` (``odoo19c: :582-585``, ``@api.constrains``).

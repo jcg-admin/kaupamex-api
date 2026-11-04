@@ -296,8 +296,8 @@ def apply_account_extensions():
         AccountAnalyticLine,
         'analytic_profitability',
         fields.Char(
-            store=False,
-            default=_default_analytic_profitability,
+            compute=_compute_analytic_profitability,
+            depends=['general_account', 'category', 'amount'],
             help_text=(
                 'Odoo analytic_profitability (compute, store=False). '
                 'loss/revenue/uncategorized según general_account.'
@@ -310,3 +310,12 @@ def apply_account_extensions():
 
     chain_method(AccountAnalyticLine, 'save', _derive_general_account_on_save)
     chain_method(AccountAnalyticLine, 'clean', _check_general_account)
+
+
+def _compute_analytic_profitability(instance):
+    """≙ ``_compute_analytic_profitability`` (odoo19c: :76-94): asigna, como
+    la fuente. La derivación es :func:`_default_analytic_profitability`, que
+    servía de ``default`` invocable cuando el campo era un ``NonStored``;
+    retirado en TASK-API-0417, el ``default`` ya no recibe el registro."""
+    instance.analytic_profitability = _default_analytic_profitability(
+        instance)

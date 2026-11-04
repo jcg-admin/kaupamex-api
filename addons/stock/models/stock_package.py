@@ -303,9 +303,12 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         tipo = self.package_type
         if (contexto.get('formatted_display_name') and tipo is not None
                 and tipo.packaging_length and tipo.width and tipo.height):
-            return (f'{nombre}\t--{tipo.packaging_length} x '
-                    f'{tipo.width} x {tipo.height}--')
-        return nombre
+            label = (f'{nombre}\t--{tipo.packaging_length} x '
+                     f'{tipo.width} x {tipo.height}--')
+            self.display_name = label
+            return label
+        self.display_name = label = nombre
+        return label
 
     # -- los computes almacenados --
 

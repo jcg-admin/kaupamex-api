@@ -259,7 +259,8 @@ class WebsiteMenu(TimeStampedModel):
         menu_name = self.name or ""
         if display_website and self.website_id:
             menu_name += f' [{self.website.name}]'
-        return menu_name
+        self.display_name = label = menu_name
+        return label
 
     def _compute_parent_path(self):
         """Materializa ``parent_path`` — ≙ el ``_parent_store`` de la referencia.

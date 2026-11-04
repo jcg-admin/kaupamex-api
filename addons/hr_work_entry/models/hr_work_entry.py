@@ -298,7 +298,9 @@ class HrWorkEntry(TimeStampedModel):
         type_name = (
             self.work_entry_type.name if self.work_entry_type_id else ''
         )
-        return '%s - %sh%s' % (type_name, duration[0], duration[1])
+        label = '%s - %sh%s' % (type_name, duration[0], duration[1])
+        self.display_name = label
+        return label
 
     # ------------------------------------------------------------------
     # Validaciones y helpers de un registro

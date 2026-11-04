@@ -224,8 +224,9 @@ def apply_account_extensions():
     _add_if_absent(
         AccountAnalyticApplicability,
         'display_account_prefix',
-        fields.NonStored(
-            default=_default_display_account_prefix,
+        fields.Boolean(
+            compute=_compute_display_account_prefix,
+            depends=['business_domain'],
             help_text=(
                 'Odoo display_account_prefix (compute, store=False). '
                 'Si el campo account_prefix debería mostrarse para '
@@ -237,8 +238,8 @@ def apply_account_extensions():
         AccountAnalyticApplicability,
         'account_prefix_placeholder',
         fields.Char(
-            store=False,
-            default=_default_account_prefix_placeholder,
+            compute=_compute_prefix_placeholder,
+            depends=['account_prefix', 'business_domain'],
             help_text=(
                 'Odoo account_prefix_placeholder (compute, '
                 'store=False). Ejemplo de prefijo según la primera '
@@ -280,3 +281,19 @@ def apply_account_extensions():
         _account_prefix_categ_bonus,
         combine=_combine_score_with_bonus,
     )
+
+
+def _compute_display_account_prefix(instance):
+    """≙ ``_compute_display_account_prefix`` (odoo19c: :78-81): asigna, como
+    la fuente. La derivación es :func:`_default_display_account_prefix`, que
+    servía de ``default`` invocable cuando el campo era un ``NonStored``;
+    retirado en TASK-API-0417, el ``default`` ya no recibe el registro."""
+    instance.display_account_prefix = _default_display_account_prefix(
+        instance)
+
+
+def _compute_prefix_placeholder(instance):
+    """≙ ``_compute_prefix_placeholder`` (odoo19c: :34-57), con la misma
+    razón que :func:`_compute_display_account_prefix`."""
+    instance.account_prefix_placeholder = (
+        _default_account_prefix_placeholder(instance))

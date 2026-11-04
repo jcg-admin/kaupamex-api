@@ -1562,7 +1562,11 @@ class FieldDescriptor(DeferredAttribute):
         record_id = _field_cache_record_id(field, instance)
         cache_records = (record_id,) if isinstance(record_id, NewId) else instance
         initial_fields = instance.__dict__.get(PENDING_INITIAL_CACHE_FIELDS, set())
-        if isinstance(record_id, NewId) and field.attname in initial_fields:
+        # El valor que trajo el constructor entra a la caché también cuando la
+        # fila ya tiene pk: el inverso que ``save()`` despacha tras el INSERT
+        # lo lee de ahí, como el ``create`` de la fuente (``:4717-4733``). Sin
+        # esto un cómputo sin columna se recalculaba y pisaba lo asignado.
+        if record_id is not None and field.attname in initial_fields:
             field._insert_cache(cache_records, [field.convert_to_cache(
                 instance.__dict__[field.attname], instance, validate=False)])
         initial_fields.discard(field.attname)

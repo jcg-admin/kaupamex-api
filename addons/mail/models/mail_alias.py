@@ -315,10 +315,14 @@ class MailAlias(TimeStampedModel):
         "Inactive Alias" si no hay ni nombre.
         """
         if self.alias_name and self.alias_domain_id:
-            return f'{self.alias_name}@{self.alias_domain.name}'
+            label = f'{self.alias_name}@{self.alias_domain.name}'
+            self.display_name = label
+            return label
         if self.alias_name:
-            return self.alias_name
-        return 'Inactive Alias'
+            self.display_name = label = self.alias_name
+            return label
+        self.display_name = label = 'Inactive Alias'
+        return label
 
     def _compute_alias_full_name(self):
         """Odoo ``_compute_alias_full_name`` (líneas de ``mail_alias.py``).

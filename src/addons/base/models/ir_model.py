@@ -1057,10 +1057,13 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         consultar.
         """
         if hide_model:
-            return self.field_description
+            self.display_name = label = self.field_description
+            return label
         model_row = IrModel._get(self.model)
         model_string = model_row.name if model_row is not None else self.model
-        return f'{self.field_description} ({model_string})'
+        label = f'{self.field_description} ({model_string})'
+        self.display_name = label
+        return label
 
     def __str__(self):
         """Enganche de Django — el nombre técnico, que es lo que identifica.

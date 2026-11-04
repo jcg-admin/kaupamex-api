@@ -180,7 +180,9 @@ class ResBank(models.DefaultGetMixin, models.Model):
         ``__str__``, que aquí es el equivalente del ``display_name`` de la
         fuente.
         """
-        return (self.name or '') + (' - ' + self.bic if self.bic else '')
+        label = (self.name or '') + (' - ' + self.bic if self.bic else '')
+        self.display_name = label
+        return label
 
     @classmethod
     def _search_display_name(cls, operator, value):

@@ -517,8 +517,12 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         sesión de idioma a nivel de modelo (familia b).
         """
         if self.employee_id and self.date_version:
-            return f'{self.employee.name} — {self.date_version.isoformat()}'
-        return self.name or ''
+            label = (
+                f'{self.employee.name} — {self.date_version.isoformat()}')
+            self.display_name = label
+            return label
+        self.display_name = label = self.name or ''
+        return label
 
     @property
     def km_home_work(self):

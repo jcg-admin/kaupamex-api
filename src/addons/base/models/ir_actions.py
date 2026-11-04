@@ -870,7 +870,8 @@ class IrActionsServerHistory(TimeStampedModel):
         exista, esta etiqueta recupera su segunda mitad sin tocar nada más.
         """
         if not self.created_at:
-            return False
+            self.display_name = label = False
+            return label
         lang = get_lang(env())
         user = get_current_user()
         zone = getattr(user, 'tz', None) if user is not None else None
@@ -887,11 +888,12 @@ class IrActionsServerHistory(TimeStampedModel):
                 tzinfo = None
         if tzinfo is not None:
             moment = moment.astimezone(tzinfo)
-        return babel_dates.format_datetime(
+        self.display_name = label = babel_dates.format_datetime(
             moment,
             tzinfo=tzinfo,
             locale=lang.code,
         )
+        return label
 
     @api.autovacuum
     def _gc_histories(self):

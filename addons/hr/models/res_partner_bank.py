@@ -200,8 +200,10 @@ def _compute_display_name(self, user=None):
         and self.partner_id
         and self.partner.employee_work_contacts.exists()
     ):
-        return self._masked_acc_number()
-    return str(self)
+        self.display_name = label = self._masked_acc_number()
+        return label
+    self.display_name = label = str(self)
+    return label
 
 
 def apply_hr_res_partner_bank_extensions():

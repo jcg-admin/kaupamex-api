@@ -348,7 +348,8 @@ class WebsiteRewrite(TimeStampedModel):
         ≙ ``_compute_display_name`` (``@api.depends('redirect_type')``,
         ``odoo19c: website_rewrite.py:132-135``).
         """
-        return f"{self.redirect_type} - {self.name}"
+        self.display_name = label = f"{self.redirect_type} - {self.name}"
+        return label
 
     def save(self, *args, **kwargs):
         """≙ ``create`` (``@api.model_create_multi``, ``:137-142``) +
