@@ -305,3 +305,21 @@ def test_a_scope_obligation_without_unit_becomes_a_candidate_row():
             'test_contract_models_basemodel_get_metadata.py')
     assert row['owned'] == ['src/orm/models.py', test]
     assert test in row['verify']
+
+
+def test_candidate_ids_keep_kind_and_visibility_apart():
+    """``Command.CREATE`` (atributo) y ``Command.create`` (método), o ``_f`` y
+    ``f``, son obligaciones distintas: su fila no puede compartir id."""
+    def pending(symbol, kind):
+        return {'module': 'src/orm/commands.py', 'symbol': symbol,
+                'kind': kind, 'operational_class': 'task_without_unit',
+                'linked_tasks': ['TASK-API-0485']}
+    rows = [pending('Command.CREATE', 'attribute'),
+            pending('Command.create', 'method'),
+            pending('Command._f', 'method'), pending('Command.f', 'method'),
+            pending('Command._f__', 'method')]
+    candidates = coverage.candidate_rows(rows)
+    ids = [row['id'] for row in candidates]
+    tests = [row['owned'][1] for row in candidates]
+    assert len(set(ids)) == 5
+    assert len(set(tests)) == 5

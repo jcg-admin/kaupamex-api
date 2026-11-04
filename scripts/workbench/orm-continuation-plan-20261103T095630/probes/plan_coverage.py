@@ -170,6 +170,26 @@ TEST_HOMES = {'src/orm/': 'tests/integration/test_orm'}
 VERIFY = 'uv run pytest -q --reuse-db -p no:cacheprovider {test}'
 
 
+def symbol_slug(symbol, kind):
+    """El tramo del id y del archivo de prueba que nombra una obligación.
+
+    Distingue lo que el minúsculo y el guion bajo colapsarían: cada guion bajo
+    inicial de un componente se marca con ``p`` (``_f`` y ``f`` son
+    obligaciones distintas, y la visibilidad es contrato), cada guion bajo
+    final con ``t`` (``_fields`` frente a ``_fields__``), y un tipo que no es
+    método añade su nombre (``Command.CREATE`` frente a ``Command.create``).
+    """
+    parts = []
+    for part in symbol.split('.'):
+        bare = part.strip('_')
+        hidden = len(part) - len(part.lstrip('_'))
+        trailing = len(part) - len(part.rstrip('_'))
+        parts.append('_'.join(filter(None, (
+            'p' * hidden, bare.lower(), 't' * trailing))))
+    slug = re.sub(r'_+', '_', '_'.join(parts)).strip('_')
+    return slug if kind == 'method' else f'{slug}_{kind}'
+
+
 def candidate_rows(rows):
     """Las filas candidatas del plan: una por obligación pendiente que su
     TASK de alcance todavía no representa con una unidad.
@@ -186,8 +206,7 @@ def candidate_rows(rows):
             continue
         task = row['linked_tasks'][0]
         stem = row['module'].rsplit('/', 1)[1].removesuffix('.py')
-        slug = re.sub(r'_+', '_', row['symbol'].lower().replace('.', '_')
-                      ).strip('_')
+        slug = symbol_slug(row['symbol'], row['kind'])
         test = f'{home}/test_contract_{stem}_{slug}.py'
         candidates.append({
             'id': f"{stem}-{slug.replace('_', '-')}-{task[-4:]}",
