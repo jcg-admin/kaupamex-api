@@ -58,7 +58,8 @@ class TestOrmCategory(TestOrmModel):
     color = fields.Integer('Color Index')
     # H-API-1122: la fuente no declara ``required``, así que el Many2one es
     # opcional; aquí ``required = not null``, de ahí ``null=True``.
-    parent = fields.Many2one('test_orm.category', ondelete='cascade', null=True)
+    parent = fields.Many2one('test_orm.category', ondelete='cascade',
+                             null=True, db_column='parent')
     parent_path = fields.Char(index=True)
     depth = fields.Integer(compute='_compute_depth')
     root_categ = fields.Many2one(
@@ -152,7 +153,8 @@ class TestOrmDiscussion(TestOrmModel):
     # (``fields.E304``). Es la convencion dominante del arbol: 197
     # declaraciones ya la usan, y ``One2many.__get__`` la contempla
     # (``src/orm/fields_relational.py:371-373``).
-    moderator = fields.Many2one('res.users', related_name='+', null=True)  # H-API-1122
+    moderator = fields.Many2one('res.users', related_name='+', null=True,
+                                db_column='moderator')  # H-API-1122
     categories = fields.Many2many(
         'test_orm.category',
         'test_orm_discussion_category',
@@ -238,7 +240,8 @@ class TestOrmModelParent(TestOrmModel):
     _description = 'Model Multicompany parent'
 
     name = fields.Char()
-    company = fields.Many2one('res.company', null=True, related_name='+')
+    company = fields.Many2one('res.company', null=True, related_name='+',
+                              db_column='company')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_model_parent'
@@ -252,10 +255,11 @@ class TestOrmModelChild(TestOrmModel):
     _check_company_auto = True
 
     name = fields.Char()
-    company = fields.Many2one('res.company', null=True, related_name='+')
+    company = fields.Many2one('res.company', null=True, related_name='+',
+                              db_column='company')
     parent = fields.Many2one(
         'test_orm.model_parent', string="Parent", check_company=True,
-        null=True, related_name='+')
+        null=True, related_name='+', db_column='parent')
     parent_ids = fields.Many2many(
         'test_orm.model_parent', string="Parents", check_company=True,
         related_name='+')
@@ -272,10 +276,11 @@ class TestOrmModelChildNocheck(TestOrmModel):
     _check_company_auto = True
 
     name = fields.Char()
-    company = fields.Many2one('res.company', null=True, related_name='+')
+    company = fields.Many2one('res.company', null=True, related_name='+',
+                              db_column='company')
     parent = fields.Many2one(
         'test_orm.model_parent', check_company=False, null=True,
-        related_name='+')
+        related_name='+', db_column='parent')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_model_child_nocheck'
@@ -327,7 +332,8 @@ class TestOrmModelActiveField(TestOrmModel):
     name = fields.Char()
     active = fields.Boolean(default=True)
     parent = fields.Many2one(
-        'test_orm.model_active_field', null=True, related_name='+')
+        'test_orm.model_active_field', null=True, related_name='+',
+        db_column='parent')
     children_ids = fields.One2many('test_orm.model_active_field', 'parent')
     all_children_ids = fields.One2many(
         'test_orm.model_active_field', 'parent',
@@ -468,7 +474,8 @@ class TestOrmMulti(TestOrmModel):
     _description = 'Test ORM Multi'
 
     name = fields.Char(related='partner.name', readonly=True)
-    partner = fields.Many2one('res.partner', null=True, related_name='+')
+    partner = fields.Many2one('res.partner', null=True, related_name='+',
+                              db_column='partner')
     # ``partner.child_ids`` en la fuente; aquí el inverso de ``res.partner``
     # se llama ``children`` (``res_partner.py``, divergencia declarada).
     partners = fields.One2many(related='partner.children')
@@ -487,11 +494,12 @@ class TestOrmMultiLine(TestOrmModel):
     _description = 'Test ORM Multi Line'
 
     multi = fields.Many2one(
-        'test_orm.multi', ondelete='cascade', null=True, related_name='lines')
+        'test_orm.multi', ondelete='cascade', null=True, related_name='lines',
+        db_column='multi')
     name = fields.Char(null=True)
     partner = fields.Many2one(
         'res.partner', related='multi.partner', store=True, null=True,
-        related_name='+')
+        related_name='+', db_column='partner')
     tags = fields.Many2many('test_orm.multi.tag', related_name='+')
 
     class Meta(TestOrmModel.Meta):
@@ -532,7 +540,7 @@ class TestOrmRelatedFoo(TestOrmModel):
 
     name = fields.Char(null=True)
     bar_id = fields.Many2one('test_orm.related_bar', null=True,
-                             related_name='+')
+                             related_name='+', db_column='bar_id')
     bar_ids = fields.Many2many('test_orm.related_bar', related_name='+')
 
     foo_names = fields.Char(related='foo_ids.name', related_sudo=False,
@@ -557,7 +565,7 @@ class TestOrmRelated(TestOrmModel):
 
     name = fields.Char(null=True)
     foo_id = fields.Many2one('test_orm.related_foo', null=True,
-                             related_name='foo_ids')
+                             related_name='foo_ids', db_column='foo_id')
 
     foo_name = fields.Char('foo_name', related='foo_id.name',
                            related_sudo=False)
@@ -606,7 +614,8 @@ class TestOrmHierarchyNode(TestOrmModel):
 
     name = fields.Char(null=True)
     parent_id = fields.Many2one('test_orm.hierarchy.node', null=True,
-                                related_name='child_ids')
+                                related_name='child_ids',
+                                db_column='parent_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_hierarchy_node'
@@ -619,7 +628,7 @@ class TestOrmHierarchyHead(TestOrmModel):
     _description = 'Hierarchy Head'
 
     node_id = fields.Many2one('test_orm.hierarchy.node', null=True,
-                              related_name='+')
+                              related_name='+', db_column='node_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_hierarchy_head'
@@ -634,7 +643,8 @@ class TestOrmRelatedInherits(TestOrmModel):
     _inherits = {'test_orm.related': 'base_id'}
 
     base_id = fields.Many2one('test_orm.related', null=False, required=True,
-                              ondelete='cascade', related_name='+')
+                              ondelete='cascade', related_name='+',
+                              db_column='base_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related_inherits'
@@ -661,7 +671,7 @@ class TestOrmMixed(TestOrmModel):
     date = fields.Date(null=True)
     moment = fields.Datetime(null=True)
     currency_id = fields.Many2one('res.currency', null=True,
-                                  related_name='+')
+                                  related_name='+', db_column='currency_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_mixed'
@@ -683,7 +693,8 @@ class TestOrmMessage(TestOrmModel):
     _description = 'Test ORM Message'
 
     discussion = fields.Many2one('test_orm.discussion', ondelete='cascade',
-                                 null=True, related_name='+')
+                                 null=True, related_name='+',
+                                 db_column='discussion')
     name = fields.Char(string='Title', null=True)
     important = fields.Boolean(default=False)
     priority = fields.Integer(null=True)
@@ -789,10 +800,13 @@ class TestOrmAnyChild(TestOrmModel):
     _description = 'Any Child'
     _inherits = {'test_orm.any.parent': 'parent_id'}
 
-    parent_id = fields.Many2one('test_orm.any.parent', null=False, required=True,
-                                ondelete='cascade', related_name='child_ids')
+    parent_id = fields.Many2one('test_orm.any.parent', null=False,
+                                required=True, ondelete='cascade',
+                                related_name='child_ids',
+                                db_column='parent_id')
     link_sibling_id = fields.Many2one('test_orm.any.child', null=True,
-                                      related_name='+')
+                                      related_name='+',
+                                      db_column='link_sibling_id')
     quantity = fields.Integer(null=True)
     #: La tabla y las columnas por defecto de la fuente para un Many2many
     #: sin ``relation`` (``<tabla1>_<tabla2>_rel``, ``<tabla>_id``). Sin
@@ -860,8 +874,10 @@ class TestOrmModelChildM2o(TestOrmModel):
     _description = 'dummy model with override write and ValidationError'
 
     name = fields.Char('Name', null=True)
-    parent_id = fields.Many2one('test_orm.model_parent_m2o', ondelete='cascade',
-                                null=True, related_name='child_ids')
+    parent_id = fields.Many2one('test_orm.model_parent_m2o',
+                                ondelete='cascade', null=True,
+                                related_name='child_ids',
+                                db_column='parent_id')
     size1 = fields.Integer(compute='_compute_sizes', store=True, null=True)
     size2 = fields.Integer(compute='_compute_sizes', store=True, null=True)
     cost = fields.Integer(compute='_compute_cost', store=True, readonly=False,
@@ -908,7 +924,8 @@ class TestOrmOrderLine(TestOrmModel):
     _description = 'test_orm.order.line'
 
     order_id = fields.Many2one('test_orm.order', null=False, required=True,
-                               ondelete='cascade', related_name='line_ids')
+                               ondelete='cascade', related_name='line_ids',
+                               db_column='order_id')
     product = fields.Char(null=True)
     reward = fields.Boolean(default=False)
 
@@ -936,7 +953,8 @@ class TestOrmTeam(TestOrmModel):
     _description = 'Odoo Team'
 
     name = fields.Char(null=True)
-    parent_id = fields.Many2one('test_orm.team', null=True, related_name='+')
+    parent_id = fields.Many2one('test_orm.team', null=True, related_name='+',
+                                db_column='parent_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_team'
@@ -950,7 +968,7 @@ class TestOrmTeamMember(TestOrmModel):
 
     name = fields.Char('Name', null=True)
     team_id = fields.Many2one('test_orm.team', null=True,
-                              related_name='member_ids')
+                              related_name='member_ids', db_column='team_id')
     parent_id = fields.Many2one('test_orm.team', related='team_id.parent_id')
 
     class Meta(TestOrmModel.Meta):
@@ -960,8 +978,9 @@ class TestOrmTeamMember(TestOrmModel):
 # ---------------------------------------------------------------------------
 # ``test_orm.compute.container`` y ``compute.member`` — ≙ ``odoo19c:
 # odoo/addons/test_orm/models/test_orm.py`` (``TestOrmComputeContainer``,
-# ``TestOrmComputeMember``). Sujeto de ``test_compute_stored_many2one_one2many``
-# (``tests/test_one2many.py:317``): un Many2one calculado y almacenado cuyo
+# ``TestOrmComputeMember``). Sujeto de
+# ``test_compute_stored_many2one_one2many`` (``tests/test_one2many.py:317``):
+# un Many2one calculado y almacenado cuyo
 # One2many inverso alimenta un contador también almacenado.
 #
 # pendiente: ``name_translated`` de ``container`` y ``container_super_id``,
@@ -1000,7 +1019,8 @@ class TestOrmComputeMember(TestOrmModel):
     name = fields.Char(null=True)
     container_id = fields.Many2one('test_orm.compute.container',
                                    compute='_compute_container', store=True,
-                                   related_name='member_ids')
+                                   related_name='member_ids',
+                                   db_column='container_id')
 
     @depends('name')
     def _compute_container(self):
@@ -1023,7 +1043,8 @@ class TestOrmUnsearchableO2m(TestOrmModel):
 
     name = fields.Char('Name', null=True)
     stored_parent_id = fields.Many2one('test_orm.unsearchable.o2m', null=True,
-                                       related_name='+')
+                                       related_name='+',
+                                       db_column='stored_parent_id')
     parent_id = fields.Many2one('test_orm.unsearchable.o2m', store=False,
                                 compute='_compute_parent_id',
                                 related_name='+')
@@ -1079,7 +1100,8 @@ class TestOrmComputedInverseOne2manyLine(TestOrmModel):
     name = fields.Char(null=True)
     priority = fields.Integer(null=True)
     parent_id = fields.Many2one('test_orm.computed_inverse_one2many',
-                                related_name='all_line_ids')
+                                related_name='all_line_ids',
+                                db_column='parent_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_computed_inverse_one2many_line'
