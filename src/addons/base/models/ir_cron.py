@@ -209,7 +209,8 @@ _logger = logging.getLogger(__name__)
 # desactivacion, y cambiar uno cambia la conducta observable del planificador.
 
 #: Ventana tras la cual se asume que los crons estan atascados por estado
-#: zombi de modulos. La fuente comenta: *"chosen with a fair roll of the dice"*.
+#: zombi de modulos. La fuente comenta:
+#: *"chosen with a fair roll of the dice"*.
 MAX_FAIL_TIME = timedelta(hours=5)
 #: Vueltas minimas del bucle de progreso antes de ceder el turno.
 MIN_RUNS_PER_JOB = 10
@@ -349,8 +350,12 @@ def _resolve_tz(user=None):
     preferible a que una tarea programada muera por un dato de perfil.
 
     DIVERGENCIA de biblioteca, declarada: la fuente usa ``pytz``; aqui es
-    ``zoneinfo`` de la biblioteca estandar, que es lo que Django 6 consume
-    (``pytz`` no esta en el arbol — medido). El comportamiento observable es
+    ``zoneinfo`` de la biblioteca estandar, que es lo que Django 6 consume.
+    Corregido 2026-11-04 — decia *«``pytz`` no esta en el arbol — medido»*;
+    ``pytz`` si esta instalado desde el porte de ``tools/safe_eval``, que lo
+    expone a las expresiones como la fuente, pero no es el mecanismo de
+    husos de este arbol. La decision no cambia; su razon si. El
+    comportamiento observable es
     el mismo, incluido el cambio de horario de verano, que es la razon de que
     la conversion exista.
     """

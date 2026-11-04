@@ -55,7 +55,8 @@ from tools.sql import SQL
 from tools.translate import _
 
 
-#: ≙ ``EU_EXTRA_VAT_CODES`` (``odoo19c: odoo/addons/base/models/res_partner.py:28-31``),
+#: ≙ ``EU_EXTRA_VAT_CODES``
+#: (``odoo19c: odoo/addons/base/models/res_partner.py:28-31``),
 #: verbatim. Dos paises europeos emiten su numero de IVA intracomunitario con
 #: un prefijo distinto del codigo ISO de su pais: Grecia usa ``EL`` y el Reino
 #: Unido usa ``XI`` para Irlanda del Norte. La tabla traduce el codigo del pais
@@ -70,9 +71,11 @@ EU_EXTRA_VAT_CODES = {
 }
 
 
-# put POSIX 'Etc/*' entries at the end to avoid confusing users - see bug 1086728
+# put POSIX 'Etc/*' entries at the end to avoid confusing users - see bug
+# 1086728
 #
-# El comentario va verbatim de ``odoo19c: odoo/addons/base/models/res_partner.py:39``:
+# El comentario va verbatim de
+# ``odoo19c: odoo/addons/base/models/res_partner.py:39``:
 # es el contrato del orden, no una nota de color. La lista y su invocable son
 # los dos simbolos que la fuente declara (``:40-42``), y ``_tz_get`` NO es
 # adorno — medido sobre ``odoo19c``, lo consumen 14 archivos / 30 referencias
@@ -493,7 +496,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         help_text='Marca de contacto empleado (Odoo employee).',
     )
 
-    # --- Dirección. Plana, como la referencia: no hay tabla de direcciones. ---
+    # --- Dirección. Plana, como la referencia: no hay tabla de
+    # direcciones. ---
     street      = fields.Char(max_length=255, blank=True, default='')
     street2     = fields.Char(max_length=255, blank=True, default='')
     zip         = fields.Char(max_length=16,  blank=True, default='', db_index=True)
@@ -534,16 +538,17 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # (``odoo19c: res_partner.py:223``). El ``help`` va verbatim de la fuente.
     #
     # ``default`` — la fuente usa ``lambda self: self.env.context.get('tz')``;
-    # aqui el mecanismo equivalente ya existe (``orm.environments.get_context``),
-    # asi que se porta en vez de dejarlo en blanco. Cae a ``''`` y no a ``None``
-    # porque la columna es NOT NULL en este arbol.
+    # aqui el mecanismo equivalente ya existe
+    # (``orm.environments.get_context``), asi que se porta en vez de dejarlo
+    # en blanco. Cae a ``''`` y no a ``None`` porque la columna es NOT NULL
+    # en este arbol.
     #
     # LO QUE ESTO NO CIERRA: ``choices`` en Django es **validacion, no DDL** —
     # el mismo hecho que desbloqueo la tarea #118. PostgreSQL no recibe ningun
-    # ``CHECK``, asi que un ``objects.create(tz='No/Existe')`` sigue escribiendo
-    # la fila y solo ``full_clean()`` la rechaza. Por eso el respaldo a GMT de
-    # ``_compute_tz_offset`` se queda: cubre el dato viejo y la escritura que
-    # esquiva la validacion.
+    # ``CHECK``, asi que un ``objects.create(tz='No/Existe')`` sigue
+    # escribiendo la fila y solo ``full_clean()`` la rechaza. Por eso el
+    # respaldo a GMT de ``_compute_tz_offset`` se queda: cubre el dato viejo
+    # y la escritura que esquiva la validacion.
     tz          = fields.Char(
         max_length=64, blank=True, choices=_tzs,
         default=_default_tz,
@@ -786,7 +791,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
     # === Entidad comercial ================================================
     # Adaptación de ``_compute_commercial_partner`` /
-    # ``_compute_commercial_company_name`` — ``odoo19c: res_partner.py:515-521``
+    # ``_compute_commercial_company_name`` —
+    # ``odoo19c: res_partner.py:515-521``
     # y ``:523-526``; idénticos en ``odoo18c: :450-456``. Los dos son campos
     # ``compute=... store=True`` allá y aquí: los cómputos ESCRIBEN sus
     # columnas, declaradas arriba junto a los demás campos.
@@ -1136,7 +1142,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                 child.write(sync_vals)
 
     # ------------------------------------------------------------------
-    # Restricciones y onchange — ``odoo19c: res_partner.py:546-599`` y ``:647``.
+    # Restricciones y onchange — ``odoo19c: res_partner.py:546-599`` y
+    # ``:647``.
     #
     # Son dos mecanismos y no se confunden. La **restriccion** corre al
     # guardar y rechaza un estado imposible; el **onchange** corre con el
@@ -1566,8 +1573,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # por ``self._state.adding``, que es como este ORM dice «esta fila es
     # nueva». Lo que ambos hacen es idéntico en la fuente y aquí también:
     # limpiar la web, borrar ``company_name`` si se fijó un padre, y **llamar a
-    # `_fields_sync`** — que hasta este porte existía sin llamador, la forma que
-    # :ref:`h-api-836` registró.
+    # `_fields_sync`** — que hasta este porte existía sin llamador, la forma
+    # que :ref:`h-api-836` registró.
     # ------------------------------------------------------------------
     #: Campos cuyo cambio dispara la sincronización — los que ``_fields_sync``
     #: consulta en sus tres pasos. Se deriva de los tres métodos que ya
@@ -2201,11 +2208,14 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         """El desfase de la zona horaria, en la forma ``+HHMM``.
 
         ≙ ``_compute_tz_offset`` (``:414``):
-        ``datetime.datetime.now(pytz.timezone(partner.tz or 'GMT')).strftime('%z')``
+        ``datetime.datetime.now(pytz.timezone(partner.tz or 'GMT'))``
+        ``.strftime('%z')``
 
-        DIVERGENCIA DE STACK: ``pytz`` no esta instalado (medido:
-        ``ModuleNotFoundError``). Se usa ``zoneinfo`` de la biblioteca
-        estandar, que da el mismo ``%z``.
+        DIVERGENCIA DE STACK: se usa ``zoneinfo`` de la biblioteca
+        estandar, que da el mismo ``%z`` y es lo que Django 6 consume.
+        Corregido 2026-11-04 — decia *«``pytz`` no esta instalado (medido:
+        ``ModuleNotFoundError``)»*; ``pytz`` si esta instalado desde el
+        porte de ``tools/safe_eval``, pero no es el mecanismo de husos.
 
         El respaldo a GMT se queda, y ahora por una razon MAS ESTRECHA que
         antes. La tarea **#107** ya acoto ``tz`` a la Selection de la fuente
