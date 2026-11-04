@@ -6360,6 +6360,26 @@ class BaseModel(DefaultGetMixin, Model):
 
     # === existencia =======================================================
 
+    def _fetch_field(self, field):
+        """Lee de la base ``field`` para ``self`` y lo deja en caché.
+
+        ≙ ``odoo19c: odoo/orm/models.py:3754-3772``. Con prelectura activa
+        en el contexto y un ``field.prefetch`` verdadero, trae también los
+        campos del mismo grupo de prelectura que el usuario puede leer.
+        """
+        if self.env.context.get('prefetch_fields', True) and field.prefetch:
+            fnames = [
+                name
+                for name, other in self._fields.items()
+                if other.prefetch == field.prefetch
+                if self._has_field_access(other, 'read')
+            ]
+            if field.name not in fnames:
+                fnames.append(field.name)
+        else:
+            fnames = [field.name]
+        self.fetch(fnames)
+
     def fetch(self, field_names=None):
         """Garantiza que ``field_names`` estén en memoria para ``self``,
         trayendo de la base lo necesario.

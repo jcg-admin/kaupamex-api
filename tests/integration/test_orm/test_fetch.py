@@ -124,3 +124,30 @@ def test_fetch_records_skips_a_row_that_no_longer_exists(env):
     record = env['test_orm.foo'].create({'value1': 1})
     gone = env['test_orm.foo'].browse([record.id, record.id + 100000])
     assert gone.fetch(['value1']) is None
+
+
+# -- _fetch_field ------------------------------------------------------------
+
+def _write_value2_behind_the_cache(record, value):
+    type(record).objects.filter(pk=record.pk).update(value2=value)
+
+
+def test_fetch_field_also_loads_its_prefetch_group(env):
+    """Con prelectura activa, ``_fetch_field`` trae los campos del mismo
+    grupo (``odoo19c: odoo/orm/models.py:3758-3769``)."""
+    record = env['test_orm.foo'].create({'value1': 1, 'value2': 2})
+    record.invalidate_recordset(['value1', 'value2'])
+    record._fetch_field(record._fields['value1'])
+    _write_value2_behind_the_cache(record, 20)
+    assert record.value2 == 2, 'value2 came with the prefetch group'
+
+
+def test_fetch_field_without_prefetch_loads_only_that_field(env):
+    """``prefetch_fields=False`` reduce la lectura al campo pedido
+    (``odoo19c: :3770-3771``)."""
+    record = env['test_orm.foo'].create({'value1': 1, 'value2': 2})
+    record = record.with_context(prefetch_fields=False)
+    record.invalidate_recordset(['value1', 'value2'])
+    record._fetch_field(record._fields['value1'])
+    _write_value2_behind_the_cache(record, 20)
+    assert record.value2 == 20, 'value2 was not prefetched'
