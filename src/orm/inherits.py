@@ -149,10 +149,12 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
             if delegate is not None:
                 return getattr(delegate, name)
             return None
-        raise AttributeError(
-            f'{type(self).__name__!r} no tiene {name!r} ni lo delega en '
-            f'{delegate_model.__name__!r}'
-        )
+        # Un nombre que no se delega vuelve a la búsqueda normal, que relanza
+        # el error ORIGINAL: Python llama a ``__getattr__`` también cuando un
+        # descriptor levanta ``AttributeError``, y el de una FK vacía levanta
+        # ``RelatedObjectDoesNotExist``, que es subclase. Sustituirlo por un
+        # ``AttributeError`` genérico escondía ese tipo a quien lo espera.
+        return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
         if name in delegated and not name.startswith('_'):

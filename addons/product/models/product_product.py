@@ -57,8 +57,9 @@ al reescribirlo:
 Qué NO se porta, con su medición
 ================================
 
-- **``_inherit = ['mail.thread', 'mail.activity.mixin']``** — mismo criterio
-  que ``product_template.py``.
+- **El hilo de mensajes de ``_inherit``** — el atributo se declara verbatim,
+  pero ``mail.thread`` no está cableado sobre la variante, mismo criterio que
+  ``product_template.py``.
 - **``price_extra`` / ``lst_price``** como columnas: en la referencia son
   ``compute`` sin ``store``. Aquí son propiedades — ``price_extra`` suma el
   extra de los valores de atributo, y ``lst_price`` es el precio de la ficha
@@ -116,6 +117,24 @@ COMBINATION_SEPARATOR = ','
 
 class ProductProduct(TimeStampedModel):
     """``product.product`` — una combinación concreta de la ficha."""
+
+    #: Los atributos de clase de la fuente
+    #: (``odoo19c: product_product.py:17-22, 121-124``).
+    _name = 'product.product'
+    _description = 'Product Variant'
+    #: ≙ ``_inherits`` (``:19``), verbatim. ``ensure_inherits`` lo consume y
+    #: cablea la delegación a la ficha con ``orm/inherits.py``; las
+    #: propiedades escritas abajo siguen ganando, porque la delegación sólo
+    #: actúa cuando la búsqueda normal falla.
+    _inherits = {'product.template': 'product_tmpl_id'}
+    #: ≙ ``_inherit`` (``:20``), verbatim; el hilo de mensajes no está
+    #: cableado.
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    #: ≙ ``_order`` (``:21``). ``name`` es de la ficha, así que
+    #: ``Meta.ordering`` ordena por ``product_tmpl__name``.
+    _order = 'default_code, name, id'
+    #: ≙ ``_check_company_domain`` (``:22``).
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
     product_tmpl = fields.Many2one(
         ProductTemplate,
@@ -194,7 +213,10 @@ class ProductProduct(TimeStampedModel):
 
     class Meta:
         db_table = 'product_product'
-        ordering = ['default_code', 'id']
+        ordering = ['default_code', 'product_tmpl__name', 'id']
+        # ≙ ``_is_favorite_index`` (``:124``) **no** se declara: la variante no
+        # tiene ``is_favorite`` propio (la fuente lo guarda en las dos
+        # tablas); el índice vive en ``product_template``.
         verbose_name = 'Variante de producto'
         verbose_name_plural = 'Variantes de producto'
         constraints = [
@@ -205,6 +227,15 @@ class ProductProduct(TimeStampedModel):
                 fields=['barcode'],
                 condition=~models.Q(barcode=''),
                 name='product_product_barcode_uniq',
+            ),
+            # ≙ ``_combination_unique = models.UniqueIndex('(product_tmpl_id,
+            # combination_indices) WHERE active IS TRUE')`` (``:121``): una
+            # combinación activa por ficha. En PostgreSQL una restricción
+            # única parcial ES un índice único parcial.
+            models.UniqueConstraint(
+                fields=['product_tmpl', 'combination_indices'],
+                condition=models.Q(active=True),
+                name='product_product_combination_unique',
             ),
         ]
 

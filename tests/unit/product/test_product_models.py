@@ -417,7 +417,11 @@ class TestSelectSeller:
         """Delega en ``_get_filtered_supplier``: la fila específica de otra
         variante no entra, la de plantilla sí."""
         tmpl, variant = self._variant()
-        other = ProductProduct.objects.create(product_tmpl=tmpl)
+        # Inactiva: dos variantes ACTIVAS de una ficha con la misma
+        # combinación las prohíbe ``_combination_unique`` (``odoo19c:
+        # product_product.py:121``, ``WHERE active IS TRUE``); lo que se
+        # mide aquí no depende de ``active``.
+        other = ProductProduct.objects.create(product_tmpl=tmpl, active=False)
         supplier = ResPartner.objects.create(name='Proveedor')
         from_template = self._tariff(tmpl, supplier)
         self._tariff(tmpl, supplier, product=other)

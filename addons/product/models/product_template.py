@@ -132,6 +132,24 @@ SERVICE_TRACKING_CHOICES = [('no', 'Nada')]
 class ProductTemplate(ImageMixin, TimeStampedModel):
     """``product.template`` — el producto del catálogo."""
 
+    #: Los atributos de clase de la fuente
+    #: (``odoo19c: product_template.py:19-24, 180``). Sin ``_name`` el modelo
+    #: no entra en ``MODELS_BY_NAME``, y ``ensure_inherits`` no encuentra el
+    #: comodelo del ``_inherits`` de ``product.product``.
+    _name = 'product.template'
+    #: ≙ ``_inherit`` (``:20``), verbatim. ``image.mixin`` es la base
+    #: ``ImageMixin`` de arriba; el hilo de mensajes no está cableado.
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'image.mixin']
+    _description = 'Product'
+    #: ≙ ``_order`` (``:22``); ``Meta.ordering`` lo expresa en Django.
+    _order = 'is_favorite desc, name'
+    #: ≙ ``_check_company_auto = True`` (``:23``): ``CheckCompanyMixin`` (por
+    #: ``TimeStampedModel``) lo lee al guardar.
+    _check_company_auto = True
+    #: ≙ ``_check_company_domain`` (``:24``); ``classmethod`` porque aquí se
+    #: invoca sobre la clase.
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
+
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     sequence = fields.Integer(
         default=1,
@@ -263,6 +281,13 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
     class Meta:
         db_table = 'product_template'
         ordering = ['-is_favorite', 'name']
+        indexes = [
+            # ≙ ``_is_favorite_index = models.Index('(is_favorite) WHERE
+            # is_favorite IS TRUE')`` (``:180``), con el nombre de la fuente.
+            models.Index(fields=['is_favorite'],
+                         condition=models.Q(is_favorite=True),
+                         name='product_template_is_favorite_index'),
+        ]
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
 

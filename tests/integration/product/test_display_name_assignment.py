@@ -112,7 +112,11 @@ def test_reverse_add_invalidates_the_owning_variant(variant, values):
 
 def test_reverse_remove_and_clear_invalidate_previous_owners(variant, values):
     _, red_value, _ = values
-    other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl)
+    # Inactiva: dos variantes ACTIVAS de una ficha con la misma combinación
+    # las prohíbe ``_combination_unique`` (``odoo19c: product_product.py:121``,
+    # ``WHERE active IS TRUE``); lo que se mide aquí no depende de ``active``.
+    other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl,
+                                          active=False)
     other.product_template_attribute_values.add(red_value)
     with transaction_scope():
         assert variant.display_name == other.display_name == 'Camiseta (Rojo)'
@@ -135,7 +139,11 @@ def test_unrelated_cached_variant_is_not_recomputed(
     variant, values, monkeypatch
 ):
     _, _, blue_value = values
-    other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl)
+    # Inactiva: dos variantes ACTIVAS de una ficha con la misma combinación
+    # las prohíbe ``_combination_unique`` (``odoo19c: product_product.py:121``,
+    # ``WHERE active IS TRUE``); lo que se mide aquí no depende de ``active``.
+    other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl,
+                                          active=False)
     original = ProductProduct._compute_display_name
     computed = []
 
