@@ -268,3 +268,40 @@ def test_the_scope_subject_is_an_exact_declaration():
               'pendientes de src/tools/zeep', ''),
              ('TASK-API-0399', 'Revisar src/tools/zeep de paso', '')]
     assert coverage.scope_links(tasks) == {'src/tools/zeep': {'TASK-API-0491'}}
+
+
+def test_a_settled_unit_of_a_scope_task_does_not_settle_its_siblings():
+    """Una TASK de alcance agrupa muchas obligaciones; asentar la unidad de una
+    no asienta las demás. Sólo cuenta la unidad que la lleva en
+    ``obligations``."""
+    items = plan(('one', 'TASK-API-0485'))
+    report = classify(
+        [], items, {'one': 'accepted'},
+        [obligation('src/orm/models.py', 'absent', symbol='BaseModel.a'),
+         obligation('src/orm/models.py', 'absent', symbol='BaseModel.b')],
+        scopes={'src/orm': {'TASK-API-0485'}}, store_open={'TASK-API-0485'},
+        carried={'one': {'src/orm/models.py::BaseModel.a'}})
+    assert report['obligation_classes'] == {
+        'task_units_settled': 1, 'task_without_unit': 1}
+
+
+def test_a_scope_obligation_without_unit_becomes_a_candidate_row():
+    rows = [{'module': 'src/orm/models.py', 'symbol': 'BaseModel.get_metadata',
+             'kind': 'method', 'operational_class': 'task_without_unit',
+             'linked_tasks': ['TASK-API-0485']},
+            {'module': 'src/orm/models.py', 'symbol': 'BaseModel.x',
+             'kind': 'method', 'operational_class': 'task_units_settled',
+             'linked_tasks': ['TASK-API-0485']},
+            {'module': 'src/tools/misc.py', 'symbol': 'f', 'kind': 'function',
+             'operational_class': 'task_without_unit',
+             'linked_tasks': ['TASK-API-0486']}]
+    candidates = coverage.candidate_rows(rows)
+    assert [row['id'] for row in candidates] == [
+        'models-basemodel-get-metadata-0485']
+    row = candidates[0]
+    assert row['taskId'] == 'TASK-API-0485'
+    assert row['obligations'] == ['src/orm/models.py::BaseModel.get_metadata']
+    test = ('tests/integration/test_orm/'
+            'test_contract_models_basemodel_get_metadata.py')
+    assert row['owned'] == ['src/orm/models.py', test]
+    assert test in row['verify']

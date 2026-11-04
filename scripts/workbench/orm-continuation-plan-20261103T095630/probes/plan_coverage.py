@@ -159,8 +159,51 @@ def obligation_summary(obligations, open_citations):
     return summary, dict(sorted(without_task.items()))
 
 
+def obligation_key(row):
+    """La identidad de una obligación en obligations de una unidad."""
+    return f"{row['module']}::{row['symbol']}"
+
+
+#: Dónde vive la prueba roja de una obligación, por raíz espejo. Una raíz sin
+#: entrada no produce candidatas: su convención de prueba no está decidida.
+TEST_HOMES = {'src/orm/': 'tests/integration/test_orm'}
+VERIFY = 'uv run pytest -q --reuse-db -p no:cacheprovider {test}'
+
+
+def candidate_rows(rows):
+    """Las filas candidatas del plan: una por obligación pendiente que su
+    TASK de alcance todavía no representa con una unidad.
+
+    Es la traducción del consumidor —qué prueba, qué ruta, qué verify—; qué
+    candidata entra y cuándo lo decide local_plan supply del proveedor.
+    """
+    candidates = []
+    for row in rows:
+        home = next((test for root, test in TEST_HOMES.items()
+                     if row['module'].startswith(root)), None)
+        if (row.get('operational_class') != 'task_without_unit'
+                or not row.get('symbol') or home is None):
+            continue
+        task = row['linked_tasks'][0]
+        stem = row['module'].rsplit('/', 1)[1].removesuffix('.py')
+        slug = re.sub(r'_+', '_', row['symbol'].lower().replace('.', '_')
+                      ).strip('_')
+        test = f'{home}/test_contract_{stem}_{slug}.py'
+        candidates.append({
+            'id': f"{stem}-{slug.replace('_', '-')}-{task[-4:]}",
+            'taskId': task, 'candidates': ['claude-opus-5-5'],
+            'owned': [row['module'], test], 'dependsOn': [],
+            'obligations': [obligation_key(row)],
+            'verify': VERIFY.format(test=test),
+            'prompt': (f"Portar {row['kind']} {row['symbol']} de "
+                       f"{row['module']} conforme a odoo19c; la prueba roja "
+                       f"vive en {test}."),
+        })
+    return candidates
+
+
 def obligation_class(row, open_citations, units_by_task, states,
-                     frontier_ids, links, candidates, scopes):
+                     frontier_ids, links, candidates, scopes, carried=None):
     """La situación operativa de UNA obligación pendiente.
 
     El vínculo explícito sale de la columna ``task`` del inventario o de los
@@ -171,13 +214,20 @@ def obligation_class(row, open_citations, units_by_task, states,
     explicit = set(links.get((row['module'], row['symbol']), ()))
     if row.get('task'):
         explicit.add(row['task'])
-    if not explicit:
+    by_scope = not explicit
+    if by_scope:
         explicit = set(scopes.get(row['module'].rsplit('/', 1)[0], ()))
     if explicit:
         live = explicit & open_citations
         if not live:
             return 'task_closed', sorted(explicit)
         units = [unit for task in live for unit in units_by_task.get(task, ())]
+        if by_scope:
+            # Una TASK de alcance agrupa todo un directorio: sólo la
+            # representa, para ESTA obligación, la unidad que la lleva.
+            key = obligation_key(row)
+            units = [unit for unit in units
+                     if key in (carried or {}).get(unit.id, ())]
         if not units:
             return 'task_without_unit', sorted(live)
         if all(states.get(unit.id) == 'accepted' for unit in units):
@@ -193,7 +243,7 @@ def obligation_class(row, open_citations, units_by_task, states,
 
 def classify(population, plan, states, obligations=(), foreign=(),
              integrated=None, links=None, candidates=None, scopes=None,
-             store_open=None):
+             store_open=None, carried=None):
     """El dictamen A/B/C sobre la población, el plan, sus estados y el
     contrato.
 
@@ -244,7 +294,7 @@ def classify(population, plan, states, obligations=(), foreign=(),
             continue
         kind, tasks = obligation_class(row, open_citations, units_by_task,
                                        states, frontier_ids, links,
-                                       candidates, scopes)
+                                       candidates, scopes, carried)
         row['operational_class'], row['linked_tasks'] = kind, tasks
         row['candidate_tasks'] = sorted(candidates(row))
         classes[kind] += 1
@@ -427,6 +477,14 @@ def write_classification(path, rows):
                          + '\n')
 
 
+def carried_obligations(bench):
+    """Las obligations que declara cada unidad del plan, por id."""
+    path = bench / 'plan.jsonl'
+    rows = [json.loads(line) for line in path.read_text().splitlines()
+            if line.strip()] if path.is_file() else []
+    return {row['id']: set(row.get('obligations', ())) for row in rows}
+
+
 def report_for(bench, initiative=INITIATIVE, store=STORE,
                inventory=INVENTORY, node=NODE):
     """El dictamen de un banco, o None si falta la iniciativa, el store o el
@@ -442,7 +500,8 @@ def report_for(bench, initiative=INITIATIVE, store=STORE,
                       integrated_units(bench, plan, states),
                       descriptor_links(), store_candidates(store),
                       scope_links(open_store_tasks(store)),
-                      {row[0] for row in open_store_tasks(store)})
+                      {row[0] for row in open_store_tasks(store)},
+                      carried_obligations(bench))
     report['obligations']['source'] = {
         'path': str(inventory),
         'revisions': sorted({row['revision'] for row in obligations})}
@@ -459,6 +518,9 @@ def main(argv=None):
     parser.add_argument(
         '--classification', type=pathlib.Path, default=None,
         help='TSV con la clase operativa de cada obligación pendiente')
+    parser.add_argument(
+        '--candidates', type=pathlib.Path, default=None,
+        help='JSON Lines con una fila candidata por obligación sin unidad')
     args = parser.parse_args(argv)
     report = report_for(args.bench, args.initiative, args.store,
                         args.inventory)
@@ -469,6 +531,10 @@ def main(argv=None):
         return 2
     if args.classification is not None:
         write_classification(args.classification, rows)
+    if args.candidates is not None:
+        args.candidates.write_text(''.join(
+            json.dumps(row, ensure_ascii=False) + '\n'
+            for row in candidate_rows(rows)))
     print(json.dumps(report, ensure_ascii=False, indent=1))
     return {'A': 0, 'B': 0, 'C': 1}[report['verdict']]
 
