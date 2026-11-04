@@ -37,7 +37,7 @@ def apply_extension():
 
 
 @pytest.fixture
-def company():
+def company(db):
     return ResCompany.objects.create(code='acme', name='ACME')
 
 

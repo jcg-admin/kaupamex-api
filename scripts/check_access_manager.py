@@ -96,6 +96,8 @@ def offenders():
             continue
         if model.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
             continue
+        if model.__module__.startswith(TEST_MODULE_PREFIX):
+            continue
         if not isinstance(
             model._default_manager.get_queryset(), AccessQuerySet
         ):
@@ -117,6 +119,8 @@ def shadowed():
         if model._meta.abstract or model._meta.proxy:
             continue
         if model.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+            continue
+        if model.__module__.startswith(TEST_MODULE_PREFIX):
             continue
         resueltos = {m.name: type(m) for m in model._meta.managers}
         for base in model.mro():
@@ -183,6 +187,15 @@ def main():
         f'queda eclipsada ({alcance}).'
     )
     return 0
+
+
+#: El universo del gate es el código de producto. Las sondas que las pruebas
+#: declaran a nivel de módulo (``ExistsManagerProbe``, con un manager propio a
+#: propósito) se registran en el ``apps`` global y, según el orden de la
+#: ejecución, el gate las contaba como modelos nuestros. No es un prefijo de
+#: terceros: la adopción de ``orm/model_classes.py`` sí las alcanza, y por eso
+#: no entra en ``THIRD_PARTY_MODULE_PREFIXES``.
+TEST_MODULE_PREFIX = 'tests.'
 
 
 if __name__ == '__main__':
