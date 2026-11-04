@@ -306,9 +306,9 @@ def _base_lang_of(record):
     """≙ ``record._get_base_lang()`` — el idioma base del registro.
 
     La referencia lo declara en ``BaseModel`` con ``return 'en_US'`` y lo
-    redefine ``website`` (el idioma por defecto del sitio). Este árbol no lo
-    declara todavía: se consulta si el modelo lo trae y si no se usa el mismo
-    valor que la fuente pone por defecto.
+    redefine ``website`` (el idioma por defecto del sitio). Aquí también vive
+    en ``BaseModel``; un modelo que no hereda de ella no lo trae, y para ése
+    se usa el mismo valor que la fuente pone por defecto.
     """
     getter = getattr(record, '_get_base_lang', None)
     return getter() if callable(getter) else 'en_US'

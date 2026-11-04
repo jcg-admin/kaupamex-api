@@ -6360,6 +6360,14 @@ class BaseModel(DefaultGetMixin, Model):
 
     # === existencia =======================================================
 
+    def _get_base_lang(self):
+        """El idioma base del registro — ≙ ``odoo19c:
+        odoo/orm/models.py:3704-3707``. ``en_US`` salvo que un addon lo
+        redefina; la pregunta es sobre un registro, de ahí ``ensure_one``.
+        """
+        self.ensure_one()
+        return 'en_US'
+
     @_on_empty_recordset
     def _is_an_ordinary_table(self):
         """Si la tabla del modelo es ordinaria (``relkind = 'r'``).
