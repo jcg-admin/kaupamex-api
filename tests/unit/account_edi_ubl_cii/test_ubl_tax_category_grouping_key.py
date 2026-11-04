@@ -162,3 +162,35 @@ def test_an_intra_community_delivery_reports_the_invoice_date(
         'customer': ResPartner.objects.create(name='Cliente', country=other),
     })
     assert node['cbc:ActualDeliveryDate']['_text'] == expected
+
+
+def test_an_emptying_tax_becomes_an_extra_line(company, currency):
+    """≙ ``_ubl_turn_emptying_taxes_as_new_base_lines`` (``odoo19c:
+    account_edi_ubl.py:272-313``): un impuesto fijo que no se suma a la base
+    —el envase retornable— sale de las líneas y vuelve como línea propia con
+    la cantidad agregada. Dos líneas de 3 y 2 unidades con un envase de 0.50
+    dan una línea de 5 unidades a 0.50."""
+    deposit = _tax(company, name='Envase', amount=Decimal('0.50'),
+                   amount_type='fixed')
+    vat = _tax(company)
+    lines = []
+    for index, quantity in ((1, 3.0), (2, 2.0)):
+        base_line = AccountTax._prepare_base_line_for_taxes_computation(
+            {'id': index},
+            tax_ids=AccountTax.objects.filter(pk__in=[deposit.pk, vat.pk]),
+            currency_id=currency, rate=1.0, price_unit=10.0,
+            quantity=quantity)
+        AccountTax._add_tax_details_in_base_line(
+            base_line, company, rounding_method='round_globally')
+        lines.append(base_line)
+    AccountTax._round_base_lines_tax_details(lines, company)
+
+    result = AccountEdiUBL._ubl_turn_emptying_taxes_as_new_base_lines(
+        lines, company, {})
+    assert len(result) == 3
+    extra = result[-1]
+    assert extra['quantity'] == 5.0
+    assert extra['price_unit'] == Decimal('0.50')
+    assert not extra['product_id']
+    for line in result[:2]:
+        assert [d['tax'] for d in line['tax_details']['taxes_data']] == [vat]

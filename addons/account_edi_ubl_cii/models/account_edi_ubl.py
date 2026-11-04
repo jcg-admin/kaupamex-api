@@ -8,11 +8,11 @@ aviso de licencia preservados (DEC-KX-03).
 Cobertura: 224 de 224 símbolos presentes
 =========================================
 
-**158 portados** (cuerpo verbatim de la referencia, con la conversión a
+**159 portados** (cuerpo verbatim de la referencia, con la conversión a
 ``@classmethod`` que ``account_edi_common.py`` declara para toda la familia) y
-**66 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
+**65 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
 
-Los 66 bloqueados son exactamente tres familias, no una lista arbitraria:
+Los 65 bloqueados son exactamente tres familias, no una lista arbitraria:
 
 .. list-table::
    :header-rows: 1
@@ -31,21 +31,18 @@ Los 66 bloqueados son exactamente tres familias, no una lista arbitraria:
        ``Command``/``fields.Date``
        (idiomas del ORM de la referencia), ``odoo.tools.pdf`` (``pypdf``: 0 en
        ``uv.lock``)
-   * - 12
+   * - 11
      - los ``_ubl_add_*`` que agregan importes
-     - ya no la agregación de ``account.tax``, que existe desde
-       ``a170e4f6``: su mensaje de bloqueo es anterior y queda por re-medir
-       uno a uno. Dos siguen esperando piezas medidas ausentes:
-       ``_get_price_unit_without_tax``/``_get_gross_total_without_tax`` y
-       ``_dispatch_taxes_into_new_base_lines``/
-       ``_turn_removed_taxes_into_new_base_lines``
+     - ya no ``account.tax``: todos los métodos suyos que llaman existen
+       (agregación, redondeo, importes brutos y reparto en sub-líneas). Su
+       mensaje de bloqueo es anterior y queda por re-medir uno a uno
    * - 1
      - ``_init_invoice_export_values``
      - ``AccountMove._get_rounded_base_and_tax_lines()`` (misma envoltura) más
        ``partner_shipping_id``/``child_ids``/``with_context``
 
 **La puerta está bloqueada, y las habitaciones no se han ejecutado.** Los
-158 portados operan sobre ``dict`` —``vals``, ``document_node``,
+159 portados operan sobre ``dict`` —``vals``, ``document_node``,
 ``base_line``— y ningún camino de ejecución llega a ellos sin pasar antes por
 una puerta bloqueada, que levanta ``UserError`` nombrando su causa. Por eso
 un porte verbatim pudo conservar nombres de la fuente que aquí no resuelven:
@@ -432,9 +429,59 @@ class AccountEdiUBL(AccountEdiCommon):
                 base_line['price_unit'] *= -1
 
     @classmethod
-    def _ubl_turn_emptying_taxes_as_new_base_lines(cls, base_lines, company, vals):
-        """≙ ``_ubl_turn_emptying_taxes_as_new_base_lines`` (odoo19c: :272-312) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_turn_emptying_taxes_as_new_base_lines', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+    def _ubl_turn_emptying_taxes_as_new_base_lines(cls, base_lines, company,
+                                                   vals):
+        """ Extract emptying taxes such as "Vidanges" on bottles from the
+        current base lines and turn them into additional base lines.
+
+        ≙ ``_ubl_turn_emptying_taxes_as_new_base_lines`` (odoo19c:
+        :272-312). Divergencia de pila: el precio de la línea agregada es
+        ``Decimal`` y la cantidad agregada ``float``, así que la división pasa
+        la cantidad al tipo del precio por su texto.
+
+        :param base_lines:  The original 'base_lines' of the document.
+        :param company:     The company owning the 'base_lines'.
+        :param vals:        Some custom data.
+        """
+        AccountTax = env['account.tax']
+
+        def exclude_function(base_line, tax_data):
+            if not tax_data:
+                return None
+
+            tax = tax_data['tax']
+            return (tax.amount_type in ('fixed', 'code')
+                    and not tax.include_base_amount)
+
+        new_base_lines = AccountTax._dispatch_taxes_into_new_base_lines(
+            base_lines, company, exclude_function)
+
+        def aggregate_function(target_base_line, base_line):
+            target_base_line.setdefault('_aggregated_quantity', 0.0)
+            target_base_line['_aggregated_quantity'] += base_line['quantity']
+
+        def grouping_function(base_line):
+            return {'tax': base_line['_removed_tax_data']['tax']}
+
+        extra_base_lines = AccountTax._turn_removed_taxes_into_new_base_lines(
+            base_lines=new_base_lines,
+            company=company,
+            grouping_function=grouping_function,
+            aggregate_function=aggregate_function,
+        )
+
+        # Restore back the values per quantity.
+        for base_line in extra_base_lines:
+            base_line['quantity'] = base_line['_aggregated_quantity']
+            if base_line['_aggregated_quantity']:
+                # El precio es ``Decimal`` y la cantidad ``float``: la
+                # cantidad se convierte por su texto con el tipo del precio.
+                price_type = type(base_line['price_unit'])
+                base_line['price_unit'] /= price_type(
+                    str(base_line['_aggregated_quantity']))
+            base_line['product_id'] = env['product.product']
+
+        return new_base_lines + extra_base_lines
 
     # -------------------------------------------------------------------------
     # EXPORT: Collecting data
