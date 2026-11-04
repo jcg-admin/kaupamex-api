@@ -2503,3 +2503,455 @@ class AccountTax(models.Model):
                     aggregated_values = target_factor['aggregated_values']
                     aggregated_values[raw_base_field] += amount_to_distribute
                     values[raw_base_field] += amount_to_distribute
+
+    # -- sub-líneas por impuesto (odoo19c: :3149-3549, :3885-4230) ---------
+
+    @classmethod
+    def _tax_recordset(cls, taxes):
+        """El ``QuerySet`` de ``taxes`` — lo que en la fuente es
+        ``self.env['account.tax']`` acumulado con ``+=``.
+
+        El orden no importa: ``_get_tax_details`` ordena con
+        ``_flatten_taxes_and_sort_them``, como la fuente.
+        """
+        return cls._default_manager.filter(pk__in=[tax.pk for tax in taxes])
+
+    @classmethod
+    def _merge_tax_details(cls, tax_details_1, tax_details_2):
+        """ Helper merging 2 tax details together coming from base lines.
+
+        ≙ ``_merge_tax_details`` (``odoo19c: :3149-3197``).
+        """
+        results = {
+            f'{prefix}{field}{suffix}': (
+                tax_details_1[f'{prefix}{field}{suffix}']
+                + tax_details_2[f'{prefix}{field}{suffix}'])
+            for prefix in ('raw_', '')
+            for field in ('total_excluded', 'total_included')
+            for suffix in ('_currency', '')
+        }
+        for suffix in ('_currency', ''):
+            field = f'delta_total_excluded{suffix}'
+            results[field] = tax_details_1[field] + tax_details_2[field]
+
+        agg_taxes_data = {}
+        for tax_details in (tax_details_1, tax_details_2):
+            for tax_data in tax_details['taxes_data']:
+                tax = tax_data['tax']
+                if tax in agg_taxes_data:
+                    agg_tax_data = agg_taxes_data[tax]
+                    for prefix in ('raw_', ''):
+                        for suffix in ('_currency', ''):
+                            for field in ('base_amount', 'tax_amount'):
+                                field_with_prefix = f'{prefix}{field}{suffix}'
+                                agg_tax_data[field_with_prefix] += (
+                                    tax_data[field_with_prefix])
+                else:
+                    agg_taxes_data[tax] = dict(tax_data)
+        results['taxes_data'] = list(agg_taxes_data.values())
+
+        # In case there is some taxes that are in tax_details_1 but not on
+        # tax_details_2, we have to shift manually the base amount. It happens
+        # with fixed taxes in which the base is meaningless but still used in
+        # the computations.
+        taxes_data_in_2 = {
+            tax_data['tax'] for tax_data in tax_details_2['taxes_data']}
+        not_discountable_taxes_data = {
+            tax_data['tax']
+            for tax_data in tax_details_1['taxes_data']
+            if tax_data['tax'] not in taxes_data_in_2
+        }
+        for tax_data in results['taxes_data']:
+            if tax_data['tax'] in not_discountable_taxes_data:
+                for suffix in ('_currency', ''):
+                    for prefix in ('raw_', ''):
+                        tax_data[f'{prefix}base_amount{suffix}'] += (
+                            tax_details_2[f'{prefix}total_excluded{suffix}'])
+                    tax_data[f'base_amount{suffix}'] += (
+                        tax_details_2[f'delta_total_excluded{suffix}'])
+
+        return results
+
+    @classmethod
+    def _split_tax_data(cls, base_line, tax_data, company, target_factors):
+        """ Split a 'tax_data' in pieces according the factors passed as
+        parameter. This method makes sure no amount is lost or gained during
+        the process.
+
+        ≙ ``_split_tax_data`` (``odoo19c: :3246-3295``).
+        """
+        currency = base_line['currency_id']
+
+        factors = cls._normalize_target_factors(target_factors)
+
+        new_taxes_data = []
+
+        # Distribution of raw amounts.
+        for _index, factor in factors:
+            factor = _d(factor)
+            new_taxes_data.append({
+                **tax_data,
+                'raw_tax_amount_currency': (
+                    factor * tax_data['raw_tax_amount_currency']),
+                'raw_tax_amount': factor * tax_data['raw_tax_amount'],
+                'raw_base_amount_currency': (
+                    factor * tax_data['raw_base_amount_currency']),
+                'raw_base_amount': factor * tax_data['raw_base_amount'],
+            })
+
+        # Distribution of rounded amounts.
+        new_target_factors = [
+            {
+                'factor': target_factor['factor'],
+                'tax_data': new_tax_data,
+            }
+            for new_tax_data, target_factor in zip(new_taxes_data,
+                                                   target_factors)
+        ]
+
+        for delta_currency_indicator, delta_currency in (
+            ('_currency', currency),
+            ('', company.currency),
+        ):
+            for prefix in ('tax', 'base'):
+                field = f'{prefix}_amount{delta_currency_indicator}'
+                amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+                    precision_digits=delta_currency.decimal_places,
+                    delta_amount=tax_data[field],
+                    target_factors=new_target_factors,
+                )
+                for target_factor, amount_to_distribute in zip(
+                        new_target_factors, amounts_to_distribute):
+                    new_tax_data = target_factor['tax_data']
+                    new_tax_data[field] = amount_to_distribute
+        return new_taxes_data
+
+    @classmethod
+    def _reduce_base_lines_with_grouping_function(cls, base_lines,
+                                                  grouping_function=None,
+                                                  aggregate_function=None,
+                                                  computation_key=None):
+        """ Create the new base lines that will get the discount.
+
+        ≙ ``_reduce_base_lines_with_grouping_function`` (``odoo19c:
+        :3462-3549``). Divergencia de pila: la clave de agrupación de la
+        fuente lleva el recordset ``tax_ids``; un ``QuerySet`` se compara por
+        identidad, así que aquí la clave lleva el conjunto de sus ``pk`` y el
+        ``QuerySet`` se pasa aparte a la base-line agregada.
+        """
+        aggregated_base_lines = {}
+        base_line_map = {}
+        for base_line in base_lines:
+            price_unit_after_discount = _d(base_line['price_unit']) * (
+                1 - (_d(base_line['discount']) / _CIEN))
+            new_base_line = cls._prepare_base_line_for_taxes_computation(
+                base_line,
+                price_unit=(_d(base_line['quantity'])
+                            * price_unit_after_discount),
+                quantity=1.0,
+                discount=0.0,
+            )
+            grouping_values = {}
+            if grouping_function:
+                grouping_values.update(grouping_function(new_base_line))
+            grouping_key = frozendict({
+                'tax_ids': frozenset(
+                    tax.pk for tax in new_base_line['tax_ids']),
+                **grouping_values,
+            })
+
+            if base_line['analytic_distribution']:
+                for account_id, distribution in (
+                        base_line['analytic_distribution'].items()):
+                    aggregated_base_lines.setdefault(account_id, []).append(
+                        distribution)
+
+            target_base_line = base_line_map.get(grouping_key)
+            if target_base_line:
+                target_base_line['price_unit'] += new_base_line['price_unit']
+                target_base_line['tax_details'] = cls._merge_tax_details(
+                    tax_details_1=target_base_line['tax_details'],
+                    tax_details_2=base_line['tax_details'],
+                )
+                if aggregate_function:
+                    aggregate_function(target_base_line, base_line)
+            else:
+                prepare = cls._prepare_base_line_for_taxes_computation
+                target_base_line = prepare(
+                    new_base_line,
+                    tax_ids=new_base_line['tax_ids'],
+                    **grouping_values,
+                    computation_key=computation_key,
+                    tax_details={
+                        **base_line['tax_details'],
+                        'taxes_data': [
+                            dict(tax_data) for tax_data
+                            in base_line['tax_details']['taxes_data']],
+                    },
+                )
+                base_line_map[grouping_key] = target_base_line
+                if aggregate_function:
+                    aggregate_function(target_base_line, base_line)
+            aggregated_base_lines.setdefault(grouping_key, []).append(
+                base_line)
+
+        # Remove zero lines.
+        base_line_map = {
+            grouping_key: base_line
+            for grouping_key, base_line in base_line_map.items()
+            if not base_line['currency_id'].is_zero(base_line['price_unit'])
+        }
+
+        # Compute the analytic distribution for the new base line.
+        # To do so, we have to aggregate the analytic distribution of each
+        # line that has been aggregated. We need to take care about the
+        # negative lines but also of the negative distribution.
+        # Suppose:
+        # - line1 of 1000 having an analytic distribution of 100%
+        # - line2 of -100 having an analytic distribution of 50%
+        # After the aggregation, the result will be an analytic distribution
+        # of ((1000 * 1) + (-100 * 0.5)) / (1000 - 100) = 1.055555556
+        for grouping_key, base_line in base_line_map.items():
+            total_factor = 0
+            analytic_distribution_to_aggregate = defaultdict(int)
+            for aggregated_base_line in aggregated_base_lines[grouping_key]:
+                amount = aggregated_base_line['tax_details'][
+                    'raw_total_excluded_currency']
+                total_factor += amount
+                for account_id, distribution in (
+                        aggregated_base_line['analytic_distribution']
+                        or {}).items():
+                    analytic_distribution_to_aggregate[account_id] += (
+                        _d(distribution) * amount / _CIEN)
+            analytic_distribution = {}
+            for account_id, amount in (
+                    analytic_distribution_to_aggregate.items()):
+                analytic_distribution[account_id] = (
+                    amount * 100 / total_factor)
+            base_line['analytic_distribution'] = analytic_distribution
+
+        return list(base_line_map.values())
+
+    @classmethod
+    def _partition_base_lines_taxes(cls, base_lines, partition_function):
+        """ Partition the taxes of base lines passed as parameter.
+
+        ≙ ``_partition_base_lines_taxes`` (``odoo19c: :3885-3913``): una
+        lista de ternas ``<base_line, taxes_to_keep, taxes_to_exclude>`` y si
+        hubo algún impuesto a excluir.
+        """
+        has_taxes_to_exclude = False
+        base_lines_partition_taxes = []
+        for base_line in base_lines:
+            tax_details = base_line['tax_details']
+            taxes_data = tax_details['taxes_data']
+            taxes_to_keep = []
+            taxes_to_exclude = []
+            for tax_data in taxes_data:
+                if partition_function(base_line, tax_data):
+                    taxes_to_keep.append(tax_data['tax'])
+                else:
+                    taxes_to_exclude.append(tax_data['tax'])
+            if taxes_to_exclude:
+                has_taxes_to_exclude = True
+            base_lines_partition_taxes.append((
+                base_line,
+                cls._tax_recordset(taxes_to_keep),
+                cls._tax_recordset(taxes_to_exclude),
+            ))
+        return base_lines_partition_taxes, has_taxes_to_exclude
+
+    @classmethod
+    def _dispatch_taxes_into_new_base_lines(cls, base_lines, company,
+                                            exclude_function):
+        """ Extract taxes from base lines and turn them into sub-base lines.
+
+        ≙ ``_dispatch_taxes_into_new_base_lines`` (``odoo19c:
+        :4049-4205``): *"The newly created base lines will be under the
+        'removed_taxes_data_base_lines' key."* Un impuesto posterior afectado
+        por el que se saca se parte entre la línea y la sub-línea con
+        ``_split_tax_data``.
+        """
+        def partition_function(base_line, tax_data):
+            return not exclude_function(base_line, tax_data)
+
+        base_lines_partition_taxes = cls._partition_base_lines_taxes(
+            base_lines, partition_function)[0]
+        new_base_lines_list = [[] for _base_line in base_lines]
+        to_process = [
+            (index, base_line, taxes_to_exclude)
+            for index, (base_line, taxes_to_keep, taxes_to_exclude)
+            in enumerate(base_lines_partition_taxes)
+        ]
+        while to_process:
+            index, base_line, taxes_to_exclude = to_process[0]
+            to_process = to_process[1:]
+
+            tax_details = base_line['tax_details']
+            taxes_data = tax_details['taxes_data']
+
+            # Get the index of the next 'tax_data' to exclude.
+            next_split_index = None
+            for i, tax_data in enumerate(taxes_data):
+                if tax_data['tax'] in taxes_to_exclude:
+                    next_split_index = i
+                    break
+
+            if next_split_index is None:
+                new_base_lines_list[index].append(dict(base_line))
+                continue
+
+            common_taxes_data = taxes_data[:next_split_index]
+            tax_data_to_remove = taxes_data[next_split_index]
+            remaining_taxes_data = taxes_data[next_split_index + 1:]
+
+            # Split 'tax_details'.
+            first_tax_details = {
+                k: tax_details[k]
+                for k in (
+                    'raw_total_excluded_currency',
+                    'raw_total_excluded',
+                    'total_excluded_currency',
+                    'total_excluded',
+                    'delta_total_excluded_currency',
+                    'delta_total_excluded',
+                )
+            }
+            first_tax_details['taxes_data'] = common_taxes_data
+            first_tax_details['raw_total_included_currency'] = (
+                first_tax_details['raw_total_excluded_currency']
+                + sum(common_tax_data['raw_tax_amount_currency']
+                      for common_tax_data in common_taxes_data)
+            )
+            first_tax_details['total_included_currency'] = (
+                first_tax_details['total_excluded_currency']
+                + first_tax_details['delta_total_excluded_currency']
+                + sum(common_tax_data['tax_amount_currency']
+                      for common_tax_data in common_taxes_data)
+            )
+            first_tax_details['raw_total_included'] = (
+                first_tax_details['raw_total_excluded']
+                + sum(common_tax_data['raw_tax_amount']
+                      for common_tax_data in common_taxes_data)
+            )
+            first_tax_details['total_included'] = (
+                first_tax_details['total_excluded']
+                + first_tax_details['delta_total_excluded']
+                + sum(common_tax_data['tax_amount']
+                      for common_tax_data in common_taxes_data)
+            )
+            second_tax_details = {
+                'raw_total_excluded_currency': (
+                    tax_data_to_remove['raw_tax_amount_currency']),
+                'raw_total_excluded': tax_data_to_remove['raw_tax_amount'],
+                'total_excluded_currency': (
+                    tax_data_to_remove['tax_amount_currency']),
+                'total_excluded': tax_data_to_remove['tax_amount'],
+                'delta_total_excluded_currency': 0,
+                'delta_total_excluded': 0,
+                'raw_total_included_currency': (
+                    tax_data_to_remove['raw_tax_amount_currency']),
+                'raw_total_included': tax_data_to_remove['raw_tax_amount'],
+                'total_included_currency': (
+                    tax_data_to_remove['tax_amount_currency']),
+                'total_included': tax_data_to_remove['tax_amount'],
+                'taxes_data': [],
+            }
+
+            target_factors = [
+                {
+                    'factor': first_tax_details['raw_total_excluded_currency'],
+                    'tax_details': first_tax_details,
+                },
+                {
+                    'factor': second_tax_details[
+                        'raw_total_excluded_currency'],
+                    'tax_details': second_tax_details,
+                },
+            ]
+            for remaining_tax_data in remaining_taxes_data:
+                if remaining_tax_data['tax'] in tax_data_to_remove['taxes']:
+                    new_remaining_taxes_data = cls._split_tax_data(
+                        base_line, remaining_tax_data, company,
+                        target_factors)
+
+                    first_tax_data = new_remaining_taxes_data[0]
+
+                    second_tax_data = new_remaining_taxes_data[1]
+                    second_tax_details['taxes_data'].append(second_tax_data)
+                    second_tax_details['raw_total_included_currency'] += (
+                        second_tax_data['raw_tax_amount_currency'])
+                    second_tax_details['raw_total_included'] += (
+                        second_tax_data['raw_tax_amount'])
+                    second_tax_details['total_included_currency'] += (
+                        second_tax_data['tax_amount_currency'])
+                    second_tax_details['total_included'] += (
+                        second_tax_data['tax_amount'])
+                else:
+                    first_tax_data = remaining_tax_data
+
+                first_tax_details['taxes_data'].append(first_tax_data)
+                first_tax_details['raw_total_included_currency'] += (
+                    first_tax_data['raw_tax_amount_currency'])
+                first_tax_details['raw_total_included'] += (
+                    first_tax_data['raw_tax_amount'])
+                first_tax_details['total_included_currency'] += (
+                    first_tax_data['tax_amount_currency'])
+                first_tax_details['total_included'] += (
+                    first_tax_data['tax_amount'])
+
+            # Split 'base_line'.
+            first_base_line = cls._prepare_base_line_for_taxes_computation(
+                base_line,
+                tax_ids=cls._tax_recordset(
+                    tax_data['tax']
+                    for tax_data in first_tax_details['taxes_data']),
+                tax_details=first_tax_details,
+            )
+
+            second_base_line = cls._prepare_base_line_for_taxes_computation(
+                base_line,
+                tax_ids=cls._tax_recordset(
+                    tax_data['tax']
+                    for tax_data in second_tax_details['taxes_data']),
+                price_unit=(
+                    second_tax_details['raw_total_excluded_currency']
+                    + sum(
+                        sub_tax_data['raw_tax_amount_currency']
+                        for sub_tax_data in second_tax_details['taxes_data']
+                        if sub_tax_data['tax'].price_include
+                    )
+                ) / _d(base_line['quantity'] or 1),
+                tax_details=second_tax_details,
+                _removed_tax_data=tax_data_to_remove,
+            )
+            to_process = [
+                (index, first_base_line, taxes_to_exclude),
+                (index, second_base_line, taxes_to_exclude),
+            ] + to_process
+
+        final_base_lines = []
+        for new_base_lines in new_base_lines_list:
+            new_base_lines[0]['removed_taxes_data_base_lines'] = (
+                new_base_lines[1:])
+            final_base_lines.append(new_base_lines[0])
+        return final_base_lines
+
+    @classmethod
+    def _turn_removed_taxes_into_new_base_lines(cls, base_lines, company,
+                                                grouping_function=None,
+                                                aggregate_function=None):
+        """ Merge the sub 'removed_taxes_data_base_lines' generated by
+        '_dispatch_taxes_into_new_base_lines' into the parent line.
+
+        ≙ ``_turn_removed_taxes_into_new_base_lines`` (``odoo19c:
+        :4207-4230``).
+        """
+        extra_base_lines = []
+        for base_line in base_lines:
+            extra_base_lines += base_line['removed_taxes_data_base_lines']
+        return cls._reduce_base_lines_with_grouping_function(
+            base_lines=extra_base_lines,
+            grouping_function=grouping_function,
+            aggregate_function=aggregate_function,
+        )
