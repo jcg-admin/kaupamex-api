@@ -105,6 +105,7 @@ from orm.fields_nonstored import (
     _UNSET,
     annotate_related,
     apply_source_defaults,
+    derive_source_attrs,
 )
 from django.db.models.fields.related import lazy_related_operation
 from orm.identifiers import NewId
@@ -118,6 +119,7 @@ from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access',
            'PrefetchMany2one', 'PrefetchX2many']
+
 
 class One2many:
     """El conjunto de registros del comodelo cuyo inverso apunta a este — ≙ ``:843``.
@@ -229,7 +231,8 @@ class One2many:
     def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
                  string=None, domain=None, context=None,
                  bypass_search_access=False, related=None, related_sudo=True,
-                 compute=None, inverse=None, **_ignored):
+                 compute=None, inverse=None, store=None, readonly=None,
+                 compute_sudo=None, **_ignored):
         #: Se acepta con nombre para que **no** caiga en ``**_ignored``, que es
         #: como se tragaba antes: la declaración se escribía igual que la de la
         #: fuente (``fields.One2many(related='employee_id.subordinate_ids')``),
@@ -244,9 +247,10 @@ class One2many:
         #: cadena es el manager del reverso, que no necesita comodelo ni
         #: inverso declarados — es lo que la referencia declara, sin ellos.
         self.related = related
-        #: ≙ ``compute``/``inverse`` del campo (``odoo19c: odoo/orm/fields.py``):
-        #: un One2many calculado no se lee por su inverso sino por su método,
-        #: y su escritura la propaga ``inverse``. Se aceptaban en ``**_ignored``.
+        #: ≙ ``compute``/``inverse`` del campo (``odoo19c:
+        #: odoo/orm/fields.py``): un One2many calculado no se lee por su
+        #: inverso sino por su método, y su escritura la propaga ``inverse``.
+        #: Se aceptaban en ``**_ignored``.
         self.compute = compute
         self.inverse = inverse
         #: ≙ ``related_sudo`` (``odoo19c: odoo/orm/fields.py``, defecto
@@ -270,6 +274,26 @@ class One2many:
         #: decidir si arrastra los hijos; el default contrario duplicaria un
         #: arbol entero al copiar su raiz.
         self.copy = bool(copy)
+        #: ``store``, ``readonly`` y ``compute_sudo`` con los defectos de clase
+        #: de la fuente (``odoo19c: odoo/orm/fields.py``, ``Field``) y la
+        #: derivación de ``compute``/``related`` (``:443-465``) por la única
+        #: copia que existe, :func:`derive_source_attrs`. Sin constructor de
+        #: Django no hay ``apply_source_defaults``, pero los cuatro valores que
+        #: un ``related`` implica siguen siendo del campo.
+        declared = {'related': related, 'compute': compute,
+                    'inverse': inverse, 'related_sudo': related_sudo,
+                    'store': store, 'readonly': readonly,
+                    'compute_sudo': compute_sudo}
+        attrs = {key: value for key, value in declared.items()
+                 if value is not None}
+        if copy:
+            #: El defecto ``False`` no es una declaración; ``True`` sí.
+            attrs['copy'] = True
+        derive_source_attrs(attrs)
+        self.store = attrs.get('store', True)
+        self.readonly = attrs.get('readonly', False)
+        self.compute_sudo = attrs.get('compute_sudo', True)
+        self.copy = bool(attrs.get('copy', copy))
         self.string = string
         self.name = None
 
@@ -566,7 +590,6 @@ class One2many:
         return (f'One2many({self.comodel_name!r}, {self.inverse_name!r})')
 
 
-
 #: El permiso del comodelo no se aplica al atravesar este campo — ≙
 #: ``_Relational.bypass_search_access`` (``odoo19c:
 #: odoo/orm/fields_relational.py:39``), con su comentario verbatim: *"whether
@@ -574,8 +597,9 @@ class One2many:
 #:
 #: Lo consume ``domains._optimize_any_with_rights``: un ``any`` sobre un campo
 #: que lo declara se reescribe a ``any!``, la forma que salta el permiso, y de
-#: ahí cuelga el resto de la cadena — ``_optimize_m2o_bypass_comodel_id_lookup``
-#: sólo actúa sobre los que llevan ``!``.
+#: ahí cuelga el resto de la cadena —
+#: ``_optimize_m2o_bypass_comodel_id_lookup`` sólo actúa sobre los que
+#: llevan ``!``.
 #:
 #: **Se declara sobre las clases de campo de Django y no se consulta con un
 #: ``getattr`` de respaldo.** Es la misma decisión que la fuente toma al
@@ -865,6 +889,12 @@ def Many2many(*args, check_company=False, store=_UNSET, related=None,
     #: clase distinta (``odoo19c: odoo/orm/fields.py:455``). La forma sin
     #: columna la resuelve la costura —``contribute_to_class`` con
     #: ``private_only``— y no el enrutado de esta fachada.
+    if related and not args and 'to' not in kwargs:
+        #: Sin comodelo declarado, la forma de la referencia con ``related=``
+        #: (``:643-647``): igual que ``Many2one``, se construye contra el
+        #: propio modelo y ``_retarget_related_relation`` lo reapunta al
+        #: extremo de la cadena al configurar el campo.
+        args = ('self',)
     args, source_name = _translate_comodel(args)
     args, kwargs = _source_many2many_kwargs(args, kwargs)
     field_class = (Many2manyField if any(
@@ -891,7 +921,6 @@ def _comodel_label(to):
     if to is None or isinstance(to, str):
         return to
     return to._meta.label
-
 
 
 #: ≙ ``OnDelete`` (``odoo19c: odoo/orm/fields_relational.py:28``) — los tres
@@ -1340,7 +1369,6 @@ def _many2one_join(self, model, alias, query):
 models.ForeignKey.join = _many2one_join
 
 
-
 ############################################################################
 #
 # El inverso en caché — ≙ ``odoo19c: odoo/orm/fields_relational.py:81,322,564``
@@ -1349,7 +1377,8 @@ models.ForeignKey.join = _many2one_join
 # caché queda obsoleto. ``_update_inverse`` es quien lo pone al día, y lo
 # consume ``Cache.patch`` (``orm/environments.py``). Vive aquí y no en
 # ``orm/fields.py`` porque su base es ``_Relational`` — la fuente sólo lo
-# declara para campos relacionales, y el genérico levanta ``NotImplementedError``.
+# declara para campos relacionales, y el genérico levanta
+# ``NotImplementedError``.
 #
 # Divergencia de mecanismo, la misma de toda esta familia y por tanto declarada
 # una vez: el entorno es **ambiental** (``orm.environments.env()``) en vez de
@@ -1701,9 +1730,9 @@ models.ManyToManyField.convert_to_display_name = (
 #: ``One2many`` **no recibe estos métodos**, y es una ausencia declarada, no un
 #: olvido: aquí es una clase plana (:class:`One2many`, arriba) que describe el
 #: reverso de una FK, no un ``models.Field``, así que no participa de la caché
-#: de campo ni tiene dónde colgarlos. En la fuente sí es un ``_RelationalMulti``
-#: y los hereda. Su desenlace va con el porte del lado SQL del uno-a-muchos —
-#: tareas **#243** y **#244**.
+#: de campo ni tiene dónde colgarlos. En la fuente sí es un
+#: ``_RelationalMulti`` y los hereda. Su desenlace va con el porte del lado
+#: SQL del uno-a-muchos — tareas **#243** y **#244**.
 
 
 class PrefetchMany2one(collections.abc.Reversible):
