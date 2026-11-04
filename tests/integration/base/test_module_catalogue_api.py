@@ -53,7 +53,7 @@ def catalogue():
             IrModule(
                 name='fixture_catalog_alpha',
                 shortdesc='Alpha',
-                category_id=sales_id,
+                category_id_id=sales_id,
                 category_path='Sales',
                 application=True,
                 sequence=10,
@@ -63,7 +63,7 @@ def catalogue():
             IrModule(
                 name='fixture_catalog_beta',
                 shortdesc='Beta',
-                category_id=sales_id,
+                category_id_id=sales_id,
                 category_path='Sales',
                 application=True,
                 sequence=20,
@@ -74,7 +74,7 @@ def catalogue():
             IrModule(
                 name='fixture_catalog_library',
                 shortdesc='Library',
-                category_id=hidden_id,
+                category_id_id=hidden_id,
                 category_path='Hidden',
                 application=False,
                 state='uninstalled',
@@ -173,7 +173,7 @@ def test_catalogue_keeps_nested_category_text_and_exact_path_filter(reader):
         category_id = create_categories(cursor, ['Contract Sales', 'Child'])
     row = IrModule.objects.create(
         name='fixture_catalog_nested',
-        category_id=category_id,
+        category_id_id=category_id,
         category_path='Contract Sales/Child',
     )
     response = reader.get(

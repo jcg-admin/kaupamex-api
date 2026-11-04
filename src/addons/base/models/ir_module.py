@@ -135,21 +135,22 @@ class IrModule(TimeStampedModel):
     """Un addon del árbol, con la metadata que declara su ``__manifest__.py``.
 
     ``name`` es el **nombre técnico** —la carpeta—, igual que en la referencia.
-    Es lo que lo distingue del catálogo comercial, cuyo ``code`` es un nombre de
-    dominio que puede no coincidir con ninguna carpeta.
+    Es lo que lo distingue del catálogo comercial, cuyo ``code`` es un nombre
+    de dominio que puede no coincidir con ninguna carpeta.
 
     Ningún ``Char`` de aquí lleva tope (H-API-750)
     ==============================================
 
-    Los **16** ``fields.Char`` de ``odoo19c: odoo/addons/base/models/ir_module.py``
-    se declaran sin tamaño, así que la columna es un ``varchar`` sin límite. Los
-    nuestros llevaban topes inventados —``summary`` 255, ``shortdesc`` 200,
-    ``name`` 100, ``version`` 32— y el primero ya había truncado datos reales.
+    Los **16** ``fields.Char`` de
+    ``odoo19c: odoo/addons/base/models/ir_module.py`` se declaran sin tamaño,
+    así que la columna es un ``varchar`` sin límite. Los nuestros llevaban
+    topes inventados —``summary`` 255, ``shortdesc`` 200, ``name`` 100,
+    ``version`` 32— y el primero ya había truncado datos reales.
 
-    El tope no se subió: se **retiró**, porque este stack expresa exactamente lo
-    que la referencia tiene. Medido en el entorno, no de memoria::
+    El tope no se subió: se **retiró**, porque este stack expresa exactamente
+    lo que la referencia tiene. Medido en el entorno, no de memoria::
 
-        supports_unlimited_charfield = True      # backend PostgreSQL de Django 6
+        supports_unlimited_charfield = True   # PostgreSQL de Django 6
         CharField(max_length=None).db_type()  -> 'varchar'
         CharField(max_length=255).db_type()   -> 'varchar(255)'
 
@@ -161,24 +162,25 @@ class IrModule(TimeStampedModel):
 
     La ruta fuente de categoría también se conserva sin un tope arbitrario.
 
-    Cobertura de campos — 8 de 31, declarada
+    Cobertura de campos — 9 de 31, declarada
     =========================================
 
     ``odoo19c: odoo/addons/base/models/ir_module.py:158-330`` declara **31**
-    campos; de ellos coinciden por nombre **8** (``name``, ``shortdesc``,
+    campos; de ellos coinciden por nombre **9** (``name``, ``shortdesc``,
     ``summary``, ``sequence``, ``application``, ``auto_install``, ``state``,
-    ``license``). Otros **2** son formas nuestras: ``category``, la relación
-    que la fuente llama ``category_id``, y ``version``, que conserva metadata
-    del manifiesto. ``installed_version`` conserva por separado la versión
-    realmente instalada (``latest_version`` persistido de la referencia).
-    Su valor histórico desconocido permanece NULL: no se infiere del catálogo.
+    ``license``, ``category_id``). Otro es forma nuestra: ``version``, que
+    conserva metadata del manifiesto. ``category_id`` se llamaba ``category``
+    hasta TASK-API-0481. ``installed_version`` conserva por separado la versión
+    realmente instalada (``latest_version`` persistido de la referencia). Su
+    valor histórico desconocido permanece NULL: no se infiere del catálogo.
 
     Quedan **23 ausentes**, y la mayoría **no** está bloqueada por nada — son
     ``Char`` planos del manifest (``author``, ``maintainer``, ``website``,
-    ``url``, ``icon``). El resto sí depende de mecanismos que este árbol todavía
-    no tiene: ``description_html`` (QWeb), ``icon_image`` (Binary servido), los
-    tres ``*_by_module`` (introspección de menús/vistas/reportes), y
-    ``exclusion_ids`` (``ir.module.module.exclusion``, sin portar).
+    ``url``, ``icon``). El resto sí depende de mecanismos que este árbol
+    todavía no tiene: ``description_html`` (QWeb), ``icon_image`` (Binary
+    servido), los tres ``*_by_module`` (introspección de
+    menús/vistas/reportes), y ``exclusion_ids``
+    (``ir.module.module.exclusion``, sin portar).
 
     **No se portan en este pase por alcance, no por imposibilidad** — el pase
     es la corrección del tope de ``Char`` (:ref:`h-api-756`). Su porte es la
@@ -192,7 +194,8 @@ class IrModule(TimeStampedModel):
     _order = 'application desc,sequence,name'
     _allow_sudo_commands = False
 
-    # Estado persistido por base: las transiciones programan el trabajo del loader.
+    # Estado persistido por base: las transiciones programan el trabajo del
+    # loader.
     STATE_UNINSTALLABLE = 'uninstallable'
     STATE_UNINSTALLED   = 'uninstalled'
     STATE_INSTALLED     = 'installed'
@@ -272,9 +275,9 @@ class IrModule(TimeStampedModel):
         default=False,
         help_text='Odoo demo: el addon tiene datos de demostración cargados.',
     )
-    category = fields.Many2one(
+    category_id = fields.Many2one(
         IrModuleCategory, on_delete=models.PROTECT, null=True, blank=True,
-        related_name='modules',
+        related_name='modules', db_column='category_id',
         help_text='Odoo category_id: hoja del árbol técnico de categorías.',
     )
     category_path = fields.Char(

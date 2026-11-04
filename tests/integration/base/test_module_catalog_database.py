@@ -194,9 +194,9 @@ def test_refresh_populates_category_relation_and_preserves_manifest_path(
     root = IrModule.objects.get(name='catalog_root')
     leaf = IrModule.objects.get(name='catalog_leaf')
     assert root.category_path == 'Contract Catalog/Child'
-    assert root.category.name == 'Child'
-    assert root.category.parent.name == 'Contract Catalog'
-    assert leaf.category.parent_id == root.category.parent_id
+    assert root.category_id.name == 'Child'
+    assert root.category_id.parent.name == 'Contract Catalog'
+    assert leaf.category_id.parent_id == root.category_id.parent_id
     assert leaf.category_id != root.category_id
 
 

@@ -101,7 +101,7 @@ class Command(BaseCommand):
             values['category_path'] = category_path
             if not dry_run:
                 with connections[using].cursor() as cursor:
-                    values['category_id'] = create_categories(
+                    values['category_id_id'] = create_categories(
                         cursor,
                         category_path.split('/') if category_path else [],
                     )

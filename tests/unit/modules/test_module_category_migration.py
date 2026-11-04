@@ -30,6 +30,9 @@ def historical_category_tables():
         item.options['indexes'] = []
         if model is IrModule:
             item.fields.pop('category_path', None)
+            #: El estado previo a 0090 no tiene la FK: el modelo vigente la
+            #: llama ``category_id`` desde TASK-API-0481.
+            item.fields.pop('category_id', None)
             item.fields['category'] = models.CharField(
                 max_length=100,
                 blank=True,
