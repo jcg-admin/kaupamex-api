@@ -174,6 +174,13 @@ def _d(valor):
     return Decimal(str(valor))
 
 
+def _round_to_digits(value, precision_digits):
+    """≙ ``float_round(value, precision_digits=n)`` en ``Decimal``: mitad
+    hacia fuera del cero, como la fuente."""
+    return _d(value).quantize(Decimal(1).scaleb(-precision_digits),
+                              rounding=ROUND_HALF_UP)
+
+
 def _base_line_field_value(record, field):
     """El valor de ``field`` en ``record`` como lo lee la fuente.
 
@@ -1952,3 +1959,547 @@ class AccountTax(models.Model):
         cls._round_tax_details_base_lines(base_lines, company)
         cls._round_tax_details_tax_amounts_from_tax_lines(base_lines, company,
                                                           tax_lines)
+
+    # -- importes brutos y redondeo de crudos (odoo19c: :4445-4949) --------
+
+    @classmethod
+    def _get_delta_amount_to_reach_target(
+        cls,
+        target_amount,
+        target_currency,
+        raw_current_amount,
+        raw_current_amount_precision_digits,
+    ):
+        """ Get the minimum missing amount having
+        'raw_current_amount_precision_digits' as precision to be added to
+        'raw_current_amount' to give 'target_amount' after rounding using
+        'target_currency'.
+
+        ≙ ``_get_delta_amount_to_reach_target`` (``odoo19c: :4445-4486``):
+        *"the delta returned by this method will be expressed with
+        'raw_current_amount_precision_digits' such as
+        target_currency.round(raw_current_amount + delta) == target_amount"*.
+        Divergencia de pila: ``Decimal`` en vez de ``float``; el
+        ``math.pow(10, -n)`` de la fuente es ``Decimal(1).scaleb(-n)``.
+        """
+        target_amount = _d(target_amount)
+        raw_current_amount = _d(raw_current_amount)
+        digits = raw_current_amount_precision_digits
+        target_amount_sign = -1 if target_amount < 0 else 1
+        raw_current_amount_rounding = Decimal(1).scaleb(-digits)
+        half_rounding = _d(target_currency.rounding) / 2
+        tolerance_bounds = (
+            _round_to_digits(
+                abs(target_amount) + half_rounding
+                - raw_current_amount_rounding, digits),
+            _round_to_digits(abs(target_amount) - half_rounding, digits),
+        )
+
+        signed_raw_current_amount = target_amount_sign * raw_current_amount
+        if signed_raw_current_amount > tolerance_bounds[0]:
+            delta_raw_amount = (
+                tolerance_bounds[0] - signed_raw_current_amount)
+        elif signed_raw_current_amount < tolerance_bounds[1]:
+            delta_raw_amount = (
+                tolerance_bounds[1] - signed_raw_current_amount)
+        else:
+            return Decimal('0')
+
+        return target_amount_sign * delta_raw_amount
+
+    @classmethod
+    def _round_raw_total_excluded(
+        cls,
+        base_lines,
+        company,
+        precision_digits=6,
+        apply_strict_tolerance=False,
+        in_foreign_currency=True,
+    ):
+        """ Round 'raw_total_excluded[_currency]' according
+        'precision_digits'.
+
+        ≙ ``_round_raw_total_excluded`` (``odoo19c: :4488-4557``). Con
+        ``apply_strict_tolerance`` *"the difference will be spread into the
+        raw amounts"* hasta que la suma redondeada de los crudos iguale la
+        suma de los ``total_excluded``.
+        """
+        if not base_lines:
+            return
+
+        suffix_currency = (base_lines[0]['currency_id']
+                           if in_foreign_currency else company.currency)
+        suffix = '_currency' if in_foreign_currency else ''
+        raw_field = f'raw_total_excluded{suffix}'
+
+        for base_line in base_lines:
+            tax_details = base_line['tax_details']
+            tax_details[raw_field] = _round_to_digits(
+                tax_details[raw_field], precision_digits)
+
+        # Tolerance.
+        if not apply_strict_tolerance:
+            return
+
+        def grouping_function(base_line, tax_data):
+            return True
+
+        base_lines_aggregated_values = cls._aggregate_base_lines_tax_details(
+            base_lines, grouping_function)
+        values_per_grouping_key = cls._aggregate_base_lines_aggregated_values(
+            base_lines_aggregated_values)
+        expected_total_excluded = sum(
+            values[f'total_excluded{suffix}']
+            for values in values_per_grouping_key.values()
+        )
+        current_raw_total_excluded = sum(
+            base_line['tax_details'][raw_field]
+            for base_line in base_lines
+        )
+
+        delta_raw_amount = cls._get_delta_amount_to_reach_target(
+            target_amount=expected_total_excluded,
+            target_currency=suffix_currency,
+            raw_current_amount=current_raw_total_excluded,
+            raw_current_amount_precision_digits=precision_digits,
+        )
+        target_factors = [
+            {
+                'factor': base_line['tax_details'][raw_field],
+                'base_line': base_line,
+            }
+            for base_line in base_lines
+        ]
+        amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+            precision_digits=precision_digits,
+            delta_amount=delta_raw_amount,
+            target_factors=target_factors,
+        )
+        for target_factor, amount_to_distribute in zip(
+                target_factors, amounts_to_distribute):
+            base_line = target_factor['base_line']
+            base_line['tax_details'][raw_field] += amount_to_distribute
+
+    @classmethod
+    def _get_gross_total_without_tax(cls, base_line, company,
+                                     in_foreign_currency=True,
+                                     account_discount_base_lines=False,
+                                     precision_digits=None):
+        """ Infer the gross total without tax from the base line.
+
+        ≙ ``_get_gross_total_without_tax`` (``odoo19c: :4560-4594``): el
+        neto entre ``1 - descuento``; con descuento total, precio por
+        cantidad (entre la tasa en moneda de la compañía).
+        """
+        suffix = '_currency' if in_foreign_currency else ''
+
+        tax_details = base_line['tax_details']
+        raw_total_excluded = tax_details[f'raw_total_excluded{suffix}']
+
+        discount_factor = 1 - (_d(base_line['discount']) / _CIEN)
+        price_by_quantity = (_d(base_line['price_unit'])
+                             * _d(base_line['quantity']))
+        if discount_factor:
+            raw_gross_total_excluded = raw_total_excluded / discount_factor
+        elif in_foreign_currency:
+            raw_gross_total_excluded = price_by_quantity
+        elif base_line['rate']:
+            raw_gross_total_excluded = (
+                price_by_quantity / _d(base_line['rate']))
+        else:
+            raw_gross_total_excluded = Decimal('0')
+        if account_discount_base_lines:
+            raw_gross_total_excluded -= sum(
+                discount_base_line['tax_details'][
+                    f'raw_total_excluded{suffix}']
+                for discount_base_line in base_line.get(
+                    'discount_base_lines', [])
+            )
+
+        if precision_digits is not None:
+            raw_gross_total_excluded = _round_to_digits(
+                raw_gross_total_excluded, precision_digits)
+        return raw_gross_total_excluded
+
+    @classmethod
+    def _get_price_unit_without_tax(cls, base_line, company,
+                                    raw_gross_total_excluded,
+                                    in_foreign_currency=True,
+                                    precision_digits=None):
+        """ Infer the gross price unit without tax from the base line.
+
+        ≙ ``_get_price_unit_without_tax`` (``odoo19c: :4597-4622``).
+        """
+        raw_gross_total_excluded = _d(raw_gross_total_excluded)
+        if (
+            (precision_digits and not _round_to_digits(
+                raw_gross_total_excluded, precision_digits))
+            or not raw_gross_total_excluded
+        ):
+            if in_foreign_currency:
+                raw_gross_price_unit = _d(base_line['price_unit'])
+            elif base_line['rate']:
+                raw_gross_price_unit = (_d(base_line['price_unit'])
+                                        / _d(base_line['rate']))
+            else:
+                raw_gross_price_unit = Decimal('0')
+        elif not base_line['quantity']:
+            raw_gross_price_unit = raw_gross_total_excluded
+        else:
+            raw_gross_price_unit = (raw_gross_total_excluded
+                                    / _d(base_line['quantity']))
+
+        if precision_digits is not None:
+            raw_gross_price_unit = _round_to_digits(
+                raw_gross_price_unit, precision_digits)
+        return raw_gross_price_unit
+
+    @classmethod
+    def _get_discount_amount_without_tax(cls, base_line, company,
+                                         raw_gross_total_excluded,
+                                         in_foreign_currency=True,
+                                         precision_digits=None):
+        """ Infer the discount amount without tax from the base line.
+
+        ≙ ``_get_discount_amount_without_tax`` (``odoo19c: :4625-4644``).
+        """
+        suffix = '_currency' if in_foreign_currency else ''
+        raw_discount_amount = (
+            _d(raw_gross_total_excluded)
+            - base_line['tax_details'][f'raw_total_excluded{suffix}'])
+
+        if precision_digits is not None:
+            raw_discount_amount = _round_to_digits(
+                raw_discount_amount, precision_digits)
+        return raw_discount_amount
+
+    @classmethod
+    def _add_and_round_raw_gross_total_excluded_and_discount(
+        cls,
+        base_lines,
+        company,
+        precision_digits=6,
+        apply_strict_tolerance=False,
+        in_foreign_currency=True,
+        account_discount_base_lines=False,
+    ):
+        """ Compute and add 'raw_gross_total_excluded[_currency]' /
+        'raw_gross_price_unit[_currency]' / 'raw_discount_amount[_currency]'
+        to the tax details according 'precision_digits' /
+        'in_foreign_currency'.
+
+        ≙ ``_add_and_round_raw_gross_total_excluded_and_discount``
+        (``odoo19c: :4647-4768``).
+        """
+        if not base_lines:
+            return
+
+        suffix_currency = (base_lines[0]['currency_id']
+                           if in_foreign_currency else company.currency)
+        suffix = '_currency' if in_foreign_currency else ''
+        raw_field = f'raw_total_excluded{suffix}'
+
+        for base_line in base_lines:
+            tax_details = base_line['tax_details']
+            raw_total_excluded = tax_details[raw_field]
+
+            global_discount_sum = 0
+            if account_discount_base_lines:
+                global_discount_sum = sum(
+                    discount_base_line['tax_details'][raw_field]
+                    for discount_base_line in base_line.get(
+                        'discount_base_lines', [])
+                )
+
+            discount_factor = 1 - (_d(base_line['discount']) / _CIEN)
+            price_by_quantity = (_d(base_line['price_unit'])
+                                 * _d(base_line['quantity']))
+            if discount_factor:
+                raw_gross_total_excluded = (
+                    (raw_total_excluded - global_discount_sum)
+                    / discount_factor)
+            elif suffix == '_currency':
+                raw_gross_total_excluded = price_by_quantity
+            elif base_line['rate']:
+                raw_gross_total_excluded = (
+                    price_by_quantity / _d(base_line['rate']))
+            else:
+                raw_gross_total_excluded = Decimal('0')
+            tax_details[f'raw_gross_total_excluded{suffix}'] = (
+                _round_to_digits(raw_gross_total_excluded, precision_digits))
+
+            # Same as before but per unit.
+            raw_gross_price_unit = cls._get_price_unit_without_tax(
+                base_line=base_line,
+                company=company,
+                raw_gross_total_excluded=raw_gross_total_excluded,
+                in_foreign_currency=in_foreign_currency,
+                precision_digits=precision_digits,
+            )
+            tax_details[f'raw_gross_price_unit{suffix}'] = raw_gross_price_unit
+
+            # Compute the amount of the discount due to the 'discount' value
+            # set on 'base_line'.
+            raw_discount_amount = cls._get_discount_amount_without_tax(
+                base_line=base_line,
+                company=company,
+                raw_gross_total_excluded=raw_gross_total_excluded,
+                in_foreign_currency=in_foreign_currency,
+                precision_digits=precision_digits,
+            )
+            tax_details[f'raw_discount_amount{suffix}'] = raw_discount_amount
+
+        # Tolerance.
+        if not apply_strict_tolerance:
+            return
+
+        def grouping_function(base_line, tax_data):
+            return True
+
+        base_lines_aggregated_values = cls._aggregate_base_lines_tax_details(
+            base_lines, grouping_function)
+        values_per_grouping_key = cls._aggregate_base_lines_aggregated_values(
+            base_lines_aggregated_values)
+        expected_total_excluded = sum(
+            values[f'total_excluded{suffix}']
+            for values in values_per_grouping_key.values()
+        )
+        raw_total_discount_amount = sum(
+            base_line['tax_details'][f'raw_discount_amount{suffix}']
+            for values in values_per_grouping_key.values()
+            for base_line, _taxes_data in values['base_line_x_taxes_data']
+        )
+        raw_total_gross_amount = sum(
+            base_line['tax_details'][f'raw_gross_total_excluded{suffix}']
+            for values in values_per_grouping_key.values()
+            for base_line, _taxes_data in values['base_line_x_taxes_data']
+        )
+        total_discount_amount = suffix_currency.round(
+            raw_total_discount_amount)
+        expected_total_gross_amount = (
+            expected_total_excluded + total_discount_amount)
+
+        delta_raw_amount = cls._get_delta_amount_to_reach_target(
+            target_amount=expected_total_gross_amount,
+            target_currency=suffix_currency,
+            raw_current_amount=raw_total_gross_amount,
+            raw_current_amount_precision_digits=precision_digits,
+        )
+        target_factors = [
+            {
+                'factor': base_line['tax_details'][
+                    f'raw_total_excluded{suffix}'],
+                'base_line': base_line,
+            }
+            for values in values_per_grouping_key.values()
+            for base_line, _taxes_data in values['base_line_x_taxes_data']
+        ]
+        amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+            precision_digits=precision_digits,
+            delta_amount=delta_raw_amount,
+            target_factors=target_factors,
+        )
+        for target_factor, amount_to_distribute in zip(
+                target_factors, amounts_to_distribute):
+            base_line = target_factor['base_line']
+            base_line['tax_details'][
+                f'raw_gross_total_excluded{suffix}'] += amount_to_distribute
+
+    @classmethod
+    def _round_raw_gross_total_excluded_and_discount(
+        cls,
+        base_lines,
+        company,
+        in_foreign_currency=True,
+    ):
+        """ ≙ ``_round_raw_gross_total_excluded_and_discount`` (``odoo19c:
+        :4771-4846``): redondea el bruto y el descuento de cada línea y
+        reparte, a un centavo por línea como mucho, lo que falta para que el
+        bruto sume el documento sin impuesto más su descuento redondeado.
+        """
+        if not base_lines:
+            return
+
+        suffix_currency = (base_lines[0]['currency_id']
+                           if in_foreign_currency else company.currency)
+        suffix = '_currency' if in_foreign_currency else ''
+
+        # Raw rounding.
+        current_gross_total_excluded = 0
+        current_discount_amount = 0
+        current_raw_discount_amount = 0
+        for base_line in base_lines:
+            tax_details = base_line['tax_details']
+            gross_total_excluded = suffix_currency.round(
+                tax_details[f'raw_gross_total_excluded{suffix}'])
+            tax_details[f'gross_total_excluded{suffix}'] = (
+                gross_total_excluded)
+            current_gross_total_excluded += gross_total_excluded
+
+            raw_discount_amount = tax_details[f'raw_discount_amount{suffix}']
+            discount_amount = suffix_currency.round(raw_discount_amount)
+            tax_details[f'discount_amount{suffix}'] = discount_amount
+            current_discount_amount += discount_amount
+            current_raw_discount_amount += raw_discount_amount
+
+        # Collect the 'total_excluded'.
+        def grouping_function(base_line, tax_data):
+            return True
+
+        base_lines_aggregated_values = cls._aggregate_base_lines_tax_details(
+            base_lines, grouping_function)
+        values_per_grouping_key = cls._aggregate_base_lines_aggregated_values(
+            base_lines_aggregated_values)
+        expected_total_excluded = sum(
+            values[f'total_excluded{suffix}']
+            for values in values_per_grouping_key.values()
+        )
+
+        # Fix rounding issues for 'gross_total_excluded'.
+        # Note: 'expected_gross_total_excluded' contains also the
+        # 'delta_total_excluded' to put all the difference due to the global
+        # taxes rounding on it instead of putting it on 'discount_amount'
+        # since the discount won't always be there.
+        expected_gross_total_excluded = (
+            expected_total_excluded
+            + suffix_currency.round(current_raw_discount_amount))
+
+        target_factors = [
+            {
+                # By default, we avoid to have more than one cent as a
+                # difference per line.
+                'factor': 1.0,
+                'base_line': base_line,
+            }
+            for base_line in base_lines
+        ]
+        amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+            precision_digits=suffix_currency.decimal_places,
+            delta_amount=(expected_gross_total_excluded
+                          - current_gross_total_excluded),
+            target_factors=target_factors,
+        )
+        for target_factor, amount_to_distribute in zip(
+                target_factors, amounts_to_distribute):
+            base_line = target_factor['base_line']
+            base_line['tax_details'][
+                f'gross_total_excluded{suffix}'] += amount_to_distribute
+
+        # Fix rounding issues for 'discount_amount'.
+        expected_discount_amount = (
+            expected_gross_total_excluded - expected_total_excluded)
+        amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+            precision_digits=suffix_currency.decimal_places,
+            delta_amount=expected_discount_amount - current_discount_amount,
+            target_factors=target_factors,
+        )
+        for target_factor, amount_to_distribute in zip(
+                target_factors, amounts_to_distribute):
+            base_line = target_factor['base_line']
+            base_line['tax_details'][
+                f'discount_amount{suffix}'] += amount_to_distribute
+
+    @classmethod
+    def _round_raw_tax_amounts(
+        cls,
+        base_lines_aggregated_values,
+        company,
+        precision_digits=6,
+        apply_strict_tolerance=False,
+        in_foreign_currency=True,
+    ):
+        """ Round 'raw_tax_amount[_currency]'/'raw_base_amount[_currency]'
+        according 'precision_digits' / 'in_foreign_currency'.
+
+        ≙ ``_round_raw_tax_amounts`` (``odoo19c: :4849-4949``). Con
+        ``apply_strict_tolerance`` reparte la diferencia en los crudos y
+        conserva la tasa entre cada base y su impuesto.
+        """
+        if not base_lines_aggregated_values:
+            return
+
+        suffix_currency = (base_lines_aggregated_values[0][0]['currency_id']
+                           if in_foreign_currency else company.currency)
+        suffix = '_currency' if in_foreign_currency else ''
+
+        for _base_line, aggregated_values in base_lines_aggregated_values:
+            for values in aggregated_values.values():
+                values[f'raw_tax_amount{suffix}'] = _round_to_digits(
+                    values[f'raw_tax_amount{suffix}'], precision_digits)
+                values[f'raw_base_amount{suffix}'] = _round_to_digits(
+                    values[f'raw_base_amount{suffix}'], precision_digits)
+
+        # Tolerance.
+        if not apply_strict_tolerance:
+            return
+
+        tax_field = f'tax_amount{suffix}'
+        raw_tax_field = f'raw_{tax_field}'
+        base_field = f'base_amount{suffix}'
+        raw_base_field = f'raw_{base_field}'
+        values_per_grouping_key = cls._aggregate_base_lines_aggregated_values(
+            base_lines_aggregated_values)
+        for grouping_key, values in values_per_grouping_key.items():
+            tax_rate = ((values[raw_tax_field] / values[raw_base_field])
+                        if values[raw_base_field] else 0)
+
+            target_factors = [
+                {
+                    'factor': aggregated_values[grouping_key][raw_tax_field],
+                    'aggregated_values': aggregated_values[grouping_key],
+                }
+                for base_line, aggregated_values
+                in base_lines_aggregated_values
+                if grouping_key in aggregated_values
+            ]
+
+            # Tax amount.
+            expected_tax_amount = values[tax_field]
+            current_raw_tax_amount = values[raw_tax_field]
+            delta_raw_amount = cls._get_delta_amount_to_reach_target(
+                target_amount=expected_tax_amount,
+                target_currency=suffix_currency,
+                raw_current_amount=current_raw_tax_amount,
+                raw_current_amount_precision_digits=precision_digits,
+            )
+            amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+                precision_digits=precision_digits,
+                delta_amount=delta_raw_amount,
+                target_factors=target_factors,
+            )
+            for target_factor, amount_to_distribute in zip(
+                    target_factors, amounts_to_distribute):
+                aggregated_values = target_factor['aggregated_values']
+                aggregated_values[raw_tax_field] += amount_to_distribute
+                values[raw_tax_field] += amount_to_distribute
+                if amount_to_distribute and tax_rate:
+                    new_raw_base_amount = (
+                        aggregated_values[raw_tax_field] / tax_rate)
+                    rounded_new_raw_base_amount = _round_to_digits(
+                        new_raw_base_amount, precision_digits)
+                    values[raw_base_field] += (
+                        rounded_new_raw_base_amount
+                        - aggregated_values[raw_base_field])
+                    aggregated_values[raw_base_field] = (
+                        rounded_new_raw_base_amount)
+
+            # Base amount.
+            if tax_rate:
+                current_tax_raw_base_amount = (
+                    (current_raw_tax_amount + delta_raw_amount) / tax_rate)
+                delta_raw_amount = cls._get_delta_amount_to_reach_target(
+                    target_amount=current_tax_raw_base_amount,
+                    target_currency=suffix_currency,
+                    raw_current_amount=values[raw_base_field],
+                    raw_current_amount_precision_digits=precision_digits,
+                )
+                amounts_to_distribute = cls._distribute_delta_amount_smoothly(
+                    precision_digits=precision_digits,
+                    delta_amount=delta_raw_amount,
+                    target_factors=target_factors,
+                )
+                for target_factor, amount_to_distribute in zip(
+                        target_factors, amounts_to_distribute):
+                    aggregated_values = target_factor['aggregated_values']
+                    aggregated_values[raw_base_field] += amount_to_distribute
+                    values[raw_base_field] += amount_to_distribute
