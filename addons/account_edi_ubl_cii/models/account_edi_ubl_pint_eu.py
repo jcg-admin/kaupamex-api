@@ -52,14 +52,21 @@ class AccountEdiUBLPintEU(AccountEdiUBLPint, AccountEdiUBLCenEn16931):
         # Intracom delivery inside European area.
         node = super()._ubl_get_delivery_node_from_delivery_address(vals)
 
-        if cls._is_document(vals, 'invoice', 'self_invoice', 'credit_note', 'self_credit_note'):
+        if cls._is_document(vals, 'invoice', 'self_invoice', 'credit_note',
+                            'self_credit_note'):
             invoice = vals['invoice']
             customer = vals['customer']
             supplier = vals['supplier']
+            # El país es ``country``: aquí ``country_id`` es la columna.
+            eea_codes = EUROPEAN_ECONOMIC_AREA_COUNTRY_CODES
+            customer_country = customer.country
+            supplier_country = supplier.country
             if (
-                customer.country_id.code in EUROPEAN_ECONOMIC_AREA_COUNTRY_CODES
-                and supplier.country_id.code in EUROPEAN_ECONOMIC_AREA_COUNTRY_CODES
-                and supplier.country_id != customer.country_id
+                customer_country
+                and customer_country.code in eea_codes
+                and supplier_country
+                and supplier_country.code in eea_codes
+                and supplier_country != customer_country
             ):
                 node['cbc:ActualDeliveryDate']['_text'] = invoice.invoice_date
 

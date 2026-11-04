@@ -196,7 +196,7 @@ from lxml import etree
 from addons.account.tools import dict_to_xml
 from exceptions import UserError
 from orm.domains import to_q
-from orm.environments import get_context, get_current_company
+from orm.environments import context_scope, get_context, get_current_company
 from orm.registry import model_by_name
 from tools.float_utils import float_repr, float_round
 from tools.misc import formatLang, html_escape

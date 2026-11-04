@@ -1,4 +1,5 @@
-r"""``account.edi.ubl`` — los ayudantes base de UBL (el archivo grande del addon).
+r"""``account.edi.ubl`` — los ayudantes base de UBL (el archivo grande del
+addon).
 
 Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_edi_ubl.py``
 (``odoo-tools@622ddc2a``, LGPL-3, **4038 líneas, 224 métodos**) — atribución y
@@ -7,11 +8,11 @@ aviso de licencia preservados (DEC-KX-03).
 Cobertura: 224 de 224 símbolos presentes
 =========================================
 
-**157 portados** (cuerpo verbatim de la referencia, con la conversión a
+**158 portados** (cuerpo verbatim de la referencia, con la conversión a
 ``@classmethod`` que ``account_edi_common.py`` declara para toda la familia) y
-**67 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
+**66 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
 
-Los 67 bloqueados son exactamente dos familias, no una lista arbitraria:
+Los 66 bloqueados son exactamente tres familias, no una lista arbitraria:
 
 .. list-table::
    :header-rows: 1
@@ -26,28 +27,32 @@ Los 67 bloqueados son exactamente dos familias, no una lista arbitraria:
        ``_get_line_vals_list``, ``AccountMove._fields``,
        ``ResPartner._retrieve_partner``, ``ProductProduct._retrieve_product``,
        ``AccountJournal._check_company_domain``,
-       ``AccountMoveLine._predict_specific_account``, ``Command``/``fields.Date``
+       ``AccountMoveLine._predict_specific_account``,
+       ``Command``/``fields.Date``
        (idiomas del ORM de la referencia), ``odoo.tools.pdf`` (``pypdf``: 0 en
        ``uv.lock``)
-   * - 13
+   * - 12
      - los ``_ubl_add_*`` que agregan importes
-     - **la envoltura de base-lines de** ``account.tax``:
-       ``_aggregate_base_lines_tax_details``,
-       ``_aggregate_base_line_tax_details``,
-       ``_aggregate_base_lines_aggregated_values``,
-       ``_get_price_unit_without_tax``, ``_get_gross_total_without_tax``.
-       ``account/models/account_tax.py:82-90`` declara explícitamente que esa
-       envoltura **no se porta** en este árbol
+     - ya no la agregación de ``account.tax``, que existe desde
+       ``a170e4f6``: su mensaje de bloqueo es anterior y queda por re-medir
+       uno a uno. Dos siguen esperando piezas medidas ausentes:
+       ``_get_price_unit_without_tax``/``_get_gross_total_without_tax`` y
+       ``_dispatch_taxes_into_new_base_lines``/
+       ``_turn_removed_taxes_into_new_base_lines``
    * - 1
      - ``_init_invoice_export_values``
      - ``AccountMove._get_rounded_base_and_tax_lines()`` (misma envoltura) más
        ``partner_shipping_id``/``child_ids``/``with_context``
 
-**La puerta está bloqueada, las habitaciones no.** Los 157 portados operan
-sobre ``dict`` —``vals``, ``document_node``, ``base_line``— y son
-transformaciones puras: siguen siendo correctos y siguen siendo el valor de
-este porte. Ningún camino de ejecución llega a ellos sin pasar antes por una
-puerta bloqueada, que levanta ``UserError`` nombrando su causa. Sucesor
+**La puerta está bloqueada, y las habitaciones no se han ejecutado.** Los
+158 portados operan sobre ``dict`` —``vals``, ``document_node``,
+``base_line``— y ningún camino de ejecución llega a ellos sin pasar antes por
+una puerta bloqueada, que levanta ``UserError`` nombrando su causa. Por eso
+un porte verbatim pudo conservar nombres de la fuente que aquí no resuelven:
+``partner.country_id``/``partner.state_id`` son en este árbol la columna de
+la FK (``country``/``state``), un entero, y leer ``.code`` sobre ella falla.
+Medido al desbloquear ``_ubl_default_tax_category_grouping_key``; corregidos
+los que esa unidad alcanza, con sus pruebas. Sucesor
 declarado: portar la envoltura de base-lines de ``account.tax`` + la mitad
 *factura* de ``account.move`` (ver la tabla de piezas de
 ``account_edi_common.py``); ninguna de las dos cae en el write-set de este
@@ -68,11 +73,13 @@ Sustituciones de import (medidas)
        ``compact``) es un método **portado**, así que se vendoriza
        :func:`_be_vat_compact` con el algoritmo verbatim de ``stdnum``
    * - ``odoo.tools.frozendict`` · ``unique``
-     - **no se traen**: sus únicos consumidores (``_ubl_add_values_tax_totals``,
-       ``_ubl_add_tax_totals_nodes``, ``_import_ubl_invoice_add_payment_reference``)
+     - **no se traen**: sus únicos consumidores
+       (``_ubl_add_values_tax_totals``, ``_ubl_add_tax_totals_nodes``,
+       ``_import_ubl_invoice_add_payment_reference``)
        están bloqueados, y vendorizar código sin consumidor vivo es dejar
        código muerto. Se re-traen el día que se desbloqueen
-   * - ``markupsafe.Markup`` · ``odoo.tools.pdf`` · ``str2bool`` · ``io`` · ``re``
+   * - ``markupsafe.Markup`` · ``odoo.tools.pdf`` · ``str2bool`` · ``io``
+       · ``re``
      - ídem — sus consumidores viven en los 53 métodos de importación
    * - ``Command`` · ``fields`` · ``formatLang`` · ``UserError``
      - ídem. Los cuatro ``PEPPOL_*_OPTIONAL_*`` y
@@ -93,7 +100,14 @@ from tools.misc import html_escape
 from tools.translate import _
 
 from ..tools import CreditNote, DebitNote, Invoice
-from .account_edi_common import AccountEdiCommon, FloatFmt, GST_COUNTRY_CODES, _blocked
+from .account_edi_common import (
+    GST_COUNTRY_CODES,
+    AccountEdiCommon,
+    FloatFmt,
+    _blocked,
+    context_scope,
+    env,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -200,9 +214,101 @@ class AccountEdiUBL(AccountEdiCommon):
         return base_line['special_type'] == 'cash_rounding'
 
     @classmethod
-    def _ubl_default_tax_category_grouping_key(cls, base_line, tax_data, vals, currency):
-        """≙ ``_ubl_default_tax_category_grouping_key`` (odoo19c: :92-157) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_default_tax_category_grouping_key', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+    def _ubl_default_tax_category_grouping_key(cls, base_line, tax_data,
+                                               vals, currency):
+        """ Give the values about the tax category for a given tax.
+
+        ≙ ``_ubl_default_tax_category_grouping_key`` (odoo19c: :92-157).
+        Divergencias de pila: el país del tercero es ``country`` (aquí
+        ``country_id`` es la columna, un entero), y el
+        ``with_context(tax_exemption_reason_invoice=...)`` de la fuente es
+        ``context_scope``, que suma la clave al contexto y lo restaura.
+
+        :param base_line:   A base line (see
+                            '_prepare_base_line_for_taxes_computation').
+        :param tax_data:    One of the tax data in
+                            base_line['tax_details']['taxes_data'].
+        :param vals:        Some custom data.
+        :param currency:    The currency for which the grouping key is
+                            expressed.
+        :return:            A dictionary that could be used as a grouping
+                            key for the taxes helpers.
+        """
+        customer = vals['customer']
+        supplier = vals['supplier']
+        if tax_data and (
+            tax_data['tax'].amount_type != 'percent'
+            or cls._ubl_is_recycling_contribution_tax(tax_data)
+            or cls._ubl_is_excise_tax(tax_data)
+        ):
+            return None
+        else:
+            commercial_customer = customer.commercial_partner_id
+            supplier_country = supplier.commercial_partner_id.country
+            supplier_country_code = (
+                supplier_country.code if supplier_country else False)
+            if supplier_country_code in GST_COUNTRY_CODES:
+                scheme_id = 'GST'
+            else:
+                scheme_id = 'VAT'
+            if cls._ubl_is_reverse_charge_tax(tax_data):
+                # Reverse-charge taxes with +100/-100% repartition lines are
+                # used in vendor bills. In self-billed invoices, we report
+                # them from the seller's perspective, as 0% taxes.
+                tax = tax_data['tax']
+
+                return {
+                    'tax_category_code': cls._get_tax_category_code(
+                        commercial_customer, supplier, tax),
+                    **cls._get_tax_exemption_reason(
+                        commercial_customer, supplier, tax),
+                    'percent': 0.0,
+                    'scheme_id': scheme_id,
+                    'is_withholding': False,
+                    'currency': currency,
+                }
+            elif tax_data:
+                tax = tax_data['tax']
+                tax_category_code = cls._get_tax_category_code(
+                    commercial_customer, supplier, tax)
+                if tax_category_code == 'O':
+                    # [BR-O-05] An Invoice line (BG-25) where the VAT
+                    # category code (BT-151) is "Not subject to VAT" shall
+                    # not contain an Invoiced item VAT rate (BT-152).
+                    # [BR-O-06] A Document level allowance (BG-20) where VAT
+                    # category code (BT-95) is "Not subject to VAT" shall not
+                    # contain a Document level allowance VAT rate (BT-96).
+                    # [BR-O-07] A Document level charge (BG-21) where the VAT
+                    # category code (BT-102) is "Not subject to VAT" shall
+                    # not contain a Document level charge VAT rate (BT-103).
+                    percent = None
+                else:
+                    percent = (
+                        tax.amount if not tax.has_negative_factor else 0.0)
+                with context_scope(
+                        tax_exemption_reason_invoice=vals.get('invoice')):
+                    tax_exemption_reason = cls._get_tax_exemption_reason(
+                        commercial_customer, supplier, tax)
+                return {
+                    'tax_category_code': tax_category_code,
+                    **tax_exemption_reason,
+                    'percent': percent,
+                    'scheme_id': scheme_id,
+                    'is_withholding': tax.amount < 0.0,
+                    'currency': currency,
+                }
+            else:
+                no_tax = env['account.tax']
+                return {
+                    'tax_category_code': cls._get_tax_category_code(
+                        commercial_customer, supplier, no_tax),
+                    **cls._get_tax_exemption_reason(
+                        commercial_customer, supplier, no_tax),
+                    'percent': 0.0,
+                    'scheme_id': scheme_id,
+                    'is_withholding': False,
+                    'currency': currency,
+                }
 
     @classmethod
     def _ubl_default_tax_subtotal_tax_category_grouping_key(cls, tax_grouping_key, vals):
@@ -1126,16 +1232,21 @@ class AccountEdiUBL(AccountEdiCommon):
 
     @classmethod
     def _ubl_get_partner_address_node(cls, vals, partner):
+        # La FK es ``state``/``country``: aquí ``*_id`` es la columna.
+        state = partner.state
+        country = partner.country
         return {
             'cbc:StreetName': {'_text': partner.street},
             'cbc:AdditionalStreetName': {'_text': partner.street2},
             'cbc:CityName': {'_text': partner.city},
             'cbc:PostalZone': {'_text': partner.zip},
-            'cbc:CountrySubentity': {'_text': partner.state_id.name},
-            'cbc:CountrySubentityCode': {'_text': partner.state_id.code},
+            'cbc:CountrySubentity': {'_text': state.name if state else False},
+            'cbc:CountrySubentityCode': {
+                '_text': state.code if state else False},
             'cac:Country': {
-                'cbc:IdentificationCode': {'_text': partner.country_id.code},
-                'cbc:Name': {'_text': partner.country_id.name},
+                'cbc:IdentificationCode': {
+                    '_text': country.code if country else False},
+                'cbc:Name': {'_text': country.name if country else False},
             },
         }
 
@@ -1155,7 +1266,7 @@ class AccountEdiUBL(AccountEdiCommon):
 
         if commercial_partner.vat and commercial_partner.vat != '/':
             vat = commercial_partner.vat
-            country_code = commercial_partner.country_id.code
+            country_code = commercial_partner.country.code
             if country_code in GST_COUNTRY_CODES:
                 tax_scheme_id = 'GST'
             else:
