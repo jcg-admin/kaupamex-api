@@ -109,6 +109,7 @@ from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
 from tools.misc import OrderedSet, ReadonlyDict, partition, split_every, unique
+from tools.query import Query
 from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
@@ -123,7 +124,8 @@ REFERENCING_FIELD_NAMES = frozenset({None, 'id', '.id'})
 
 
 def fix_import_export_id_paths(fieldname):
-    """≙ ``fix_import_export_id_paths`` (``odoo19c: odoo/orm/models.py:145-156``).
+    """≙ ``fix_import_export_id_paths``
+    (``odoo19c: odoo/orm/models.py:145-156``).
 
     «Fixes the id fields in import and exports, and splits field paths on
     ``/``.»
@@ -148,13 +150,13 @@ def to_record_ids(arg) -> list:
     descartan el id falso — pero **no por el mismo camino**, y la diferencia es
     de la fuente, no de este puerto:
 
-    ================== ============================ =========================
-    Forma              La fuente                     Aquí
-    ================== ============================ =========================
-    recordset          ``arg.ids``                   ``OriginIds(record_ids(…))``
-    entero             ``[arg] if arg else []``      igual
-    iterable           ``[i for i in arg if i]``     igual
-    ================== ============================ =========================
+    ========= ========================== ============================
+    Forma     La fuente                  Aquí
+    ========= ========================== ============================
+    recordset ``arg.ids``                ``OriginIds(record_ids(…))``
+    entero    ``[arg] if arg else []``   igual
+    iterable  ``[i for i in arg if i]``  igual
+    ========= ========================== ============================
 
     **Divergencia de mecanismo en la primera fila, no de contrato.** Aquí no
     hay recordset: un conjunto de filas es una instancia de modelo o un
@@ -304,9 +306,9 @@ class AccessQuerySet(QuerySet):
             return self.exclude(pk__in=result[0].values_list('pk', flat=True))
         return self
 
-
     def _get_redirect_suggested_company(self, user=None):
-        """La empresa que sugerir al redirigir a estos registros — ``:5825-5839``.
+        """La empresa que sugerir al redirigir a estos registros —
+        ``:5825-5839``.
 
         La fuente lo declara en ``BaseModel`` y lo usa
         ``ir.rule._make_access_error`` para distinguir *"no tienes permiso"* de
@@ -316,8 +318,10 @@ class AccessQuerySet(QuerySet):
 
         .. code-block:: python
 
-           if 'company_id' in self:      return self.company_id
-           elif 'company_ids' in self:   return (self.company_ids & self.env.user.company_ids)[:1]
+           if 'company_id' in self:
+               return self.company_id
+           elif 'company_ids' in self:
+               return (self.company_ids & self.env.user.company_ids)[:1]
            return False
 
         Aquí vive en el queryset, que es lo que en este árbol hace de
@@ -329,7 +333,8 @@ class AccessQuerySet(QuerySet):
         ``'company_id' in self`` pregunta por el **campo**, no por el valor.
         Aquí se pregunta por los dos nombres —``company`` y su ``attname``
         ``company_id``— porque este árbol declara la FK con el nombre corto
-        (:ref:`h-api-874` midió la misma distinción en ``_add_missing_default_values``).
+        (:ref:`h-api-874` midió la misma distinción en
+        ``_add_missing_default_values``).
         """
         nombres = {f.name for f in self.model._meta.get_fields()}
         nombres |= {f.attname for f in self.model._meta.fields}
@@ -371,7 +376,8 @@ class AccessQuerySet(QuerySet):
         return filtered_domain(self, domain)
 
     def _get_external_ids(self):
-        """Los identificadores externos de cada fila — ``{pk: ['modulo.nombre']}``.
+        """Los identificadores externos de cada fila —
+        ``{pk: ['modulo.nombre']}``.
 
         ≙ ``BaseModel._get_external_ids``
         (``odoo19c: odoo/orm/models.py:5695-5714``). Lista vacía cuando la fila
@@ -461,19 +467,20 @@ def filtered_domain(records, domain):
 class OriginMixin:
     """``_origin`` — el registro **guardado** del que este proviene.
 
-    ≙ ``BaseModel._origin`` (``odoo19c: odoo/orm/models.py:6462-6469``). Allá un
-    registro en formulario lleva un ``NewId`` cuyo ``.origin`` apunta a la fila
-    persistida; sobre registros ya reales el atributo devuelve ``self`` ("already
-    real records"). Es lo que permite a un ``@api.onchange`` comparar el valor
-    que el usuario acaba de teclear con el que hay en base.
+    ≙ ``BaseModel._origin`` (``odoo19c: odoo/orm/models.py:6462-6469``). Allá
+    un registro en formulario lleva un ``NewId`` cuyo ``.origin`` apunta a la
+    fila persistida; sobre registros ya reales el atributo devuelve ``self``
+    ("already real records"). Es lo que permite a un ``@api.onchange`` comparar
+    el valor que el usuario acaba de teclear con el que hay en base.
 
     **La divergencia, y es de forma** —la misma que declara la sección de
     permisos de este archivo—: allá ``self`` es un recordset y el atributo
-    cuelga de ``BaseModel``, así que todo modelo lo tiene. Aquí ``models.Model``
-    es el de Django y no es nuestro para colgarle nada, así que el mecanismo es
-    un mixin que el modelo adopta —igual que ``objects = AccessManager()``— y
-    el eje que distingue "en formulario" de "guardado" no es el tipo del id
-    sino el estado de la instancia: los atributos en memoria frente a la fila.
+    cuelga de ``BaseModel``, así que todo modelo lo tiene. Aquí
+    ``models.Model`` es el de Django y no es nuestro para colgarle nada, así
+    que el mecanismo es un mixin que el modelo adopta —igual que
+    ``objects = AccessManager()``— y el eje que distingue "en formulario" de
+    "guardado" no es el tipo del id sino el estado de la instancia: los
+    atributos en memoria frente a la fila.
 
     Quién lo adopta, medido 2026-08-28: ``ResPartner`` —el consumidor que
     registró la tarea #112, y que hasta entonces hacía la lectura a mano— y
@@ -649,7 +656,8 @@ class DefaultGetMixin:
             puede traer cualquiera de los dos y las dos formas nombran al
             mismo padre.
             """
-            for _parent_name, fk_name in getattr(model, '_inherits', {}).items():
+            inherits = getattr(model, '_inherits', {})
+            for _parent_name, fk_name in inherits.items():
                 parent = _inherits_parent(model, fk_name)
                 if parent is None:
                     continue
@@ -813,14 +821,16 @@ class DefaultGetMixin:
         for field_name in field_names:
             found = _create_field_lookup(cls, field_name)
             if found is None:
-                raise ValueError(f"Invalid field {field_name!r} in {cls._name!r}")
+                raise ValueError(
+                    f"Invalid field {field_name!r} in {cls._name!r}")
             receiver._check_field_access(found[0], 'write')
 
         new_vals_list = cls._prepare_create_values(vals_list)
 
         # classify fields for each record
         data_list = []
-        determine_inverses = collections.defaultdict(OrderedSet)   # {inverse: fields}
+        # {inverse: fields}
+        determine_inverses = collections.defaultdict(OrderedSet)
 
         for vals in new_vals_list:
             data = {}
@@ -831,12 +841,14 @@ class DefaultGetMixin:
             for key, val in vals.items():
                 found = _create_field_lookup(cls, key)
                 if found is None:
-                    raise ValueError("Invalid field %r on model %r" % (key, cls._name))
+                    raise ValueError(
+                        "Invalid field %r on model %r" % (key, cls._name))
                 field, origin = found
                 if origin is not None:
                     inherited[origin][key] = val
                     continue
-                store, inverse, compute, readonly, precompute = _creation_flags(field)
+                (store, inverse, compute, readonly,
+                 precompute) = _creation_flags(field)
                 if store:
                     stored[key] = val
                 if inverse:
@@ -940,7 +952,8 @@ class DefaultGetMixin:
         IrModelData = apps.get_model('base', 'IrModelData')
         IrModelData._update_xmlids([
             {
-                'xml_id': xid if '.' in xid else ('%s.%s' % (import_module, xid)),
+                'xml_id': (xid if '.' in xid
+                           else '%s.%s' % (import_module, xid)),
                 'record': rec,
                 # note: this is not used when updating o2ms above...
                 'noupdate': noupdate,
@@ -974,7 +987,8 @@ class DefaultGetMixin:
 
     @classmethod
     def _prepare_create_values(cls, vals_list):
-        """Completa y limpia los valores de alta — ≙ ``_prepare_create_values``.
+        """Completa y limpia los valores de alta — ≙
+        ``_prepare_create_values``.
 
         ≙ ``odoo19c: odoo/orm/models.py:4771-4812``. Docstring de la fuente,
         verbatim: *"Clean up and complete the given create values, and return
@@ -1042,7 +1056,8 @@ class DefaultGetMixin:
         assert data_list
         ids = []
         for data in data_list:
-            scalar, relational = cls._load_records_split_relational(data['stored'])
+            split = cls._load_records_split_relational
+            scalar, relational = split(data['stored'])
             # Lo que exige la fila ya real: el muchos-a-muchos por su cara
             # directa y toda relación inversa (el ``One2many``/``Many2many``
             # reverso de la fuente) — ≙ ``other_fields`` de ``_create``.
@@ -1064,7 +1079,8 @@ class DefaultGetMixin:
                     # ≙ ``Many2many.write_real``: los triples de ``Command``
                     # y sus abreviaturas (TASK-API-0190).
                     apply_many2many_commands(record, field, value)
-                elif getattr(field, 'one_to_many', False) and is_command_list(value):
+                elif (getattr(field, 'one_to_many', False)
+                      and is_command_list(value)):
                     # ≙ ``One2many.write_real(..., create=True)``.
                     apply_one2many_commands(record, field, value, create=True)
                 else:
@@ -1159,7 +1175,8 @@ def _parent_store_update(record):
     if parent_id:
         prefix = cls._base_manager.filter(pk=parent_id).values_list(
             'parent_path', flat=True).first() or ''
-    if prefix and record.pk in {int(label) for label in prefix.split('/')[:-1]}:
+    ancestors = {int(label) for label in prefix.split('/')[:-1]}
+    if prefix and record.pk in ancestors:
         raise UserError('Recursion Detected.')
     updated = dict(execute_query(SQL(
         """ UPDATE %(table)s child
@@ -1179,7 +1196,8 @@ def _parent_store_update(record):
 
 
 def _creation_flags(field):
-    """``(store, inverse, compute, readonly, precompute)`` de un campo al crear.
+    """``(store, inverse, compute, readonly, precompute)`` de un campo al
+    crear.
 
     Los cinco atributos que :meth:`DefaultGetMixin.create` lee de cada campo
     (``:4675-4684``). Un ``Field`` de Django los declara —``fields.py``
@@ -1345,11 +1363,11 @@ class CheckCompanyMixin:
     ``certificate/models/certificate.py:218``, …).
 
     **La divergencia de forma es la de siempre en este archivo**: allá cuelga
-    de ``BaseModel`` y todo modelo lo tiene con ``_check_company_auto = False``;
-    aquí ``models.Model`` es el de Django y no es nuestro, así que viaja por
-    ``TimeStampedModel`` —la base común del proyecto— con el mismo valor por
-    defecto. Un modelo lo enciende declarando ``_check_company_auto = True``,
-    exactamente como la fuente.
+    de ``BaseModel`` y todo modelo lo tiene con
+    ``_check_company_auto = False``; aquí ``models.Model`` es el de Django y no
+    es nuestro, así que viaja por ``TimeStampedModel`` —la base común del
+    proyecto— con el mismo valor por defecto. Un modelo lo enciende declarando
+    ``_check_company_auto = True``, exactamente como la fuente.
 
     **Qué NO se porta, y no es olvido.** ``_description_domain``
     (``odoo19c: odoo/orm/fields_relational.py:131-157``) usa la misma marca
@@ -1448,14 +1466,17 @@ class CheckCompanyMixin:
                 companies = None
             if companies is not None:
                 companies = [c for c in companies if c is not None]
-                inconsistencies += self._company_inconsistencies(regular, companies)
+                inconsistencies += self._company_inconsistencies(
+                    regular, companies)
 
         if dependent:
+            current = [c for c in [get_current_company()] if c is not None]
             inconsistencies += self._company_inconsistencies(
-                dependent, [c for c in [get_current_company()] if c is not None])
+                dependent, current)
 
         if inconsistencies:
-            raise UserError(self._company_inconsistency_message(inconsistencies))
+            raise UserError(
+                self._company_inconsistency_message(inconsistencies))
 
     @classmethod
     def _check_company_fields(cls, fnames=None):
@@ -1468,8 +1489,8 @@ class CheckCompanyMixin:
         """
         campos = {f.name: f for f in cls._meta.get_fields()
                   if getattr(f, 'check_company', False)}
-        if fnames is not None and not (set(COMPANY_FIELD_NAMES) |
-                                       set(COMPANIES_FIELD_NAMES)) & set(fnames):
+        company_names = set(COMPANY_FIELD_NAMES) | set(COMPANIES_FIELD_NAMES)
+        if fnames is not None and not company_names & set(fnames):
             campos = {n: f for n, f in campos.items() if n in set(fnames)}
         regular, dependent = [], []
         for name, field in campos.items():
@@ -1722,7 +1743,8 @@ class CopyMixin:
 
         def blacklist_given_fields(model):
             """Lo que llega por delegación lo pone el padre, no la copia."""
-            for _parent_name, fk_name in getattr(model, '_inherits', {}).items():
+            inherits = getattr(model, '_inherits', {})
+            for _parent_name, fk_name in inherits.items():
                 parent = _inherits_parent(model, fk_name)
                 if parent is None:
                     continue
@@ -1799,15 +1821,16 @@ class CopyMixin:
         porque su ``Command.create`` es una tupla que el ORM aplica después.
 
         Aquí no puede vivir dentro: nuestro ``Command`` es **ejecutivo**
-        —escribe al llamarlo (:ref:`h-api-589`, tarea **TASK-API-0190**)— y Django
-        exige la fila del padre antes de poder colgarle un hijo. Así que el
-        paso se separa y corre **después** del alta, con el padre ya con ``pk``.
-        El efecto es el mismo que el de la fuente: los hijos se duplican *"using
-        the wrong (old) parent, but then are reassigned to the correct one"*.
+        —escribe al llamarlo (:ref:`h-api-589`, tarea **TASK-API-0190**)— y
+        Django exige la fila del padre antes de poder colgarle un hijo. Así que
+        el paso se separa y corre **después** del alta, con el padre ya con
+        ``pk``. El efecto es el mismo que el de la fuente: los hijos se
+        duplican *"using the wrong (old) parent, but then are reassigned to the
+        correct one"*.
 
-        El orden **por id** no es cosmético; el comentario de la fuente lo dice:
-        *"duplicate following the order of the ids because we'll rely on it
-        later for copying translations"*.
+        El orden **por id** no es cosmético; el comentario de la fuente lo
+        dice: *"duplicate following the order of the ids because we'll rely on
+        it later for copying translations"*.
         """
         cls = type(self)
         seen = collections.defaultdict(set) if seen is None else seen
@@ -1944,7 +1967,9 @@ def _field_names(model):
         parent = _inherits_parent(model, fk_name)
         if parent is None:
             continue
-        for field in [*parent._meta.concrete_fields, *parent._meta.many_to_many]:
+        parent_fields = [*parent._meta.concrete_fields,
+                         *parent._meta.many_to_many]
+        for field in parent_fields:
             if field.name not in seen:
                 seen.add(field.name)
                 names.append(field.name)
@@ -2016,7 +2041,8 @@ def parse_read_group_spec(spec):
             f'Invalid aggregate/groupby specification {spec!r}.\n'
             '- Valid aggregate specification looks like "<field_name>:<agg>" '
             'example: "quantity:sum".\n'
-            '- Valid groupby specification looks like "<no_datish_field_name>" '
+            '- Valid groupby specification looks like '
+            '"<no_datish_field_name>" '
             'or "<datish_field_name>:<granularity>" example: "date:month" or '
             '"<properties_field_name>.<property>:<granularity>".'
         )
@@ -2028,10 +2054,10 @@ def parse_read_group_spec(spec):
 def raise_on_invalid_object_name(name):
     """La mitad que lanza de :func:`~orm.utils.check_object_name`.
 
-    ≙ ``raise_on_invalid_object_name`` (``odoo19c: odoo/orm/models.py:139-142``).
-    El hermano devuelve un booleano y éste lo convierte en el rechazo que el
-    cargador de modelos necesita: un ``_name`` inválido no puede seguir adelante
-    en silencio.
+    ≙ ``raise_on_invalid_object_name``
+    (``odoo19c: odoo/orm/models.py:139-142``). El hermano devuelve un booleano
+    y éste lo convierte en el rechazo que el cargador de modelos necesita: un
+    ``_name`` inválido no puede seguir adelante en silencio.
     """
     if not check_object_name(name):
         msg = "The _name attribute %s is not valid." % name
@@ -2166,16 +2192,17 @@ class FieldSqlMixin:
         ``base.group_no_one`` igual que allá: el nombre de un grupo que
         concede acceso a un campo es en sí mismo información.
 
-        Las tres ramas del tramo de grupos son las de la fuente (``:3411-3418``)
-        y no son intercambiables: ``NO_ACCESS`` significa *prohibido siempre* y
-        no *«pide el grupo»*; un campo sin ``groups`` que aun así se denegó
-        sólo puede deberse a una regla a medida.
+        Las tres ramas del tramo de grupos son las de la fuente
+        (``:3411-3418``) y no son intercambiables: ``NO_ACCESS`` significa
+        *prohibido siempre* y no *«pide el grupo»*; un campo sin ``groups`` que
+        aun así se denegó sólo puede deberse a una regla a medida.
         """
         if self._has_field_access(field, operation):
             return
 
         _logger.info(
-            'Access Denied by ACLs for operation: %s, uid: %s, model: %s, field: %s',
+            'Access Denied by ACLs for operation: %s, uid: %s, model: %s, '
+            'field: %s',
             operation, get_current_uid(), self._meta.label, field.name)
 
         description = self._model_description()
@@ -2192,7 +2219,8 @@ class FieldSqlMixin:
         raise AccessError(message)
 
     def _model_description(self):
-        """El nombre informal del modelo — ≙ ``self.env['ir.model']._get(name).name``.
+        """El nombre informal del modelo — ≙
+        ``self.env['ir.model']._get(name).name``.
 
         La fuente lo lee de ``ir.model`` y cae al nombre técnico si no hay
         fila; aquí igual, con el ``verbose_name`` de Django como último
@@ -2231,20 +2259,23 @@ class FieldSqlMixin:
             repr(name) for _pk, name in resueltos)
 
     def _traverse_related_sql(self, alias, field, query):
-        """Recorre el campo delegado y añade a ``query`` los JOIN que hagan falta.
+        """Recorre el campo delegado y añade a ``query`` los JOIN que hagan
+        falta.
 
-        ≙ ``_traverse_related_sql`` (``odoo19c: odoo/orm/models.py:2889-2908``).
+        ≙ ``_traverse_related_sql``
+        (``odoo19c: odoo/orm/models.py:2889-2908``).
 
         :returns: la terna ``(model, field, alias)``, donde ``field`` es el
             último campo de la secuencia, ``model`` el modelo de ese campo y
             ``alias`` el alias de su tabla.
 
-        El ``related`` de la fuente es una ruta con puntos —``partner_id.name``—
-        y aquí el mecanismo equivalente es ``orm/inherits.py``: ``_inherits``
-        instala la delegación y el camino es un solo salto, el de su FK. Por
-        eso el bucle recorre ``field.related.split('.')`` igual que allá: la
-        ruta de un salto es el caso que hoy existe, y la de varios funciona sin
-        tocar nada el día que un campo la declare.
+        El ``related`` de la fuente es una ruta con puntos
+        —``partner_id.name``— y aquí el mecanismo equivalente es
+        ``orm/inherits.py``: ``_inherits`` instala la delegación y el camino es
+        un solo salto, el de su FK. Por eso el bucle recorre
+        ``field.related.split('.')`` igual que allá: la ruta de un salto es el
+        caso que hoy existe, y la de varios funciona sin tocar nada el día que
+        un campo la declare.
         """
         # `related`/`store` se leen con `getattr`: son atributos de la clase
         # `Field` de la referencia, y un campo de Django no los declara. Sin
@@ -2284,8 +2315,10 @@ class FieldSqlMixin:
             raise ValueError(
                 f"Invalid field {fname!r} on model {self._meta.label!r}")
 
-        if getattr(field, 'related', None) and not getattr(field, 'store', True):
-            model, field, alias = self._traverse_related_sql(alias, field, query)
+        if (getattr(field, 'related', None)
+                and not getattr(field, 'store', True)):
+            model, field, alias = self._traverse_related_sql(
+                alias, field, query)
             related_expr = (field.name if not property_name
                             else f"{field.name}.{property_name}")
             return model._field_to_sql(alias, related_expr, query)
@@ -2357,9 +2390,10 @@ class RecordLoaderMixin(FieldSqlMixin):
     ``_load_records`` y ``_load_records_create`` son **classmethods**: allá
     ``self`` es un recordset vacío que sólo aporta el modelo (``self.browse()``
     en la primera línea), y aquí ese papel lo cumple la clase. ``self.create``
-    pasa a ser ``cls.objects.create``, ``self.browse(id)`` a un ``filter(pk=)``,
-    y el ``original_self.concat(...)`` del final a la lista de registros en el
-    orden de ``data_list``, que es lo que la fuente promete devolver.
+    pasa a ser ``cls.objects.create``, ``self.browse(id)`` a un
+    ``filter(pk=)``, y el ``original_self.concat(...)`` del final a la lista de
+    registros en el orden de ``data_list``, que es lo que la fuente promete
+    devolver.
 
     ``_load_records_write`` y ``_clean_properties`` sí son de instancia: la
     fuente empieza con ``self.ensure_one()``, es decir, opera sobre **un**
@@ -2379,7 +2413,8 @@ class RecordLoaderMixin(FieldSqlMixin):
     # -- Propiedades ---------------------------------------------------------
 
     def get_property_definition(self, full_name):
-        """≙ ``get_property_definition`` (``odoo19c: odoo/orm/models.py:3043``).
+        """≙ ``get_property_definition``
+        (``odoo19c: odoo/orm/models.py:3043``).
 
         Docstring de la fuente, verbatim: *"Return the definition of the given
         property"*, con ``full_name`` = *"Name of the field / property (e.g.
@@ -2391,20 +2426,21 @@ class RecordLoaderMixin(FieldSqlMixin):
         una propiedad de fecha de una de texto, y la comparación se haría
         contra la cadena cruda.
 
-        **La divergencia de mecanismo, declarada.** La fuente arma un ``SELECT``
-        con ``jsonb_array_elements`` sobre la tabla del registro de definición y
-        filtra en SQL por ``definition->>'name'`` (``:3060-3067``). Aquí la
-        lista ya la resuelve ``Properties._get_properties_definition(record)``
-        —el mismo camino que ``_clean_properties`` usa—, así que la selección
-        por nombre se hace sobre esa lista en vez de emitir una segunda
-        consulta. El resultado es el mismo: la definición que coincide, o
-        ``{}`` cuando no hay ninguna, que es el ``LIMIT 1`` sin filas de allá.
+        **La divergencia de mecanismo, declarada.** La fuente arma un
+        ``SELECT`` con ``jsonb_array_elements`` sobre la tabla del registro de
+        definición y filtra en SQL por ``definition->>'name'``
+        (``:3060-3067``). Aquí la lista ya la resuelve
+        ``Properties._get_properties_definition(record)`` —el mismo camino que
+        ``_clean_properties`` usa—, así que la selección por nombre se hace
+        sobre esa lista en vez de emitir una segunda consulta. El resultado es
+        el mismo: la definición que coincide, o ``{}`` cuando no hay ninguna,
+        que es el ``LIMIT 1`` sin filas de allá.
 
         Se conserva de la fuente: la comprobación de lectura sobre el recordset
         vacío, el ``ValueError`` cuando el campo no existe, y la validación del
         nombre de la propiedad con
-        :func:`~orm.fields_properties.check_property_field_value_name` **antes**
-        de interpolarlo en el SQL.
+        :func:`~orm.fields_properties.check_property_field_value_name`
+        **antes** de interpolarlo en el SQL.
 
         **Es independiente del registro, como la fuente.** Su primera versión
         leía la definición con ``field._get_properties_definition(self)`` —el
@@ -2434,7 +2470,8 @@ class RecordLoaderMixin(FieldSqlMixin):
 
         if not isinstance(field, Properties):
             return {}
-        target_model = self._meta.get_field(field.definition_record).related_model
+        definition = self._meta.get_field(field.definition_record)
+        target_model = definition.related_model
         column = target_model._meta.get_field(
             field.definition_record_field).column
         result = env().execute_query_dict(SQL(
@@ -2560,7 +2597,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         *"Because we don't know which properties was linked to which
         definition, we can know clean properties"*.
         """
-        to_write = {}  # Deferred the write to avoid using the old definition if it changed
+        # Deferred the write to avoid using the old definition if it changed
+        to_write = {}
         for fname in list(values):
             field = self._fields.get(fname)
             if not isinstance(field, Properties):
@@ -2568,7 +2606,8 @@ class RecordLoaderMixin(FieldSqlMixin):
             field_converter = field.convert_to_cache
             to_write[fname] = dict(
                 getattr(self, fname, None) or {},
-                **(field_converter(values.pop(fname), self, validate=False) or {}))
+                **(field_converter(values.pop(fname), self, validate=False)
+                   or {}))
 
         self.write(values)
         if to_write:
@@ -2603,7 +2642,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         self._warm_x2many_before_inverse(determine_inverses)
         protected = self._protected_while_writing(values)
         to_compute = [field.name for field in protected
-                      if getattr(field, 'compute', None) and field.name not in values]
+                      if getattr(field, 'compute', None)
+                      and field.name not in values]
         if to_compute:
             # ``:4433-4437`` — fuerza el cálculo de los campos que se computan
             # junto a los asignados pero que nadie asignó: dentro del alcance
@@ -2622,7 +2662,9 @@ class RecordLoaderMixin(FieldSqlMixin):
                 registry_ = model_field_registry(type(self))
                 for fname, value in many2many.items():
                     apply_many2many_commands(self, registry_[fname], value)
-                if not values and getattr(type(self), '_check_company_auto', False):
+                check_company = getattr(type(self), '_check_company_auto',
+                                        False)
+                if not values and check_company:
                     self._check_company(list(many2many))
             if values:
                 # La fuente escribe todos los valores y comprueba la empresa
@@ -2646,7 +2688,8 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # conjunto que Django valida —no con una copia— para que no
                 # haya dos fuentes de verdad.
                 writable = self._meta._non_pk_concrete_field_names
-                update_fields = [fname for fname in values if fname in writable]
+                update_fields = [fname for fname in values
+                                 if fname in writable]
                 # ≙ ``vals.setdefault('write_date', ...)`` (``odoo19c:
                 # odoo/orm/models.py:4394-4396``): con ``_log_access`` toda
                 # escritura se fecha. Aquí la fecha es ``auto_now`` y la pone
@@ -2671,7 +2714,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         return self
 
     def _pop_many2many_values(self, values):
-        """Retira de ``values`` los ``Many2many`` escritos en la forma de la fuente.
+        """Retira de ``values`` los ``Many2many`` escritos en la forma de la
+        fuente.
 
         Una lista de triples de ``Command``, una lista de ids o ``False`` no se
         pueden asignar sobre el lado directo de un muchos-a-muchos de Django;
@@ -2685,7 +2729,8 @@ class RecordLoaderMixin(FieldSqlMixin):
             field = registry_.get(fname)
             value = values[fname]
             # El lado directo: un ``ManyToManyField`` (nunca ``concrete`` en
-            # Django, que no tiene columna); el inverso es un ``ManyToManyRel``.
+            # Django, que no tiene columna); el inverso es un
+            # ``ManyToManyRel``.
             if (isinstance(field, ManyToManyField)
                     and not isinstance(value, (ManyToManySet, ManyToManyLink))
                     and (value is False or value is None
@@ -2791,10 +2836,11 @@ class RecordLoaderMixin(FieldSqlMixin):
 
         Divergencia de alcance declarada: ``bulk_create`` y ``QuerySet.update``
         no pasan por aquí y por tanto no despachan inversos — como tampoco lo
-        hace el ``super().write()`` de la fuente, que existe justo para saltarse
-        esa mitad. Y ``BaseModel`` no hereda este mixin (``BaseModel`` extiende
-        ``DefaultGetMixin``, no ``RecordLoaderMixin``), así que un modelo
-        construido sobre él no recoge la anotación: es la tarea **#318**.
+        hace el ``super().write()`` de la fuente, que existe justo para
+        saltarse esa mitad. Y ``BaseModel`` no hereda este mixin (``BaseModel``
+        extiende ``DefaultGetMixin``, no ``RecordLoaderMixin``), así que un
+        modelo construido sobre él no recoge la anotación: es la tarea
+        **#318**.
         """
         super().save(*args, **kwargs)
         pending = self.__dict__.pop(PENDING_INVERSE_FIELDS, None)
@@ -2818,22 +2864,23 @@ class RecordLoaderMixin(FieldSqlMixin):
 
         La agrupacion no es cosmetica: la fuente llama al inverso **una vez por
         grupo** —``fields[0].determine_inverse(real_recs)`` (``:4493``)— porque
-        un mismo metodo puede invertir varios campos a la vez y llamarlo N veces
-        repetiria su efecto. Escribir ``email_from`` y ``phone`` en la misma
-        llamada da dos grupos y dos invocaciones; si ambos declararan el mismo
-        metodo, daria una.
+        un mismo metodo puede invertir varios campos a la vez y llamarlo N
+        veces repetiria su efecto. Escribir ``email_from`` y ``phone`` en la
+        misma llamada da dos grupos y dos invocaciones; si ambos declararan el
+        mismo metodo, daria una.
 
-        Se calcula **antes** de partir los valores en columna y relacion, porque
-        la fuente recorre ``vals`` entero: un campo relacional con inverso
-        cuenta igual que uno con columna.
+        Se calcula **antes** de partir los valores en columna y relacion,
+        porque la fuente recorre ``vals`` entero: un campo relacional con
+        inverso cuenta igual que uno con columna.
 
-        DIVERGENCIA DE MECANISMO declarada: la fuente lee ``self._fields``; aqui
-        el registro equivalente es :func:`~orm.utils.model_field_registry`, que
-        ya cubre el campo con columna y el que no la tiene. Y donde ella lanza
-        ``ValueError`` ante un nombre desconocido, aqui se ignora: ``write`` de
-        este arbol acepta nombres que ``save``/``_load_records_apply_relational``
-        resuelven por otras vias, y adelantar ese rechazo cambiaria el contrato
-        de un metodo que no es el de esta tarea.
+        DIVERGENCIA DE MECANISMO declarada: la fuente lee ``self._fields``;
+        aqui el registro equivalente es
+        :func:`~orm.utils.model_field_registry`, que ya cubre el campo con
+        columna y el que no la tiene. Y donde ella lanza ``ValueError`` ante un
+        nombre desconocido, aqui se ignora: ``write`` de este arbol acepta
+        nombres que ``save``/``_load_records_apply_relational`` resuelven por
+        otras vias, y adelantar ese rechazo cambiaria el contrato de un metodo
+        que no es el de esta tarea.
         """
         fields_of = model_field_registry(type(self))
         determine_inverses = collections.defaultdict(list)
@@ -2920,7 +2967,8 @@ class RecordLoaderMixin(FieldSqlMixin):
 
     @classmethod
     def _load_records_split_relational(cls, values):
-        """Separa lo que se escribe en la fila de lo que se escribe **después**.
+        """Separa lo que se escribe en la fila de lo que se escribe
+        **después**.
 
         Es la contraparte de la divergencia que ``ir_fields`` declara: la
         fuente devuelve ``Command`` diferidos y su ``write`` los interpreta; el
@@ -2940,7 +2988,8 @@ class RecordLoaderMixin(FieldSqlMixin):
             if isinstance(value, (ManyToManySet, ManyToManyLink)):
                 relational[fname] = value
             elif (isinstance(value, list) and value
-                    and all(isinstance(item, One2manyChild) for item in value)):
+                    and all(isinstance(item, One2manyChild)
+                            for item in value)):
                 relational[fname] = value
             else:
                 scalar[fname] = value
@@ -2951,8 +3000,8 @@ class RecordLoaderMixin(FieldSqlMixin):
 
         Los tres verbos son los de ``Command`` en la fuente, con el del ORM de
         este lado: ``set`` reemplaza el conjunto, ``add`` lo amplía, y un hijo
-        con id se **actualiza** mientras que uno sin id se **crea** apuntando al
-        padre.
+        con id se **actualiza** mientras que uno sin id se **crea** apuntando
+        al padre.
         """
         for fname, value in relational.items():
             manager = getattr(self, fname)
@@ -2966,8 +3015,8 @@ class RecordLoaderMixin(FieldSqlMixin):
                         existing = manager.get(pk=child.id)
                         existing.write(child.values)
                     else:
-                        manager.create(**manager.model._load_records_coerce_vals(
-                            child.values))
+                        coerce = manager.model._load_records_coerce_vals
+                        manager.create(**coerce(child.values))
 
     @classmethod
     def _load_records_create(cls, vals_list, using=DEFAULT_DB_ALIAS):
@@ -3138,7 +3187,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         tarde.
         """
         converter_cls = registry.model_by_name('ir.fields.converter')
-        field_names = {field.name: str(getattr(field, 'verbose_name', field.name))
+        field_names = {field.name: str(getattr(field, 'verbose_name',
+                                               field.name))
                        for field in cls._meta.get_fields()
                        if hasattr(field, 'name')}
 
@@ -3156,8 +3206,8 @@ class RecordLoaderMixin(FieldSqlMixin):
                 info = {}
                 if exception.args[1] and isinstance(exception.args[1], dict):
                     info = exception.args[1]
-                # ensure field_name is added to the exception. Used in import to
-                # concatenate multiple errors in the same block
+                # ensure field_name is added to the exception. Used in import
+                # to concatenate multiple errors in the same block
                 info['field_name'] = field_name
                 record.update(info)
             log(record)
@@ -3196,8 +3246,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         list of messages.»
 
         :param fields: los campos a importar, en el orden de las columnas.
-        :param data: la matriz de datos, por filas.
-        :returns: ``{'ids': [...] | False, 'messages': [...], 'nextrow': int}``.
+        :param data: la matriz de datos, por filas. :returns:
+        ``{'ids': [...] | False, 'messages': [...], 'nextrow': int}``.
 
         Las tres decisiones de la fuente que definen su comportamiento:
 
@@ -3258,8 +3308,9 @@ class RecordLoaderMixin(FieldSqlMixin):
             if not batch:
                 return
 
-            assert not (xml_id and model), \
-                'flush can specify *either* an external id or a model, not both'
+            assert not (xml_id and model), (
+                'flush can specify *either* an external id or a model, '
+                'not both')
 
             if model and model not in creatable_models:
                 return
@@ -3276,13 +3327,13 @@ class RecordLoaderMixin(FieldSqlMixin):
             try:
                 with Savepoint(connection):
                     recs = cls._load_records(data_list, mode == 'update',
-                                              using=using)
+                                             using=using)
                     ids.extend(record.pk for record in recs)
                 return
             except UserError as exc:
                 global_error_message = dict(data_list[0]['info'], type='error',
                                             message=str(exc))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 # silent OK because el lote es el camino rápido y su fallo NO
                 # es el resultado: el recorrido fila a fila de abajo vuelve a
                 # intentarlo y es el que puede decir CUÁL falló. Tragarlo aquí
@@ -3295,14 +3346,15 @@ class RecordLoaderMixin(FieldSqlMixin):
             for i, rec_data in enumerate(data_list, 1):
                 try:
                     [rec] = cls._load_records([rec_data], mode == 'update',
-                                               using=using)
+                                              using=using)
                     ids.append(rec.pk)
                 except DatabaseError as exc:
                     savepoint.rollback()
                     info = rec_data['info']
                     pg_error_info = {'message': cls._sql_error_to_message(exc)}
                     diag = getattr(exc.__cause__, 'diag', None)
-                    if diag is not None and diag.table_name == cls._meta.db_table:
+                    if (diag is not None
+                            and diag.table_name == cls._meta.db_table):
                         e_fields = get_columns_from_sql_diagnostics(
                             connection, diag, check_registry=True)
                         if len(e_fields) == 1:
@@ -3316,7 +3368,7 @@ class RecordLoaderMixin(FieldSqlMixin):
                     messages.append(dict(rec_data['info'], type='error',
                                          message=str(exc)))
                     errors += 1
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     savepoint.rollback()
                     _logger.debug('Error while loading record', exc_info=True)
                     messages.append(dict(
@@ -3330,9 +3382,9 @@ class RecordLoaderMixin(FieldSqlMixin):
                 if errors >= 10 and (errors >= i / 10):
                     messages.append({
                         'type': 'warning',
-                        'message': 'Más de 10 errores y más de uno por cada 10 '
-                                   'registros: se interrumpe para no mostrar '
-                                   'demasiados errores.',
+                        'message': 'Más de 10 errores y más de uno por '
+                                   'cada 10 registros: se interrumpe para '
+                                   'no mostrar demasiados errores.',
                     })
                     break
             if errors > 0 and global_error_message \
@@ -3350,14 +3402,15 @@ class RecordLoaderMixin(FieldSqlMixin):
         with context_scope(_import_current_module=current_module,
                            import_flush=flush, import_cache={}):
             extracted = cls._extract_records(fields, data,
-                                              log=messages.append, limit=limit)
+                                             log=messages.append, limit=limit)
             converted = list(cls._convert_records(
                 extracted, log=messages.append, savepoint=savepoint))
 
             info = {'rows': {'to': -1}}
             for id, xid, record, info in converted:
                 if xid:
-                    xid = xid if '.' in xid else '%s.%s' % (current_module, xid)
+                    if '.' not in xid:
+                        xid = '%s.%s' % (current_module, xid)
                     batch_xml_ids.add(xid)
                 elif id:
                     record['id'] = id
@@ -3419,7 +3472,8 @@ class RecordLoaderMixin(FieldSqlMixin):
             if not xml_id:
                 vals = data['values']
                 if vals.get('id'):
-                    data['record'] = cls.objects.using(using).get(pk=vals['id'])
+                    data['record'] = cls.objects.using(using).get(
+                        pk=vals['id'])
                     to_update.append(data)
                 elif not update:
                     to_create.append(data)
@@ -3458,7 +3512,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         if module:
             prefix = module + '.'
             for data in to_create:
-                if (data.get('xml_id') and not data['xml_id'].startswith(prefix)
+                xml_id = data.get('xml_id')
+                if (xml_id and not xml_id.startswith(prefix)
                         and not context.get('foreign_record_to_create')):
                     _logger.warning('Creating record %s in module %s.',
                                     data['xml_id'], module)
@@ -3475,8 +3530,9 @@ class RecordLoaderMixin(FieldSqlMixin):
                         raise UserError(
                             f'The record {xml_id} has the module prefix '
                             f'{module_name}. This is the part before the "." '
-                            f'in the external id. Because the prefix refers to '
-                            f'an existing module, the record would be deleted '
+                            f'in the external id. Because the prefix refers '
+                            f'to an existing module, the record would be '
+                            f'deleted '
                             f'when the module is upgraded. Use either no '
                             f'prefix and no dot or a prefix that is not an '
                             f'existing module. For example, __import__, '
@@ -3490,10 +3546,10 @@ class RecordLoaderMixin(FieldSqlMixin):
             for data, record in zip(to_create, records):
                 data['record'] = record
                 if data.get('xml_id'):
-                    # add XML ids for parent records that have just been created
-                    # ``_inherits`` se lee del atributo de clase, que es donde
-                    # la referencia lo declara y donde este árbol lo porta
-                    # verbatim (tarea #385).
+                    # add XML ids for parent records that have just been
+                    # created ``_inherits`` se lee del atributo de clase, que
+                    # es donde la referencia lo declara y donde este árbol lo
+                    # porta verbatim (tarea #385).
                     for parent_model, parent_field in getattr(
                             cls, '_inherits', {}).items():
                         if not data['values'].get(parent_field):
@@ -3509,7 +3565,6 @@ class RecordLoaderMixin(FieldSqlMixin):
         IrModelData._update_xmlids(imd_data_list, update, using=using)
 
         return [data['record'] for data in data_list]
-
 
 
 def search_display_name(model_cls, operator, value):
@@ -3577,7 +3632,8 @@ class OrderMixin:
     """
 
     def _check_qorder(self, word):
-        """Levanta ``UserError`` si ``word`` no es una cláusula de orden válida.
+        """Levanta ``UserError`` si ``word`` no es una cláusula de orden
+        válida.
 
         Cuerpo verbatim de la fuente, con su mensaje: *"Invalid 'order'
         specified (%s). A valid 'order' specification is a comma-separated list
@@ -3608,9 +3664,9 @@ class DisplayNameMixin:
 
     - este mixin lo adopta ``TimeStampedModel``, la base común del proyecto —
       **284 de los 374 modelos concretos nuestros** lo heredan (medido);
-    - los **90** restantes lo reciben de :func:`orm.model_classes.adopt_display_name`,
-      que corre en ``class_prepared`` y en un barrido, igual que el manager de
-      permisos.
+    - los **90** restantes lo reciben de
+      :func:`orm.model_classes.adopt_display_name`, que corre en
+      ``class_prepared`` y en un barrido, igual que el manager de permisos.
 
     Por qué no basta con la base común: 90 modelos no la heredan, y **el olvido
     no falla** — un modelo sin ``display_name`` cae al ``__str__`` de Django y
@@ -3621,9 +3677,9 @@ class DisplayNameMixin:
     ======================================================================
 
     Las tres ya las ejercían los cinco modelos que declaraban su
-    ``_compute_display_name`` antes de esta tarea (``res_bank``, ``res_partner``,
-    ``ir_model``, ``properties_base_definition``, ``res_currency``), así que
-    cambiarlas ahora rompería lo que ya funciona:
+    ``_compute_display_name`` antes de esta tarea (``res_bank``,
+    ``res_partner``, ``ir_model``, ``properties_base_definition``,
+    ``res_currency``), así que cambiarlas ahora rompería lo que ya funciona:
 
     1. **``_compute_display_name`` asigna la etiqueta**, como la fuente, y
        conserva además el retorno para los llamadores directos existentes.
@@ -3681,7 +3737,8 @@ class DisplayNameMixin:
                         compute='_compute_display_name',
                         search='_search_display_name')
 
-    @api.depends(lambda model: (model._rec_name,) if getattr(model, '_rec_name', None) else ())
+    @api.depends(lambda model: (model._rec_name,)
+                 if getattr(model, '_rec_name', None) else ())
     def _compute_display_name(self):
         """La etiqueta del registro — ≙ ``_compute_display_name`` (``:1425``).
 
@@ -3702,8 +3759,10 @@ class DisplayNameMixin:
                 field = self._meta.get_field(rec_name)
             except FieldDoesNotExist:
                 field = None
-            label = convert_to_display_name(field, getattr(self, rec_name), self)
-            # Conservar el respaldo técnico de la adaptación para nombres vacíos.
+            label = convert_to_display_name(
+                field, getattr(self, rec_name), self)
+            # Conservar el respaldo técnico de la adaptación para nombres
+            # vacíos.
             if not label:
                 name = getattr(type(self), '_name', None) or self._meta.label
                 label = f'{name},{self.pk}'
@@ -3770,7 +3829,8 @@ class DisplayNameMixin:
             to_q(Domain('display_name', operator, name), cls))
         if domain is not None:
             queryset = queryset.filter(domain)
-        return [(record.pk, record.display_name) for record in queryset[:limit]]
+        return [(record.pk, record.display_name)
+                for record in queryset[:limit]]
 
 
 #: Los operadores de semántica negativa que :meth:`_search_display_name`
@@ -3879,7 +3939,8 @@ Model.__setitem__ = _model_setitem
 
 
 def _model_of_records(records):
-    """La clase de modelo de ``records`` — clase, instancia, lista o ``QuerySet``.
+    """La clase de modelo de ``records`` — clase, instancia, lista o
+    ``QuerySet``.
 
     La rama de la CLASE existe porque la fuente llama a esta familia sobre un
     recordset vacio del modelo (``self.env[nombre]``), que allá lleva su modelo
@@ -3998,9 +4059,9 @@ def _modified_triggers(self, tree, create=False):
     for field, subtree in tree.items():
         #: Al crear, ninguna otra fila puede tener todavia una referencia a
         #: estas — ≙ ``:6884-6886``.
+        many2one_types = ('many2one', 'many2one_reference')
         if create and (getattr(field, 'many_to_one', False)
-                       or getattr(field, 'type', None) in ('many2one',
-                                                           'many2one_reference')):
+                       or getattr(field, 'type', None) in many2one_types):
             continue
 
         model = getattr(field, 'model', None)
@@ -4108,7 +4169,8 @@ def modified(self, fnames, create=False, before=False):
         if field.recursive:
             #: Descarta lo ya procesado, para no entrar en ciclo — ``:6813``.
             if field.compute and field.store:
-                seen = set(marked.get(field) or ()) | set(tomark.get(field) or ())
+                seen = (set(marked.get(field) or ())
+                        | set(tomark.get(field) or ()))
                 records = [row for row in records if row.pk not in seen]
             else:
                 #: Sin columna solo interesan las filas con valor en cache: las
@@ -4164,11 +4226,12 @@ def _notify_m2m_modified(sender, instance, action, reverse, model,
                 previous = owner._base_manager.using(using).filter(
                     **{field.name: instance.pk}).values_list('pk', flat=True)
             elif symmetrical:
-                previous = getattr(instance, field.name).using(using).values_list(
-                    'pk', flat=True)
+                related = getattr(instance, field.name).using(using)
+                previous = related.values_list('pk', flat=True)
             else:
                 continue
-            instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})[key] = tuple(previous)
+            owners = instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})
+            owners[key] = tuple(previous)
             continue
         if action == 'post_clear':
             snapshots = instance.__dict__.get(_M2M_CLEAR_OWNERS, {})
@@ -4232,7 +4295,8 @@ def _recompute_model(self, fnames=None):
     ≙ ``BaseModel._recompute_model`` (``:6920-6932``). Sin acotar por fila: se
     procesa todo lo pendiente de cada campo.
     """
-    model = _model_of_records(self) or (self if isinstance(self, type) else None)
+    model = _model_of_records(self) or (
+        self if isinstance(self, type) else None)
     if model is None:
         return
     registry_of_model = model_field_registry(model)
@@ -4273,19 +4337,20 @@ def _flush(self):
     vacio y este metodo no tendria de donde saber que columna escribir.
 
     **El alcance es el MODELO, no las filas de ``self``** — corregido con la
-    tarea #324. La version anterior arrancaba con ``rows = as_record_list(self)``
-    y ``if not rows: return``, asi que sobre un recordset vacio no escribia
-    nada; y ``flush_model``, que es quien lo llama sin filas, se volvia un
-    verde que no discrimina: corria, no volcaba, y nadie lo notaba. La fuente
-    recorre ``self._fields.values()`` y **saca** (``pop``) los ids sucios de
-    cada uno, sin mirar ``self._ids``: por eso su ``flush_model`` sobre un
-    recordset vacio si vuelca el modelo entero.
+    tarea #324. La version anterior arrancaba con
+    ``rows = as_record_list(self)`` y ``if not rows: return``, asi que sobre un
+    recordset vacio no escribia nada; y ``flush_model``, que es quien lo llama
+    sin filas, se volvia un verde que no discrimina: corria, no volcaba, y
+    nadie lo notaba. La fuente recorre ``self._fields.values()`` y **saca**
+    (``pop``) los ids sucios de cada uno, sin mirar ``self._ids``: por eso su
+    ``flush_model`` sobre un recordset vacio si vuelca el modelo entero.
 
     La firma tambien vuelve a la de la fuente: ``_flush(self)``, sin
     ``fnames``. Quien acota por nombre es el llamador —``flush_model`` decide
     si vale la pena volcar— y allá el volcado, una vez decidido, es completo.
     """
-    model = _model_of_records(self) or (self if isinstance(self, type) else None)
+    model = _model_of_records(self) or (
+        self if isinstance(self, type) else None)
     if model is None:
         return
     dirty = get_transaction().field_dirty
@@ -4364,7 +4429,8 @@ def flush_model(self, fnames=None):
     flushed, though"*.
     """
     _recompute_model(self, fnames)
-    model = _model_of_records(self) or (self if isinstance(self, type) else None)
+    model = _model_of_records(self) or (
+        self if isinstance(self, type) else None)
     if model is None:
         return
     if fnames is None:
@@ -4377,7 +4443,8 @@ def flush_model(self, fnames=None):
 
 
 def flush_recordset(self, fnames=None):
-    """Procesa los calculos y las escrituras pendientes de las FILAS de ``self``.
+    """Procesa los calculos y las escrituras pendientes de las FILAS de
+    ``self``.
 
     ≙ ``BaseModel.flush_recordset`` (``:6367-6384``). La diferencia con
     ``flush_model`` es el alcance: aqui solo estas filas.
@@ -6292,6 +6359,20 @@ class BaseModel(DefaultGetMixin, Model):
         return lambda rec: tuple(fn(rec) for fn in item_makers)
 
     # === existencia =======================================================
+
+    def _as_query(self, ordered=True):
+        """≙ ``_as_query`` (``odoo19c: odoo/orm/models.py:5396-5404``): la
+        :class:`Query` cuyo resultado es el recordset ``self``.
+
+        :param ordered: si la consulta debe respetar el orden de ``self``.
+
+        La fuente pasa además ``self._table_sql``, que aquí no tiene
+        contraparte (ver :meth:`exists`); ``Query`` toma entonces la tabla
+        por su identificador, que es la misma.
+        """
+        query = Query(self.env, self._table)
+        query.set_result_ids(self._ids, ordered)
+        return query
 
     @api.private
     def exists(self):
