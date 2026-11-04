@@ -82,7 +82,7 @@ from orm.environments import (
 from tools.constants import PREFETCH_MAX
 from tools.misc import SENTINEL, OrderedSet, remove_accents, unique
 from tools.translate import _
-from orm import registry as orm_registry
+from orm import fields_nonstored, registry as orm_registry
 from orm.registry import (IR_MODELS, UNACCENT_ENABLED,   # noqa: F401
                           Registry,
                           field_computed as registry_field_computed,
@@ -1208,19 +1208,13 @@ def _field_get_attrs(self, model_class, name):
     ≙ ``Field._get_attrs`` (``:414-486``). Recibe lo declarado en ``_args__``
     y devuelve el diccionario con lo que la fuente **deriva** de ello.
 
-    **Los tres bloques de derivación viven aquí, que es donde la fuente los
-    pone.** Estuvieron portados en
-    :func:`~orm.fields_nonstored.apply_source_defaults`, que los aplica en el
-    **sitio de declaración** — y ése es justo el orden invertido: allá
-    ``store`` se deriva antes de que exista la cadena de la MRO, así que una
-    redeclaración no puede corregirlo. La fuente deriva **después** de fusionar,
-    dentro de esta misma función (``:443-465``), y por eso el porte los trae.
-
-    Mientras las fachadas de ``fields_textual``/``fields_nonstored`` sigan
-    enrutando al construir, ``apply_source_defaults`` conserva su copia: es la
-    duplicación que ``TASK-API-0417`` cierra al retirar el enrutado. No se
-    retira en este pase porque hoy es lo único que decide qué clase se
-    construye.
+    **Los tres bloques de derivación se aplican aquí, que es donde la fuente
+    los aplica**: después de fusionar la cadena de la MRO (``:443-465``), que
+    es lo que deja a una redeclaración corregir ``store``. Su cuerpo es UNO,
+    :func:`~orm.fields_nonstored.derive_source_attrs`, que también consulta el
+    sitio de declaración para que un campo suelto responda ``field.store``
+    antes de contribuir. Hasta TASK-API-0417 este cuerpo tenía aquí una
+    segunda copia verbatim; las dos podían separarse sin que nada lo notara.
     """
     attrs = {}
     modules = []
@@ -1247,51 +1241,12 @@ def _field_get_attrs(self, model_class, name):
         # Un campo de estado se reinicia al duplicar: el duplicado empieza de
         # cero, no en el estado del original.
         attrs['copy'] = attrs.get('copy', False)
-    if attrs.get('compute'):
-        # ``:443-451`` — un calculado no se almacena, se calcula elevado si
-        # tiene columna, no se copia (salvo que tenga columna y sea escribible)
-        # y es de sólo lectura (salvo que tenga inversa).
-        attrs['store'] = store = attrs.get('store', False)
-        attrs['compute_sudo'] = attrs.get('compute_sudo', store)
-        if not (attrs['store'] and not attrs.get('readonly', True)):
-            attrs['copy'] = attrs.get('copy', False)
-        attrs['readonly'] = attrs.get('readonly', not attrs.get('inverse'))
-    if attrs.get('related'):
-        # ``:452-458`` — un related no se almacena, se calcula elevado, no se
-        # copia y es de sólo lectura. Va DESPUÉS del bloque de ``compute`` y
-        # lo pisa: un ``related=`` con ``compute=`` acaba con forma de related.
-        attrs['store'] = store = attrs.get('store', False)
-        attrs['compute_sudo'] = attrs.get('compute_sudo',
-                                          attrs.get('related_sudo', True))
-        attrs['copy'] = attrs.get('copy', False)
-        attrs['readonly'] = attrs.get('readonly', True)
-    if attrs.get('precompute'):
-        # ``:459-465`` — avisa y apaga. ``precompute`` sólo tiene efecto sobre
-        # un calculado (o un related, que es un calculado con otro nombre) y
-        # con columna. Fuera de ahí la fuente lo dice en vez de tragárselo.
-        if not attrs.get('compute') and not attrs.get('related'):
-            warnings.warn(
-                f"precompute attribute doesn't make any sense on non computed "
-                f"field {self}", stacklevel=1)
-            attrs['precompute'] = False
-        elif not attrs.get('store'):
-            warnings.warn(
-                f"precompute attribute has no impact on non stored field "
-                f"{self}", stacklevel=1)
-            attrs['precompute'] = False
-        elif self.many_to_many:
-            # El tercer caso es NUESTRO, y es de stack. Un muchos-a-muchos no
-            # se puede adelantar al ``INSERT``: su valor no vive en una columna
-            # de la fila sino en una tabla intermedia que necesita el ``pk``
-            # para tener a quién apuntar. La fuente no lo tiene porque su ORM
-            # asigna el id antes de ejecutar la cola de recálculo, y por eso
-            # declara ``tag_ids`` con ``precompute=True``
-            # (``odoo19c: account_account.py:107``).
-            warnings.warn(
-                f"precompute attribute has no impact on a many2many field: "
-                f"its join table needs the pk of a row that does not exist "
-                f"yet {self}", stacklevel=1)
-            attrs['precompute'] = False
+    # ``:443-465`` — los tres bloques de derivación de la fuente. Viven en
+    # :func:`~orm.fields_nonstored.derive_source_attrs`, la única copia, que
+    # también consulta el sitio de declaración; aquí se aplican tras fusionar
+    # la cadena de la MRO, que es el momento en que la fuente los aplica.
+    fields_nonstored.derive_source_attrs(
+        attrs, many_to_many=self.many_to_many, field_label=str(self))
     if (attrs.get('readonly') and attrs.get('store')
             and 'editable' not in attrs):
         # ``editable=False`` es la forma NATIVA de Django de decir «esto no lo
@@ -1306,17 +1261,18 @@ def _field_get_attrs(self, model_class, name):
         # ``store`` es lo que la hace correcta: sin columna no hay contrato de
         # escritura que proteger, y con ella el campo ya está publicado.
         #
-        # **Vivía en ``apply_source_defaults``**, que la aplicaba como kwarg del
-        # constructor. Aquí es un atributo derivado como los demás, y por eso
-        # llega igual a un campo que declaró ``store``/``readonly`` sin pasar
-        # por una fachada.
+        # **Vivía en ``apply_source_defaults``**, que la aplicaba como kwarg
+        # del constructor. Aquí es un atributo derivado como los demás, y por
+        # eso llega igual a un campo que declaró ``store``/``readonly`` sin
+        # pasar por una fachada.
         attrs['editable'] = False
     if attrs.get('company_dependent',
                  getattr(self, 'company_dependent', False)):
         # El respaldo sobre la instancia es la divergencia de mecanismo: allá
         # ``company_dependent`` es un parámetro y viaja en ``_args__``; aquí es
-        # una **clase** (:class:`~orm.fields_company_dependent.CompanyDependent`)
-        # cuyo despachador consume la palabra antes de llegar a este
+        # una **clase**
+        # (:class:`~orm.fields_company_dependent.CompanyDependent`) cuyo
+        # despachador consume la palabra antes de llegar a este
         # ``__init__``. La derivación tiene que dispararse por la naturaleza
         # real del campo, no por cómo se escribió; lo declarado —``copy``,
         # ``index``, ``prefetch``— sigue saliendo de ``_args__`` y sigue
