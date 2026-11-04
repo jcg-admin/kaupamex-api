@@ -8,11 +8,11 @@ aviso de licencia preservados (DEC-KX-03).
 Cobertura: 224 de 224 símbolos presentes
 =========================================
 
-**162 portados** (cuerpo verbatim de la referencia, con la conversión a
+**165 portados** (cuerpo verbatim de la referencia, con la conversión a
 ``@classmethod`` que ``account_edi_common.py`` declara para toda la familia) y
-**62 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
+**59 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
 
-Los 62 bloqueados son exactamente tres familias, no una lista arbitraria:
+Los 59 bloqueados son exactamente tres familias, no una lista arbitraria:
 
 .. list-table::
    :header-rows: 1
@@ -31,7 +31,7 @@ Los 62 bloqueados son exactamente tres familias, no una lista arbitraria:
        ``Command``/``fields.Date``
        (idiomas del ORM de la referencia), ``odoo.tools.pdf`` (``pypdf``: 0 en
        ``uv.lock``)
-   * - 8
+   * - 5
      - los ``_ubl_add_*`` que agregan importes
      - ya no ``account.tax``: todos los métodos suyos que llaman existen
        (agregación, redondeo, importes brutos y reparto en sub-líneas). Su
@@ -42,7 +42,7 @@ Los 62 bloqueados son exactamente tres familias, no una lista arbitraria:
        ``partner_shipping_id``/``child_ids``/``with_context``
 
 **La puerta está bloqueada, y las habitaciones no se han ejecutado.** Los
-162 portados operan sobre ``dict`` —``vals``, ``document_node``,
+165 portados operan sobre ``dict`` —``vals``, ``document_node``,
 ``base_line``— y ningún camino de ejecución llega a ellos sin pasar antes por
 una puerta bloqueada, que levanta ``UserError`` nombrando su causa. Por eso
 un porte verbatim pudo conservar nombres de la fuente que aquí no resuelven:
@@ -695,8 +695,55 @@ class AccountEdiUBL(AccountEdiCommon):
 
     @classmethod
     def _ubl_add_base_line_ubl_values_item(cls, vals):
-        """≙ ``_ubl_add_base_line_ubl_values_item`` (odoo19c: :515-551) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_add_base_line_ubl_values_item', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+        """ Add 'base_line' -> '_ubl_values' -> 'item'.
+
+        DEPRECATED: TO BE REMOVED IN MASTER
+
+        ≙ ``_ubl_add_base_line_ubl_values_item`` (odoo19c: :515-552). La
+        moneda de la compañía es ``company.currency``.
+
+        :param vals:        Some custom data.
+        """
+        _logger.warning("DEPRECATED")
+        AccountTax = env['account.tax']
+        base_lines = vals['base_lines']
+        company = vals['company']
+        company_currency = company.currency
+        currency = vals['currency_id']
+        # El nombre de la fuente no cabe en una línea: se resuelve una vez.
+        item_grouping_key = getattr(
+            cls, '_ubl_default_base_line_item_classified'
+                 '_tax_category_grouping_key')
+
+        for sub_currency, suffix in ((currency, '_currency'),
+                                     (company_currency, '')):
+            def grouping_function(base_line, tax_data,
+                                  sub_currency=sub_currency):
+                return item_grouping_key(
+                    base_line=base_line,
+                    tax_data=tax_data,
+                    vals=vals,
+                    currency=sub_currency,
+                )
+
+            base_lines_aggregated_values = (
+                AccountTax._aggregate_base_lines_tax_details(
+                    base_lines=base_lines,
+                    grouping_function=grouping_function,
+                ))
+            for base_line, aggregated_values in base_lines_aggregated_values:
+                item = base_line['_ubl_values'][f'item{suffix}'] = {
+                    'currency': sub_currency,
+                    'base_line': base_line,
+                    'classified_tax_categories': {},
+                }
+                for grouping_key, values in aggregated_values.items():
+                    if grouping_key:
+                        item['classified_tax_categories'][grouping_key] = {
+                            **grouping_key,
+                            'base_amount': values[f'base_amount{suffix}'],
+                            'tax_amount': values[f'tax_amount{suffix}'],
+                        }
 
     @classmethod
     def _ubl_add_base_line_ubl_values_price(cls, vals):
@@ -776,9 +823,48 @@ class AccountEdiUBL(AccountEdiCommon):
 
     @classmethod
     def _ubl_add_values_payable_amount_tax_withholding(cls, vals):
-        # DEPRECATED: TO BE REMOVED IN MASTER
-        """≙ ``_ubl_add_values_payable_amount_tax_withholding`` (odoo19c: :758-786) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_add_values_payable_amount_tax_withholding', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+        """≙ ``_ubl_add_values_payable_amount_tax_withholding`` (odoo19c:
+        :758-787). DEPRECATED: TO BE REMOVED IN MASTER."""
+        _logger.warning("DEPRECATED")
+        AccountTax = env['account.tax']
+        base_lines = vals['base_lines']
+        company = vals['company']
+        company_currency = company.currency
+        currency = vals['currency_id']
+
+        withholding_key = (
+            cls._ubl_default_payable_amount_tax_withholding_grouping_key)
+
+        ubl_values = vals['_ubl_values']
+        # Cero neutro en tipo: los importes de la envoltura son ``Decimal``.
+        ubl_values['payable_amount_tax_withholding'] = 0
+        ubl_values['payable_amount_tax_withholding_currency'] = 0
+        for sub_currency, suffix in ((currency, '_currency'),
+                                     (company_currency, '')):
+            def grouping_function(base_line, tax_data,
+                                  sub_currency=sub_currency):
+                return withholding_key(
+                    base_line=base_line,
+                    tax_data=tax_data,
+                    vals=vals,
+                    currency=sub_currency,
+                )
+
+            base_lines_aggregated_values = (
+                AccountTax._aggregate_base_lines_tax_details(
+                    base_lines=base_lines,
+                    grouping_function=grouping_function,
+                ))
+            values_per_grouping_key = (
+                AccountTax._aggregate_base_lines_aggregated_values(
+                    base_lines_aggregated_values))
+
+            for grouping_key, values in values_per_grouping_key.items():
+                if not grouping_key:
+                    continue
+
+                ubl_values[f'payable_amount_tax_withholding{suffix}'] -= (
+                    values[f'tax_amount{suffix}'])
 
     @classmethod
     def _ubl_add_values_payable_rounding_amount(cls, vals):
@@ -1024,9 +1110,47 @@ class AccountEdiUBL(AccountEdiCommon):
         }
 
     @classmethod
-    def _ubl_add_line_item_classified_tax_category_nodes(cls, vals, in_foreign_currency=True):
-        """≙ ``_ubl_add_line_item_classified_tax_category_nodes`` (odoo19c: :1062-1087) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_add_line_item_classified_tax_category_nodes', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+    def _ubl_add_line_item_classified_tax_category_nodes(
+            cls, vals, in_foreign_currency=True):
+        """≙ ``_ubl_add_line_item_classified_tax_category_nodes`` (odoo19c:
+        :1062-1088)."""
+        AccountTax = env['account.tax']
+        item_node = vals['item_node']
+        base_line = vals['line_vals']['base_line']
+        currency = (base_line['currency_id'] if in_foreign_currency
+                    else vals['company_currency'])
+        suffix = '_currency' if in_foreign_currency else ''
+
+        classified_tax_category_nodes = (
+            item_node['cac:ClassifiedTaxCategory']) = []
+
+        item_grouping_key = getattr(
+            cls, '_ubl_default_base_line_item_classified'
+                 '_tax_category_grouping_key')
+
+        def grouping_function(base_line, tax_data):
+            return item_grouping_key(
+                base_line=base_line,
+                tax_data=tax_data,
+                vals=vals,
+                currency=currency,
+            )
+
+        aggregated_values = AccountTax._aggregate_base_line_tax_details(
+            base_line=base_line,
+            grouping_function=grouping_function,
+        )
+        for grouping_key, values in aggregated_values.items():
+            if not grouping_key:
+                continue
+
+            classified_tax_category_nodes.append(
+                cls._ubl_get_line_item_node_classified_tax_category_node(
+                    vals, {
+                        **grouping_key,
+                        'base_amount': values[f'base_amount{suffix}'],
+                        'tax_amount': values[f'tax_amount{suffix}'],
+                    }))
 
     @classmethod
     def _ubl_add_line_item_node(cls, vals):

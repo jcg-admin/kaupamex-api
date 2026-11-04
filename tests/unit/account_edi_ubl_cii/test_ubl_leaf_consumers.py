@@ -19,7 +19,7 @@ from addons.account_edi_ubl_cii.models.account_edi_ubl import AccountEdiUBL
 from addons.account_edi_ubl_cii.models.account_edi_xml_ubl_20 import (
     AccountEdiXmlUBL20,
 )
-from addons.base.models import ResCompany
+from addons.base.models import ResCompany, ResCountry, ResPartner
 from addons.base.models.res_currency import ResCurrency
 
 pytestmark = pytest.mark.django_db
@@ -119,3 +119,67 @@ def test_the_line_total_adds_the_fixed_taxes(company, currency):
     assert vals['total_fixed_taxes_currency'] == D('1.00')
     assert vals['total_excluded_currency'] == D('21.00')
     assert vals['total_excluded'] == D('21.00')
+
+
+@pytest.fixture
+def parties(db):
+    from_country, _ = ResCountry.objects.get_or_create(
+        code='MX', defaults={'name': 'Mexico'})
+    return {
+        'supplier': ResPartner.objects.create(name='Proveedor',
+                                              country=from_country),
+        'customer': ResPartner.objects.create(name='Cliente',
+                                              country=from_country),
+    }
+
+
+@pytest.fixture
+def taxed_lines(company, currency):
+    vat = AccountTax.objects.create(name='IVA 16', amount=D('16'),
+                                    company=company)
+    withholding = AccountTax.objects.create(
+        name='Retención 10', amount=D('-10'), company=company)
+    return _lines(company, currency, (
+        [vat, withholding], {'price_unit': 100.0, 'quantity': 1.0}))
+
+
+def test_the_item_classifies_only_the_non_withholding_taxes(
+        company, currency, parties, taxed_lines):
+    """≙ ``_ubl_add_base_line_ubl_values_item`` (``:515-552``)."""
+    [base_line] = taxed_lines
+    base_line['_ubl_values'] = {}
+    vals = {'base_lines': taxed_lines, 'company': company,
+            'currency_id': currency, **parties}
+    AccountEdiUBL._ubl_add_base_line_ubl_values_item(vals)
+    for suffix in ('_currency', ''):
+        item = base_line['_ubl_values'][f'item{suffix}']
+        [category] = item['classified_tax_categories'].values()
+        assert category['tax_category_code'] == 'S'
+        assert category['tax_amount'] == D('16.00')
+        assert category['base_amount'] == D('100.00')
+
+
+def test_the_withholding_is_a_payable_amount(
+        company, currency, parties, taxed_lines):
+    """≙ ``_ubl_add_values_payable_amount_tax_withholding``
+    (``:758-787``): la retención resta, así que el importe es positivo."""
+    vals = {'base_lines': taxed_lines, 'company': company,
+            'currency_id': currency, '_ubl_values': {}, **parties}
+    AccountEdiUBL._ubl_add_values_payable_amount_tax_withholding(vals)
+    ubl_values = vals['_ubl_values']
+    assert ubl_values['payable_amount_tax_withholding_currency'] == D('10.00')
+    assert ubl_values['payable_amount_tax_withholding'] == D('10.00')
+
+
+def test_the_line_item_reports_one_category_per_non_withholding_tax(
+        company, currency, parties, taxed_lines):
+    """≙ ``_ubl_add_line_item_classified_tax_category_nodes``
+    (``:1062-1088``)."""
+    [base_line] = taxed_lines
+    vals = {'item_node': {}, 'line_vals': {'base_line': base_line},
+            **parties}
+    AccountEdiUBL._ubl_add_line_item_classified_tax_category_nodes(vals)
+    [node] = vals['item_node']['cac:ClassifiedTaxCategory']
+    assert node['cbc:ID']['_text'] == 'S'
+    assert node['cbc:Percent']['_text'] == D('16')
+    assert node['cac:TaxScheme']['cbc:ID']['_text'] == 'VAT'
