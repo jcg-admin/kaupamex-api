@@ -317,7 +317,8 @@ class TestOrmCity(TestOrmModel):
     # ``test_sort.test_nulls`` lo crea con ``False``. Aquí un ``Char`` es
     # ``NOT NULL`` por omisión (H-API-1125).
     name = fields.Char(null=True)
-    country = fields.Many2one('test_orm.country', null=True, related_name='+')
+    country_id = fields.Many2one('test_orm.country', null=True,
+                                 related_name='+', db_column='country_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_city'
@@ -390,9 +391,12 @@ class TestOrmCrew(TestOrmModel):
     _description = 'All yaaaaaarrrrr by ship'
     _table = 'test_orm_crew'
 
-    pirate = fields.Many2one('test_orm.pirate', null=True, related_name='+')
-    prisoner = fields.Many2one('test_orm.prisoner', null=True, related_name='+')
-    ship = fields.Many2one('test_orm.ship', null=True, related_name='+')
+    pirate_id = fields.Many2one('test_orm.pirate', null=True,
+                                related_name='+', db_column='pirate_id')
+    prisoner_id = fields.Many2one('test_orm.prisoner', null=True,
+                                  related_name='+', db_column='prisoner_id')
+    ship_id = fields.Many2one('test_orm.ship', null=True,
+                              related_name='+', db_column='ship_id')
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_crew'

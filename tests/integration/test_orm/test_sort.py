@@ -7,10 +7,9 @@ de la base (``search(order=…)``) con el de ``recordset.sorted(…)``.
 (``assertQueryCount``) no se portan aquí: miden prelectura, que es otro
 contrato. ``test_sorted_new_id`` exige ``BaseModel.new`` y ``test_prefetch``
 opera sobre ``res.partner``; ninguno de los dos existe aún como recordset de
-``BaseModel`` (TASK-API-0397), y quedan fuera de este porte. En las lambdas
-de Python el campo relacional se escribe ``country`` y no ``country_id``: el
-árbol nombra así el campo y reserva ``country_id`` para la columna (las
-cláusulas de orden aceptan los dos nombres).
+``BaseModel`` (TASK-API-0397), y quedan fuera de este porte. El campo
+relacional se llama ``country_id``, como en la fuente (TASK-API-0481): las
+lambdas lo leen con ese nombre igual que las cláusulas de orden.
 """
 
 import pytest
@@ -48,7 +47,8 @@ def test_basic(env, countries):
 
 def test_stable(cities):
     assert (cities.sorted('name', reverse=True).sorted('country_id.id')
-            == cities.sorted(lambda c: (-c.country.id, c.name), reverse=True))
+            == cities.sorted(lambda c: (-c.country_id.id, c.name),
+                             reverse=True))
 
 
 def test_basic_m2o(env, cities):
