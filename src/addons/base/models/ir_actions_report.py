@@ -455,9 +455,8 @@ class IrActionsReport(IrActionsBase):
         ),
     )
     model_id = fields.Many2one(
-        IrModel,
-        null=False, store=False,
-        default=lambda record: record._compute_model_id(),
+        IrModel, compute='_compute_model_id', search='_search_model_id',
+        depends=['model'], related_name='+',
         help_text=(
             'La fila de ir.model que corresponde a "model". Derivada, '
             'sin columna: la fuente la declara con compute y sin store.'
@@ -589,13 +588,13 @@ class IrActionsReport(IrActionsBase):
 
         ≙ ``_compute_model_id`` (``odoo19c: ir_actions_report.py:194-197``),
         que allá lleva ``@api.depends('model')`` y **asigna** el valor a cada
-        registro del conjunto. Aquí devuelve el valor de UNA fila, que es la
-        forma que el campo sin columna consume: su ``default`` invocable lo
-        llama con el registro y guarda lo que devuelve. Es la misma
-        divergencia de enlace ya declarada en
-        ``properties_base_definition_mixin._compute_properties_base_definition_id``.
+        registro del conjunto. Aquí el cómputo se invoca por fila, como
+        ``IrActionsServer._compute_name``, y la dependencia viaja en el
+        ``depends=`` del campo. Antes devolvía el valor para un ``default``
+        invocable, que era la forma de ``NonStored``: retirada en
+        TASK-API-0417, el ``default`` ya no recibía el registro.
         """
-        return IrModel._get(self.model)
+        self.model_id = IrModel._get(self.model)
 
     @classmethod
     def _search_model_id(cls, operator, value):

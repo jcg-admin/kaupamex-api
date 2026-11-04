@@ -74,6 +74,23 @@ def test_parent_id(env):
     """≙ :433 — ``child_of`` sobre un One2many cuyo comodelo tiene un
     ``parent_id`` relacionado no se recursa sin fin, ni con un ciclo."""
     Team, Member = env['test_orm.team'], env['test_orm.team.member']
+    # «In this specific case…» (``:445``): la fuente se apoya en que las dos
+    # secuencias arrancan iguales, que su base fresca por módulo garantiza.
+    # Aquí la base se reutiliza y un ``rollback`` no deshace un ``nextval``,
+    # así que cualquier prueba que cree equipos o miembros las desalinea. Se
+    # fija la precondición en vez de heredarla del orden de ejecución.
+    tables = [Team._meta.db_table, Member._meta.db_table]
+    with env.cr.cursor() as cursor:
+        cursor.execute(
+            "SELECT pg_get_serial_sequence(t, 'id') FROM unnest(%s::text[]) t",
+            [tables])
+        sequences = [row[0] for row in cursor.fetchall()]
+        top = 0
+        for sequence in sequences:
+            cursor.execute(f'SELECT last_value FROM {sequence}')
+            top = max(top, cursor.fetchone()[0])
+        for sequence in sequences:
+            cursor.execute('SELECT setval(%s, %s)', [sequence, top])
     team1 = Team.create({'name': 'ORM'})
     team2 = Team.create({'name': 'Bugfix', 'parent_id': team1.id})
     team3 = Team.create({'name': 'Support', 'parent_id': team2.id})

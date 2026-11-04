@@ -32,7 +32,6 @@ from addons.base.models.properties_base_definition_mixin import (
 )
 from orm import registry
 from orm.domains import Domain
-from orm.fields_nonstored import NonStored
 from tools.cache import ormcache
 from tools.sql import SQL
 
@@ -121,9 +120,10 @@ class TestDefinitionBehaviour:
     def test_lookup_creates_the_row_when_it_is_missing(self):
         registry.clear_cache('stable')
         field = self._properties_field()
-        row_id = PropertiesBaseDefinition._get_definition_id_for_property_field(
-            'base.Probe', 'properties')
-        assert PropertiesBaseDefinition.objects.get(pk=row_id).properties_field_id == field.pk
+        lookup = PropertiesBaseDefinition._get_definition_id_for_property_field
+        row_id = lookup('base.Probe', 'properties')
+        row = PropertiesBaseDefinition.objects.get(pk=row_id)
+        assert row.properties_field_id == field.pk
 
     def test_lookup_returns_the_row_object(self):
         registry.clear_cache('stable')
@@ -207,11 +207,16 @@ class TestMixinContract:
     """El mixin: campo sin columna, búsqueda por modelo y el bloqueo medido."""
 
     def test_the_definition_link_has_no_column(self):
-        # `compute` sin `store` en la fuente: no es una columna.
-        assert isinstance(
-            PropertiesBaseDefinitionMixin.__dict__[
-                'properties_base_definition_id'],
-            NonStored)
+        # `compute` sin `store` en la fuente: no es una columna. La forma sin
+        # columna la decide la costura al contribuir (TASK-API-0417): el
+        # campo queda con ``column`` nulo y fuera de los concretos.
+        field = PropertiesBaseDefinitionMixin.__dict__[
+            'properties_base_definition_id'].field
+        assert field.store is False
+        assert field.column is None
+        assert 'properties_base_definition_id' not in {
+            f.name
+            for f in PropertiesBaseDefinitionMixin._meta.concrete_fields}
 
     def test_the_field_name_matches_the_reference(self):
         assert PROPERTIES_FIELD_NAME == 'properties'
@@ -225,7 +230,8 @@ class TestMixinContract:
     def test_the_mixin_adopts_the_ported_sql_surface(self):
         # El bloqueo de la tarea #127 se cerró: la clase adopta FieldSqlMixin,
         # así que el `super()._field_to_sql` de la fuente tiene a quién llamar.
-        assert orm_models.FieldSqlMixin in PropertiesBaseDefinitionMixin.__mro__
+        mro = PropertiesBaseDefinitionMixin.__mro__
+        assert orm_models.FieldSqlMixin in mro
 
     def test_its_own_branch_emits_the_definition_id_as_a_constant(self):
         # La mitad propia: el campo no tiene columna, así que el motor de

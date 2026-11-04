@@ -189,3 +189,25 @@ class TestTheFourDeclaredInResBank:
             assert (
                 field_name not in columns
             ), f'{model_name}.{field_name} tomó columna'
+
+
+class TestAFieldWithoutColumnIsNotRequired:
+    """``required`` vale ``False`` en la fuente, y un campo sin columna no
+    tiene ``NOT NULL`` que cumplir: Django no puede rechazarlo como vacío.
+
+    Su consumidor real es ``ResPartner.full_clean``, que recorre
+    ``_meta.fields`` —los privados incluidos— y rechazaba ``country_code``
+    con «Este campo no puede estar en blanco».
+    """
+
+    def test_a_related_without_column_admits_blank(self):
+        assert fields.Char(related='country.code').blank is True
+
+    def test_a_declared_required_is_kept(self):
+        """El control: si la costura pusiera ``blank`` siempre, este caso
+        caería — la declaración del autor gana sobre el defecto."""
+        field = fields.Char(related='country.code', required=True)
+        assert field.blank is False
+
+    def test_a_field_with_column_keeps_the_django_default(self):
+        assert fields.Char(max_length=8).blank is False

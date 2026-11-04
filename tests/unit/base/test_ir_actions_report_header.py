@@ -50,7 +50,7 @@ class TestTheDerivedModelRow:
 
     def test_it_has_no_column(self):
         """Un ``compute`` sin ``store`` no persiste: la fuente lo promete."""
-        columnas = {f.name for f in IrActionsReport._meta.get_fields()}
+        columnas = {f.name for f in IrActionsReport._meta.concrete_fields}
         assert 'model_id' not in columnas
 
     def test_it_resolves_the_row_of_the_technical_name(self):

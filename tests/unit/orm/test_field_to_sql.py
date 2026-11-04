@@ -113,15 +113,22 @@ class TestFieldsRegistry:
         entra en el registro como entra en el de la fuente
         (:ref:`h-api-1025`). Antes el mapa era el de ``_meta`` a secas y este
         caso enumeraba sólo las cinco columnas.
+
+        ``properties_field_id`` es el ``attname`` del ``Many2one``: el mapa
+        responde a los dos nombres del campo (``model_field_registry``), que
+        es como la fuente lo llama. No es un campo más: es el mismo objeto.
         """
         assert set(definition._fields) == {
             'id',
             'created_at',
             'updated_at',
             'properties_field',
+            'properties_field_id',
             'properties_definition',
             'display_name',
         }
+        assert (definition._fields['properties_field_id']
+                is definition._fields['properties_field'])
 
     def test_the_values_are_the_django_fields(self, definition):
         assert isinstance(

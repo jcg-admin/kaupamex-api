@@ -519,6 +519,16 @@ def apply_source_defaults(
     if attrs.get('readonly') and attrs['store'] and 'editable' not in kwargs:
         kwargs['editable'] = False
 
+    #: ``required`` vale ``False`` en la fuente (``odoo19c:
+    #: odoo/orm/fields.py``, ``Field``) y un campo sin columna no tiene
+    #: ``NOT NULL`` que cumplir. Django, en cambio, nace con ``blank=False``,
+    #: y ``full_clean`` recorre ``_meta.fields``, que incluye los privados:
+    #: sin esto un ``related`` sin columna se rechazaba como obligatorio. Un
+    #: ``required=True`` declarado ya llegó como ``blank`` y ``setdefault`` no
+    #: lo pisa.
+    if not attrs['store']:
+        kwargs.setdefault('blank', True)
+
     attrs['declared_keys'] = declared_keys
     return attrs
 

@@ -540,20 +540,35 @@ class TestTheThirdConsumerAsksTheSameQuestion:
         *Ciega a:* un modelo del árbol que se declarara fuera de ese paquete, y
         a los demás addons — para eso está el caso de la propiedad, que sí
         recorre el registro entero.
+
+        **Los campos sin columna se cuentan aparte.** Desde TASK-API-0417 un
+        ``store=False`` es un campo de Django contribuido privado, con
+        ``column=None``, y ``get_fields`` lo lista: antes era un descriptor
+        sin ``null`` y no entraba en el recorrido. Sin columna no hay
+        ``NOT NULL`` que discrepar, así que no se suman al 27; se exige que
+        ninguno tenga columna, que es lo que los saca de la cuenta.
         """
         arbol = [
             model
             for model in apps.get_app_config('base').get_models()
             if model.__module__.startswith('addons.base.models')
         ]
-        discrepan, medidos = [], 0
+        discrepan, columnless, medidos = [], [], 0
         for model in arbol:
             for field in model._meta.get_fields():
                 if not hasattr(field, 'null'):
                     continue
                 medidos += 1
-                if bool(field.null) != (not registry.is_not_null(field)):
-                    discrepan.append(f'{model._meta.label}.{field.name}')
+                if bool(field.null) == (not registry.is_not_null(field)):
+                    continue
+                label = f'{model._meta.label}.{field.name}'
+                if getattr(field, 'store', True) is False:
+                    columnless.append((label, field.column))
+                else:
+                    discrepan.append(label)
+        assert columnless, 'el recorrido ya no ve los campos sin columna'
+        with_column = [label for label, column in columnless if column]
+        assert not with_column, f'store=False con columna: {with_column}'
         assert (
             medidos > 500
         ), f'sólo {medidos} campos en base: el recorrido no la está viendo'

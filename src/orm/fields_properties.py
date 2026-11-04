@@ -52,8 +52,8 @@ from orm.fields_nonstored import (
     annotate_related,
     apply_source_defaults,
 )
-from orm.utils import (COLLECTION_TYPES, display_name_of, parse_field_expr,
-                       regex_alphanumeric)
+from orm.utils import (COLLECTION_TYPES, as_record_list, display_name_of,
+                       parse_field_expr, regex_alphanumeric)
 from tools.misc import OrderedSet, has_list_types, is_list_of
 from tools.sql import SQL
 from tools.translate import _
@@ -92,6 +92,7 @@ __all__ = ['Properties', 'PropertiesDefinition', 'check_property_field_value_nam
 #: ``NoneType`` — la fuente lo importa de ``types``; aquí se deriva, que es lo
 #: mismo y no añade un import por una sola cita.
 _NONE_TYPE = type(None)
+
 
 class Properties(models.JSONField):
     """``fields.Properties`` — el valor por registro de un esquema del padre.
@@ -371,7 +372,6 @@ class Properties(models.JSONField):
                 property_definition.pop('value', None)
         return values_list
 
-
     # -- Ciclo de vida del campo ---------------------------------------------
 
     def _setup_attrs__(self, model_class, name):
@@ -569,7 +569,7 @@ class Properties(models.JSONField):
             value = value._values
 
         containers = {getattr(record, self.definition_record, None)
-                      for record in records}
+                      for record in as_record_list(records)}
         if len(containers) > 1 and value:
             raise UserError(_(
                 'Updating records with different property fields definitions '
@@ -608,16 +608,16 @@ class Properties(models.JSONField):
         return self._write_cache(records, value)
 
     def _write_cache(self, records, value):
-        """El ``super().write`` de la fuente — asignar y guardar cada registro.
+        """El ``super().write`` de la fuente (``odoo19c: :306, :331``).
 
-        Allá ``Field.write`` deja el valor en la caché del ORM y el ``flush``
-        lo baja a la columna. Aquí no hay caché: se asigna y se guarda, que es
-        el mismo efecto observable.
+        Es ``Field.write`` (``orm/fields.py``, ``_field_write``): deja el valor
+        en la caché marcada sucia y no emite SQL; el volcado es ``save()``.
+        Antes asignaba y guardaba cada registro, que era el sustituto de un
+        ``Field.write`` sin portar. Con el descriptor llamando a
+        ``field.write`` desde ``__set__``, esa asignación volvía a entrar aquí
+        con un registro suelto que no se puede iterar.
         """
-        for record in records:
-            setattr(record, self.name, value)
-            record.save(update_fields=[self.name])
-        return records
+        return super().write(records, value)
 
     # -- Lectura -------------------------------------------------------------
 
@@ -1053,11 +1053,12 @@ def check_property_field_value_name(property_name):
         raise ValueError(f"Wrong property field value name {property_name!r}.")
 
 
-# ``property_to_sql`` era una función de módulo adjuntada a ``models.JSONField``
-# porque ``Properties`` era un alias de esa clase. Desde la tarea #130 es un
-# **método de** ``Properties``, como en la fuente: el despacho por tipo de campo
-# vuelve a ser el de la referencia, y un ``fields.Json`` cualquiera deja de
-# responder a él — que es también lo que allá ocurre, porque el caso base de
+# ``property_to_sql`` era una función de módulo adjuntada a
+# ``models.JSONField`` porque ``Properties`` era un alias de esa clase. Desde
+# la tarea #130 es un **método de** ``Properties``, como en la fuente: el
+# despacho por tipo de campo vuelve a ser el de la referencia, y un
+# ``fields.Json`` cualquiera deja de responder a él — que es también lo que
+# allá ocurre, porque el caso base de
 # ``Field.property_to_sql`` rechaza.
 
 

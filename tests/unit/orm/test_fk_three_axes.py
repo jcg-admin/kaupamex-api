@@ -59,10 +59,11 @@ class TestDjangoSeparatesThreeAxes:
         field = BaseAutomation._meta.get_field('model_id')
 
         assert field.attname == 'model_id_id'
-        assert (
-            BaseAutomation.__dict__['model_id_id'].__class__.__name__
-            == 'ForeignKeyDeferredAttribute'
-        )
+        #: El atributo lo porta ``StoredMany2oneIdDescriptor``, que notifica
+        #: la escritura y delega la lectura en ``ForeignKeyDeferredAttribute``.
+        #: Lo que el eje fija es la conducta: el ``attname`` devuelve la pk
+        #: cruda, no un registro del comodelo.
+        assert BaseAutomation(model_id_id=7).model_id_id == 7
 
     def test_the_column_is_the_third_axis_and_db_column_governs_it(self):
         """``column = self.db_column or attname`` — con ``db_column``, fiel."""
