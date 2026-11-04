@@ -1,7 +1,7 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 82,
+ "population": 83,
  "open_tasks": 66,
  "frontier": [],
  "blocked": [
@@ -62,7 +62,6 @@
   "TASK-API-0478",
   "TASK-API-0480",
   "TASK-API-0483",
-  "TASK-API-0485",
   "TASK-API-0492",
   "TASK-API-0493",
   "TASK-DOCS-0111",
@@ -87,15 +86,16 @@
   "TASK-API-0417",
   "TASK-API-0479",
   "TASK-API-0482",
-  "TASK-API-0484"
+  "TASK-API-0484",
+  "TASK-API-0485"
  ],
  "obligations": {
-  "satisfied": 275,
-  "absent": 635,
+  "satisfied": 276,
+  "absent": 634,
   "divergent": 0,
   "not_verified": 1596,
   "applicable": 2506,
-  "pending": 2231,
+  "pending": 2230,
   "source": {
    "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
    "revisions": [
@@ -105,8 +105,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
+  "task_units_settled": 1221,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 2230
+  "task_without_unit": 1008
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -136,7 +137,8 @@
   "fetch-as-query-0399",
   "fetch-fields-to-fetch-0399",
   "fetch-query-0399",
-  "fetch-records-0399"
+  "fetch-records-0399",
+  "fetch-field-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
