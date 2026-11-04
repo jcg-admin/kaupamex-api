@@ -147,3 +147,22 @@ def test_a_typing_overload_is_not_another_obligation(tmp_path, monkeypatch):
     rows = _rows(tmp_path, monkeypatch)
     assert [k for k in rows if k[1] == 'Field.convert'] == [('fields.py', 'Field.convert', 'method')]
     assert sum(1 for r in inv.typed_symbols(reference) if r['name'] == 'convert') == 1
+
+
+def test_a_property_with_a_setter_is_one_obligation(tmp_path):
+    source = tmp_path / 'lru.py'
+    source.write_text(
+        'class LRU:\n'
+        '    @property\n'
+        '    def count(self):\n'
+        '        return 1\n'
+        '\n'
+        '    @count.setter\n'
+        '    def count(self, value):\n'
+        '        pass\n'
+        '\n'
+        '    @count.deleter\n'
+        '    def count(self):\n'
+        '        pass\n')
+    records = [r for r in inv.typed_symbols(source) if r['name'] == 'count']
+    assert [r['kind'] for r in records] == ['property']

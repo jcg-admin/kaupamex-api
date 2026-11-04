@@ -78,7 +78,9 @@ def report_coverage(workbench):
     """El dictamen de la iniciativa tras el asiento, escrito y anunciado."""
     probe = pathlib.Path(__file__).resolve().parent / 'plan_coverage.py'
     run = subprocess.run(
-        [sys.executable, str(probe), '--bench', str(workbench)],
+        [sys.executable, str(probe), '--bench', str(workbench),
+         '--classification',
+         str(workbench / 'outputs' / 'obligation_classification.tsv')],
         capture_output=True, text=True)
     if run.returncode == 2 or not run.stdout.strip():
         print('coverage: no medido — ' + (run.stderr.strip() or 'sin salida'))
@@ -89,7 +91,8 @@ def report_coverage(workbench):
           f"frontera {len(report['frontier'])} · "
           f"abiertas {report['open_tasks']} · "
           f"sin unidad {len(report['unrepresented'])} · "
-          f"asentadas y abiertas {len(report['settled_task_open'])}")
+          f"asentadas y abiertas {len(report['settled_task_open'])} · "
+          f"obligaciones {report['obligation_classes']}")
 
 
 if __name__ == '__main__':

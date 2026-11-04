@@ -119,10 +119,18 @@ def class_attributes(path):
 
 
 def typed_symbols(path):
-    """Los registros del censo hermano con el tipo ``property`` separado."""
+    """Los registros del censo hermano con el tipo ``property`` separado.
+
+    Una propiedad con ``setter`` o ``deleter`` se declara dos o tres veces con
+    el mismo nombre y es UNA obligación: el accesor se descarta cuando su
+    propiedad ya está. Contarlo duplicaba ``Registry.registry_invalidated``,
+    ``configmanager.rcfile``, ``LRU.count`` y ``Query.order``.
+    """
     records = []
+    properties = set()
     for record in _census.declared_symbols(path):
-        if any(d in ('overload', 'typing.overload') for d in record['decorators']):
+        if any(d in ('overload', 'typing.overload')
+               for d in record['decorators']):
             # Una sobrecarga de tipado declara una firma, no un cuerpo: el
             # contrato es la definicion que la sigue. Contarla duplicaba
             # ``mapped``, ``grouped`` y ``__getitem__``.
@@ -130,6 +138,10 @@ def typed_symbols(path):
         record = dict(record)
         if record['kind'] == 'method' and _is_property(record):
             record['kind'] = 'property'
+            key = (record['owner'], record['name'])
+            if key in properties:
+                continue
+            properties.add(key)
         records.append(record)
     return records
 

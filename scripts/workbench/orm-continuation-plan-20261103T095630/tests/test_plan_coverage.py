@@ -15,7 +15,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / 'probes'))
 sys.path.insert(0, '/home/user/thyrox/src')
 
-classify = importlib.import_module('plan_coverage').classify
+coverage = importlib.import_module('plan_coverage')
+classify = coverage.classify
 append_log = importlib.import_module('session.task_continuation').append_log
 CONTROLLER = '/home/user/thyrox/bin/task_continuation'
 plan_items_from_rows = importlib.import_module(
@@ -180,3 +181,90 @@ def test_settling_the_first_unit_lets_the_controller_select_the_second(
     append_log(tmp_path, {'kind': 'accepted', 'item': 'first',
                           'commitExit': 0})
     assert next_unit(tmp_path) == 'second'
+
+
+def owned_plan(*rows):
+    """Unidades que declaran ``owned``: lo que el claim ajeno compara."""
+    return plan_items_from_rows([
+        {'id': r[0], 'taskId': r[1], 'prompt': 'p', 'verify': 'true',
+         'candidates': ['m'], 'dependsOn': [], 'owned': list(r[2])}
+        for r in rows])
+
+
+def foreign(path, owner='codex-module-lifecycle', task_id='TASK-API-0267'):
+    return [{'path': path, 'owner': owner, 'task': task_id}]
+
+
+def test_a_unit_claimed_by_another_owner_leaves_the_frontier():
+    items = owned_plan(('a', 'TASK-API-0001', ['src/x.py']),
+                       ('b', 'TASK-API-0002', ['src/y.py']))
+    report = classify([task('TASK-API-0001'), task('TASK-API-0002')], items,
+                      {}, foreign=foreign('src/x.py'))
+    assert [unit['id'] for unit in report['frontier']] == ['b']
+    assert report['blocked'] == [{
+        'id': 'a', 'task': 'TASK-API-0001',
+        'reason': 'claimed by codex-module-lifecycle (TASK-API-0267) on '
+                  'src/x.py'}]
+
+
+def test_the_foreign_claims_skip_the_own_owner():
+    rows = [{'id': '1', 'op': 'claim', 'path': 'src/x.py',
+             'owner': 'VM-x2hokp', 'task': 'TASK-API-0001'},
+            {'id': '2', 'op': 'claim', 'path': 'src/y.py',
+             'owner': 'codex-module-lifecycle', 'task': 'TASK-API-0267'}]
+    assert [claim['path'] for claim in coverage.foreign_claims(
+        rows, 'x2hokp')] == ['src/y.py']
+
+
+def test_a_settled_unit_outside_the_integration_branch_is_listed():
+    items = plan(('a', 'TASK-API-0001'), ('b', 'TASK-API-0001'))
+    report = classify([task('TASK-API-0001')], items,
+                      {'a': 'accepted', 'b': 'accepted'}, integrated={'a'})
+    assert report['settled_not_integrated'] == ['b']
+
+
+def test_unmeasured_integration_is_not_reported_as_integrated():
+    report = classify([], plan(), {})
+    assert report['settled_not_integrated'] is None
+
+
+def test_a_scope_task_represents_the_obligations_of_its_directory():
+    report = classify(
+        [], plan(), {}, [obligation('src/tools/zeep/client.py', 'absent'),
+                         obligation('src/tools/misc.py', 'absent')],
+        scopes={'src/tools/zeep': {'TASK-API-0491'}},
+        store_open={'TASK-API-0491'})
+    assert report['obligation_classes'] == {
+        'task_without_unit': 1, 'unrepresented': 1}
+    assert report['obligations_without_task'] == {'src/tools/misc.py': 1}
+    assert report['verdict'] == 'C'
+
+
+def test_a_candidate_task_is_not_a_representation():
+    report = classify(
+        [], plan(), {}, [obligation('src/orm/models.py', 'absent')],
+        candidates=lambda row: {'TASK-API-0397'},
+        store_open={'TASK-API-0397'})
+    assert report['obligation_classes'] == {'candidate_task': 1}
+    assert report['obligations_without_task'] == {'src/orm/models.py': 1}
+
+
+def test_an_applicable_obligation_survives_an_exhausted_plan():
+    """La TASK de alcance existe y no tiene unidad: el plan se agota y la
+    obligación sigue contando como pendiente, y el dictamen nunca es A."""
+    items = plan(('a', 'TASK-API-0001'))
+    report = classify(
+        [task('TASK-API-0001', 'completed')], items, {'a': 'accepted'},
+        [obligation('src/orm/fields.py', 'not_verified')],
+        scopes={'src/orm': {'TASK-API-0485'}}, store_open={'TASK-API-0485'})
+    assert report['frontier'] == []
+    assert report['obligations']['pending'] == 1
+    assert report['obligation_classes'] == {'task_without_unit': 1}
+    assert report['verdict'] == 'C'
+
+
+def test_the_scope_subject_is_an_exact_declaration():
+    tasks = [('TASK-API-0491', 'Cerrar las obligaciones estructurales '
+              'pendientes de src/tools/zeep', ''),
+             ('TASK-API-0399', 'Revisar src/tools/zeep de paso', '')]
+    assert coverage.scope_links(tasks) == {'src/tools/zeep': {'TASK-API-0491'}}
