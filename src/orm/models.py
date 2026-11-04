@@ -6361,6 +6361,18 @@ class BaseModel(DefaultGetMixin, Model):
     # === existencia =======================================================
 
     @_on_empty_recordset
+    def _is_an_ordinary_table(self):
+        """Si la tabla del modelo es ordinaria (``relkind = 'r'``).
+
+        ≙ ``odoo19c: odoo/orm/models.py:596-597``: la respuesta es del
+        registro de la base (``self.pool``), no del modelo. Aquí
+        ``env.registry`` es el módulo, así que el registro de la base se pide
+        por el alias del entorno.
+        """
+        return registry.Registry(self.env.db_alias).is_an_ordinary_table(
+            type(self))
+
+    @_on_empty_recordset
     def check_field_access_rights(self, operation, field_names):
         """Los campos de ``field_names`` a los que el usuario tiene acceso.
 

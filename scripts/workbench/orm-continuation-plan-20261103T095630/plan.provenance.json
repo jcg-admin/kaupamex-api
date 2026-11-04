@@ -23,6 +23,13 @@
         "models-basemodel-check-field-access-rights-0485"
       ],
       "writtenAt": "2026-11-04T20:16:27Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "models-basemodel-p-is-an-ordinary-table-0485"
+      ],
+      "writtenAt": "2026-11-04T21:00:14Z"
     }
   ]
 }
