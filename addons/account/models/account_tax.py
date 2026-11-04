@@ -547,6 +547,30 @@ class AccountTaxAlternative(models.Model):
 class AccountTax(models.Model):
     """``account.tax`` — definición de un impuesto aplicable."""
 
+    #: Los siete atributos de clase de la fuente
+    #: (``odoo19c: account_tax.py:72-78``). Sin ``_name`` el modelo no entra
+    #: en ``orm.registry.MODELS_BY_NAME`` y ``env['account.tax']`` no
+    #: resuelve.
+    _name = 'account.tax'
+    #: ≙ ``_inherit = ['mail.thread']`` (``:73``), verbatim: nombra la
+    #: extensión aunque el hilo de mensajes sobre impuestos no esté cableado.
+    _inherit = ['mail.thread']
+    _description = 'Tax'
+    #: ≙ ``_order`` (``:75``); ``Meta.ordering`` lo expresa en Django.
+    _order = 'sequence,id'
+    #: ≙ ``_check_company_auto = True`` (``:76``). Hoy no tiene qué comprobar:
+    #: los cinco campos ``check_company=True`` de la fuente
+    #: (``tax_payable_account_id``, ``tax_receivable_account_id``,
+    #: ``advance_tax_payment_account_id``, ``children_tax_ids`` y
+    #: ``cash_basis_transition_account_id``) no están portados. Se declara
+    #: igual, para que la comprobación aplique en cuanto lleguen.
+    _check_company_auto = True
+    #: ≙ ``_rec_names_search`` (``:77``).
+    _rec_names_search = ['name', 'description', 'invoice_label']
+    #: ≙ ``_check_company_domain`` (``:78``); ``classmethod`` por la misma
+    #: razón que en ``account.journal``: aquí se invoca sobre la clase.
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
+
     AMOUNT_TYPES = [
         ('group', 'Grupo de impuestos'),
         ('fixed', 'Fijo'),
@@ -577,6 +601,18 @@ class AccountTax(models.Model):
         default='percent',
         help_text='Forma de cómputo (Odoo amount_type, requerido).',
     )
+    #: ≙ ``description = fields.Html(string='Description',
+    #: translate=html_translate)`` (``odoo19c: :134``). ``translate`` no se
+    #: declara: ``tools.translate.html_translate`` no está portado (0
+    #: definiciones) y el almacenamiento por idioma que esa llamada sirve
+    #: tampoco existe (ver el aviso de ``fields.Char`` en
+    #: ``orm/fields_textual.py``). Se declara en cuanto exista ese
+    #: almacenamiento.
+    description = fields.Html(string='Description', blank=True, null=True)
+    #: ≙ ``invoice_label`` (``:135``); ``translate=True`` queda anotado en el
+    #: campo, como en los demás ``Char`` traducibles del árbol.
+    invoice_label = fields.Char(string='Label on Invoices', translate=True,
+                                max_length=255, blank=True, null=True)
     type_tax_use = fields.Selection(
         max_length=12,
         choices=TYPE_TAX_USE,
