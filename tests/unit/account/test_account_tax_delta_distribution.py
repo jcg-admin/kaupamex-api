@@ -6,6 +6,8 @@ redondeo de base-lines los usa para repartir los céntimos que la suma de
 líneas redondeadas pierde frente al total redondeado.
 """
 
+from decimal import Decimal as D
+
 import pytest
 
 from addons.account.models import AccountTax
@@ -55,3 +57,13 @@ def test_normalized_factors_sum_one_and_come_sorted():
 def test_null_factors_share_equally():
     normalized = AccountTax._normalize_target_factors(_factors(0, 0))
     assert [factor for _, factor in normalized] == [0.5, 0.5]
+
+
+def test_a_decimal_delta_distributes_in_decimal():
+    """Con importes ``Decimal`` —los del motor de este árbol— el reparto
+    trabaja en ``Decimal``: el mismo ejemplo de la fuente, sin ``float``."""
+    amounts = AccountTax._distribute_delta_amount_smoothly(
+        3, D('0.03'), _factors(D('0.4'), D('0.3'), D('0.3')))
+    assert amounts == [D('0.012'), D('0.009'), D('0.009')]
+    assert AccountTax._distribute_delta_amount_smoothly(
+        2, D('0.004'), _factors(D('1'))) == [0]

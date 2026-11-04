@@ -9,6 +9,8 @@ y cubre una rama: sin impuestos, clave de diccionario, montos manuales de
 cada tipo, inversión del sujeto pasivo y la suma sobre el documento.
 """
 
+from decimal import Decimal as D
+
 import pytest
 
 from addons.account.models import AccountTax
@@ -132,3 +134,24 @@ def test_the_document_sums_each_key_across_lines():
     assert two['base_amount_currency'] == 10.0
     assert two['base_line_x_taxes_data'] == [
         (second, [second['tax_details']['taxes_data'][1]])]
+
+
+def test_the_amounts_of_the_engine_are_decimal_and_add_up():
+    """El motor de este árbol entrega ``Decimal``; la suma por clave no puede
+    partir de un ``0.0`` de ``float``, que con ``Decimal`` es ``TypeError``."""
+
+    def decimal_tax_data(pk):
+        data = _tax_data(pk, 50.0, 8.0)
+        return {key: (D(str(value)) if isinstance(value, float) else value)
+                for key, value in data.items()}
+
+    line = _base_line([decimal_tax_data(1)])
+    for key in ('total_excluded_currency', 'delta_total_excluded_currency',
+                'raw_total_excluded_currency', 'total_excluded',
+                'delta_total_excluded', 'raw_total_excluded'):
+        line['tax_details'][key] = D(str(line['tax_details'][key]))
+    per_line = AccountTax._aggregate_base_lines_tax_details([line], _by_tax)
+    total = AccountTax._aggregate_base_lines_aggregated_values(per_line)
+    values = total[frozendict({'tax': 1})]
+    assert values['tax_amount_currency'] == D('8.0')
+    assert isinstance(values['tax_amount_currency'], D)

@@ -147,7 +147,7 @@ altera el resultado de ``map_tax``. Grep de consumidores dentro de
 """
 
 from collections import defaultdict
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import models as django_models
 
@@ -1317,10 +1317,21 @@ class AccountTax(models.Model):
         reparte por factor; los céntimos que sobran van, uno por factor, del
         mayor al menor.
         """
-        precision_rounding = float(f"1e-{precision_digits}")
-        amounts_to_distribute = [0.0] * len(target_factors)
-        if float_is_zero(delta_amount, precision_digits=precision_digits):
-            return amounts_to_distribute
+        if isinstance(delta_amount, Decimal):
+            # Los importes del motor de este árbol son ``Decimal``: el paso
+            # de precisión y el cero se calculan en ``Decimal`` (``HALF-UP``,
+            # como el ``float_is_zero`` de la fuente); con ``float`` es la
+            # fuente tal cual.
+            precision_rounding = Decimal(1).scaleb(-precision_digits)
+            amounts_to_distribute = [Decimal('0')] * len(target_factors)
+            if not delta_amount.quantize(precision_rounding,
+                                         rounding=ROUND_HALF_UP):
+                return amounts_to_distribute
+        else:
+            precision_rounding = float(f"1e-{precision_digits}")
+            amounts_to_distribute = [0.0] * len(target_factors)
+            if float_is_zero(delta_amount, precision_digits=precision_digits):
+                return amounts_to_distribute
 
         sign = -1 if delta_amount < 0.0 else 1
         nb_of_errors = round(abs(delta_amount / precision_rounding))
@@ -1445,9 +1456,11 @@ class AccountTax(models.Model):
                     tax_rounded_field = f'tax_amount{suffix}'
                     tax_raw_field = f'raw_{tax_rounded_field}'
                     tax_target_field = f'target_{tax_rounded_field}'
-                    values[tax_rounded_field] = 0.0
-                    values[tax_raw_field] = 0.0
-                    values[tax_target_field] = 0.0
+                    # Cero neutro en tipo: el ``0.0`` de la fuente con los
+                    # ``Decimal`` del motor de este árbol es ``TypeError``.
+                    values[tax_rounded_field] = 0
+                    values[tax_raw_field] = 0
+                    values[tax_target_field] = 0
 
             # Tax amount.
             if tax_data:
@@ -1510,7 +1523,8 @@ class AccountTax(models.Model):
                     default_float_fields.add(f'{prefix}{field}{suffix}')
 
         values_per_grouping_key = defaultdict(lambda: {
-            **dict.fromkeys(default_float_fields, 0.0),
+            # Cero neutro en tipo, por la misma razón que en la de una línea.
+            **dict.fromkeys(default_float_fields, 0),
             'base_line_x_taxes_data': [],
         })
         for base_line, aggregated_values in base_lines_aggregated_values:
