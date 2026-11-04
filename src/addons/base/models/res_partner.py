@@ -582,78 +582,80 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     #
     # Diez de los trece campos de este bloque NO son columnas: la fuente los
     # declara ``compute=`` sin ``store=True`` — existen para leerse, no para
-    # consultarse. Aqui eso es ``fields.NonStored``
-    # (``src/orm/fields_nonstored.py``), el mecanismo que este arbol ya
-    # construyo para ``store=False``.
+    # consultarse. Se declaran con su tipo y su ``compute=``, como alla: el
+    # eje es ``store``, no una clase aparte (TASK-API-0418).
     #
     # Los TRES que si llevan columna estan arriba con los demas campos:
     # ``complete_name`` (``odoo19c: res_partner.py:214``), ``company_registry``
     # (``:241``) y ``partner_share`` (``:295``). Medido sobre las trece
     # declaraciones de la fuente, no estimado.
     #
-    # El ``default`` es un invocable que recibe la instancia: el descriptor lo
-    # llama al leer. La fuente ASIGNA dentro del compute
-    # (``partner.tz_offset = ...``); aqui el metodo DEVUELVE y el descriptor
-    # guarda. Divergencia de mecanismo, misma lectura en el sitio de consumo.
-    active_lang_count = fields.NonStored(
-        default=lambda partner: partner._compute_active_lang_count(),
+    # Cada compute ASIGNA su campo, como la fuente
+    # (``partner.tz_offset = ...``), y devuelve el valor a quien lo llame
+    # directo. Las dependencias son las de su ``@api.depends`` con los
+    # nombres de este arbol (``country`` por ``country_id``, ``parent`` por
+    # ``parent_id``, ``users`` por ``user_ids``).
+    active_lang_count = fields.Integer(
+        compute='_compute_active_lang_count',
         help_text='Cuantos idiomas activos hay (Odoo active_lang_count).')
-    tz_offset = fields.NonStored(
-        default=lambda partner: partner._compute_tz_offset(),
+    tz_offset = fields.Char(
+        'Timezone offset', compute='_compute_tz_offset',
         help_text='Desfase de la zona horaria, en la forma +HHMM '
                   '(Odoo tz_offset).')
-    vat_label = fields.NonStored(
-        default=lambda partner: partner._compute_vat_label(),
+    vat_label = fields.Char(
+        'Tax ID Label', compute='_compute_vat_label',
         help_text='Como se llama el identificador fiscal en el pais de la '
                   'empresa activa (Odoo vat_label).')
-    company_registry_label = fields.NonStored(
-        default=lambda partner: partner._compute_company_registry_label(),
+    company_registry_label = fields.Char(
+        'Company ID Label', compute='_compute_company_registry_label',
         help_text='Como se llama el registro mercantil en su pais '
                   '(Odoo company_registry_label).')
-    company_registry_placeholder = fields.NonStored(
-        default=lambda partner: partner._compute_company_registry_placeholder(),
+    company_registry_placeholder = fields.Char(
+        compute='_compute_company_registry_placeholder',
         help_text='Texto guia del campo de registro mercantil '
                   '(Odoo company_registry_placeholder).')
-    type_address_label = fields.NonStored(
-        default=lambda partner: partner._compute_type_address_label(),
+    type_address_label = fields.Char(
+        'Address Type Description', compute='_compute_type_address_label',
         help_text='Como se llama esta direccion (Odoo type_address_label).')
-    email_formatted = fields.NonStored(
-        default=lambda partner: partner._compute_email_formatted(),
-        help_text='Lo que va en la cabecera To: de un correo '
-                  '(Odoo email_formatted).')
-    company_type = fields.NonStored(
-        default=lambda partner: partner._compute_company_type(),
+    email_formatted = fields.Char(
+        'Formatted Email', compute='_compute_email_formatted',
+        help_text='Format email address "Name <email@domain>"')
+    company_type = fields.Selection(
+        'Company Type',
+        choices=[('person', 'Person'), ('company', 'Company')],
+        compute='_compute_company_type', inverse='_write_company_type',
         help_text='Interfaz de is_company: "company" o "person" '
                   '(Odoo company_type). NO usar en logica de negocio — la '
                   'fuente lo dice en un comentario propio (``:281``).')
-    is_public = fields.NonStored(
-        default=lambda partner: partner._compute_is_public(),
+    is_public = fields.Boolean(
+        compute='_compute_is_public', compute_sudo=True,
         help_text='True si algun usuario suyo es el visitante anonimo '
-                  '(Odoo is_public). compute_sudo en la fuente: la respuesta '
-                  'no depende de quien pregunte.')
-    self = fields.NonStored(
-        default=lambda partner: partner._compute_get_ids(),
+                  '(Odoo is_public).')
+    self = fields.Many2one(
+        'self', compute='_compute_get_ids', related_name='+',
         help_text='Alias del propio registro (Odoo self, un Many2one a '
                   'res.partner con compute _compute_get_ids). Existe para '
                   'que una vista se refiera al partner actual con el mismo '
                   'vocabulario con que referiria a otro.')
-    same_vat_partner_id = fields.NonStored(
-        default=lambda partner: partner._compute_same_vat_partner_id(),
+    same_vat_partner_id = fields.Many2one(
+        'self', 'Partner with same Tax ID',
+        compute='_compute_same_vat_partner_id', related_name='+',
         help_text='Otro partner con el mismo identificador fiscal '
                   '(Odoo same_vat_partner_id). BLOQUEADO por '
                   '``partner.company_id`` — el partner no declara FK a '
-                  'empresa; ver tarea #105.')
-    same_company_registry_partner_id = fields.NonStored(
-        default=lambda partner: partner._compute_same_company_registry_partner_id(),
+                  'empresa; ver TASK-GEN-0357.')
+    same_company_registry_partner_id = fields.Many2one(
+        'self', 'Partner with same Company Registry',
+        compute='_compute_same_vat_partner_id', related_name='+',
         help_text='Otro partner con el mismo registro mercantil '
                   '(Odoo same_company_registry_partner_id). '
-                  'BLOQUEADO por ``partner.company_id`` — ver tarea #105.')
-    main_user = fields.NonStored(
-        default=lambda partner: partner._compute_main_user_id(),
-        help_text='De las cuentas que apuntan a este partner, la mas '
-                  'apropiada (Odoo main_user_id). NO es el vendedor: ese es '
-                  '``user``, y la fuente avisa de la confusion en un '
-                  'comentario propio (``:230``).')
+                  'BLOQUEADO por ``partner.company_id`` — ver TASK-GEN-0357.')
+    main_user_id = fields.Many2one(
+        'base.ResUsers', 'Main User', compute='_compute_main_user_id',
+        related_name='+',
+        help_text='There can be several users related to the same partner. '
+                  'When a single user is needed, this field attempts to '
+                  'find the most appropriate one.')
 
     class Meta:
         db_table            = 'res_partner'
@@ -1975,7 +1977,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
           asi que el efecto ya se cumple.
         """
         users = list(self.users.all()) if self.pk else []
-        return bool(users) and any(user._is_public() for user in users)
+        self.is_public = value = bool(users) and any(
+            user._is_public() for user in users)
+        return value
 
     def _compute_get_ids(self):
         """El propio registro — ≙ ``_compute_get_ids``
@@ -1986,11 +1990,13 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         que se lee es el REGISTRO, no su entero: quien lo consume puede
         atravesar a sus campos.
 
-        Aqui se devuelve ``self`` directo. El campo publico se llama ``self``
+        Aqui se asigna ``self`` y se devuelve. El campo publico se llama
+        ``self``
         igual que alla; no colisiona con el parametro porque el descriptor
         vive en la clase y el parametro en el ambito del metodo.
         """
-        return self
+        self.self = value = self
+        return value
 
     # ------------------------------------------------------------------
     # display_name — el nombre enriquecido segun quien lo pide
@@ -2191,6 +2197,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         """
         return self._get_complete_name()
 
+    @api.depends('lang')
     def _compute_active_lang_count(self):
         """Cuantos idiomas activos hay instalados.
 
@@ -2202,8 +2209,11 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         ``active`` y lo unico que la fuente usa es su longitud. Se cuenta
         directo. Cuando **#104** aterrice, el cuerpo delega en el.
         """
-        return ResLang.objects.filter(active=True).count()
+        self.active_lang_count = value = ResLang.objects.filter(
+            active=True).count()
+        return value
 
+    @api.depends('tz')
     def _compute_tz_offset(self):
         """El desfase de la zona horaria, en la forma ``+HHMM``.
 
@@ -2235,8 +2245,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             zona = ZoneInfo(self.tz or 'GMT')
         except (ZoneInfoNotFoundError, ValueError):
             zona = ZoneInfo('GMT')
-        return datetime.datetime.now(zona).strftime('%z')
+        self.tz_offset = value = datetime.datetime.now(zona).strftime('%z')
+        return value
 
+    @api.depends_context('company')
     def _compute_vat_label(self):
         """Como se llama el identificador fiscal: «RFC» en Mexico, «NIF» en
         Espana.
@@ -2263,9 +2275,12 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             if company is not None:
                 etiqueta = FormatVatLabelMixin.vat_label_for(company)
                 if etiqueta:
-                    return etiqueta
-        return _('Tax ID')
+                    self.vat_label = value = etiqueta
+                    return value
+        self.vat_label = value = _('Tax ID')
+        return value
 
+    @api.depends('parent', 'type')
     def _compute_type_address_label(self):
         """Como se llama esta direccion.
 
@@ -2279,12 +2294,16 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         catalogo, no cambiar el codigo.
         """
         if self.type == self.TYPE_INVOICE:
-            return _('Invoice Address')
+            self.type_address_label = value = _('Invoice Address')
+            return value
         if self.type == self.TYPE_DELIVERY:
-            return _('Delivery Address')
+            self.type_address_label = value = _('Delivery Address')
+            return value
         if self.type == self.TYPE_CONTACT and self.parent_id:
-            return _('Company Address')
-        return _('Address')
+            self.type_address_label = value = _('Company Address')
+            return value
+        self.type_address_label = value = _('Address')
+        return value
 
     def _compute_company_registry(self):
         """No-op deliberado — ≙ ``_compute_company_registry`` (``:528``).
@@ -2298,6 +2317,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         """
         return self.company_registry
 
+    @api.depends('country')
     def _compute_company_registry_label(self):
         """Como se llama el registro mercantil en su pais.
 
@@ -2307,7 +2327,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         """
         label_by_country = self._get_company_registry_labels()
         country_code = self.country.code if self.country_id else None
-        return label_by_country.get(country_code, _('Company ID'))
+        self.company_registry_label = value = label_by_country.get(
+            country_code, _('Company ID'))
+        return value
 
     @classmethod
     def _get_company_registry_labels(cls):
@@ -2323,8 +2345,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     def _compute_company_registry_placeholder(self):
         """``False`` por diseno — ≙ ``_compute_company_registry_placeholder``
         (``:543``). Lo llenan las localizaciones, igual que el mapa."""
-        return False
+        self.company_registry_placeholder = value = False
+        return value
 
+    @api.depends('name', 'email')
     def _compute_email_formatted(self):
         """Lo que va en la cabecera ``To:`` de un correo.
 
@@ -2342,17 +2366,23 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         - **correo vacio**: ``False``, porque no hay nada que hacer con el.
         """
         if not self.email:
-            return False
+            self.email_formatted = value = False
+            return value
         emails_normalized = email_normalize_all(self.email)
         if emails_normalized:
-            return formataddr((self.name or 'False',
-                               ','.join(emails_normalized)))
-        return formataddr((self.name or 'False', self.email))
+            self.email_formatted = value = formataddr(
+                (self.name or 'False', ','.join(emails_normalized)))
+            return value
+        self.email_formatted = value = formataddr(
+            (self.name or 'False', self.email))
+        return value
 
+    @api.depends('is_company')
     def _compute_company_type(self):
         """``'company'`` o ``'person'`` — ≙ ``_compute_company_type``
         (``:635``). Es la cara legible de ``is_company``."""
-        return 'company' if self.is_company else 'person'
+        self.company_type = value = 'company' if self.is_company else 'person'
+        return value
 
     def _write_company_type(self):
         """El inverso — mueve ``is_company`` desde ``company_type``.
@@ -2422,6 +2452,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             return self.parent.user
         return self.user
 
+    @api.depends_context('uid')
+    @api.depends('users.active')
     def _compute_main_user_id(self):
         """≙ ``_compute_main_user_id`` (``odoo19c: res_partner.py:426-441``).
 
@@ -2441,6 +2473,13 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
            ``not share`` pone al interno primero, y descendente por ``-id``
            deja arriba el id mas bajo.
 
+        **Dependencia bloqueada, medida:** la fuente declara
+        ``@api.depends("user_ids.active", "user_ids.share")``. ``share`` es
+        aqui un ``@property`` de ``ResUsers`` y no un campo, y
+        ``resolve_depends`` rehusa un nombre que no es campo, como la fuente:
+        se declara ``users.active`` y ``users.share`` entra con
+        **TASK-GEN-0356**, que porta ``share`` como campo calculado.
+
         **Divergencia de mecanismo, declarada:** el caso especial de la fuente
         —*"Special case for OdooBot as its user might be archived"*— ancla la
         cuenta raiz por ``xmlid`` (``base.partner_root`` / ``base.user_root``).
@@ -2449,20 +2488,28 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         que ya usa :meth:`_compute_partner_share`.
         """
         if not self.pk:
-            return None
+            self.main_user_id = value = None
+            return value
         current = get_current_user()
-        if current is not None and getattr(current, 'partner_id', None) == self.pk:
-            return current.pk
+        if (current is not None
+                and getattr(current, 'partner_id', None) == self.pk):
+            self.main_user_id = value = current
+            return value
         active_users = [user for user in self.users.all() if user.active]
         if not active_users:
             root_partner = type(self).objects.filter(
                 users__pk=SUPERUSER_ID).values_list('pk', flat=True).first()
             if root_partner == self.pk:
-                return SUPERUSER_ID
-            return None
+                res_users = apps.get_model('base', 'ResUsers')
+                self.main_user_id = value = res_users.objects.get(
+                    pk=SUPERUSER_ID)
+                return value
+            self.main_user_id = value = None
+            return value
         active_users.sort(key=lambda user: (not user.share, -user.pk),
                           reverse=True)
-        return active_users[0].pk
+        self.main_user_id = value = active_users[0]
+        return value
 
     @classmethod
     def _default_category(cls):
@@ -2508,6 +2555,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             return True
         return not any(user._is_internal() for user in usuarios)
 
+    @api.depends('vat', 'company_registry', 'country')
     def _compute_same_vat_partner_id(self):
         r"""BLOQUEADO por ``partner.company_id`` — otro partner con el mismo
         identificador fiscal.
@@ -2522,20 +2570,19 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         - ``partner.company_id`` — el campo de empresa del partner, que aqui
           no existe todavia (el confinamiento por empresa vive en el
           queryset, no en una FK del partner). Medido:
-          ``grep -cE "^    company(_id)? *= fields\." src/addons/base/models/res_partner.py``
+          ``grep -cE "^    company(_id)? *= fields\."``
+          ``src/addons/base/models/res_partner.py``
           da **0**.
 
         Devolver ``None`` es la conducta declarada mientras eso siga asi: NO
         es «no hay ningun partner con el mismo VAT», es «no se puede
-        responder». Sucesor registrado: tarea **#105**.
-        """
-        return None
+        responder». Sucesor registrado: **TASK-GEN-0357**.
 
-    def _compute_same_company_registry_partner_id(self):
-        """BLOQUEADO por ``partner.company_id`` — la fuente resuelve los dos
-        en ``_compute_same_vat_partner_id`` (``:451-487``), y la mitad del
-        registro mercantil depende de ese campo, que aqui no existe.
-        Sucesor: tarea **#105**."""
+        La fuente resuelve los dos campos en este mismo compute
+        (``:451-487``), y los dos se declaran con él.
+        """
+        self.same_vat_partner_id = None
+        self.same_company_registry_partner_id = None
         return None
 
     def _get_street_split(self):
@@ -2549,7 +2596,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
     @classmethod
     def _get_default_address_format(cls):
-        """≙ ``_get_default_address_format`` (``odoo19c: res_partner.py:1169-1171``).
+        """≙ ``_get_default_address_format``
+        (``odoo19c: res_partner.py:1169-1171``).
 
         La fuente repite el literal aquí y en el ``default`` de
         ``res.country.address_format`` (``odoo19c: res_country.py:52``). Aquí
@@ -2569,7 +2617,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return country_format or self._get_default_address_format()
 
     def _prepare_display_address(self, without_company=False):
-        """≙ ``_prepare_display_address`` (``odoo19c: res_partner.py:1177-1194``).
+        """≙ ``_prepare_display_address``
+        (``odoo19c: res_partner.py:1177-1194``).
 
         Devuelve la pareja ``(plantilla, argumentos)`` que
         :meth:`_display_address` aplica. El ``defaultdict(str)`` es de la
@@ -2609,7 +2658,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
     @classmethod
     def _display_address_depends(cls):
-        """≙ ``_display_address_depends`` (``odoo19c: res_partner.py:1209-1213``).
+        """≙ ``_display_address_depends``
+        (``odoo19c: res_partner.py:1209-1213``).
 
         Los campos de los que depende :meth:`_display_address`. Allá alimenta
         un ``@api.depends`` de un campo computado y almacenado; aquí

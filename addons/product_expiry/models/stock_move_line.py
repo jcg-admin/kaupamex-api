@@ -112,7 +112,7 @@ def _compute_expiration_date(self):
        sólo si la línea aún no tiene fecha (una puesta a mano sobrevive);
     3. el tipo crea lotes y el producto **no** caduca → se limpia.
     """
-    quant = self.quant
+    quant = self.quant_id
     lote = (quant.lot if quant is not None else None) or self.lot
     if lote is not None:
         self.expiration_date = lote.expiration_date

@@ -23,6 +23,7 @@ from addons.base_install_request.wizard.base_module_install_request import (
     render_modules_description,
 )
 from exceptions import UserError
+from modules import module_graph
 
 pytestmark = pytest.mark.django_db
 
@@ -243,9 +244,40 @@ class TestTheBlockedTwo:
         ):
             review.action_install_module()
 
-    def test_auto_install_apps_declares_its_blockade(self):
-        with pytest.raises(NotImplementedError, match='button_install'):
-            _auto_install_apps()
+
+class TestAutoInstallApps:
+    """≙ ``_auto_install_apps`` (``odoo19c: base_install_request/
+    __init__.py:9-21``)."""
+
+    @pytest.fixture
+    def apps(self, monkeypatch):
+        monkeypatch.setattr(
+            module_graph, 'load_manifest',
+            lambda name: {'depends': [], 'installable': True})
+        for name in ('project', 'survey', 'sale'):
+            IrModule.objects.update_or_create(
+                name=name, defaults={'state': 'uninstalled'})
+        IrModuleDependency.objects.filter(
+            module__name__in=('project', 'survey', 'sale')).delete()
+
+    @staticmethod
+    def states():
+        return dict(IrModule.objects.filter(
+            name__in=('project', 'survey', 'sale')
+        ).values_list('name', 'state'))
+
+    def test_with_the_option_off_nothing_is_scheduled(self, apps, settings):
+        settings.DEFAULT_PRODUCTIVITY_APPS = False
+        _auto_install_apps()
+        assert set(self.states().values()) == {'uninstalled'}
+
+    def test_with_the_option_on_only_the_listed_apps_are_scheduled(
+            self, apps, settings):
+        settings.DEFAULT_PRODUCTIVITY_APPS = True
+        _auto_install_apps()
+        assert self.states() == {
+            'project': 'to install', 'survey': 'to install',
+            'sale': 'uninstalled'}
 
 
 class TestActionOpenInstallRequest:

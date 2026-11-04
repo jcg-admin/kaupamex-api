@@ -277,7 +277,9 @@ class TestComputeAvailableModelIds:
             name='De regla', state='object_create', usage=USAGE_BASE_AUTOMATION
         )
         BaseAutomationAction.objects.create(action=action, automation=rule)
-        assert action._compute_available_model_ids() == [partner_model.pk]
+        # Filas de ``ir.model``, como el recordset que asigna la fuente.
+        assert action._compute_available_model_ids() == [partner_model]
+        assert action.available_model_ids == [partner_model]
 
     def test_with_the_usage_and_no_rule_it_narrows_to_nothing(self):
         """La asimetría de la fuente: si el modelo no estaba, queda vacío."""

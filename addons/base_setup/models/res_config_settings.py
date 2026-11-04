@@ -57,6 +57,7 @@ es un cambio de una línea en la declaración, no un refactor.
 
 from decimal import Decimal, InvalidOperation
 
+import api
 import fields
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -185,14 +186,11 @@ class ResConfigSettings(BaseResConfigSettings):
       tiene columna en este árbol y su propio archivo lo declara
       (``src/addons/base/models/res_company.py:82-90``). Sucesor: tarea
       **#257**, que es la que le da columna.
-    - **``report_footer``** se declara con :class:`NonStored` en vez de
-      ``fields.Html(related=…)``: ``Html`` es la única de las tres textuales
-      que **no** lleva el despachador de ``store``
-      (``src/orm/fields_textual.py:20-21``), y ``src/orm`` está fuera del
-      alcance de este pase. El objeto resultante es **el mismo** que el
-      despachador devolvería —un ``related`` sin ``store`` no tiene columna en
-      ningún caso—, así que la conducta no diverge: sólo el sitio de la
-      declaración. Sucesor: tarea **#454**, dar a ``Html`` su despachador.
+    - **``report_footer``** — ya no diverge. Se declaraba con ``NonStored``
+      porque ``Html`` no llevaba el despachador de ``store``; desde que la
+      derivación del ``store`` es una sola para todo tipo (TASK-API-0417) se
+      declara como la fuente, ``fields.Html(related=…, readonly=False)``
+      (TASK-API-0418).
     - **Los nombres de la cadena ``related``.** ``company_id.country_id.code``
       de la fuente es aquí ``company_id.country.code``: la FK de la empresa al
       país se llama ``country`` en este árbol (``res_company.py:553``), y la
@@ -203,10 +201,9 @@ class ResConfigSettings(BaseResConfigSettings):
       nombre** y la fuente los nombra por ``xml_id``; esa divergencia ya la
       declara ``base/models/res_config.py``.
     - **``_compute_*``** — la fuente recorre ``self`` (un *recordset*) y
-      asigna a cada registro; aquí ``self`` **es** un registro y el valor lo
-      asigna el descriptor :class:`NonStored` al leerlo, así que el cómputo
-      **devuelve** el valor en vez de escribirlo. Es la misma conducta
-      observable: leer el campo da el valor calculado.
+      asigna a cada registro; aquí ``self`` **es** un registro, y el cómputo
+      asigna su campo como allá y además devuelve el valor a quien lo llame
+      directo. Las dependencias son las de su ``@api.depends('company_id')``.
 
     Lo que este archivo no cierra
     =============================
@@ -237,7 +234,6 @@ class ResConfigSettings(BaseResConfigSettings):
     is_root_company = fields.Boolean(
         verbose_name='Is Root Company',
         compute='_compute_is_root_company',
-        depends=['company_id'],
     )
 
     # === Los quince módulos opcionales ====================================
@@ -300,8 +296,8 @@ class ResConfigSettings(BaseResConfigSettings):
 
     # === Los que viajan a la empresa ======================================
 
-    #: ≙ ``report_footer`` (``:33``) — ver la divergencia de ``Html`` arriba.
-    report_footer = fields.NonStored(
+    #: ≙ ``report_footer`` (``:33``).
+    report_footer = fields.Html(
         'Custom Report Footer',
         related='company_id.report_footer',
         readonly=False,
@@ -337,21 +333,17 @@ class ResConfigSettings(BaseResConfigSettings):
     company_count = fields.Integer(
         verbose_name='Number of Companies',
         compute='_compute_company_count',
-        depends=['company_id'],
     )
     active_user_count = fields.Integer(
         verbose_name='Number of Active Users',
         compute='_compute_active_user_count',
-        depends=['company_id'],
     )
     language_count = fields.Integer(
         verbose_name='Number of Languages',
         compute='_compute_language_count',
-        depends=['company_id'],
     )
     company_informations = fields.Text(
         compute='_compute_company_informations',
-        depends=['company_id'],
     )
 
     #: El metadato que el motor lee para clasificar los tres campos que no van
@@ -461,12 +453,14 @@ class ResConfigSettings(BaseResConfigSettings):
     # context, if we want them to be computed we have to make them depend on a
     # field. This is because we are on a TransientModel."*
 
+    @api.depends('company_id')
     def _compute_company_count(self):
         """≙ ``_compute_company_count`` (``odoo19c: :98-102``)."""
         with sudo():
             self.company_count = count = ResCompany.objects.count()
         return count
 
+    @api.depends('company_id')
     def _compute_active_user_count(self):
         """≙ ``_compute_active_user_count`` (``odoo19c: :104-108``).
 
@@ -481,11 +475,13 @@ class ResConfigSettings(BaseResConfigSettings):
         self.active_user_count = count
         return count
 
+    @api.depends('company_id')
     def _compute_language_count(self):
         """≙ ``_compute_language_count`` (``odoo19c: :110-114``)."""
         self.language_count = count = len(ResLang.get_installed())
         return count
 
+    @api.depends('company_id')
     def _compute_company_informations(self):
         """≙ ``_compute_company_informations`` (``odoo19c: :116-131``).
 
@@ -516,6 +512,7 @@ class ResConfigSettings(BaseResConfigSettings):
         self.company_informations = informations
         return informations
 
+    @api.depends('company_id')
     def _compute_is_root_company(self):
         """≙ ``_compute_is_root_company`` (``odoo19c: :133-136``).
 

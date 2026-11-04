@@ -75,8 +75,8 @@ Los 10 atributos de clase de la fuente
        tarea **#565** deja el hueco; lo cierra quien porte ese modelo
    * - ``first_page_id`` (``:23``)
      - portado
-     - ``fields.NonStored`` (``compute`` sin ``store``) alimentado por
-       ``_compute_first_page_id``
+     - ``fields.Many2one`` con ``compute=`` y sin columna, como la fuente
+       (TASK-API-0418)
    * - ``track`` (``:24``)
      - portado
      - ``WebsiteViewInfo.track`` (D-1) + propiedad ``track``
@@ -118,10 +118,10 @@ JOIN inverso —``view__website_info__visibility``— y tiene que contar además
 fila ausente. Los consumidores que lo hacen lo dejan escrito en su sitio
 (``website.py::_enumerate_pages``, ``website_page.py::_search_get_detail``).
 
-**D-2 — el ``compute`` devuelve el valor en vez de asignarlo al recordset.**
-Misma divergencia 3 que ``website_page.py`` declara para sus cinco
-``NonStored``: ``_compute_first_page_id`` **devuelve** la página en lugar de
-escribir ``view.first_page_id = …`` sobre cada registro del recordset.
+**D-2 — retirada.** El ``compute`` devolvía la página en vez de asignarla,
+porque el campo era un ``NonStored``. Hoy ``_compute_first_page_id`` asigna
+``first_page_id`` como la fuente (``view.first_page_id = …``) y además
+devuelve el valor (TASK-API-0418).
 
 **D-3 — ``filter_duplicate`` recibe la colección.** La fuente es un método de
 recordset (``self.filtered(…)``); aquí no hay recordset, así que es un
@@ -408,7 +408,8 @@ def _compute_first_page_id(self):
     La primera ``website.page`` que usa esta vista, o ``None``. Divergencia
     **D-2**: devuelve el valor en vez de asignarlo sobre el recordset.
     """
-    return self.page_ids.order_by('pk').first()
+    self.first_page_id = value = self.page_ids.order_by('pk').first()
+    return value
 
 
 def get_view_hierarchy(self):
@@ -820,8 +821,9 @@ def apply_website_ir_ui_view_extensions():
         campos={
             # ``compute='_compute_first_page_id'`` sin ``store``
             # (``:23``). D-2.
-            'first_page_id': fields.NonStored(
-                default=_compute_first_page_id,
+            'first_page_id': fields.Many2one(
+                'website.WebsitePage', 'Website Page',
+                compute='_compute_first_page_id', related_name='+',
                 help_text=(
                     'Primera página enlazada a esta vista (Odoo '
                     'first_page_id, compute sin store).'

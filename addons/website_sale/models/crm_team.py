@@ -229,16 +229,6 @@ def _compute_abandoned_carts(self):
     return count, amount
 
 
-def _default_abandoned_carts_count(team):
-    """``default`` del ``NonStored`` ``abandoned_carts_count``."""
-    return _compute_abandoned_carts(team)[0]
-
-
-def _default_abandoned_carts_amount(team):
-    """``default`` del ``NonStored`` ``abandoned_carts_amount``."""
-    return _compute_abandoned_carts(team)[1]
-
-
 def apply_website_sale_crm_team_extensions():
     """Cuelga sobre ``crm.team`` el contador de carritos — ≙ ``_inherit``.
 
@@ -258,15 +248,17 @@ def apply_website_sale_crm_team_extensions():
             # (``:12-17``): no generan columna, y por eso este archivo no trae
             # migración. Es la misma forma que ``is_abandoned_cart`` en
             # ``models/sale_order.py``.
-            'abandoned_carts_count': fields.NonStored(
-                default=_default_abandoned_carts_count,
+            'abandoned_carts_count': fields.Integer(
+                'Number of Abandoned Carts',
+                compute='_compute_abandoned_carts',
                 help_text=(
                     'Carritos abandonados aún recuperables de este equipo '
                     '(Odoo abandoned_carts_count, store=False).'
                 ),
             ),
-            'abandoned_carts_amount': fields.NonStored(
-                default=_default_abandoned_carts_amount,
+            'abandoned_carts_amount': fields.Float(
+                'Amount of Abandoned Carts',
+                compute='_compute_abandoned_carts',
                 help_text=(
                     'Importe total de esos carritos (Odoo '
                     'abandoned_carts_amount, store=False). D-4: conserva la '

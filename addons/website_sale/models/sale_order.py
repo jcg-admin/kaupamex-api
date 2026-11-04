@@ -84,18 +84,17 @@ extiende es la forma que el árbol ya usa —
 ``account_check_printing.CheckPrintingJournalSettings`` sobre
 ``account.journal``, ``delivery.ShipmentGuide`` sobre ``sale.SaleOrder``.
 
-**D-2 — ``is_abandoned_cart`` es un ``NonStored``, no una ``property``.** La
-fuente lo declara ``compute`` **sin** ``store=True``, es decir ``store=False``,
-y ése es exactamente el campo que ``orm/fields_nonstored.py`` construye. Se usa
-él y no una ``property`` porque la fuente admite asignarlo en memoria y una
-``property`` de sólo lectura no.
+**D-2 — retirada.** ``is_abandoned_cart`` se declaraba con ``NonStored``;
+hoy se declara como la fuente, ``fields.Boolean(compute=…, search=…)`` y sin
+columna (TASK-API-0418). Sigue sin ser una ``property``: la fuente admite
+asignarlo en memoria y una ``property`` de sólo lectura no.
 
-**D-3 — el ``compute`` devuelve en vez de asignar.**
-``_compute_abandoned_cart``
-allá recorre ``self`` y escribe ``order.is_abandoned_cart``; aquí recibe un
-pedido y devuelve el booleano, que es lo que el ``default`` del ``NonStored``
-consume. El cuerpo de la decisión —sitio, borrador, fecha, comprador distinto
-del público, con líneas— se conserva entero.
+**D-3 — el ``compute`` recibe un pedido, no un recordset.**
+``_compute_abandoned_cart`` allá recorre ``self`` y escribe
+``order.is_abandoned_cart``; aquí recibe un pedido, asigna el campo como
+allá y además devuelve el booleano. El cuerpo de la decisión —sitio,
+borrador, fecha, comprador distinto del público, con líneas— se conserva
+entero.
 
 **D-4 — ``_search_abandoned_cart`` devuelve un ``QuerySet``, no un
 ``Domain``.** Este árbol no tiene el ``Domain`` de la referencia; el precedente
@@ -165,6 +164,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+import api
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -265,6 +265,7 @@ def _abandoned_delay_of(website_id):
     return settings._get_cart_abandoned_delay() if settings else 1.0
 
 
+@api.depends('date_order', 'order_line', 'state', 'partner_id')
 def _compute_abandoned_cart(self):
     """≙ ``_compute_abandoned_cart`` (``odoo19c: :78-89``).
 
@@ -272,13 +273,16 @@ def _compute_abandoned_cart(self):
     en borrador, tiene fecha, esa fecha es anterior al retraso configurado, su
     comprador no es el usuario público del sitio y tiene líneas.
 
-    D-3: devuelve el booleano en vez de asignarlo; lo consume el ``default``
-    del ``NonStored`` ``is_abandoned_cart``.
+    Asigna ``is_abandoned_cart`` como la fuente y devuelve el booleano. La
+    fuente depende también de ``website_id``; aquí el sitio vive en la fila
+    lateral del pedido (D-1), que no es un campo de ``SaleOrder``, así que la
+    dependencia declara los cuatro que sí lo son.
     """
     info = _info_of(self)
     if not (
         info and info.website_id and self.state == 'draft' and self.date_order
     ):
+        self.is_abandoned_cart = False
         return False
     abandoned_datetime = timezone.now() - timedelta(
         hours=_abandoned_delay_of(info.website_id)
@@ -287,11 +291,12 @@ def _compute_abandoned_cart(self):
     # ``res.partner``; aquí el comprador del pedido es un ``res.users``, así
     # que la comparación se hace contra ``website.user`` —el mismo registro,
     # un salto más arriba— en vez de contra su partner.
-    return bool(
+    self.is_abandoned_cart = value = bool(
         self.date_order <= abandoned_datetime
         and self.partner_id != info.website_id.user_id
         and self.order_line.exists()
     )
+    return value
 
 
 def _search_abandoned_cart(cls, operator, value):
@@ -503,8 +508,9 @@ def apply_website_sale_order_extensions():
         campos={
             # ``store=False`` en la fuente (``:46-48``): no genera
             # columna. D-2.
-            'is_abandoned_cart': fields.NonStored(
-                default=_compute_abandoned_cart,
+            'is_abandoned_cart': fields.Boolean(
+                'Abandoned Cart', compute='_compute_abandoned_cart',
+                search='_search_abandoned_cart',
                 help_text=(
                     'El carrito lleva más del retraso configurado sin '
                     'confirmarse (Odoo is_abandoned_cart, store=False).'

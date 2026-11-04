@@ -237,6 +237,7 @@ import uuid
 from collections import defaultdict
 from urllib.parse import urlparse, urlsplit
 
+import api
 import fields
 import models
 import requests
@@ -945,34 +946,37 @@ class Website(TimeStampedModel):
     )
 
     # ── Campos NO almacenados ────────────────────────────────────────────────
-    # La fuente los declara con ``compute=`` y sin ``store=True``; aquí van con
-    # ``fields.NonStored`` (``src/orm/fields_nonstored.py``). No son columnas.
-
-    # El cómputo va en ``default=``, que es el parámetro que ``NonStored``
-    # declara (``src/orm/fields_nonstored.py:53``); un posicional lo traga su
-    # ``*_args`` y el campo queda leyendo ``None`` **en silencio**. Los cinco
-    # nacieron así en B1 y el fallo no se vio hasta que B2 comparó
-    # dominios: sin
+    # La fuente los declara con ``compute=`` (o ``related=``) y sin
+    # ``store=True``, y aquí se declaran igual: su tipo y su ``compute=``, sin
+    # columna (TASK-API-0418). Antes iban con ``NonStored`` y su cómputo en
+    # ``default=``, y un posicional lo tragaba en silencio: sin
     # ``domain_punycode``, ``_get_current_website_id`` no emparejaba nunca y
-    # caía al primer sitio por ``sequence``. Ver :ref:`h-api-697`.
+    # caía al primer sitio por ``sequence`` (:ref:`h-api-697`).
 
-    #: ≙ ``domain_punycode`` (``odoo19c: :121-126``).
-    domain_punycode = fields.NonStored(
-        default=lambda self: self._compute_domain_punycode()
+    #: ≙ ``domain_punycode`` (``odoo19c: :119-123``).
+    domain_punycode = fields.Char(
+        'Punycode Domain', compute='_compute_domain_punycode', readonly=True,
     )
-    #: ≙ ``language_count`` (``:132``).
-    language_count = fields.NonStored(
-        default=lambda self: self._compute_language_count()
+    #: ≙ ``language_count`` (``:128``).
+    language_count = fields.Integer(
+        'Number of languages', compute='_compute_language_count',
     )
     #: ≙ ``blocked_third_party_domains`` (``:141-143``).
-    blocked_third_party_domains = fields.NonStored(
-        default=lambda self: self._compute_blocked_third_party_domains()
+    blocked_third_party_domains = fields.Text(
+        'List of blocked 3rd-party domains',
+        compute='_compute_blocked_third_party_domains',
     )
-    #: ≙ ``menu_id`` (``:196``) — la portada del árbol de menús del sitio.
-    menu = fields.NonStored(default=lambda self: self._compute_menu())
-    #: ≙ ``partner_id`` (``:195``) — ``related='user_id.partner_id'``.
-    partner = fields.NonStored(
-        default=lambda self: self.user.partner if self.user_id else None
+    #: ≙ ``menu_id`` (``:198``) — la portada del árbol de menús del sitio.
+    #: Sin columna, así que lleva el nombre de la fuente (forma N de
+    #: ``scripts/check_fk_naming.py``).
+    menu_id = fields.Many2one(
+        'website.WebsiteMenu', 'Main Menu', compute='_compute_menu',
+        related_name='+',
+    )
+    #: ≙ ``partner_id`` (``:197``) — ``related='user_id.partner_id'``, con
+    #: los nombres de este árbol.
+    partner_id = fields.Many2one(
+        related='user.partner', readonly=False, related_name='+',
     )
 
     class Meta:
@@ -1097,6 +1101,7 @@ class Website(TimeStampedModel):
 
     # ── Computes ─────────────────────────────────────────────────────────────
 
+    @api.depends('domain')
     def _compute_domain_punycode(self):
         """≙ ``_compute_domain_punycode`` (``odoo19c: :230-239``).
 
@@ -1108,16 +1113,21 @@ class Website(TimeStampedModel):
         try:
             punycode = anfitrion.encode('idna').decode('ascii')
         except UnicodeError:
-            return dominio
-        return dominio.replace(anfitrion, punycode) if anfitrion else dominio
+            self.domain_punycode = value = dominio
+            return value
+        self.domain_punycode = value = (
+            dominio.replace(anfitrion, punycode) if anfitrion else dominio)
+        return value
 
     def _compute_has_social_default_image(self):
         """≙ ``_compute_has_social_default_image`` (``odoo19c: :241-244``)."""
         return bool(self.social_default_image)
 
+    @api.depends('languages')
     def _compute_language_count(self):
         """≙ ``_compute_language_count`` (``odoo19c: :246-249``)."""
-        return self.languages.count() if self.pk else 0
+        self.language_count = value = self.languages.count() if self.pk else 0
+        return value
 
     def _compute_menu(self):
         """≙ ``_compute_menu`` (``odoo19c: :251-271``).
@@ -1132,13 +1142,16 @@ class Website(TimeStampedModel):
         la fuente busca lo da ``select_related`` en el consumidor.
         """
         if not self.pk:
-            return None
-        return (
+            self.menu_id = value = None
+            return value
+        self.menu_id = value = (
             WebsiteMenu.objects.filter(website=self.pk, parent__isnull=True)
             .order_by('sequence', 'pk')
             .first()
         )
+        return value
 
+    @api.depends('custom_blocked_third_party_domains')
     def _compute_blocked_third_party_domains(self):
         """≙ ``_compute_blocked_third_party_domains`` (``odoo19c: :273-289``).
 
@@ -1155,7 +1168,8 @@ class Website(TimeStampedModel):
                 completa = dominios
             else:
                 completa += f'\n{dominios}'
-        return completa
+        self.blocked_third_party_domains = value = completa
+        return value
 
     # ── Handlers de escritura ────────────────────────────────────────────────
 
@@ -2065,7 +2079,7 @@ class Website(TimeStampedModel):
                     'name': name,
                     'route': page_url,
                     'parent': (
-                        current_website.menu if current_website else None
+                        current_website.menu_id if current_website else None
                     ),
                     'page': page,
                     'website': current_website,

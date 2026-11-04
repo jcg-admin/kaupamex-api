@@ -79,9 +79,9 @@ class TestCamposColgados:
         assert nueva.need_vehicle is False
 
     def test_need_vehicle_es_nonstored(self):
-        """No aparece en ``_meta.get_fields()`` — es la propiedad que
+        """No aparece en ``_meta.concrete_fields`` — es la propiedad que
         distingue un campo ``store=False`` de uno con columna real."""
-        nombres = {f.name for f in AccountMoveLine._meta.get_fields()}
+        nombres = {f.name for f in AccountMoveLine._meta.concrete_fields}
         assert 'need_vehicle' not in nombres
         assert 'vehicle' in nombres
 

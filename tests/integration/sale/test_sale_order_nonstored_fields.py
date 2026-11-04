@@ -1,6 +1,6 @@
 """Tests — los campos NO almacenados de ``sale.order`` (tarea #976, bloque 2).
 
-Ejercitan los once ``fields.NonStored`` que el bloque 2 portó de
+Ejercitan los once campos sin columna que el bloque 2 portó de
 ``odoo19c: sale/models/sale_order.py:235-327``. Sin ellos el verde de la suite
 no discriminaría: ningún caso previo leía uno solo de estos descriptores, así
 que el porte podría estar roto y la suite seguiría en verde — el sub-patrón D
@@ -10,20 +10,19 @@ Lo que cada bloque fija:
 
 1. Los cuatro ``related=`` recorren la cadena hasta la empresa y devuelven el
    valor que ``account`` le colgó a ``res.company``; con la empresa ausente
-   devuelven ``None`` en vez de reventar.
-2. Los dos de interfaz nacen en ``False`` y **admiten asignación** — un
-   ``NonStored`` no es una ``property`` de sólo lectura.
+   leen el valor nulo de la fuente, ``False``, en vez de reventar.
+2. Los dos de interfaz nacen en ``False`` y **admiten asignación** — un campo
+   sin columna no es una ``property`` de sólo lectura.
 3. Los cinco ``compute`` calculan lo que su contraparte calcula.
-4. Ninguno de los once tiene columna: no aparecen en ``_meta.get_fields()`` ni
-   se pueden filtrar. Es el control que distingue «portado como no almacenado»
-   de «portado como columna», que es lo que el porte NO debía hacer.
+4. Ninguno de los once tiene columna: no aparecen en
+   ``_meta.concrete_fields`` ni se pueden filtrar. Es el control que distingue
+   «portado como no almacenado» de «portado como columna», que es lo que el
+   porte NO debía hacer.
 """
 
 from decimal import Decimal
 
 import pytest
-
-from django.core.exceptions import FieldError
 
 from addons.base.models import ResCompany
 from addons.product.models.product_pricelist import ProductPricelist
@@ -45,9 +44,9 @@ NON_STORED_FIELDS = [
     'show_update_pricelist',
     'has_archived_products',
     'has_active_pricelist',
-    'tax_country',
+    'tax_country_id',
     'type_name',
-    'duplicated_orders',
+    'duplicated_order_ids',
 ]
 
 
@@ -101,17 +100,25 @@ class TestTheFourRelatedWalkTheChainToTheCompany:
     def test_country_code_is_none_without_a_fiscal_country(self, company):
         """
         La empresa no declara país fiscal: el código sale vacío, no falla.
+
+        El vacío es ``False``, el valor nulo de lectura de un ``Char``
+        (``odoo19c: odoo/orm/fields_textual.py:116-118``).
         """
         order = SaleOrder.objects.create(company=company)
-        assert order.country_code is None
+        assert order.country_code is False
 
     def test_without_a_company_the_four_come_out_empty(self):
-        """Una orden sin empresa no revienta al recorrer la cadena."""
+        """Una orden sin empresa no revienta al recorrer la cadena.
+
+        El eslabón vacío propaga vacío hasta el final, como el recordset vacío
+        de ``_compute_related`` (``odoo19c: odoo/orm/fields.py:692``), y cada
+        campo lee su valor nulo: ``False`` para ``Char`` y ``Selection``.
+        """
         order = SaleOrder.objects.create()
-        assert order.country_code is None
-        assert order.company_price_include is None
-        assert order.tax_calculation_rounding_method is None
-        assert order.terms_type is None
+        assert order.country_code is False
+        assert order.company_price_include is False
+        assert order.tax_calculation_rounding_method is False
+        assert order.terms_type is False
 
 
 class TestTheTwoUxFlagsAreWritable:
@@ -122,7 +129,7 @@ class TestTheTwoUxFlagsAreWritable:
         assert order.show_update_pricelist is False
 
     def test_they_accept_assignment(self, company):
-        """Un ``NonStored`` NO es una ``property``: se le puede escribir."""
+        """Un campo sin columna NO es una ``property``: admite escritura."""
         order = SaleOrder.objects.create(company=company)
         order.show_update_pricelist = True
         assert order.show_update_pricelist is True
@@ -130,23 +137,22 @@ class TestTheTwoUxFlagsAreWritable:
     def test_what_gets_written_never_reaches_the_database(self, company):
         """Sin columna no hay dónde guardarlo — y eso es lo que se porta.
 
-        Medido: el valor asignado vive en el ``__dict__`` de la instancia, así
-        que **sobrevive a un ``refresh_from_db()``** — ese método repuebla los
-        campos de la tabla, y éste no es uno. Lo que no sobrevive es leer la
-        fila **otra vez**: la instancia nueva nace con el ``default``.
-
-        La primera versión de este caso afirmaba lo contrario sobre
-        ``refresh_from_db``; era una suposición, no una medición.
+        Lo asignado vive en la caché del entorno, que es por id: ≙
+        ``Field.write`` (``odoo19c: odoo/orm/fields.py:1501-1518``). Por eso
+        sobrevive a ``refresh_from_db()`` y otra lectura del mismo registro en
+        la misma transacción lo ve. Lo que no existe es la columna.
         """
         order = SaleOrder.objects.create(company=company)
         order.show_update_fpos = True
         order.save()
 
         order.refresh_from_db()
-        assert order.show_update_fpos is True, 'vive en la instancia'
+        assert order.show_update_fpos is True, 'vive en la caché'
 
         again = SaleOrder.objects.get(pk=order.pk)
-        assert again.show_update_fpos is False, 'no vive en la tabla'
+        assert again.show_update_fpos is True, 'la caché es por id'
+        columns = {f.column for f in SaleOrder._meta.concrete_fields}
+        assert 'show_update_fpos' not in columns, 'no vive en la tabla'
 
 
 class TestTheFiveComputesCalculateWhatTheSourceCalculates:
@@ -223,7 +229,7 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
     def test_tax_country_falls_back_to_the_company(self, company):
         """Sin posición fiscal, el país fiscal es el de la empresa."""
         order = SaleOrder.objects.create(company=company)
-        assert order.tax_country == company.account_fiscal_country
+        assert order.tax_country_id == company.account_fiscal_country
 
     def test_has_active_pricelist_is_false_without_any(self, company):
         order = SaleOrder.objects.create(company=company)
@@ -274,7 +280,7 @@ class TestTheDuplicateDetector:
 
     def test_a_draft_without_client_reference_finds_nothing(self, company):
         order = SaleOrder.objects.create(company=company)
-        assert list(order.duplicated_orders) == []
+        assert list(order.duplicated_order_ids) == []
 
     def test_a_draft_sees_a_confirmed_one_sharing_the_client_reference(
         self, company, product
@@ -295,7 +301,7 @@ class TestTheDuplicateDetector:
         draft = SaleOrder.objects.create(
             company=company, partner=customer, client_order_ref='PO-976'
         )
-        assert list(draft.duplicated_orders) == [confirmed]
+        assert list(draft.duplicated_order_ids) == [confirmed]
 
     def test_a_different_client_reference_is_not_a_duplicate(
         self, company, product
@@ -317,7 +323,7 @@ class TestTheDuplicateDetector:
         draft = SaleOrder.objects.create(
             company=company, partner=customer, client_order_ref='PO-976-b'
         )
-        assert list(draft.duplicated_orders) == []
+        assert list(draft.duplicated_order_ids) == []
 
     def test_another_company_is_not_a_duplicate(self, company, product):
         """El ``JOIN`` exige misma empresa — segundo control de la consulta."""
@@ -338,7 +344,7 @@ class TestTheDuplicateDetector:
         draft = SaleOrder.objects.create(
             company=company, partner=customer, client_order_ref='PO-976-c'
         )
-        assert list(draft.duplicated_orders) == []
+        assert list(draft.duplicated_order_ids) == []
 
     def test_a_confirmed_order_reports_no_duplicates(self, company, product):
         """La fuente sólo busca duplicados en borrador."""
@@ -366,7 +372,7 @@ class TestTheDuplicateDetector:
             product_uom_qty=1,
         )
         segunda.action_confirm()
-        assert list(segunda.duplicated_orders) == []
+        assert list(segunda.duplicated_order_ids) == []
 
 
 class TestNoneOfThemHasAColumn:
@@ -376,19 +382,20 @@ class TestNoneOfThemHasAColumn:
     tres casos caerían — y ese es exactamente el defecto que había que evitar.
     """
 
-    def test_none_of_the_eleven_is_a_model_field(self):
-        declared = {f.name for f in SaleOrder._meta.get_fields()}
-        assert [n for n in NON_STORED_FIELDS if n in declared] == []
+    def test_none_of_the_eleven_takes_a_column(self):
+        concrete = {f.name for f in SaleOrder._meta.concrete_fields}
+        assert [n for n in NON_STORED_FIELDS if n in concrete] == []
 
     def test_none_of_the_eleven_can_be_filtered(self, company):
+        """≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``)."""
         for name in NON_STORED_FIELDS:
-            with pytest.raises(FieldError):
+            with pytest.raises(ValueError, match='because it is not stored'):
                 SaleOrder.objects.filter(**{name: True}).exists()
 
     def test_the_stored_neighbours_do_survive_the_same_probe(self):
         """Control positivo: un campo que SÍ tiene columna pasa las dos
         comprobaciones de arriba al revés — si no, el instrumento mediría
         cualquier cosa."""
-        declared = {f.name for f in SaleOrder._meta.get_fields()}
+        declared = {f.name for f in SaleOrder._meta.concrete_fields}
         assert 'date_order' in declared
         assert 'state' in declared

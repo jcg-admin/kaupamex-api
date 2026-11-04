@@ -11,8 +11,9 @@ main_user_id."*
 
 - **el vendedor** (``user``) es quien atiende a este contacto. Es una columna
   con cómputo: se hereda del padre al crear y se puede reescribir a mano.
-- **el usuario principal** (``main_user``) es el inverso: de entre las cuentas
-  que apuntan a este partner, la más apropiada. No es columna — se deriva.
+- **el usuario principal** (``main_user_id``) es el inverso: de entre las
+  cuentas que apuntan a este partner, la más apropiada. No es columna — se
+  deriva.
 
 Confundirlos hace que asignar un vendedor cambie de quién es la cuenta, que es
 la clase de error que un contacto compartido entre dos comerciales destapa
@@ -163,7 +164,7 @@ class TestComputeMainUser:
     def test_the_only_active_user_is_the_main_one(self, db):
         """El eje."""
         account = _user('principal.unico@kaupamex.mx')
-        assert account.partner.main_user == account.pk
+        assert account.partner.main_user_id.pk == account.pk
 
     def test_an_internal_user_beats_a_shared_one(self, db):
         """CONTROL del término ``not u.share`` del orden.
@@ -176,7 +177,7 @@ class TestComputeMainUser:
         who = shared.partner
         internal.partner = who
         internal.save()
-        assert who.main_user == internal.pk
+        assert who.main_user_id.pk == internal.pk
 
     def test_among_internal_users_the_lowest_id_wins(self, db):
         """CONTROL del término ``-u.id`` del orden.
@@ -189,7 +190,7 @@ class TestComputeMainUser:
         who = first.partner
         second.partner = who
         second.save()
-        assert who.main_user == first.pk
+        assert who.main_user_id.pk == first.pk
 
     def test_an_archived_user_is_not_chosen(self, db):
         """CONTROL de ``user_ids.filtered('active')``.
@@ -204,7 +205,7 @@ class TestComputeMainUser:
         alive.save()
         archived.active = False
         archived.save()
-        assert who.main_user == alive.pk
+        assert who.main_user_id.pk == alive.pk
 
     def test_the_partner_of_the_current_user_is_that_user(self, db):
         """CONTROL de la primera rama, que cortocircuita el orden.
@@ -221,12 +222,12 @@ class TestComputeMainUser:
         viewer.partner = who
         viewer.save()
         with user_scope(viewer.pk):
-            assert who.main_user == viewer.pk
+            assert who.main_user_id.pk == viewer.pk
 
     def test_a_partner_without_users_has_no_main_user(self, db):
         """CONTROL del caso vacío — ni excepción ni un id inventado."""
         who = ResPartner.objects.create(name='Sin cuentas')
-        assert who.main_user is None
+        assert who.main_user_id is None
 
     def test_the_superuser_partner_falls_back_to_the_superuser(self, db):
         """CONTROL de la rama especial de la fuente.
@@ -248,7 +249,7 @@ class TestComputeMainUser:
         assert root.partner_id is not None, 'la cuenta raiz tiene partner'
         root.active = False
         root.save()
-        assert root.partner.main_user == SUPERUSER_ID
+        assert root.partner.main_user_id.pk == SUPERUSER_ID
 
 
 class TestDefaultCategory:

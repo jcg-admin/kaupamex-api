@@ -183,18 +183,18 @@ def _compute_available_model_ids(self, previous):
     que la fuente escribe con ``if rule_model in action.available_model_ids``.
 
     Va por ``overrides=`` porque el recorte opera sobre lo que la base
-    devolvió, no junto a ello.
+    devolvió, no junto a ello. Asigna el campo, como la fuente
+    (``action.available_model_ids = rule_model``): la base ya lo asignó con
+    el universo entero, y sin reasignarlo el recorte se perdería.
     """
     available = previous()
     if self.usage != USAGE_BASE_AUTOMATION:
         return available
     automation = _automation_of(self)
-    rule_model = (
-        getattr(automation, 'model_id_id', None) if automation else None
-    )
-    if rule_model is not None and rule_model in available:
-        return [rule_model]
-    return []
+    rule_model = automation.model_id if automation else None
+    value = [rule_model] if rule_model in available else []
+    self.available_model_ids = value
+    return value
 
 
 def _get_eval_context(self, previous, action=None):

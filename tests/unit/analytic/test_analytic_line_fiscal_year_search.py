@@ -9,14 +9,12 @@ campo necesitaba.
 """
 
 import datetime
-import inspect
 
 import pytest
 from dateutil.relativedelta import relativedelta
 
 from orm.domains import Domain, to_q
 from orm.environments import set_current_company
-from orm.fields_nonstored import NonStored
 
 from addons.analytic.models.analytic_line import AccountAnalyticLine
 from addons.base.models.res_company import ResCompany
@@ -39,24 +37,18 @@ class TestTheFieldIsANonStoredSearchOnly:
     """No es "campo virtual sólo de filtro de vista" — verificación de la
     forma exacta que ``porte-completo-no-parcial.md`` exige."""
 
-    def test_it_is_a_non_stored_descriptor(self):
-        descriptor = AccountAnalyticLine.__dict__.get('fiscal_year_search')
-        # Puede colgar de un mixin/ancestro si el MRO cambia; se resuelve
-        # igual que ``_field()`` de ``orm/domains.py``: por atributo estático.
-        if descriptor is None:
-            descriptor = inspect.getattr_static(
-                AccountAnalyticLine, 'fiscal_year_search'
-            )
-        assert isinstance(descriptor, NonStored)
+    def test_it_is_a_non_stored_boolean(self):
+        """≙ ``fields.Boolean(store=False, …)`` (``odoo19c: :222-226``)."""
+        field = AccountAnalyticLine._meta.get_field('fiscal_year_search')
+        assert field.type == 'boolean'
+        assert field.store is False
 
     def test_it_declares_the_search_method_of_the_source(self):
-        descriptor = inspect.getattr_static(
-            AccountAnalyticLine, 'fiscal_year_search'
-        )
-        assert descriptor.search == '_search_fiscal_date'
+        field = AccountAnalyticLine._meta.get_field('fiscal_year_search')
+        assert field.search == '_search_fiscal_date'
 
     def test_it_has_no_column(self):
-        names = {f.name for f in AccountAnalyticLine._meta.get_fields()}
+        names = {f.name for f in AccountAnalyticLine._meta.concrete_fields}
         assert 'fiscal_year_search' not in names
 
 

@@ -165,7 +165,7 @@ def test_abandoned_carts_fields_have_no_column(field):
     campos sin decirlo — y habría además una migración que este pase no
     escribe.
     """
-    assert field not in {f.name for f in CrmTeam._meta.get_fields()}
+    assert field not in {f.name for f in CrmTeam._meta.concrete_fields}
 
 
 def test_website_ids_is_the_related_name(team, settings_row):

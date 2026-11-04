@@ -21,7 +21,6 @@ Lo que se fija aquí:
 """
 
 import pytest
-from django.core.exceptions import FieldError
 from django.db.models import ProtectedError
 
 from addons.product.models import (
@@ -82,25 +81,33 @@ class TestTheNameHasNoColumn:
         )
         assert custom.name == f'{attribute_value}: Para Yemayá'
 
-    def test_the_name_is_not_a_model_field(self):
-        declared = {
-            f.name for f in ProductAttributeCustomValue._meta.get_fields()
+    def test_the_name_takes_no_column(self):
+        """Es un campo del modelo, como en ``_fields`` de la fuente, pero sin
+        columna."""
+        concrete = {
+            f.name for f in ProductAttributeCustomValue._meta.concrete_fields
         }
-        assert 'name' not in declared
+        assert 'name' not in concrete
         assert (
-            'custom_value' in declared
+            'custom_value' in concrete
         ), 'control positivo: el vecino SÍ tiene columna'
 
     def test_the_name_cannot_be_filtered(self, attribute_value):
-        with pytest.raises(FieldError):
+        """≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``):
+        un campo sin columna no se convierte a SQL."""
+        with pytest.raises(ValueError, match='because it is not stored'):
             ProductAttributeCustomValue.objects.filter(name='x').exists()
 
     def test_what_gets_written_never_reaches_the_database(
         self, attribute_value
     ):
-        """``NonStored`` admite asignación y no la persiste — igual que la
-        fuente, donde un campo sin almacenar sigue siendo escribible en
-        memoria."""
+        """Lo asignado vive en la caché del entorno, no en la tabla.
+
+        ≙ ``Field.write`` (``odoo19c: odoo/orm/fields.py:1501-1518``): escribir
+        actualiza la caché del registro, que es por id, así que otra lectura
+        del mismo registro en la misma transacción ve el valor. Lo que no
+        existe es la columna donde guardarlo.
+        """
         custom = ProductAttributeCustomValue.objects.create(
             custom_product_template_attribute_value_id=attribute_value,
             custom_value='original',
@@ -108,11 +115,13 @@ class TestTheNameHasNoColumn:
         custom.name = 'inventado'
         custom.save()
 
-        assert custom.name == 'inventado', 'vive en la instancia'
+        assert custom.name == 'inventado', 'vive en la caché'
         again = ProductAttributeCustomValue.objects.get(pk=custom.pk)
-        assert (
-            again.name == f'{attribute_value}: original'
-        ), 'no vive en la tabla'
+        assert again.name == 'inventado', 'la caché es por id'
+        columns = {
+            f.column for f in ProductAttributeCustomValue._meta.concrete_fields
+        }
+        assert 'name' not in columns, 'no vive en la tabla'
 
 
 class TestTheAttributeValueIsProtected:

@@ -89,7 +89,8 @@ SALE_ORDER_STATE = [
 #: ``res_company.py``.
 SALE_JOURNAL_DOMAIN = {'type': 'sale'}
 
-#: ≙ ``domain="['|', ('company_id','=',False), ('company_id','=',company_id)]"``
+#: ≙
+#: ``domain="['|', ('company_id','=',False), ('company_id','=',company_id)]"``
 #: de ``payment_term_id`` y ``pricelist_id`` (``:180,189``): los de la empresa
 #: del pedido o los compartidos. Es un invocable porque el segundo término
 #: depende del pedido.
@@ -101,7 +102,8 @@ def payment_term_domain(order):
 #: ≙ el mismo dominio, aplicado a la tarifa (``:191``).
 pricelist_domain = payment_term_domain
 
-#: ≙ ``domain="[('payment_type','=','inbound'), ('company_id','=',company_id)]"``
+#: ≙
+#: ``domain="[('payment_type','=','inbound'), ('company_id','=',company_id)]"``
 #: de ``preferred_payment_method_line_id`` (``:184``).
 def preferred_payment_method_domain(order):
     """Las líneas de método de pago entrantes de la empresa de ``order``."""
@@ -119,128 +121,16 @@ SALESPERSON_GROUP = 'sales_team.group_sale_salesman'
 _COMPANY_NOT_LOADED = object()
 
 
-def _compute_is_expired_default(order) -> bool:
-    """≙ ``_compute_is_expired`` (``odoo19c: sale_order.py:758-764``).
-
-    Cuerpo exacto de la referencia: cotización/enviada con vigencia vencida.
-    ``NonStored.resolve_default`` llama a este invocable con la instancia
-    porque acepta un parámetro (mismo protocolo que
-    ``account_fleet/models/account_move.py::_compute_need_vehicle``).
-
-    Usa la fecha del **servidor** a propósito: la referencia compara contra
-    ``fields.Date.today()`` aquí y contra ``fields.Date.context_today(self)``
-    en ``_compute_validity_date``. Esa asimetría se conserva — ver el
-    docstring de ``SaleOrder._compute_validity_date``.
-    """
-    return bool(
-        order.state in (order.STATE_DRAFT, order.STATE_SENT)
-        and order.validity_date
-        and order.validity_date < timezone.now().date()
-    )
-
-
-# --- los invocables de los campos no almacenados -------------------------
-# ``fields.NonStored`` toma su valor de un ``default=`` que puede ser un
-# invocable; ``NonStored.resolve_default`` le pasa la instancia cuando su firma
-# acepta un parámetro. Cada uno de los siguientes porta el cuerpo del
-# ``_compute_*`` homónimo de la referencia — mismo nombre, mismo cálculo.
-#
-# Viven a nivel de módulo y no como método porque el descriptor se declara en el
-# cuerpo de la clase y necesita el invocable ya definido. Es la misma forma que
-# ``_compute_is_expired_default`` estrenó arriba.
-
-
-def _compute_has_archived_products(order) -> bool:
-    """≙ ``_compute_has_archived_products`` (``odoo19c: sale_order.py:343-348``).
-
-    Cuerpo exacto: ``any(not product.active for product in
-    order.order_line.product_id)``. Aquí el recorrido va por el
-    ``related_name='order_line'`` de :class:`SaleOrderLine`, y el producto de
-    una línea puede ser nulo (línea de sección o de nota), así que se descarta
-    antes de leerle ``active`` — en la fuente ese caso no llega porque
-    ``order_line.product_id`` es un recordset que ya excluye los vacíos.
-    """
-    return any(
-        not line.product.active
-        for line in order.order_line.all()
-        if line.product_id is not None
-    )
-
-
-def _compute_has_active_pricelist(order) -> bool:
-    """≙ ``_compute_has_active_pricelist`` (``odoo19c: :468-473``).
-
-    Cuerpo exacto: existe alguna tarifa activa de la empresa del pedido o sin
-    empresa. El ``('company_id', 'in', (False, order.company_id.id))`` de la
-    fuente es aquí ``company__in=(None, order.company_id)``: en este ORM el
-    ``False`` de un Many2one vacío se escribe ``None``.
-    """
-    return ProductPricelist.objects.filter(
-        models.Q(company__isnull=True) | models.Q(company=order.company),
-        active=True,
-    ).exists()
-
-
-def _compute_tax_country(order):
-    """≙ ``_compute_tax_country_id`` (``odoo19c: :767-772``).
-
-    Cuerpo exacto: si la posición fiscal declara RFC propio en la región que
-    mapea, el país fiscal es el de esa posición; si no, el de la empresa.
-
-    La fuente lo marca ``compute_sudo=True`` con su razón escrita en el propio
-    campo — *«Avoid access error on fiscal position when reading a sale order
-    with company != user.company_ids»* (``:315``). Aquí la lectura de la
-    posición fiscal no pasa por el gestor acotado por reglas de fila, así que
-    no hay error de acceso que evitar: se lee la FK ya resuelta.
-    """
-    position = order.fiscal_position_id
-    if position is not None and position.foreign_vat:
-        return position.country
-    return order.company.account_fiscal_country if order.company_id else None
-
-
-def _compute_type_name(order) -> str:
-    """≙ ``_compute_type_name`` (``odoo19c: :815-820``).
-
-    Cuerpo exacto: ``draft``/``sent``/``cancel`` son una cotización; el resto,
-    una orden de venta. La fuente lo declara ``@api.depends_context('lang')``
-    porque el texto es traducible — aquí lo cubre ``_()``, que resuelve contra
-    el idioma activo en el momento de leerlo.
-    """
-    if order.state in (SaleOrder.STATE_DRAFT, SaleOrder.STATE_SENT,
-                       SaleOrder.STATE_CANCEL):
-        return _('Cotización')
-    return _('Orden de venta')
-
-
-def _compute_duplicated_orders(order):
-    """≙ ``_compute_duplicated_order_ids`` (``odoo19c: :692-697``).
-
-    Cuerpo fiel: sólo un pedido en borrador busca duplicados; los demás
-    devuelven vacío. La fuente lo resuelve sobre un recordset entero
-    (``draft_orders._fetch_duplicate_orders()``); aquí el descriptor se evalúa
-    por instancia, así que se consulta con esa sola.
-
-    Devuelve un ``QuerySet`` y no una lista de ids porque quien lo consuma
-    querrá el pedido, no su clave — es lo que la fuente entrega al declararlo
-    ``Many2many(comodel_name='sale.order')``.
-    """
-    if order.state != SaleOrder.STATE_DRAFT:
-        return SaleOrder.objects.none()
-    duplicados = SaleOrder.fetch_duplicate_orders([order])
-    return SaleOrder.objects.filter(pk__in=duplicados.get(order.pk, ()))
-
-
 class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                 MailActivityMixin, UtmMixin, AccountDocumentImportMixin,
                 TimeStampedModel):
     """``sale.order`` — cotización/carrito (draft) → orden de venta (sale).
 
     Hereda ``MailThread`` igual que ``sale.order`` hereda ``mail.thread`` en la
-    referencia (``odoo19x sale/models/sale_order.py:23``). El mixin es abstracto
-    y **no agrega columnas** —el hilo se materializa en ``mail_message`` /
-    ``mail_followers`` por el par polimórfico—, así que la herencia no genera
-    migración.
+    referencia (``odoo19x sale/models/sale_order.py:23``). El mixin es
+    abstracto y **no agrega columnas** —el hilo se materializa en
+    ``mail_message`` / ``mail_followers`` por el par polimórfico—, así que la
+    herencia no genera migración.
 
     Por qué importa para el cut-over: en la referencia la bitácora de la venta
     es ``tracking=True`` sobre ``state`` (``:81``), no una tabla lateral. El
@@ -289,9 +179,10 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
 
     # -- atributos de clase del modelo -------------------------------------
     # ≙ ``odoo19c: sale/models/sale_order.py:34-49``. Los cinco que la fuente
-    # declara, más los dos objetos de tabla y la propiedad ``_rec_names_search``
-    # (``atributos-de-clase-de-modelo.md``: se portan TODOS los que la fuente
-    # declare, verbatim, y no sustituyen a su forma Django).
+    # declara, más los dos objetos de tabla y la propiedad
+    # ``_rec_names_search`` (``atributos-de-clase-de-modelo.md``: se portan
+    # TODOS los que la fuente declare, verbatim, y no sustituyen a su forma
+    # Django).
 
     #: ≙ ``_name = 'sale.order'`` (``:35``). Cierra la mitad de cabecera de la
     #: tarea #574. Lo consume ``orm.registry.MODELS_BY_ODOO_NAME``, que es lo
@@ -314,17 +205,17 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     #: ≙ ``_order = 'date_order desc, id desc'`` (``:38``), y ``Meta.ordering``
     #: lo deriva: ``['-date_order', '-id']``.
     #:
-    #: La derivación es mecánica —cada término ``<campo> desc`` es un ``-campo``
-    #: de Django, en el mismo orden— y sólo fue posible al portar el
+    #: La derivación es mecánica —cada término ``<campo> desc`` es un
+    #: ``-campo`` de Django, en el mismo orden— y sólo fue posible al portar el
     #: ``default=fields.Datetime.now`` del campo: mientras ``date_order`` era
     #: NULL en los borradores, ordenar por él los habría agrupado en un bloque
     #: de NULL. Los dos cambios van juntos a propósito.
     _order = 'date_order desc, id desc'
 
     #: ≙ ``_check_company_auto = True`` (``:39``). NO es decorativo: lo lee
-    #: ``CheckCompanyMixin.save`` (``orm/models.py:856``), que ``TimeStampedModel``
-    #: ya hereda, y dispara ``_check_company()`` sobre los campos marcados
-    #: ``check_company=True``.
+    #: ``CheckCompanyMixin.save`` (``orm/models.py:856``), que
+    #: ``TimeStampedModel`` ya hereda, y dispara ``_check_company()`` sobre los
+    #: campos marcados ``check_company=True``.
     _check_company_auto = True
 
     @property
@@ -347,14 +238,14 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         return ['name']
 
     # Odoo SALE_ORDER_STATE (sale/models/sale_order.py:70, default 'draft').
-    STATE_DRAFT  = 'draft'    # cotización / carrito (website_sale)
-    STATE_SENT   = 'sent'     # cotización enviada
-    STATE_SALE   = 'sale'     # orden de venta confirmada
+    STATE_DRAFT = 'draft'    # cotización / carrito (website_sale)
+    STATE_SENT = 'sent'     # cotización enviada
+    STATE_SALE = 'sale'     # orden de venta confirmada
     STATE_CANCEL = 'cancel'
     STATES = [
-        (STATE_DRAFT,  'Cotización'),
-        (STATE_SENT,   'Cotización enviada'),
-        (STATE_SALE,   'Orden de venta'),
+        (STATE_DRAFT, 'Cotización'),
+        (STATE_SENT, 'Cotización enviada'),
+        (STATE_SALE, 'Orden de venta'),
         (STATE_CANCEL, 'Cancelada'),
     ]
 
@@ -364,22 +255,24 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # se ordena por fecha en el panel del comprador y en el admin.
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
-    # ``name`` NULL mientras es borrador (Odoo lo asigna al crear vía secuencia;
-    # aquí se asigna al confirmar). UNIQUE admite múltiples NULL en SQL.
-    name       = fields.Char(
+    # ``name`` NULL mientras es borrador (Odoo lo asigna al crear vía
+    # secuencia; aquí se asigna al confirmar). UNIQUE admite múltiples NULL en
+    # SQL.
+    name = fields.Char(
         max_length=20, unique=True, null=True, blank=True, db_index=True,
         help_text='Referencia SO (Odoo sale.order.name). NULL en borrador.',
     )
-    partner    = fields.Many2one(
+    partner = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Cliente (Odoo partner_id). NULL en carrito anónimo.',
     )
     cart_token = models.UUIDField(
         unique=True, null=True, blank=True, db_index=True,
-        help_text='Carrito anónimo — draft sin partner (paridad cart.cart_token).',
+        help_text='Carrito anónimo — draft sin partner (paridad '
+                  'cart.cart_token).',
     )
-    state      = fields.Selection(
+    state = fields.Selection(
         max_length=10, choices=STATES, default=STATE_DRAFT, db_index=True,
     )
     #: ≙ ``date_order`` (``odoo19c: sale/models/sale_order.py:92-96``), con sus
@@ -402,13 +295,14 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                   'borrador o enviada, fecha de confirmación una vez '
                   'confirmada.',
     )
-    locked     = fields.Boolean(
-        default=False, help_text='Orden bloqueada, no modificable (Odoo locked).',
+    locked = fields.Boolean(
+        default=False, help_text='Orden bloqueada, no modificable (Odoo '
+                                 'locked).',
     )
     # Odoo sale.order.team_id (Many2one crm.team) — atribución de la orden a un
-    # equipo de venta. El addon ``sale`` declara ``sales_team`` como dependencia
-    # justamente para añadir este campo.
-    team       = fields.Many2one(
+    # equipo de venta. El addon ``sale`` declara ``sales_team`` como
+    # dependencia justamente para añadir este campo.
+    team = fields.Many2one(
         'sales_team.CrmTeam', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Equipo de venta atribuido (Odoo sale.order.team_id).',
@@ -419,19 +313,23 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # partner efímero de website_sale — aquí se conserva el email snapshot.
     guest_email = fields.Char(
         max_length=254, blank=True, default='',
-        help_text='Email del comprador anónimo (BR-011). Vacío si hay partner.',
+        help_text='Email del comprador anónimo (BR-011). Vacío si hay '
+                  'partner.',
     )
-    notes       = fields.Text(
+    notes = fields.Text(
         blank=True, default='',
-        help_text='Notas del comprador al confirmar (paridad orders.Order.notes).',
+        help_text='Notas del comprador al confirmar (paridad '
+                  'orders.Order.notes).',
     )
     # Empresa dueña de la orden (Odoo sale.order.company_id). L3 rollout
     # SOL-085 S3: nullable durante el backfill (la migración asigna las filas
-    # heredadas a la founder company). Espeja el patrón de company.CompanySetting.
-    company     = fields.Many2one(
+    # heredadas a la founder company). Espeja el patrón de
+    # company.CompanySetting.
+    company = fields.Many2one(
         'base.ResCompany', null=True, blank=True,
         on_delete=models.CASCADE, related_name='sale_orders',
-        help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
+        help_text='Empresa dueña de la orden (Odoo company_id). NULL '
+                  'pre-backfill.',
     )
     # Vigencia de la cotización (Odoo sale.order.validity_date, tarea #256).
     # ``store=True, compute='_compute_validity_date', precompute=True`` en la
@@ -454,7 +352,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # E1 del retiro del espejo: el dato vivía sólo en orders.Order.
     # SET_NULL — el catálogo de envío es configuración; darlo de baja no
     # puede llevarse la venta por delante.
-    carrier     = fields.Many2one(
+    carrier = fields.Many2one(
         'delivery.ShippingMethod', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='sale_orders',
         help_text='Método de envío elegido (Odoo sale.order.carrier_id).',
@@ -464,7 +362,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # H-ADM-003). NO tienen equivalente en Odoo core —allí la cancelación es
     # ``state='cancel'`` + el hilo de ``mail.thread``—; son extensión propia
     # del proyecto, que el espejo legacy sí modelaba y el canónico no.
-    admin_cancelled_by  = fields.Many2one(
+    admin_cancelled_by = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='admin_cancelled_sale_orders',
         help_text='Admin que canceló. NULL si la canceló el comprador.',
@@ -473,7 +371,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         blank=True, default='',
         help_text='Motivo de la cancelación (comprador o admin).',
     )
-    cancelled_at        = fields.Datetime(
+    cancelled_at = fields.Datetime(
         null=True, blank=True,
         help_text='Momento de la cancelación. NULL si la orden no se canceló.',
     )
@@ -482,7 +380,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # sale→account (dirección correcta: account es la capa contable base). El
     # enlace hace idempotente action_create_invoice: una orden ya facturada no
     # emite duplicado. related_name='+' — sin accesor inverso (account limpio).
-    invoice     = fields.Many2one(
+    invoice = fields.Many2one(
         'account.AccountMove', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='+',
         help_text='Factura emitida de la orden (Odoo invoice_ids, 1:1).',
@@ -501,12 +399,12 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         help_text='Subtotal sin IVA, suma de líneas (Odoo amount_untaxed).',
         compute='_compute_amounts', store=True,
     )
-    amount_tax     = fields.Monetary(
+    amount_tax = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='IVA de la orden, suma de líneas (Odoo amount_tax).',
         compute='_compute_amounts', store=True,
     )
-    amount_total   = fields.Monetary(
+    amount_total = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Total de la orden, suma de líneas (Odoo amount_total).',
         compute='_compute_amounts', store=True,
@@ -517,26 +415,27 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # (``odoo19c: sale_order.py:1894,1914``), quedan fuera: confirmado
     # ausentes en ``src/`` (0 hits de implementación), eje portal sin
     # superficie propia en este stack. Es DECISIÓN de alcance, no omisión.
-    is_expired = fields.NonStored(
-        default=_compute_is_expired_default,
+    is_expired = fields.Boolean(
+        'Is Expired', compute='_compute_is_expired',
         help_text='Si la cotización venció (Odoo is_expired, compute, '
                   'store=False): state en draft/sent y validity_date '
                   'anterior a hoy.',
     )
 
     # === Campos de la referencia que faltaban =============================
-    # ≙ ``odoo19c: sale/models/sale_order.py:52-330``. Los nombres de FK pierden
-    # el sufijo ``_id`` porque Django lo repone en la columna: ``partner =
-    # fields.Many2one(...)`` escribe ``partner_id``, que es exactamente el
-    # nombre de la fuente. Es la convención dominante del árbol — medido por
-    # AST sobre ``addons/**/models/*.py``: 495 declaraciones relacionales sin
-    # sufijo contra 98 con él.
+    # ≙ ``odoo19c: sale/models/sale_order.py:52-330``. Los nombres de FK
+    # pierden el sufijo ``_id`` porque Django lo repone en la columna:
+    # ``partner = fields.Many2one(...)`` escribe ``partner_id``, que es
+    # exactamente el nombre de la fuente. Es la convención dominante del árbol
+    # — medido por AST sobre ``addons/**/models/*.py``: 495 declaraciones
+    # relacionales sin sufijo contra 98 con él.
 
     # -- referencias del cliente y del documento ---------------------------
     client_order_ref = fields.Char(
         max_length=64, blank=True, default='',
         verbose_name='Referencia del cliente',
-        help_text='Odoo client_order_ref ("Customer Reference"). El número con '
+        help_text='Odoo client_order_ref ("Customer Reference"). El número '
+                  'con '
                   'que el cliente identifica esta compra de su lado.',
     )
     commitment_date = fields.Datetime(
@@ -554,7 +453,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     reference = fields.Char(
         max_length=64, blank=True, default='',
         verbose_name='Referencia de pago',
-        help_text='Odoo reference ("Payment Ref."). La comunicación de pago de '
+        help_text='Odoo reference ("Payment Ref."). La comunicación de pago '
+                  'de '
                   'este pedido — lo que el cliente ve en su estado de cuenta.',
     )
     pending_email_template_id = fields.Many2one(
@@ -569,13 +469,15 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
 
     # -- confirmación por el portal: firma, pago y anticipo ----------------
     # Los tres son ``compute … store=True, readonly=False, precompute=True`` en
-    # la fuente (``:109-123``): su valor inicial sale de la empresa y el usuario
-    # puede sobreescribirlo. Aquí el ``default`` cubre el ``precompute`` del
-    # alta y los tres ``_compute_*`` correspondientes llegan con el bloque de
-    # cómputos; el usuario puede escribirlos porque son columnas normales.
+    # la fuente (``:109-123``): su valor inicial sale de la empresa y el
+    # usuario puede sobreescribirlo. Aquí el ``default`` cubre el
+    # ``precompute`` del alta y los tres ``_compute_*`` correspondientes llegan
+    # con el bloque de cómputos; el usuario puede escribirlos porque son
+    # columnas normales.
     require_signature = fields.Boolean(
         default=True, verbose_name='Firma en línea',
-        help_text='Odoo require_signature ("Online signature"). Pide firma del '
+        help_text='Odoo require_signature ("Online signature"). Pide firma '
+                  'del '
                   'cliente para confirmar el pedido. Su valor inicial sale de '
                   'company.portal_confirmation_sign.',
     )
@@ -587,7 +489,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     )
     prepayment_percent = fields.Float(
         default=1.0, verbose_name='Porcentaje de anticipo',
-        help_text='Odoo prepayment_percent ("Prepayment percentage"). Fracción '
+        help_text='Odoo prepayment_percent ("Prepayment percentage"). '
+                  'Fracción '
                   'del importe que el cliente debe pagar para confirmar. Su '
                   'valor inicial sale de company.prepayment_percent.',
     )
@@ -612,13 +515,16 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         db_column='journal_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Diario de facturación',
-        help_text='Odoo journal_id ("Invoicing Journal"). Si se fija, el pedido '
-                  'factura en este diario; si no, se usa el diario de ventas de '
+        help_text='Odoo journal_id ("Invoicing Journal"). Si se fija, el '
+                  'pedido '
+                  'factura en este diario; si no, se usa el diario de ventas '
+                  'de '
                   'menor secuencia. Acotado por SALE_JOURNAL_DOMAIN.',
     )
     note = fields.Html(
         blank=True, default='', verbose_name='Términos y condiciones',
-        help_text='Odoo note ("Terms and conditions"). Su valor inicial sale de '
+        help_text='Odoo note ("Terms and conditions"). Su valor inicial sale '
+                  'de '
                   'los términos de la empresa.',
     )
     partner_invoice_id = fields.Many2one(
@@ -627,8 +533,10 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         db_index=True, verbose_name='Dirección de facturación',
         help_text='Odoo partner_invoice_id ("Invoice Address"). '
-                  'index="btree_not_null" en la fuente: aquí el índice lo pone '
-                  'Django con la FK; el tramo parcial se declara en Meta.indexes '
+                  'index="btree_not_null" en la fuente: aquí el índice lo '
+                  'pone '
+                  'Django con la FK; el tramo parcial se declara en '
+                  'Meta.indexes '
                   'cuando el volumen lo justifique.',
     )
     partner_shipping_id = fields.Many2one(
@@ -643,7 +551,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         db_column='fiscal_position_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Posición fiscal',
-        help_text='Odoo fiscal_position_id ("Fiscal Position"). Adapta impuestos '
+        help_text='Odoo fiscal_position_id ("Fiscal Position"). Adapta '
+                  'impuestos '
                   'y cuentas para un cliente o pedido concreto; su valor por '
                   'omisión sale del cliente.',
     )
@@ -670,8 +579,10 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         db_column='pricelist_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Tarifa',
-        help_text='Odoo pricelist_id ("Pricelist"). Cambiarla sólo afecta a las '
-                  'líneas que se añadan después. Acotada por PRICELIST_DOMAIN.',
+        help_text='Odoo pricelist_id ("Pricelist"). Cambiarla sólo afecta a '
+                  'las '
+                  'líneas que se añadan después. Acotada por '
+                  'PRICELIST_DOMAIN.',
     )
     currency_id = fields.Many2one(
         'base.ResCurrency', null=True, blank=True,
@@ -679,14 +590,16 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         on_delete=models.PROTECT, related_name='+',
         verbose_name='Divisa',
         help_text='Odoo currency_id (compute, store=True, precompute, '
-                  "ondelete='restrict'). Sale de la tarifa, o de la empresa si "
-                  'el pedido no tiene tarifa. PROTECT ≙ restrict.',
+                  "ondelete='restrict'). Sale de la tarifa, o de la empresa "
+                  'si el pedido no tiene tarifa. PROTECT ≙ restrict.',
     )
     currency_rate = fields.Float(
         default=1.0, verbose_name='Tipo de cambio',
-        help_text='Odoo currency_rate ("Currency Rate", digits=0 — sin redondeo '
+        help_text='Odoo currency_rate ("Currency Rate", digits=0 — sin '
+                  'redondeo '
                   'declarado). Tasa aplicada al confirmar, congelada en el '
-                  'pedido para que un cambio posterior no reescriba el importe.',
+                  'pedido para que un cambio posterior no reescriba el '
+                  'importe.',
     )
     user_id = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True,
@@ -695,7 +608,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         db_index=True, verbose_name='Vendedor',
         help_text='Odoo user_id ("Salesperson"). NO es el cliente —ese es '
                   '``partner``—: es quien atiende la venta. Acotado por '
-                  'SALESPERSON_GROUP: usuario interno del grupo de ventas de la '
+                  'SALESPERSON_GROUP: usuario interno del grupo de ventas de '
+                  'la '
                   'empresa del pedido.',
     )
 
@@ -703,7 +617,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     invoice_status = fields.Selection(
         max_length=16, choices=INVOICE_STATUS, null=True, blank=True,
         verbose_name='Estado de facturación',
-        help_text='Odoo invoice_status (compute, store=True). Deriva del estado '
+        help_text='Odoo invoice_status (compute, store=True). Deriva del '
+                  'estado '
                   'de facturación de las líneas: por facturar, facturado por '
                   'completo, oportunidad de venta adicional, o nada que '
                   'facturar.',
@@ -721,42 +636,39 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
 
     # -- los campos NO almacenados de la referencia ------------------------
     # ≙ ``odoo19c: sale/models/sale_order.py:235-327``. Ninguno tiene columna:
-    # ``fields.NonStored`` es el equivalente construido de su ``store=False``,
-    # y por eso no generan migración ni se pueden filtrar. La referencia declara
-    # 19 en este tramo; aquí van los 11 cuyo insumo ya existe en el árbol, y los
-    # 8 restantes se declaran abajo con su bloqueo medido y su sucesor.
+    # se declaran con su tipo y ``compute=``/``related=``/``store=False``,
+    # como allá (TASK-API-0418), y por eso no generan migración. La referencia
+    # declara 19 en este tramo; aquí van los 11 cuyo insumo ya existe en el
+    # árbol, y los 8 restantes se declaran abajo con su bloqueo medido y su
+    # sucesor.
 
-    # Los cuatro ``related=`` — la cadena se recorre en el invocable porque un
-    # ``NonStored`` no la resuelve por sí solo. Su destino son los cuatro campos
+    # Los cuatro ``related=``, declarados como la fuente con los nombres de
+    # este árbol (TASK-API-0418). Su destino son los cuatro campos
     # que ``account`` acaba de colgarle a ``res.company``
     # (``addons/account/models/res_company.py``): sin ellos el ``related`` no
     # tendría a qué apuntar.
-    country_code = fields.NonStored(
-        default=lambda order: (
-            order.company.account_fiscal_country.code
-            if order.company_id and order.company.account_fiscal_country_id
-            else None),
+    country_code = fields.Char(
+        'Country code', related='company.account_fiscal_country.code',
         help_text='Odoo country_code '
                   '(related="company_id.account_fiscal_country_id.code"). '
                   'Código del país fiscal de la empresa del pedido.',
     )
-    company_price_include = fields.NonStored(
-        default=lambda order: (order.company.account_price_include
-                               if order.company_id else None),
+    company_price_include = fields.Selection(
+        related='company.account_price_include',
         help_text='Odoo company_price_include '
                   '(related="company_id.account_price_include"). Si el precio '
                   'de venta de la empresa incluye impuestos.',
     )
-    tax_calculation_rounding_method = fields.NonStored(
-        default=lambda order: (order.company.tax_calculation_rounding_method
-                               if order.company_id else None),
+    tax_calculation_rounding_method = fields.Selection(
+        related='company.tax_calculation_rounding_method',
+        depends=['company'],
         help_text='Odoo tax_calculation_rounding_method '
                   '(related="company_id.tax_calculation_rounding_method", '
-                  'depends=["company_id"]). Redondeo por impuesto o por línea.',
+                  'depends=["company_id"]). Redondeo por impuesto o por '
+                  'línea.',
     )
-    terms_type = fields.NonStored(
-        default=lambda order: (order.company.terms_type
-                               if order.company_id else None),
+    terms_type = fields.Selection(
+        related='company.terms_type',
         help_text='Odoo terms_type (related="company_id.terms_type"). Si los '
                   'términos y condiciones van como nota o como enlace.',
     )
@@ -765,46 +677,50 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # computed, not stored)»* (``:321-327``). No tienen ``compute``: son
     # banderas que la vista pone y lee dentro de la misma edición, y por eso
     # nacen en ``False``.
-    show_update_fpos = fields.NonStored(
-        default=False,
+    show_update_fpos = fields.Boolean(
+        'Has Fiscal Position Changed', store=False,
         help_text='Odoo show_update_fpos ("Has Fiscal Position Changed", '
                   'store=False). Verdadero si la posición fiscal cambió y la '
                   'vista debe ofrecer recalcular los impuestos.',
     )
-    show_update_pricelist = fields.NonStored(
-        default=False,
+    show_update_pricelist = fields.Boolean(
+        'Has Pricelist Changed', store=False,
         help_text='Odoo show_update_pricelist ("Has Pricelist Changed", '
-                  'store=False). Verdadero si la tarifa cambió y la vista debe '
+                  'store=False). Verdadero si la tarifa cambió y la vista '
+                  'debe '
                   'ofrecer recalcular los precios.',
     )
 
-    # Los cinco ``compute`` cuyo cuerpo se porta entero — cada invocable vive a
-    # nivel de módulo, arriba, con la cita de su línea en la fuente.
-    has_archived_products = fields.NonStored(
-        default=_compute_has_archived_products,
+    # Los cinco ``compute`` cuyo cuerpo se porta entero — cada método vive en
+    # la clase, abajo, con la cita de su línea en la fuente.
+    has_archived_products = fields.Boolean(
+        compute='_compute_has_archived_products',
         help_text='Odoo has_archived_products (compute, store=False). Si '
                   'alguna línea apunta a un producto archivado.',
     )
-    has_active_pricelist = fields.NonStored(
-        default=_compute_has_active_pricelist,
-        help_text='Odoo has_active_pricelist (compute, store=False). Si existe '
+    has_active_pricelist = fields.Boolean(
+        compute='_compute_has_active_pricelist',
+        help_text='Odoo has_active_pricelist (compute, store=False). Si '
+                  'existe '
                   'alguna tarifa activa para la empresa del pedido.',
     )
-    tax_country = fields.NonStored(
-        default=_compute_tax_country,
+    tax_country_id = fields.Many2one(
+        'base.ResCountry', compute='_compute_tax_country_id',
+        compute_sudo=True, related_name='+',
         help_text='Odoo tax_country_id (compute, store=False, '
                   'compute_sudo=True). País cuyo régimen fiscal acota los '
                   'impuestos disponibles: el de la posición fiscal si declara '
                   'RFC propio, si no el de la empresa.',
     )
-    type_name = fields.NonStored(
-        default=_compute_type_name,
+    type_name = fields.Char(
+        'Type Name', compute='_compute_type_name',
         help_text='Odoo type_name ("Type Name", compute, store=False). '
                   '"Cotización" mientras no se confirma; "Orden de venta" '
                   'después.',
     )
-    duplicated_orders = fields.NonStored(
-        default=_compute_duplicated_orders,
+    duplicated_order_ids = fields.Many2many(
+        'sale.SaleOrder', compute='_compute_duplicated_order_ids',
+        related_name='+',
         help_text='Odoo duplicated_order_ids (Many2many sale.order, compute, '
                   'store=False). Pedidos del mismo cliente y empresa cuyo '
                   'origen o referencia coincide con los de éste.',
@@ -815,25 +731,35 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # declara aquí su bloqueo con la forma fija y su sucesor, que es el bloque
     # siguiente de esta misma tarea #976 — no una iniciativa futura.
     #
-    # BLOQUEADO por ``sale.order.line`` — ``addons/sale/models/sale_order_line.py``
-    # tiene 164 líneas contra las 2036 de su contraparte, y ninguno de los
-    # campos que estos cómputos leen (``amount_to_invoice``, ``amount_invoiced``,
-    # ``invoice_lines``, ``customer_lead``, ``display_type``,
-    # ``sale_line_warn_msg``) está declarado. Sucesor: #976, bloque 3.
+    # BLOQUEADO por ``sale.order.line`` —
+    # ``addons/sale/models/sale_order_line.py`` tiene 164 líneas contra las
+    # 2036 de su contraparte, y ninguno de los campos que estos cómputos leen
+    # (``amount_to_invoice``, ``amount_invoiced``, ``invoice_lines``,
+    # ``customer_lead``, ``display_type``, ``sale_line_warn_msg``) está
+    # declarado. Sucesor: #976, bloque 3.
     #
-    #   amount_to_invoice   (``:235``)  suma de ``order_line.amount_to_invoice``
-    #   amount_invoiced     (``:236``)  suma de ``order_line.amount_invoiced``
-    #   invoice_count       (``:238``)  ``_get_invoiced``, sobre ``invoice_lines``
-    #   expected_date       (``:301``)  ``_expected_date()`` de cada línea
-    #   sale_warning_text   (``:253``)  ``sale_line_warn_msg`` de cada línea
+    # amount_to_invoice   (``:235``)  suma de ``order_line.amount_to_invoice``
+    # amount_invoiced     (``:236``)  suma de ``order_line.amount_invoiced``
+    # invoice_count       (``:238``)  ``_get_invoiced``, sobre
+    # ``invoice_lines`` expected_date       (``:301``)  ``_expected_date()`` de
+    # cada línea sale_warning_text   (``:253``)  ``sale_line_warn_msg`` de cada
+    # línea
     #
-    # BLOQUEADO por ``account.tax`` — su fachada de tubería de impuestos no
-    # está portada: ``_add_tax_details_in_base_line``,
-    # ``_add_tax_details_in_base_lines``, ``_round_base_lines_tax_details`` y
-    # ``_get_tax_totals_summary`` dan 0 declaraciones en
-    # ``addons/account/models/account_tax.py``. Sucesor: #143.
+    # BLOQUEADO por
+    # ``sale.order.line._prepare_base_line_for_taxes_computation`` — los
+    # dos cómputos arman una línea base por línea de pedido (``odoo19c:
+    # :684-685``, ``:804``) y ese método da 0 declaraciones en
+    # ``addons/sale/models/sale_order_line.py``. La fachada de ``account.tax``
+    # que consumen después ya existe (``_add_tax_details_in_base_line``,
+    # ``_add_tax_details_in_base_lines``, ``_round_base_lines_tax_details``).
+    # Sucesor: #976, bloque 3.
     #
     #   amount_undiscounted (``:295``)  base sin descuento, línea por línea
+    #
+    # BLOQUEADO por ``account.tax._get_tax_totals_summary`` — además del
+    # método de línea de arriba; da 0 declaraciones en
+    # ``addons/account/models/account_tax.py``. Sucesor: #143.
+    #
     #   tax_totals          (``:316``)  resumen de impuestos para la vista
     #
     # BLOQUEADO por ``account.move`` — ``_build_credit_warning_message`` no
@@ -848,12 +774,12 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # ``payment.transaction``, y el resto del archivo los consume desde
     # ``_compute_authorized_transaction_ids`` y ``_compute_amount_paid``.
     #
-    # BLOQUEADO por ``payment.transaction`` — el modelo no existe en este árbol;
-    # ``addons/payment/models/`` declara Chargeback, PaymentGatewayEvent,
-    # Payment, PaymentGateway, Refund, SavedCard y WebhookEvent, y el análogo
-    # más cercano, ``payment.py::Payment``, modela el cobro efectuado y no la
-    # transacción de pasarela con sus estados ni su enlace al pedido.
-    # Sucesor: #983.
+    # BLOQUEADO por ``payment.transaction`` — el modelo no existe en este
+    # árbol; ``addons/payment/models/`` declara Chargeback,
+    # PaymentGatewayEvent, Payment, PaymentGateway, Refund, SavedCard y
+    # WebhookEvent, y el análogo más cercano, ``payment.py::Payment``, modela
+    # el cobro efectuado y no la transacción de pasarela con sus estados ni su
+    # enlace al pedido. Sucesor: #983.
     #
     #   transaction_ids            (``:257``)  Many2many payment.transaction
     #   authorized_transaction_ids (``:263``)  compute sobre las anteriores
@@ -869,22 +795,23 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
-        db_table     = 'sale_order'
+        db_table = 'sale_order'
         # Derivado de ``_order`` de la cabecera, término a término. Antes era
         # ``['-created_at']``, que coincide con éste en todo pedido que no se
         # haya confirmado —``date_order`` nace igual a la creación— y difiere
         # sólo en los confirmados, donde ``action_confirm`` reescribe la fecha
         # con el instante de la confirmación. Eso es exactamente lo que la
         # fuente ordena.
-        ordering     = ['-date_order', '-id']
+        ordering = ['-date_order', '-id']
         verbose_name = 'Orden de venta'
         verbose_name_plural = 'Órdenes de venta'
-        indexes      = [
-            # ≙ ``_date_order_id_idx = models.Index("(date_order desc, id desc)")``
-            # (``odoo19c: sale/models/sale_order.py:329``). Sostiene el ``_order``
-            # de la cabecera, que ``Meta.ordering`` ya deriva término a término
-            # desde la tarea #984; el índice sirve además a toda consulta que
-            # ordene por fecha, no sólo al orden por omisión.
+        indexes = [
+            # ≙ ``_date_order_id_idx =``
+            # ``models.Index("(date_order desc, id desc)")``
+            # (``odoo19c: sale/models/sale_order.py:329``). Sostiene el
+            # ``_order`` de la cabecera, que ``Meta.ordering`` ya deriva
+            # término a término desde la tarea #984; el índice sirve además a
+            # toda consulta que ordene por fecha, no sólo al orden por omisión.
             # ``fields=`` y no posicional: un ``Index`` con cadenas sueltas las
             # trata como **expresiones**, y ahí el prefijo ``-`` no es
             # descendente sino un nombre de columna que el resolutor no
@@ -893,7 +820,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
             models.Index(fields=['-date_order', '-id'],
                          name='sale_order_date_order_id_idx'),
         ]
-        constraints  = [
+        constraints = [
             # Un solo draft por partner, garantizado por la BASE y no por
             # convención de código. El rodeo anterior lo sostenía en
             # services.get_or_create_draft_order() "porque MariaDB no soporta
@@ -904,9 +831,9 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
             # función; una migración de datos, un script de mantenimiento o dos
             # peticiones concurrentes lo saltan. La base no.
             #
-            # partner__isnull=False acota el índice a las filas que le importan:
-            # el carrito anónimo (partner NULL, unicidad por cart_token) queda
-            # fuera. Ver H-API-309.
+            # partner__isnull=False acota el índice a las filas que le
+            # importan: el carrito anónimo (partner NULL, unicidad por
+            # cart_token) queda fuera. Ver H-API-309.
             models.UniqueConstraint(
                 fields=['partner'],
                 condition=models.Q(state='draft', partner__isnull=False),
@@ -929,6 +856,112 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                     'confirmación.'),
             ),
         ]
+
+    def _compute_is_expired(self):
+        """≙ ``_compute_is_expired`` (``odoo19c: sale_order.py:758-764``).
+
+        Cuerpo exacto de la referencia: cotización/enviada con vigencia
+        vencida. Usa la fecha del **servidor** a propósito: la referencia
+        compara contra ``fields.Date.today()`` aquí y contra
+        ``fields.Date.context_today(self)`` en ``_compute_validity_date``. Esa
+        asimetría se conserva — ver el docstring de
+        ``SaleOrder._compute_validity_date``.
+        """
+        self.is_expired = value = bool(
+            self.state in (self.STATE_DRAFT, self.STATE_SENT)
+            and self.validity_date
+            and self.validity_date < timezone.now().date()
+        )
+        return value
+
+    @api.depends('order_line.product')
+    def _compute_has_archived_products(self):
+        """≙ ``_compute_has_archived_products`` (``odoo19c: :343-348``).
+
+        Cuerpo exacto: ``any(not product.active for product in
+        order.order_line.product_id)``. Aquí el recorrido va por el
+        ``related_name='order_line'`` de :class:`SaleOrderLine`, y el producto
+        de una línea puede ser nulo (línea de sección o de nota), así que se
+        descarta antes de leerle ``active`` — en la fuente ese caso no llega
+        porque ``order_line.product_id`` es un recordset que ya excluye los
+        vacíos.
+        """
+        self.has_archived_products = value = any(
+            not line.product.active
+            for line in self.order_line.all()
+            if line.product_id is not None
+        )
+        return value
+
+    @api.depends('company')
+    def _compute_has_active_pricelist(self):
+        """≙ ``_compute_has_active_pricelist`` (``odoo19c: :468-473``).
+
+        Cuerpo exacto: existe alguna tarifa activa de la empresa del pedido o
+        sin empresa. El ``('company_id', 'in', (False, order.company_id.id))``
+        de la fuente es aquí ``company__isnull`` o ``company``: en este ORM el
+        ``False`` de un Many2one vacío se escribe ``None``.
+        """
+        self.has_active_pricelist = value = ProductPricelist.objects.filter(
+            models.Q(company__isnull=True) | models.Q(company=self.company),
+            active=True,
+        ).exists()
+        return value
+
+    @api.depends('company', 'fiscal_position_id')
+    def _compute_tax_country_id(self):
+        """≙ ``_compute_tax_country_id`` (``odoo19c: :767-772``).
+
+        Cuerpo exacto: si la posición fiscal declara RFC propio en la región
+        que mapea, el país fiscal es el de esa posición; si no, el de la
+        empresa. La fuente lo marca ``compute_sudo=True`` —*«Avoid access
+        error on fiscal position when reading a sale order with company !=
+        user.company_ids»* (``:315``)— y aquí se declara igual.
+        """
+        position = self.fiscal_position_id
+        if position is not None and position.foreign_vat:
+            value = position.country
+        else:
+            value = (self.company.account_fiscal_country
+                     if self.company_id else None)
+        self.tax_country_id = value
+        return value
+
+    @api.depends_context('lang')
+    @api.depends('state')
+    def _compute_type_name(self):
+        """≙ ``_compute_type_name`` (``odoo19c: :815-820``).
+
+        Cuerpo exacto: ``draft``/``sent``/``cancel`` son una cotización; el
+        resto, una orden de venta. El texto es traducible, y por eso depende
+        del contexto ``lang`` como en la fuente.
+        """
+        if self.state in (self.STATE_DRAFT, self.STATE_SENT,
+                          self.STATE_CANCEL):
+            value = _('Cotización')
+        else:
+            value = _('Orden de venta')
+        self.type_name = value
+        return value
+
+    @api.depends('client_order_ref', 'origin', 'partner')
+    def _compute_duplicated_order_ids(self):
+        """≙ ``_compute_duplicated_order_ids`` (``odoo19c: :692-697``).
+
+        Cuerpo fiel: sólo un pedido en borrador busca duplicados; los demás
+        quedan vacíos. La fuente lo resuelve sobre un recordset entero
+        (``draft_orders._fetch_duplicate_orders()``); aquí se consulta con el
+        pedido solo. El valor son pedidos, no sus ids, como el ``Many2many``
+        de la fuente.
+        """
+        if self.state != self.STATE_DRAFT:
+            value = SaleOrder.objects.none()
+        else:
+            duplicates = SaleOrder.fetch_duplicate_orders([self])
+            value = SaleOrder.objects.filter(
+                pk__in=duplicates.get(self.pk, ()))
+        self.duplicated_order_ids = value
+        return value
 
     @classmethod
     def fetch_duplicate_orders(cls, orders):
@@ -983,7 +1016,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                  AND sale_order.partner_id = duplicate_order.partner_id
                  AND (
                     sale_order.origin = duplicate_order.name
-                    OR sale_order.client_order_ref = duplicate_order.client_order_ref
+                    OR sale_order.client_order_ref
+                       = duplicate_order.client_order_ref
                 )
              WHERE sale_order.id = ANY(%(orders)s)
              GROUP BY sale_order.id
@@ -1054,13 +1088,15 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         )
         if company_changed:
             self._compute_validity_date()
-            if update_fields is not None and 'validity_date' not in update_fields:
+            if (update_fields is not None
+                    and 'validity_date' not in update_fields):
                 kwargs['update_fields'] = [*update_fields, 'validity_date']
         super().save(*args, **kwargs)
         self._loaded_company_id = self.company_id
 
     # amount_untaxed/tax/total — de sale.order._compute_amounts
-    # (sale/models/sale_order.py:513): suma del desglose por línea ya redondeado.
+    # (sale/models/sale_order.py:513): suma del desglose por línea ya
+    # redondeado.
     #
     # Los tres atributos son **columnas** de la línea desde que
     # ``SaleOrderLine._compute_amount`` las puebla en su ``save()``; antes eran
@@ -1076,7 +1112,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     @api.depends('order_line.price_subtotal', 'order_line.price_tax',
                  'order_line.price_total')
     def _compute_amounts(self):
-        """Recalcula y persiste ``amount_untaxed``/``amount_tax``/``amount_total``.
+        """Recalcula y persiste
+        ``amount_untaxed``/``amount_tax``/``amount_total``.
 
         Espeja ``sale.order._compute_amounts`` (Odoo sale/models/sale_order.py:
         513): suma el desglose ya redondeado **por línea** — ``SaleOrderLine``
@@ -1130,8 +1167,9 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # ------------------------------------------------------------------
     # Máquina de estados de venta — de sale.order (sale/models/sale_order.py):
     # action_confirm (1166), action_draft (1058), action_lock (1318),
-    # action_cancel (1324). Es la transición que el checkout dispara al unificar
-    # cart→order (draft → sale). Adaptación single-record de los métodos Odoo.
+    # action_cancel (1324). Es la transición que el checkout dispara al
+    # unificar cart→order (draft → sale). Adaptación single-record de los
+    # métodos Odoo.
     # ------------------------------------------------------------------
     def _track(self, field, field_desc, field_type, old, new):
         """Deja el cambio de ``field`` en el chatter (Odoo ``tracking=True``).
@@ -1159,7 +1197,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         if self.state == self.STATE_CANCEL:
             raise ValidationError('No se puede confirmar una orden cancelada.')
         if not self.order_line.exists():
-            raise ValidationError('No se puede confirmar una orden sin líneas.')
+            raise ValidationError('No se puede confirmar una orden sin '
+                                  'líneas.')
         previo = self.state
         if not self.name:
             self.name = _next_sale_name()
@@ -1223,7 +1262,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         if self.invoice_id is not None:
             return self.invoice
         if self.company_id is None:
-            raise UserError(_('La orden no tiene empresa asignada para facturar.'))
+            raise UserError(_('La orden no tiene empresa asignada para '
+                              'facturar.'))
         move = create_invoice_from_sale_order(self, self.company)
         move.post()
         self.invoice = move

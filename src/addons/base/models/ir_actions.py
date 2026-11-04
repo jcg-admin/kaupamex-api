@@ -774,14 +774,15 @@ class ServerActionHistoryWizard(TransientModel):
             .first()
         )
 
-    #: ≙ ``current_code = fields.Text(related='action_id.code')`` (``:480``).
-    #: Un ``related`` de la fuente es lectura derivada, y aquí lo es también:
-    #: ``NonStored`` computa al leer y no añade columna.
-    current_code = fields.NonStored(
-        default=lambda wizard: (wizard.action.code if wizard.action else ''),
+    #: ≙ ``current_code = fields.Text(related='action_id.code',
+    #: readonly=True)`` (``:479``). ``action`` es el ``action_id`` de la
+    #: fuente con el nombre de este árbol.
+    current_code = fields.Text(
+        related='action.code', readonly=True,
         help_text='Odoo current_code. El código vigente de la acción.',
     )
 
+    @api.depends('revision')
     def _compute_code_diff(self):
         """≙ ``_compute_code_diff`` (``:487-497``).
 
@@ -793,20 +794,22 @@ class ServerActionHistoryWizard(TransientModel):
         revision_code = self.revision.code if self.revision else ''
         actual_code = self.action.code if self.action else ''
         if actual_code == revision_code:
-            return False
-        return get_diff(
+            self.code_diff = value = False
+            return value
+        self.code_diff = value = get_diff(
             (actual_code or '', 'Código actual'),
             (revision_code or '', 'Código de la revisión'),
             dark_color_scheme=get_context().get('color_scheme') == 'dark',
         )
+        return value
 
     #: ≙ ``code_diff = fields.Html(compute=…, sanitize_tags=False)``
     #: (``:479``).
     #: El ``sanitize_tags=False`` de la fuente permite el ``<style>`` que
     #: ``get_diff`` adjunta; aquí no hay saneador que desactivar, así que el
     #: parámetro no tiene receptor y su efecto ya se cumple.
-    code_diff = fields.NonStored(
-        default=lambda wizard: wizard._compute_code_diff(),
+    code_diff = fields.Html(
+        compute='_compute_code_diff',
         help_text=(
             'Odoo code_diff. La diferencia entre el código vigente y '
             'el de la revisión, como tabla HTML.'
@@ -1276,20 +1279,18 @@ class IrActionsServer(IrActionsBase):
 
     # ---- Lo derivado: en la fuente son ``compute``; aquí, no persistidos ---
     #
-    # Los siete se declaran con ``fields.NonStored`` —el mecanismo que este
-    # árbol construyó para el ``store=False`` de la referencia— porque ninguno
-    # tiene columna allá tampoco. Los dos ``related`` de la fuente
-    # (``crud_model_name``, ``update_field_type``) entran en el mismo saco: un
-    # ``related`` es lectura derivada de otra fila, que es exactamente lo que
-    # un ``NonStored`` con ``default`` invocable resuelve.
+    # Se declaran como la fuente: cinco con su tipo y ``compute=``, y los dos
+    # ``related`` (``crud_model_name``, ``update_field_type``) con
+    # ``related=``. Ninguno tiene columna allá ni aquí: el eje es ``store``,
+    # no una clase aparte (TASK-API-0418).
 
     #: ≙ ``allowed_states`` (``odoo19c: ir_actions.py:630``) —
     #: ``fields.Json(compute='_compute_allowed_states')``. La lista de estados
     #: que el formulario ofrece; la fuente la calcula desde la propia
     #: ``selection`` del campo ``state`` para que un addon que la extienda no
     #: tenga que tocar dos sitios.
-    allowed_states = fields.NonStored(
-        default=lambda action: action._compute_allowed_states(),
+    allowed_states = fields.Json(
+        'Allowed states', compute='_compute_allowed_states',
         help_text='Odoo allowed_states. Los estados que el formulario ofrece.',
     )
     #: ≙ ``available_model_ids`` (``:637``) — los modelos sobre los que el
@@ -1297,47 +1298,52 @@ class IrActionsServer(IrActionsBase):
     #: ``ir.model.access._get_allowed_models()``; aquí el equivalente es el
     #: censo de modelos reflejados, y la autorización efectiva la sigue
     #: decidiendo la capacidad (DEC-11) en la vista.
-    available_model_ids = fields.NonStored(
-        default=lambda action: action._compute_available_model_ids(),
+    available_model_ids = fields.Many2many(
+        'base.IrModel', compute='_compute_available_model_ids',
+        related_name='+',
         help_text='Odoo available_model_ids. Modelos disponibles.',
     )
     #: ≙ ``show_code_history`` (``:646``) — si existe alguna revisión del
     #: código distinta de la vigente.
-    show_code_history = fields.NonStored(
-        default=lambda action: action._compute_show_code_history(),
+    show_code_history = fields.Boolean(
+        compute='_compute_show_code_history',
         help_text='Odoo show_code_history. Si hay historial que ofrecer.',
     )
     #: ≙ ``crud_model_name = fields.Char(related='crud_model_id.model')``
     #: (``:657``). Falso cuando no hay modelo destino, como el ``related`` de
     #: la fuente sobre un Many2one vacío.
-    crud_model_name = fields.NonStored(
-        default=lambda action: (
-            action.crud_model_id.model if action.crud_model_id else False
-        ),
+    crud_model_name = fields.Char(
+        'Target Model Name', related='crud_model_id.model', readonly=True,
         help_text='Odoo crud_model_name. Nombre técnico del modelo destino.',
     )
     #: ≙ ``update_field_type =
     #: fields.Selection(related='update_field_id.ttype')``
     #: (``:667``).
-    update_field_type = fields.NonStored(
-        default=lambda action: (
-            action.update_field_id.ttype if action.update_field_id else False
-        ),
+    update_field_type = fields.Selection(
+        related='update_field_id.ttype', readonly=True,
         help_text='Odoo update_field_type. Tipo del campo a actualizar.',
     )
     #: ≙ ``value_field_to_show`` (``:694-701``) — cuál de los seis campos de
     #: valor enseña el formulario. La fuente deja escrito en el propio nombre
     #: del método que es candidato a retirarse en favor del ``ttype`` en la
     #: vista; se porta con esa nota, no como diseño propio.
-    value_field_to_show = fields.NonStored(
-        default=lambda action: action._compute_value_field_to_show(),
+    value_field_to_show = fields.Selection(
+        choices=[
+            ('value', 'value'),
+            ('html_value', 'html_value'),
+            ('sequence_id', 'sequence_id'),
+            ('resource_ref', 'reference'),
+            ('update_boolean_value', 'update_boolean_value'),
+            ('selection_value', 'selection_value'),
+        ],
+        compute='_compute_value_field_to_show',
         help_text='Odoo value_field_to_show. Qué campo de valor mostrar.',
     )
     #: ≙ ``webhook_sample_payload`` (``:709``) — la carga de ejemplo que el
     #: formulario enseña para que quien configura el webhook vea la forma del
     #: JSON antes de que exista ningún envío.
-    webhook_sample_payload = fields.NonStored(
-        default=lambda action: action._compute_webhook_sample_payload(),
+    webhook_sample_payload = fields.Text(
+        'Sample Payload', compute='_compute_webhook_sample_payload',
         help_text='Odoo webhook_sample_payload. Carga de ejemplo del webhook.',
     )
 
@@ -1402,8 +1408,9 @@ class IrActionsServer(IrActionsBase):
         Los nombres de los que ``warning`` depende. Se declaran **con los
         nombres de la fuente**, incluidos los de campos que este árbol aún no
         tiene: la lista es el contrato de dependencia, y recortarla escondería
-        qué falta. Los que no existen aquí no se recalculan porque no hay quien
-        los escriba, no porque la lista los omita.
+        qué falta. Por eso todavía no decora ``_compute_warning``:
+        ``model_id`` no existe aquí y ``resolve_depends`` rehúsa un nombre
+        ausente, como la fuente. Se cablea con **TASK-GEN-0391**.
         """
         return [
             'state',
@@ -1503,19 +1510,25 @@ class IrActionsServer(IrActionsBase):
         ``child_ids.filtered('warning')`` seleccione sólo a las que avisan.
         """
         warnings = self._get_warning_messages()
-        return '\n\n'.join(warnings) if warnings else False
+        self.warning = value = '\n\n'.join(warnings) if warnings else False
+        return value
 
     #: ≙ ``warning`` (``odoo19c: ir_actions.py:639``):
     #: ``fields.Text(compute='_compute_warning', recursive=True)``.
     #:
     #: Es **no persistido**, como allá: se calcula al leerlo y no tiene
-    #: columna. El mecanismo es ``orm.fields_nonstored.NonStored``, que este
-    #: árbol construyó para el ``store=False`` de la referencia. Se declara
-    #: con ``fields.NonStored`` y no con ``fields.Text(store=False, …)``
-    #: porque ``Text`` no acepta ese parámetro en este árbol —sólo ``Char`` lo
-    #: despacha—; el efecto es el mismo y el sitio, el de la fuente.
-    warning = fields.NonStored(
-        default=lambda action: action._compute_warning(),
+    #: columna.
+    #:
+    #: BLOQUEO MEDIDO: la fuente declara ``@api.depends`` con
+    #: ``_warning_depends``, y dos de sus nombres —``model_id`` y
+    #: ``child_ids.model_id``— no existen aquí: este modelo guarda
+    #: ``model_name`` como ``Char`` en vez de la FK a ``ir.model``. Declarar
+    #: esa dependencia hace fallar el arranque del registro
+    #: (``Wrong @depends``), así que el compute se despacha al leer y no se
+    #: recalcula por dependencia hasta que **TASK-GEN-0391** convierta
+    #: ``model_name`` en FK.
+    warning = fields.Text(
+        'Warning', compute='_compute_warning', recursive=True,
         help_text='Odoo warning. Por qué esta acción está mal configurada.',
     )
 
@@ -1529,20 +1542,25 @@ class IrActionsServer(IrActionsBase):
         tocar dos sitios. Es lo que hacen las dos extensiones de Enterprise que
         redefinen este método.
         """
-        return [value for value, __ in self._meta.get_field('state').choices]
+        state = self._meta.get_field('state')
+        self.allowed_states = value = [key for key, __ in state.choices]
+        return value
 
+    @api.depends('state')
     def _compute_available_model_ids(self):
         """≙ ``_compute_available_model_ids`` (``:851-856``).
 
         La fuente acota con ``ir.model.access._get_allowed_models()``. Aquí la
         autorización efectiva la decide la **capacidad** (DEC-11,
         ``HasCapability``, fail-closed) en la vista, no una lista colgada del
-        registro; este cómputo devuelve el censo de modelos reflejados, que es
+        registro; este cómputo asigna el censo de modelos reflejados, que es
         el universo del que la vista después recorta. Divergencia de
         mecanismo, declarada: el conjunto es igual o mayor, y quien decide no
-        cambia.
+        cambia. El valor son filas de ``ir.model``, como el recordset de la
+        fuente, no sus ids.
         """
-        return list(IrModel.objects.values_list('id', flat=True))
+        self.available_model_ids = value = list(IrModel.objects.all())
+        return value
 
     def _generate_action_name(self):
         """
@@ -1600,6 +1618,7 @@ class IrActionsServer(IrActionsBase):
             self.automated_name = self._generate_action_name()
             self.name = self.automated_name
 
+    @api.depends('state', 'code')
     def _compute_show_code_history(self):
         """≙ ``_compute_show_code_history`` (``:788-796``).
 
@@ -1607,13 +1626,16 @@ class IrActionsServer(IrActionsBase):
         acción cuyo historial es su propio código no tiene nada que comparar.
         """
         if self.state != 'code' or not self.pk:
-            return False
-        return (
+            self.show_code_history = value = False
+            return value
+        self.show_code_history = value = (
             IrActionsServerHistory.objects.filter(action_id=self.pk)
             .exclude(code=self.code or '')
             .exists()
         )
+        return value
 
+    @api.depends('evaluation_type', 'update_field_id')
     def _compute_value_field_to_show(self):
         """≙ ``_compute_value_field_to_show`` (``:1244-1257``).
 
@@ -1621,18 +1643,25 @@ class IrActionsServer(IrActionsBase):
         a retirarse en favor del ``ttype`` en la vista; se porta con esa nota.
         """
         if self.evaluation_type == 'sequence':
-            return 'sequence_id'
+            self.value_field_to_show = value = 'sequence_id'
+            return value
         ttype = self.update_field_id.ttype if self.update_field_id else None
         if ttype in ('one2many', 'many2one', 'many2many'):
-            return 'resource_ref'
+            self.value_field_to_show = value = 'resource_ref'
+            return value
         if ttype == 'selection':
-            return 'selection_value'
+            self.value_field_to_show = value = 'selection_value'
+            return value
         if ttype == 'boolean':
-            return 'update_boolean_value'
+            self.value_field_to_show = value = 'update_boolean_value'
+            return value
         if ttype == 'html':
-            return 'html_value'
-        return 'value'
+            self.value_field_to_show = value = 'html_value'
+            return value
+        self.value_field_to_show = value = 'value'
+        return value
 
+    @api.depends('state', 'model_name', 'webhook_field_ids', 'name')
     def _compute_webhook_sample_payload(self):
         """≙ ``_compute_webhook_sample_payload`` (``:858-877``).
 
@@ -1642,7 +1671,8 @@ class IrActionsServer(IrActionsBase):
         allá: la carga puede traer mapas con claves que no son cadena.
         """
         if self.state != 'webhook':
-            return False
+            self.webhook_sample_payload = value = False
+            return value
         payload = {
             '_id': 1,
             '_model': self.model_name,
@@ -1661,9 +1691,10 @@ class IrActionsServer(IrActionsBase):
                     payload[field_row.name] = WEBHOOK_SAMPLE_VALUES.get(
                         field_row.ttype, WEBHOOK_SAMPLE_VALUES[None]
                     )
-        return json.dumps(
+        self.webhook_sample_payload = value = json.dumps(
             stringify_keys(payload), indent=4, sort_keys=True, default=str
         )
+        return value
 
     @classmethod
     def _get_children_domain(cls):

@@ -182,7 +182,7 @@ class TestTheDerivedSurface:
     def test_available_model_ids_are_the_reflected_models(self):
         _partner_model()
 
-        assert _partner_model().pk in _action().available_model_ids
+        assert _partner_model() in _action().available_model_ids
 
     def test_crud_model_name_follows_its_foreign_key(self):
         """≙ ``related='crud_model_id.model'``."""

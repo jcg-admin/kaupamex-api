@@ -377,10 +377,14 @@ class StockMoveLine(TimeStampedModel):
 
     #: ≙ ``quant_id`` (``:94``) — «Dummy field for the detailed operation
     #: view». La referencia lo declara ``store=False``: existe para leerse y
-    #: escribirse en memoria, nunca para consultarse. Aquí es el mismo
-    #: mecanismo (``orm/fields_nonstored.py``), no una ``property``: la
-    #: referencia **le asigna** valor (``vals.get('quant_id')`` en ``create``).
-    quant = fields.NonStored(help_text='Existencia de la que se toma (Odoo quant_id).')
+    #: escribirse en memoria, nunca para consultarse. Se declara como allá,
+    #: ``Many2one(store=False)``, no como una ``property``: la referencia
+    #: **le asigna** valor (``vals.get('quant_id')`` en ``create``). Sin
+    #: columna, así que lleva el nombre de la fuente (TASK-API-0418).
+    quant_id = fields.Many2one(
+        'stock.StockQuant', 'Pick From', store=False, related_name='+',
+        help_text='Existencia de la que se toma (Odoo quant_id).',
+    )
 
     class Meta:
         db_table = 'stock_move_line'
@@ -608,7 +612,7 @@ class StockMoveLine(TimeStampedModel):
         propone lo disponible del quant, acotado por lo que al movimiento le
         falta. Si al movimiento no le falta nada, propone todo lo disponible.
         """
-        quant = self.quant
+        quant = self.quant_id
         if quant is None or self.quantity:
             return
         uom_producto = self.product.uom

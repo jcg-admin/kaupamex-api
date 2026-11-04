@@ -25,9 +25,9 @@ Divergencia de mecanismo declarada
 
 ``name`` (``odoo19c: :11``)
     La fuente lo declara ``compute='_compute_name'`` **sin** ``store=True``:
-    es un campo sin columna. Aquí se declara con :class:`fields.NonStored`,
-    que es el equivalente construido de ese ``store=False``
-    (``src/orm/fields_nonstored.py``). El cuerpo del cómputo va verbatim.
+    es un campo sin columna, y aquí se declara igual,
+    ``fields.Char(compute=…)`` (TASK-API-0418). El cuerpo del cómputo va
+    verbatim y asigna el campo como allá.
 
 ``custom_product_template_attribute_value_id`` (``:12``)
     Se porta con el símbolo **verbatim de la fuente** —con su sufijo ``_id``—
@@ -42,25 +42,11 @@ Divergencia de mecanismo declarada
     personalizado.
 """
 
+import api
 import fields
 import models
 
 from addons.base.models import TimeStampedModel
-
-
-def _compute_name(record) -> str:
-    """Cuerpo de ``_compute_name`` (``odoo19c: :20-25``).
-
-    Cuerpo fiel: el nombre es el texto que el comprador escribió, y si el
-    valor de atributo tiene nombre para mostrar, se antepone separado por dos
-    puntos. La fuente lee ``display_name``; aquí el equivalente es el
-    ``__str__`` del valor, que es lo que ese ``display_name`` produce.
-    """
-    name = (record.custom_value or '').strip()
-    value = record.custom_product_template_attribute_value_id
-    if value is not None and str(value):
-        name = f'{value}: {name}'
-    return name
 
 
 class ProductAttributeCustomValue(TimeStampedModel):
@@ -89,9 +75,8 @@ class ProductAttributeCustomValue(TimeStampedModel):
         help_text='Odoo custom_value. Lo que el comprador escribió.',
     )
     # ``name`` es el campo SIN columna de la fuente (``compute`` sin
-    # ``store``).
-    # ``fields.NonStored`` es el equivalente construido de ese ``store=False``.
-    name = fields.NonStored(default=_compute_name)
+    # ``store``), declarado como allá (TASK-API-0418).
+    name = fields.Char('Name', compute='_compute_name')
 
     class Meta:
         db_table = 'product_attribute_custom_value'
@@ -101,6 +86,27 @@ class ProductAttributeCustomValue(TimeStampedModel):
         ordering = ['custom_product_template_attribute_value_id', 'id']
         verbose_name = 'Valor personalizado de atributo'
         verbose_name_plural = 'Valores personalizados de atributo'
+
+    @api.depends('custom_product_template_attribute_value_id', 'custom_value')
+    def _compute_name(self):
+        """≙ ``_compute_name`` (``odoo19c: :20-25``).
+
+        Cuerpo fiel: el nombre es el texto que el comprador escribió, y si el
+        valor de atributo tiene nombre para mostrar, se antepone separado por
+        dos puntos. La fuente lee ``display_name``; aquí el equivalente es el
+        ``__str__`` del valor, que es lo que ese ``display_name`` produce.
+
+        La fuente depende de
+        ``custom_product_template_attribute_value_id.name``; ese ``name`` no
+        es todavía un campo de ``product.template.attribute.value`` en este
+        árbol, así que la dependencia se declara sobre el enlace.
+        """
+        name = (self.custom_value or '').strip()
+        value = self.custom_product_template_attribute_value_id
+        if value is not None and str(value):
+            name = f'{value}: {name}'
+        self.name = name
+        return name
 
     def __str__(self) -> str:
         return self.name

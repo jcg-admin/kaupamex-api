@@ -94,8 +94,6 @@ EQUIVALENCE = {
     'language_ids': 'languages',
     'default_lang_id': 'default_lang',
     'user_id': 'user',
-    'partner_id': 'partner',
-    'menu_id': 'menu',
     'theme_id': 'theme',
 }
 
@@ -123,10 +121,12 @@ def test_the_forty_four_source_fields_are_declared():
     uno.** Preguntando sólo a ``_meta.get_fields()`` daban por ausentes cinco
     campos que sí estaban portados — ``domain_punycode``, ``language_count``,
     ``blocked_third_party_domains``, ``partner_id`` y ``menu_id``—, porque los
-    cinco son ``compute`` **sin** ``store=True`` en la fuente y aquí van con
-    ``fields.NonStored``, que es un descriptor y no una columna. El
+    cinco son ``compute`` **sin** ``store=True`` en la fuente y entonces iban
+    con ``fields.NonStored``, que era un descriptor y no una columna. El
     instrumento era ciego justo al fenómeno sobre el que concluía
-    (``metrica-decide-la-conclusion.md``).
+    (``metrica-decide-la-conclusion.md``). Hoy los cinco se declaran con su
+    tipo y llevan el nombre de la fuente, así que ``partner_id`` y
+    ``menu_id`` salen del mapa de equivalencias.
 
     *Métrica:* el nombre aparece como columna en ``_meta`` **o** como atributo
     declarado en la clase.

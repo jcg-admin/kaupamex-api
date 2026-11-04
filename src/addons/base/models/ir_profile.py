@@ -63,12 +63,10 @@ Divergencias declaradas
   igual que en ``res_device.py:316``. El contenido es el mismo: la sesión de
   Django es un ``dict`` con la misma superficie (``__setitem__``/``get``) que
   la de la fuente.
-- **Los tres ``_compute_*`` devuelven el valor en vez de asignarlo.** La
-  fuente asigna dentro de un bucle (``profile.config_url = …``) porque su ORM
-  computa sobre el recordset entero. El mecanismo sin columna de este árbol
-  —``orm.fields_nonstored.NonStored``— resuelve **por fila** al leerla, así
-  que el cuerpo devuelve. Es la forma que ``ir_actions.py:1291`` ya fijó para
-  ``warning``.
+- **Los tres ``_compute_*`` asignan su campo, como la fuente**
+  (``profile.config_url = …``), y devuelven el valor a quien los llame
+  directo. Los tres campos se declaran con su tipo y ``compute=``, sin
+  columna (TASK-API-0418).
 - **El ``@api.autovacuum`` de ``_gc_profile``** y el resto del comportamiento
   se portan verbatim.
 
@@ -434,23 +432,17 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
     #: ≙ ``speedscope`` (``odoo19c: ir_profile.py:47``):
     #: ``fields.Binary('Speedscope', compute='_compute_speedscope')``.
     #: Sin columna, como allá: el documento se genera al leerlo.
-    speedscope = fields.NonStored(
-        'Speedscope',
-        default=lambda profile: profile._compute_speedscope(),
-        compute='_compute_speedscope',
+    speedscope = fields.Binary(
+        'Speedscope', compute='_compute_speedscope',
     )
     #: ≙ ``speedscope_url`` (``:48``): ``fields.Text('Open', compute=…)``.
-    speedscope_url = fields.NonStored(
-        'Open',
-        default=lambda profile: profile._compute_speedscope_url(),
-        compute='_compute_speedscope_url',
+    speedscope_url = fields.Text(
+        'Open', compute='_compute_speedscope_url',
     )
     #: ≙ ``config_url`` (``:50``):
     #: ``fields.Text('Open profiles config', compute=…)``.
-    config_url = fields.NonStored(
-        'Open profiles config',
-        default=lambda profile: profile._compute_config_url(),
-        compute='_compute_config_url',
+    config_url = fields.Text(
+        'Open profiles config', compute='_compute_config_url',
     )
 
     #: Difiere las trazas, como el ``prefetch=False`` de la referencia.
@@ -497,7 +489,8 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
 
     def _compute_config_url(self):
         """≙ ``_compute_config_url`` (``odoo19c: ir_profile.py:90-92``)."""
-        return f'/web/profile_config/{self.id}'
+        self.config_url = value = f'/web/profile_config/{self.id}'
+        return value
 
     @api.depends('init_stack_trace')
     def _compute_speedscope(self):
@@ -507,12 +500,15 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
         interruptores de la vista; ``_parse_params`` es quien los acota.
         """
         params = self._parse_params(get_context())
-        return base64.b64encode(self._generate_speedscope(params))
+        self.speedscope = value = base64.b64encode(
+            self._generate_speedscope(params))
+        return value
 
     @api.depends('speedscope')
     def _compute_speedscope_url(self):
         """≙ ``_compute_speedscope_url`` (``:161-164``)."""
-        return f'/web/speedscope/{self.id}'
+        self.speedscope_url = value = f'/web/speedscope/{self.id}'
+        return value
 
     @classmethod
     def _enabled_until(cls):

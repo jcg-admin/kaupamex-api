@@ -189,7 +189,7 @@ class TestPortedSurface:
     def test_the_first_page_is_a_non_stored_field(self):
         # ``compute`` sin ``store`` (``:23``): no genera columna.
         assert hasattr(IrUiView, 'first_page_id')
-        columns = {f.name for f in IrUiView._meta.get_fields()}
+        columns = {f.name for f in IrUiView._meta.concrete_fields}
         assert 'first_page_id' not in columns
 
     def test_the_visibility_choices_come_from_the_source(self):

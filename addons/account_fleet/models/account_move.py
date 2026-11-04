@@ -116,7 +116,8 @@ def _add_if_absent(model, name, field):
         model.add_to_class(name, field)
 
 
-# -- las funciones que se cuelgan por nombre en apply_account_fleet_extensions() --
+# -- las funciones que se cuelgan por nombre en
+# apply_account_fleet_extensions() --
 
 
 def _compute_need_vehicle(self):
@@ -126,6 +127,7 @@ def _compute_need_vehicle(self):
     addon de UI decida cuándo hacer editable ``vehicle`` en el formulario de
     la línea — sin capa de formularios, la decisión la toma el cliente.
     """
+    self.need_vehicle = False
     return False
 
 
@@ -225,7 +227,8 @@ def apply_account_fleet_extensions():
     aquí) — el propio ``importlib.import_module`` de ``ready()`` ya ejecuta
     el cuerpo del módulo una vez.
     """
-    # --- account.move.line (2 de 3 campos; el tercero es un accesor inverso) ---
+    # --- account.move.line (2 de 3 campos; el tercero es un accesor
+    # inverso) ---
     _add_if_absent(
         AccountMoveLine, 'vehicle',
         fields.Many2one(
@@ -237,8 +240,8 @@ def apply_account_fleet_extensions():
                       'servicio de flota correspondiente.'),
     )
     if not hasattr(AccountMoveLine, 'need_vehicle'):
-        AccountMoveLine.add_to_class('need_vehicle', fields.NonStored(
-            default=_compute_need_vehicle,
+        AccountMoveLine.add_to_class('need_vehicle', fields.Boolean(
+            compute='_compute_need_vehicle',
             help_text='Si el apunte admite asociar un vehículo (Odoo '
                       'need_vehicle, compute, store=False). Constante False '
                       'en el puerto base — un addon de UI lo redefine.',

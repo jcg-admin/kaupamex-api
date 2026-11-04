@@ -38,9 +38,9 @@ Divergencias transversales, declaradas una vez aquí
    ``odoo19c: addons/website/models/ir_ui_view.py``). Esa extensión no está
    portada, así que el eje por sitio vive en la página misma; cuando la COW
    se porte, este campo puede volver a ``related``.
-3. **Los ``compute`` sin ``store`` van con ``fields.NonStored``** (mismo
-   mecanismo que los cinco de ``website.py``); el ``_compute_*`` devuelve el
-   valor en vez de asignarlo al recordset.
+3. **Los ``compute`` sin ``store`` se declaran como en la fuente** — su
+   tipo y su ``compute=``, sin columna— y el ``_compute_*`` asigna su campo
+   y devuelve el valor (TASK-API-0418). Antes iban con ``NonStored``.
 4. **``create``/``write`` → ``save``, ``unlink`` → ``delete``** — la
    divergencia CRUD ya declarada en B1 de ``website.py``.
 5. **Sin ``tools.ormcache``** — BLOQUEADO por ``tools.ormcache`` — la
@@ -78,6 +78,7 @@ migración de los endpoints REST y del contenido es la tarea **#560**.
 import re
 from collections import Counter
 
+import api
 import fields
 import models
 from django.utils import timezone
@@ -256,18 +257,14 @@ class WebsitePage(
         ),
     )
 
-    # ── Campos NO almacenados (compute sin store, divergencia 3) ────────────
+    # ── Campos NO almacenados (compute sin store, punto 3) ───────────────────
 
     #: ≙ ``is_in_menu`` (``:49``).
-    is_in_menu = fields.NonStored(
-        default=lambda self: self._compute_website_menu()
-    )
+    is_in_menu = fields.Boolean(compute='_compute_website_menu')
     #: ≙ ``is_homepage`` (``:50``).
-    is_homepage = fields.NonStored(
-        default=lambda self: self._compute_is_homepage()
-    )
+    is_homepage = fields.Boolean('Homepage', compute='_compute_is_homepage')
     #: ≙ ``is_visible`` (``:51``).
-    is_visible = fields.NonStored(default=lambda self: self._compute_visible())
+    is_visible = fields.Boolean('Is Visible', compute='_compute_visible')
 
     class Meta:
         db_table = 'website_page'
@@ -328,26 +325,32 @@ class WebsitePage(
         """
         current_website = Website.get_current_website()
         if current_website is None:
-            return False
-        return self.url == (
+            self.is_homepage = value = False
+            return value
+        self.is_homepage = value = self.url == (
             current_website.homepage_url
             or (self.website_id == current_website.pk and '/')
         )
+        return value
 
     def _compute_visible(self):
         """≙ ``_compute_visible`` (``:63-67``)."""
-        return bool(
+        self.is_visible = value = bool(
             self.website_published
             and (not self.date_publish or self.date_publish < timezone.now())
         )
+        return value
 
+    @api.depends('menu_ids')
     def _compute_website_menu(self):
         """
         ≙ ``_compute_website_menu`` (``@api.depends('menu_ids')``, ``:70-72``).
         """
         if not self.pk:
-            return False
-        return self.menu_ids.exists()
+            self.is_in_menu = value = False
+            return value
+        self.is_in_menu = value = self.menu_ids.exists()
+        return value
 
     def _compute_website_url(self):
         """≙ ``_compute_website_url`` (``@api.depends('url')``, ``:77-80``)."""

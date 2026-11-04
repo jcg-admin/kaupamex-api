@@ -1,8 +1,11 @@
-"""``base.module.install.request`` / ``base.module.install.review`` — el asistente.
+"""``base.module.install.request`` / ``base.module.install.review``.
+
+El asistente.
 
 Adaptación de ``odoo19c: addons/base_install_request/wizard/
 base_module_install_request.py`` (``odoo-tools@622ddc2a``, LGPL-3, 87 líneas)
-y de ``_auto_install_apps`` (``odoo19c: base_install_request/__init__.py:9-21``)
+y de ``_auto_install_apps``
+(``odoo19c: base_install_request/__init__.py:9-21``)
 — atribución y aviso de licencia preservados (DEC-KX-03).
 
 El sitio del archivo es el de la fuente
@@ -10,8 +13,9 @@ El sitio del archivo es el de la fuente
 
 La versión anterior de este puerto vivía en ``models/``. La referencia lo
 declara en ``wizard/`` (``ls`` sobre la raíz: ``wizard/__init__.py`` y
-``wizard/base_module_install_request.py``), y ``atributos-de-clase-de-modelo.md``
-§2 manda listar la raíz de la referencia antes de decidir dónde va un archivo.
+``wizard/base_module_install_request.py``), y
+``atributos-de-clase-de-modelo.md`` §2 manda listar la raíz de la referencia
+antes de decidir dónde va un archivo.
 El precedente propio es ``src/addons/base/wizard/``.
 
 Porte BLOQUEADO — 6 de 8 símbolos
@@ -80,18 +84,20 @@ Símbolo a símbolo
   existe en este árbol (medido arriba: 0 definiciones fuera de este addon).
   Sucesor: tarea **#452**, que porta lo que le falta a
   ``src/addons/base/models/ir_module.py``.
-- ``_auto_install_apps`` (``__init__.py:9-21``) —
-  BLOQUEADO por ``ir.module.module.button_install`` — misma medición, 0
-  definiciones. Sucesor: tarea **#452**.
+- ``_auto_install_apps`` (``__init__.py:9-21``) — portado. Su bloqueo era
+  ``ir.module.module.button_install``, que ya existe. Lo que no se porta es
+  su cableado como ``post_init_hook``: el cargador de este árbol no ejecuta
+  ganchos de manifiesto (0 consumidores en ``src/``), así que la función se
+  invoca a mano.
 
 Divergencias declaradas — de mecanismo, no de alcance
 ======================================================
 
 - **``user_ids`` y ``module_ids`` no tienen columna.** La fuente los declara
-  ``compute=`` sin ``store``, así que aquí son ``fields.NonStored``: se
-  computan al leer y no añaden tabla intermedia. El método de cómputo conserva
-  su nombre (``_compute_user_ids``, ``_compute_modules_description``) y el
-  descriptor lo invoca.
+  ``compute=`` sin ``store``, y aquí se declaran igual —``Many2many`` con
+  ``compute=``, sin columna ni tabla intermedia (TASK-API-0418)—. El método
+  de cómputo conserva su nombre (``_compute_user_ids``,
+  ``_compute_modules_description``) y asigna su campo como allá.
 - **La descripción se compone en Python, no en QWeb.** La fuente la delega en
   ``ir.qweb._render`` sobre la plantilla
   ``base_install_request.base_module_install_review_description``; este árbol
@@ -109,7 +115,8 @@ Divergencias declaradas — de mecanismo, no de alcance
   ``force_send`` (aquí, el envío inmediato del ejecutor) y el contexto de
   render con ``partner`` y ``menu_id``.
 - **``ensure_one()`` no se porta.** Aquí ``self`` es una instancia por
-  construcción; mismo criterio que ``src/addons/base/models/res_company.py:744``.
+  construcción; mismo criterio que
+  ``src/addons/base/models/res_company.py:744``.
 
 Lo que este archivo no cierra
 ==============================
@@ -121,16 +128,19 @@ ruta del cliente web de Odoo, se declara en ``data.py``.
 """
 import html
 
+import api
 import fields
 import models
 from exceptions import UserError
 
 from addons.base.models.ir_model import IrModelData
+from addons.base.models.ir_module import IrModule
 from addons.base_install_request.data import (
     INSTALL_REQUEST_TEMPLATE_MODULE, INSTALL_REQUEST_TEMPLATE_XMLID)
 from addons.mail.models.email_executor import dispatch_email
-from orm.environments import get_current_user
+from orm.environments import get_current_user, sudo
 from orm.models_transient import TransientModel
+from tools import config
 from tools.translate import _
 
 #: ≙ ``self.env.ref('base.group_system')`` (``:24``) — el grupo cuyos usuarios
@@ -165,7 +175,8 @@ def render_modules_description(apps):
     """El marcado de la plantilla QWeb, compuesto en Python.
 
     ≙ ``base_install_request.base_module_install_review_description``
-    (``odoo19c: base_install_request/data/mail_templates_module_install.xml:3-17``),
+    (``odoo19c:``
+    ``base_install_request/data/mail_templates_module_install.xml:3-17``),
     marca por marca: el párrafo sólo si alguna app lo es (``t-if="any(...)"``),
     la lista sin viñetas en fila, y un elemento por app **que sea aplicación**
     con su icono y su ``shortdesc``.
@@ -198,7 +209,8 @@ class BaseModuleInstallRequest(TransientModel):
     _rec_name = 'module_id'
 
     module_id = fields.Many2one(
-        'base.IrModule', null=False, on_delete=models.CASCADE, db_column='module_id',
+        'base.IrModule', null=False, on_delete=models.CASCADE,
+        db_column='module_id',
         limit_choices_to={'state': STATE_UNINSTALLED},
         related_name='install_requests', verbose_name='Module',
         help_text='Módulo cuya activación se solicita (Odoo module_id).')
@@ -208,8 +220,9 @@ class BaseModuleInstallRequest(TransientModel):
         help_text='Quien solicita (Odoo user_id, default self.env.user).')
     #: ≙ ``user_ids = fields.Many2many(..., compute='_compute_user_ids')``:
     #: ``compute`` sin ``store`` → sin columna ni tabla intermedia.
-    user_ids = fields.NonStored(
-        'Send to:', default=lambda wizard: wizard._compute_user_ids())
+    user_ids = fields.Many2many(
+        'base.ResUsers', 'Send to:', compute='_compute_user_ids',
+        related_name='+')
     body_html = fields.Html(blank=True, default='', verbose_name='Body')
 
     class Meta:
@@ -221,13 +234,16 @@ class BaseModuleInstallRequest(TransientModel):
         """El ``_rec_name`` de la fuente es ``module_id``."""
         return self.module_id.shortdesc if self.module_id_id else ''
 
+    @api.depends('module_id')
     def _compute_user_ids(self):
         """≙ ``_compute_user_ids`` (``:22-25``) — los del grupo de sistema.
 
-        La fuente escribe ``self.user_ids = [(6, 0, users.ids)]``; aquí el
-        campo no tiene columna, así que el cómputo **es** su lectura.
+        La fuente escribe ``self.user_ids = [(6, 0, users.ids)]``; aquí se
+        asigna la lista de usuarios, que es la forma que el campo sin columna
+        guarda, y se devuelve a quien la pida directo.
         """
-        return _users_of_group_system()
+        self.user_ids = users = _users_of_group_system()
+        return users
 
     def action_send_request(self):
         """≙ ``action_send_request`` (``:27-44``) — envía y avisa.
@@ -272,24 +288,28 @@ class BaseModuleInstallRequest(TransientModel):
 
 
 class BaseModuleInstallReview(TransientModel):
-    """≙ ``BaseModuleInstallReview`` (``:47-87``) — revisar antes de instalar."""
+    """≙ ``BaseModuleInstallReview`` (``:47-87``) — revisar antes de
+    instalar.
+    """
 
     _name = 'base.module.install.review'
     _description = 'Module Activation Review'
     _rec_name = 'module_id'
 
     module_id = fields.Many2one(
-        'base.IrModule', null=False, on_delete=models.CASCADE, db_column='module_id',
+        'base.IrModule', null=False, on_delete=models.CASCADE,
+        db_column='module_id',
         limit_choices_to={'state': STATE_UNINSTALLED},
         related_name='install_reviews', verbose_name='Module',
         help_text='Módulo bajo revisión (Odoo module_id).')
     #: ≙ ``module_ids`` y ``modules_description``, los dos ``compute`` sin
-    #: ``store`` que la fuente declara juntos en ``_compute_modules_description``.
-    module_ids = fields.NonStored(
-        'Depending Apps',
-        default=lambda wizard: wizard._compute_modules_description()[0])
-    modules_description = fields.NonStored(
-        default=lambda wizard: wizard._compute_modules_description()[1])
+    #: ``store`` que la fuente declara juntos en
+    #: ``_compute_modules_description``.
+    module_ids = fields.Many2many(
+        'base.IrModule', 'Depending Apps',
+        compute='_compute_modules_description', related_name='+')
+    modules_description = fields.Html(
+        compute='_compute_modules_description')
 
     class Meta:
         db_table = 'base_module_install_review'
@@ -299,17 +319,21 @@ class BaseModuleInstallReview(TransientModel):
     def __str__(self):
         return self.module_id.shortdesc if self.module_id_id else ''
 
+    @api.depends('module_id')
     def _compute_modules_description(self):
         """≙ ``_compute_modules_description`` (``:61-67``).
 
-        Devuelve la pareja ``(apps, descripción)`` porque la fuente escribe los
-        dos campos en la misma pasada y aquí ninguno tiene columna: cada
-        descriptor toma su mitad. Calcular una sola vez conserva el invariante
-        de la fuente —la descripción describe **esas** apps— que dos cómputos
-        independientes podrían romper si el grafo cambiara entre ambos.
+        Asigna los dos campos en la misma pasada, como la fuente: calcular una
+        sola vez conserva su invariante —la descripción describe **esas**
+        apps— que dos cómputos independientes podrían romper si el grafo
+        cambiara entre ambos. Devuelve la pareja ``(apps, descripción)`` a
+        quien la pida directo.
         """
         apps = self._get_depending_apps(self.module_id)
-        return apps, render_modules_description(apps)
+        description = render_modules_description(apps)
+        self.module_ids = apps
+        self.modules_description = description
+        return apps, description
 
     @classmethod
     def _get_depending_apps(cls, module):
@@ -344,15 +368,36 @@ class BaseModuleInstallReview(TransientModel):
         """
         raise NotImplementedError(
             'action_install_module está bloqueado: '
-            'ir.module.module.button_immediate_install no existe en este árbol '
-            '(tarea #452).')
+            'ir.module.module.button_immediate_install no existe en este '
+            'árbol (tarea #452).')
+
+
+#: Las apps de productividad que la fuente programa, en su orden
+#: (``odoo19c: base_install_request/__init__.py:13-18``). Las de Enterprise
+#: no existen aquí y la búsqueda simplemente no las encuentra, como allá en
+#: una base Community.
+PRODUCTIVITY_APPS = (
+    # Community
+    'hr', 'mass_mailing', 'project', 'survey',
+    # Enterprise
+    'appointment', 'knowledge', 'planning', 'sign',
+)
 
 
 def _auto_install_apps():
-    """BLOQUEADO por ``ir.module.module.button_install`` — razón: el método no
-    existe en este árbol (misma medición, 0 definiciones fuera de este addon).
-    Sucesor: tarea **#452**.
+    """≙ ``_auto_install_apps`` (``odoo19c: base_install_request/
+    __init__.py:9-21``).
+
+    Con la opción encendida, programa la instalación de las apps de
+    productividad que sigan desinstaladas, con privilegios elevados como el
+    ``sudo()`` de la fuente. Divergencia de mecanismo: allá ``button_install``
+    se llama sobre el recordset entero; aquí el método es de fila, así que se
+    llama por fila, en el orden de la búsqueda.
     """
-    raise NotImplementedError(
-        '_auto_install_apps está bloqueado: ir.module.module.button_install no '
-        'existe en este árbol (tarea #452).')
+    if not config.default_productivity_apps():
+        return
+    with sudo():
+        modules = IrModule.objects.filter(
+            name__in=PRODUCTIVITY_APPS, state='uninstalled')
+        for module in modules:
+            module.button_install()

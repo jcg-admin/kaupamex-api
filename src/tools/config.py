@@ -85,19 +85,32 @@ def test_enable():
     return settings.SETTINGS_MODULE.endswith('.testing')
 
 
+def default_productivity_apps():
+    """≙ ``config['default_productivity_apps']`` — ¿instalar las apps de
+    productividad al instalar ``base_install_request``?
+
+    La fuente lo declara opción sólo de archivo, booleana y apagada por
+    defecto (``odoo19c: odoo/tools/config.py:210``). Aquí el archivo de
+    configuración son las settings: ``DEFAULT_PRODUCTIVITY_APPS``, ausente
+    equivale a ``False``.
+    """
+    return bool(getattr(settings, 'DEFAULT_PRODUCTIVITY_APPS', False))
+
+
 def dev_mode():
     """≙ ``config['dev_mode']`` — la lista de modos de desarrollo activos.
 
-    La fuente la puebla desde ``--dev=qweb,reload,…``; aquí la única fuente de
-    verdad del modo de desarrollo es ``DEBUG``, así que la lista es ``['qweb']``
-    con ``DEBUG`` encendido y vacía en producción. Se devuelve una lista y no
-    un booleano para conservar el contrato (``'qweb' in config['dev_mode']``).
+    La fuente la puebla desde ``--dev=qweb,reload,…``; aquí la única fuente
+    de verdad del modo de desarrollo es ``DEBUG``, así que la lista es
+    ``['qweb']`` con ``DEBUG`` encendido y vacía en producción. Se devuelve
+    una lista y no un booleano para conservar el contrato
+    (``'qweb' in config['dev_mode']``).
     """
     return ['qweb'] if settings.DEBUG else []
 
 
 def bin_path():
-    """≙ ``config['bin_path']`` — directorio extra donde buscar binarios externos.
+    """≙ ``config['bin_path']`` — directorio extra de binarios externos.
 
     La fuente lo añade al ``PATH`` heredado antes de resolver un ejecutable
     (``odoo19c: odoo/tools/misc.py:find_in_path``), para el despliegue donde el
@@ -111,11 +124,11 @@ def pg_path():
     """≙ ``config['pg_path']`` — directorio de las herramientas de PostgreSQL.
 
     Gobierna dónde se busca ``pg_dump``/``pg_restore``
-    (``odoo19c: odoo/tools/misc.py:find_pg_tool``). Con un cluster instalado por
-    el gestor de paquetes los binarios están en el ``PATH`` y esta setting sobra;
-    hace falta cuando conviven varias versiones de PostgreSQL y el volcado debe
-    salir de una en concreto — un ``pg_dump`` más viejo que el servidor rehúsa
-    con ``server version mismatch``.
+    (``odoo19c: odoo/tools/misc.py:find_pg_tool``). Con un cluster instalado
+    por el gestor de paquetes los binarios están en el ``PATH`` y esta setting
+    sobra; hace falta cuando conviven varias versiones de PostgreSQL y el
+    volcado debe salir de una en concreto — un ``pg_dump`` más viejo que el
+    servidor rehúsa con ``server version mismatch``.
     """
     return getattr(settings, 'PG_PATH', '') or ''
 

@@ -226,6 +226,7 @@ from decimal import Decimal
 from functools import partial
 from typing import NamedTuple
 
+import api
 import fields
 import models
 from django.apps import apps
@@ -257,8 +258,9 @@ class ProcurementException(Exception):
     def __init__(self, procurement_exceptions):
         """≙ ``__init__`` (``:23-28``).
 
-        :param procurement_exceptions: lista de tuplas ``(procurement, mensaje)``
-            con las necesidades que no se pudieron satisfacer.
+        :param procurement_exceptions: lista de tuplas
+            ``(procurement, mensaje)`` con las necesidades que no se pudieron
+            satisfacer.
         """
         super().__init__(procurement_exceptions)
         self.procurement_exceptions = procurement_exceptions
@@ -614,24 +616,25 @@ class StockRule(TimeStampedModel):
         ),
     )
 
-    #: ≙ ``route_company_id`` (``:77``) — ``related='route_id.company_id'`` sin
-    #: ``store``. Devuelve el registro de empresa de la ruta, como la fuente.
-    route_company = fields.NonStored(
-        default=lambda rule: rule.route.company if rule.route_id else None,
+    #: ≙ ``route_company_id`` (``:77``) — ``related='route_id.company_id'``
+    #: sin ``store``, con los nombres de este árbol. Sin columna, así que
+    #: lleva el nombre de la fuente (forma N de ``check_fk_naming``).
+    route_company_id = fields.Many2one(
+        related='route.company', string='Route Company', related_name='+',
         help_text='Empresa de la ruta (Odoo route_company_id, related).',
     )
     #: ≙ ``picking_type_code_domain`` (``:91``) — ``fields.Json`` computado sin
     #: ``store``.
-    picking_type_code_domain = fields.NonStored(
-        default=lambda rule: rule._compute_picking_type_code_domain(),
+    picking_type_code_domain = fields.Json(
+        compute='_compute_picking_type_code_domain',
         help_text=(
             'Códigos de tipo de operación admisibles (Odoo '
             'picking_type_code_domain).'
         ),
     )
     #: ≙ ``rule_message`` (``:110``) — ``fields.Html`` computado sin ``store``.
-    rule_message = fields.NonStored(
-        default=lambda rule: rule._compute_action_message(),
+    rule_message = fields.Html(
+        compute='_compute_action_message',
         help_text=(
             'Descripción legible del propósito de la regla (Odoo '
             'rule_message).'
@@ -866,6 +869,8 @@ class StockRule(TimeStampedModel):
             ),
         }
 
+    @api.depends('action', 'location_dest', 'location_src', 'picking_type',
+                 'procure_method', 'location_dest_from_rule')
     def _compute_action_message(self):
         """≙ ``_compute_action_message`` (``odoo19c: :194-207``).
 
@@ -873,22 +878,26 @@ class StockRule(TimeStampedModel):
         end user.» Sin acción no hay mensaje — la fuente pone ``None``.
         """
         if not self.action:
-            return None
+            self.rule_message = value = None
+            return value
         message_dict = self._get_message_dict()
         message = message_dict.get(self.action) or ""
         if self.action == self.ACTION_PULL_PUSH:
             message = (
                 message_dict['pull'] + "<br/><br/>" + message_dict['push']
             )
-        return message
+        self.rule_message = value = message
+        return value
 
+    @api.depends('action')
     def _compute_picking_type_code_domain(self):
         """≙ ``_compute_picking_type_code_domain`` (``odoo19c: :209-211``).
 
         Vacío en ``stock``: son los addons que extienden la regla (``mrp``,
         ``purchase_stock``) los que acotan qué códigos admite cada acción.
         """
-        return []
+        self.picking_type_code_domain = value = []
+        return value
 
     # ------------------------------------------------------------------ #
     # La dirección push (≙ :212-286)                                       #

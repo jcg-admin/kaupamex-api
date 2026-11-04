@@ -71,11 +71,11 @@ real sobre ``date``. Los dos mecanismos que lo bloqueaban ya están:
 sitio divergente declarado en su propio docstring). Cerraba también el
 bloqueo de tarea #208.
 
-``search=`` sobre un campo sin columna — el enganche **ya existía**: es
-:class:`orm.fields_nonstored.NonStored` con su parámetro ``search``, en
-producción desde ``display_name`` (``src/orm/models.py``). El docstring de
-esta clase decía lo contrario porque nadie lo había vuelto a medir contra
-ese archivo — la corrección es de este mismo pase.
+``search=`` sobre un campo sin columna — el enganche **ya existía**, y hoy
+se declara como la fuente: ``fields.Boolean(search=…, store=False)``
+(TASK-API-0418). Antes iba con ``NonStored`` y su parámetro ``search``; el
+docstring de esta clase llegó a decir que el enganche no existía porque nadie
+lo había vuelto a medir.
 
 ``_search_fiscal_date`` se porta **verbatim** en lo que la fuente omite:
 ni ``operator`` ni ``value`` se leen, cualquier condición sobre
@@ -211,8 +211,9 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     #: ≙ ``fiscal_year_search`` (``odoo19c: :222-226``) — atajo de filtro sin
     #: columna ni valor propio; buscarlo (con cualquier operador) acota a la
     #: ventana fiscal vigente. Ver el docstring del módulo.
-    fiscal_year_search = fields.NonStored(
-        search='_search_fiscal_date',
+    fiscal_year_search = fields.Boolean(
+        search='_search_fiscal_date', store=False, exportable=False,
+        export_string_translation=False,
         help_text=(
             'Odoo fiscal_year_search — filtro por ejercicio fiscal '
             'vigente, sin valor propio que leer.'

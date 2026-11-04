@@ -164,7 +164,7 @@ def test_is_abandoned_cart_has_no_column():
     campo existe para leerse, no para consultarse. Si generara columna, la
     adaptación habría cambiado la naturaleza del campo sin decirlo."""
     assert 'is_abandoned_cart' not in {
-        f.name for f in SaleOrder._meta.get_fields()
+        f.name for f in SaleOrder._meta.concrete_fields
     }
 
 
