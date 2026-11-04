@@ -79,21 +79,23 @@ aparecen los descuadres de un centavo.
 Qué no se porta, con su medición
 =================================
 
-- **La envoltura de base-lines** —``_prepare_base_line_for_taxes_computation``
-  (``:1593``), ``_add_tax_details_in_base_line`` (``:1739``),
-  ``_add_accounting_data_to_base_line_tax_details``—. No es cálculo: es el
-  sobre que lleva el resultado a la contabilidad (cuenta destino por línea de
-  reparto, etiquetas CABA, agrupación por ``account.tax.group``). El motor es
-  el mismo a ambos lados, medido: ``_add_tax_details_in_base_line`` llama a
-  ``base_line['tax_ids']._get_tax_details(...)`` (``odoo19c: :1766``).
+- **La mitad contable de la envoltura de base-lines** —
+  ``_add_accounting_data_to_base_line_tax_details`` y
+  ``_add_accounting_data_in_base_lines_tax_details`` (``:2368-2510``)—. No es
+  cálculo: es el sobre que lleva el resultado a la contabilidad (cuenta
+  destino por línea de reparto, etiquetas CABA, agrupación por
+  ``account.tax.group``).
 
-  Lo que **sí** está es la agregación que
-  consume la salida de esa envoltura —``_aggregate_base_line_tax_details``,
+  La mitad de cálculo **sí** está, y produce la estructura que la agregación
+  consume: ``_prepare_base_line_for_taxes_computation`` (``:1593``),
+  ``_add_tax_details_in_base_line`` (``:1737``), el reparto del delta
+  (``:1824-1893``), el redondeo contractual de los cuatro
+  ``_round_*`` (``:1895-2293``) y la agregación
+  ``_aggregate_base_line_tax_details``,
   ``_aggregate_base_lines_tax_details`` y
-  ``_aggregate_base_lines_aggregated_values`` (``:2512-2712``)—, verbatim.
-  Leen la estructura que deja ``_round_base_lines_tax_details``; mientras la
-  envoltura no exista, ningún productor del árbol la construye y sólo sus
-  pruebas la arman, con las claves que la fuente declara.
+  ``_aggregate_base_lines_aggregated_values`` (``:2512-2712``). El motor es el
+  mismo a ambos lados: ``_add_tax_details_in_base_line`` llama a
+  ``base_line['tax_ids']._get_tax_details(...)`` (``odoo19c: :1766``).
 - **``special_mode`` completo.** Se portan los tres valores
   (``False``/``'total_included'``/``'total_excluded'``) porque la propagación
   de base los necesita; lo que no se porta es su entrada por
