@@ -277,3 +277,11 @@ src/orm/models.py	BaseModel._fetch_field	method	tests/integration/test_orm/test_
 src/orm/models.py	BaseModel.check_field_access_rights	method	tests/integration/test_orm/test_contract_models_basemodel_check_field_access_rights.py
 src/orm/models.py	BaseModel._is_an_ordinary_table	method	tests/integration/test_orm/test_contract_models_basemodel_p_is_an_ordinary_table.py
 src/orm/models.py	BaseModel._get_base_lang	method	tests/integration/test_orm/test_contract_models_basemodel_p_get_base_lang.py
+src/orm/models.py	BaseModel.check_access	method	tests/integration/test_orm/test_contract_models_basemodel_check_access.py
+src/orm/models.py	BaseModel.has_access	method	tests/integration/test_orm/test_contract_models_basemodel_has_access.py
+src/orm/models.py	BaseModel._filtered_access	method	tests/integration/test_orm/test_contract_models_basemodel_p_filtered_access.py
+src/orm/models.py	BaseModel._check_access	method	tests/integration/test_orm/test_contract_models_basemodel_p_check_access.py
+src/orm/models.py	BaseModel.check_access_rights	method	tests/integration/test_orm/test_contract_models_basemodel_check_access_rights.py
+src/orm/models.py	BaseModel.check_access_rule	method	tests/integration/test_orm/test_contract_models_basemodel_check_access_rule.py
+src/orm/models.py	BaseModel._filter_access_rules	method	tests/integration/test_orm/test_contract_models_basemodel_p_filter_access_rules.py
+src/orm/models.py	BaseModel._filter_access_rules_python	method	tests/integration/test_orm/test_contract_models_basemodel_p_filter_access_rules_python.py

@@ -6360,6 +6360,79 @@ class BaseModel(DefaultGetMixin, Model):
 
     # === existencia =======================================================
 
+    def check_access(self, operation):
+        """Levanta ``AccessError`` si el usuario no puede hacer ``operation``
+        sobre todos los registros de ``self`` — ≙ ``odoo19c:
+        odoo/orm/models.py:4100-4115``.
+
+        Con ``self`` vacío comprueba el permiso sobre el modelo en general.
+        """
+        if not self.env.su and (result := self._check_access(operation)):
+            raise result[1]()
+
+    def has_access(self, operation):
+        """Lo mismo que :meth:`check_access`, como booleano —
+        ≙ ``:4117-4121``."""
+        return self.env.su or not self._check_access(operation)
+
+    def _filtered_access(self, operation):
+        """El subconjunto de ``self`` sobre el que se puede ``operation`` —
+        ≙ ``:4123-4129``."""
+        if self and not self.env.su and (
+                result := self._check_access(operation)):
+            return self - result[0]
+        return self
+
+    @_on_empty_recordset
+    @api.deprecated("check_access_rights() is deprecated since 18.0; "
+                    "use check_access() instead.")
+    def check_access_rights(self, operation, raise_exception=True):
+        """Permiso del usuario sobre el modelo — ≙ ``odoo19c:
+        odoo/orm/models.py:4161-4173``. Obsoleto desde 18.0."""
+        if raise_exception:
+            return self.browse().check_access(operation)
+        return self.browse().has_access(operation)
+
+    @api.deprecated("check_access_rule() is deprecated since 18.0; "
+                    "use check_access() instead.")
+    def check_access_rule(self, operation):
+        """Permiso según ``ir.rule`` — ≙ ``:4175-4183``. Obsoleto desde
+        18.0."""
+        self.check_access(operation)
+
+    @api.deprecated("_filter_access_rules() is deprecated since 18.0; "
+                    "use _filtered_access() instead.")
+    def _filter_access_rules(self, operation):
+        """El subconjunto permitido — ≙ ``:4185-4188``. Obsoleto desde 18.0."""
+        return self._filtered_access(operation)
+
+    @api.deprecated("_filter_access_rules_python() is deprecated since 18.0; "
+                    "use _filtered_access() instead.")
+    def _filter_access_rules_python(self, operation):
+        """≙ ``:4190-4192``. Obsoleto desde 18.0."""
+        return self._filtered_access(operation)
+
+    def _check_access(self, operation):
+        """``None`` si se puede; si no, (prohibidos, fábrica de error).
+
+        ≙ ``odoo19c: odoo/orm/models.py:4131-4149``: primero la ACL del
+        modelo, y sólo si pasa, las reglas de fila sobre los registros reales
+        (los nuevos no se mezclan). La evaluación es la de
+        :class:`AccessQuerySet` sobre los mismos ids, que ya porta las dos
+        mitades: aquí sólo se traduce el resultado al recordset.
+        """
+        real_ids = [record_id for record_id in self._ids
+                    if isinstance(record_id, int)]
+        queryset = type(self)._default_manager.filter(pk__in=real_ids)
+        result = queryset._check_access(operation, user=self.env.user)
+        if result is None:
+            return None
+        forbidden, make_error = result
+        if forbidden is queryset:
+            return self, make_error
+        return self.browse(list(forbidden.values_list('pk', flat=True))), \
+            make_error
+
     def _get_base_lang(self):
         """El idioma base del registro — ≙ ``odoo19c:
         odoo/orm/models.py:3704-3707``. ``en_US`` salvo que un addon lo
