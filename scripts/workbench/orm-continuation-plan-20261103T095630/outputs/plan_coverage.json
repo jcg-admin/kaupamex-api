@@ -1,0 +1,90 @@
+{
+ "verdict": "B",
+ "acceptance": "requires executor authority (I-011)",
+ "population": 74,
+ "open_tasks": 59,
+ "frontier": [
+  {
+   "id": "nonstored-declarations-0418",
+   "task": "TASK-API-0418"
+  }
+ ],
+ "blocked": [
+  {
+   "id": "misc-stripped-sys-argv",
+   "task": "TASK-API-0397",
+   "reason": "state failed"
+  },
+  {
+   "id": "attachment-record-access",
+   "task": "TASK-API-0397",
+   "reason": "state failed"
+  },
+  {
+   "id": "nonstored-class-retired-0418",
+   "task": "TASK-API-0418",
+   "reason": "waits for nonstored-declarations-0418"
+  }
+ ],
+ "unrepresented": [
+  "TASK-API-0092",
+  "TASK-API-0115",
+  "TASK-API-0152",
+  "TASK-API-0173",
+  "TASK-API-0174",
+  "TASK-API-0216",
+  "TASK-API-0217",
+  "TASK-API-0239",
+  "TASK-API-0240",
+  "TASK-API-0241",
+  "TASK-API-0265",
+  "TASK-API-0267",
+  "TASK-API-0269",
+  "TASK-API-0282",
+  "TASK-API-0283",
+  "TASK-API-0305",
+  "TASK-API-0379",
+  "TASK-API-0381",
+  "TASK-API-0383",
+  "TASK-API-0398",
+  "TASK-API-0399",
+  "TASK-API-0401",
+  "TASK-API-0403",
+  "TASK-API-0404",
+  "TASK-API-0406",
+  "TASK-API-0407",
+  "TASK-API-0408",
+  "TASK-API-0409",
+  "TASK-API-0410",
+  "TASK-API-0411",
+  "TASK-API-0413",
+  "TASK-API-0414",
+  "TASK-API-0419",
+  "TASK-API-0420",
+  "TASK-API-0422",
+  "TASK-API-0424",
+  "TASK-API-0427",
+  "TASK-API-0429",
+  "TASK-API-0478",
+  "TASK-API-0480",
+  "TASK-API-0481",
+  "TASK-DOCS-0111",
+  "TASK-DOCS-0539",
+  "TASK-GEN-0058",
+  "TASK-GEN-0060",
+  "TASK-GEN-0062",
+  "TASK-GEN-0312",
+  "TASK-GEN-0453",
+  "TASK-GEN-0558",
+  "TASK-GEN-0559",
+  "TASK-GEN-0633",
+  "TASK-GEN-0634"
+ ],
+ "settled_task_open": [
+  "TASK-API-0190",
+  "TASK-API-0382",
+  "TASK-API-0402",
+  "TASK-API-0417",
+  "TASK-API-0479"
+ ]
+}

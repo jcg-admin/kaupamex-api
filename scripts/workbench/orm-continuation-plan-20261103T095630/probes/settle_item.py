@@ -14,6 +14,10 @@ commit.
 Precondición declarada: el entorno trae las variables de base de datos y
 ``SECRET_KEY`` que la suite necesita (no se guardan en Git).
 
+Tras cada asiento reescribe ``outputs/plan_coverage.json`` con el dictamen
+A/B/C de ``probes/plan_coverage.py``: una frontera vacía con TASK abiertas de
+la iniciativa no se lee como iniciativa terminada.
+
 Uso::
 
     THYROX_ROOT=/home/user/thyrox python3 probes/settle_item.py <banco> <ítem>
@@ -66,7 +70,26 @@ def main(argv):
         append_log(workbench, {'kind': 'accepted', 'item': item, 'commitExit': 0,
                                'commit': commit})
     print(f'{item}: verify={result.returncode} commit={commit} {tail[-1] if tail else ""}')
+    report_coverage(workbench)
     return 0 if result.returncode == 0 else 1
+
+
+def report_coverage(workbench):
+    """El dictamen de la iniciativa tras el asiento, escrito y anunciado."""
+    probe = pathlib.Path(__file__).resolve().parent / 'plan_coverage.py'
+    run = subprocess.run(
+        [sys.executable, str(probe), '--bench', str(workbench)],
+        capture_output=True, text=True)
+    if run.returncode == 2 or not run.stdout.strip():
+        print('coverage: no medido — ' + (run.stderr.strip() or 'sin salida'))
+        return
+    (workbench / 'outputs' / 'plan_coverage.json').write_text(run.stdout)
+    report = json.loads(run.stdout)
+    print(f"coverage: {report['verdict']} · "
+          f"frontera {len(report['frontier'])} · "
+          f"abiertas {report['open_tasks']} · "
+          f"sin unidad {len(report['unrepresented'])} · "
+          f"asentadas y abiertas {len(report['settled_task_open'])}")
 
 
 if __name__ == '__main__':
