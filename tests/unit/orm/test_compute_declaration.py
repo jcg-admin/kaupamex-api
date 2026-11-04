@@ -53,8 +53,8 @@ from rest_framework import serializers
 
 import api
 import fields
+from tests.fixtures.column_probe import has_column
 from orm import registry
-from orm.fields_nonstored import NonStored
 
 
 class TestTheComputeVocabularyIsAccepted:
@@ -104,7 +104,7 @@ class TestTheDefaultsFollowTheSource:
         #: regla que ``related=``, y la razón por la que 2368 de las 3641
         #: declaraciones de la referencia no llevan ``store=True``.
         field = fields.Char(max_length=64, compute='_compute_x')
-        assert isinstance(field, NonStored)
+        assert not has_column(field)
         assert field.store is False
 
     def test_store_true_gives_a_column(self):

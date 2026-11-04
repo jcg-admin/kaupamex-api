@@ -567,6 +567,9 @@ class One2many:
         if self.compute:
             self._set_computed(instance, value)
             return
+        if self.related:
+            self._set_related(instance, value)
+            return
         comodel, inverse = self._inverse_field()
         if is_command_list(value):
             # Los siete comandos de la fuente — ≙ ``One2many.write_real``
@@ -588,6 +591,34 @@ class One2many:
 
     def __repr__(self):
         return (f'One2many({self.comodel_name!r}, {self.inverse_name!r})')
+
+    def _set_related(self, instance, value):
+        """Escribir un ``related`` — ≙ ``Field._inverse_related``
+        (``odoo19c: odoo/orm/fields.py:724-733``): el valor va al último
+        eslabón de la cadena, que es quien lo guarda.
+
+        Sólo con ``readonly=False``: la fuente no le cablea inverso a un
+        related de sólo lectura (``:632``), así que la escritura no viaja.
+
+        La guarda ``bool(target.id) == bool(record.id)`` es verbatim (``:732``,
+        *«update 'target' only if 'record' and 'target' are both real or both
+        new»*). Divergencia de mecanismo: si el extremo es el manager del
+        reverso de una FK, Django prohíbe asignarlo y nombra la salida en su
+        propio error, ``.set()``; si es otro ``One2many`` de este árbol, su
+        propio ``__set__`` decide.
+        """
+        if self.readonly:
+            return
+        *path, last = self.related.split('.')
+        target = instance
+        for part in path:
+            target = getattr(target, part, None) if target else None
+        if not target or bool(target.pk) != bool(instance.pk):
+            return
+        if isinstance(getattr(type(target), last, None), One2many):
+            setattr(target, last, value)
+            return
+        getattr(target, last).set(list(value or ()))
 
 
 #: El permiso del comodelo no se aplica al atravesar este campo — ≙

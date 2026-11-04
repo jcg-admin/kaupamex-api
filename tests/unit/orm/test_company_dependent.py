@@ -21,6 +21,7 @@ import pytest
 from django.db import models
 
 import fields
+from tests.fixtures.column_probe import has_column
 from addons.base.models import ResCompany, ResPartner
 from orm.environments import company_scope, get_current_company
 from orm.fields_company_dependent import (
@@ -28,7 +29,6 @@ from orm.fields_company_dependent import (
     CompanyDependent,
     make_dispatcher,
 )
-from orm.fields_nonstored import NonStored
 from orm.fields_textual import Html
 
 
@@ -39,7 +39,7 @@ class TestDispatcher:
         assert isinstance(fields.Char(max_length=10), models.CharField)
 
     def test_store_false_is_still_non_stored(self):
-        assert isinstance(fields.Char(store=False), NonStored)
+        assert not has_column(fields.Char(store=False))
 
     def test_company_dependent_returns_the_new_class(self):
         assert isinstance(
@@ -370,10 +370,10 @@ class TestABareStoreFalseGivesANonStoredField:
         assert isinstance(fields.Integer(), models.IntegerField)
 
     def test_integer_with_store_false_is_non_stored(self):
-        assert isinstance(fields.Integer(store=False), NonStored)
+        assert not has_column(fields.Integer(store=False))
 
     def test_float_with_store_false_is_non_stored(self):
-        assert isinstance(fields.Float(store=False), NonStored)
+        assert not has_column(fields.Float(store=False))
 
     def test_store_true_keeps_the_column(self):
         """Discriminante: si la rama leyera cualquier ``store`` presente en

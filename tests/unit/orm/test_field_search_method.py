@@ -11,7 +11,6 @@ el resto igual que cualquier otro, que es lo que un ``QuerySet`` no puede
 hacer.
 """
 
-import inspect
 
 import pytest
 
@@ -117,7 +116,7 @@ class TestFieldResolutionReachesTheNonStored:
     def test_the_non_stored_display_name_resolves(self, config_parameter):
         condition = Domain('display_name', 'ilike', 'x')
         field = condition._field(config_parameter)
-        assert isinstance(field, NonStored)
+        assert field.store is False
         assert field.search is not None
 
     def test_a_name_that_is_neither_still_raises(self, config_parameter):
@@ -222,7 +221,7 @@ class TestTheFallbackLadder:
                 return NotImplemented
             return Domain('key', '=', value)
 
-        descriptor = inspect.getattr_static(config_parameter, 'display_name')
+        descriptor = Domain('display_name', '=', 'x')._field(config_parameter)
         monkeypatch.setattr(descriptor, 'search', only_equality)
         result = Domain(
             'display_name', 'in', ['a', 'b']
@@ -234,7 +233,7 @@ class TestTheFallbackLadder:
     def test_a_search_that_supports_nothing_raises_naming_the_field(
         self, config_parameter, monkeypatch
     ):
-        descriptor = inspect.getattr_static(config_parameter, 'display_name')
+        descriptor = Domain('display_name', '=', 'x')._field(config_parameter)
         monkeypatch.setattr(
             descriptor, 'search', lambda *_args: NotImplemented
         )

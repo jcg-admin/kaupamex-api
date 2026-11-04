@@ -19,8 +19,8 @@ from django.apps import apps
 from django.db import models
 
 import fields
+from tests.fixtures.column_probe import has_column
 from orm.domains import Domain, DomainCondition
-from orm.fields_nonstored import NonStored
 
 
 class TestTheConstructorAcceptsTheDeclaration:
@@ -35,10 +35,10 @@ class TestTheConstructorAcceptsTheDeclaration:
         """``:455`` — ``attrs['store'] = attrs.get('store', False)``.
 
         Es el defecto que explica la forma de **552 de los 597** que la
-        referencia declara. Sin columna, el portador es :class:`NonStored`.
+        referencia declara. Sin columna: la costura lo contribuye privado.
         """
         field = fields.Char(related='country.code')
-        assert isinstance(field, NonStored), type(field).__name__
+        assert not has_column(field)
         assert field.store is False
 
     def test_an_explicit_store_keeps_the_column(self):
@@ -73,7 +73,7 @@ class TestTheConstructorAcceptsTheDeclaration:
         ):
             field = constructor(related='partner.name')
             assert field.related == 'partner.name', constructor.__name__
-            assert isinstance(field, NonStored), constructor.__name__
+            assert not has_column(field), constructor.__name__
 
 
 class TestReadingWalksTheChain:
@@ -183,12 +183,9 @@ class TestTheFourDeclaredInResBank:
         for model_name, field_name in declared:
             columns = {
                 f.name
-                for f in apps.get_model('base', model_name)._meta.get_fields()
+                for f in apps.get_model(
+                    'base', model_name)._meta.concrete_fields
             }
             assert (
                 field_name not in columns
             ), f'{model_name}.{field_name} tomó columna'
-            assert isinstance(
-                getattr(apps.get_model('base', model_name), field_name),
-                NonStored,
-            )

@@ -11,15 +11,19 @@ cuenta y **el banco no cambiaba**. Es la misma forma que el ``**_ignored`` de
 ``One2many`` (:ref:`h-api-978`): acepta y no hace nada.
 
 La conducta la fija ``Field._inverse_related`` (``odoo19c: fields.py:724``),
-que este árbol ya tiene portado verbatim sobre ``models.Field`` — pero un
-``NonStored`` **no** es un ``models.Field``, así que nunca lo alcanzaba.
+que este árbol ya tiene portado verbatim sobre ``models.Field``.
+
+**La escritura se vuelca al guardar**, que es la divergencia que declara
+``ComputedFieldDescriptor.__set__``: la fuente manda la asignación a
+``write`` y su ``write`` despacha el inverso; aquí la asignación de Django no
+emite SQL, así que el inverso queda anotado y lo despacha ``save()``. Por eso
+cada caso guarda la cuenta antes de mirar el banco.
 """
 
 import pytest
 from django.apps import apps
 
 import fields
-from orm.fields_nonstored import NonStored
 
 
 @pytest.fixture
@@ -48,12 +52,14 @@ class TestTheWriteReachesTheEndOfTheChain:
         """El caso que la fuente declara ``readonly=False`` a propósito: el
         formulario de la cuenta corrige el nombre del banco desde ahí."""
         account.bank_name = 'Banco corregido'
+        account.save()
 
         account.bank.refresh_from_db()
         assert account.bank.name == 'Banco corregido'
 
     def test_writing_bank_bic_reaches_the_bank_too(self, account):
         account.bank_bic = 'FIXDMXMM'
+        account.save()
 
         account.bank.refresh_from_db()
         assert account.bank.bic == 'FIXDMXMM'
@@ -72,7 +78,9 @@ class TestTheWriteReachesTheEndOfTheChain:
         original_country = account.partner.country_id
 
         account.country_code = 'US'
+        account.save()
 
+        account.partner.refresh_from_db()
         assert account.partner.country_id == original_country
         assert (
             account.country_code == 'US'
@@ -147,7 +155,7 @@ class TestTheRelationalShape:
             related='partner.bank_accounts', readonly=False
         )
         descriptor.name = 'bank_accounts_of_the_partner'
-        assert isinstance(descriptor, NonStored)
+        assert descriptor.store is False
 
         descriptor.__set__(account, [third])
 
@@ -196,9 +204,9 @@ class TestResCompanyBankIds:
         sigue limpio tras declararlo."""
         company_model = apps.get_model('base', 'ResCompany')
         assert 'bank_ids' not in {
-            f.name for f in company_model._meta.get_fields()
+            f.name for f in company_model._meta.concrete_fields
         }
-        assert isinstance(company_model.bank_ids, NonStored)
+        assert company_model.bank_ids.store is False
 
     def test_writing_from_the_company_reaches_the_partner(self, company):
         """Su ``readonly=False`` dice que el conjunto se escribe desde la

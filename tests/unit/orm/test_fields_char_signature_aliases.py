@@ -52,6 +52,7 @@ import pytest
 from django.db import models as django_models
 
 import fields
+from tests.fixtures.column_probe import has_column
 
 
 class TestTheSignatureAliasesTranslateNamesNotMechanisms:
@@ -123,10 +124,10 @@ class TestTheAliasesComposeAsTheSourceDeclaresThem:
     def test_size_and_store_false_do_not_meet(self):
         """Un campo sin columna no tiene ``varchar`` que dimensionar.
 
-        No es una prohibición inventada: ``store=False`` devuelve un
-        :class:`~orm.fields_nonstored.NonStored`, que no declara columna. El
+        No es una prohibición inventada: con ``store=False`` la costura
+        contribuye el campo sin columna (``private_only``). El
         caso fija que el ``size=`` no se pierda en silencio ahí — se ignora
         porque no hay dónde aplicarlo, y el campo sigue siendo el sin columna.
         """
         field = fields.Char('Label', store=False, size=64)
-        assert not isinstance(field, django_models.CharField)
+        assert not has_column(field)
