@@ -25,6 +25,31 @@ from tools.translate import _
 class AccountAccount(models.Model):
     """``account.account`` — cuenta contable del plan (Odoo base contable)."""
 
+    #: Los atributos de clase de la fuente
+    #: (``odoo19c: account_account.py:20-25``). Sin ``_name`` el modelo no
+    #: entra en ``orm.registry.MODELS_BY_NAME`` y ``env['account.account']``
+    #: no resuelve.
+    _name = 'account.account'
+    #: ≙ ``_inherit`` (``:21``), verbatim.
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Account'
+    #: ≙ ``_order = 'code, placeholder_code'`` (``:23``). ``placeholder_code``
+    #: no está portado, así que ``Meta.ordering`` ordena sólo por ``code``.
+    _order = 'code, placeholder_code'
+    #: ≙ ``_check_company_auto = True`` (``:24``). Sin efecto todavía: esta
+    #: clase no hereda ``CheckCompanyMixin`` (es un ``models.Model`` de
+    #: Django, no ``TimeStampedModel``), que es quien lo lee al guardar.
+    _check_company_auto = True
+    #: **Divergencia declarada** de ``_check_company_domain =
+    #: models.check_companies_domain_parent_of`` (``:25``). La fuente usa el
+    #: plural porque su cuenta lleva el M2M ``company_ids``; aquí la cuenta
+    #: tiene una sola ``company``, y el plural devolvería ``None`` —el modelo
+    #: dejaría de participar en la comprobación de empresa—. El singular
+    #: ``check_company_domain_parent_of`` conserva el criterio jerárquico de
+    #: la fuente sobre el campo que existe. Se cambia al plural cuando
+    #: ``company_ids`` esté portado.
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
+
     # account_type — superset de Odoo 19 (18 + expense_other). H-ACC-01.
     ACCOUNT_TYPES = [
         ('asset_receivable', 'Por cobrar'),

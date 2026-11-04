@@ -558,12 +558,13 @@ class AccountTax(models.Model):
     _description = 'Tax'
     #: ≙ ``_order`` (``:75``); ``Meta.ordering`` lo expresa en Django.
     _order = 'sequence,id'
-    #: ≙ ``_check_company_auto = True`` (``:76``). Hoy no tiene qué comprobar:
-    #: los cinco campos ``check_company=True`` de la fuente
+    #: ≙ ``_check_company_auto = True`` (``:76``). Sin efecto todavía, por
+    #: dos razones medidas: esta clase no hereda ``CheckCompanyMixin`` (es un
+    #: ``models.Model`` de Django, no ``TimeStampedModel``), que es quien lo
+    #: lee al guardar; y los cinco campos ``check_company=True`` de la fuente
     #: (``tax_payable_account_id``, ``tax_receivable_account_id``,
     #: ``advance_tax_payment_account_id``, ``children_tax_ids`` y
-    #: ``cash_basis_transition_account_id``) no están portados. Se declara
-    #: igual, para que la comprobación aplique en cuanto lleguen.
+    #: ``cash_basis_transition_account_id``) no están portados.
     _check_company_auto = True
     #: ≙ ``_rec_names_search`` (``:77``).
     _rec_names_search = ['name', 'description', 'invoice_label']
