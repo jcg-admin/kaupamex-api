@@ -2531,7 +2531,6 @@ tests/unit/account_tax_python/test_formula_utils.py::campos_accedidos
 tests/unit/account_tax_python/test_formula_utils.py::campos_esperados
 tests/unit/account_tax_python/test_formula_utils.py::esperado_normalizado
 tests/unit/account_tax_python/test_formula_utils.py::normalizado
-tests/unit/account_tax_python/test_taxes_computation.py::TestInvocacionDirectaConProductoYUom
 tests/unit/account_tax_python/test_taxes_computation.py::_sobre
 tests/unit/account_tax_python/test_taxes_computation.py::campos
 tests/unit/account_tax_python/test_taxes_computation.py::producto
@@ -2540,7 +2539,6 @@ tests/unit/account_tax_python/test_taxes_computation.py::test_formula_decoded_in
 tests/unit/account_tax_python/test_taxes_computation.py::test_max_de_dos_expresiones_tax_excluded
 tests/unit/account_tax_python/test_taxes_computation.py::test_max_de_dos_expresiones_tax_included
 tests/unit/account_tax_python/test_taxes_computation.py::test_prepare_product_fields_agrega_solo_de_impuestos_code
-tests/unit/account_tax_python/test_taxes_computation.py::test_product_volume_subscript_ternario
 tests/unit/account_tax_python/test_taxes_computation.py::test_sin_formula_record_falla_alto_y_claro
 tests/unit/account_tax_python/test_taxes_computation.py::test_zero_division_da_cero
 tests/unit/account_tax_python/test_taxes_computation.py::unidad

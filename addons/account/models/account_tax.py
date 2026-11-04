@@ -153,6 +153,7 @@ from django.db import models as django_models
 
 import fields
 import models
+from orm.environments import env
 from orm.models import _create_field_lookup
 from tools.float_utils import float_is_zero
 from tools.misc import frozendict
@@ -185,6 +186,41 @@ def _base_line_field_value(record, field):
     if field.is_relation and (field.many_to_one or field.one_to_one):
         return getattr(record, field.name)
     return getattr(record, field.attname)
+
+
+#: ≙ ``default_value_map`` de los dos ``*_default_values`` (``odoo19c:
+#: account_tax.py:763-767, 845-849``).
+_DEFAULT_VALUE_BY_TYPE = {
+    'integer': 0,
+    'float': 0.0,
+    'monetary': 0.0,
+}
+
+
+def _default_values_by_type(model_name, field_names):
+    """Por campo, su tipo y el valor que toma sin registro.
+
+    El cuerpo común de los dos ``*_default_values`` de producto y de unidad:
+    la fuente repite el bucle con ``product.product`` y con ``uom.uom``.
+    """
+    model_fields = env()[model_name]._fields
+    values = {}
+    for field_name in field_names:
+        field = model_fields[field_name]
+        values[field_name] = {
+            'type': field.type,
+            'default_value': _DEFAULT_VALUE_BY_TYPE[field.type],
+        }
+    return values
+
+
+def _record_values(default_values, record):
+    """≙ ``record and record[field_name] or field_info['default_value']``."""
+    return {
+        field_name: (getattr(record, field_name) if record else None)
+        or field_info['default_value']
+        for field_name, field_info in default_values.items()
+    }
 
 
 class AccountTaxQuerySet(models.AccessQuerySet):
@@ -339,6 +375,92 @@ class AccountTaxQuerySet(models.AccessQuerySet):
                 for otro in antes():
                     sumar_base(otro, -1)
 
+    # -- valores de producto y unidad (odoo19c: :731-895) ------------------
+    #
+    # Son métodos de recordset de ``account.tax``: aquí del ``QuerySet``. Los
+    # dos ganchos de campos devuelven el conjunto vacío en ``account``;
+    # ``account_tax_python`` los extiende encadenando, como su ``super()``.
+    # Divergencia: el ``sudo()`` de la fuente (*"tax computation may depend
+    # on restricted fields"*) no tiene sujeto aquí: una instancia de Django
+    # se lee por atributo, sin regla de fila en medio.
+
+    def _eval_taxes_computation_prepare_product_fields(self):
+        """ Get the fields to create the evaluation context from the product
+        for the taxes computation.
+
+        ≙ ``:732-742``: el conjunto vacío; lo extiende quien necesita leer el
+        producto (``account_tax_python``).
+        """
+        return set()
+
+    def _eval_taxes_computation_prepare_product_default_values(self,
+                                                               field_names):
+        """ Prepare the default values for the product according the fields
+        passed as parameter.
+
+        ≙ ``:744-774``: por campo, su tipo y el valor por omisión de ese tipo
+        para cuando no hay producto.
+        """
+        return _default_values_by_type('product.product', field_names)
+
+    def _eval_taxes_computation_prepare_product_values(self,
+                                                       default_product_values,
+                                                       product=None):
+        """ Convert the product passed as parameter to a dictionary to be
+        passed to '_eval_taxes_computation_prepare_context'.
+
+        ≙ ``:776-794``.
+        """
+        return _record_values(default_product_values, product)
+
+    def _eval_taxes_computation_turn_to_product_values(self, product=None):
+        """ Helper purely in Python to call the three product helpers all at
+        once. ≙ ``:796-813``.
+        """
+        product_fields = self._eval_taxes_computation_prepare_product_fields()
+        default_product_values = (
+            self._eval_taxes_computation_prepare_product_default_values(
+                product_fields))
+        return self._eval_taxes_computation_prepare_product_values(
+            default_product_values=default_product_values,
+            product=product,
+        )
+
+    def _eval_taxes_computation_prepare_product_uom_fields(self):
+        """ Get the fields to create the evaluation context from the product
+        uom for the taxes computation. ≙ ``:815-826``.
+        """
+        return set()
+
+    def _eval_taxes_computation_prepare_product_uom_default_values(
+            self, field_names):
+        """ Prepare the default values for the product uom according the
+        fields passed as parameter. ≙ ``:828-856``.
+        """
+        return _default_values_by_type('uom.uom', field_names)
+
+    def _eval_taxes_computation_prepare_product_uom_values(
+            self, default_product_uom_values, product_uom=None):
+        """ Convert the product uom passed as parameter to a dictionary.
+        ≙ ``:858-876``.
+        """
+        return _record_values(default_product_uom_values, product_uom)
+
+    def _eval_taxes_computation_turn_to_product_uom_values(self,
+                                                           product_uom=None):
+        """ Helper purely in Python to call the three uom helpers all at
+        once. ≙ ``:878-895``.
+        """
+        product_uom_fields = (
+            self._eval_taxes_computation_prepare_product_uom_fields())
+        default_product_uom_values = (
+            self._eval_taxes_computation_prepare_product_uom_default_values(
+                product_uom_fields))
+        return self._eval_taxes_computation_prepare_product_uom_values(
+            default_product_uom_values=default_product_uom_values,
+            product_uom=product_uom,
+        )
+
     # -- el motor -----------------------------------------------------------
 
     def _get_tax_details(
@@ -347,6 +469,8 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         quantity=1,
         precision_rounding=DEFAULT_ROUNDING,
         rounding_method='round_per_line',
+        product=None,
+        product_uom=None,
         special_mode=False,
         filter_tax_function=None,
     ):
@@ -386,7 +510,16 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         if redondear:
             raw_base = raw_base.quantize(precision_rounding)
 
-        contexto = {'price_unit': price_unit, 'quantity': quantity}
+        # ≙ ``evaluation_context`` (``:1241-1246``): el producto y la unidad
+        # con los campos que piden los ganchos.
+        contexto = {
+            'product': self._eval_taxes_computation_turn_to_product_values(
+                product=product),
+            'uom': self._eval_taxes_computation_turn_to_product_uom_values(
+                product_uom=product_uom),
+            'price_unit': price_unit,
+            'quantity': quantity,
+        }
 
         def evaluar(funcion, tax):
             if 'tax_amount' in taxes_data[tax.pk]:
@@ -499,6 +632,7 @@ class AccountTaxQuerySet(models.AccessQuerySet):
             quantity=quantity,
             precision_rounding=_d(precision),
             rounding_method=rounding_method,
+            product=product,
             special_mode=special_mode,
         )
         return {

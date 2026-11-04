@@ -1,4 +1,4 @@
-r"""``account.tax`` — impuesto con fórmula Python (Odoo ``account_tax_python``).
+r"""``account.tax`` — impuesto con fórmula Python (``account_tax_python``).
 
 Adaptación de ``addons/account_tax_python/models/account_tax.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, ``odoo19c:``,
@@ -15,25 +15,30 @@ o de su unidad de medida). La fórmula se valida por AST (``tools/
 formula_utils.py``, ya portado) antes de evaluarse con ``safe_eval`` — nunca
 con el ``eval`` desnudo de Python.
 
+Diez símbolos, nueve funcionales y uno GAP declarado
+====================================================
+
 Diez símbolos en ``models/account_tax.py`` de la referencia (3 campos + 7
 métodos, ``grep -cE "^    [a-z_]+ *= *fields\.|^    def " account_tax.py`` →
-10); nueve se portan funcionales, uno queda GAP declarado
-==============================================================================
+10), con su destino en este addon:
 
-============================================  =========================================
-Símbolo                                         Destino en este archivo
-============================================  =========================================
-``amount_type`` (``selection_add``)             GAP declarado — ver abajo
-``formula`` (campo)                             ``AccountTaxFormula.formula``
-``formula_decoded_info`` (compute, no store)    ``AccountTaxFormula.formula_decoded_info`` (``@property``)
-``_check_amount_type_code_formula`` (constrains)``AccountTaxFormula.clean``
-``_eval_taxes_computation_prepare_product_fields``  monkeypatch en ``account_tax_extensions.py``
-``_eval_taxes_computation_prepare_product_uom_fields`` monkeypatch en ``account_tax_extensions.py``
-``_compute_formula_decoded_info``               fusionado en la ``@property`` de arriba
-``_check_and_normalize_formula``                ``AccountTaxFormula._check_and_normalize_formula``
-``_eval_tax_amount_formula``                     ``AccountTaxFormula._eval_tax_amount_formula``
-``_eval_tax_amount_fixed_amount`` (EXTENDS)      monkeypatch en ``account_tax_extensions.py``
-============================================  =========================================
+- ``amount_type`` (``selection_add``) — GAP declarado, ver abajo.
+- ``formula`` (campo) — ``AccountTaxFormula.formula``.
+- ``formula_decoded_info`` (compute, no store) —
+  ``AccountTaxFormula.formula_decoded_info`` (``@property``).
+- ``_check_amount_type_code_formula`` (constrains) —
+  ``AccountTaxFormula.clean``.
+- ``_eval_taxes_computation_prepare_product_fields`` y
+  ``_eval_taxes_computation_prepare_product_uom_fields`` — extensión
+  encadenada con la base de ``account`` en ``account_tax_extensions.py``.
+- ``_compute_formula_decoded_info`` — fusionado en la ``@property`` de
+  arriba.
+- ``_check_and_normalize_formula`` —
+  ``AccountTaxFormula._check_and_normalize_formula``.
+- ``_eval_tax_amount_formula`` —
+  ``AccountTaxFormula._eval_tax_amount_formula``.
+- ``_eval_tax_amount_fixed_amount`` (EXTENDS) — extensión en
+  ``account_tax_extensions.py``.
 
 Por qué es una tabla satélite (OneToOne), no un campo en ``AccountTax``
 ==========================================================================
@@ -84,44 +89,28 @@ cerrarlo. **Sucesor exacto, de una línea**: agregar
 ``account/models/account_tax.py:497-502`` — sin migración (``max_length=12``
 ya alcanza para ``'code'``, 4 caracteres; ``choices`` no es columna de BD).
 
-GAP declarado — el motor base no arma ``evaluation_context['product']``/``['uom']``
-=======================================================================================
+El contexto de evaluación con ``product``/``uom`` — cerrado
+============================================================
 
-``AccountTaxQuerySet._get_tax_details``/``compute_all`` (``account/models/
-account_tax.py``) no aceptan ``product=``/``product_uom=`` y su ``contexto``
-sólo trae ``price_unit``/``quantity`` — nunca ``product``/``uom``. La
-referencia los arma con ``_eval_taxes_computation_turn_to_product_values``/
-``_uom_values`` (``odoo19c: account_tax.py:733-890``), que viven en
-``account``, no en ``account_tax_python``, y **tampoco están portados**
-ahí. Consecuencia medida:
+``AccountTaxQuerySet._get_tax_details`` recibe ``product=``/``product_uom=`` y
+llena ``evaluation_context['product']``/``['uom']`` con
+``_eval_taxes_computation_turn_to_product_values``/``_uom_values``
+(``odoo19c: account_tax.py:731-895``), portados en ``account``; ``compute_all``
+le pasa su ``product``. Este addon extiende los dos ganchos de campos
+encadenando con la base (``account_tax_extensions.py``), y las fórmulas que
+leen ``product.*`` corren por ``compute_all``. El sustituto local que armaba
+ese contexto a mano (``build_evaluation_context``) se retiró.
 
-- Fórmulas que sólo usan ``price_unit``/``quantity``/``base``
-  (``"price_unit * 0.10"``, ``"max(quantity * price_unit * 0.21, quantity *
-  4.17)"``) corren de punta a punta vía ``AccountTax.taxes.all().
-  compute_all(...)`` real — verificado en
-  ``tests/unit/account_tax_python/test_taxes_computation.py``.
-- Fórmulas que referencian ``product.*``/``uom.*`` **no** pueden invocarse
-  vía ``compute_all()`` hasta que ese GAP se cierre en ``account``. El fallo
-  llega como ``KeyError`` del propio ``eval``, no del guard: el
-  ``assert accessed_fields['product'] <= formula_context['product'].keys()``
-  **está muerto** — ``accessed_fields`` es un ``defaultdict`` con claves
-  ``'product.product'``/``'uom.uom'`` (``formula_utils.py:60,64``) y el
-  ``assert`` lee ``['product']``, así que siempre compara el conjunto vacío.
-  El puerto es fiel: la referencia tiene la misma discordancia entre
-  ``odoo19c: account_tax.py:62-63`` (escribe) y ``:105-106`` (lee). Se
-  documenta en vez de "arreglarlo" en silencio porque divergir del guard de
-  la referencia es una decisión, no una corrección. Ver :ref:`h-api-365`.
-  Se invocan **directamente** con
-  ``AccountTaxFormula.build_evaluation_context(...)`` (agregado local, no es
-  un símbolo de la referencia — ver su docstring).
-
-**Sucesor para ``account``**: agregar ``product=None, product_uom=None`` a
-``_get_tax_details``/``compute_all`` y dos líneas que llenen
-``contexto['product']``/``contexto['uom']`` usando los hooks
-``_eval_taxes_computation_prepare_product_fields``/``_uom_fields`` que este
-addon YA agrega (monkeypatch en ``account_tax_extensions.py`` — sin
-``super()`` porque no existían antes). Bajo riesgo: parámetros opcionales
-con default ``None``, retrocompatible con todo llamador actual.
+Lo que sigue vigente: sin producto en el contexto, el fallo llega como
+``KeyError`` del propio ``eval``, no del guard. El
+``assert accessed_fields['product'] <= formula_context['product'].keys()``
+**está muerto** — ``accessed_fields`` es un ``defaultdict`` con claves
+``'product.product'``/``'uom.uom'`` (``formula_utils.py:60,64``) y el
+``assert`` lee ``['product']``, así que siempre compara el conjunto vacío.
+El puerto es fiel: la referencia tiene la misma discordancia entre
+``odoo19c: account_tax.py:62-63`` (escribe) y ``:105-106`` (lee). Se
+documenta en vez de "arreglarlo" en silencio porque divergir del guard de
+la referencia es una decisión, no una corrección. Ver :ref:`h-api-365`.
 
 Divergencia declarada — Decimal en la frontera, float dentro de la fórmula
 =============================================================================
@@ -300,8 +289,7 @@ class AccountTaxFormula(models.Model):
             declarada en el docstring del módulo).
         :param evaluation_context: dict con ``price_unit``/``quantity``
             (obligatorios) y opcionalmente ``product``/``uom`` (dicts de
-            campos ya resueltos — ver ``build_evaluation_context`` si no se
-            invoca a través de ``compute_all()``).
+            campos ya resueltos, como los arma ``_get_tax_details``).
         :return: el monto base del impuesto (float).
         """
         normalized_formula, accessed_fields = self._check_and_normalize_formula(
@@ -330,39 +318,3 @@ class AccountTaxFormula(models.Model):
             return _safe_eval(normalized_formula, formula_context)
         except ZeroDivisionError:
             return 0.0
-
-    # -- helper local, NO es un símbolo de la referencia --------------------
-
-    @classmethod
-    def build_evaluation_context(cls, price_unit, quantity, product=None,
-                                  product_uom=None, product_fields=(),
-                                  uom_fields=()):
-        """Arma el ``evaluation_context`` para invocar
-        ``_eval_tax_amount_formula`` DIRECTAMENTE, fuera de
-        ``compute_all()`` (ver el GAP "el motor base no arma
-        evaluation_context['product']/['uom']" en el docstring del módulo).
-
-        Esto NO es un símbolo de ``account_tax_python`` — su equivalente
-        (``_eval_taxes_computation_turn_to_product_values``/``_uom_values``)
-        vive en ``account/models/account_tax.py`` de la referencia y no
-        está portado ahí. Se agrega aquí, acotado a lo que este addon
-        necesita para ser invocable y testeable con datos reales de
-        producto/uom, sin inventar el mecanismo completo de la referencia
-        (que resuelve valores por defecto por tipo de campo — aquí basta
-        con leer el atributo del objeto o usar ``0``).
-        """
-        product_values = {}
-        for field_name in product_fields:
-            product_values[field_name] = (
-                getattr(product, field_name) if product is not None else 0)
-        uom_values = {}
-        for field_name in uom_fields:
-            uom_values[field_name] = (
-                getattr(product_uom, field_name) if product_uom is not None
-                else 0)
-        return {
-            'price_unit': price_unit,
-            'quantity': quantity,
-            'product': product_values,
-            'uom': uom_values,
-        }

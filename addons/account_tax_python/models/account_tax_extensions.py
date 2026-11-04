@@ -32,14 +32,15 @@ Dos formas de gancho, según si el símbolo ya existe
   y la versión nueva la invoca explícitamente: el equivalente funcional de
   ``super()`` cuando no hay MRO de por medio.
 - ``_eval_taxes_computation_prepare_product_fields``/``_uom_fields``
-  **no existen** en ``AccountTaxQuerySet`` (verificado: ``grep -c
-  "_eval_taxes_computation_prepare" account/models/account_tax.py`` → 0).
-  Se agregan con el patrón "el primero que llega gana"
-  (``setattr(Modelo, nombre, funcion) if not hasattr(...)``), el mismo que
-  ``account: models/res_company.py``/``l10n_mx``/``account_qr_code_sepa``
-  ya usan para métodos que la referencia declara con ``super()`` contra una
-  base Odoo que aquí no existe (retorna ``set()`` — el equivalente es
-  arrancar en ``set()`` sin ``super()`` que llamar).
+  **existen** en ``AccountTaxQuerySet`` desde que ``account`` porta sus ocho
+  ``_eval_taxes_computation_*`` (``odoo19c: account_tax.py:731-895``), y
+  devuelven el conjunto vacío. Se extienden con el mismo patrón que
+  ``_eval_tax_amount_fixed_amount``: la base capturada al importar y la
+  versión nueva que la llama, como el ``super()`` de la fuente. Antes se
+  agregaban con ``if not hasattr(...)``, «el primero que llega gana», que
+  era correcto mientras no hubiera base; con la base portada esa guarda
+  dejaba la extensión sin instalar, y una fórmula con ``product.*`` moría
+  con ``KeyError`` dentro de ``compute_all``.
 
 Qué extienden (fiel a la referencia, símbolo por símbolo)
 ==============================================================
@@ -76,6 +77,10 @@ from addons.account.models.account_tax import AccountTax, AccountTaxQuerySet
 #: Comportamiento original, capturado una única vez al importar este módulo
 #: (ver el docstring de arriba — es el equivalente funcional de ``super()``).
 _base_eval_tax_amount_fixed_amount = AccountTax._eval_tax_amount_fixed_amount
+_base_prepare_product_fields = (
+    AccountTaxQuerySet._eval_taxes_computation_prepare_product_fields)
+_base_prepare_product_uom_fields = (
+    AccountTaxQuerySet._eval_taxes_computation_prepare_product_uom_fields)
 
 
 def _eval_tax_amount_fixed_amount(self, batch, raw_base, evaluation_context):
@@ -90,9 +95,9 @@ def _eval_tax_amount_fixed_amount(self, batch, raw_base, evaluation_context):
     formula_record = getattr(self, 'formula_record', None)
     if formula_record is None:
         raise ValidationError(_(
-            'El impuesto «%(nombre)s» usa amount_type=code sin un registro '
+            'El impuesto «%(name)s» usa amount_type=code sin un registro '
             'account_tax_python.AccountTaxFormula vinculado.'
-        ) % {'nombre': self.name})
+        ) % {'name': self.name})
 
     # Frontera Decimal (motor de account) → float (fórmula, JSON-primitivo).
     # Ver la divergencia declarada en el docstring del módulo.
@@ -109,10 +114,10 @@ def _eval_tax_amount_fixed_amount(self, batch, raw_base, evaluation_context):
 
 def _eval_taxes_computation_prepare_product_fields(self):
     """≙ ``_eval_taxes_computation_prepare_product_fields`` (EXTENDS
-    'account'). Sin ``super()`` real que llamar (no existía antes): arranca
-    en ``set()``, igual que la base Odoo que la referencia extiende.
+    'account', ``odoo19c: account_tax_python/models/account_tax.py:36-41``):
+    los campos de la base más los que declara cada fórmula.
     """
-    field_names = set()
+    field_names = _base_prepare_product_fields(self)
     for tax in self:
         if tax.amount_type != 'code':
             continue
@@ -125,9 +130,9 @@ def _eval_taxes_computation_prepare_product_fields(self):
 
 def _eval_taxes_computation_prepare_product_uom_fields(self):
     """≙ ``_eval_taxes_computation_prepare_product_uom_fields`` (EXTENDS
-    'account'). Mismo criterio que la de arriba, para uom.
+    'account', ``:43-48``). Mismo criterio que la de arriba, para uom.
     """
-    field_names = set()
+    field_names = _base_prepare_product_uom_fields(self)
     for tax in self:
         if tax.amount_type != 'code':
             continue
@@ -145,12 +150,8 @@ def apply_account_tax_python_extensions():
     tiempo de import de este módulo el registro de apps aún no está
     poblado (``AppRegistryNotReady``).
     """
-    if not hasattr(AccountTaxQuerySet,
-                    '_eval_taxes_computation_prepare_product_fields'):
-        AccountTaxQuerySet._eval_taxes_computation_prepare_product_fields = (
-            _eval_taxes_computation_prepare_product_fields)
-    if not hasattr(AccountTaxQuerySet,
-                    '_eval_taxes_computation_prepare_product_uom_fields'):
-        AccountTaxQuerySet._eval_taxes_computation_prepare_product_uom_fields = (
-            _eval_taxes_computation_prepare_product_uom_fields)
+    AccountTaxQuerySet._eval_taxes_computation_prepare_product_fields = (
+        _eval_taxes_computation_prepare_product_fields)
+    AccountTaxQuerySet._eval_taxes_computation_prepare_product_uom_fields = (
+        _eval_taxes_computation_prepare_product_uom_fields)
     AccountTax._eval_tax_amount_fixed_amount = _eval_tax_amount_fixed_amount
