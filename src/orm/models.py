@@ -77,7 +77,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 
 import api
 
-from exceptions import AccessError, UserError
+from exceptions import AccessError, MissingError, UserError
 from orm.environments import (
     context_scope, env, execute_query, get_context, get_current_company,
     get_current_cr,
@@ -6359,6 +6359,58 @@ class BaseModel(DefaultGetMixin, Model):
         return lambda rec: tuple(fn(rec) for fn in item_makers)
 
     # === existencia =======================================================
+
+    def fetch(self, field_names=None):
+        """Garantiza que ``field_names`` estén en memoria para ``self``,
+        trayendo de la base lo necesario.
+
+        ≙ ``fetch`` (``odoo19c: odoo/orm/models.py:3775-3818``). Los campos
+        sin columna se omiten salvo por sus dependencias almacenadas; con
+        ``None`` se traen todos los legibles marcados ``prefetch=True``.
+
+        :raise AccessError: si el usuario no puede leer lo pedido.
+
+        **Divergencia de mecanismo.** La fuente obtiene la consulta con
+        ``self._search(...)``, que allá devuelve una ``Query``; aquí
+        ``_search`` devuelve un ``QuerySet`` de Django. Se piden primero los
+        ids que las reglas de acceso dejan ver y la consulta se arma con
+        :meth:`_as_query` sobre ellos: dos consultas en lugar de una, con el
+        mismo resultado.
+        """
+        # se descartan los registros nuevos
+        self = self._origin
+        if not self or not (field_names is None or field_names):
+            return
+
+        fields_to_fetch = self._determine_fields_to_fetch(
+            field_names, ignore_when_in_cache=True)
+
+        # primero, la consulta que satisface las reglas de acceso
+        if any(field.column_type for field in fields_to_fetch):
+            visible = self._search([('id', 'in', self.ids)],
+                                   active_test=False).values_list(
+                                       'pk', flat=True)
+            query = self.browse(tuple(visible))._as_query(ordered=False)
+        else:
+            try:
+                self.check_access('read')
+            except MissingError:
+                # fetch nunca levanta MissingError, pero check_access sí
+                # puede, porque lee campos de self: se acota a lo que existe
+                self = self.exists()
+                self.check_access('read')
+            if not fields_to_fetch:
+                return
+            query = self._as_query(ordered=False)
+
+        fetched = self._fetch_query(query, fields_to_fetch)
+
+        # lo que no se pudo leer y existe es un rechazo de acceso
+        if fetched != self:
+            forbidden = (self - fetched).exists()
+            if forbidden:
+                IrRule = registry.model_by_name('ir.rule')
+                raise IrRule._make_access_error('read', forbidden)
 
     @_on_empty_recordset
     def _determine_fields_to_fetch(self, field_names=None,

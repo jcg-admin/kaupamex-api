@@ -116,3 +116,11 @@ def test_fetch_records_ignores_new_records(env):
     new = env['test_orm.foo'].new({'value1': 3})
     assert new.fetch(['value1']) is None
     assert new.value1 == 3
+
+
+def test_fetch_records_skips_a_row_that_no_longer_exists(env):
+    """``fetch`` nunca levanta ``MissingError``: lo que no se obtuvo y no
+    existe no es un rechazo de acceso (``odoo19c: :3814-3818``)."""
+    record = env['test_orm.foo'].create({'value1': 1})
+    gone = env['test_orm.foo'].browse([record.id, record.id + 100000])
+    assert gone.fetch(['value1']) is None
