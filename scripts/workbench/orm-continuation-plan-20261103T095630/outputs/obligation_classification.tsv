@@ -968,14 +968,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.get_metadat
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.get_base_url	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:BaseUrlMixin.get_base_url;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_company_domain	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:CheckCompanyMixin._check_company_domain;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_company	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:CheckCompanyMixin._check_company;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.check_access	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet.check_access;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.has_access	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet.has_access;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._filtered_access	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet._filtered_access;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_access	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet._check_access;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.check_access_rights	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.check_access_rule	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._filter_access_rules	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._filter_access_rules_python	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.unlink	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.write	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397	structural=paired_by_name:RecordLoaderMixin.write;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._write	method	absent	task_without_unit	TASK-API-0485	TASK-API-0397	structural=unresolved;write_path=-;evidence=-
