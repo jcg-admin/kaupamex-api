@@ -587,10 +587,29 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         else:
             total_excluded = total_included = raw_base
 
+        # ≙ la proyección pública de la fuente (``:1320-1336``): por impuesto,
+        # sólo lo que consumen la envoltura de base-lines y ``compute_all``,
+        # con la base bajo ``base_amount``. El cargo revertido no se duplica
+        # aquí (ver «Qué no se porta»), así que ``is_reverse_charge`` es
+        # siempre ``False``; ``group`` vale ``None`` sin grupo, donde la
+        # fuente pone el recordset vacío.
         return {
             'total_excluded': total_excluded,
             'total_included': total_included,
-            'taxes_data': lista,
+            'taxes_data': [
+                {
+                    'tax': datos['tax'],
+                    'taxes': datos['taxes'],
+                    'group': datos['group'],
+                    'batch': datos['batch'],
+                    'tax_amount': datos['tax_amount'],
+                    'price_include': datos['price_include'],
+                    'base_amount': datos['base'],
+                    'is_reverse_charge': datos.get('is_reverse_charge',
+                                                   False),
+                }
+                for datos in lista
+            ],
         }
 
     # -- la API pública -----------------------------------------------------
@@ -644,7 +663,7 @@ class AccountTaxQuerySet(models.AccessQuerySet):
                     'id': d['tax'].pk,
                     'name': d['tax'].name,
                     'amount': d['tax_amount'],
-                    'base': d['base'],
+                    'base': d['base_amount'],
                     'sequence': d['tax'].sequence,
                     'price_include': d['price_include'],
                     'group': d['group'],
@@ -1187,6 +1206,86 @@ class AccountTax(models.Model):
                     base_line[k] = v
 
         return base_line
+
+    # -- detalles de impuestos en la base-line (odoo19c: :1737-1823) -------
+
+    @classmethod
+    def _add_tax_details_in_base_line(cls, base_line, company,
+                                      rounding_method=None):
+        """ Perform the taxes computation for the base line and add it to the
+        base line under the 'tax_details' key.
+
+        ≙ ``_add_tax_details_in_base_line`` (``odoo19c: :1737-1810``): los
+        importes del motor en moneda extranjera (``*_currency``) y, divididos
+        entre la tasa, en la local; con ``round_per_line`` los locales se
+        redondean con la moneda de la compañía. Divergencia de pila: la
+        fuente multiplica ``float``; aquí el motor y las líneas son
+        ``Decimal``, así que precio, descuento y tasa entran por ``_d``.
+        """
+        rounding_method = (rounding_method
+                           or company.tax_calculation_rounding_method)
+        price_unit_after_discount = _d(base_line['price_unit']) * (
+            1 - (_d(base_line['discount']) / 100))
+        taxes_computation = base_line['tax_ids']._get_tax_details(
+            price_unit=price_unit_after_discount,
+            quantity=base_line['quantity'],
+            precision_rounding=_d(base_line['currency_id'].rounding),
+            rounding_method=rounding_method,
+            product=base_line['product_id'],
+            product_uom=base_line['product_uom_id'],
+            special_mode=base_line['special_mode'],
+            filter_tax_function=base_line['filter_tax_function'],
+        )
+
+        # Only python side for professional with reverse charge
+        if base_line['special_type'] == 'non_deductible':
+            taxes_data = taxes_computation['taxes_data']
+            taxes_computation['taxes_data'] = []
+            for tax_data in taxes_data:
+                if not tax_data.get('is_reverse_charge'):
+                    taxes_computation['taxes_data'].append(tax_data)
+                else:
+                    taxes_computation['total_included'] -= (
+                        tax_data['tax_amount'])
+
+        rate = _d(base_line['rate']) if base_line['rate'] else None
+        tax_details = base_line['tax_details'] = {
+            'raw_total_excluded_currency': taxes_computation['total_excluded'],
+            'raw_total_excluded': (taxes_computation['total_excluded'] / rate
+                                   if rate else Decimal('0')),
+            'raw_total_included_currency': taxes_computation['total_included'],
+            'raw_total_included': (taxes_computation['total_included'] / rate
+                                   if rate else Decimal('0')),
+            'taxes_data': [],
+        }
+        if rounding_method == 'round_per_line':
+            tax_details['raw_total_excluded'] = company.currency.round(
+                tax_details['raw_total_excluded'])
+            tax_details['raw_total_included'] = company.currency.round(
+                tax_details['raw_total_included'])
+        for tax_data in taxes_computation['taxes_data']:
+            tax_amount = (tax_data['tax_amount'] / rate if rate
+                          else Decimal('0'))
+            base_amount = (tax_data['base_amount'] / rate if rate
+                           else Decimal('0'))
+            if rounding_method == 'round_per_line':
+                tax_amount = company.currency.round(tax_amount)
+                base_amount = company.currency.round(base_amount)
+            tax_details['taxes_data'].append({
+                **tax_data,
+                'raw_tax_amount_currency': tax_data['tax_amount'],
+                'raw_tax_amount': tax_amount,
+                'raw_base_amount_currency': tax_data['base_amount'],
+                'raw_base_amount': base_amount,
+            })
+
+    @classmethod
+    def _add_tax_details_in_base_lines(cls, base_lines, company):
+        """ Shortcut to call '_add_tax_details_in_base_line' on multiple base
+        lines at once. ≙ ``:1812-1823``.
+        """
+        for base_line in base_lines:
+            cls._add_tax_details_in_base_line(base_line, company)
 
     # -- reparto de un delta de redondeo (odoo19c: :1824-1893) -------------
 
