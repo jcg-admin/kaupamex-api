@@ -22,12 +22,35 @@ clave — la **tragaba** en su ``**kwargs`` y devolvía un campo sin ella. El
 sitio de declaración se leía correcto y no hacía nada.
 """
 
+import itertools
+
 import pytest
 from django.apps import apps
 from django.db import models
+from django.test.utils import isolate_apps
 
 import fields
-from orm.fields_nonstored import NonStored
+
+
+_HOLDERS = itertools.count()
+
+
+def has_column(field):
+    """Contribuye ``field`` a un modelo aislado y dice si quedó con columna.
+
+    Es el contrato de la fuente (``odoo19c: odoo/orm/fields.py:455``): un
+    campo no almacenado no tiene columna. Desde TASK-API-0417 la forma sin
+    columna la decide la costura al contribuir —``private_only`` y
+    ``column=None``—, no la clase que devuelve el constructor, así que se
+    mide ahí. ``isolate_apps`` evita registrar el modelo y crear tablas.
+    """
+    with isolate_apps():
+        meta = type('Meta', (), {'app_label': 'base'})
+        model = type(f'ColumnHolder{next(_HOLDERS)}', (models.Model,), {
+            '__module__': __name__, 'probe': field, 'Meta': meta})
+    return (getattr(field, 'column', None) is not None
+            and field in model._meta.local_fields)
+
 
 #: Los nueve que la sonda de conducta del censo daba por no cubiertos, con los
 #: posicionales mínimos que su constructor exige cuando NO hay ``related``.
@@ -61,9 +84,8 @@ class TestEveryConstructorAcceptsTheKey:
         """``:455`` — un related no se guarda por defecto, así que no hay
         columna que declarar y el portador es el descriptor."""
         field = getattr(fields, type_name)(*arguments, related='partner.name')
-        assert isinstance(
-            field, NonStored
-        ), f'{type_name} devolvió {type(field).__name__}'
+        assert not has_column(field), (
+            f'{type_name} devolvió {type(field).__name__}')
 
     @pytest.mark.parametrize('type_name,arguments', UNCOVERED)
     def test_the_four_defaults_of_the_source_apply(self, type_name, arguments):
@@ -84,7 +106,7 @@ class TestTheRelationalArgumentsBecomeOptional:
         """``odoo19c: account/models/account_analytic_line.py`` —
         ``fields.Many2one(related='product_id.categ_id')``, sin comodelo."""
         field = fields.Many2one(related='product.category')
-        assert isinstance(field, NonStored)
+        assert not has_column(field)
         assert field.related == 'product.category'
 
     def test_many2one_keeps_the_column_when_the_declaration_asks_for_it(self):
@@ -108,7 +130,7 @@ class TestTheRelationalArgumentsBecomeOptional:
     def test_many2many_needs_no_comodel_either(self):
         """``fields.Many2many(related="lead_id.tag_ids", readonly=True)``."""
         field = fields.Many2many(related='lead.tags', readonly=True)
-        assert isinstance(field, NonStored)
+        assert not has_column(field)
         assert field.readonly is True
 
 
@@ -129,7 +151,10 @@ class TestOne2manyStopsSwallowingTheKey:
         """El control discriminante: sin ``related`` el ``One2many`` de
         siempre sigue exigiendo comodelo e inverso, que es su contrato."""
         field = fields.One2many('base.ResPartnerBank', 'partner')
-        assert not isinstance(field, NonStored)
+        #: Un ``One2many`` nunca tiene columna, tampoco en la fuente: es el
+        #: reverso de una FK. Lo que lo distingue de una proyección es que se
+        #: almacena (``store`` por defecto de ``Field``).
+        assert field.store is True
         assert field.comodel_name == 'base.ResPartnerBank'
         assert field.inverse_name == 'partner'
 
@@ -152,15 +177,27 @@ class TestTheChainResolvesForEachShape:
             acc_number='0123456789', partner=partner, bank=bank
         )
 
-    def test_a_many2one_chain_gives_the_instance_at_the_end(self, account):
-        """El extremo es un registro, no un escalar: el recorrido no cambia."""
-        descriptor = fields.Many2one(related='bank.country')
-        descriptor.name = 'bank_country'
-        assert descriptor.resolve_related(account).code == 'MX'
+    def test_a_many2one_chain_gives_the_instance_at_the_end(self, db):
+        """El extremo es un registro, no un escalar: el recorrido no cambia.
+
+        Se lee por el registro, que es el contrato de la fuente
+        (``Field._compute_related``, ``odoo19c: odoo/orm/fields.py:675``),
+        sobre un related que el árbol declara:
+        ``test_orm.team.member.parent_id`` (``related='team_id.parent_id'``).
+        Antes se llamaba ``resolve_related`` sobre un campo suelto, una API
+        del descriptor que TASK-API-0417 retiró.
+        """
+        team_model = apps.get_model('test_orm', 'TestOrmTeam')
+        member_model = apps.get_model('test_orm', 'TestOrmTeamMember')
+        parent = team_model.objects.create(name='Padre')
+        team = team_model.objects.create(name='Equipo', parent_id=parent)
+        member = member_model.objects.create(name='Miembro', team_id=team)
+        assert member.parent_id == parent
 
     def test_a_one2many_chain_gives_the_manager_at_the_end(self, account):
         """``ResCompany.bank_ids`` (``odoo19c: res_company.py:77``) es de esta
-        forma: el extremo es el conjunto del reverso, no un valor."""
-        descriptor = fields.One2many(related='partner.bank_accounts')
-        descriptor.name = 'bank_accounts_of_the_partner'
-        assert descriptor.resolve_related(account).count() == 1
+        forma: el extremo es el conjunto del reverso, no un valor. Se lee por
+        el registro que lo declara (``related='partner.bank_accounts'``)."""
+        company = apps.get_model('base', 'ResCompany').objects.create(
+            code='cadena', name='Cadena', partner=account.partner)
+        assert list(company.bank_ids) == [account]

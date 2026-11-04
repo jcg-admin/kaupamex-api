@@ -61,7 +61,7 @@ import pytest
 from django.db import models
 
 import fields
-from orm.fields_nonstored import NonStored, apply_source_defaults
+from orm.fields_nonstored import apply_source_defaults
 
 #: Los cuatro que la rama llana pierde, con un valor DISTINTO del default de
 #: clase: si el caso declarara el default, un «quedó == default» no separaría
@@ -76,20 +76,32 @@ LOST_ON_A_PLAIN_FIELD = [
 #: Las claves que ``apply_source_defaults`` deja en ``attrs`` para un campo
 #: llano **aunque nadie las declare** — medido, no supuesto::
 #:
-#:     sin declarar nada    ['compute', 'declared_keys', 'inverse',
-#:                           'precompute', 'store']
+#:     sin declarar nada    ['declared_keys', 'store']
 #:
-#: Son las que el filtro de ``declared_keys`` retiene. Sin él aterrizarían las
-#: cuatro, y sólo una (``inverse``) está en ``LOST_ON_A_PLAIN_FIELD``: un
-#: control parametrizado sólo por esa lista mediría **una** de las cuatro y
-#: publicaría verde sobre las otras tres. ``declared_keys`` no entra porque es
-#: contabilidad del mecanismo y ``annotate_related`` la salta explícitamente.
-UNCONDITIONAL_IN_ATTRS = ['compute', 'inverse', 'precompute', 'store']
+#: Antes eran también ``compute``, ``inverse`` y ``precompute``, y el filtro
+#: de ``declared_keys`` las retenía al anotar. Desde que la derivación vive en
+#: :func:`derive_source_attrs`, ``attrs`` nace sólo de lo declarado, que es la
+#: forma de la fuente: su ``attrs`` sale de ``_get_attrs``, que recoge lo que
+#: el autor pasó. ``declared_keys`` no entra porque es contabilidad del
+#: mecanismo y ``annotate_related`` la salta explícitamente.
+UNCONDITIONAL_IN_ATTRS = ['store']
+
+#: Las tres que ya no viajan sin declararse, con la declaración mínima que las
+#: pone. Son el sujeto del control de no-estampado: si declararlas no las
+#: anotara, el «no se anotó» de abajo sería verde por ausencia de mecanismo.
+TRAVEL_ONLY_WHEN_DECLARED = [
+    ('compute', {'compute': '_compute_label'}),
+    ('inverse', {'inverse': '_inverse_label'}),
+    ('precompute', {'compute': '_compute_label', 'store': True,
+                    'precompute': True}),
+]
 
 #: El universo del control de no-estampado: lo que el arreglo trajo más lo que
 #: el filtro retiene. ``inverse`` cae en los dos.
 NOT_STAMPED_WITHOUT_DECLARATION = sorted(
-    {a for a, _, _ in LOST_ON_A_PLAIN_FIELD} | set(UNCONDITIONAL_IN_ATTRS)
+    {a for a, _, _ in LOST_ON_A_PLAIN_FIELD}
+    | set(UNCONDITIONAL_IN_ATTRS)
+    | {a for a, _ in TRAVEL_ONLY_WHEN_DECLARED}
 )
 
 
@@ -116,9 +128,10 @@ class TestTheDeclarationLandsOnAPlainField:
         """``inverse`` no implica ausencia de columna. La referencia lo declara
         sobre un campo con columna 35 veces —``ir_actions.py:691`` lo hace
         incluso sobre un ``Many2one``—, así que el enrutador no debe reaccionar
-        a él."""
+        a él. La forma sin columna la decide la costura al contribuir, con
+        ``store is False``; por eso se mide ``store``."""
         field = fields.Char(inverse='_inverse_label')
-        assert not isinstance(field, NonStored), type(field).__name__
+        assert field.store is True
 
 
 class TestItAlsoLandsAfterContributeToClass:
@@ -194,7 +207,7 @@ class TestTheClassDefaultIsNotStamped:
     @pytest.mark.parametrize('attribute', UNCONDITIONAL_IN_ATTRS)
     def test_the_universe_of_the_control_is_the_measured_one(self, attribute):
         """El control del control: si ``apply_source_defaults`` dejara de poner
-        estas cuatro en ``attrs``, el caso de arriba seguiría verde midiendo un
+        estas claves en ``attrs``, el caso de arriba seguiría verde midiendo un
         universo más chico — verde por ausencia de sujeto, que es el
         sub-patrón D de ``metrica-decide-la-conclusion.md``.
         """
@@ -203,6 +216,23 @@ class TestTheClassDefaultIsNotStamped:
             f'{attribute} ya no viaja en attrs: el control de no-estampado '
             'dejó de medirlo'
         )
+
+    @pytest.mark.parametrize(
+        'attribute,declaration', TRAVEL_ONLY_WHEN_DECLARED
+    )
+    def test_undeclared_it_does_not_travel(self, attribute, declaration):
+        """La forma de la fuente: lo no declarado no entra en ``attrs``."""
+        assert attribute not in apply_source_defaults(None, {})
+
+    @pytest.mark.parametrize(
+        'attribute,declaration', TRAVEL_ONLY_WHEN_DECLARED
+    )
+    def test_declared_it_travels_and_lands(self, attribute, declaration):
+        """El control que discrimina al no-estampado: declarada, la clave
+        viaja en ``attrs`` y se anota en la instancia. Si no se anotara, el
+        caso «sin declarar no se anota» pasaría sin medir nada."""
+        assert attribute in apply_source_defaults(None, dict(declaration))
+        assert attribute in fields.Char(**declaration).__dict__
 
 
 class TestTheContractOfTheEndpointDoesNotMove:

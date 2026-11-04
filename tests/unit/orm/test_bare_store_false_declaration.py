@@ -4,9 +4,10 @@ sin columna (#288).
 :ref:`h-api-1020` corrigió el enrutador de :func:`make_dispatcher`, que miraba
 ``related`` en vez del ``store`` ya resuelto y sacaba con columna un
 ``fields.Integer(compute='_compute_x')``. Los siete tipos de ese molde
-quedaron cerrados; los que **no** lo usan siguen enrutando por
-:func:`~orm.fields_nonstored.projection_or_none`, que tiene exactamente la
-misma condición.
+quedaron cerrados. Desde TASK-API-0417 ningún constructor enruta: todos
+devuelven un tipo con ``store`` como atributo, y la forma sin columna la
+decide la costura al contribuir (``private_only`` y ``column=None``). Por eso
+estos casos la miden contribuyendo el campo a un modelo aislado.
 
 Medido en ``odoo19c`` sobre ``addons/*/models/*.py`` y
 ``odoo/addons/*/models/*.py`` — declaraciones con ``compute=`` y sin
@@ -19,15 +20,38 @@ Qué haría fallar a estos casos: que un constructor devuelva algo con columna
 fuente escribe.
 """
 
+import itertools
+
 import pytest
+from django.db import models
+from django.test.utils import isolate_apps
 
 import fields
-from orm.fields_nonstored import NonStored
 
-#: Los que enrutan por ``projection_or_none`` y admiten construirse sin más
-#: argumentos que la declaración. ``Many2many`` va aparte: su constructor de
-#: Django exige ``to`` posicional, y el punto del caso es que el enrutador
-#: atienda **antes** de llegar ahí.
+
+_HOLDERS = itertools.count()
+
+
+def has_column(field):
+    """Contribuye ``field`` a un modelo aislado y dice si quedó con columna.
+
+    Es el contrato de la fuente (``odoo19c: odoo/orm/fields.py:455``): un
+    campo no almacenado no tiene columna. Desde TASK-API-0417 la forma sin
+    columna la decide la costura al contribuir —``private_only`` y
+    ``column=None``—, no la clase que devuelve el constructor, así que se
+    mide ahí. ``isolate_apps`` evita registrar el modelo y crear tablas.
+    """
+    with isolate_apps():
+        meta = type('Meta', (), {'app_label': 'base'})
+        model = type(f'ColumnHolder{next(_HOLDERS)}', (models.Model,), {
+            '__module__': __name__, 'probe': field, 'Meta': meta})
+    return (getattr(field, 'column', None) is not None
+            and field in model._meta.local_fields)
+
+
+#: Los que admiten construirse sin más argumentos que la declaración.
+#: ``Many2many`` va aparte: la fuente le exige comodelo fuera de ``related``
+#: (``odoo19c: odoo/orm/fields_relational.py:91-94``).
 TYPES_WITHOUT_ARGUMENTS = ('Html', 'Binary', 'Image', 'PropertiesDefinition')
 
 
@@ -39,20 +63,27 @@ class TestTheRouterReadsTheResolvedStore:
     @pytest.mark.parametrize('name', TYPES_WITHOUT_ARGUMENTS)
     def test_a_bare_store_false_has_no_column(self, name):
         field = getattr(fields, name)(store=False, compute='_compute_x')
-        assert isinstance(field, NonStored), type(field).__name__
+        assert not has_column(field), type(field).__name__
 
-    def test_the_many_to_many_does_not_need_its_comodel(self):
-        """Sin columna no hay tabla intermedia que definir, así que el
-        comodelo deja de hacer falta — la misma asimetría que ya rige para el
-        ``related=`` de los relacionales."""
-        field = fields.Many2many(store=False, compute='_compute_x')
-        assert isinstance(field, NonStored), type(field).__name__
+    def test_the_computed_many_to_many_has_no_column(self):
+        """Un ``Many2many`` calculado sin ``store`` no tiene columna ni tabla
+        intermedia.
+
+        Este caso afirmaba además que el comodelo deja de hacer falta, y la
+        fuente lo contradice: ``_Relational.setup_nonrelated`` exige un
+        ``comodel_name`` registrado a todo relacional que no sea ``related``
+        (``odoo19c: odoo/orm/fields_relational.py:91-94``), calculado o no.
+        Sólo ``related=`` lo vuelve opcional (``:643-647``).
+        """
+        field = fields.Many2many('base.ResPartner', store=False,
+                                 compute='_compute_x')
+        assert not has_column(field), type(field).__name__
 
     def test_the_properties_field_has_no_column_either(self):
         field = fields.Properties(
             'Properties', store=False, definition='company_id.employee_props'
         )
-        assert isinstance(field, NonStored), type(field).__name__
+        assert not has_column(field), type(field).__name__
 
 
 class TestTheColumnBranchStillExists:
@@ -63,11 +94,11 @@ class TestTheColumnBranchStillExists:
     @pytest.mark.parametrize('name', TYPES_WITHOUT_ARGUMENTS)
     def test_without_the_declaration_the_field_keeps_its_column(self, name):
         field = getattr(fields, name)()
-        assert not isinstance(field, NonStored), type(field).__name__
+        assert has_column(field), type(field).__name__
 
     def test_an_explicit_store_true_keeps_its_column(self):
         field = fields.Html(store=True)
-        assert not isinstance(field, NonStored), type(field).__name__
+        assert has_column(field), type(field).__name__
 
 
 class TestTheDeclarationSurvivesInTheField:
@@ -105,4 +136,4 @@ class TestTheExclusionSurvivesTheRouter:
     def test_the_company_dependent_branch_still_exists(self):
         """El control: sin ``store=False`` la rama con jsonb sigue viva."""
         field = fields.Html(company_dependent=True)
-        assert not isinstance(field, NonStored), type(field).__name__
+        assert has_column(field), type(field).__name__
