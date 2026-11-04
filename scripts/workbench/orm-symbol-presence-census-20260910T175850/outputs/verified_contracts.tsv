@@ -274,3 +274,4 @@ src/orm/models.py	BaseModel._determine_fields_to_fetch	method	tests/integration/
 src/orm/models.py	BaseModel._fetch_query	method	tests/integration/test_orm/test_fetch.py
 src/orm/models.py	BaseModel._as_query	method	tests/integration/test_orm/test_fetch.py
 src/orm/models.py	BaseModel._fetch_field	method	tests/integration/test_orm/test_fetch.py
+src/orm/models.py	BaseModel.check_field_access_rights	method	tests/integration/test_orm/test_contract_models_basemodel_check_field_access_rights.py

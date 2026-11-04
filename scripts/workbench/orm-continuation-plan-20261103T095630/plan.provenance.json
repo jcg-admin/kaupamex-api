@@ -16,6 +16,13 @@
         "fetch-field-0485"
       ],
       "writtenAt": "2026-11-04T19:47:31Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "models-basemodel-check-field-access-rights-0485"
+      ],
+      "writtenAt": "2026-11-04T20:16:27Z"
     }
   ]
 }

@@ -6360,6 +6360,31 @@ class BaseModel(DefaultGetMixin, Model):
 
     # === existencia =======================================================
 
+    @_on_empty_recordset
+    def check_field_access_rights(self, operation, field_names):
+        """Los campos de ``field_names`` a los que el usuario tiene acceso.
+
+        ≙ ``odoo19c: odoo/orm/models.py:3436-3466``. Bajo elevación devuelve
+        ``field_names`` o, si no se pidió ninguno, todos los campos. Sin
+        elevación, sin nombres devuelve sólo los accesibles; con nombres,
+        levanta ``AccessError`` por el primero prohibido. Un nombre que no es
+        campo se considera accesible: no se leerá ni se escribirá.
+        """
+        if self.env.su:
+            return field_names or list(self._fields)
+        if not field_names:
+            return [
+                field_name
+                for field_name, field in self._fields.items()
+                if self._has_field_access(field, operation)
+            ]
+        for field_name in field_names:
+            field = self._fields.get(field_name)
+            if field is None:
+                continue
+            self._check_field_access(field, operation)
+        return field_names
+
     def _fetch_field(self, field):
         """Lee de la base ``field`` para ``self`` y lo deja en caché.
 
