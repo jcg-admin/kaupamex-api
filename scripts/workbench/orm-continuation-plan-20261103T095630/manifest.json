@@ -4,13 +4,14 @@
     "plan.jsonl",
     "probes/settle_item.py",
     "thyrox: bin/task_continuation next",
-    "probes/plan_coverage.py"
+    "probes/plan_coverage.py",
+    "orm-symbol-presence-census-20260910T175850/inventory_by_kind.py"
   ],
   "metric": "filas attempt y accepted de outputs/continuation.jsonl por unidad del plan, con el código de salida de su verify y el commit sobre el que corrió",
   "blind_to": [
     "la calidad de la unidad más allá de lo que mide su verify: un verify estrecho acepta un porte incompleto",
     "una unidad con verify false, que la frontera no ofrece hasta que alguien le dé uno",
-    "una obligación contractual que ninguna TASK de la iniciativa cita todavía: plan_coverage cruza las TASK citadas con el plan, no el inventario por símbolo"
+    "una obligación que el inventario por símbolo no enumera (atributos de instancia, comportamiento sin caso), y la vigencia del inventario: plan_coverage lee inventory_by_kind.tsv tal como se generó; una obligación pendiente bloquea el dictamen A, pero su vínculo con una TASK sólo existe si la fila declara la columna task"
   ],
   "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/progreso/bitacora-continuidad-de-la-iniciativa-y-frontera-durable.rst",
   "outputs": [

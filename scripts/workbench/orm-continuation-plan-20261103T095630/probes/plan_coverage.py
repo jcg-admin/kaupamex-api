@@ -15,8 +15,9 @@ Esta sonda convierte esa ceguera en un dictamen medible.
 Las tres situaciones, y ninguna es ACCEPTED
 ===========================================
 
-- **A** — ninguna TASK de la población abierta ni ninguna unidad abierta. Es un
-  candidato: la aceptación la autoriza el ejecutor (I-011), no este conteo.
+- **A** — ninguna TASK de la población abierta, ninguna unidad abierta y
+  ninguna obligación del contrato pendiente. Es un candidato: la aceptación la
+  autoriza el ejecutor (I-011), no este conteo.
 - **B** — hay trabajo pendiente y al menos una unidad admisible.
 - **C** — hay trabajo pendiente y nada admisible. Se nombra por qué: unidades
   bloqueadas (con su razón), TASK sin unidad en el plan (``unrepresented``) o
@@ -36,11 +37,29 @@ estados y la frontera son los del proveedor: ``load_plan``, ``read_log``,
 *Métrica:* TASK de la población con estado nativo abierto, cruzadas con las
 unidades de ``plan.jsonl`` por ``taskId`` y con su estado en
 ``outputs/continuation.jsonl``.
-*Ciega a:* una obligación contractual que ninguna TASK nombra todavía —la
-población es la de las citas, no la del inventario por símbolo—, y a una cita
-de la iniciativa que no esté escrita como ``TASK-<CAPA>-NNNN``.
+Obligaciones del contrato
+=========================
+
+Las citas no son el contrato. El inventario estructural por tipo
+(``orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv``)
+clasifica cada símbolo de la referencia como ``satisfied``, ``absent``,
+``divergent`` o ``not_verified``. Una obligación pendiente —cualquiera de las
+tres últimas— impide el dictamen A aunque ninguna TASK quede abierta y la
+frontera esté vacía. Las que no nombran TASK (columna opcional ``task``) se
+publican agrupadas por módulo en ``obligations_without_task``: son trabajo que
+el plan no puede seleccionar porque nadie lo ha convertido en TASK.
+
+*Métrica:* TASK de la población con estado nativo abierto, cruzadas con las
+unidades de ``plan.jsonl`` por ``taskId`` y con su estado en
+``outputs/continuation.jsonl``; y filas del inventario por categoría.
+*Ciega a:* una cita de la iniciativa que no esté escrita como
+``TASK-<CAPA>-NNNN``; a la vigencia del inventario, que es la del commit en que
+se generó (se publica en ``obligations.source``); y a una obligación que el
+inventario no enumera —atributos de instancia, comportamiento sin caso—.
 """
 import argparse
+import collections
+import csv
 import importlib
 import json
 import pathlib
@@ -60,8 +79,12 @@ controller = importlib.import_module('session.task_continuation')
 INITIATIVE = (HOME / 'kaupamex-docs/source/gestion/pm/api/iniciativas'
               / 'completar-raiz-orm')
 STORE = THYROX / 'agent-results/agent_store.sqlite3'
+INVENTORY = (BENCH.parent / 'orm-symbol-presence-census-20260910T175850'
+             / 'outputs/inventory_by_kind.tsv')
 
 OPEN_STATUSES = ('pending', 'in_progress')
+CATEGORIES = ('satisfied', 'absent', 'divergent', 'not_verified')
+PENDING_CATEGORIES = CATEGORIES[1:]
 ACCEPTANCE = 'requires executor authority (I-011)'
 
 
@@ -76,8 +99,29 @@ def blocking_reason(unit, states):
     return 'conflicts with a unit in flight or ahead in the frontier'
 
 
-def classify(population, plan, states):
-    """El dictamen A/B/C sobre la población, el plan y sus estados."""
+def obligation_summary(obligations, open_citations):
+    """Conteo por categoría y pendientes sin TASK abierta, por módulo.
+
+    Una obligación cuya TASK está cerrada sigue pendiente si su categoría lo
+    está: cerrar la TASK no satisface el contrato.
+    """
+    counts = collections.Counter(row['category'] for row in obligations)
+    unknown = set(counts) - set(CATEGORIES)
+    if unknown:
+        raise ValueError(f'categoría desconocida: {sorted(unknown)}')
+    without_task = collections.Counter(
+        row['module'] for row in obligations
+        if row['category'] in PENDING_CATEGORIES
+        and row.get('task') not in open_citations)
+    summary = {category: counts.get(category, 0) for category in CATEGORIES}
+    summary['applicable'] = len(obligations)
+    summary['pending'] = sum(summary[c] for c in PENDING_CATEGORIES)
+    return summary, dict(sorted(without_task.items()))
+
+
+def classify(population, plan, states, obligations=()):
+    """El dictamen A/B/C sobre la población, el plan, sus estados y el
+    contrato."""
     frontier = frontier_module.runnable_items(plan, states)
     frontier_ids = {unit.id for unit in frontier}
     units_by_task = {}
@@ -98,7 +142,10 @@ def classify(population, plan, states):
             unrepresented.append(citation)
         elif all(states.get(unit.id) == 'accepted' for unit in units):
             settled_task_open.append(citation)
-    if not open_tasks and not blocked and not frontier:
+    summary, without_task = obligation_summary(list(obligations),
+                                               set(open_tasks))
+    if (not open_tasks and not blocked and not frontier
+            and not summary['pending']):
         verdict = 'A'
     elif frontier:
         verdict = 'B'
@@ -114,7 +161,17 @@ def classify(population, plan, states):
         'blocked': blocked,
         'unrepresented': unrepresented,
         'settled_task_open': settled_task_open,
+        'obligations': summary,
+        'obligations_without_task': without_task,
     }
+
+
+def load_obligations(path=INVENTORY):
+    """Las filas del inventario estructural, o None si no existe."""
+    if not path.is_file():
+        return None
+    with path.open(encoding='utf-8') as handle:
+        return list(csv.DictReader(handle, delimiter='\t'))
 
 
 def population_of(initiative, store):
@@ -131,14 +188,21 @@ def population_of(initiative, store):
     return population
 
 
-def report_for(bench, initiative=INITIATIVE, store=STORE):
-    """El dictamen de un banco, o None si falta la iniciativa o el store."""
-    if not initiative.is_dir() or not store.is_file():
+def report_for(bench, initiative=INITIATIVE, store=STORE,
+               inventory=INVENTORY):
+    """El dictamen de un banco, o None si falta la iniciativa, el store o el
+    inventario: sin cualquiera de los tres no se puede medir."""
+    obligations = load_obligations(inventory)
+    if not initiative.is_dir() or not store.is_file() or obligations is None:
         return None
     log = controller.read_log(bench)
-    return classify(population_of(initiative, store),
-                    controller.load_plan(bench),
-                    frontier_module.item_states(log))
+    report = classify(population_of(initiative, store),
+                      controller.load_plan(bench),
+                      frontier_module.item_states(log), obligations)
+    report['obligations']['source'] = {
+        'path': str(inventory),
+        'revisions': sorted({row['revision'] for row in obligations})}
+    return report
 
 
 def main(argv=None):
@@ -146,11 +210,13 @@ def main(argv=None):
     parser.add_argument('--bench', type=pathlib.Path, default=BENCH)
     parser.add_argument('--initiative', type=pathlib.Path, default=INITIATIVE)
     parser.add_argument('--store', type=pathlib.Path, default=STORE)
+    parser.add_argument('--inventory', type=pathlib.Path, default=INVENTORY)
     args = parser.parse_args(argv)
-    report = report_for(args.bench, args.initiative, args.store)
+    report = report_for(args.bench, args.initiative, args.store,
+                        args.inventory)
     if report is None:
-        print('plan_coverage: no se puede medir — falta la iniciativa o el '
-              'store; no se emite dictamen', file=sys.stderr)
+        print('plan_coverage: no se puede medir — falta la iniciativa, el '
+              'store o el inventario; no se emite dictamen', file=sys.stderr)
         return 2
     print(json.dumps(report, ensure_ascii=False, indent=1))
     return {'A': 0, 'B': 0, 'C': 1}[report['verdict']]
