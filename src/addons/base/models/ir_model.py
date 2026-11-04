@@ -2997,16 +2997,16 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         externo puede sobrevivir al registro que nombraba.
         """
         complete_name = self._compute_complete_name()
-        if not self.res_id or not self.model:
-            return complete_name
-        model_cls = _model_class(self.model)
-        if model_cls is None:
+        model_cls = _model_class(self.model) if self.model else None
+        if not self.res_id or model_cls is None:
+            self.display_name = complete_name
             return complete_name
         try:
             target = model_cls.objects.filter(pk=self.res_id).first()
-            return (target and str(target)) or complete_name
-        except Exception:                    # noqa: BLE001 — verbatim de la fuente
-            return complete_name
+            self.display_name = (target and str(target)) or complete_name
+        except Exception:  # pylint: disable=broad-except
+            self.display_name = complete_name
+        return self.display_name
 
     def __str__(self):
         """Enganche de Django — delega en ``_compute_display_name``."""

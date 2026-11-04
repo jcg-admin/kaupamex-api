@@ -233,3 +233,32 @@ class TestShowEffectParameter:
     def test_set_and_read_back(self):
         SystemParameter.set_param(SHOW_EFFECT_PARAM, '1')
         assert bool(SystemParameter.get_param(SHOW_EFFECT_PARAM)) is True
+
+
+class TestTheFieldsReadThroughTheirCompute:
+    """Los cinco campos se leen por el atributo, no sólo llamando al método.
+
+    Hasta TASK-API-0418 eran ``store=False`` con un ``default`` que recibía
+    el registro, la forma de ``NonStored``. Se declaran como la fuente
+    (``odoo19c: res_config_settings.py:13, :39-43``), con ``compute=``; si el
+    cómputo no asignara, leer el campo levantaría en vez de dar el valor.
+    """
+
+    def test_the_counters_read_their_compute(self):
+        settings = SiteConfigSettings()
+        assert settings.company_count == ResCompany.objects.count()
+        assert settings.language_count == len(ResLang.get_installed())
+        assert settings.active_user_count == (
+            settings._compute_active_user_count())
+
+    def test_the_root_flag_and_the_informations_read_their_compute(self):
+        settings = SiteConfigSettings()
+        settings.company_id = None
+        assert settings.is_root_company is True
+        assert settings.company_informations == ''
+
+    def test_none_of_the_five_takes_a_column(self):
+        names = {f.name for f in SiteConfigSettings._meta.concrete_fields}
+        assert not names & {
+            'company_count', 'active_user_count', 'language_count',
+            'is_root_company', 'company_informations'}

@@ -90,13 +90,6 @@ _logger = logging.getLogger(__name__)
 PROPERTIES_FIELD_NAME = 'properties'
 
 
-def _definition_default(record):
-    """
-    ``default`` del campo sin columna — delega en el cómputo de la fuente.
-    """
-    return record._compute_properties_base_definition_id()
-
-
 class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
     """Mixin que añade propiedades **sin padre** a un modelo."""
 
@@ -116,8 +109,9 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
     )
     properties_base_definition_id = fields.Many2one(
         PropertiesBaseDefinition,
-        null=False, store=False,
-        default=_definition_default,
+        compute='_compute_properties_base_definition_id',
+        search='_search_properties_base_definition_id',
+        related_name='+',
         help_text=(
             'Derivado de (modelo, campo), no del registro: todas las '
             'filas de este modelo comparten la misma definición.'
@@ -143,11 +137,14 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
         ≙ ``odoo19c: properties_base_definition_mixin.py:27-29``. La definición
         depende de *(modelo, campo)*, no del registro: todas las filas de este
         modelo comparten la misma. Ver el docstring del módulo sobre por qué
-        guardarla sería un error.
+        guardarla sería un error. Asigna, como la fuente, y devuelve la fila
+        para quien la pide directamente.
         """
-        return PropertiesBaseDefinition._get_definition_for_property_field(
-            type(self).properties_model_label(), PROPERTIES_FIELD_NAME
-        )
+        lookup = PropertiesBaseDefinition._get_definition_for_property_field
+        definition = lookup(
+            type(self).properties_model_label(), PROPERTIES_FIELD_NAME)
+        self.properties_base_definition_id = definition
+        return definition
 
     @classmethod
     def _search_properties_base_definition_id(cls, operator, value):

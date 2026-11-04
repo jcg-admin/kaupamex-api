@@ -235,9 +235,9 @@ class ResConfigSettings(BaseResConfigSettings):
     )
 
     is_root_company = fields.Boolean(
-        store=False,
         verbose_name='Is Root Company',
-        default=lambda record: record._compute_is_root_company(),
+        compute='_compute_is_root_company',
+        depends=['company_id'],
     )
 
     # === Los quince módulos opcionales ====================================
@@ -335,23 +335,23 @@ class ResConfigSettings(BaseResConfigSettings):
     # === Los cuatro contadores del panel ==================================
 
     company_count = fields.Integer(
-        store=False,
         verbose_name='Number of Companies',
-        default=lambda record: record._compute_company_count(),
+        compute='_compute_company_count',
+        depends=['company_id'],
     )
     active_user_count = fields.Integer(
-        store=False,
         verbose_name='Number of Active Users',
-        default=lambda record: record._compute_active_user_count(),
+        compute='_compute_active_user_count',
+        depends=['company_id'],
     )
     language_count = fields.Integer(
-        store=False,
         verbose_name='Number of Languages',
-        default=lambda record: record._compute_language_count(),
+        compute='_compute_language_count',
+        depends=['company_id'],
     )
     company_informations = fields.Text(
-        store=False,
-        default=lambda record: record._compute_company_informations(),
+        compute='_compute_company_informations',
+        depends=['company_id'],
     )
 
     #: El metadato que el motor lee para clasificar los tres campos que no van
@@ -464,7 +464,8 @@ class ResConfigSettings(BaseResConfigSettings):
     def _compute_company_count(self):
         """≙ ``_compute_company_count`` (``odoo19c: :98-102``)."""
         with sudo():
-            return ResCompany.objects.count()
+            self.company_count = count = ResCompany.objects.count()
+        return count
 
     def _compute_active_user_count(self):
         """≙ ``_compute_active_user_count`` (``odoo19c: :104-108``).
@@ -476,11 +477,14 @@ class ResConfigSettings(BaseResConfigSettings):
         los usuarios que no son de tipo interno.
         """
         with sudo():
-            return sum(1 for user in ResUsers.objects.all() if not user.share)
+            count = sum(1 for user in ResUsers.objects.all() if not user.share)
+        self.active_user_count = count
+        return count
 
     def _compute_language_count(self):
         """≙ ``_compute_language_count`` (``odoo19c: :110-114``)."""
-        return len(ResLang.get_installed())
+        self.language_count = count = len(ResLang.get_installed())
+        return count
 
     def _compute_company_informations(self):
         """≙ ``_compute_company_informations`` (``odoo19c: :116-131``).
@@ -490,6 +494,7 @@ class ResConfigSettings(BaseResConfigSettings):
         """
         company = self.company_id
         if company is None:
+            self.company_informations = ''
             return ''
         informations = '%s\n' % company.street if company.street else ''
         informations += '%s\n' % company.street2 if company.street2 else ''
@@ -508,6 +513,7 @@ class ResConfigSettings(BaseResConfigSettings):
         informations += (
             '%s %s' % (vat_display, company.vat) if company.vat else ''
         )
+        self.company_informations = informations
         return informations
 
     def _compute_is_root_company(self):
@@ -516,7 +522,9 @@ class ResConfigSettings(BaseResConfigSettings):
         ``parent_id`` de la fuente es aquí el ``attname`` de la FK ``parent``
         de ``res.company``: la misma columna con el nombre que Django le da.
         """
-        return not self.company_id or not self.company_id.parent_id
+        self.is_root_company = root = (
+            not self.company_id or not self.company_id.parent_id)
+        return root
 
 
 class SiteConfigSettings(ResConfigSettings):

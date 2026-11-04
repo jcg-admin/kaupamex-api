@@ -390,6 +390,21 @@ class TestResolverAndToggle:
         )
         assert row._compute_display_name() == 'base.imd_x'
 
+    def test_display_name_attribute_is_the_target_name(self):
+        """La fuente asigna ``display_name``; no basta con devolverlo."""
+        company = ResCompany.objects.create(name='IMD target')
+        row = IrModelData(
+            module='base', name='imd_t', model='base.ResCompany',
+            res_id=company.pk,
+        )
+        row._compute_display_name()
+        assert row.display_name == str(company)
+
+    def test_display_name_attribute_falls_back_without_res_id(self):
+        row = IrModelData(module='base', name='imd_z', model='base.ResCompany')
+        row._compute_display_name()
+        assert row.display_name == 'base.imd_z'
+
     def test_reference_is_the_model_id_pair(self):
         row = IrModelData(
             module='base', name='imd_y', model='base.ResCompany', res_id=7
