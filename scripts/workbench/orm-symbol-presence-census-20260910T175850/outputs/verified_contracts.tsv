@@ -269,3 +269,7 @@ src/tools/float_utils.py	float_repr	function	tests/unit/tools/test_float_present
 src/tools/float_utils.py	float_split_str	function	tests/unit/tools/test_float_presentation.py
 src/tools/float_utils.py	float_split	function	tests/unit/tools/test_float_presentation.py
 src/tools/float_utils.py	json_float_round	function	tests/unit/tools/test_float_presentation.py
+src/orm/models.py	BaseModel.fetch	method	tests/integration/test_orm/test_fetch.py
+src/orm/models.py	BaseModel._determine_fields_to_fetch	method	tests/integration/test_orm/test_fetch.py
+src/orm/models.py	BaseModel._fetch_query	method	tests/integration/test_orm/test_fetch.py
+src/orm/models.py	BaseModel._as_query	method	tests/integration/test_orm/test_fetch.py
