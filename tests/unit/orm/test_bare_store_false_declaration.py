@@ -21,6 +21,8 @@ fuente escribe.
 """
 
 import pytest
+from django.apps import apps
+from rest_framework.utils.model_meta import get_field_info
 
 import fields
 from tests.fixtures.column_probe import has_column
@@ -114,3 +116,31 @@ class TestTheExclusionSurvivesTheRouter:
         """El control: sin ``store=False`` la rama con jsonb sigue viva."""
         field = fields.Html(company_dependent=True)
         assert has_column(field), type(field).__name__
+
+
+class TestAFieldWithoutStorageIsNotSerialized:
+    """Sin columna no hay valor que serializar: ``serialize=False``.
+
+    Es la forma que Django da a su propia relación sin almacenamiento,
+    ``GenericRelation`` (``contrib/contenttypes/fields.py:335``). Sin ella un
+    ``Many2many`` calculado queda en ``_meta.many_to_many`` sin tabla
+    intermedia, y ``ModelSerializer`` lee ``remote_field.through._meta``
+    (``rest_framework/utils/model_meta.py:96``): ``/api/schema/`` daba 500.
+    """
+
+    def test_a_computed_many2many_is_not_serialized(self):
+        model = apps.get_model('base', 'IrActionsServer')
+        field = model._meta.get_field('available_model_ids')
+        assert field.remote_field.through is None
+        assert field.serialize is False
+
+    def test_drf_reads_the_model_without_the_unstored_relation(self):
+        model = apps.get_model('base', 'IrActionsServer')
+        info = get_field_info(model)
+        assert 'available_model_ids' not in info.relations
+
+    def test_a_stored_field_keeps_serializing(self):
+        """El control: con columna el campo se sigue serializando."""
+        model = apps.get_model('base', 'IrActionsServer')
+        assert model._meta.get_field('code').serialize is True
+

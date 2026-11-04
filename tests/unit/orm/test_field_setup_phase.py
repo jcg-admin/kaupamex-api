@@ -129,5 +129,8 @@ class TestARelatedReadResolvesByContent:
         assert row.country_code == 'MX'
 
     def test_a_null_fk_reads_as_empty(self, tables):
+        """Vacío de LECTURA: ``False`` para un ``Char``, como la fuente
+        (``odoo19c: odoo/orm/fields_textual.py:116-118``), no el ``''`` de
+        su ``falsy_value``."""
         owner = OwnerSpPlain.objects.create(partner=None)
-        assert OwnerSpPlain.objects.get(pk=owner.pk).partner_name == ''
+        assert OwnerSpPlain.objects.get(pk=owner.pk).partner_name is False

@@ -429,8 +429,10 @@ class TestIndexing:
 
     def test_a_string_key_reads_the_field(self, empty):
         # self._fields[key].__get__(self) — sobre el vacio da el valor nulo,
-        # no lanza: es el tercer regimen de fields.py:1648-1651.
-        assert empty['label'] is False or empty['label'] == ''
+        # no lanza: es el tercer regimen de fields.py:1648-1651. El nulo de un
+        # Char es False (convert_to_record(None), fields_textual.py:116-118),
+        # no el '' de falsy_value, que es el vacío de BÚSQUEDA.
+        assert empty['label'] is False
 
 
 class TestEnvironmentDerivation:

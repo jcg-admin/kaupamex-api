@@ -25,7 +25,7 @@ from django.db.models.query_utils import DeferredAttribute
 
 from orm.environments import transaction_scope
 from orm.fields_company_dependent import _CompanyDependentAttribute
-from orm.fields_nonstored import NonStored
+from orm.fields import ComputedFieldDescriptor
 
 
 def descriptor_of(model, name):
@@ -63,12 +63,17 @@ class TestWhereTheProtocolLives:
     def test_our_two_precedents_did_the_same(self, partner_class):
         """Los dos descriptores propios de este árbol, construidos en pases
         distintos, coinciden con Django y no con la fuente: los dos van en el
-        atributo. Es el precedente que decide, y son dos y no uno."""
+        atributo. Es el precedente que decide, y son dos y no uno.
+
+        El segundo era el de ``NonStored``; retirado ese (TASK-API-0418), el
+        campo calculado sin columna lleva ``ComputedFieldDescriptor``, que
+        también vive en el atributo."""
         assert isinstance(
             descriptor_of(partner_class, 'barcode'), _CompanyDependentAttribute
         )
         assert isinstance(
-            descriptor_of(partner_class, 'active_lang_count'), NonStored
+            descriptor_of(partner_class, 'active_lang_count'),
+            ComputedFieldDescriptor,
         )
 
     def test_the_company_dependent_one_extends_djangos(self):

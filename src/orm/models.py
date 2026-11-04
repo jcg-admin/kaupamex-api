@@ -93,10 +93,11 @@ from orm import registry
 from orm.domains import Domain, to_q
 from orm.model_classes import parent_name_of
 from orm.fields_relational import One2many as DeclaredOne2many
-from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, FieldDescriptor,
-                        StoredMany2oneIdDescriptor,
+from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES,
+                        FieldDescriptor, StoredMany2oneIdDescriptor,
                         _field_cache_record_id,
-                        convert_to_display_name, determine_inverse)
+                        convert_to_display_name, determine_inverse,
+                        null_record_value)
 from orm.fields_textual import Char
 from orm.identifiers import NewId
 from orm.fields_nonstored import NonStored, non_stored_fields
@@ -5747,9 +5748,10 @@ class BaseModel(DefaultGetMixin, Model):
         su
         descriptor por el nombre de atributo y se le pide su ``__get__``.
 
-        El valor del recordset vacío es ``falsy_value`` del campo, que es
-        exactamente lo que ``convert_to_cache(False, …)`` produce allá; su
-        instalación por clase de campo está en ``orm/fields.py:186-211``.
+        El valor del recordset vacío es el nulo de LECTURA del campo,
+        :func:`~orm.fields.null_record_value` —``convert_to_record`` de
+        ``convert_to_cache(False, …)`` allá—, no su ``falsy_value``: para una
+        cadena el primero es ``False`` y el segundo ``''``.
 
         **Lo que este método no cierra:** la guarda sólo actúa por esta vía y
         por :meth:`__getitem__`. El acceso llano ``rs.label`` sobre un
@@ -5766,7 +5768,7 @@ class BaseModel(DefaultGetMixin, Model):
             if size:
                 self.ensure_one()
                 raise AssertionError("unreachable")
-            return getattr(field, 'falsy_value', None)
+            return null_record_value(field)
         # ``:1663-1667`` — con UNA fila la fuente devuelve el valor del campo
         # convertido a registro: sobre un ``Many2one`` es el corecord, nunca
         # su id. Aquí el descriptor que devuelve la fila cuelga de

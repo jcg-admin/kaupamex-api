@@ -34,9 +34,16 @@ def test_computed_foreign_key_id_preserves_django_absence(company):
 def test_related_code_of_an_empty_country_returns_the_field_empty_value(
     company,
 ):
+    """El nulo de LECTURA de un ``Char`` es ``False``, no ``''``.
+
+    ``convert_to_record(None)``
+    (``odoo19c: odoo/orm/fields_textual.py:116-118``) sobre el registro
+    vacío; el ``''`` es su ``falsy_value``, el vacío de una búsqueda
+    (``:38``).
+    """
     with CaptureQueriesContext(connection) as queries:
-        assert company.country_code == ''
-        assert company.country_code == ''
+        assert company.country_code is False
+        assert company.country_code is False
     assert len(queries) == 0
 
 

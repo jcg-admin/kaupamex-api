@@ -438,6 +438,47 @@ def falsy_value(field):
     return getattr(field, 'falsy_value', None)
 
 
+def null_record_value(field):
+    """El valor que se LEE de ``field`` sobre un registro vacío.
+
+    ≙ ``convert_to_record(convert_to_cache(False))``, la rama del registro
+    nulo de ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1652-1653``).
+    Medido sobre las once conversiones de la fuente: ``False`` para todo tipo
+    salvo los numéricos, que leen su cero (``fields_numeric.py:35-45``,
+    ``:165-175``, ``:266-286``), y los relacionales, que leen el recordset
+    vacío —aquí el ``None`` de la FK, que es la forma vacía de este stack—.
+
+    No es :func:`falsy_value`: ése es lo que una búsqueda trata como vacío, y
+    para las cadenas vale ``''`` (``fields_textual.py:38``) mientras su
+    lectura nula es ``False`` (``:116-118``). Confundirlos hacía leer ``''``
+    a un ``related`` que cruza un ``Many2one`` vacío.
+    """
+    if getattr(field, 'is_relation', False):
+        return None
+    falsy = falsy_value(field)
+    if isinstance(falsy, (int, float)) and not isinstance(falsy, bool):
+        return falsy
+    return False
+
+
+def _defaults_of(instance, field):
+    """Los defaults del campo para la rama *ni almacenado ni calculado*.
+
+    ≙ ``self.default_get([self.name])`` (``odoo19c: odoo/orm/fields.py:1786-
+    1801``). Allá todo modelo hereda ``default_get``; aquí lo aporta
+    ``DefaultGetMixin``, y un modelo de Django que no lo hereda conserva el
+    contrato de su stack: el ``default`` declarado en el campo, el mismo que
+    ``Model.__init__`` le habría dado. Sin esta rama, leer un ``Many2one`` sin
+    columna sobre una fila nueva de ese modelo levantaba ``AttributeError``.
+    """
+    default_get = getattr(instance, 'default_get', None)
+    if default_get is not None:
+        return default_get([field.name])
+    if field.has_default():
+        return {field.name: field.get_default()}
+    return {}
+
+
 # El subconjunto de ``NEGATIVE_CONDITION_OPERATORS`` que la familia ``like``
 # usa. La fuente lo lee de ``Domain.NEGATIVE_OPERATORS`` (``:1331``), pero
 # importarlo aquí cierra un ciclo —``domains`` ya importa de este módulo—, y un
@@ -477,7 +518,8 @@ NEGATIVE_CONDITION_OPERATORS = frozenset([
 
 
 def convert_to_display_name(field, value, record):
-    """El valor de un campo, como etiqueta — ≙ ``Field.convert_to_display_name``.
+    """El valor de un campo, como etiqueta — ≙
+    ``Field.convert_to_display_name``.
 
     ≙ ``odoo19c: odoo/orm/fields.py:1080`` y sus cinco sobrecargas
     (``fields_reference.py:55``, ``fields_relational.py:397`` y ``:715``,
@@ -526,14 +568,13 @@ def convert_to_display_name(field, value, record):
 _INEQUALITY_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 
 
-
 def condition_to_q(field_expr, operator, value, field=None):
     """Un ``(campo, operador, valor)`` a ``Q`` — ≙ ``Field._condition_to_sql``.
 
-    Réplica de ``odoo19c: odoo/orm/fields.py:1262-1366`` **en semántica**, no en
-    forma emitida. La diferencia de forma la impone algo que hubo que medir
-    antes de escribir esta función, y que corrige la premisa con la que se abrió
-    la iniciativa (:ref:`h-api-614`).
+    Réplica de ``odoo19c: odoo/orm/fields.py:1262-1366`` **en semántica**, no
+    en forma emitida. La diferencia de forma la impone algo que hubo que medir
+    antes de escribir esta función, y que corrige la premisa con la que se
+    abrió la iniciativa (:ref:`h-api-614`).
 
     Lo que Django ya hace, medido
     ------------------------------
@@ -597,7 +638,8 @@ def condition_to_q(field_expr, operator, value, field=None):
 
     # --- in / not in (igualdad) --------------------------------------------
     if operator in ('in', 'not in'):
-        values = list(value) if isinstance(value, COLLECTION_TYPES) else [value]
+        values = (list(value) if isinstance(value, COLLECTION_TYPES)
+                  else [value])
         params = [v for v in values if v is not False and v is not None]
         null_in_condition = len(params) < len(values)
         if null_value is not None:
@@ -659,7 +701,8 @@ def condition_to_q(field_expr, operator, value, field=None):
                 null_value <= value if operator == '<=' else
                 null_value >= value
             )
-        q = models.Q(**{f'{field_expr}__{_INEQUALITY_LOOKUP[operator]}': value})
+        lookup = _INEQUALITY_LOOKUP[operator]
+        q = models.Q(**{f'{field_expr}__{lookup}': value})
         if accept_null_value:
             q |= models.Q(**{f'{field_expr}__isnull': True})
         return q
@@ -725,8 +768,10 @@ def _field_to_sql_expression(self, model, alias):
     activa y cae al default de ``ir.default`` cuando no la hay. Es el
     ``COALESCE(col->empresa, to_jsonb(fallback::tipo))`` de la fuente.
     """
-    if not getattr(self, 'concrete', False) or not getattr(self, 'column', None):
-        raise ValueError(f"Cannot convert {self} to SQL because it is not stored")
+    if (not getattr(self, 'concrete', False)
+            or not getattr(self, 'column', None)):
+        raise ValueError(
+            f"Cannot convert {self} to SQL because it is not stored")
 
     sql_field = SQL.identifier(alias, self.column, to_flush=self)
     if not getattr(self, 'company_dependent', False):
@@ -746,7 +791,8 @@ def _field_to_sql_expression(self, model, alias):
     )
 
 
-def _field_property_to_sql(self, field_sql, property_name, model, alias, query):
+def _field_property_to_sql(self, field_sql, property_name, model, alias,
+                           query):
     """``property_to_sql`` — el valor de una propiedad dentro del campo.
 
     ≙ ``Field.property_to_sql`` (``odoo19c: odoo/orm/fields.py:1241-1247``).
@@ -758,6 +804,28 @@ def _field_property_to_sql(self, field_sql, property_name, model, alias, query):
 
 
 models.Field.to_sql = _field_to_sql_expression
+
+
+_DJANGO_FIELD_GET_COL = models.Field.get_col
+
+
+def _field_get_col(self, alias, output_field=None):
+    """La columna de un campo para una consulta de Django.
+
+    El contrato es el de ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:
+    1215-1216``): un campo sin columna no se convierte a SQL y se rechaza con
+    el mismo mensaje. Django, en cambio, construye un ``Col`` con
+    ``column=None`` y revienta en el compilador con un ``TypeError`` que no
+    nombra el campo. Un filtro como ``.filter(name='x')`` sobre un campo
+    ``store=False`` sin ``search`` llegaba a ese ``TypeError``.
+    """
+    if getattr(self, 'column', None) is None:
+        raise ValueError(
+            f"Cannot convert {self} to SQL because it is not stored")
+    return _DJANGO_FIELD_GET_COL(self, alias, output_field)
+
+
+models.Field.get_col = _field_get_col
 models.Field.property_to_sql = _field_property_to_sql
 
 
@@ -809,7 +877,8 @@ def _field_condition_to_q(self, field_expr, operator, value, model=None):
 
 
 def _field_condition_to_q_body(self, field_expr, operator, value, model=None):
-    """El cuerpo de la condición — ≙ ``Field._condition_to_sql`` (``:1262-1366``).
+    """El cuerpo de la condición — ≙ ``Field._condition_to_sql``
+    (``:1262-1366``).
 
     Delega en la función de módulo :func:`condition_to_q`, que es donde el
     cuerpo vive y donde su divergencia frente a la fuente está medida y
@@ -1114,7 +1183,8 @@ def _capture_relational_init(initializer):
 
     TASK-API-0419: ``deconstruct`` no sirve en este punto del arranque porque
     consulta modelos intercambiables antes de que el registro esté preparado.
-    Se reutiliza la captura existente y se deriva la firma del Django instalado.
+    Se reutiliza la captura existente y se deriva la firma del Django
+    instalado.
     """
     signature = inspect.signature(initializer)
 
@@ -1129,8 +1199,10 @@ def _capture_relational_init(initializer):
     return initialize
 
 
-models.ForeignKey.__init__ = _capture_relational_init(models.ForeignKey.__init__)
-models.ManyToManyField.__init__ = _capture_relational_init(models.ManyToManyField.__init__)
+models.ForeignKey.__init__ = _capture_relational_init(
+    models.ForeignKey.__init__)
+models.ManyToManyField.__init__ = _capture_relational_init(
+    models.ManyToManyField.__init__)
 
 _DJANGO_FIELD_DECONSTRUCT = models.Field.deconstruct
 
@@ -1448,7 +1520,8 @@ class FieldDescriptor(DeferredAttribute):
         return value
 
     def __get__(self, instance, cls=None):
-        """≙ ``Field.__get__`` (``:1642``) — el valor del campo sobre la fila."""
+        """≙ ``Field.__get__`` (``:1642``) — el valor del campo sobre la fila.
+        """
         if instance is None:
             # ``:1644-1645`` — acceso por la clase: devuelve el descriptor.
             return self
@@ -1516,8 +1589,10 @@ class FieldDescriptor(DeferredAttribute):
             field.recompute(instance)
 
         record_id = _field_cache_record_id(field, instance)
-        cache_records = (record_id,) if isinstance(record_id, NewId) else instance
-        initial_fields = instance.__dict__.get(PENDING_INITIAL_CACHE_FIELDS, set())
+        cache_records = ((record_id,) if isinstance(record_id, NewId)
+                         else instance)
+        initial_fields = instance.__dict__.get(
+            PENDING_INITIAL_CACHE_FIELDS, set())
         # El valor que trajo el constructor entra a la caché también cuando la
         # fila ya tiene pk: el inverso que ``save()`` despacha tras el INSERT
         # lo lee de ahí, como el ``create`` de la fuente (``:4717-4733``). Sin
@@ -1618,8 +1693,9 @@ class FieldDescriptor(DeferredAttribute):
             cached = field.convert_to_cache(value, instance, validate=False)
             field._update_cache(instance, cached)
 
-        elif getattr(field, 'store', False) and getattr(instance, '_origin', None) \
-                and not (field.compute and getattr(field, 'readonly', False)):
+        elif (getattr(field, 'store', False)
+                and getattr(instance, '_origin', None)
+                and not (field.compute and getattr(field, 'readonly', False))):
             # ``:1716-1734`` — fila nueva con origen: el valor se toma de la
             # fila guardada que la origina.
             origin = instance._origin
@@ -1628,17 +1704,20 @@ class FieldDescriptor(DeferredAttribute):
             field._update_cache(instance, value)
 
         elif field.compute:
-            # ``:1736-1763`` — sin columna, o fila nueva sin origen: se computa.
+            # ``:1736-1763`` — sin columna, o fila nueva sin origen: se
+            # computa.
             if environment.is_protected(field, instance.pk):
                 field._update_cache(
                     cache_records,
-                    field.convert_to_cache(False, instance, validate=False))
+                    field.convert_to_cache(
+                        False, instance, validate=False))
             else:
                 field.compute_value(instance)
                 cache_missing = (
                     record_id not in field._get_cache(environment)
                     if isinstance(record_id, NewId)
-                    else record_id in tuple(field._cache_missing_ids(instance)))
+                    else record_id in tuple(
+                        field._cache_missing_ids(instance)))
                 if cache_missing:
                     if (field.attname in instance.__dict__
                             and not isinstance(record_id, NewId)):
@@ -1660,22 +1739,26 @@ class FieldDescriptor(DeferredAttribute):
                     if getattr(field, 'readonly', False) and not field.store:
                         raise ValueError(
                             f'Compute method failed to assign '
-                            f'{instance._meta.label}({record_id!r},).{field.name}')
+                            f'{instance._meta.label}({record_id!r},).'
+                            f'{field.name}')
                     # ``:1753-1757`` — el cómputo no asignó: valor nulo.
                     field._update_cache(
                         cache_records,
-                        field.convert_to_cache(False, instance, validate=False))
+                        field.convert_to_cache(
+                            False, instance, validate=False))
 
-        # ``:1765-1783`` — la rama del ``many2one`` delegado sobre fila nueva NO
-        # tiene receptor aquí: el descriptor no se instala sobre una FK, que
+        # ``:1765-1783`` — la rama del ``many2one`` delegado sobre fila nueva
+        # NO tiene receptor aquí: el descriptor no se instala sobre una FK, que
         # conserva el ``ForeignKeyDeferredAttribute`` de Django con su propio
         # camino de escritura (ver :func:`_field_contribute_to_class`).
 
         else:
-            # ``:1786-1801`` — ni almacenado ni calculado: el valor por omisión.
+            # ``:1786-1801`` — ni almacenado ni calculado: el valor por
+            # omisión.
             field._update_cache(
-                instance, field.convert_to_cache(False, instance, validate=False))
-            defaults = instance.default_get([field.name])
+                instance,
+                field.convert_to_cache(False, instance, validate=False))
+            defaults = _defaults_of(instance, field)
             if field.name in defaults:
                 field._update_cache(
                     cache_records,
@@ -1685,7 +1768,6 @@ class FieldDescriptor(DeferredAttribute):
         # así que se vuelve a pedir en vez de reusar la referencia de arriba.
         field_cache = field._get_cache(environment)
         return self._attribute_value(field_cache[record_id], instance)
-
 
     def _mark_pending_inverse(self, instance):
         """Anota que este campo quedó escrito y su inverso no se ha despachado.
@@ -1715,22 +1797,22 @@ class FieldDescriptor(DeferredAttribute):
     def __set__(self, instance, value):
         """≙ ``Field.__set__`` (``:1807-1841``) — el reparto en tres cubos.
 
-        **Divergencia de mecanismo declarada, y es la del cubo real.** La fuente
-        manda la fila persistida a ``records.write({name: value})``, que en este
-        árbol es ``BaseModel.write`` (``orm/models.py:2057``) — y ése llama a
-        ``self.save(update_fields=…)``, o sea emite SQL. Portarlo literal haría
-        que ``partner.campo = x`` lanzara un UPDATE, cuando la asignación de
-        Django emite **cero** consultas (medido en
-        ``test_a_real_record_does_not_emit_sql_on_assignment``). Se porta lo que
-        ``Field.write`` hace —descartar el recálculo pendiente, filtrar la fila
-        cuyo valor ya coincide, marcar la caché sucia— más ``modified()``, que
-        es la mitad de disparo; el volcado sigue siendo ``save()``.
+        **Divergencia de mecanismo declarada, y es la del cubo real.** La
+        fuente manda la fila persistida a ``records.write({name: value})``, que
+        en este árbol es ``BaseModel.write`` (``orm/models.py:2057``) — y ése
+        llama a ``self.save(update_fields=…)``, o sea emite SQL. Portarlo
+        literal haría que ``partner.campo = x`` lanzara un UPDATE, cuando la
+        asignación de Django emite **cero** consultas (medido en
+        ``test_a_real_record_does_not_emit_sql_on_assignment``). Se porta lo
+        que ``Field.write`` hace —descartar el recálculo pendiente, filtrar la
+        fila cuyo valor ya coincide, marcar la caché sucia— más ``modified()``,
+        que es la mitad de disparo; el volcado sigue siendo ``save()``.
         """
         field = self.field
         previous = instance.__dict__.get(field.attname, SENTINEL)
         # El atributo de instancia se escribe SIEMPRE: es de donde ``save()``
-        # de Django lee la columna, y de donde la lee ``_cache_computed_values``
-        # tras el cómputo.
+        # de Django lee la columna, y de donde la lee
+        # ``_cache_computed_values`` tras el cómputo.
         if isinstance(field, models.ForeignKey):
             ForeignKeyDeferredAttribute.__set__(self, instance, value)
         else:
@@ -1798,7 +1880,8 @@ class FieldDescriptor(DeferredAttribute):
         # Un refresh puede entregar de nuevo el mismo valor ordinario. Esa
         # carga no debe programar cómputos como si hubiera cambiado la columna.
         # Los computes conservan su escritura, incluso bajo protección.
-        if not field.compute and previous is not SENTINEL and previous == value:
+        if (not field.compute and previous is not SENTINEL
+                and previous == value):
             return
 
         environment = get_environment()
@@ -1947,10 +2030,11 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
     columna leyendo un ``store`` que todavía era el defecto de clase, así que
     un ``compute=`` acababa con columna y pidiéndose en cada ``SELECT``.
 
-    ``private_only`` se refuerza con el ``store`` derivado. Sin él, un campo sin
-    columna sigue en ``_meta.local_fields`` y el ORM lo pide a la base:
-    ``ProgrammingError``. La forma —``private_only=True`` **y** ``column=None``—
-    es la que el propio stack usa en ``GenericForeignKey``, que declara las dos.
+    ``private_only`` se refuerza con el ``store`` derivado. Sin él, un campo
+    sin columna sigue en ``_meta.local_fields`` y el ORM lo pide a la base:
+    ``ProgrammingError``. La forma —``private_only=True`` **y**
+    ``column=None``— es la que el propio stack usa en ``GenericForeignKey``,
+    que declara las dos.
     """
     chain = _collect_field_definitions(self, cls, name)
     if len(chain) > 1:
@@ -1965,9 +2049,17 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
     #: idéntico al que ya se tiene; la diferencia observable es nula porque
     #: :func:`_field_get_attrs` deriva lo mismo en los dos caminos.
     self._setup_attrs__(cls, name)
-    if (isinstance(self, models.ForeignKey) and not self.store
-            and self.forward_related_accessor_class is ForwardManyToOneDescriptor):
+    accessor = self.forward_related_accessor_class if isinstance(
+        self, models.ForeignKey) else None
+    if not self.store and accessor is ForwardManyToOneDescriptor:
         self.forward_related_accessor_class = NonStoredMany2oneAccessor
+    if self.store is False:
+        #: Sin columna no hay valor que serializar. Es la forma que Django da
+        #: a su propia relación sin almacenamiento, ``GenericRelation``
+        #: (``contrib/contenttypes/fields.py:335``); sin ella un
+        #: ``Many2many`` calculado queda en ``_meta.many_to_many`` sin tabla
+        #: intermedia y ``ModelSerializer`` lee su ``through._meta``.
+        self.serialize = False
     _DJANGO_FIELD_CONTRIBUTE(
         self, cls, name, private_only=private_only or self.store is False)
     _install_field_descriptor(self, cls)
@@ -1990,7 +2082,8 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
     """
 
     def __get__(self, instance, cls=None):
-        if (instance is not None and getattr(instance, '_ids', None) is not None
+        if (instance is not None
+                and getattr(instance, '_ids', None) is not None
                 and self.field.attname not in instance.__dict__):
             # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1668``): el
             # caché del entorno se consulta ANTES que la base. Un recordset
@@ -2005,7 +2098,8 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
         return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
 
     def __set__(self, instance, value):
-        """``False`` es la ausencia de relación — ≙ ``Many2one.convert_to_cache``.
+        """``False`` es la ausencia de relación — ≙
+        ``Many2one.convert_to_cache``.
 
         En la fuente ``type(value) is int`` deja fuera a ``False`` (es
         ``bool``), que cae en la rama final y queda ``None``
@@ -2120,7 +2214,8 @@ def _hidden_reverse_name(cls, name):
     return '_%s_%s_%s_+' % (cls._meta.app_label, cls.__name__.lower(), name)
 
 
-def _related_contribute_to_class(self, cls, name, private_only=False, **kwargs):
+def _related_contribute_to_class(self, cls, name, private_only=False,
+                                 **kwargs):
     """``RelatedField.contribute_to_class`` con la compuerta de ``store``."""
     self._setup_attrs__(cls, name)
     if self.store is False and not cls._meta.abstract:
@@ -2134,7 +2229,8 @@ def _m2m_contribute_to_class(self, cls, name, **kwargs):
     sin ``store`` no nace la tabla de relación ni el descriptor de M2M."""
     chain = _collect_field_definitions(self, cls, name)
     if len(chain) > 1:
-        _merge_field_definitions(chain).contribute_to_class(cls, name, **kwargs)
+        merged = _merge_field_definitions(chain)
+        merged.contribute_to_class(cls, name, **kwargs)
         return
     self._setup_attrs__(cls, name)
     if self.store is False and not cls._meta.abstract:
@@ -2197,6 +2293,7 @@ PYTHON_INEQUALITY_OPERATOR = {
     '>=': operator_module.ge,
 }
 
+
 #: ≙ ``_global_seq = itertools.count()`` (``:89``) — el orden de declaración.
 #:
 #: DIVERGENCIA DE MECANISMO, y es que el stack ya lo TRAE: Django numera cada
@@ -2206,7 +2303,8 @@ PYTHON_INEQUALITY_OPERATOR = {
 #: numeraciones para una sola pregunta. El nombre se conserva como alias para
 #: que la lectura contra la fuente no exija traducir.
 def global_seq():
-    """El siguiente número de orden de declaración — ≙ ``next(_global_seq)``."""
+    """El siguiente número de orden de declaración — ≙ ``next(_global_seq)``.
+    """
     value = models.Field.creation_counter
     models.Field.creation_counter += 1
     return value
@@ -2482,14 +2580,14 @@ _FIELD_CLASS_ATTRIBUTES = {
     '_setup_done': True,            # si el montaje del campo terminó
     '_base_fields__': (),           # los campos que definen a éste, en orden
     '_extra_keys__': (),            # los parámetros desconocidos que recibió
-    '_direct': False,               # si se puede usar directamente (compartido)
-    '_toplevel': False,             # si está en la clase de registro del modelo
+    '_direct': False,               # si se usa directamente (compartido)
+    '_toplevel': False,             # si está en la clase de registro
     # --- herencia por delegación (``_inherits``) -------------------------
     'inherited': False,             # si el campo es heredado
     'inherited_field': None,        # el campo heredado correspondiente
     # --- nombres ----------------------------------------------------------
     'model_name': '',               # el modelo de este campo
-    'comodel_name': None,           # el modelo de los valores, si es relacional
+    'comodel_name': None,           # el modelo de los valores (relacional)
     # --- almacenamiento ---------------------------------------------------
     'store': True,                  # si se almacena en la base
     'index': None,                  # cómo se indexa en la base
@@ -2557,7 +2655,8 @@ install_class_attribute_overrides()
 
 
 def _char_column_type(self):
-    """≙ ``Char._column_type`` (``odoo19c: odoo/orm/fields_textual.py:494-496``).
+    """≙ ``Char._column_type``
+    (``odoo19c: odoo/orm/fields_textual.py:494-496``).
 
     Allá es ``('varchar', pg_varchar(self.size))`` y aquí ``size`` es el
     ``max_length`` de Django. Es una ``property`` y no una entrada de
@@ -2630,6 +2729,7 @@ ForeignObjectRel.type = property(
 #: recibe su ``search``.
 ForeignObjectRel._description_searchable = True
 
+
 #: ``comodel_name`` — el modelo de los valores de un campo de relacion.
 #:
 #: La fuente lo declara en la base abstracta de los tres campos de relacion
@@ -2676,7 +2776,8 @@ class _ComodelName:
             return None
         remote = getattr(field, 'related_model', None)
         if remote is None or isinstance(remote, str):
-            # Referencia perezosa sin resolver todavia: la cadena que se escribio.
+            # Referencia perezosa sin resolver todavia: la cadena que se
+            # escribio.
             return remote
         return orm_registry.name_of(remote) or remote._meta.label
 
@@ -2795,7 +2896,8 @@ for _key, _source_attribute in (
         ('default_export_compatible', 'default_export_compatible'),
         ('exportable', 'exportable'),
 ):
-    setattr(models.Field, f'_description_{_key}', property(attrgetter(_source_attribute)))
+    setattr(models.Field, f'_description_{_key}',
+            property(attrgetter(_source_attribute)))
 
 
 def _field_description_depends(self, env):
@@ -2929,7 +3031,8 @@ def _field_description_falsy_value_label(self, env):
     return _(self.falsy_value_label) if self.falsy_value_label else None
 
 
-models.Field._description_falsy_value_label = _field_description_falsy_value_label
+models.Field._description_falsy_value_label = (
+    _field_description_falsy_value_label)
 
 
 def _field_is_editable(self):
@@ -3020,7 +3123,8 @@ def _field_convert_to_column(self, value, record, values=None, validate=True):
 models.Field.convert_to_column = _field_convert_to_column
 
 
-def _field_convert_to_column_insert(self, value, record, values=None, validate=True):
+def _field_convert_to_column_insert(self, value, record, values=None,
+                                    validate=True):
     """≙ ``Field.convert_to_column_insert`` (``:994``) — el parámetro de un
     ``INSERT``, que es donde el campo dependiente de empresa se separa.
 
@@ -3101,10 +3205,11 @@ def _field_get_db_prep_save(self, value, connection):
     vocabulario del tipo —``0`` para un entero, ``None`` para el resto—.
 
     Sin esta lectura, ``int(value or 0)`` convertía el «no establecido» de una
-    columna nulable en un cero real: medido, ``ir_filters.embedded_parent_res_id``
-    dejó de ser ``NULL`` y su ``CHECK`` lo rechazó, y un contador de uso vacío
-    pasó a leerse como agotado. La fuente no tiene ese problema porque la clave
-    sencillamente no llega hasta aquí.
+    columna nulable en un cero real: medido,
+    ``ir_filters.embedded_parent_res_id`` dejó de ser ``NULL`` y su ``CHECK``
+    lo rechazó, y un contador de uso vacío pasó a leerse como agotado. La
+    fuente no tiene ese problema porque la clave sencillamente no llega hasta
+    aquí.
 
     **Lo que trae su propio SQL no es un valor y no se convierte.** El
     discriminador no se inventa: lo declara la propia función envuelta
@@ -3290,7 +3395,8 @@ def _field_update_db(self, model, columns):
         not column
         and self.related and self.related.count('.') == 1
         and self.related_field.store and not self.related_field.compute
-        and not (self.related_field.type == 'binary' and self.related_field.attachment)
+        and not (self.related_field.type == 'binary'
+                 and self.related_field.attachment)
         and self.related_field.type not in ('one2many', 'many2many')
     ):
         join_field = model_field_registry(model)[self.related.split('.')[0]]
@@ -3350,7 +3456,8 @@ models.Field._convert_db_column = _field_convert_db_column
 
 
 def _field_update_db_notnull(self, model, column):
-    """≙ ``Field.update_db_notnull`` (``:1147``) — pone o quita el ``NOT NULL``.
+    """≙ ``Field.update_db_notnull`` (``:1147``) — pone o quita el
+    ``NOT NULL``.
 
     Docstring de la fuente, verbatim: *"Add or remove the NOT NULL constraint
     on ``self``"*.
@@ -3360,12 +3467,12 @@ def _field_update_db_notnull(self, model, column):
     - **la columna nace, o el campo pasa a obligatorio** — si la tabla ya tiene
       filas, se les siembra el default con ``_init_column``; sin ese paso, las
       filas viejas quedarían en ``NULL`` y la restricción las rechazaría.
-    - **el campo es obligatorio y la columna aún admite nulos** — la restricción
-      **no** se aplica en el acto: se difiere a ``post_init``. La razón es de la
-      fuente y está en su comentario: ``_init_column`` puede haber diferido
-      cómputos, así que el ``NOT NULL`` tiene que esperar a que se vacíen. El
-      cierre re-lee el campo del registro porque *"the model's ``_fields`` may
-      have been reset"* entre encolar y ejecutar.
+    - **el campo es obligatorio y la columna aún admite nulos** — la
+      restricción **no** se aplica en el acto: se difiere a ``post_init``. La
+      razón es de la fuente y está en su comentario: ``_init_column`` puede
+      haber diferido cómputos, así que el ``NOT NULL`` tiene que esperar a que
+      se vacíen. El cierre re-lee el campo del registro porque *"the model's
+      ``_fields`` may have been reset"* entre encolar y ejecutar.
     - **el campo dejó de ser obligatorio** — se quita, y ahí termina.
     """
     has_notnull = column and column['is_nullable'] == 'NO'
@@ -3409,7 +3516,8 @@ def _field_update_db_notnull(self, model, column):
             with connections[DEFAULT_DB_ALIAS].cursor() as cr:
                 registry.post_constraint(
                     cr,
-                    lambda cursor: set_not_null(cursor, model._table, field.column),
+                    lambda cursor: set_not_null(
+                        cursor, model._table, field.column),
                     key=f"add_not_null:{model._table}:{field.column}",
                 )
 
@@ -3440,7 +3548,8 @@ def _field_update_db_related(self, model):
         comodel_table=SQL.identifier(comodel._table),
         comodel_field=SQL.identifier(
             model_field_registry(comodel)[comodel_field].column),
-        join_field=SQL.identifier(model_field_registry(model)[join_field].column),
+        join_field=SQL.identifier(
+            model_field_registry(model)[join_field].column),
     )
     with connections[DEFAULT_DB_ALIAS].cursor() as cr:
         cr.execute(query.code, query.params)
@@ -3551,7 +3660,8 @@ for _key, _source_attribute in (
         ('groups', 'groups'),
         ('aggregator', 'aggregator'),
 ):
-    setattr(models.Field, f'_related_{_key}', property(attrgetter(_source_attribute)))
+    setattr(models.Field, f'_related_{_key}',
+            property(attrgetter(_source_attribute)))
 
 
 @property
@@ -3615,7 +3725,9 @@ def _field_column_order(self):
     este árbol se declara en esta sección. Un lector que busque «cómo se
     resuelve la columna de un campo» encuentra los dos juntos.
     """
-    return 0 if self.column_type is None else sql_order_by_type(self.column_type[0])
+    if self.column_type is None:
+        return 0
+    return sql_order_by_type(self.column_type[0])
 
 
 models.Field.column_order = _field_column_order
@@ -3747,13 +3859,13 @@ def _end_of_chain(value, related_field):
     """Lee el último campo de la cadena sobre el eslabón final.
 
     ≙ ``value[self.related_field.name]`` (``:696``). Allá un eslabón vacío es
-    un recordset vacío y leerle un campo devuelve el valor falso del campo
-    (``Field.falsy_value``). Aquí el eslabón vacío es ``None`` —lo que la FK
-    devuelve— y leerle con ``[]`` sería ``TypeError``: se traduce al mismo
-    valor falso que la fuente produce.
+    un recordset vacío y leerle un campo devuelve su valor nulo de lectura
+    (:func:`null_record_value`), no su ``falsy_value``. Aquí el eslabón vacío
+    es ``None`` —lo que la FK devuelve— y leerle con ``[]`` sería
+    ``TypeError``: se traduce al mismo valor que la fuente lee.
     """
     if value is None:
-        return getattr(related_field, 'falsy_value', None)
+        return null_record_value(related_field)
     return value[related_field.name]
 
 
@@ -3809,7 +3921,12 @@ def _field_compute_related(self, records):
     records = as_record_list(records)
     values = list(records)
     for name in self.related.split('.')[:-1]:
-        values = [_first_record(element[name]) for element in values]
+        # Allá un eslabón vacío es el recordset vacío, y leer un campo sobre
+        # él devuelve vacío otra vez (``:692``). Aquí el vacío de una FK es
+        # ``None``, que no admite ``[name]``: se propaga tal cual hasta el
+        # final de la cadena, que es quien le pone su valor nulo.
+        values = [None if element is None else _first_record(element[name])
+                  for element in values]
     for record, value in zip(records, values):
         record[self.name] = self._process_related(
             _end_of_chain(value, self.related_field), get_environment())
@@ -3902,14 +4019,15 @@ def walk_related_chain(field, model):
     cuerpo que ``BaseModel._fields`` invoca: **el mismo** mapa, alcanzado desde
     la clase.
 
-    > **Corregido (TASK-API-0417).** Este recorrido construía su propio mapa con
-    > ``{f.name: f for f in current._meta.get_fields()}``. La primera redacción
-    > de esta nota decía que ese mapa era «estrictamente más estrecho porque un
-    > campo sin columna se contribuye con ``private_only=True`` y no aparece
-    > ahí», y **eso es falso**: medido sobre ``TestOrmCategory``,
-    > ``_meta.private_fields`` da ``['depth', 'root_categ', 'display_name',
-    > 'dummy']`` y los cuatro salen en ``get_fields()`` con ``hidden=False``.
-    > ``Options.get_fields()`` **sí** devuelve los campos privados.
+    > **Corregido (TASK-API-0417).** Este recorrido construía su propio mapa
+    > con ``{f.name: f for f in current._meta.get_fields()}``. La primera
+    > redacción de esta nota decía que ese mapa era «estrictamente más estrecho
+    > porque un campo sin columna se contribuye con ``private_only=True`` y no
+    > aparece ahí», y **eso es falso**: medido sobre ``TestOrmCategory``,
+    > ``_meta.private_fields`` da
+    > ``['depth', 'root_categ', 'display_name', 'dummy']`` y los cuatro salen
+    > en ``get_fields()`` con ``hidden=False``. ``Options.get_fields()`` **sí**
+    > devuelve los campos privados.
     >
     > Lo que el mapa propio no alcanzaba es la otra población que
     > :func:`~orm.utils.model_field_registry` une: los ``NonStored`` que viven
@@ -3944,7 +4062,8 @@ def _field_setup_related(self, model):
     mano.
     """
     if not isinstance(self.related, str):
-        raise TypeError(f'related debe ser una ruta punteada, no {self.related!r}')
+        raise TypeError(
+            f'related debe ser una ruta punteada, no {self.related!r}')
 
     field_seq = walk_related_chain(self, model)
 
@@ -4095,14 +4214,16 @@ def _field_setup(self, model):
         self.setup_related(model)
     else:
         self.setup_nonrelated(model)
-    if isinstance(self, models.ForeignKey) and not self.store and not self.required:
+    if (isinstance(self, models.ForeignKey) and not self.store
+            and not self.required):
         self.null = True
     # ``setup_related`` acaba de declarar ``compute``
-    # (``odoo19c: odoo/orm/fields.py:632``, ``self.compute = self._compute_related``).
-    # En la fuente el campo ES su propio descriptor, así que ese ``compute``
-    # rige desde el instante en que se asigna; aquí el descriptor se eligió en
-    # ``contribute_to_class``, antes de que ``compute`` existiera, y se vuelve a
-    # elegir con el campo ya armado.
+    # (``odoo19c: odoo/orm/fields.py:632``,
+    # ``self.compute = self._compute_related``). En la fuente el campo ES su
+    # propio descriptor, así que ese ``compute`` rige desde el instante en que
+    # se asigna; aquí el descriptor se eligió en ``contribute_to_class``, antes
+    # de que ``compute`` existiera, y se vuelve a elegir con el campo ya
+    # armado.
     _install_field_descriptor(self, model)
     self._setup_done = True
 
@@ -4169,12 +4290,12 @@ def _field_resolve_depends(self, registry_module):
     > **Completado (tarea #273, capa B).** La version anterior emitia **solo la
     > tupla completa**, en el ``else`` del ``for``. La fuente emite **cada
     > prefijo** dentro del bucle, y ese es el contrato que el registro de
-    > disparadores consume: sin los prefijos, un ``@api.depends('owner.label')``
-    > nunca registra a ``owner`` como clave, asi que
-    > ``is_modifying_relations(owner)`` responde ``False`` sobre un campo que
-    > **si** cambia que filas dependen de el. Con la tupla completa como unica
-    > salida el mecanismo entero queda medio construido y su verde no lo
-    > delata.
+    > disparadores consume: sin los prefijos, un
+    > ``@api.depends('owner.label')`` nunca registra a ``owner`` como clave,
+    > asi que ``is_modifying_relations(owner)`` responde ``False`` sobre un
+    > campo que **si** cambia que filas dependen de el. Con la tupla completa
+    > como unica salida el mecanismo entero queda medio construido y su verde
+    > no lo delata.
     >
     > Se portan ademas los cinco comportamientos que faltaban y que la fuente
     > declara en el mismo cuerpo: el corte por transitorio, el aviso de
@@ -4185,9 +4306,10 @@ def _field_resolve_depends(self, registry_module):
 
     Cuatro divergencias de mecanismo, todas declaradas:
 
-    - el mapa de campos del modelo lo da :func:`~orm.utils.model_field_registry`
-      —el cuerpo de ``BaseModel._fields``— y no ``_meta.get_field``, que es
-      ciego al campo sin columna (:ref:`h-api-1025`);
+    - el mapa de campos del modelo lo da
+      :func:`~orm.utils.model_field_registry` —el cuerpo de
+      ``BaseModel._fields``— y no ``_meta.get_field``, que es ciego al campo
+      sin columna (:ref:`h-api-1025`);
     - ``_transient`` se lee con ``getattr``: aqui lo declara
       ``orm.models_transient`` sobre los modelos que lo son, y los demas no
       llevan el atributo;
@@ -4267,7 +4389,8 @@ def _field_resolve_depends(self, registry_module):
                     f'Field {field_sequence[-1]!r} in dependency of {self} '
                     f'should be searchable. This is necessary to determine '
                     f'which records to recompute when {field} is modified. '
-                    f'You should either make the field searchable, or simplify '
+                    f'You should either make the field searchable, or '
+                    f'simplify '
                     f'the field dependency.', stacklevel=1)
 
             field_sequence.append(field)
@@ -4307,19 +4430,21 @@ def get_depends(self, model):
     (``odoo19c: odoo/orm/fields.py:561-598``), *"Return the field's
     dependencies and cache dependencies"*.
 
-    Es el **productor** del par que :func:`_field_resolve_depends` consume: aquel
-    expande cada nombre punteado a las tuplas de campos que lo recorren, y este
-    decide **cuales son esos nombres** a partir de lo que la clase declara. Sin
-    el, el mapa ``registry.field_depends`` se derivaba del atributo ``_depends``
-    en crudo y dos de las tres ramas de la fuente no existian: la de ``related``
-    y la del recorrido del MRO sobre la funcion de calculo.
+    Es el **productor** del par que :func:`_field_resolve_depends` consume:
+    aquel expande cada nombre punteado a las tuplas de campos que lo recorren,
+    y este decide **cuales son esos nombres** a partir de lo que la clase
+    declara. Sin el, el mapa ``registry.field_depends`` se derivaba del
+    atributo ``_depends`` en crudo y dos de las tres ramas de la fuente no
+    existian: la de ``related`` y la del recorrido del MRO sobre la funcion de
+    calculo.
 
     Las tres ramas, en el orden en que la fuente las evalua:
 
     1. ``_depends`` explicito — *"the parameter 'depends' has priority over
        'depends' on compute"* (``:563``).
-    2. ``related`` — la dependencia **es** la ruta; el contexto sale de recorrer
-       la cadena punteada eslabon por eslabon, acumulando el de cada campo.
+    2. ``related`` — la dependencia **es** la ruta; el contexto sale de
+       recorrer la cadena punteada eslabon por eslabon, acumulando el de cada
+       campo.
     3. ``compute`` — el ``_depends`` de **todas** las funciones sobreescritas
        (``resolve_mro``), no solo el de la mas derivada.
 
@@ -4328,8 +4453,8 @@ def get_depends(self, model):
     - el modelo de cada eslabon lo da :func:`_comodel_of` —que lee el
       ``related_model`` de Django y cae a ``comodel_name``— en vez del
       ``model.env[nombre]`` de la fuente, porque aqui el registro es un modulo;
-    - el mapa de campos lo da :func:`~orm.utils.model_field_registry`, el cuerpo
-      de ``BaseModel._fields``, y no ``model._fields`` directo.
+    - el mapa de campos lo da :func:`~orm.utils.model_field_registry`, el
+      cuerpo de ``BaseModel._fields``, y no ``model._fields`` directo.
 
     :param model: la clase de modelo que declara el campo.
     :returns: el par ``(depends, depends_context)``.
@@ -4436,9 +4561,10 @@ def determine_inverse(field, records):
 
     Docstring de la fuente, verbatim: *"Given the value of ``self`` on
     ``records``, inverse the computation."* Su cuerpo entero es
-    ``determine(self.inverse, records)`` (``odoo19c: odoo/orm/fields.py:1921``),
-    y aqui es el mismo: el despacho ya lo resuelve :func:`determine`, que sabe
-    llamar tanto una cadena como un invocable.
+    ``determine(self.inverse, records)``
+    (``odoo19c: odoo/orm/fields.py:1921``), y aqui es el mismo: el despacho ya
+    lo resuelve :func:`determine`, que sabe llamar tanto una cadena como un
+    invocable.
 
     Se declara CONSTRUYE por el criterio de las dos categorias: no hay simbolo
     hecho —Django no conoce la nocion de un metodo inverso sobre un campo— pero
@@ -4565,7 +4691,8 @@ def _field_to_prefetch(self, record):
     ids = expand_ids(record.pk, getattr(record, '_prefetch_ids', ()) or ())
     field_cache = self._get_cache(get_environment())
     pending = (id_ for id_ in ids if id_ not in field_cache)
-    return browse(model_of(record), list(itertools.islice(pending, PREFETCH_MAX)))
+    return browse(model_of(record),
+                  list(itertools.islice(pending, PREFETCH_MAX)))
 
 
 def _field_determine_group_expand(self, records, values, domain):
@@ -4618,7 +4745,8 @@ models.Field.write = _field_write
 models.Field.create = _field_create
 models.Field._to_prefetch = _field_to_prefetch
 models.Field.determine_group_expand = _field_determine_group_expand
-models.Field.get_company_dependent_fallback = _field_get_company_dependent_fallback
+models.Field.get_company_dependent_fallback = (
+    _field_get_company_dependent_fallback)
 NonStored.determine_domain = determine_domain
 models.Field.determine_inverse = determine_inverse
 NonStored.determine_inverse = determine_inverse
@@ -4630,18 +4758,18 @@ def determine_compute(field, records):
     Es el cuerpo EFECTIVO de la rama ``elif self.compute:`` del descriptor de
     la fuente (``odoo19c: odoo/orm/fields.py:1736-1737``, con su comentario
     *"non-stored field or new record without origin: compute"*) **para un campo
-    sin columna**. Allá esa rama llama ``self.compute_value(recs)`` (``:1744``),
-    que termina en ``records._compute_field_value(self)``, cuyo cuerpo entero es
-    (``odoo19c: odoo/orm/models.py:4953-4959``)::
+    sin columna**. Allá esa rama llama ``self.compute_value(recs)``
+    (``:1744``), que termina en ``records._compute_field_value(self)``, cuyo
+    cuerpo entero es (``odoo19c: odoo/orm/models.py:4953-4959``)::
 
         determine(field.compute, self)
 
         if field.store and any(self._ids):
             ...
 
-    Con ``store=False`` el segundo bloque no se alcanza, así que lo que queda es
-    la llamada a :func:`determine` — la misma forma que :func:`determine_inverse`
-    (``odoo19c: odoo/orm/fields.py:1921``).
+    Con ``store=False`` el segundo bloque no se alcanza, así que lo que queda
+    es la llamada a :func:`determine` — la misma forma que
+    :func:`determine_inverse` (``odoo19c: odoo/orm/fields.py:1921``).
 
     Se declara **CONSTRUYE** por el criterio de las dos categorías: no hay
     símbolo hecho —Django no conoce la noción de un método de cómputo sobre un
@@ -4718,7 +4846,8 @@ def _get_cache(self, env):
     escribe en él y espera que la escritura se vea.
     """
     transaction = env.transaction
-    memo_key = (self, env.cache_key(self) if _has_context_buckets(self) else None)
+    context_key = env.cache_key(self) if _has_context_buckets(self) else None
+    memo_key = (self, context_key)
     try:
         return transaction.field_cache_memo[memo_key]
     except KeyError:
@@ -4820,7 +4949,8 @@ def _filter_not_equal_ids(self, records, cache_value):
     aquí y no paga la vuelta. **El invariante que liga a los dos** es que
     esto devuelve exactamente los ids de aquello:
 
-        ``record_ids(f._filter_not_equal(r, v)) == f._filter_not_equal_ids(r, v)``
+        ``record_ids(f._filter_not_equal(r, v))``
+        ``== f._filter_not_equal_ids(r, v)``
 
     De ahí sale la guarda por ``id_``, que no es un descarte arbitrario:
     :func:`~orm.utils.browse` no lleva una fila sin ``pk``, así que un
@@ -4894,7 +5024,8 @@ def _update_cache(self, records, cache_value, dirty=False):
         field_cache[id_] = cache_value
 
     # ``dirty`` sólo tiene sentido para un campo PERSISTIDO — con columna, o
-    # con tabla intermedia si es un muchos-a-muchos (ver :func:`_is_persisted`).
+    # con tabla intermedia si es un muchos-a-muchos (ver
+    # :func:`_is_persisted`).
     if _is_persisted(self):
         if dirty:
             env.transaction.field_dirty[self].update(id_ for id_ in ids if id_)
@@ -5099,11 +5230,11 @@ def _value_left_by_compute(row, field):
 
     Este read-back leía con ``getattr``, y eso era correcto mientras el
     atributo de clase fuese un descriptor que sólo consulta el ``__dict__``.
-    Desde :class:`FieldDescriptor` (#211) ya no lo es: sobre una fila sin ``pk``
-    —el caso de ``pre_save`` en el INSERT— el ``getattr`` vuelve a entrar por
-    la rama de cómputo, que llama otra vez a ``compute_value``, que vuelve a
-    llamar aquí. Medido: ``RecursionError`` al crear cualquier fila con un
-    campo calculado y persistido.
+    Desde :class:`FieldDescriptor` (#211) ya no lo es: sobre una fila sin
+    ``pk`` —el caso de ``pre_save`` en el INSERT— el ``getattr`` vuelve a
+    entrar por la rama de cómputo, que llama otra vez a ``compute_value``, que
+    vuelve a llamar aquí. Medido: ``RecursionError`` al crear cualquier fila
+    con un campo calculado y persistido.
 
     La fuente no tiene el problema porque no tiene este paso: allá el método de
     cómputo asigna **sobre el recordset** y esa asignación ya es
