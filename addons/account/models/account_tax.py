@@ -149,8 +149,11 @@ altera el resultado de ``map_tax``. Grep de consumidores dentro de
 from collections import defaultdict
 from decimal import Decimal
 
+from django.db import models as django_models
+
 import fields
 import models
+from orm.models import _create_field_lookup
 from tools.float_utils import float_is_zero
 from tools.misc import frozendict
 
@@ -166,6 +169,22 @@ def _d(valor):
     if isinstance(valor, Decimal):
         return valor
     return Decimal(str(valor))
+
+
+def _base_line_field_value(record, field):
+    """El valor de ``field`` en ``record`` como lo lee la fuente.
+
+    ≙ ``record[field]`` de ``_get_base_line_field_value_from_record``
+    (``odoo19c: account_tax.py:1584``), que allá devuelve un registro para una
+    relación. Aquí una FK se lee por su nombre de campo —no por su
+    ``attname``, que da el entero—, un M2M sale como el ``QuerySet`` de sus
+    registros y el resto, como el valor crudo.
+    """
+    if field.many_to_many:
+        return getattr(record, field.name).all()
+    if field.is_relation and (field.many_to_one or field.one_to_one):
+        return getattr(record, field.name)
+    return getattr(record, field.attname)
 
 
 class AccountTaxQuerySet(models.AccessQuerySet):
@@ -814,6 +833,226 @@ class AccountTax(models.Model):
                 [self], base, contexto
             )
         return monto if monto is not None else Decimal('0')
+
+    # -- preparación de la base-line (odoo19c: :1430-1691) -----------------
+    #
+    # Divergencia de forma, común a las tres: la fuente lee
+    # ``record[field]`` con sus nombres (``product_id``, ``tax_ids``) y
+    # recibe registros, y su respaldo es un recordset vacío
+    # (``self.env['product.product']``) que sirve igual para uno y para
+    # muchos. Aquí ``line['product_id']`` es el ``attname`` de la FK —un
+    # entero— y ``line['tax_ids']`` un gestor de Django; el nombre se traduce
+    # con ``_create_field_lookup``, el resolutor que el alta de registros ya
+    # usa, y el valor sale como registro (FK), ``QuerySet`` (M2M) o valor
+    # crudo. Sin registro, el respaldo de un campo de uno es ``None`` y el de
+    # uno de muchos, el ``QuerySet`` vacío del modelo.
+
+    @classmethod
+    def _get_base_line_field_value_from_record(cls, record, field,
+                                               extra_values, fallback,
+                                               from_base_line=False):
+        """ Helper to extract a default value for a record or something
+        looking like a record.
+
+        ≙ ``_get_base_line_field_value_from_record`` (``odoo19c:
+        :1560-1590``). Mismo orden de la fuente: ``extra_values`` gana (con
+        el respaldo si su valor es falso); luego el campo del registro, salvo
+        con ``from_base_line``; luego la clave del diccionario; luego el
+        respaldo. El ``_origin`` de la fuente no tiene equivalente que
+        aplicar: una instancia leída por su descriptor ya es la fila
+        guardada.
+        """
+        if field in extra_values:
+            return extra_values[field] or fallback
+        if isinstance(record, django_models.Model) and not from_base_line:
+            lookup = _create_field_lookup(type(record), field)
+            if lookup is not None:
+                return _base_line_field_value(record, lookup[0])
+            return fallback
+        if isinstance(record, dict):
+            return record.get(field, fallback)
+        return fallback
+
+    @classmethod
+    def _import_base_line_extra_tax_data(cls, base_line, extra_tax_data):
+        """ Import the 'extra_tax_data' json value into the base line passed
+        as parameter.
+
+        ≙ ``_import_base_line_extra_tax_data`` (``odoo19c: :1430-1482``):
+        *"For 'manual_tax_amounts', if the setup of the base line has been
+        manually edited, we don't import the custom tax amounts from
+        'extra_tax_data'."* Los importes locales se llevan a la tasa actual
+        de la línea con ``delta_rate``.
+        """
+        results = {}
+        if extra_tax_data and extra_tax_data.get('computation_key'):
+            results['computation_key'] = extra_tax_data['computation_key']
+
+        manual_tax_amounts = (extra_tax_data.get('manual_tax_amounts') or {}
+                              if extra_tax_data else None)
+        extra_tax_data_tax_ids = set(manual_tax_amounts or {})
+        sorted_taxes = base_line['tax_ids']._flatten_taxes_and_sort_them()[0]
+        currency = base_line['currency_id']
+        if (
+            extra_tax_data
+            and extra_tax_data.get('manual_tax_amounts')
+            and currency is not None
+            and currency.id == extra_tax_data['currency_id']
+            and currency.compare_amounts(
+                base_line['price_unit'], extra_tax_data['price_unit']) == 0
+            and currency.compare_amounts(
+                base_line['discount'], extra_tax_data['discount']) == 0
+            and currency.compare_amounts(
+                base_line['quantity'], extra_tax_data['quantity']) == 0
+            and len(sorted_taxes) == len(extra_tax_data_tax_ids)
+            and all(str(tax.id) in extra_tax_data_tax_ids
+                    for tax in sorted_taxes)
+        ):
+            results['price_unit'] = extra_tax_data['price_unit']
+
+            if base_line['rate'] and extra_tax_data.get('rate'):
+                delta_rate = base_line['rate'] / extra_tax_data['rate']
+            else:
+                delta_rate = 1.0
+
+            if 'manual_total_excluded_currency' in extra_tax_data:
+                results['manual_total_excluded_currency'] = (
+                    extra_tax_data['manual_total_excluded_currency'])
+            if 'manual_total_excluded' in extra_tax_data:
+                results['manual_total_excluded'] = (
+                    extra_tax_data['manual_total_excluded'] / delta_rate)
+
+            if manual_tax_amounts:
+                results['manual_tax_amounts'] = {}
+                for tax_id_str, amounts in (
+                        extra_tax_data['manual_tax_amounts'].items()):
+                    results['manual_tax_amounts'][tax_id_str] = dict(amounts)
+                    if 'tax_amount' in amounts:
+                        results['manual_tax_amounts'][tax_id_str][
+                            'tax_amount'] /= delta_rate
+                    if 'base_amount' in amounts:
+                        results['manual_tax_amounts'][tax_id_str][
+                            'base_amount'] /= delta_rate
+
+        return results
+
+    @classmethod
+    def _prepare_base_line_for_taxes_computation(cls, record, **kwargs):
+        """ Convert any representation of a business object ('record') into a
+        base line being a python dictionary that will be used to use the
+        generic helpers for the taxes computation.
+
+        ≙ ``_prepare_base_line_for_taxes_computation`` (``odoo19c:
+        :1593-1691``), clave por clave. Divergencias, todas de la forma
+        declarada arriba: el respaldo de ``product_id``,
+        ``product_uom_id``, ``partner_id`` y ``account_id`` es ``None`` y
+        el de ``tax_ids`` el ``QuerySet`` vacío de ``account.tax``; sin
+        moneda ni compañía, ``currency_id`` es ``None``.
+        """
+        def load(field, fallback):
+            return cls._get_base_line_field_value_from_record(
+                record, field, kwargs, fallback)
+
+        company = load('company_id', None)
+        currency = (
+            load('currency_id', None)
+            or load('company_currency_id', None)
+            or (company.currency if company is not None else None)
+        )
+
+        base_line = {
+            **kwargs,
+            'record': record,
+            'id': load('id', 0),
+
+            # Basic fields:
+            'product_id': load('product_id', None),
+            'product_uom_id': load('product_uom_id', None),
+            'tax_ids': load('tax_ids', cls._default_manager.none()),
+            'price_unit': load('price_unit', 0.0),
+            'quantity': load('quantity', 0.0),
+            'discount': load('discount', 0.0),
+            'currency_id': currency,
+
+            # The special_mode for the taxes computation:
+            # - False for the normal behavior.
+            # - total_included to force all taxes to be price included.
+            # - total_excluded to force all taxes to be price excluded.
+            'special_mode': kwargs.get('special_mode') or False,
+
+            # A special typing of base line for some custom behavior:
+            # - False for the normal behavior.
+            # - early_payment if the base line represent an early payment in
+            #   mixed mode.
+            # - cash_rounding if the base line is a delta to round the
+            #   business object for the cash rounding feature.
+            # - non_deductible if the base line is used to compute non
+            #   deductible amounts in bills.
+            'special_type': kwargs.get('special_type') or False,
+
+            # All computation are managing the foreign currency and the local
+            # one. This is the rate to be applied when generating the tax
+            # details (see '_add_tax_details_in_base_line').
+            'rate': load('rate', 1.0),
+
+            # Add a function allowing to filter out some taxes during the
+            # evaluation. Those taxes can't be removed from the base_line
+            # when dealing with group of taxes to maintain a correct link
+            # between the child tax and its parent.
+            'filter_tax_function': kwargs.get('filter_tax_function') or None,
+
+            # ===== Accounting stuff =====
+
+            # The sign of the business object regarding its accounting
+            # balance.
+            'sign': load('sign', 1.0),
+
+            # If the document is a refund or not to know which repartition
+            # lines must be used.
+            'is_refund': load('is_refund', False),
+
+            # Extra fields for tax lines generation:
+            'partner_id': load('partner_id', None),
+            'account_id': load('account_id', None),
+            'analytic_distribution': load('analytic_distribution', None),
+        }
+
+        extra_tax_data = cls._import_base_line_extra_tax_data(
+            base_line, load('extra_tax_data', {}) or {})
+        base_line.update({
+            # Allow to split the computation of taxes on subset of lines. For
+            # example with a down payment of 300 on a sale order of 1000, the
+            # last invoice will have an amount of 1000 - 300 = 700. However,
+            # the taxes should be computed in 2 subsets of lines:
+            # - the original lines for a total of 1000.0
+            # - the previous down payment lines for a total of -300.0
+            'computation_key': (kwargs.get('computation_key')
+                                or extra_tax_data.get('computation_key')),
+
+            # For all computation that are inferring a base amount in order
+            # to reach a total you know in advance, you have to force some
+            # base/tax amounts for the computation (E.g. down payment, combo
+            # products, global discounts etc).
+            'manual_total_excluded_currency': (
+                kwargs.get('manual_total_excluded_currency')
+                or extra_tax_data.get('manual_total_excluded_currency')),
+            'manual_total_excluded': (
+                kwargs.get('manual_total_excluded')
+                or extra_tax_data.get('manual_total_excluded')),
+            'manual_tax_amounts': (
+                kwargs.get('manual_tax_amounts')
+                or extra_tax_data.get('manual_tax_amounts')),
+        })
+        if 'price_unit' in extra_tax_data:
+            base_line['price_unit'] = extra_tax_data['price_unit']
+
+        # Propagate custom values.
+        if record and isinstance(record, dict):
+            for k, v in record.items():
+                if k.startswith('_') and k not in base_line:
+                    base_line[k] = v
+
+        return base_line
 
     # -- reparto de un delta de redondeo (odoo19c: :1824-1893) -------------
 
