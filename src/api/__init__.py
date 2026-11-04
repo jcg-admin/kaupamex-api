@@ -19,20 +19,11 @@ un
 ``import *`` sobre un agregador: el agregador esconde la procedencia y congela
 la superficie en el instante del import (:ref:`h-api-604`).
 
-Los cuatro nombres de la fachada de la referencia que este archivo NO liga, con
-su veredicto —``porte-completo-no-parcial.md`` exige uno de tres, no el
-silencio—. Los cuatro son **bloqueo medido**: ``orm/`` todavía no los declara,
-y
-ligar un nombre inexistente rompe el import del paquete. Cada uno entra con el
-pase que porta su símbolo, que es el mismo pase y no un barrido posterior:
-
-- ``depends_context``, ``deprecated``, ``ondelete`` — decoradores de
-  ``odoo19c: odoo/orm/decorators.py`` que ``orm/decorators.py`` aún no declara.
-  ``ondelete`` es el de :ref:`tarea-205`.
-- ``Self`` — alias de tipo de ``odoo19c: odoo/orm/types.py``. Los otros cuatro
-  de ese módulo (``ContextType``, ``DomainType``, ``IdType``, ``ValuesType``)
-  sí
-  se ligan aquí.
+Todos los nombres de la fachada de la referencia quedan ligados, y ninguno
+más: ``returns`` venía de ``odoo18c: odoo/api.py`` y la 19 lo retiró; aquí era
+un decorador vacío sin llamadas y se retiró con ella. Lo único que este archivo
+añade es ``__all__``, que la fuente no declara y que aquí fija la superficie de
+``import *``.
 
 Divergencia de sitio declarada: la referencia saca ``IdType`` de
 ``odoo/orm/types.py`` y aquí sale de ``orm/identifiers.py``, junto a ``NewId``
@@ -50,18 +41,18 @@ from orm.decorators import (
     constrains,
     depends,
     depends_context,
+    deprecated,
     model,
     model_create_multi,
     onchange,
     ondelete,
     private,
     readonly,
-    returns,
 )
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
 
-from orm.types import ContextType, DomainType, ValuesType
+from orm.types import ContextType, DomainType, Self, ValuesType
 
 __all__ = [
     'depends',
@@ -69,15 +60,18 @@ __all__ = [
     'onchange',
     'model',
     'model_create_multi',
-    'returns',
     'autovacuum',
     'private',
     'readonly',
+    'depends_context',
+    'ondelete',
+    'deprecated',
     'NewId',
     'Environment',
     'SUPERUSER_ID',
     'ContextType',
     'DomainType',
     'IdType',
+    'Self',
     'ValuesType',
 ]

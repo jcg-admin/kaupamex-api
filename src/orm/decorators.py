@@ -17,6 +17,45 @@ es quien realmente los llama.
 
 import collections.abc
 import functools
+import warnings
+
+try:
+    # ≙ ``odoo19c: odoo/orm/decorators.py:13-50``: disponible desde Python
+    # 3.13; antes, la versión simplificada de la fuente, con su contrato.
+    from warnings import deprecated
+except ImportError:
+    class deprecated:
+        """Versión simplificada de ``warnings.deprecated`` (Python < 3.13)."""
+
+        def __init__(self, message, /, *, category=DeprecationWarning,
+                     stacklevel=1):
+            if not isinstance(message, str):
+                raise TypeError(
+                    "Expected an object of type str for 'message', not "
+                    f"{message.__class__.__name__!r}",
+                )
+            self.message = message
+            self.category = category
+            self.stacklevel = stacklevel
+
+        def __call__(self, obj, /):
+            message = self.message
+            category = self.category
+            stacklevel = self.stacklevel
+            if category is None:
+                obj.__deprecated__ = message
+                return obj
+            if callable(obj):
+                @functools.wraps(obj)
+                def wrapper(*args, **kwargs):
+                    warnings.warn(message, category=category,
+                                  stacklevel=stacklevel + 1)
+                    return obj(*args, **kwargs)
+
+                obj.__deprecated__ = wrapper.__deprecated__ = message
+                return wrapper
+            raise TypeError(
+                f"@deprecated decorator cannot be applied to {obj!r}")
 
 __all__ = [
     'attrsetter',
@@ -27,8 +66,8 @@ __all__ = [
     'ondelete',
     'model',
     'model_create_multi',
-    'returns',
     'autovacuum',
+    'deprecated',
 ]
 
 
@@ -239,13 +278,6 @@ def model_create_multi(method):
 
     create._api_model = True
     return classmethod(create) if isinstance(method, classmethod) else create
-
-
-def returns(*args, **kwargs):
-    def deco(func):
-        return func
-
-    return deco
 
 
 def autovacuum(method):
