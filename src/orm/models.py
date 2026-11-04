@@ -6420,6 +6420,61 @@ class BaseModel(DefaultGetMixin, Model):
 
         return fields_to_fetch
 
+    def _fetch_query(self, query, fields):
+        """Trae ``fields`` de las filas de ``query``, los deja en caché y
+        devuelve los registros obtenidos.
+
+        ≙ ``_fetch_query`` (``odoo19c: odoo/orm/models.py:3879-3942``). Las
+        columnas salen en un solo ``SELECT`` y entran en caché **sin
+        sobrescribir** lo que ya había (``_insert_cache``): un valor
+        pendiente de escribir gana. Los campos sin columna propia los lee su
+        ``read``.
+        """
+        column_fields = OrderedSet()
+        other_fields = OrderedSet()
+        for field in fields:
+            if field.name == 'id':
+                continue
+            assert field.store
+            (column_fields if field.column_type else other_fields).add(field)
+
+        context = get_context()
+
+        if column_fields:
+            # la consulta puede unir varias tablas: nombres calificados
+            sql_terms = [SQL.identifier(self._table, 'id')]
+            for field in column_fields:
+                sql = self._field_to_sql(self._table, field.name, query)
+                if field.type == 'binary' and (
+                        context.get('bin_size')
+                        or context.get('bin_size_' + field.name)):
+                    sql = SQL('pg_size_pretty(length(%s)::bigint)', sql)
+                elif not getattr(field, 'translate', False):
+                    # el valor en_US de un campo sin traducción no exige
+                    # volcar sus escrituras pendientes
+                    to_flush = (f for f in sql.to_flush if f != field)
+                    sql = SQL(sql.code, *sql.params, to_flush=to_flush)
+                sql_terms.append(sql)
+
+            rows = self.env.execute_query(query.select(*sql_terms))
+            if not rows:
+                return self.browse()
+
+            column_values = zip(*rows)
+            ids = next(column_values)
+            fetched = self.browse(ids)
+            for field, values in zip(column_fields, column_values,
+                                     strict=True):
+                field._insert_cache(fetched, values)
+        else:
+            fetched = self.browse(query)
+
+        if fetched:
+            for field in other_fields:
+                field.read(fetched)
+
+        return fetched
+
     def _as_query(self, ordered=True):
         """≙ ``_as_query`` (``odoo19c: odoo/orm/models.py:5396-5404``): la
         :class:`Query` cuyo resultado es el recordset ``self``.
