@@ -1,19 +1,20 @@
 r"""``account.edi.xml.ubl_20`` — el generador y lector de UBL 2.0.
 
-Adaptación de ``odoo19c: addons/account_edi_ubl_cii/models/account_edi_xml_ubl_20.py``
+Adaptación de
+``odoo19c: addons/account_edi_ubl_cii/models/account_edi_xml_ubl_20.py``
 (``odoo-tools@622ddc2a``, LGPL-3, 1319 líneas, 88 métodos) — atribución y aviso
 de licencia preservados (DEC-KX-03).
 
-Cobertura: 88 de 88 presentes — **76 portados, 12 bloqueados**
+Cobertura: 88 de 88 presentes — **77 portados, 11 bloqueados**
 ===============================================================
 
-Los 12 bloqueados son una sola causa con tres caras:
+Los 11 bloqueados tienen tres caras:
 
-* **nueve** agregan importes por impuesto con
+* **ocho** agregan importes por impuesto con
   ``env['account.tax']._aggregate_base_line[s]_tax_details`` /
-  ``_aggregate_base_lines_aggregated_values`` — la envoltura de base-lines que
-  ``account/models/account_tax.py:82-90`` declara **no portada** (0 hits);
-  uno de ellos (``_add_document_line_price_nodes``) además necesita
+  ``_aggregate_base_lines_aggregated_values``. Esa envoltura ya existe; su
+  mensaje de bloqueo es anterior y queda por re-medir uno a uno.
+  Uno de ellos (``_add_document_line_price_nodes``) además necesita
   ``env['decimal.precision'].precision_get``, que tampoco existe;
 * **uno** (``_import_fill_invoice``) es la puerta del importador y necesita
   ``env['account.incoterms']`` más los idiomas ``Command``/``fields.Date`` del
@@ -24,7 +25,8 @@ Los 12 bloqueados son una sola causa con tres caras:
   no expone ``_fields``. Son los que inyectan los campos de estudio
   ``x_studio_peppol_*`` (ver ``tools/ubl_20_optional_fields.py``).
 
-Los 76 portados operan sobre ``dict`` y se portan verbatim.
+Los 77 portados operan sobre ``dict`` y se portan verbatim; ver en
+``account_edi_ubl.py`` por qué eso no prueba que se ejecuten (H-API-1144).
 
 Familia ``account_edi_ubl_cii``: clase Python plana con ``@classmethod`` en vez
 de ``AbstractModel``, y ``_inherit`` materializado como herencia de Python. La
@@ -45,7 +47,7 @@ from ..tools.ubl_20_optional_fields import (
     PEPPOL_INVOICE_OPTIONAL_FIELDS,
     PEPPOL_INVOICE_OPTIONAL_LINE_FIELDS,
 )
-from .account_edi_common import EAS_MAPPING, FloatFmt, _blocked
+from .account_edi_common import EAS_MAPPING, FloatFmt, _blocked, env
 from .account_edi_ubl import AccountEdiUBL
 
 
@@ -870,8 +872,33 @@ class AccountEdiXmlUBL20(AccountEdiUBL):
 
     @classmethod
     def _add_document_line_total_vals(cls, vals):
-        """≙ ``_add_document_line_total_vals`` (odoo19c: :906-925) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (0 hits)."""
-        _blocked("_add_document_line_total_vals", "la envoltura de base-lines de account.tax no se porta (0 hits)")
+        """≙ ``_add_document_line_total_vals`` (odoo19c: :906-925): el total
+        sin impuesto de la línea más sus impuestos fijos, cuando éstos se
+        informan como cargos."""
+        base_line = vals['base_line']
+
+        def fixed_total_grouping_function(base_line, tax_data):
+            if (vals['fixed_taxes_as_allowance_charges'] and tax_data
+                    and tax_data['tax'].amount_type == 'fixed'):
+                return vals['total_grouping_function'](base_line, tax_data)
+            return None
+
+        aggregated_tax_details = (
+            env['account.tax']._aggregate_base_line_tax_details(
+                base_line, fixed_total_grouping_function))
+
+        for currency_suffix in ['', '_currency']:
+            vals[f'total_fixed_taxes{currency_suffix}'] = sum(
+                tax_details[f'tax_amount{currency_suffix}']
+                for grouping_key, tax_details in aggregated_tax_details.items()
+                if grouping_key
+            )
+
+            vals[f'total_excluded{currency_suffix}'] = (
+                base_line['tax_details'][f'total_excluded{currency_suffix}']
+                + base_line['tax_details'][
+                    f'delta_total_excluded{currency_suffix}']
+                + vals[f'total_fixed_taxes{currency_suffix}'])
 
     @classmethod
     def _add_document_line_gross_subtotal_and_discount_vals(cls, vals):

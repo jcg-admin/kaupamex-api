@@ -8,11 +8,11 @@ aviso de licencia preservados (DEC-KX-03).
 Cobertura: 224 de 224 símbolos presentes
 =========================================
 
-**159 portados** (cuerpo verbatim de la referencia, con la conversión a
+**162 portados** (cuerpo verbatim de la referencia, con la conversión a
 ``@classmethod`` que ``account_edi_common.py`` declara para toda la familia) y
-**65 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
+**62 bloqueados por pieza nombrada**, cada uno con su ``_blocked(...)``.
 
-Los 65 bloqueados son exactamente tres familias, no una lista arbitraria:
+Los 62 bloqueados son exactamente tres familias, no una lista arbitraria:
 
 .. list-table::
    :header-rows: 1
@@ -31,7 +31,7 @@ Los 65 bloqueados son exactamente tres familias, no una lista arbitraria:
        ``Command``/``fields.Date``
        (idiomas del ORM de la referencia), ``odoo.tools.pdf`` (``pypdf``: 0 en
        ``uv.lock``)
-   * - 11
+   * - 8
      - los ``_ubl_add_*`` que agregan importes
      - ya no ``account.tax``: todos los métodos suyos que llaman existen
        (agregación, redondeo, importes brutos y reparto en sub-líneas). Su
@@ -42,7 +42,7 @@ Los 65 bloqueados son exactamente tres familias, no una lista arbitraria:
        ``partner_shipping_id``/``child_ids``/``with_context``
 
 **La puerta está bloqueada, y las habitaciones no se han ejecutado.** Los
-159 portados operan sobre ``dict`` —``vals``, ``document_node``,
+162 portados operan sobre ``dict`` —``vals``, ``document_node``,
 ``base_line``— y ningún camino de ejecución llega a ellos sin pasar antes por
 una puerta bloqueada, que levanta ``UserError`` nombrando su causa. Por eso
 un porte verbatim pudo conservar nombres de la fuente que aquí no resuelven:
@@ -782,8 +782,47 @@ class AccountEdiUBL(AccountEdiCommon):
 
     @classmethod
     def _ubl_add_values_payable_rounding_amount(cls, vals):
-        """≙ ``_ubl_add_values_payable_rounding_amount`` (odoo19c: :788-820) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_add_values_payable_rounding_amount', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+        """ Add
+            'vals' -> '_ubl_values' -> 'payable_rounding_amount[_currency]'.
+            'vals' -> '_ubl_values' -> 'payable_rounding_base_lines'.
+
+        'payable_rounding_amount' is rounding amount to be added to the total
+        in case of a cash rounding.
+        'payable_rounding_base_lines' are the rounding base lines.
+
+        DEPRECATED: TO BE REMOVED IN MASTER
+
+        ≙ ``_ubl_add_values_payable_rounding_amount`` (odoo19c: :788-821).
+
+        :param vals:        Some custom data.
+        """
+        _logger.warning("DEPRECATED")
+        AccountTax = env['account.tax']
+        base_lines = vals['base_lines']
+
+        def grouping_function(base_line, tax_data):
+            return base_line['special_type'] == 'cash_rounding'
+
+        base_lines_aggregated_values = (
+            AccountTax._aggregate_base_lines_tax_details(
+                base_lines, grouping_function))
+        values_per_grouping_key = (
+            AccountTax._aggregate_base_lines_aggregated_values(
+                base_lines_aggregated_values))
+        ubl_values = vals['_ubl_values']
+        # Cero neutro en tipo: los importes de la envoltura son ``Decimal``.
+        ubl_values['payable_rounding_amount'] = 0
+        ubl_values['payable_rounding_amount_currency'] = 0
+        ubl_values['payable_rounding_base_lines'] = []
+        for grouping_key, values in values_per_grouping_key.items():
+            if not grouping_key:
+                continue
+
+            ubl_values['payable_rounding_amount_currency'] += (
+                values['total_excluded_currency'])
+            ubl_values['payable_rounding_amount'] += values['total_excluded']
+            for base_line, _taxes_data in values['base_line_x_taxes_data']:
+                ubl_values['payable_rounding_base_lines'].append(base_line)
 
     @classmethod
     def _ubl_add_values_allowance_charge_early_payment(cls, vals):
@@ -1001,8 +1040,32 @@ class AccountEdiUBL(AccountEdiCommon):
 
     @classmethod
     def _ubl_add_line_price_node(cls, vals, in_foreign_currency=True):
-        """≙ ``_ubl_add_line_price_node`` (odoo19c: :1098-1120) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_add_line_price_node', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+        """≙ ``_ubl_add_line_price_node`` (odoo19c: :1098-1121): el precio
+        unitario bruto sin impuesto de la línea."""
+        line_node = vals['line_node']
+        base_line = vals['line_vals']['base_line']
+        currency = (base_line['currency_id'] if in_foreign_currency
+                    else vals['company_currency'])
+
+        raw_gross_total_excluded = (
+            env['account.tax']._get_gross_total_without_tax(
+                base_line=base_line,
+                company=vals['company'],
+                in_foreign_currency=in_foreign_currency,
+            ))
+        raw_gross_price_unit = env['account.tax']._get_price_unit_without_tax(
+            base_line=base_line,
+            company=vals['company'],
+            raw_gross_total_excluded=raw_gross_total_excluded,
+            in_foreign_currency=in_foreign_currency,
+        )
+
+        line_node['cac:Price'] = {
+            'cbc:PriceAmount': {
+                '_text': FloatFmt(raw_gross_price_unit, min_dp=1, max_dp=10),
+                'currencyID': currency.name,
+            },
+        }
 
     @classmethod
     def _ubl_get_line_item_node(cls, vals, item_values):
@@ -2228,9 +2291,43 @@ class AccountEdiUBL(AccountEdiCommon):
         pass
 
     @classmethod
-    def _ubl_add_legal_monetary_total_payable_rounding_amount_node(cls, vals):
-        """≙ ``_ubl_add_legal_monetary_total_payable_rounding_amount_node`` (odoo19c: :2417-2444) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits."""
-        _blocked('_ubl_add_legal_monetary_total_payable_rounding_amount_node', 'la envoltura de base-lines de account.tax no se porta (account/models/account_tax.py:82-90) — 0 hits')
+    def _ubl_add_legal_monetary_total_payable_rounding_amount_node(cls,
+                                                                   vals):
+        """≙ ``_ubl_add_legal_monetary_total_payable_rounding_amount_node``
+        (odoo19c: :2417-2445): la diferencia entre el total con impuesto del
+        documento y el que el nodo declara."""
+        AccountTax = env['account.tax']
+        base_lines = vals['base_lines']
+        currency = vals['currency_id']
+        node = vals['legal_monetary_total_node']
+        tax_inclusive_amount = node['cbc:TaxInclusiveAmount']['_text']
+
+        base_lines_aggregated_values = (
+            AccountTax._aggregate_base_lines_tax_details(
+                base_lines=base_lines,
+                grouping_function=lambda base_line, tax_data: True,
+            ))
+        values_per_grouping_key = (
+            AccountTax._aggregate_base_lines_aggregated_values(
+                base_lines_aggregated_values))
+        expected_tax_inclusive_amount = sum(
+            values['total_excluded_currency'] + values['tax_amount_currency']
+            for values in values_per_grouping_key.values()
+        )
+
+        payable_rounding_amount = (
+            expected_tax_inclusive_amount - tax_inclusive_amount)
+        if currency.is_zero(payable_rounding_amount):
+            node['cbc:PayableRoundingAmount'] = {
+                '_text': None,
+                'currencyID': None,
+            }
+        else:
+            node['cbc:PayableRoundingAmount'] = {
+                '_text': FloatFmt(payable_rounding_amount,
+                                  min_dp=currency.decimal_places),
+                'currencyID': currency.name,
+            }
 
     @classmethod
     def _ubl_add_legal_monetary_total_node(cls, vals):

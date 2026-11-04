@@ -8,11 +8,14 @@ de licencia preservados (DEC-KX-03).
 Cobertura: 29 de 29 presentes — **27 portados, 2 bloqueados**
 =============================================================
 
-* ``_ubl_add_notes_nodes_all_invoices`` — bloqueado: agrega importes con
-  ``AccountTax._aggregate_base_lines_tax_details`` y
-  ``_aggregate_base_lines_aggregated_values`` (0 definiciones, medido
-  2026-11-03). ``formatLang``, que también usa, ya existe en ``tools.misc``.
-* ``_init_invoice_export_values`` — bloqueado por la misma envoltura.
+* ``_ubl_add_notes_nodes_all_invoices`` — bloqueado: lee
+  ``invoice.narration``, que ``AccountMove`` no declara (0 hits, medido
+  2026-11-04). La agregación de ``account.tax`` y ``formatLang`` que también
+  usa ya existen.
+* ``_init_invoice_export_values`` — bloqueado por la puerta de la familia:
+  ``AccountMove._get_rounded_base_and_tax_lines``, ``partner_shipping_id`` y
+  ``child_ids`` no existen (0 hits). Los ayudantes de ``account.tax`` que
+  llama ya existen.
 
 ``NON_BREAKING_SPACE`` (``odoo19c: odoo/tools/misc.py:125``) no existe en
 ``src/tools/misc.py``; se declara aquí como constante de módulo con el mismo
@@ -63,12 +66,10 @@ class AccountEdiUBLPint(AccountEdiUBL):
     def _ubl_add_notes_nodes_all_invoices(cls, vals):
         """≙ ``_ubl_add_notes_nodes_all_invoices`` (odoo19c: :32-71).
 
-        **Bloqueado**: la envoltura de base-lines de account.tax no se porta
-        (0 hits).
+        **Bloqueado**: ``AccountMove.narration`` no existe (0 hits).
         """
         _blocked("_ubl_add_notes_nodes_all_invoices",
-                 "la envoltura de base-lines de account.tax no se porta "
-                 "(0 hits)")
+                 "AccountMove.narration no existe (0 hits)")
 
     @classmethod
     def _ubl_add_notes_nodes(cls, vals):
@@ -420,5 +421,9 @@ class AccountEdiUBLPint(AccountEdiUBL):
 
     @classmethod
     def _init_invoice_export_values(cls, invoice):
-        """≙ ``_init_invoice_export_values`` (odoo19c: :396-421) — **bloqueado**: la envoltura de base-lines de account.tax no se porta (0 hits)."""
-        _blocked("_init_invoice_export_values", "la envoltura de base-lines de account.tax no se porta (0 hits)")
+        """≙ ``_init_invoice_export_values`` (odoo19c: :396-421) —
+        **bloqueado**: AccountMove._get_rounded_base_and_tax_lines,
+        partner_shipping_id y child_ids no existen (0 hits)."""
+        _blocked("_init_invoice_export_values",
+                 "AccountMove._get_rounded_base_and_tax_lines/"
+                 "partner_shipping_id/child_ids no existen (0 hits)")
