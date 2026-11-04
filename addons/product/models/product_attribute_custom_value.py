@@ -87,7 +87,8 @@ class ProductAttributeCustomValue(TimeStampedModel):
         verbose_name = 'Valor personalizado de atributo'
         verbose_name_plural = 'Valores personalizados de atributo'
 
-    @api.depends('custom_product_template_attribute_value_id', 'custom_value')
+    @api.depends('custom_product_template_attribute_value_id.name',
+                 'custom_value')
     def _compute_name(self):
         """≙ ``_compute_name`` (``odoo19c: :20-25``).
 
@@ -95,11 +96,7 @@ class ProductAttributeCustomValue(TimeStampedModel):
         valor de atributo tiene nombre para mostrar, se antepone separado por
         dos puntos. La fuente lee ``display_name``; aquí el equivalente es el
         ``__str__`` del valor, que es lo que ese ``display_name`` produce.
-
-        La fuente depende de
-        ``custom_product_template_attribute_value_id.name``; ese ``name`` no
-        es todavía un campo de ``product.template.attribute.value`` en este
-        árbol, así que la dependencia se declara sobre el enlace.
+        La dependencia es la de la fuente (``:19``).
         """
         name = (self.custom_value or '').strip()
         value = self.custom_product_template_attribute_value_id

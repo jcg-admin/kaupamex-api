@@ -8,9 +8,12 @@ Lo que se fija aquí:
 
 1. El modelo guarda lo que el comprador escribió, atado al valor de atributo
    que admite texto libre.
-2. ``name`` es un campo **sin columna** — ``fields.NonStored``, el equivalente
-   construido del ``store=False`` de la fuente. Su cuerpo antepone el nombre
-   del valor de atributo, igual que ``_compute_name`` de la referencia.
+2. ``name`` es un campo **sin columna** — ``fields.Char(compute=…)``, como el
+   ``compute`` sin ``store`` de la fuente. Su cuerpo antepone el nombre del
+   valor de atributo, igual que ``_compute_name`` de la referencia.
+4. El ``name`` del valor de atributo por producto es el ``related`` de la
+   fuente (``odoo19c: product/models/product_template_attribute_value.py:24``)
+   y se lee del valor del atributo, sin columna (TASK-API-0482).
 3. El ``on_delete=PROTECT`` porta el ``ondelete='restrict'`` de la fuente: el
    motor rehúsa borrar un valor de atributo que alguien personalizó.
 
@@ -122,6 +125,27 @@ class TestTheNameHasNoColumn:
             f.column for f in ProductAttributeCustomValue._meta.concrete_fields
         }
         assert 'name' not in columns, 'no vive en la tabla'
+
+
+class TestTheTemplateValueReadsItsName:
+    """≙ ``name = fields.Char(related='product_attribute_value_id.name')``."""
+
+    def test_the_name_is_the_one_of_the_attribute_value(self, attribute_value):
+        assert attribute_value.name == 'Personalizado'
+
+    def test_a_renamed_attribute_value_is_seen_on_the_next_read(
+            self, attribute_value):
+        attribute_value.attribute_value.name = 'Grabado a mano'
+        attribute_value.attribute_value.save()
+        again = ProductTemplateAttributeValue.objects.get(
+            pk=attribute_value.pk)
+        assert again.name == 'Grabado a mano'
+
+    def test_the_name_takes_no_column(self):
+        concrete = {f.name for f in
+                    ProductTemplateAttributeValue._meta.concrete_fields}
+        assert 'name' not in concrete
+        assert 'price_extra' in concrete, 'control positivo'
 
 
 class TestTheAttributeValueIsProtected:
