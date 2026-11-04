@@ -80,6 +80,7 @@ import api
 from exceptions import AccessError, UserError
 from orm.environments import (
     context_scope, env, execute_query, get_context, get_current_company,
+    get_current_cr,
     get_current_uid, get_current_user, get_transaction, is_su,
     sudo as elevate_privileges,
 )
@@ -2883,8 +2884,9 @@ class RecordLoaderMixin(FieldSqlMixin):
                     setattr(record, name, value)
 
     @classmethod
-    def _create_row_from_values(cls, values, using=DEFAULT_DB_ALIAS):
-        """Crea la fila aceptando **todo** campo del modelo — ≙ ``create(vals)``.
+    def _create_row_from_values(cls, values, using=None):
+        """Crea la fila aceptando **todo** campo del modelo — ≙
+        ``create(vals)``.
 
         Es la cara de alta de la misma frontera que
         :meth:`_write_rows_skipping_save` cubre en la escritura. El
@@ -2907,6 +2909,9 @@ class RecordLoaderMixin(FieldSqlMixin):
                    if name not in without_column}
         projected = {name: value for name, value in values.items()
                      if name in without_column}
+        # Sin alias pedido, la base del entorno activo (``env.cr``); fuera de
+        # todo entorno con alias, ``default`` como antes.
+        using = using or get_current_cr() or DEFAULT_DB_ALIAS
         record = cls.objects.using(using).create(**columns)
         for name, value in projected.items():
             setattr(record, name, value)

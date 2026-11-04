@@ -1,27 +1,21 @@
-"""Mitad roja: el recordset no resuelve su base por el alias del entorno.
-
-EXPERIMENTAL — medición del ítem ``tag-delete-unlink-other-alias`` del plan:
-no es una prueba de la suite, y no se mueve a ``tests/`` mientras el contrato
-que mide siga ausente. Su condición de cierre es la de TASK-API-0382.
+"""El recordset usa la base de su entorno, también fuera de ``default``.
 
 ≙ ``BaseModel`` (``odoo19c: odoo/orm/models.py``): ``create``, ``search``,
 ``browse`` y ``unlink`` operan sobre ``self.env.cr``, la conexión de **su**
 entorno. Aquí la conexión de un entorno es su alias (``Environment._using``),
-y las cuatro lo ignoran: eligen base por ``orm.routers``, que decide por
-contexto de empresa.
+y ``Environment.__enter__`` la publica en el canal ``_cr``, que
+``orm.routers`` consulta antes de enrutar por empresa.
 
 El alias de la prueba apunta a la misma base de pruebas con una conexión y una
 transacción propias. Una fila escrita por esa conexión no existe para
 ``default`` mientras no se confirme, así que las aserciones distinguen en qué
 conexión cayó cada operación sin una segunda base física.
 
-Uso, desde la raíz del consumidor, con el entorno de pruebas cargado::
-
-    uv run pytest <banco>/probes/env-alias-recordset -q --reuse-db \\
-        -p no:cacheprovider
-
-Medido 2026-11-03 sobre ``d3448691``: ``create`` escribe en ``default`` (la
-fila no está en el alias) y ``search_count`` y ``browse`` leen de ``default``.
+Nació como la mitad roja del ítem ``tag-delete-unlink-other-alias``
+(``scripts/workbench/orm-continuation-plan-20261103T095630``), medida en
+``d3448691``: ``create`` escribía en ``default`` y ``search_count`` y
+``browse`` leían de ``default``. Retirar el canal, o su lectura en el
+enrutador, tumba los tres casos.
 """
 
 import io

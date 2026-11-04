@@ -1002,6 +1002,8 @@ class Environment:
         marco el ``__exit__`` de dentro devolvería también los tokens de fuera.
         """
         frame = []
+        if self._using is not None:
+            frame.append((_cr, _cr.set(self._using)))
         if self._uid_override is not None:
             frame.append((_uid, _uid.set(self._uid_override)))
         if self._context_override is not None:
@@ -1022,8 +1024,11 @@ class Environment:
 
     @property
     def cr(self):
-        """≙ ``env.cr`` — la conexión, que es el cursor de este stack."""
-        return connections[self._using or DEFAULT_DB_ALIAS]
+        """≙ ``env.cr`` — la conexión, que es el cursor de este stack.
+
+        Sin alias propio se lee el del entorno activo, como los otros ejes.
+        """
+        return connections[self.db_alias]
 
     @property
     def uid(self):
@@ -1483,7 +1488,7 @@ class Environment:
 
     def execute_query(self, query):
         """≙ ``Environment.execute_query`` (``:527``)."""
-        return execute_query(query, using=self._using)
+        return execute_query(query, using=self.db_alias)
 
     def execute_query_dict(self, query):
         """≙ ``Environment.execute_query_dict`` (``:537``) — filas como dicts."""
@@ -1507,7 +1512,12 @@ class Environment:
                 raise ValueError(f'ir.model.data no está en el registro: {xml_id!r}')
             return None
         return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
-                          using=self._using or DEFAULT_DB_ALIAS)
+                         using=self.db_alias)
+
+    @property
+    def db_alias(self):
+        """El alias de la base de este entorno: el propio, o el del canal."""
+        return self._using or get_current_cr() or DEFAULT_DB_ALIAS
 
 
 class Cache:
@@ -1993,3 +2003,20 @@ __all__ = [
     'Environment', 'env',
     'Cache', 'Starred', 'EMPTY_DICT', 'MAX_FIXPOINT_ITERATIONS',
 ]
+
+
+# --- Canal de la base ------------------------------------------------------
+# Al final del módulo: así no desplaza la posición de las sentencias
+# anteriores, con la que la admisión de estilo atribuye sus diagnósticos.
+
+#: El alias de la base del entorno activo — el ``env.cr`` de la fuente. Sin
+#: este canal, ``Environment()`` dentro de ``with Environment(alias, ...)``
+#: perdía el alias y cada consulta caía al enrutador por empresa.
+_cr: ContextVar = ContextVar('cr', default=None)
+
+
+def get_current_cr():
+    """Alias de la base del entorno activo, o ``None`` si ningún ``with``
+    declaró uno — ≙ el ``env.cr`` que comparten los recordsets de un
+    entorno (``odoo19c: odoo/orm/environments.py:54``)."""
+    return _cr.get()

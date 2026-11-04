@@ -103,7 +103,9 @@ import release
 from orm import registry
 from orm.commands import Command
 from orm.domains import to_q
-from orm.environments import context_scope, get_context, sudo, user_scope
+from orm.environments import (
+    Environment, context_scope, get_context, sudo, user_scope,
+)
 from orm.fields_reference import Reference
 from orm.fields_textual import Html
 from orm.models import BaseModel
@@ -527,16 +529,20 @@ class XmlImport:
 
         if not pks:
             return
-        if issubclass(model, BaseModel) and self.using == DEFAULT_DB_ALIAS:
-            # ``records.unlink()`` (``:265``): el borrado pasa por el ``unlink``
-            # del modelo y sus sobrescrituras, no sólo por la tabla.
-            model.browse(sorted(pks)).unlink()
+        if issubclass(model, BaseModel):
+            # ``records.unlink()`` (``:265``): el borrado pasa por el
+            # ``unlink`` del modelo y sus sobrescrituras, no sólo por la
+            # tabla. En otra
+            # base, el entorno de ese alias lleva el recordset a su conexión,
+            # como ``self.env.cr`` en la fuente.
+            if self.using == DEFAULT_DB_ALIAS:
+                model.browse(sorted(pks)).unlink()
+            else:
+                with Environment(self.using):
+                    model.browse(sorted(pks)).unlink()
             return
-        # pendiente: ``BaseModel.unlink`` no recibe alias de base, así que un
-        # modelo de otro alias, o uno que no es ``BaseModel``, borra por la
-        # tabla y se salta las sobrescrituras de ``unlink``. El recordset elige
-        # base por contexto de empresa (``orm.routers``), no por alias; se
-        # cierra con TASK-API-0382 (la instalacion se decide por base).
+        # Un modelo que no es ``BaseModel`` no tiene ``unlink``: se borra por
+        # la tabla, en la base de la carga.
         model.objects.using(self.using).filter(pk__in=pks).delete()
 
     def _tag_function(self, rec):

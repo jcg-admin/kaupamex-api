@@ -59,7 +59,7 @@ import re
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
 
-from orm.environments import get_current_company
+from orm.environments import get_current_company, get_current_cr
 
 
 class CompanyContextRequired(Exception):
@@ -133,6 +133,11 @@ class CompanyDatabaseRouter:
         meta = model._meta
         if _is_control_plane(meta.app_label, meta.model_name):
             return DEFAULT_DB_ALIAS
+        # El entorno activo declaró su base: ≙ ``env.cr`` de la fuente, que
+        # manda sobre la empresa porque es la conexión de sus recordsets.
+        cr_alias = get_current_cr()
+        if cr_alias is not None:
+            return cr_alias
         company_id = get_current_company()
         if company_id is None:
             # Sin empresa activa -> None (N=1 cae a default; N>1 fail-closed en
