@@ -47,8 +47,12 @@ class MissingRecomputeModel(models.Model):
 
 @pytest.mark.django_db(transaction=True)
 class MissingRecomputeFixture(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+    # La tabla TEMP se crea por prueba y no en ``setUpClass``: pytest-django
+    # sólo concede la base a la prueba que lleva la marca, y el gancho de
+    # clase corre antes; ahí cada caso moría con «Database access not
+    # allowed» sin llegar a medir nada.
+
+    def _create_temp_table(self):
         assert connection.vendor == 'postgresql', 'PostgreSQL requerido'
         with connection.schema_editor(collect_sql=True) as editor:
             editor.create_model(MissingRecomputeModel)
@@ -59,23 +63,18 @@ class MissingRecomputeFixture(unittest.TestCase):
                     sql.replace('CREATE TABLE ', 'CREATE TEMP TABLE ', 1)
                 )
 
-    @classmethod
-    def tearDownClass(cls):
-        with connection.cursor() as cursor:
-            cursor.execute('DROP TABLE pg_temp.orm_missing_recompute_contract')
-
     def setUp(self):
         registry.clear_field_depends()
-        with connection.cursor() as cursor:
-            cursor.execute(
-                'DELETE FROM pg_temp.orm_missing_recompute_contract'
-            )
+        self._create_temp_table()
         self.field = MissingRecomputeModel._meta.get_field('doubled')
         self.sibling = MissingRecomputeModel._meta.get_field('tripled')
         self.other = MissingRecomputeModel._meta.get_field('untouched')
 
     def tearDown(self):
         registry.clear_field_depends()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'DROP TABLE IF EXISTS pg_temp.orm_missing_recompute_contract')
 
     def mark_pair(self, ids):
         for field in (self.field, self.sibling):

@@ -50,8 +50,11 @@ class ContractCascadeChild(RelationMixin, models.Model):
 
 @pytest.mark.django_db(transaction=True)
 class RelationalPersistenceTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+    # Las tablas TEMP se crean por prueba y no en ``setUpClass``:
+    # pytest-django sólo concede la base a la prueba que lleva la marca, y
+    # el gancho de clase corre antes.
+
+    def setUp(self):
         assert connection.vendor == 'postgresql'
         with connection.schema_editor(collect_sql=True) as editor:
             for model in (ContractParent, ContractChild, ContractCascadeChild):
@@ -65,24 +68,14 @@ class RelationalPersistenceTests(unittest.TestCase):
                     sql.replace('CREATE TABLE ', 'CREATE TEMP TABLE ', 1)
                 )
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         with connection.cursor() as cursor:
             for table in (
                 'orm_relation_child_contract',
                 'orm_relation_cascade_contract',
                 'orm_relation_parent_contract',
             ):
-                cursor.execute('DROP TABLE pg_temp.' + table)
-
-    def setUp(self):
-        with connection.cursor() as cursor:
-            for table in (
-                'orm_relation_child_contract',
-                'orm_relation_cascade_contract',
-                'orm_relation_parent_contract',
-            ):
-                cursor.execute('DELETE FROM pg_temp.' + table)
+                cursor.execute('DROP TABLE IF EXISTS pg_temp.' + table)
 
     def test_forward_reverse_and_query_use_reconstructed_relation(self):
         parent = ContractParent.objects.create(label='Parent')
