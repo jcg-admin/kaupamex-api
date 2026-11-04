@@ -1,0 +1,14 @@
+{
+  "incorporations": [
+    {
+      "planner": "conversational-session",
+      "items": [
+        "fetch-as-query-0399",
+        "fetch-fields-to-fetch-0399",
+        "fetch-query-0399",
+        "fetch-records-0399"
+      ],
+      "writtenAt": "2026-11-04T19:08:10Z"
+    }
+  ]
+}
