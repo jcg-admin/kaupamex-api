@@ -6433,6 +6433,34 @@ class BaseModel(DefaultGetMixin, Model):
         return self.browse(list(forbidden.values_list('pk', flat=True))), \
             make_error
 
+    @api.deprecated("Deprecated since 19.0, use action_archive or "
+                    "action_unarchive")
+    def toggle_active(self):
+        """Invierte ``active`` en los registros de ``self`` — ≙ ``odoo19c:
+        odoo/orm/models.py:5788-5794``. Obsoleto desde 19.0."""
+        field_name = self._active_field_name()
+        assert field_name, f"No 'active' field on model {self._name}"
+        active_recs = self.filtered(field_name)
+        active_recs.action_archive()
+        (self - active_recs).action_unarchive()
+
+    def action_archive(self):
+        """Pone ``active = False`` en los registros activos de ``self`` —
+        ≙ ``:5796-5805``. Quien quiera reaccionar al cambio redefine
+        ``write``, como en la fuente."""
+        field_name = self._active_field_name()
+        assert field_name, f"No 'active' field on model {self._name}"
+        active_recs = self.filtered(lambda record: record[field_name])
+        active_recs.write({field_name: False})
+
+    def action_unarchive(self):
+        """Pone ``active = True`` en los registros archivados de ``self`` —
+        ≙ ``:5807-5816``."""
+        field_name = self._active_field_name()
+        assert field_name, f"No 'active' field on model {self._name}"
+        inactive_recs = self.filtered(lambda record: not record[field_name])
+        inactive_recs.write({field_name: True})
+
     def _get_base_lang(self):
         """El idioma base del registro — ≙ ``odoo19c:
         odoo/orm/models.py:3704-3707``. ``en_US`` salvo que un addon lo
