@@ -54,6 +54,13 @@ interfaz de ``pytz`` (``localize``/``normalize``/``zone``). Los tres puntos
 donde la fuente la usa están adaptados y anotados; un quinto uso nuevo tendría
 que descubrirlo quien lo escriba.
 
+Una consecuencia de ``pytz`` que el puerto **sí** reproduce: en
+``parse_date`` la fuente localiza la hora actual con un ``tzinfo`` de
+desplazamiento fijo, y su aritmética de pared no lo recalcula al cruzar un
+cambio de horario. ``parse_date`` fija ese desplazamiento antes de operar;
+la prueba diferencial congela el reloj en las dos transiciones de 2024 de
+``America/New_York`` y compara con igualdad exacta.
+
 Las tres adaptaciones, una por cada método que ``pytz`` tiene y ``zoneinfo``
 no necesita:
 
@@ -305,6 +312,12 @@ def parse_date(value: str) -> date | datetime:
     # Punto de partida
     tz = _current_timezone()
     now = datetime.now(utc).astimezone(tz)
+    # La fuente localiza con ``pytz``, cuyo ``tzinfo`` lleva un desplazamiento
+    # FIJO: la aritmética de pared posterior (``=1d``, ``=3H``, ``+2y``) no lo
+    # recalcula al cruzar un cambio de horario. Fijar aquí el desplazamiento
+    # reproduce ese resultado; con ``ZoneInfo`` el desplazamiento se
+    # recalcularía y el instante saldría una hora distinto en esos casos.
+    now = now.replace(tzinfo=_timezone(now.utcoffset()))
 
     dt: datetime | date
     term = terms.pop(0) if terms[0] in ('today', 'now') else 'now'
@@ -313,14 +326,21 @@ def parse_date(value: str) -> date | datetime:
     for term in terms:
         operator = term[0]
         if operator not in ('+', '-', '=') or len(term) < 3:
-            raise ValueError(f"Invalid term {term!r} in expression date: {value!r}")
+            raise ValueError(
+                f"Invalid term {term!r} in expression date: {value!r}")
 
         # Día de la semana
         dayname = term[1:]
         if dayname in WEEKDAY_NUMBER or dayname == "week_start":
             week_start = _current_week_start() - 1
-            weekday = week_start if dayname == "week_start" else WEEKDAY_NUMBER[dayname]
-            weekday_offset = ((weekday - week_start) % 7) - ((dt.weekday() - week_start) % 7)
+            weekday = (
+                week_start if dayname == "week_start"
+                else WEEKDAY_NUMBER[dayname]
+            )
+            weekday_offset = (
+                ((weekday - week_start) % 7)
+                - ((dt.weekday() - week_start) % 7)
+            )
             if operator in ('+', '-'):
                 if operator == '+' and weekday_offset < 0:
                     weekday_offset += 7
@@ -344,7 +364,8 @@ def parse_date(value: str) -> date | datetime:
                 # ojo: '=Nw' no está soportado
             dt += relativedelta(**{unit: number})
         except (ValueError, TypeError, KeyError):
-            raise ValueError(f"Invalid term {term!r} in expression date: {value!r}")
+            raise ValueError(
+                f"Invalid term {term!r} in expression date: {value!r}")
 
     # Siempre se devuelve una fecha naive
     if isinstance(dt, datetime) and dt.tzinfo is not None:

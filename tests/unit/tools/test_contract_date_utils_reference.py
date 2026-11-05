@@ -19,15 +19,17 @@ esconden:
   día de semana a un ``env`` y a ``fields_temporal``; el puerto, a
   ``orm.environments``. Aquí la fuente recibe un ``env`` sustituto y un
   ``fields_temporal`` sustituto durante cada llamada, y al puerto se le
-  sustituyen ``_current_timezone`` y ``_current_week_start`` con los mismos
-  valores.
+  sustituyen ``_current_timezone``, ``_current_week_start`` y su reloj con los
+  mismos valores.
 
 *Métrica:* el valor devuelto —o el nombre de la excepción— de las 20
 funciones públicas sobre su rejilla, normalizado a ISO.
-*Ciega a:* el instante exacto de ``parse_date`` cuando el resultado no se
-trunca —los dos lados leen el reloj en momentos distintos, así que se admite
-una diferencia de dos segundos—, a husos fuera de los tres de la rejilla, y a
-toda divergencia que la fuente comparta con nosotros.
+``parse_date`` corre con el reloj congelado en los dos lados —el mismo
+instante UTC, entre ellos las dos transiciones de horario de verano de 2024 en
+``America/New_York``— y se compara con igualdad exacta.
+
+*Ciega a:* instantes y husos fuera de la rejilla, y a toda divergencia que la
+fuente comparta con nosotros.
 """
 import contextlib
 import importlib.util
@@ -53,7 +55,7 @@ reference_roots = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(reference_roots)
 
 PACKAGE = 'reference_tools_package'
-ZONES = ('America/Mexico_City', 'Asia/Kathmandu', 'UTC')
+ZONES = ('America/Mexico_City', 'Asia/Kathmandu', 'UTC', 'America/New_York')
 GRANULARITIES = ('year', 'quarter', 'month', 'week', 'day', 'hour')
 MOMENTS = (
     date(2024, 2, 29), date(2023, 12, 31), date(2024, 1, 1), date(2025, 6, 15),
@@ -286,14 +288,18 @@ class _Environment:
 
 
 @contextlib.contextmanager
-def temporal_fields(zone):
-    """``fields_temporal`` sustituto, registrado sólo durante la llamada."""
+def temporal_fields(zone, instant):
+    """``fields_temporal`` sustituto, registrado sólo durante la llamada.
+
+    ``Datetime.now`` devuelve ``instant`` —UTC sin zona, como la fuente—, el
+    mismo instante que el reloj congelado del puerto.
+    """
     tz = pytz.timezone(zone)
 
     class Datetime:
         @staticmethod
         def now():
-            return datetime.now(timezone.utc).replace(tzinfo=None)
+            return instant.replace(tzinfo=None)
 
         @staticmethod
         def context_timestamp(record, timestamp):
@@ -320,38 +326,58 @@ def temporal_fields(zone):
                 sys.modules[name] = module
 
 
-def agree(expected, actual):
-    """Iguales, o dos instantes sin truncar a menos de dos segundos."""
-    if expected == actual:
-        return True
-    if expected[0] == actual[0] == 'value' \
-            and expected[1][0] == actual[1][0] == 'datetime':
-        left = datetime.fromisoformat(expected[1][1])
-        right = datetime.fromisoformat(actual[1][1])
-        return abs(left - right) <= timedelta(seconds=2)
-    return False
+#: Instantes UTC fijos: un día corriente, el cruce de fecha local, y las dos
+#: transiciones de horario de verano de 2024 en ``America/New_York`` (la hora
+#: local inexistente de marzo y la ambigua de noviembre).
+INSTANTS = (
+    datetime(2024, 5, 15, 14, 37, 21, 123456, tzinfo=timezone.utc),
+    datetime(2024, 1, 1, 3, 5, tzinfo=timezone.utc),
+    datetime(2024, 3, 10, 6, 30, tzinfo=timezone.utc),
+    datetime(2024, 3, 10, 7, 30, tzinfo=timezone.utc),
+    datetime(2024, 11, 3, 5, 30, tzinfo=timezone.utc),
+    datetime(2024, 11, 3, 6, 30, tzinfo=timezone.utc),
+)
+PARSE_ZONES = ZONES
+
+
+def frozen_clock(instant):
+    """Una subclase de ``datetime`` cuyo ``now`` devuelve ``instant``.
+
+    Sustituye al ``datetime`` del módulo del puerto sólo durante la prueba. Su
+    aritmética conserva la subclase (CPython ≥ 3.8), así que los
+    ``isinstance(dt, datetime)`` del puerto siguen viendo un ``datetime``.
+    """
+
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            moment = cls(*instant.utctimetuple()[:6], instant.microsecond,
+                         tzinfo=timezone.utc)
+            return moment.astimezone(tz) if tz else moment.replace(tzinfo=None)
+
+    return FrozenDatetime
 
 
 class TestParseDateMatchesTheReference:
+    """El mismo instante en los dos lados: igualdad exacta, sin tolerancia."""
 
-    @pytest.mark.parametrize('zone', ZONES)
+    @pytest.mark.parametrize('instant', INSTANTS, ids=str)
+    @pytest.mark.parametrize('zone', PARSE_ZONES)
     @pytest.mark.parametrize('week_start', [1, 7])
     def test_every_expression_parses_as_in_the_reference(
-            self, reference, monkeypatch, zone, week_start):
+            self, reference, monkeypatch, instant, zone, week_start):
         tz = ported.utc if zone == 'UTC' else ZoneInfo(zone)
         monkeypatch.setattr(ported, '_current_timezone', lambda: tz)
         monkeypatch.setattr(ported, '_current_week_start', lambda: week_start)
+        monkeypatch.setattr(ported, 'datetime', frozen_clock(instant))
         env = _Environment(week_start)
         divergences = []
         for expression in EXPRESSIONS:
-            for _attempt in range(2):
-                with temporal_fields(zone):
-                    expected = outcome(
-                        lambda e=expression: reference.parse_date(e, env))
-                actual = outcome(lambda e=expression: ported.parse_date(e))
-                if agree(expected, actual):
-                    break
-            else:
+            with temporal_fields(zone, instant):
+                expected = outcome(
+                    lambda e=expression: reference.parse_date(e, env))
+            actual = outcome(lambda e=expression: ported.parse_date(e))
+            if expected != actual:
                 divergences.append((expression, expected, actual))
         assert not divergences, divergences[:3]
 
