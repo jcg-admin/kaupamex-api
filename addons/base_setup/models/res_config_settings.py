@@ -186,7 +186,8 @@ class ResConfigSettings(BaseResConfigSettings):
       tiene columna en este árbol y su propio archivo lo declara
       (``src/addons/base/models/res_company.py:82-90``). Sucesor: tarea
       **#257**, que es la que le da columna.
-    - **``report_footer``** — ya no diverge. Se declaraba con ``NonStored``
+    - **``report_footer``** — ya no diverge. Se declaraba con el descriptor sin
+    columna
       porque ``Html`` no llevaba el despachador de ``store``; desde que la
       derivación del ``store`` es una sola para todo tipo (TASK-API-0417) se
       declara como la fuente, ``fields.Html(related=…, readonly=False)``

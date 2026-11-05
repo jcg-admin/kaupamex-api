@@ -315,7 +315,8 @@ def apply_account_extensions():
 def _compute_analytic_profitability(instance):
     """≙ ``_compute_analytic_profitability`` (odoo19c: :76-94): asigna, como
     la fuente. La derivación es :func:`_default_analytic_profitability`, que
-    servía de ``default`` invocable cuando el campo era un ``NonStored``;
+    servía de ``default`` invocable cuando el campo era el descriptor
+    sin columna retirado en TASK-API-0418;
     retirado en TASK-API-0417, el ``default`` ya no recibe el registro."""
     instance.analytic_profitability = _default_analytic_profitability(
         instance)

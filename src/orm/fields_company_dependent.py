@@ -139,7 +139,6 @@ from django.db.models.query_utils import DeferredAttribute
 
 from orm.environments import get_current_company
 from orm.fields_nonstored import (
-    NonStored,
     annotate_related,
     apply_source_defaults,
 )

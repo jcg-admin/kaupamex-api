@@ -286,7 +286,8 @@ def apply_account_extensions():
 def _compute_display_account_prefix(instance):
     """≙ ``_compute_display_account_prefix`` (odoo19c: :78-81): asigna, como
     la fuente. La derivación es :func:`_default_display_account_prefix`, que
-    servía de ``default`` invocable cuando el campo era un ``NonStored``;
+    servía de ``default`` invocable cuando el campo era el descriptor
+    sin columna retirado en TASK-API-0418;
     retirado en TASK-API-0417, el ``default`` ya no recibe el registro."""
     instance.display_account_prefix = _default_display_account_prefix(
         instance)

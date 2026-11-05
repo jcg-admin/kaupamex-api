@@ -33,7 +33,8 @@ directamente, que es el mismo mecanismo un nivel más abajo — el que
 
 Que el destino sea abstracto **no** impide que el campo llegue a las clases
 concretas: ``related=`` sobre un campo sin ``store`` produce un descriptor
-(``orm.fields_nonstored.NonStored``), y un descriptor colgado del padre se
+(el descriptor sin columna, retirado en TASK-API-0418), y un descriptor colgado
+del padre se
 resuelve por MRO en cada subclase. Es lo mismo que hace ``report_footer``
 (``base_setup/models/res_config_settings.py:256``), declarado en esa misma
 clase abstracta y leído desde ``SiteConfigSettings``.

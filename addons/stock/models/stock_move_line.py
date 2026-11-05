@@ -1,10 +1,12 @@
 """``stock.move.line`` — addon ``stock``.
 
-Adaptación de Odoo ``stock/models/stock_move_line.py`` (``odoo-tools@622ddc2a``,
+Adaptación de Odoo ``stock/models/stock_move_line.py``
+(``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
 Qué es: la **línea de movimiento** es el detalle ejecutable de un
-``stock.move``. El movimiento dice *"hay que mover 10 unidades del producto P"*;
+``stock.move``. El movimiento dice *"hay que mover 10 unidades del producto
+P"*;
 la línea dice *"3 de ellas salen del lote L, en el paquete K, de la ubicación
 A"*. Es la única pieza que **toca el quant**: reserva al crearse, mueve
 existencia al validarse y libera al borrarse.
@@ -46,54 +48,99 @@ El FK se declara sin el sufijo ``_id`` porque Django ya expone la columna como
 los consumidores ya usan (``stock_location.py``, ``stock_package.py``,
 ``product_strategy.py``, ``stock_quant.py``).
 
-===============================================  ==========================================
-Símbolo de la referencia (línea)                 Aquí
-===============================================  ==========================================
-``picking_id`` (21-25)                           ``picking``
-``move_id`` (26-28)                              ``move``
-``company_id`` (29)                              ``company``
-``product_id`` (30)                              ``product``
-``allowed_uom_ids`` (31, compute)                property ``allowed_uom_ids``
-``product_uom_id`` (32-35, compute+store)        ``product_uom`` (almacenado)
-``product_category_name`` (36, related)          property ``product_category_name``
-``quantity`` (37-39, compute+store)              ``quantity`` (almacenado)
-``quantity_product_uom`` (40-42, compute+store)  ``quantity_product_uom`` (almacenado)
-``picked`` (43, compute+store)                   ``picked`` (almacenado)
-``package_id`` (44-47)                           ``package``
-``lot_id`` (48-50)                               ``lot``
-``lot_name`` (51)                                ``lot_name``
-``result_package_id`` (52-56)                    ``result_package``
-``result_package_dest_name`` (57, related)       property ``result_package_dest_name``
-``package_history_id`` (58)                      ``package_history``
-``is_entire_pack`` (59)                          ``is_entire_pack``
-``date`` (60-62)                                 ``date``
-``scheduled_date`` (63, related)                 property ``scheduled_date`` — **bloqueado**
-``owner_id`` (64-67)                             ``owner``
-``location_id`` (68-71, compute+store)           ``location`` (almacenado)
-``location_dest_id`` (72, compute+store)         ``location_dest`` (almacenado)
-``location_usage`` (73, related)                 property ``location_usage``
-``location_dest_usage`` (74, related)            property ``location_dest_usage``
-``lots_visible`` (75, compute)                   property ``lots_visible``
-``picking_partner_id`` (76, related)             property ``picking_partner`` — **bloqueado**
-``move_partner_id`` (77, related)                property ``move_partner`` — **bloqueado**
-``picking_code`` (78, related)                   property ``picking_code``
-``picking_type_id`` (79-81, compute+search)      property ``picking_type`` + ``_search_picking_type_id``
-``picking_type_use_create_lots`` (82, related)   property ``picking_type_use_create_lots``
-``picking_type_use_existing_lots`` (83, rel.)    property ``picking_type_use_existing_lots``
-``state`` (84, related+store)                    ``state`` (almacenado)
-``scrap_id`` (85, related)                       property ``scrap`` — **bloqueado**
-``is_inventory`` (86, related)                   property ``is_inventory`` — **bloqueado**
-``is_locked`` (87, related)                      property ``is_locked`` — **bloqueado**
-``consume_line_ids`` (88, M2M)                   ``consume_line_ids`` (M2M reflexivo)
-``produce_line_ids`` (89, M2M)                   property ``produce_line_ids`` (el reverso)
-``reference`` (90, related)                      property ``reference`` — **bloqueado**
-``tracking`` (91, related)                       property ``tracking``
-``origin`` (92, related)                         property ``origin`` — **bloqueado**
-``description_picking`` (93, related)            property ``description_picking`` — **bloqueado**
-``quant_id`` (94, store=False)                   ``quant`` (``NonStored``)
-``picking_location_id`` (95, related)            property ``picking_location``
-``picking_location_dest_id`` (96, related)       property ``picking_location_dest``
-===============================================  ==========================================
+.. list-table::
+   :header-rows: 1
+
+   * - Símbolo de la referencia (línea)
+     - Aquí
+   * - ``picking_id`` (21-25)
+     - ``picking``
+   * - ``move_id`` (26-28)
+     - ``move``
+   * - ``company_id`` (29)
+     - ``company``
+   * - ``product_id`` (30)
+     - ``product``
+   * - ``allowed_uom_ids`` (31, compute)
+     - property ``allowed_uom_ids``
+   * - ``product_uom_id`` (32-35, compute+store)
+     - ``product_uom`` (almacenado)
+   * - ``product_category_name`` (36, related)
+     - property ``product_category_name``
+   * - ``quantity`` (37-39, compute+store)
+     - ``quantity`` (almacenado)
+   * - ``quantity_product_uom`` (40-42, compute+store)
+     - ``quantity_product_uom`` (almacenado)
+   * - ``picked`` (43, compute+store)
+     - ``picked`` (almacenado)
+   * - ``package_id`` (44-47)
+     - ``package``
+   * - ``lot_id`` (48-50)
+     - ``lot``
+   * - ``lot_name`` (51)
+     - ``lot_name``
+   * - ``result_package_id`` (52-56)
+     - ``result_package``
+   * - ``result_package_dest_name`` (57, related)
+     - property ``result_package_dest_name``
+   * - ``package_history_id`` (58)
+     - ``package_history``
+   * - ``is_entire_pack`` (59)
+     - ``is_entire_pack``
+   * - ``date`` (60-62)
+     - ``date``
+   * - ``scheduled_date`` (63, related)
+     - property ``scheduled_date`` — **bloqueado**
+   * - ``owner_id`` (64-67)
+     - ``owner``
+   * - ``location_id`` (68-71, compute+store)
+     - ``location`` (almacenado)
+   * - ``location_dest_id`` (72, compute+store)
+     - ``location_dest`` (almacenado)
+   * - ``location_usage`` (73, related)
+     - property ``location_usage``
+   * - ``location_dest_usage`` (74, related)
+     - property ``location_dest_usage``
+   * - ``lots_visible`` (75, compute)
+     - property ``lots_visible``
+   * - ``picking_partner_id`` (76, related)
+     - property ``picking_partner`` — **bloqueado**
+   * - ``move_partner_id`` (77, related)
+     - property ``move_partner`` — **bloqueado**
+   * - ``picking_code`` (78, related)
+     - property ``picking_code``
+   * - ``picking_type_id`` (79-81, compute+search)
+     - property ``picking_type`` + ``_search_picking_type_id``
+   * - ``picking_type_use_create_lots`` (82, related)
+     - property ``picking_type_use_create_lots``
+   * - ``picking_type_use_existing_lots`` (83, rel.)
+     - property ``picking_type_use_existing_lots``
+   * - ``state`` (84, related+store)
+     - ``state`` (almacenado)
+   * - ``scrap_id`` (85, related)
+     - property ``scrap`` — **bloqueado**
+   * - ``is_inventory`` (86, related)
+     - property ``is_inventory`` — **bloqueado**
+   * - ``is_locked`` (87, related)
+     - property ``is_locked`` — **bloqueado**
+   * - ``consume_line_ids`` (88, M2M)
+     - ``consume_line_ids`` (M2M reflexivo)
+   * - ``produce_line_ids`` (89, M2M)
+     - property ``produce_line_ids`` (el reverso)
+   * - ``reference`` (90, related)
+     - property ``reference`` — **bloqueado**
+   * - ``tracking`` (91, related)
+     - property ``tracking``
+   * - ``origin`` (92, related)
+     - property ``origin`` — **bloqueado**
+   * - ``description_picking`` (93, related)
+     - property ``description_picking`` — **bloqueado**
+   * - ``quant_id`` (94, store=False)
+     - ``quant`` (sin columna)
+   * - ``picking_location_id`` (95, related)
+     - property ``picking_location``
+   * - ``picking_location_dest_id`` (96, related)
+     - property ``picking_location_dest``
 
 Métodos — 50 de 50
 --------------------
@@ -122,11 +169,13 @@ restantes conservan su guion.
 Recordset vs registro
 -----------------------
 
-La referencia opera sobre *recordsets*: ``self`` puede ser una línea o mil. Aquí
-la distinción se hace explícita en la firma:
+La referencia opera sobre *recordsets*: ``self`` puede ser una línea o mil.
+Aquí la
+distinción se hace explícita en la firma:
 
 - método con ``self.ensure_one()`` en la fuente → **método de instancia**;
-- método que itera ``for ml in self`` → **``classmethod`` que recibe ``lines``**,
+- método que itera ``for ml in self`` → **``classmethod`` que recibe
+``lines``**,
   un iterable de líneas.
 
 No es una libertad: es la única traducción que preserva la semántica sin
@@ -147,20 +196,31 @@ desaparece sola el día que ``stock_move.py`` aterrice; enmascararlo con un
 ``getattr(..., None)`` produciría un ``None`` silencioso, que es justo lo que
 ``check_silent_oks`` existe para impedir.
 
-==========================================  ===============================================
-Símbolo que falta                           Quién lo espera aquí
-==========================================  ===============================================
-``stock.move.date``                         ``scheduled_date``
-``stock.move.partner_id``                   ``move_partner``
-``stock.move.scrap_id``                     ``scrap``
-``stock.move.is_inventory``                 ``is_inventory``, ``_exclude_requiring_lot``
-``stock.move.is_locked``                    ``is_locked``
-``stock.move.reference``                    ``reference``, ``_get_revert_inventory_move_values``
-``stock.move.origin``                       ``origin``
-``stock.move.description_picking``          ``description_picking``, ``_get_aggregated_properties``
-``stock.move.product_uom``                  ``_compute_quantity``, ``_get_aggregated_properties``
-``stock.picking.partner_id``                ``picking_partner``
-==========================================  ===============================================
+.. list-table::
+   :header-rows: 1
+
+   * - Símbolo que falta
+     - Quién lo espera aquí
+   * - ``stock.move.date``
+     - ``scheduled_date``
+   * - ``stock.move.partner_id``
+     - ``move_partner``
+   * - ``stock.move.scrap_id``
+     - ``scrap``
+   * - ``stock.move.is_inventory``
+     - ``is_inventory``, ``_exclude_requiring_lot``
+   * - ``stock.move.is_locked``
+     - ``is_locked``
+   * - ``stock.move.reference``
+     - ``reference``, ``_get_revert_inventory_move_values``
+   * - ``stock.move.origin``
+     - ``origin``
+   * - ``stock.move.description_picking``
+     - ``description_picking``, ``_get_aggregated_properties``
+   * - ``stock.move.product_uom``
+     - ``_compute_quantity``, ``_get_aggregated_properties``
+   * - ``stock.picking.partner_id``
+     - ``picking_partner``
 
 Y los métodos de ``stock.move`` que este archivo invoca y aún no existen:
 ``_should_bypass_reservation``, ``_recompute_state``, ``_action_assign``,

@@ -385,7 +385,7 @@ class WebsiteMenu(TimeStampedModel):
         Sin ``menu_id``, la raíz es la que ``Website._compute_menu`` resuelve:
         el primer menú sin padre del sitio. Se consulta aquí directamente en
         vez de leer el campo no almacenado ``menu`` del sitio para no acoplar
-        este método al mecanismo ``NonStored``.
+        este método al descriptor sin columna.
 
         ``Website`` se resuelve por ``apps.get_model`` — importarlo aquí sería
         circular (``website.py`` importa este módulo). Es una llamada a

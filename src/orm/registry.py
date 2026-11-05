@@ -890,7 +890,8 @@ class _MarkedMethodCollector:
     **``getattr_static``, no ``getmembers``, y no es preferencia.** La fuente
     usa ``inspect.getmembers``, que LEE cada atributo — alla eso es inocuo. Un
     modelo de Django declara descriptores que se resuelven al leerlos
-    (``orm.fields_nonstored.NonStored`` calcula su default consultando el
+    (el descriptor sin columna, retirado en TASK-API-0418, calculaba su default
+    consultando el
     registro), asi que recorrer la clase con ``getattr`` los ejecutaria.
     ``getattr_static`` devuelve el objeto sin dispararlos. Es la misma razon
     por la que ``addons/web/models/models.py`` ya lo hacia en su copia local.

@@ -135,7 +135,8 @@ def _is_computed_surface(model_cls, name) -> bool:
 
     Aquí un campo así no es un campo de Django —no tiene columna que declarar—
     sino un **descriptor** sobre la clase: una ``property`` o un
-    :class:`orm.fields_nonstored.NonStored`. Sin este reconocimiento, portar el
+    el descriptor sin columna (retirado en TASK-API-0418). Sin este
+    reconocimiento, portar el
     ``_rec_name`` de la fuente verbatim reventaba el arranque, y la única
     salida habría sido no declararlo — omitir un atributo que la fuente sí
     declara.

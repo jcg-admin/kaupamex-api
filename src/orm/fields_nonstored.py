@@ -1,39 +1,27 @@
-"""Campo no persistido — ≙ el ``store=False`` de la referencia.
+"""Campos sin columna — ≙ el ``store=False`` de la referencia.
 
 En Odoo un campo puede declararse **sin columna**: ``fields.Char(store=False,
-default=_get_algo)`` produce un atributo que se calcula al leerlo y nunca se
-escribe a la base (``odoo19c: account/models/res_currency.py:17`` es el caso
-canónico). Django no lo tiene: todo ``models.Field`` es una columna.
+default=_get_algo)`` o un ``compute`` sin ``store`` producen un campo que se
+calcula al leerlo y nunca se escribe a la base (``odoo19c:
+account/models/res_currency.py:17`` es el caso canónico). Allá ``store`` es un
+atributo del campo y nunca un tipo distinto (``odoo19c:
+odoo/orm/fields.py:455``).
 
-Este módulo lo construye. No es una comodidad: sin él, portar
-``fiscal_country_codes`` obligaba a inventar una forma distinta —una
-``property`` colgada desde otro addon— y a repartir en el cableado lo que la
-referencia declara **en la clase**. Es la diferencia entre adaptar la conducta
-y copiar una restricción ajena.
+Aquí tampoco lo es ya. Desde TASK-API-0417 las fachadas construyen siempre el
+campo de Django y la costura lo contribuye con ``private_only=True``
+(``orm/fields.py``, ``_field_contribute_to_class``): sin columna, sin
+migración, en ``_meta.private_fields``. TASK-API-0418 retiró la clase
+descriptora que antes cumplía ese papel.
 
-Qué NO es
-==========
+Lo que vive en este módulo es lo que esa forma necesita alrededor:
 
-- **No es un campo de Django.** No aparece en ``_meta.get_fields()``, no genera
-  migración, no se puede filtrar con ``.filter(campo=…)``. Es exactamente lo
-  que la referencia promete con ``store=False``: un valor que existe para
-  leerse, no para consultarse.
-- **No es una ``property``.** Admite asignación —``obj.campo = 'X'`` se guarda
-  en la instancia y gana sobre el ``default``—, igual que en la referencia,
-  donde un campo no almacenado sigue siendo escribible en memoria.
-
-Cómo se declara
-================
-
-Con la misma firma que la fuente, en el cuerpo de la clase o colgado después::
-
-    fiscal_country_codes = fields.Char(store=False,
-                                       default=get_fiscal_country_codes)
-
-El ``default`` puede ser un valor o un invocable. Si es invocable se llama con
-la instancia cuando acepta un argumento, y sin argumentos cuando no — así
-sirven tanto un cómputo que mira sólo la sesión (``env.companies`` en la
-referencia) como uno que mira el registro (``record.company_id or …``).
+- :func:`apply_source_defaults` y :func:`derive_source_attrs` — lo que
+  ``compute=``/``related=`` implican sobre ``store``, ``readonly`` y demás,
+  como en el ``_get_attrs`` de la fuente (``:443-465``);
+- :func:`annotate_related` — el ``related`` y su búsqueda sobre el campo;
+- :func:`non_stored_fields` — los campos sin columna de un modelo, que
+  ``BaseModel._fields`` une a los de ``_meta`` para ser el registro de la
+  fuente y no el de las columnas (:ref:`h-api-1025`).
 
 Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
 ==========================================================================
@@ -59,301 +47,17 @@ El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudar
 a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 
-import inspect
 import types
 import warnings
 
 from django.db import models
 
 __all__ = [
-    'NonStored',
     'non_stored_fields',
     'apply_source_defaults',
     'annotate_related',
     'derive_source_attrs',
 ]
-
-
-class NonStored:
-    """Descriptor de un campo declarado ``store=False``.
-
-    Sigue el protocolo de ``contribute_to_class`` de Django para que funcione
-    en los dos caminos por los que un atributo llega a un modelo: el cuerpo de
-    la clase (``ModelBase`` lo invoca) y ``Model.add_to_class`` (el que usan
-    las extensiones ``_inherit`` de este puerto). Sin él, el segundo camino
-    dejaría el descriptor sin saber su propio nombre.
-    """
-
-    def __init__(
-        self,
-        *args,
-        default=None,
-        help_text='',
-        search=None,
-        related=None,
-        verbose_name=None,
-        compute=None,
-        **_ignored,
-    ):
-        self.default = default
-        self.help_text = help_text
-        #: ≙ ``Field.string`` (``odoo19c: odoo/orm/fields.py:264``) — la
-        #: etiqueta. Django la toma del primer posicional, y la fuente la
-        #: declara con ``string=``; se conserva por las dos vías para que la
-        #: declaración se lea contra la suya sin traducir nada. Un campo sin
-        #: columna no la usa para pintar formulario, pero tirarla dejaría al
-        #: árbol sin forma de medir cuántos la declaran.
-        self.verbose_name = verbose_name if args[:1] == () else args[0]
-        #: ≙ ``Field.related`` (``odoo19c: odoo/orm/fields.py:286``) — la ruta
-        #: punteada cuyo extremo aporta el valor. Con ella el campo **no lee
-        #: su default**: navega la cadena, que es el ``compute`` de la fuente
-        #: (``:675`` ``_compute_related``). Es la forma de la gran mayoría de
-        #: los ``related=`` que la referencia declara en los addons que este
-        #: árbol porta — los que no llevan ``store`` y por tanto no tienen
-        #: columna. El reparto lo publica
-        #: ``python3 scripts/census_related_fields.py``, que no se transcribe
-        #: aquí porque crece con la referencia.
-        self.related = related
-        #: ≙ ``Field.search`` (``odoo19c: odoo/orm/fields.py:289``): el nombre
-        #: de un método o el invocable que sabe traducir una condición sobre
-        #: este campo a un dominio sobre campos que sí tienen columna. Sin él
-        #: el campo se puede leer y escribir, pero no se puede buscar — que es
-        #: exactamente lo que la fuente promete con un campo sin ``search``.
-        self.search = search
-        #: ≙ ``Field.compute`` (``odoo19c: odoo/orm/fields.py:285``) — «el
-        #: nombre de un método o el invocable que calcula el campo». Es la
-        #: forma con que la fuente declara la inmensa mayoría de sus campos
-        #: sin columna: medido sobre ``addons/*/models/*.py`` y
-        #: ``odoo/addons/*/models/*.py`` de ``odoo19c``, **293** declaraciones
-        #: de los siete tipos que las fachadas construyen llevan
-        #: ``compute=`` y ningún ``store=True``.
-        #:
-        #: **Lo despacha :meth:`__get__`** desde ``TASK-API-0415``: su
-        #: tercera rama llama a ``determine_compute``, que es el cuerpo
-        #: efectivo de la rama ``elif self.compute:`` de la fuente para un
-        #: campo sin columna. Hasta entonces se guardaba y nadie lo invocaba:
-        #: el valor salía de ``related`` o de un ``default`` que envolvía al
-        #: cómputo, que es la forma que los dos sitios del árbol declaraban.
-        self.compute = compute
-        self.name = None
-
-    # -- protocolo de nombre ------------------------------------------------
-
-    def __set_name__(self, owner, name):
-        """Camino del cuerpo de clase en una clase que NO es modelo Django."""
-        self.name = name
-        _REGISTRY_CACHE.invalidate()
-
-    def contribute_to_class(self, cls, name, **_kwargs):
-        """Camino de ``ModelBase`` y de ``add_to_class``.
-
-        Django llama a este método en vez de ``setattr`` cuando el objeto lo
-        declara. Aquí **no** se registra nada en ``_meta``: ese es justamente
-        el punto — el campo no tiene columna.
-        """
-        self.name = name
-        setattr(cls, name, self)
-        _REGISTRY_CACHE.invalidate()
-
-    # -- protocolo de descriptor -------------------------------------------
-
-    def __get__(self, instance, owner=None):
-        """El valor del campo — ≙ ``Field.__get__`` (``odoo19c:
-        odoo/orm/fields.py:1642``), en la parte que alcanza a un campo sin
-        columna.
-
-        El ORDEN de las cuatro ramas es el de la fuente, no una elección:
-
-        1. **lo escrito gana** — allá ``value = field_cache[record_id]``
-           (``:1673``) se intenta antes que cualquier rama de cálculo; aquí el
-           ``__dict__`` de la instancia es ese caché;
-        2. **``related``** — allá no es una rama aparte: al montar la cadena,
-           ``self.compute = self._compute_related`` (``:632``) **sobreescribe**
-           el cómputo del autor, así que la cadena gana siempre. Aquí son dos
-           ramas porque el descriptor guarda los dos atributos, y el orden
-           reproduce esa sobreescritura;
-        3. **``compute``** — la rama ``elif self.compute:`` de la fuente
-           (``:1736``), cuyo comentario la acota: *"non-stored field or new
-           record without origin: compute"*;
-        4. **``default``** — el ``else`` final (``:1788-1789``):
-           *"non-stored field or stored field on new record: default value"*.
-
-        Las ramas de ``self.store`` de la fuente —traer de la base, traer del
-        origen— no se portan **porque no se alcanzan**: un :class:`NonStored`
-        es por construcción ``store=False``. No es alcance recortado.
-        """
-        if instance is None:
-            return self
-        if self.name in instance.__dict__:
-            return instance.__dict__[self.name]
-        if self.related:
-            return self.resolve_related(instance)
-        if self.compute:
-            return self.determine_compute(instance)
-        return self.resolve_default(instance)
-
-    def __set__(self, instance, value):
-        instance.__dict__[self.name] = value
-        #: ``:632`` — la fuente cablea el inverso **sólo** si el campo no es de
-        #: sólo lectura. Un ``related`` sin ``readonly=False`` declarado toma
-        #: el defecto de ``:458`` y no propaga: escribirlo se queda en memoria.
-        if self.related and not getattr(self, 'readonly', True):
-            self.inverse_related(instance, value)
-
-    def inverse_related(self, instance, value):
-        """Escribe ``value`` en el extremo de la cadena — ≙
-        ``Field._inverse_related`` (``odoo19c: fields.py:724``).
-
-        Este árbol ya tenía ese método portado verbatim, **sobre
-        ``models.Field``** (``orm/fields.py:1809``). Un :class:`NonStored` no
-        desciende de ``models.Field``, así que nunca lo alcanzaba: un
-        ``related`` con ``readonly=False`` aceptaba la escritura y la guardaba
-        en sombra sobre el origen. Es la forma de :ref:`h-api-978` otra vez —
-        acepta y no hace nada— en el otro sentido de la cadena.
-
-        Dos cosas son verbatim de la fuente, y la segunda no es cosmética:
-
-        - **La guarda de realidad** ``bool(target.id) == bool(record.id)``
-          (``:731``), con su comentario: *«update 'target' only if 'record' and
-          'target' are both real or both new»*. Un registro sin guardar no
-          escribe en uno guardado.
-        - **El eslabón vacío no revienta.** Sin destino no hay dónde escribir,
-          y eso no es un error — igual que leerlo da vacío.
-
-        Lo que **diverge, y es de mecanismo**: la fuente escribe con
-        ``target[field.name] = value``, que en su ORM es un ``write()`` que se
-        vacía solo. Aquí hay dos formas según lo que haya al final, porque
-        Django las distingue:
-
-        - un **valor**: ``setattr`` + ``save(update_fields=[...])``, la
-          escritura mínima;
-        - un **manager** del reverso de una FK: Django prohíbe la asignación
-          directa y **nombra la salida en su propio error** — ``.set()``. Se
-          usa ésa, que es la API que el stack declara para eso.
-        """
-        target, last_name = self.traverse_related(instance)
-        if target is None:
-            return
-        #: ``:731`` verbatim — ambos reales o ambos nuevos.
-        if bool(getattr(target, 'pk', None)) != bool(
-            getattr(instance, 'pk', None)
-        ):
-            return
-        held = getattr(type(target), last_name, None)
-        if isinstance(held, NonStored):
-            #: El extremo es otra proyección: su propio ``__set__`` decide si
-            #: la cadena sigue. No se le puede pedir ``update_fields``, que es
-            #: cosa de una columna.
-            setattr(target, last_name, value)
-            return
-        current = getattr(target, last_name, None)
-        if hasattr(current, 'set'):
-            current.set(value)
-            return
-        setattr(target, last_name, value)
-        target.save(update_fields=[last_name])
-
-    def traverse_related(self, instance):
-        """El registro anterior al último eslabón, y el nombre de ése — ≙
-        ``Field.traverse_related`` (``odoo19c: fields.py:666``).
-
-        Devuelve ``(None, nombre)`` cuando la cadena se corta antes de llegar,
-        que es lo que deja al inverso sin destino donde escribir.
-        """
-        *path, last_name = self.related.split('.')
-        target = instance
-        for name in path:
-            if target is None:
-                return None, last_name
-            target = getattr(target, name, None)
-        return target, last_name
-
-    def __delete__(self, instance):
-        instance.__dict__.pop(self.name, None)
-
-    # -- eje de esquema ----------------------------------------------------
-
-    #: ≙ ``Field._column_type`` (``odoo19c: odoo/orm/fields.py:259``), que la
-    #: fuente declara ``None`` y expone por la property ``column_type``
-    #: (``:781``). Un campo sin columna **no tiene tipo de columna**: es lo
-    #: mismo que dice el nombre de esta clase, escrito donde el eje de
-    #: esquema lo lee.
-    column_type = None
-
-    def update_db(self, model, columns):
-        """No hay columna que llevar a la tabla — ≙ el corte de
-        ``Field.update_db`` (``odoo19c: odoo/orm/fields.py:1101``).
-
-        La fuente abre con ``if not self.column_type: return False``, así que
-        un campo sin columna sale por ahí y **nunca** alcanza los otros cuatro
-        del eje (``update_db_column``, ``_convert_db_column``,
-        ``update_db_notnull``, ``update_db_related``). Medido sobre todo
-        ``odoo19c/odoo``: la única puerta a esa familia es ``update_db``
-        (``models.py:3228``); los demás sólo se llaman desde su cuerpo o por
-        ``super()`` en una subclase. Por eso aquí se porta **el corte**, no
-        los cinco: declararlos sería inventar superficie que la fuente no
-        expone por esta vía.
-
-        Se declara en la clase por la misma razón que
-        :meth:`inverse_related`: :class:`NonStored` **no desciende de
-        ``models.Field``**, así que el enlace que ``orm.fields`` cuelga sobre
-        él nunca lo alcanza. Sin este método un campo sin columna respondía
-        ``AttributeError`` a una pregunta que la fuente contesta ``False``.
-        """
-        return False
-
-    # -- protocolo de búsqueda ----------------------------------------------
-
-    #: ``determine_domain`` lo instala :mod:`orm.fields` sobre esta clase, no
-    #: se declara aquí: ``orm.fields`` importa a este módulo por la vía de
-    #: ``fields_numeric``, así que el import inverso es un ciclo. Es la misma
-    #: vía por la que ``type`` y ``relational`` llegan a ``models.Field``, y
-    #: por la misma razón: el contrato de la fuente se comparte, la jerarquía
-    #: del stack no.
-
-    # -- resolución de la cadena related -----------------------------------
-
-    def resolve_related(self, instance):
-        """El valor del extremo de ``self.related``, navegando eslabón a
-        eslabón — ≙ ``Field._compute_related`` (``odoo19c: :675``).
-
-        **El eslabón vacío no revienta.** La fuente escribe
-        ``next(iter(corecord), corecord)``: sobre un recordset vacío eso
-        devuelve el propio vacío y la cadena sigue sin valor. Aquí el análogo
-        es que un ``None`` corta el recorrido y el campo lee vacío, que es la
-        misma conducta observable — una fila sin país no tiene código de país,
-        y eso no es un error.
-        """
-        value = instance
-        for name in self.related.split('.'):
-            if value is None:
-                return None
-            value = getattr(value, name, None)
-        return value
-
-    # -- resolución del default --------------------------------------------
-
-    def resolve_default(self, instance):
-        """Llama al ``default`` con la instancia sólo si la acepta.
-
-        La referencia pasa siempre ``self`` porque allá el ``default`` es un
-        método del modelo. Aquí el mismo cómputo puede ser una función suelta
-        que no necesita el registro —el caso de los que sólo miran la sesión—,
-        y obligarla a aceptar un parámetro que ignora sería ruido en cada uno.
-        Se inspecciona la firma una vez por lectura, que es barato frente a la
-        consulta que el propio cómputo hace.
-        """
-        if not callable(self.default):
-            return self.default
-        try:
-            firma = inspect.signature(self.default)
-        except (TypeError, ValueError):
-            # Invocable sin firma introspectable (builtin, C-extension): se
-            # llama sin argumentos, que es la forma más común de ese caso.
-            return self.default()
-        if len(firma.parameters) >= 1:
-            return self.default(instance)
-        return self.default()
 
 
 #: Centinela de «el declarante no dijo nada». Lo usan las fachadas en la firma
@@ -672,49 +376,26 @@ def non_stored_fields(cls):
     la fuente y no el de las columnas. Allá ``_fields`` es el mapa que el ORM
     construye al cargar la clase, y en él entra **todo** campo declarado, tenga
     columna o no: un ``related`` sin ``store`` está ahí igual que un ``Char``.
-    Aquí las columnas las publica ``_meta`` y los campos sin columna no — por
-    diseño, porque un :class:`NonStored` no se registra en ``_meta``
-    (:meth:`NonStored.contribute_to_class` lo dice explícitamente). Sin este
-    recorrido el registro del modelo queda estrictamente más estrecho que el de
-    la fuente, y quien lo consulte por un nombre que sí existe recibe un fallo
-    en vez del campo (:ref:`h-api-1025`).
+    Aquí las columnas las publica ``_meta.get_fields()`` y los campos sin
+    columna viven en ``_meta.private_fields``. Sin este recorrido el registro
+    del modelo queda estrictamente más estrecho que el de la fuente, y quien
+    lo consulte por un nombre que sí existe recibe un fallo en vez del campo
+    (:ref:`h-api-1025`).
 
-    Se recorre el **MRO entero** y no sólo el ``__dict__`` de ``cls``: un campo
-    sin columna puede venir de una clase base o de la extensión que un addon
-    cuelga con ``_inherit``, igual que allá. El recorrido va de la base a la
-    derivada, así que la declaración más derivada gana — que es la resolución
-    de atributo de Python, no un orden inventado aquí.
-
-    Se lee ``vars(klass)`` y no ``getattr``: sobre la clase, un ``getattr``
-    invoca ``NonStored.__get__``, que devuelve el descriptor sólo por
-    convención del propio descriptor. El ``__dict__`` no depende de esa
-    convención y ve también a un descriptor que no la siga.
-
-    **Dos poblaciones, un solo registro (TASK-API-0417).** Desde que las nueve
-    fachadas dejaron de enrutar por ``store``, la forma sin columna dominante
-    ya
-    no es :class:`NonStored` sino un ``models.Field`` corriente que la costura
-    contribuyó con ``private_only=True`` — ``_field_contribute_to_class``
+    **Dos ramas.** La principal son los ``models.Field`` que la costura
+    contribuyó con ``private_only=True`` —``_field_contribute_to_class``
     (``orm/fields.py``) lo refuerza con ``private_only or self.store is
-    False``,
-    así que aterriza en ``_meta.private_fields`` y no en ``local_fields``. Este
-    recorrido las junta porque el registro que publica es el de la FUENTE,
-    donde
-    ``store`` es un atributo y nunca un tipo distinto
-    (``odoo19c: odoo/orm/fields.py:455``). Mirar sólo una de las dos dejaría al
-    registro estrictamente más estrecho que el de la referencia, que es el
-    defecto que :ref:`h-api-1025` ya registró una vez.
+    False``—; la otra, los ``One2many`` declarados, que no pasan por ``_meta``
+    y se recogen del ``__dict__`` de cada clase del MRO, de la base a la
+    derivada, así que la declaración más derivada gana. TASK-API-0418 retiró
+    la tercera, la del descriptor sin columna, junto con la clase.
 
     El filtro sobre ``private_fields`` es ``store is False`` y no la mera
     pertenencia: Django también contribuye ahí ``GenericForeignKey`` y los
     campos de contenido genérico, que sí tienen columna asociada y no son
-    campos
-    sin almacenamiento de la fuente. Preguntar por la pertenencia mediría la
-    tubería de Django y concluiría sobre el vocabulario de la referencia.
-
-    :class:`NonStored` sigue recorriéndose porque la clase todavía existe y
-    ``display_name`` la usa; su retirada es **TASK-API-0418**, y ahí esta
-    función se queda con una sola de las dos ramas.
+    campos sin almacenamiento de la fuente. Preguntar por la pertenencia
+    mediría la tubería de Django y concluiría sobre el vocabulario de la
+    referencia.
     """
     cached = _REGISTRY_CACHE.get(cls)
     if cached is not None:
@@ -722,7 +403,7 @@ def non_stored_fields(cls):
     found = {}
     for klass in reversed(getattr(cls, '__mro__', (cls,))):
         for name, held in vars(klass).items():
-            if isinstance(held, NonStored) or _is_declared_one2many(held):
+            if _is_declared_one2many(held):
                 found[name] = held
     meta = getattr(cls, '_meta', None)
     for field in getattr(meta, 'private_fields', ()) or ():

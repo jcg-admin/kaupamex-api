@@ -122,8 +122,8 @@ def test_the_forty_four_source_fields_are_declared():
     campos que sí estaban portados — ``domain_punycode``, ``language_count``,
     ``blocked_third_party_domains``, ``partner_id`` y ``menu_id``—, porque los
     cinco son ``compute`` **sin** ``store=True`` en la fuente y entonces iban
-    con ``fields.NonStored``, que era un descriptor y no una columna. El
-    instrumento era ciego justo al fenómeno sobre el que concluía
+    con el descriptor sin columna retirado en TASK-API-0418, que no era una
+    columna. El instrumento era ciego justo al fenómeno sobre el que concluía
     (``metrica-decide-la-conclusion.md``). Hoy los cinco se declaran con su
     tipo y llevan el nombre de la fuente, así que ``partner_id`` y
     ``menu_id`` salen del mapa de equivalencias.

@@ -100,7 +100,7 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES,
                         null_record_value)
 from orm.fields_textual import Char
 from orm.identifiers import NewId
-from orm.fields_nonstored import NonStored, non_stored_fields
+from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
 from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
                        browse, check_object_name, model_field_registry,
@@ -769,7 +769,7 @@ class DefaultGetMixin:
           comodelo. Se declara, no se omite: tarea sucesora en el hallazgo.
         - **``invalidate_recordset`` sobre los x2many no almacenados tras el
           inverso** (``:4737-4738``): aquí un x2many sin columna no tiene
-          caché que invalidar — ``NonStored`` recalcula al leer
+          caché que invalidar — un campo sin columna recalcula al leer
           (:ref:`h-api-1106`).
         - **Las columnas de autoría** (``create_uid``/``write_uid``) no
           existen: ``LOG_ACCESS_COLUMNS`` de este árbol son las dos fechas de
@@ -2184,7 +2184,8 @@ class FieldSqlMixin:
     #: > sabe qué puede convertir.
     #:
     #: > **Ensanchado otra vez (tarea #301, :ref:`h-api-1025`).** La ceguera
-    #: > que la versión anterior declaraba abajo —*"ciega al ``NonStored``"*—
+    #: > que la versión anterior declaraba abajo —*"ciega al campo sin
+    #: columna"*—
     #: > no era una nota al pie: era la mitad que faltaba. El campo sin
     #: > columna **es un campo del modelo** en la fuente, y dejarlo fuera
     #: > volvía a hacer el mapa más estrecho que allá, sólo que por otro eje.
@@ -2196,15 +2197,17 @@ class FieldSqlMixin:
     #: > Los seis consumidores se re-midieron uno a uno antes de ensanchar, y
     #: > ninguno cambia de conducta: cuatro filtran por ``Properties`` o
     #: > ``ForeignKey``, uno lee ``ondelete`` con ``getattr`` y el sexto
-    #: > —``_field_to_sql``— exige ``concrete``, que un ``NonStored`` no
+    #: > —``_field_to_sql``— exige ``concrete``, que un campo sin columna no
     #: > declara. Ahí el nombre pasa de dar ``None`` a dar el descriptor, y el
     #: > mismo ``ValueError`` sale por la misma rama.
     #:
     #: *Métrica:* ``_meta.get_fields()`` unido a los descriptores
-    #: :class:`~orm.fields_nonstored.NonStored` que el MRO de la clase
+    #: el descriptor sin columna (retirado en TASK-API-0418) que el MRO de la
+    #: clase
     #: declara.
     #: *Ciega a:* un campo de la fuente que aquí no se declare ni como campo
-    #: de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
+    #: de Django ni como campo sin columna — una ``property`` pelada, por
+    #: ejemplo.
     #: Esa forma existe en el árbol y su barrido es la tarea **#302**.
     #:
     #: **Es un descriptor y no una ``property`` (tarea #342).** La fuente
@@ -2975,7 +2978,7 @@ class RecordLoaderMixin(FieldSqlMixin):
 
         Pero ``update()`` compone un ``UPDATE`` y por tanto **sólo sabe de
         columnas**: un campo sin columna —el ``store=False`` de la fuente, aquí
-        :class:`~orm.fields_nonstored.NonStored`— le levanta
+        el descriptor sin columna (retirado en TASK-API-0418)— le levanta
         ``FieldDoesNotExist``. Allá no hay tal frontera: ``write`` acepta todo
         campo del modelo, tenga columna o no. Sin esta separación, cualquier
         addon que añada un campo sin columna a una lista que luego se escribe

@@ -73,7 +73,8 @@ bloqueo de tarea #208.
 
 ``search=`` sobre un campo sin columna — el enganche **ya existía**, y hoy
 se declara como la fuente: ``fields.Boolean(search=…, store=False)``
-(TASK-API-0418). Antes iba con ``NonStored`` y su parámetro ``search``; el
+(TASK-API-0418). Antes iba con el descriptor sin columna y su parámetro
+``search``; el
 docstring de esta clase llegó a decir que el enganche no existía porque nadie
 lo había vuelto a medir.
 

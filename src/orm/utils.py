@@ -435,7 +435,7 @@ def model_field_registry(model):
     > que ya la llamaban— pero deja de ser el unico camino desde la clase.
 
     Antes de esto ``resolve_depends`` resolvia con ``_meta.get_field``, que es
-    **mas estrecho**: un :class:`~orm.fields_nonstored.NonStored` no tiene
+    **mas estrecho**: un campo sin columna no tiene
     columna y por tanto no esta en ``_meta``. Esa es exactamente la ceguera que
     :ref:`h-api-1025` ya habia corregido en ``_fields`` y que este camino
     seguia teniendo — un ``@api.depends`` sobre un campo sin columna no

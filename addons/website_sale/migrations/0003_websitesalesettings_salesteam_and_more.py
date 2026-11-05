@@ -4,7 +4,8 @@ La referencia declara el campo en
 ``odoo19c: website_sale/models/website.py:63-69`` como columna de ``website``.
 Aquí vive en ``website_sale_settings`` por la restricción de plataforma que
 ``models/website.py`` declara como su D-1: el autodetector atribuye la
-migración al ``app_label`` del **modelo**, así que una columna sobre ``website``
+migración al ``app_label`` del **modelo**, así que una columna sobre
+``website``
 obligaría a escribir en ``addons/website/migrations/``, que es de otro addon.
 
 Dos operaciones, que son los dos atributos del campo con forma de DDL:
@@ -17,7 +18,7 @@ Dos operaciones, que son los dos atributos del campo con forma de DDL:
 
 ``crm_team.py`` de este addon **no** aporta ninguna operación aquí: sus dos
 campos son ``compute`` sin ``store`` en la fuente (``odoo19c:
-website_sale/models/crm_team.py:12-17``) y aquí ``fields.NonStored``, que por
+website_sale/models/crm_team.py:12-17``) y aquí ``store=False``, que por
 construcción no genera columna.
 
 Nota sobre las dependencias

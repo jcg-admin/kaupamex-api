@@ -12,18 +12,29 @@ Porte completo — 8 símbolos de la referencia, cita por cita
 método sobre ``AccountMove`` y 3 campos + 4 métodos sobre ``AccountMoveLine``.
 Los 8 están aquí:
 
-===================================  ===========================================
-Símbolo de la referencia (línea)     Dónde queda en este puerto
-===================================  ===========================================
-``AccountMove._post`` (9-29)         receptor ``post_save`` (ver "Por qué señal, no override")
-``AccountMoveLine.vehicle_id`` (35)  campo ``vehicle`` (``add_to_class``)
-``AccountMoveLine.need_vehicle`` (37) campo ``NonStored`` (compute ``_compute_need_vehicle``)
-``vehicle_log_service_ids`` (38-39)  accesor inverso de ``fleet.FleetVehicleLogServices.account_move_line`` (``related_name='vehicle_log_services'``) — ver ``fleet_vehicle_log_services.py``
-``_compute_need_vehicle`` (41-42)    método homónimo
-``_prepare_fleet_log_service`` (44-52) método homónimo
-``AccountMoveLine.write`` (54-57)    receptor ``post_save`` (ver "Por qué señal, no override")
-``AccountMoveLine.unlink`` (59-61)   receptor ``pre_delete`` (ver "Por qué señal, no override")
-===================================  ===========================================
+.. list-table::
+   :header-rows: 1
+
+   * - Símbolo de la referencia (línea)
+     - Dónde queda en este puerto
+   * - ``AccountMove._post`` (9-29)
+     - receptor ``post_save`` (ver "Por qué señal, no override")
+   * - ``AccountMoveLine.vehicle_id`` (35)
+     - campo ``vehicle`` (``add_to_class``)
+   * - ``AccountMoveLine.need_vehicle`` (37)
+     - campo sin columna (compute ``_compute_need_vehicle``)
+   * - ``vehicle_log_service_ids`` (38-39)
+     - accesor inverso de ``fleet.FleetVehicleLogServices.account_move_line``
+       (``related_name='vehicle_log_services'``) — ver
+       ``fleet_vehicle_log_services.py``
+   * - ``_compute_need_vehicle`` (41-42)
+     - método homónimo
+   * - ``_prepare_fleet_log_service`` (44-52)
+     - método homónimo
+   * - ``AccountMoveLine.write`` (54-57)
+     - receptor ``post_save`` (ver "Por qué señal, no override")
+   * - ``AccountMoveLine.unlink`` (59-61)
+     - receptor ``pre_delete`` (ver "Por qué señal, no override")
 
 Ningún símbolo se omite.
 

@@ -1,6 +1,7 @@
 """Campos relacionales — fiel a ``odoo/orm/fields_relational.py`` (Odoo 19).
 
-``Many2one`` = ``ForeignKey``; ``Many2many`` = ``ManyToManyField``; ``One2many``
+``Many2one`` = ``ForeignKey``; ``Many2many`` = ``ManyToManyField``;
+``One2many``
 es el reverso de un FK en Django (``related_name``), sin clase propia.
 
 ``store=False`` — el Many2one sin columna
@@ -14,7 +15,8 @@ La referencia declara relaciones **calculadas y no almacenadas**::
         search="_search_properties_base_definition_id",
     )
 
-(``odoo19c: odoo/addons/base/models/properties_base_definition_mixin.py:21-25``)
+(``odoo19c:
+odoo/addons/base/models/properties_base_definition_mixin.py:21-25``)
 — un ``compute`` sin ``store`` **no tiene columna**: el valor se resuelve al
 leerlo. Django no lo tiene: todo ``ForeignKey`` es una columna.
 
@@ -24,8 +26,10 @@ el mismo patrón que ya tienen ``Char`` (``orm/fields_textual.py``) y ``Float``
 fuente**, que es el punto — la alternativa era colgar una ``property`` fuera de
 la clase y repartir en el cableado lo que la referencia declara en el cuerpo.
 
-**La fachada ya no elige clase, y ésa es la corrección de TASK-API-0417.** Hasta
-``api@2437373d`` devolvía un ``ForeignKey`` o un ``NonStored`` según el valor de
+**La fachada ya no elige clase, y ésa es la corrección de TASK-API-0417.**
+Hasta
+``api@2437373d`` devolvía un ``ForeignKey`` o un campo sin columna según el
+valor de
 ``store``, que es exactamente lo que la fuente NO hace: ahí ``store`` es un
 atributo del campo y nunca un tipo distinto
 (``odoo19c: odoo/orm/fields.py:455``, dentro del bloque ``_get_attrs`` de
@@ -72,7 +76,8 @@ no tiene contraparte obvia aquí. No se afirma que funcione ni que falle —
 **DESCONOCIDO declarado**, y su condición de cierre es que exista un consumidor
 que medir: hoy ``grep -rn "Many2many(" `` sobre ``odoo19c:`` no arroja ninguna
 declaración ``store=False`` con ``compute`` sin almacenar en la familia
-``base``. Sucesor: **TASK-API-0418**, que retira ``NonStored`` como clase y es
+``base``. Sucesor: **TASK-API-0418**, que retira el descriptor sin columna como
+clase y es
 donde el eje ``store`` queda medido tipo por tipo.
 
 .. note:: **Corregido.** Esta línea decía *"``Many2many`` **no** lleva el

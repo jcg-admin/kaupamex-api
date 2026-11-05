@@ -496,11 +496,11 @@ def apply_account_qr_code_emv_extensions():
 
     Idempotente en las dos formas que el árbol ya usa: ``_add_if_absent``
     (campos CON columna, ``_meta.get_fields()``) y ``hasattr`` (campos
-    ``NonStored`` — no aparecen en ``_meta``, así que ``_add_if_absent`` los
+    sin columna — no aparecen en ``_meta``, así que ``_add_if_absent`` los
     volvería a agregar en cada llamada; mismo criterio que
     ``fiscal_country_codes`` en ``account/models/res_company.py``).
     """
-    # -- los dos campos NonStored (sin columna) --------------------------
+    # -- los dos campos sin columna --------------------------
     if not hasattr(ResPartnerBank, 'display_qr_setting'):
         ResPartnerBank.add_to_class(
             'display_qr_setting',

@@ -12,11 +12,15 @@ hacer.
 """
 
 
+import itertools
+
 import pytest
+from django.db import models
+from django.test.utils import isolate_apps
 
 from orm.domains import Domain, to_q
 from orm.fields import _FIELD_CLASS_ATTRIBUTES, determine
-from orm.fields_nonstored import NonStored
+import fields
 
 from addons.base.models.ir_config_parameter import SystemParameter
 
@@ -26,6 +30,25 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def config_parameter():
     return SystemParameter
+
+
+_HOLDERS = itertools.count()
+
+
+def _column_less(**kwargs):
+    """Un campo sin columna: el ``store=False`` de la fuente, que aquí es un
+    campo de Django contribuido sin columna (TASK-API-0417, TASK-API-0418).
+
+    Se contribuye a un modelo aislado porque ahí recibe sus atributos de la
+    fuente —``search``, ``store``—, como en el ``_setup_attrs__`` de allá; el
+    ``isolate_apps`` evita registrarlo y crear tablas.
+    """
+    field = fields.Char(store=False, **kwargs)
+    with isolate_apps():
+        meta = type('Meta', (), {'app_label': 'base'})
+        type(f'SearchHolder{next(_HOLDERS)}', (models.Model,), {
+            '__module__': __name__, 'Meta': meta, 'probe': field})
+    return field
 
 
 class _Recordset:
@@ -64,23 +87,22 @@ class TestDetermine:
             determine(42, _Recordset())
 
 
-class TestNonStoredSearch:
+class TestColumnLessSearch:
     """
-    ``NonStored`` acepta ``search=`` y lo expone como el campo de la fuente.
+    Un campo sin columna acepta ``search=`` y lo expone como el de la fuente.
     """
 
-    def test_the_descriptor_keeps_the_search_method(self):
-        field = NonStored(default=None, search='_buscar')
+    def test_the_field_keeps_the_search_method(self):
+        field = _column_less(search='_buscar')
         assert field.search == '_buscar'
 
     def test_without_search_the_attribute_is_none(self):
-        assert NonStored(default=None).search is None
+        assert _column_less().search is None
 
     def test_determine_domain_delegates_to_the_search_method(
         self, config_parameter
     ):
-        field = NonStored(
-            default=None,
+        field = _column_less(
             search=lambda records, operator, value: Domain(
                 'key', operator, value
             ),
@@ -92,19 +114,19 @@ class TestNonStoredSearch:
         self, config_parameter
     ):
         assert (
-            NonStored(default=None).determine_domain(
+            _column_less().determine_domain(
                 config_parameter, 'ilike', 'x'
             )
             is NotImplemented
         )
 
 
-class TestFieldResolutionReachesTheNonStored:
-    """``_field`` encuentra el descriptor que ``_meta`` no conoce.
+class TestFieldResolutionReachesTheColumnLessField:
+    """``_field`` encuentra también el campo sin columna.
 
-    Es la divergencia de este árbol: la fuente guarda campos con y sin columna
-    en el mismo ``_fields``; Django los reparte entre ``_meta`` (los que tienen
-    columna) y atributos de clase (los que no).
+    La fuente guarda campos con y sin columna en el mismo ``_fields``; aquí
+    los sin columna viven en ``_meta.private_fields`` y el registro del modelo
+    los une a los demás.
     """
 
     def test_a_stored_field_still_resolves_through_meta(
@@ -243,60 +265,48 @@ class TestTheFallbackLadder:
             )
 
 
-class TestTheNonStoredAnswersTheFieldContract:
+class TestTheColumnLessFieldAnswersTheFieldContract:
     """Un campo sin columna responde al contrato de campo — ≙ ``Field``.
 
-    En la fuente ``NonStored`` no existe como clase aparte: un campo sin
-    columna **es** un ``Field`` con ``store=False``, así que responde a los
-    mismos atributos que cualquier otro. Aquí la jerarquía del stack los
-    separa —``NonStored`` no desciende de ``models.Field``—, y el bucle de
-    ``_FIELD_CLASS_ATTRIBUTES`` sólo alcanzaba a la clase de Django.
+    En la fuente un campo sin columna **es** un ``Field`` con ``store=False``,
+    así que responde a los mismos atributos que cualquier otro. Aquí también:
+    es un campo de Django, y el bucle de ``_FIELD_CLASS_ATTRIBUTES`` lo
+    alcanza como a cualquier otro.
 
     Qué haría fallar a cada control
     --------------------------------
 
     ``test_it_answers_whether_it_is_searchable``
-        CONTROL del hueco medido: antes levantaba ``AttributeError``. Su
-        consumidor real es ``_field_setup_related``, que recorre la cadena
-        preguntando ``f._description_searchable`` a cada eslabón — y un
-        eslabón sin columna cortaba el montaje.
+        Su consumidor real es ``_field_setup_related``, que recorre la cadena
+        preguntando ``f._description_searchable`` a cada eslabón.
 
     ``test_it_is_not_stored``
-        CONTROL del único defecto que NO se hereda tal cual: ``store`` vale
-        ``True`` en ``Field`` y ``False`` aquí, que es lo que la clase
-        significa. Instalar el defecto de ``Field`` a secas lo pondría en
-        ``True`` y ``_description_searchable`` daría ``True`` para todos.
+        ``store`` vale ``True`` en ``Field``; si el ``store=False`` declarado
+        no llegara al campo, ``_description_searchable`` daría ``True`` para
+        todos.
     """
 
     def test_it_answers_whether_it_is_searchable(self):
-        assert NonStored(default=None, search='_x')._description_searchable
-        assert not NonStored(default=None)._description_searchable
+        assert _column_less(search='_x')._description_searchable
+        assert not _column_less()._description_searchable
 
     def test_it_is_not_stored(self):
-        assert NonStored(default=None).store is False
+        assert _column_less().store is False
 
     def test_it_answers_the_rest_of_the_class_contract(self):
         """El resto de los atributos de clase, con el defecto de la fuente."""
-        field = NonStored(default=None)
-        faltantes = [
+        field = _column_less()
+        missing = [
             name
             for name in _FIELD_CLASS_ATTRIBUTES
             if not hasattr(field, name)
         ]
-        assert faltantes == [], (
-            f'el campo sin columna no responde a {len(faltantes)} atributos '
-            f'que la fuente declara en Field: {faltantes}'
+        assert missing == [], (
+            f'el campo sin columna no responde a {len(missing)} atributos '
+            f'que la fuente declara en Field: {missing}'
         )
 
     def test_the_related_chain_can_cross_it(self):
-        """El consumidor real: ``_field_setup_related`` recorre la cadena.
-
-        Qué lo haría fallar: que un eslabón sin columna no responda
-        ``_description_searchable``. Era un ``AttributeError`` en el montaje,
-        no un rechazo declarado.
-        """
-        eslabones = [
-            NonStored(default=None, search='_x'),
-            NonStored(default=None),
-        ]
-        assert [f._description_searchable for f in eslabones] == [True, False]
+        """El consumidor real: ``_field_setup_related`` recorre la cadena."""
+        links = [_column_less(search='_x'), _column_less()]
+        assert [f._description_searchable for f in links] == [True, False]

@@ -119,7 +119,8 @@ fila ausente. Los consumidores que lo hacen lo dejan escrito en su sitio
 (``website.py::_enumerate_pages``, ``website_page.py::_search_get_detail``).
 
 **D-2 — retirada.** El ``compute`` devolvía la página en vez de asignarla,
-porque el campo era un ``NonStored``. Hoy ``_compute_first_page_id`` asigna
+porque el campo era el descriptor sin columna retirado en TASK-API-0418. Hoy
+``_compute_first_page_id`` asigna
 ``first_page_id`` como la fuente (``view.first_page_id = …``) y además
 devuelve el valor (TASK-API-0418).
 

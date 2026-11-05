@@ -238,7 +238,8 @@ class Sparse:
     """Un campo cuyo valor vive dentro del ``Serialized`` que se le nombra.
 
     Sigue el protocolo ``contribute_to_class`` de Django por la misma razón
-    que ``NonStored``: el atributo llega al modelo por dos caminos —el cuerpo
+    que el descriptor sin columna: el atributo llega al modelo por dos caminos
+    —el cuerpo
     de la clase, que recorre ``ModelBase``, y ``add_to_class``, que usan las
     extensiones ``_inherit`` de este puerto— y sólo el segundo dejaría el
     descriptor sin saber su propio nombre.

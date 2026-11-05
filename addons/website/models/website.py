@@ -95,9 +95,9 @@ Cuatro divergencias de mecanismo, declaradas
 1. **Los campos no almacenados.** La fuente declara cinco campos con
    ``compute=`` y sin ``store=True``: ``domain_punycode``, ``language_count``,
    ``blocked_third_party_domains``, ``menu_id`` y ``partner_id`` (este último
-   por ``related=``). Aquí van con ``fields.NonStored``, el mecanismo que el
+   por ``related=``). Aquí van con ``store=False``, el mecanismo que el
    árbol construyó justo para eso (``src/orm/fields_nonstored.py``). NO son
-   columnas: un ``NonStored`` no aparece en ``_meta.get_fields()``.
+   columnas: un campo sin columna no aparece en ``_meta.get_fields()``.
 
 2. **``has_social_default_image`` SÍ es columna** — la fuente lo declara
    ``store=True`` (``odoo19c: :180``), así que es un ``BooleanField`` real que
@@ -948,7 +948,8 @@ class Website(TimeStampedModel):
     # ── Campos NO almacenados ────────────────────────────────────────────────
     # La fuente los declara con ``compute=`` (o ``related=``) y sin
     # ``store=True``, y aquí se declaran igual: su tipo y su ``compute=``, sin
-    # columna (TASK-API-0418). Antes iban con ``NonStored`` y su cómputo en
+    # columna (TASK-API-0418). Antes iban con el descriptor sin columna y su
+    # cómputo en
     # ``default=``, y un posicional lo tragaba en silencio: sin
     # ``domain_punycode``, ``_get_current_website_id`` no emparejaba nunca y
     # caía al primer sitio por ``sequence`` (:ref:`h-api-697`).

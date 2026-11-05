@@ -591,7 +591,7 @@ class IrActionsReport(IrActionsBase):
         registro del conjunto. Aquí el cómputo se invoca por fila, como
         ``IrActionsServer._compute_name``, y la dependencia viaja en el
         ``depends=`` del campo. Antes devolvía el valor para un ``default``
-        invocable, que era la forma de ``NonStored``: retirada en
+        invocable, que era la forma del descriptor sin columna: retirada en
         TASK-API-0417, el ``default`` ya no recibía el registro.
         """
         self.model_id = IrModel._get(self.model)

@@ -29,7 +29,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.testing')
 
 import django  # noqa: E402
 
-#: Lo que la fuente hace en ``Field.__get__``, leido del cuerpo (``:1642-1700``).
+#: Lo que la fuente hace en ``Field.__get__``, leido del cuerpo
+#: (``:1642-1700``).
 #: Cada entrada es un paso suyo y la pregunta que este censo le hace al arbol.
 REFERENCE_STEPS = (
     ('control de acceso al campo',
@@ -59,7 +60,6 @@ def main():
     from django.db.models.query_utils import DeferredAttribute
 
     from orm.fields_company_dependent import _CompanyDependentAttribute
-    from orm.fields_nonstored import NonStored
 
     partner = apps.get_model('base', 'ResPartner')
 
@@ -81,11 +81,13 @@ def main():
         rows.append(('4. campo dependiente de empresa', name,
                      type(descriptor_of(partner, name)).__name__))
     else:
-        rows.append(('4. campo dependiente de empresa', '(ninguno en el modelo)',
-                     'NO MEDIDO en este modelo'))
+        rows.append(('4. campo dependiente de empresa',
+                     '(ninguno en el modelo)', 'NO MEDIDO en este modelo'))
 
-    non_stored = [n for n, v in vars(partner).items()
-                  if isinstance(v, NonStored)]
+    # Desde TASK-API-0418 un campo sin columna es un ``models.Field`` con
+    # ``store=False`` en ``_meta.private_fields``.
+    non_stored = [f.name for f in partner._meta.private_fields
+                  if getattr(f, 'store', True) is False]
     if non_stored:
         rows.append(('5. campo no persistido (store=False)', non_stored[0],
                      type(descriptor_of(partner, non_stored[0])).__name__))
@@ -100,19 +102,22 @@ def main():
     print('\n=== Que instala Django, y donde ===\n')
     print('  descriptor_class de Field          ', DeferredAttribute.__name__)
     print('  se instala en                      el ATRIBUTO del modelo')
-    print('                                     (contribute_to_class, si hay columna)')
-    print('  el campo mismo es descriptor?      ', hasattr(
-        apps.get_model('base', 'ResPartner')._meta.get_field('name'), '__get__'))
+    print('                                     '
+          '(contribute_to_class, si hay columna)')
+    name_field = apps.get_model('base', 'ResPartner')._meta.get_field('name')
+    print('  el campo mismo es descriptor?      ',
+          hasattr(name_field, '__get__'))
 
     print('\n=== Los cinco pasos de Field.__get__ de la fuente ===\n')
     for paso, que in REFERENCE_STEPS:
         print(f'  {paso:<28}  {que}')
 
     print('\n=== Los dos precedentes del arbol ===\n')
-    print('  Dos rutas YA tienen descriptor propio, y NINGUNA lo puso en el')
-    print('  campo: las dos lo pusieron en el atributo, como Django.')
-    print(f'    - {_CompanyDependentAttribute.__name__:<28} orm/fields_company_dependent.py')
-    print(f'    - {NonStored.__name__:<28} orm/fields_nonstored.py')
+    print('  Una ruta YA tiene descriptor propio, y no lo puso en el campo:')
+    print('  lo puso en el atributo, como Django. La segunda, el descriptor')
+    print('  sin columna, se retiro en TASK-API-0418.')
+    print(f'    - {_CompanyDependentAttribute.__name__:<28} '
+          'orm/fields_company_dependent.py')
 
 
 if __name__ == '__main__':

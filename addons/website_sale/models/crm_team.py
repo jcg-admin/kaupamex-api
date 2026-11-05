@@ -21,10 +21,10 @@ Universo medido — 5 símbolos
      - el ``related_name`` de ``WebsiteSaleSettings.salesteam`` — ver D-1
    * - ``abandoned_carts_amount`` (``:12-14``)
      - portado
-     - ``fields.NonStored`` — es ``compute`` sin ``store`` en la fuente
+     - ``store=False`` — es ``compute`` sin ``store`` en la fuente
    * - ``abandoned_carts_count`` (``:15-17``)
      - portado
-     - ``fields.NonStored`` — ídem
+     - ``store=False`` — ídem
    * - ``_compute_abandoned_carts`` (``:19-33``)
      - portado
      - función de módulo instalada como método; D-2, D-3, D-4
@@ -109,9 +109,11 @@ agregación de una fila. El ``.get(..., 0)`` de la fuente —su forma de decir
 
 **D-3 — un cómputo, dos campos, una consulta.** La fuente declara los dos
 campos con el **mismo** ``compute='_compute_abandoned_carts'`` y los asigna
-juntos (``:32-33``). Aquí cada ``NonStored`` tiene su propio ``default``, así
+juntos (``:32-33``). Aquí cada campo sin columna tiene su propio ``default``,
+así
 que el cómputo escribe **los dos** en la instancia y el segundo campo leído ya
-lo encuentra puesto (``NonStored.__get__`` mira ``instance.__dict__`` antes de
+lo encuentra puesto (el ``__get__`` del descriptor sin columna retirado mira
+``instance.__dict__`` antes de
 resolver su default). Es la misma consulta única de la fuente, no dos.
 
 **D-4 — el importe conserva su precisión monetaria; la fuente lo trunca.**

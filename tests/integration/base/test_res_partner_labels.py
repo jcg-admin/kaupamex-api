@@ -16,8 +16,8 @@ Diez de trece campos NO son columnas
 
 La referencia declara diez de estos campos con ``compute=`` y **sin**
 ``store=True``: existen para leerse, no para consultarse. Aquí eso es
-``fields.NonStored`` (``src/orm/fields_nonstored.py``), el mecanismo que este
-árbol ya construyó para ``store=False``.
+``store=False`` sobre su tipo, que la costura contribuye sin columna
+(TASK-API-0417; el descriptor que lo hacía antes se retiró en TASK-API-0418).
 
 **Tres** llevan columna: ``complete_name`` (``:214``), ``company_registry``
 (``:241``) y ``partner_share`` (``:295``), y son los tres que aparecen en la

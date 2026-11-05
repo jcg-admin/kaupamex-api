@@ -305,7 +305,8 @@ class ResCompany(TimeStampedModel):
     #:
     #: Su ``readonly=False`` no es adorno: dice que el conjunto se puede
     #: escribir desde la empresa, y el inverso lo lleva al titular
-    #: (``NonStored.inverse_related``). Que el extremo sea un manager y no un
+    #: (el inverso genérico de ``related``). Que el extremo sea un manager y no
+    #: un
     #: valor es justo lo que hacía falta construir (:ref:`h-api-979`).
     bank_ids = fields.One2many(related='partner.bank_accounts', readonly=False)
     active = fields.Boolean(default=True, verbose_name='Activa')

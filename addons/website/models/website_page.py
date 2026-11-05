@@ -40,7 +40,8 @@ Divergencias transversales, declaradas una vez aquí
    se porte, este campo puede volver a ``related``.
 3. **Los ``compute`` sin ``store`` se declaran como en la fuente** — su
    tipo y su ``compute=``, sin columna— y el ``_compute_*`` asigna su campo
-   y devuelve el valor (TASK-API-0418). Antes iban con ``NonStored``.
+   y devuelve el valor (TASK-API-0418). Antes iban con el descriptor sin
+   columna.
 4. **``create``/``write`` → ``save``, ``unlink`` → ``delete``** — la
    divergencia CRUD ya declarada en B1 de ``website.py``.
 5. **Sin ``tools.ormcache``** — BLOQUEADO por ``tools.ormcache`` — la

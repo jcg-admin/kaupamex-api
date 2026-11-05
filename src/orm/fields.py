@@ -82,7 +82,7 @@ from orm.environments import (
 from tools.constants import PREFETCH_MAX
 from tools.misc import SENTINEL, OrderedSet, remove_accents, unique
 from tools.translate import _
-from orm import fields_nonstored, registry as orm_registry
+from orm import registry as orm_registry
 from orm.registry import (IR_MODELS, UNACCENT_ENABLED,   # noqa: F401
                           Registry,
                           field_computed as registry_field_computed,
@@ -94,11 +94,7 @@ from orm.model_classes import ensure_field_setup
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
 from orm.fields_numeric import Float, Integer, Monetary        # noqa: F401
-from orm.fields_nonstored import (                          # noqa: F401
-    NonStored,
-    annotate_related,
-    apply_source_defaults,
-)
+from orm.fields_nonstored import derive_source_attrs
 from orm.fields_properties import (                            # noqa: F401
     Properties,
     PropertiesDefinition,
@@ -753,7 +749,8 @@ def _field_to_sql_expression(self, model, alias):
     Un campo sin columna no se puede convertir, y la fuente lo dice con el
     mismo error: ``store``/``column_type`` allá, ``concrete``/``column`` aquí
     —un ``models.Field`` es concreto cuando tiene columna propia, y las
-    relaciones inversas y los ``ManyToMany`` no la tienen—. El ``NonStored``
+    relaciones inversas y los ``ManyToMany`` no la tienen—. El campo sin
+    columna
     de ``orm/fields_nonstored.py`` ni siquiera llega: no es un campo de
     Django, así que ``_field_to_sql`` lo descarta antes.
 
@@ -1317,7 +1314,7 @@ def _field_get_attrs(self, model_class, name):
     # :func:`~orm.fields_nonstored.derive_source_attrs`, la única copia, que
     # también consulta el sitio de declaración; aquí se aplican tras fusionar
     # la cadena de la MRO, que es el momento en que la fuente los aplica.
-    fields_nonstored.derive_source_attrs(
+    derive_source_attrs(
         attrs, many_to_many=self.many_to_many, field_label=str(self))
     if (attrs.get('readonly') and attrs.get('store')
             and 'editable' not in attrs):
@@ -1962,7 +1959,8 @@ def _collect_field_definitions(field, cls, name):
     El diagnóstico histórico encontró cero bases llanas productivas con un
     ``models.Field``. Eso limita su adopción en aquel corpus, no hace
     inalcanzable el mecanismo: una MRO Django con un mixin llano y un campo
-    redeclarado lo activa antes de retirar ``NonStored`` (TASK-API-0419).
+    redeclarado lo activa antes de retirar el descriptor sin columna
+    (TASK-API-0419).
     TASK-API-0418 conserva su alcance sobre las declaraciones no almacenadas.
     """
     if '_base_fields__' in (field._args__ or {}):
@@ -2005,7 +2003,8 @@ def _merge_field_definitions(chain):
     de ``_args__`` con su firma real, sin consultar el registro de modelos.
     No se reutiliza ``rel``: pertenece al campo original y el constructor debe
     crear una relación ligada al campo nuevo. Una MRO con mixin llano alcanza
-    este camino sin retirar ``NonStored``; su adopción general es otro alcance.
+    este camino sin retirar el descriptor sin columna; su adopción general es
+    otro alcance.
     """
     merged = {}
     for declared in chain:
@@ -2625,28 +2624,6 @@ for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
     if not hasattr(models.Field, _name_attr):
         setattr(models.Field, _name_attr, _default_value)
 
-#: El mismo contrato sobre :class:`~orm.fields_nonstored.NonStored`, con UNA
-#: excepción: ``store``.
-#:
-#: En la fuente no hay dos clases. Un campo sin columna **es** un ``Field`` con
-#: ``store=False`` (``odoo19c: odoo/orm/fields.py:455``), así que responde a
-#: los mismos cuarenta y tantos atributos que cualquier otro. Aquí la jerarquía
-#: del stack los separa —``NonStored`` no desciende de ``models.Field``, y no
-#: puede: no tiene columna que declarar—, y el bucle de arriba sólo alcanzaba a
-#: la clase de Django. El resultado era que un campo sin columna levantaba
-#: ``AttributeError`` ante ``_description_searchable``, que es justo lo que
-#: ``_field_setup_related`` pregunta a **cada eslabón** de una cadena
-#: ``related=`` antes de cablear su búsqueda (:ref:`h-api-1027`).
-#:
-#: ``store`` va a ``False`` y no al defecto de ``Field``: es lo que la clase
-#: significa, y de él depende ``_description_searchable`` —``bool(self.store or
-#: self.search)``—, que con ``True`` daría buscable a todos y no discriminaría
-#: nada.
-for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
-    if not hasattr(NonStored, _name_attr):
-        setattr(NonStored, _name_attr,
-                False if _name_attr == 'store' else _default_value)
-
 #: Las sobrescrituras por clase concreta van DESPUÉS del bucle: el bucle pone
 #: el defecto de ``Field`` y éstas lo pisan donde la fuente lo pisa. Invertir
 #: el orden no cambia nada —son clases distintas— pero leerlo así deja claro
@@ -2922,10 +2899,6 @@ def _field_description_searchable(self):
 
 
 models.Field._description_searchable = _field_description_searchable
-#: Y sobre el campo sin columna, por la misma razón que ``determine_domain`` se
-#: instala en las dos clases: es una ``property``, así que el bucle de
-#: :data:`_FIELD_CLASS_ATTRIBUTES` —que copia valores— no la alcanza.
-NonStored._description_searchable = _field_description_searchable
 
 
 def _field_description_sortable(self, env):
@@ -3333,11 +3306,9 @@ models.Field.get_column_update = _field_get_column_update
 #    de ``db_column``.
 # 6. **El campo sin columna corta antes.** ``:1101`` corta con
 #    ``if not self.column_type: return False``, y ese corte llega por herencia
-#    a todo campo de la fuente. Aquí :class:`~orm.fields_nonstored.NonStored`
-#    **no desciende de** ``models.Field``, así que el enlace de estos cinco
-#    métodos no lo alcanza: declara su propio ``column_type = None`` y su
-#    propio ``update_db``, siguiendo el precedente que ese archivo ya
-#    documenta para ``inverse_related``. Se porta **el corte**, no los cinco:
+#    a todo campo de la fuente. Aquí también: desde TASK-API-0418 un campo
+#    sin columna es un ``models.Field`` con ``store=False``, y su
+#    ``column_type`` es ``None``. Se porta **el corte**, no los cinco:
 #    medido sobre todo ``$ODOO19C/odoo``, el único llamador externo de la
 #    familia es ``models.py:3228`` → ``update_db``; los otros cinco métodos
 #    sólo se alcanzan desde dentro de ``update_db`` o por ``super()``.
@@ -3688,24 +3659,6 @@ def _field_column_type(self):
 
 models.Field.column_type = _field_column_type
 
-#: ``column_type`` tambien en el campo sin columna, por el mismo motivo que
-#: ``_description_searchable``: en la fuente **no hay dos clases**, asi que un
-#: ``store=False`` responde a ``column_type`` como cualquier otro campo. El
-#: bucle de ``_FIELD_CLASS_ATTRIBUTES`` ya le puso ``_column_type = None``, que
-#: es lo que el cuerpo lee; lo que faltaba era el lector publico.
-#:
-#: Lo destapo ``Registry.check_indexes`` (tarea #342), que recorre
-#: ``model._fields.values()`` y filtra por ``field.column_type and
-#: field.store``
-#: —``odoo19c: odoo/orm/registry.py:814`` verbatim—. Sin esta linea el
-#: recorrido
-#: reventaba en el primer campo sin columna del modelo.
-#: Se adjunta **el objeto ya decorado**, no ``property(_field_column_type)``:
-#: la funcion de arriba lleva su propio ``@property``, asi que envolverla otra
-#: vez daba una property cuyo ``fget`` es otra property — y leerla reventaba
-#: con ``TypeError: 'property' object is not callable``. Ver :ref:`h-api-1062`.
-NonStored.column_type = _field_column_type
-
 
 @property
 def _field_column_order(self):
@@ -3731,21 +3684,6 @@ def _field_column_order(self):
 
 
 models.Field.column_order = _field_column_order
-
-#: ``column_order`` también en el campo sin columna, por la misma razón que
-#: ``column_type`` una línea más arriba: en la fuente no hay dos clases, así
-#: que un ``store=False`` responde a ``column_order`` como cualquier otro
-#: campo — con el ``0`` que su propio cuerpo devuelve al ver ``column_type``
-#: en ``None``.
-NonStored.column_order = _field_column_order
-
-#: ``concrete`` es el nombre de Django para lo mismo que la fuente llama tener
-#: columna, y la equivalencia ya esta declarada arriba: *"``store``/
-#: ``column_type`` alla, ``concrete``/``column`` aqui"*. Un ``NonStored`` no la
-#: tiene, y decirlo permite que un consumidor filtre con el vocabulario del
-#: stack sin preguntar con ``getattr`` — que taparia por igual un campo sin
-#: columna y un atributo mal escrito.
-NonStored.concrete = False
 
 
 class _ComputedUnlessAssigned:
@@ -4030,11 +3968,11 @@ def walk_related_chain(field, model):
     > devuelve los campos privados.
     >
     > Lo que el mapa propio no alcanzaba es la otra población que
-    > :func:`~orm.utils.model_field_registry` une: los ``NonStored`` que viven
-    > en el ``vars()`` de una clase del MRO y que **ningún** ``_meta`` ve,
-    > porque no son campos de Django. Mientras las fachadas enrutaban, un
-    > ``related=`` devolvía justo uno de ésos. El cambio se conserva por esa
-    > razón —y caduca con TASK-API-0418, que retira ``NonStored`` como clase—;
+    > :func:`~orm.utils.model_field_registry` une: lo que vivía en el
+    > ``vars()`` de una clase del MRO sin que **ningún** ``_meta`` lo viera.
+    > Mientras las fachadas enrutaban, un ``related=`` devolvía justo uno de
+    > ésos. TASK-API-0418 retiró ese descriptor; hoy sólo queda ahí el
+    > ``One2many`` declarado;
     > la ceguera de :ref:`h-api-1025` **no** tiene aquí un tercer sitio.
 
     Lanza ``KeyError`` nombrando el eslabón que falta, como la fuente
@@ -4185,7 +4123,8 @@ models.Field.setup_related = _field_setup_related
 #: ya citaba: unificar los tres en un hogar compartido devuelve la dirección
 #: de la fuente y trae este cuerpo a su archivo. Hasta entonces la instalación
 #: cruzada es la misma vía por la que ``determine_domain`` llega a
-#: ``NonStored``. :func:`_field_setup_related` lo referencia por ``self``, así
+#: ``models.Field``. :func:`_field_setup_related` lo referencia por ``self``,
+#: así
 #: que el orden de instalación no importa: cuando el campo se configura, el
 #: método ya está colgado.
 
@@ -4542,13 +4481,10 @@ models.Field.get_depends = get_depends
 # de un ``any`` ni negar sin materializar—, y ésa es la razón por la que la
 # forma de retorno importa y no es un detalle de estilo.
 #
-# Se instala sobre DOS clases, y la duplicación es del stack, no del contrato:
-#
-# - ``models.Field`` — los campos con columna, que hoy no declaran ``search``
-#   pero heredan el protocolo para cuando lo declaren.
-# - ``NonStored`` — los campos sin columna, que son quienes lo necesitan hoy
-#   (``display_name`` es el primero). No es un ``models.Field``, así que
-#   heredar no lo alcanza.
+# Se instala sobre ``models.Field``, y con eso alcanza a todo campo, con
+# columna o sin ella: desde TASK-API-0418 un campo sin columna es un
+# ``models.Field`` con ``store=False``, como en la fuente, y no una clase
+# descriptora aparte.
 #
 # La instalación va aquí y no en ``fields_nonstored`` porque este módulo lo
 # importa por la vía de ``fields_numeric``: el import inverso sería un ciclo.
@@ -4747,57 +4683,7 @@ models.Field._to_prefetch = _field_to_prefetch
 models.Field.determine_group_expand = _field_determine_group_expand
 models.Field.get_company_dependent_fallback = (
     _field_get_company_dependent_fallback)
-NonStored.determine_domain = determine_domain
 models.Field.determine_inverse = determine_inverse
-NonStored.determine_inverse = determine_inverse
-
-
-def determine_compute(field, records):
-    """Ejecuta el cómputo declarado del campo y devuelve lo que produce.
-
-    Es el cuerpo EFECTIVO de la rama ``elif self.compute:`` del descriptor de
-    la fuente (``odoo19c: odoo/orm/fields.py:1736-1737``, con su comentario
-    *"non-stored field or new record without origin: compute"*) **para un campo
-    sin columna**. Allá esa rama llama ``self.compute_value(recs)``
-    (``:1744``), que termina en ``records._compute_field_value(self)``, cuyo
-    cuerpo entero es (``odoo19c: odoo/orm/models.py:4953-4959``)::
-
-        determine(field.compute, self)
-
-        if field.store and any(self._ids):
-            ...
-
-    Con ``store=False`` el segundo bloque no se alcanza, así que lo que queda
-    es la llamada a :func:`determine` — la misma forma que
-    :func:`determine_inverse` (``odoo19c: odoo/orm/fields.py:1921``).
-
-    Se declara **CONSTRUYE** por el criterio de las dos categorías: no hay
-    símbolo hecho —Django no conoce la noción de un método de cómputo sobre un
-    campo— pero las primitivas están (``getattr`` y ``callable``, que es lo que
-    :func:`determine` ya usa) y no hace falta ninguna dependencia de fuera.
-
-    POR QUÉ NO SE LLAMA ``compute_value``: ese nombre ya está tomado en este
-    módulo (``:4179``) por el porte de ``Field.compute_value``, que sí hace la
-    ceremonia completa —desmarcar de la cola, ``protecting``, llevar al caché—
-    y por tanto sólo aplica a un campo CON columna. Un :class:`NonStored` no
-    tiene ni cola ni caché que tocar: llamar a aquél desde aquí ejecutaría un
-    mecanismo que no le corresponde.
-
-    DIVERGENCIA DE MECANISMO, ya declarada: el cómputo de la fuente **asigna**
-    sobre el recordset y el descriptor relee el caché; aquí **devuelve**, y ese
-    retorno es el canal. Es la divergencia 1 de
-    :class:`~orm.models.DisplayNameMixin`, que precede a esta función y que los
-    cinco modelos que declaraban su ``_compute_display_name`` ya ejercían.
-    """
-    return determine(field.compute, records)
-
-
-#: Se instala desde AQUÍ y no desde ``fields_nonstored`` por la misma razón que
-#: ``determine_domain`` y ``determine_inverse``: este módulo importa aquél
-#: (``:83``), así que el import inverso sería un ciclo. Sólo sobre
-#: :class:`NonStored`: el campo con columna ya tiene la ceremonia completa en
-#: :func:`compute_value`, que es lo que la fuente le da.
-NonStored.determine_compute = determine_compute
 
 
 ############################################################################
@@ -5260,35 +5146,6 @@ for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
                       _insert_cache,
                       _update_cache, recompute, compute_value):
     setattr(models.Field, _cache_method.__name__, _cache_method)
-
-
-#: El campo SIN columna recibe la misma familia de caché, y no es un extra: es
-#: el que más depende de ella. En la fuente no hay dos clases —``display_name``
-#: es un ``Field`` con ``compute`` y sin ``store``— y su valor **sólo** vive en
-#: la caché de la transacción, porque no hay columna de donde releerlo. Partir
-#: ``Field`` en ``models.Field`` (Django) y :class:`NonStored` (descriptor) es
-#: divergencia de stack, así que el contrato se instala sobre las dos.
-#:
-#: Sin esto ``Cache.get_fields`` reventaba con ``AttributeError`` en el primer
-#: modelo que declarara uno — o sea en **todos**, porque ``display_name`` es
-#: universal en este árbol desde la tarea #134.
-#:
-#: ``_is_persisted`` corta solo: exige ``store`` **y** columna o tabla
-#: intermedia, y un ``NonStored`` no declara ninguna de las tres. Por eso la
-#: marca de sucio nunca prende sobre él y el volcado no intenta escribir una
-#: columna que no existe.
-#:
-#: ``recompute`` y ``compute_value`` **no** se instalan aquí, y la ausencia se
-#: declara: son el motor de recálculo, que la fuente dispara desde
-#: ``modified()`` y que este árbol construye en la tarea **#273**. Ambos leen
-#: ``field.store``, ``self.compute_sudo`` y ``self.recursive`` —tres atributos
-#: que ``NonStored`` no declara— así que colgarlos hoy entregaría media
-#: mecánica en vez de la de la fuente.
-for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
-                      _get_all_cache_ids, _cache_missing_ids,
-                      _filter_not_equal, _filter_not_equal_ids,
-                      _insert_cache, _update_cache):
-    setattr(NonStored, _cache_method.__name__, _cache_method)
 
 
 def _in_record_environment(method):

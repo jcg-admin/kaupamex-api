@@ -106,7 +106,6 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models import Q
 
-from orm.fields_nonstored import NonStored
 from orm.fields_relational import One2many as DeclaredOne2many
 from orm.fields import (
     NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
@@ -261,10 +260,10 @@ def _non_stored_field(model, name):
     **La divergencia es de reparto, no de alcance.** La fuente guarda todos sus
     campos en un solo ``_fields``, tengan columna o no
     (``odoo19c: odoo/orm/models.py:473`` declara ``display_name`` ahí junto a
-    los demás). Django los separa: los que tienen columna viven en ``_meta`` y
-    los que no —los :class:`orm.fields_nonstored.NonStored`— son atributos de
-    clase. Resolver un campo, entonces, es mirar en los dos sitios; mirar sólo
-    en el primero deja fuera exactamente a los que necesitan ``search=``.
+    los demás). Aquí un campo sin columna vive en ``_meta.private_fields`` y
+    lo resuelve ``_meta``; lo que queda fuera es el ``One2many`` declarado con
+    ``related=``, que es un atributo de clase. Desde TASK-API-0418 no hay otro
+    caso: el descriptor sin columna se retiró.
 
     Se busca en la clase y no en la instancia: ``getattr`` sobre la clase
     devuelve el descriptor mismo, que es lo que hay que inspeccionar, mientras
@@ -276,7 +275,7 @@ def _non_stored_field(model, name):
         # ``related`` escalar; se resuelve aquí para que su ``search`` actúe
         # (:ref:`h-api-1133`).
         return descriptor
-    return descriptor if isinstance(descriptor, NonStored) else None
+    return None
 
 
 class OptimizationLevel(enum.IntEnum):
@@ -1469,8 +1468,10 @@ class DomainCondition(Domain):
                 % (value.model._meta.label, comodel._meta.label)
             )
         if path != 'pk' and _is_x2many(field):
-            value = value.filter(_comodel_domain(field, field.model)._to_q(comodel))
-            q = _owners_q(field.model, Q(**{f'{path}__in': value.values('pk')}))
+            value = value.filter(
+                _comodel_domain(field, field.model)._to_q(comodel))
+            q = _owners_q(
+                field.model, Q(**{f'{path}__in': value.values('pk')}))
         else:
             q = Q(**{f'{path}__in': value.values('pk')})
         return ~q if operator.startswith('not ') else q
@@ -3127,7 +3128,7 @@ def to_q(domain, model=None):
 # Vive aquí y no en ``orm/fields.py`` porque construye un ``Domain``, y aquel
 # módulo no puede importarlo sin cerrar el ciclo (``domains`` ya importa de
 # ``fields``). Es la misma vía por la que ``determine_domain`` se instala
-# sobre ``NonStored`` desde el módulo que sí ve a los dos.
+# sobre el descriptor sin columna desde el módulo que sí ve a los dos.
 
 
 def _field_search_related(self, records, operator, value):
@@ -3183,7 +3184,8 @@ models.Field._search_related = _field_search_related
 
 
 def _one2many_related_domain(self, model, operator, value):
-    """La búsqueda de un ``One2many(related=...)`` — ≙ ``Field._search_related``
+    """La búsqueda de un ``One2many(related=...)`` — ≙
+    ``Field._search_related``
     (``odoo19c: odoo/orm/fields.py:735-772``) sobre la ruta declarada.
 
     ``('foo_foo_ids', op, v)`` con ``related='foo_id.foo_ids'`` se reescribe

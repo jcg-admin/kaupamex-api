@@ -48,9 +48,10 @@ PUBLIC_SURFACE = (
     'parse_field_expr',
 )
 
-#: Campo NUESTRO: la referencia no lo tiene, pero es un campo y entra por la
-#: misma puerta. Sus cinco consumidores lo usan como ``fields.NonStored``.
-OWN_SURFACE = ('NonStored',)
+#: Campos NUESTROS publicados por la fachada. Vacío desde TASK-API-0418,
+#: que retiró ``NonStored``: un campo sin columna es ``store=False`` sobre el
+#: tipo de la fuente, como allá.
+OWN_SURFACE = ()
 
 #: Publicados por ``base_sparse_field`` en su ``ready()``, no por el núcleo
 #: (≙ ``fields.Serialized = Serialized`` en la cola de su

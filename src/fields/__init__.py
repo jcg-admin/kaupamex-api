@@ -87,8 +87,3 @@ from orm.fields import Field
 from orm.models import NO_ACCESS
 from orm.utils import parse_field_expr
 
-# ``NonStored`` es campo NUESTRO —la referencia no lo tiene— pero es **un
-# campo**, así que entra por la misma puerta que los demás. Sin esta línea sus
-# cinco consumidores tenían que escribir ``from orm.fields_nonstored import
-# NonStored``, cruzando la frontera que esta fachada existe para sostener.
-from orm.fields_nonstored import NonStored

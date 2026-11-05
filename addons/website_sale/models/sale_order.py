@@ -28,7 +28,7 @@ cuyo nombre o cuerpo menciona ``abandoned`` / ``cart_recovery`` / ``recovery``.
      - ``WebsiteSaleOrderInfo.cart_recovery_email_sent``
    * - ``is_abandoned_cart`` (``:46-48``)
      - portado
-     - ``fields.NonStored`` sobre ``SaleOrder`` — es ``store=False`` allá
+     - campo sin columna sobre ``SaleOrder`` — es ``store=False`` allá
    * - ``_compute_abandoned_cart`` (``:78-89``)
      - portado
      - función de módulo instalada como método; D-3
@@ -84,7 +84,8 @@ extiende es la forma que el árbol ya usa —
 ``account_check_printing.CheckPrintingJournalSettings`` sobre
 ``account.journal``, ``delivery.ShipmentGuide`` sobre ``sale.SaleOrder``.
 
-**D-2 — retirada.** ``is_abandoned_cart`` se declaraba con ``NonStored``;
+**D-2 — retirada.** ``is_abandoned_cart`` se declaraba con el descriptor sin
+columna;
 hoy se declara como la fuente, ``fields.Boolean(compute=…, search=…)`` y sin
 columna (TASK-API-0418). Sigue sin ser una ``property``: la fuente admite
 asignarlo en memoria y una ``property`` de sólo lectura no.

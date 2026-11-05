@@ -102,8 +102,7 @@ El FK va sin el sufijo ``_id`` porque Django ya expone la columna como
 
 Tres de ellos no son columnas, porque en la referencia tampoco lo son:
 ``route_company``, ``picking_type_code_domain`` y ``rule_message`` se declaran
-``NonStored`` (≙ el ``compute`` sin ``store=True`` de la fuente), el mecanismo
-que ``orm/fields_nonstored.py`` construyó para exactamente este caso.
+sin columna (≙ el ``compute`` sin ``store=True`` de la fuente).
 ``route_sequence`` **sí** es columna: la referencia lo declara
 ``related='route_id.sequence', store=True`` porque el ``_read_group`` de
 ``_search_rule_for_warehouses`` ordena por él.
