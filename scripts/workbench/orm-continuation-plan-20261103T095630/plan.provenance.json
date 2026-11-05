@@ -135,6 +135,13 @@
         "tools-set-expression-reference-0485"
       ],
       "writtenAt": "2026-11-05T21:30:32Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-func-reference-0485"
+      ],
+      "writtenAt": "2026-11-05T21:39:51Z"
     }
   ]
 }
