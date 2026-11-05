@@ -60,11 +60,10 @@ class IrModuleCategory(TimeStampedModel):
     #: ``fields.Char(string='External ID', compute='_compute_xml_id')``.
     #:
     #: **No persistido**, como allá: el dato vive en ``ir.model.data`` y una
-    #: columna aquí sería una copia que esa tabla puede desmentir. El
-    #: mecanismo es ``orm.fields_nonstored.NonStored``, el mismo con que
-    #: ``ir_actions.warning`` porta su ``compute`` sin columna.
-    xml_id = fields.NonStored(
-        default=lambda category: category._compute_xml_id(),
+    #: columna aquí sería una copia que esa tabla puede desmentir. Un
+    #: ``compute`` sin ``store`` no lleva columna (TASK-API-0418).
+    xml_id = fields.Char(
+        string='External ID', compute='_compute_xml_id',
         help_text='Odoo xml_id. Identificador externo "modulo.nombre", '
                   'tomado de ir.model.data.',
     )
@@ -100,7 +99,8 @@ class IrModuleCategory(TimeStampedModel):
         fila = (apps.get_model('base', 'IrModelData').objects
                 .filter(model=type(self)._meta.label, res_id=self.pk)
                 .values_list('module', 'name').first())
-        return f'{fila[0]}.{fila[1]}' if fila else ''
+        self.xml_id = value = f'{fila[0]}.{fila[1]}' if fila else ''
+        return value
 
     def _check_parent_not_circular(self):
         """≙ ``_check_parent_not_circular`` (``odoo19c: ir_module.py:102-105``).
@@ -598,6 +598,7 @@ class IrModuleDependency(TimeStampedModel):
 
     def __str__(self):
         return f'{self.module.name} → {self.name}'
+
     def _compute_depend(self):
         """≙ ``_compute_depend`` (``odoo19c: ir_module.py:1021-1030``).
 
@@ -608,10 +609,10 @@ class IrModuleDependency(TimeStampedModel):
 
         **Divergencia de mecanismo, declarada:** la fuente lo declara campo
         computado (``depend_id``) y aquí es un método. Un campo computado no
-        almacenado necesita ``fields.NonStored``, y ése resuelve **por
-        registro**; la fuente resuelve **el lote entero con una consulta** e
-        indexa por nombre, que es justo lo que evita el N+1. Se conserva la
-        forma de la fuente: el lote se resuelve con ``_compute_depend_batch``,
+        almacenado resuelve aquí **por registro**; la fuente resuelve **el
+        lote entero con una consulta** e indexa por nombre, que es justo lo
+        que evita el N+1. Se conserva la forma de la fuente: el lote se
+        resuelve con ``_compute_depend_batch``,
         y este método es su caso de un elemento.
         """
         return type(self)._compute_depend_batch([self])[self.pk]

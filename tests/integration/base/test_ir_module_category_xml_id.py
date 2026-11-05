@@ -15,6 +15,7 @@ import pytest
 
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.ir_module import IrModuleCategory
+from orm.utils import model_field_registry
 
 pytestmark = pytest.mark.integration
 
@@ -104,5 +105,25 @@ class TestTheExternalIdOfACategory:
         copia que ``ir.model.data`` puede desmentir en cualquier momento —
         dos fuentes de verdad para el mismo dato.
         """
-        columns = {f.name for f in IrModuleCategory._meta.get_fields()}
+        # Se mide la COLUMNA, no la presencia en ``_meta``: desde
+        # TASK-API-0417 el campo sin columna se contribuye con
+        # ``column=None`` y aparece en ``get_fields()``.
+        field = model_field_registry(IrModuleCategory)['xml_id']
+        assert field.column is None
+        assert not field.concrete
+        columns = {f.column for f in IrModuleCategory._meta.concrete_fields}
         assert 'xml_id' not in columns
+
+    def test_it_is_the_source_char_with_its_compute(self):
+        """``:91`` — ``fields.Char(string='External ID',
+        compute='_compute_xml_id')``.
+
+        Qué lo haría fallar: declararlo con otro tipo o con un ``default``
+        invocable en lugar del cómputo, como el descriptor sin columna que
+        lo portaba antes (TASK-API-0418).
+        """
+        field = model_field_registry(IrModuleCategory)['xml_id']
+        assert field.type == 'char'
+        assert field.compute == '_compute_xml_id'
+        assert field.string == 'External ID'
+        assert not field.store
