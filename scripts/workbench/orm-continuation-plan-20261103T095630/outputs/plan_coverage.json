@@ -86,12 +86,12 @@
   "TASK-API-0485"
  ],
  "obligations": {
-  "satisfied": 564,
+  "satisfied": 571,
   "absent": 618,
   "divergent": 0,
-  "not_verified": 1330,
+  "not_verified": 1323,
   "applicable": 2512,
-  "pending": 1948,
+  "pending": 1941,
   "source": {
    "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
    "revisions": [
@@ -101,9 +101,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 16,
+  "task_units_settled": 17,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1931
+  "task_without_unit": 1923
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
