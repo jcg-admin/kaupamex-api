@@ -95,7 +95,7 @@ from django.apps import apps
 from orm.method_chain import chain_method, wrap_method
 from orm.registry import (MODELS_BY_NAME, clear_field_depends, clear_marked_methods,
                           field_depends, resolve_model_key)
-from tools.misc import discardattr
+from tools.misc import discardattr, merge_sequences
 
 _logger = logging.getLogger(__name__)
 
@@ -335,7 +335,8 @@ def adopt_access_manager(model_cls):
     return True
 
 
-@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_access_manager')
+@receiver(class_prepared,
+          dispatch_uid='orm.model_classes.adopt_access_manager')
 def _adopt_access_manager_on_prepared(sender, **kwargs):
     """Adopta el manager de permisos en cuanto la clase queda construida."""
     adopt_access_manager(sender)
@@ -949,20 +950,34 @@ def extend_selection_choices(model, field_name, extra, ondelete=None):
     en vez de suponer.
     """
     field = model._meta.get_field(field_name)
-    present = {value for value, _label in field.choices}
-    added = []
-    for value, label in extra:
-        if value in present:
-            continue
-        field.choices = list(field.choices) + [(value, label)]
-        present.add(value)
-        added.append(value)
+    current = getattr(field, 'selection', None)
+    if current is None and field.choices is not None:
+        current = list(field.flatchoices)
+    if not isinstance(current, list):
+        # ``:124-125``: ampliar sólo tiene sentido sobre una lista. Allá es un
+        # ``assert``; aquí un ``ValueError``, que no desaparece con ``-O``.
+        raise ValueError(
+            f'{field.name!r}: selection_add={extra!r} sobre una seleccion que '
+            f'no es una lista ({current!r})')
+
+    # ``:165-168``: la clave nueva toma su sitio por ``merge_sequences`` y la
+    # etiqueta nueva gana; un singleton ``(valor,)`` sólo ancla el orden.
+    values = dict(current)
+    values_add = {kv[0]: (kv[1] if len(kv) > 1 else None) for kv in extra}
+    added = [key for key in values_add if key not in values]
+    merged = [(key, values_add.get(key) or values[key])
+              for key in merge_sequences(values, values_add)]
+    field.choices = merged
+    if isinstance(getattr(type(field), 'selection', None), property):
+        # ``SelectionField`` deriva ``_selection`` de lo declarado: sin esto
+        # validaria contra la lista anterior a la ampliacion.
+        field.selection = merged
 
     policies = dict(ondelete or {})
     for value in added:
         policies.setdefault(value, ONDELETE_DEFAULT)
     if policies:
-        check_ondelete_policies(field, policies, added, present)
+        check_ondelete_policies(field, policies, added, dict(merged))
         combined = dict(getattr(field, 'ondelete', None) or {})
         combined.update(policies)
         field.ondelete = combined
@@ -999,6 +1014,42 @@ def is_transient(model_cls):
     —``False``— viva en un solo sitio.
     """
     return bool(getattr(model_cls, '_transient', False))
+
+
+#: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``): las fechas
+#: que ``_log_access`` añade. Vive aqui y no en ``orm/models.py`` —que la
+#: reexporta con el mismo nombre— porque ``orm.models`` importa este modulo, y
+#: :func:`check_transient_log_access` la necesita al construir la clase.
+LOG_ACCESS_COLUMNS = ['created_at', 'updated_at']
+
+
+def check_transient_log_access(model_cls):
+    """≙ ``odoo19c: odoo/orm/model_classes.py:216-220`` — un transitorio sin
+    fechas de acceso no se admite.
+
+    Allá ``_log_access`` es una bandera que crea las columnas; aqui las
+    columnas son campos declarados (``TransientModel`` las trae), asi que se
+    exigen las dos cosas: que la bandera no las apague y que las columnas
+    existan. Sin ``updated_at`` la limpieza por antiguedad no tiene por donde
+    barrer (:ref:`h-api-1146`).
+
+    **Orden, divergencia medida:** la fuente comprueba antes de inscribir el
+    modelo en el registro. Aqui la inscripcion por ``_name`` cuelga de la
+    misma senal y su receptor se conecta antes (``orm/registry.py``); el
+    ``TypeError`` aborta igual la importacion del modulo que declara la clase.
+    """
+    if not is_transient(model_cls) or is_abstract(model_cls):
+        return None
+    names = set()
+    for cls in (model_cls, *model_cls._meta.get_parent_list()):
+        names.update(field.name for field in cls._meta.local_fields)
+    if (getattr(model_cls, '_log_access', True)
+            and all(column in names for column in LOG_ACCESS_COLUMNS)):
+        return None
+    raise TypeError(
+        "TransientModels must have log_access turned on, "
+        "in order to implement their vacuum policy"
+    )
 
 
 def _check_model_extension(model_cls, model_def):
@@ -1123,7 +1174,8 @@ def _prepare_setup(model_cls):
     Su unico trabajo es **olvidar** lo que el setup vuelve a calcular: los dos
     atributos resueltos y los tres mapas de metodo marcado.
 
-    **Sin ``_setup_done__`` ni el cambio de bases** de la fuente (``:330-337``):
+    **Sin ``_setup_done__`` ni el cambio de bases** de la fuente
+    (``:330-337``):
     aquel guarda ``_base_classes__`` para poder reconstruir la clase, y aqui
     ``ModelBase`` construyo una sola cuya MRO no se reescribe. Lo que queda es
     el olvido, que es la mitad con consumidor.
@@ -1138,7 +1190,8 @@ def _prepare_setup(model_cls):
     clear_marked_methods()
 
 
-@receiver(class_prepared, dispatch_uid='orm.model_classes.init_class_attributes')
+@receiver(class_prepared,
+          dispatch_uid='orm.model_classes.init_class_attributes')
 def _init_class_attributes_on_prepared(sender, **kwargs):
     """Valida la especie heredada y rellena los defaults, clase por clase.
 
@@ -1153,6 +1206,7 @@ def _init_class_attributes_on_prepared(sender, **kwargs):
     """
     check_model_bases(sender)
     _init_model_class_attributes(sender)
+    check_transient_log_access(sender)
 
 
 def ensure_model_class_attributes():
@@ -1169,16 +1223,20 @@ def ensure_model_class_attributes():
     for model_cls in list(MODELS_BY_NAME.values()):
         check_model_bases(model_cls)
         _init_model_class_attributes(model_cls)
+        check_transient_log_access(model_cls)
         tocados.append(model_cls._name)
     return tocados
 
 
 def _fields_with_setup(model_cls):
-    """Los campos del modelo que tienen fase de setup — ≙ ``model_cls._fields``.
+    """Los campos del modelo que tienen fase de setup.
+
+    ≙ ``model_cls._fields``.
 
     Allá ese universo sólo contiene ``Field`` (``odoo19c: odoo/orm/models.py``,
     ``_fields: dict[str, Field]``). Aquí son las tres listas hacia adelante de
-    ``_meta`` —concretos con los heredados, ``many_to_many`` y ``private_fields``—
+    ``_meta`` —concretos con los heredados, ``many_to_many`` y
+    ``private_fields``—
     y NO ``get_fields()``: ésa además enumera las relaciones inversas
     (``ManyToOneRel``…), que no son campos de la fuente, y para listarlas
     construye ``_relation_tree`` sobre TODOS los modelos del registro. Medido
@@ -1258,7 +1316,8 @@ def setup_fields(model_cls):
     un campo de Django tenía ``compute=None`` y la lectura caía a
     ``default_get`` (medido: ``probe_related_on_django_field_at_read.py``).
 
-    La rama de la fuente que traga el error de un campo **manual** (``:517-527``,
+    La rama de la fuente que traga el error de un campo **manual**
+    (``:517-527``,
     ``pop_field`` sobre ``bad_fields``) no tiene receptor: no hay campos
     manuales en este árbol. Un ``related`` cuya cadena no resuelve levanta,
     como allá para un campo declarado en código.
@@ -1412,7 +1471,8 @@ def extend_model(*destino, campos=None, metodos=None, overrides=None,
         (constraints, receptores de señal).
 
     **No devuelve el modelo**: en el caso interesante todavía no existe. Quien
-    necesite la clase la pide dentro de ``luego``, que la recibe como argumento.
+    necesite la clase la pide dentro de ``luego``, que la recibe como
+    argumento.
     """
     def aplicar(modelo):
         for nombre, field in (campos or {}).items():

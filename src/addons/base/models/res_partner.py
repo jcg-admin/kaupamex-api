@@ -621,7 +621,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         'Formatted Email', compute='_compute_email_formatted',
         help_text='Format email address "Name <email@domain>"')
     company_type = fields.Selection(
-        'Company Type',
+        string='Company Type',
         choices=[('person', 'Person'), ('company', 'Company')],
         compute='_compute_company_type', inverse='_write_company_type',
         help_text='Interfaz de is_company: "company" o "person" '

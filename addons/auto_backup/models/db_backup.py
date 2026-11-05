@@ -197,7 +197,8 @@ class DbBackup(TimeStampedModel):
         help_text='Ruta absoluta donde se escriben los respaldos (Odoo folder).',
     )
     backup_type = fields.Selection(
-        'Backup Type', max_length=8, choices=BACKUP_TYPES, default='zip',
+        string='Backup Type', max_length=8, choices=BACKUP_TYPES,
+        default='zip',
         help_text='Formato del volcado (Odoo backup_type).',
     )
     autoremove = fields.Boolean(

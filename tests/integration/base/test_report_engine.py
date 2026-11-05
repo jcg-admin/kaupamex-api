@@ -22,6 +22,7 @@ import zlib
 from datetime import datetime
 
 import pytest
+from django.db import connection
 
 from addons.base import report_catalog
 from addons.base.models.ir_ui_view import IrUiView
@@ -180,7 +181,8 @@ class TestCatalogo:
     def test_helper_desconocido_se_rechaza_al_declarar(self):
         with pytest.raises(UnknownHelper):
             ReportSpec(report_name='x.y', model='sale.SaleOrder', name='X',
-                       builder=lambda records, **ctx: {}, helper='pdf_inexistente')
+                       builder=lambda records, **ctx: {},
+                       helper='pdf_inexistente')
 
 
 class TestDescriptor:
@@ -210,8 +212,9 @@ class TestDescriptor:
         spec = report_catalog.get('sale.report_saleorder')
         json.dumps(spec.builder(orden_con_lineas), ensure_ascii=False)
 
-    def test_una_orden_de_venta_no_lleva_seccion_de_pago(self, orden_con_lineas):
-        """No es un comprobante de pago; el helper omite la sección si falta."""
+    def test_una_orden_de_venta_no_lleva_seccion_de_pago(
+            self, orden_con_lineas):
+        """No es un comprobante de pago; el helper omite la sección."""
         spec = report_catalog.get('sale.report_saleorder')
         assert 'payment' not in spec.builder(orden_con_lineas)
 
@@ -250,9 +253,9 @@ class TestDespacho:
         condición de reingreso de :ref:`h-api-291` pedía además declarante y
         test. De las cuatro exigencias que aquella condición acabó teniendo,
         tres se cumplieron (renderizador, serializador y test) y la cuarta
-        —declarante— era **circular**: ``Selection`` es ``CharField(choices=…)``
-        y Django valida ``choices`` en ``full_clean``, así que ningún addon
-        podía declarar un valor que el enum no ofrecía.
+        —declarante— era **circular**: ``Selection`` validaba entonces sólo
+        en ``full_clean`` y hoy, como la fuente, al escribir; en los dos
+        casos ningún addon puede declarar un valor que el enum no ofrece.
 
         Lo que aquel hallazgo quería impedir lo sostiene el caso de arriba:
         todo valor ofrecido tiene su renderizador.
@@ -295,7 +298,7 @@ class TestDespacho:
         assert html != texto
 
     def test_a_type_without_a_renderer_returns_none(self, reporte_orden):
-        """Contrato de ausencia de la referencia (``:1150``): ``None``, no error.
+        """Contrato de ausencia de la referencia (``:1150``): ``None``.
 
         El caso es **real**, no un string inventado: ``qweb-pdf`` es el valor
         que la migración 0005 convirtió a ``pdf``, y su conversión defensiva
@@ -310,9 +313,18 @@ class TestDespacho:
         medir el contrato — el sub-patrón D de
         ``metrica-decide-la-conclusion.md``.
         """
-        reporte_orden.report_type = 'qweb-pdf'
-        reporte_orden.save()
-        assert IrActionsReport._render(reporte_orden, []) is None
+        # La fila se escribe por SQL: el ORM rechaza un valor fuera de la
+        # seleccion igual que la fuente (``fields_selection.py:228-236``), y
+        # la fila que este caso mide es justamente la que llego por otra via.
+        table = IrActionsReport._meta.db_table
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'UPDATE {table} SET report_type = %s WHERE id = %s',
+                ['qweb-pdf', reporte_orden.pk])
+        # Se relee como carga (``from_db``), no con ``refresh_from_db``, que
+        # reasigna por el descriptor y vuelve a validar.
+        escaped = IrActionsReport.objects.get(pk=reporte_orden.pk)
+        assert IrActionsReport._render(escaped, []) is None
 
 
 @helpers_built
@@ -375,7 +387,7 @@ class TestConversion:
             linea.name = letra * 90
             linea.save(update_fields=['name'])
             contenido, _ = IrActionsReport._render(
-            reporte_orden, [orden_con_lineas.pk])
+                reporte_orden, [orden_con_lineas.pk])
             fila = next(t for t in texto_impreso(contenido).splitlines()
                         if t.startswith(letra * 3))
             dibujadas[letra] = len(fila)
@@ -412,7 +424,8 @@ class TestConversion:
         assert '14060' in impreso
         # ...y ninguna línea la contiene entera — se envolvió de verdad.
         assert not any(direccion in linea for linea in lines)
-        assert sum('Insurgentes' in l or '14060' in l for l in lines) >= 2
+        assert sum('Insurgentes' in line or '14060' in line
+                   for line in lines) >= 2
 
     def test_el_encabezado_lleva_banda_sombreada_sin_mover_el_texto(self):
         """T-005 — ``Rectangle`` + ``Fill`` sombrean el encabezado de tabla.
@@ -629,8 +642,8 @@ class TestPlantillaSembrada:
                 # escribe en zona local y con microsegundos; ``isoformat``
                 # del builder trunca a segundos en UTC. Se comparan
                 # parseados y sin microsegundos.
-                assert (datetime.fromisoformat(
-                            de_la_vista[clave]).replace(microsecond=0)
+                seen = datetime.fromisoformat(de_la_vista[clave])
+                assert (seen.replace(microsecond=0)
                         == datetime.fromisoformat(value))
             else:
                 assert de_la_vista[clave] == value, clave

@@ -22,7 +22,7 @@ Diez símbolos en ``models/account_tax.py`` de la referencia (3 campos + 7
 métodos, ``grep -cE "^    [a-z_]+ *= *fields\.|^    def " account_tax.py`` →
 10), con su destino en este addon:
 
-- ``amount_type`` (``selection_add``) — GAP declarado, ver abajo.
+- ``amount_type`` (``selection_add``) — ``add_code_amount_type``.
 - ``formula`` (campo) — ``AccountTaxFormula.formula``.
 - ``formula_decoded_info`` (compute, no store) —
   ``AccountTaxFormula.formula_decoded_info`` (``@property``).
@@ -61,33 +61,17 @@ otro addon"). Se modela como tabla satélite propia (``AccountTaxFormula``,
 ``account_add_gln.PartnerGln`` ya fijó para el mismo problema sin campo
 nuevo que exigiera tocar la tabla ajena.
 
-GAP declarado — ``amount_type`` no incluye ``'code'``
-=========================================================
+``amount_type`` incluye ``'code'`` — cerrado
+=============================================
 
-``account.AccountTax.AMOUNT_TYPES`` es una lista literal dentro de
-``account/models/account_tax.py`` (``choices=AMOUNT_TYPES`` en la propia
-declaración del campo) — agregar ``('code', 'Fórmula personalizada')``
-requiere editar esa lista en el archivo de OTRO addon. Verificado que la
-ausencia de ``'code'`` en ``AMOUNT_TYPES`` **no bloquea** el resto del
-mecanismo: Django no valida ``choices`` en ``.save()`` (sólo en
-``full_clean()``/``ModelForm``, que este proyecto no invoca automáticamente
-— mismo patrón ya visto en ``account: models/account_cash_rounding.py``), y
-no hay ``CheckConstraint`` de BD sobre la columna (``grep -n "amount_type"
-account/migrations/*.py | grep -i constraint`` → 0 hits). Así que un
-``AccountTax(amount_type='code', ...)`` se persiste sin problema, y el
-monkeypatch de ``_eval_tax_amount_fixed_amount`` (``account_tax_extensions.
-py``) lo reconoce y despacha a la fórmula — el mecanismo corre de punta a
-punta a través de ``compute_all()`` real.
-
-Lo único que NO mutar en caliente: la lista ``AMOUNT_TYPES`` en sí (usada
-por ``choices=`` de Django para formularios/admin/``drf-spectacular``,
-congelada en el objeto ``Field`` al momento en que ``account`` definió la
-clase). Mutar la lista de clase en runtime no reescribe ese ``Field`` ya
-construido — habría sido un arreglo cosmético que aparenta cerrar el GAP sin
-cerrarlo. **Sucesor exacto, de una línea**: agregar
-``('code', 'Fórmula personalizada')`` a ``AMOUNT_TYPES`` en
-``account/models/account_tax.py:497-502`` — sin migración (``max_length=12``
-ya alcanza para ``'code'``, 4 caracteres; ``choices`` no es columna de BD).
+La referencia lo amplía con ``selection_add`` y la política
+``{'code': …}`` que pasa el impuesto a porcentaje y lo archiva
+(``odoo19c: account_tax_python/models/account_tax.py:15-18``). Aquí lo hace
+``add_code_amount_type`` (``account_tax_extensions.py``) con
+``extend_selection_choices``, desde ``ready()``. Hacía falta: desde que
+``Selection`` es la clase de la referencia, escribir ``'code'`` sin la
+ampliación levanta ``ValueError('Wrong value for …')``, igual que allá. Antes
+pasaba porque Django sólo comprueba ``choices`` en ``full_clean``.
 
 El contexto de evaluación con ``product``/``uom`` — cerrado
 ============================================================

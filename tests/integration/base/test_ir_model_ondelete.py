@@ -65,7 +65,8 @@ pytestmark = pytest.mark.integration
 #:    ``fields.Selection`` con ``default="current"`` y sin ``required``), asi
 #:    que el camino de la politica por defecto ``'set null'`` se puede medir.
 #: 2. Su ``save()`` no guarda el valor anterior. ``ir.model.fields.ttype``, el
-#:    primer candidato, falla las dos: es ``required=True`` alli (``:871`` aqui,
+#:    primer candidato, falla las dos: es ``required=True`` alli
+#:    (``:871`` aqui,
 #:    ya declarado) y su ``save()`` levanta *"Cambiar el tipo de un campo no
 #:    esta soportado"*, asi que ninguna victima se puede preparar.
 MODEL_LABEL = 'base.IrActionsActWindow'
@@ -123,16 +124,20 @@ def target(db):
     """
     field = IrActionsActWindow._meta.get_field(FIELD_NAME)
     choices_before = list(field.choices)
-    ondelete_before = getattr(field, 'ondelete', None)
+    # Lo que la ampliacion escribe EN LA INSTANCIA: ``ondelete`` y la
+    # seleccion declarada. Desde ``SelectionField`` los dos tienen valor de
+    # clase, asi que se restaura el ``__dict__`` y no el atributo leido.
+    keys = ('ondelete', '_declared_selection')
+    saved = {key: vars(field)[key] for key in keys if key in vars(field)}
     default_before = field.default
     yield field
     field.choices = choices_before
     field.default = default_before
-    if ondelete_before is None:
-        if hasattr(field, 'ondelete'):
-            del field.ondelete
-    else:
-        field.ondelete = ondelete_before
+    for key in keys:
+        if key in saved:
+            vars(field)[key] = saved[key]
+        else:
+            vars(field).pop(key, None)
 
 
 class TestThePolicies:
@@ -140,36 +145,36 @@ class TestThePolicies:
 
     def test_set_null_empties_the_field(self, db, target):
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_nulo', 'Nulo')],
-                                 ondelete={'x_nulo': 'set null'})
-        victim = _victim('x_nulo', 'Victima nulo')
-        _reflected_value('x_nulo').delete(at_uninstall=True)
+                                 [('x_null', 'Nulo')],
+                                 ondelete={'x_null': 'set null'})
+        victim = _victim('x_null', 'Victima nulo')
+        _reflected_value('x_null').delete(at_uninstall=True)
         victim.refresh_from_db()
         assert victim.target is None
 
     def test_cascade_deletes_the_rows(self, db, target):
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_cascada', 'Cascada')],
-                                 ondelete={'x_cascada': 'cascade'})
-        pk = _victim('x_cascada', 'Victima cascada').pk
-        _reflected_value('x_cascada').delete(at_uninstall=True)
+                                 [('x_cascade', 'Cascada')],
+                                 ondelete={'x_cascade': 'cascade'})
+        pk = _victim('x_cascade', 'Victima cascada').pk
+        _reflected_value('x_cascade').delete(at_uninstall=True)
         assert not IrActionsActWindow.objects.filter(pk=pk).exists()
 
     def test_set_default_takes_the_declared_default(self, db, target):
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_defecto', 'Defecto')],
-                                 ondelete={'x_defecto': 'set default'})
-        victim = _victim('x_defecto', 'Victima defecto')
-        _reflected_value('x_defecto').delete(at_uninstall=True)
+                                 [('x_default', 'Defecto')],
+                                 ondelete={'x_default': 'set default'})
+        victim = _victim('x_default', 'Victima defecto')
+        _reflected_value('x_default').delete(at_uninstall=True)
         victim.refresh_from_db()
         assert victim.target == 'current'   # el default declarado del campo
 
     def test_set_value_takes_the_named_value(self, db, target):
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_valor', 'Valor')],
-                                 ondelete={'x_valor': 'set new'})
-        victim = _victim('x_valor', 'Victima valor')
-        _reflected_value('x_valor').delete(at_uninstall=True)
+                                 [('x_value', 'Valor')],
+                                 ondelete={'x_value': 'set new'})
+        victim = _victim('x_value', 'Victima valor')
+        _reflected_value('x_value').delete(at_uninstall=True)
         victim.refresh_from_db()
         assert victim.target == 'new'
 
@@ -208,10 +213,10 @@ class TestTheUninstallFlag:
         """CONTROL POSITIVO de la guarda: sin el, ``at_uninstall`` seria una
         bandera que no apaga nada y los demas casos pasarian igual."""
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_a_mano', 'A mano')],
-                                 ondelete={'x_a_mano': 'cascade'})
+                                 [('x_by_hand', 'A mano')],
+                                 ondelete={'x_by_hand': 'cascade'})
         with pytest.raises(UserError, match='campo base'):
-            _reflected_value('x_a_mano').delete()
+            _reflected_value('x_by_hand').delete()
 
     def test_the_policy_does_not_run_when_the_guard_refuses(self, db, target):
         """La guarda es lo PRIMERO: si rehusa, la politica no toca nada.
@@ -220,13 +225,13 @@ class TestTheUninstallFlag:
         inocuo en vez de destructivo a medias.
         """
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_intacto', 'Intacto')],
-                                 ondelete={'x_intacto': 'cascade'})
-        victim = _victim('x_intacto', 'Sobrevive a la guarda')
+                                 [('x_intact', 'Intacto')],
+                                 ondelete={'x_intact': 'cascade'})
+        victim = _victim('x_intact', 'Sobrevive a la guarda')
         with pytest.raises(UserError):
-            _reflected_value('x_intacto').delete()
+            _reflected_value('x_intact').delete()
         victim.refresh_from_db()
-        assert victim.target == 'x_intacto'
+        assert victim.target == 'x_intact'
 
 
 class TestTheDefault:
@@ -239,13 +244,13 @@ class TestTheDefault:
 
     def test_a_second_extension_does_not_erase_the_first(self, db, target):
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_uno', 'Uno')],
-                                 ondelete={'x_uno': 'cascade'})
+                                 [('x_one', 'Uno')],
+                                 ondelete={'x_one': 'cascade'})
         extend_selection_choices(IrActionsActWindow, FIELD_NAME,
-                                 [('x_dos', 'Dos')],
-                                 ondelete={'x_dos': 'cascade'})
-        assert target.ondelete['x_uno'] == 'cascade'
-        assert target.ondelete['x_dos'] == 'cascade'
+                                 [('x_two', 'Dos')],
+                                 ondelete={'x_two': 'cascade'})
+        assert target.ondelete['x_one'] == 'cascade'
+        assert target.ondelete['x_two'] == 'cascade'
 
 
 class TestTheValidation:

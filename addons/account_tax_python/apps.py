@@ -28,9 +28,8 @@ COMPORTAMIENTO ya existente (ver ``models/account_tax.py`` y
 1. Registrar ``addons.account_tax_python`` en ``INSTALLED_APPS``
    (``config/settings/base.py``, después de ``addons.account``). Sin ese
    registro Django no descubre esta app ni corre su migración inicial.
-2. Agregar ``('code', 'Fórmula personalizada')`` a
-   ``account.AccountTax.AMOUNT_TYPES`` (``account/models/account_tax.py``)
-   — GAP documentado en ``models/account_tax.py`` con su sucesor exacto.
+2. (Cerrado) ``'code'`` en ``amount_type`` ya no exige tocar ``account``:
+   lo amplía ``add_code_amount_type`` con ``extend_selection_choices``.
 3. Los dos parámetros ``product=``/``product_uom=`` que le faltan a
    ``account: AccountTaxQuerySet._get_tax_details``/``compute_all`` — GAP
    documentado en el mismo docstring, con su sucesor exacto.

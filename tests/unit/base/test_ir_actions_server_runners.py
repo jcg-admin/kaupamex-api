@@ -107,7 +107,9 @@ class TestTheRunnerIsResolvedByState:
 
     def test_a_state_without_runner_resolves_to_none(self):
         action = _action(state='multi')
-        action.state = 'no_soy_un_modo'
+        # Por el ``__dict__``: el campo rechaza un valor fuera de su seleccion
+        # al asignarlo, igual que la fuente; aqui se mide la fila que lo trae.
+        vars(action)['state'] = 'no_soy_un_modo'
 
         assert action._get_runner() == (None, False)
 

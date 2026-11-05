@@ -91,7 +91,7 @@ from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
                           is_command_list, related_manager)
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.model_classes import parent_name_of
+from orm.model_classes import LOG_ACCESS_COLUMNS, parent_name_of
 from orm.fields_relational import One2many as DeclaredOne2many
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES,
                         FieldDescriptor, StoredMany2oneIdDescriptor,
@@ -1246,7 +1246,9 @@ def _create_field_lookup(model, name):
 #: mecanismo es ``TimeStampedModel``, que declara dos —``created_at`` y
 #: ``updated_at``, ambas ``auto_now``— y ninguna de autoría. La divergencia es
 #: del mixin, no de este archivo: quién escribió la fila no se guarda.
-LOG_ACCESS_COLUMNS = ['created_at', 'updated_at']
+#: La lista se declara en ``orm.model_classes`` —que la necesita al construir
+#: la clase y no puede importar este modulo— y llega aqui por el import de
+#: arriba, con el nombre de la fuente.
 
 #: ≙ ``MAGIC_COLUMNS`` (``odoo19c: odoo/orm/models.py:297``).
 MAGIC_COLUMNS = ['id'] + LOG_ACCESS_COLUMNS

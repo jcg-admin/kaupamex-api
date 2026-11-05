@@ -73,6 +73,7 @@ from exceptions import ValidationError
 from tools.translate import _
 
 from addons.account.models.account_tax import AccountTax, AccountTaxQuerySet
+from orm.model_classes import extend_selection_choices
 
 #: Comportamiento original, capturado una única vez al importar este módulo
 #: (ver el docstring de arriba — es el equivalente funcional de ``super()``).
@@ -143,6 +144,22 @@ def _eval_taxes_computation_prepare_product_uom_fields(self):
     return field_names
 
 
+def _ondelete_code_amount_type(taxes):
+    """≙ la politica de ``'code'`` (``odoo19c: account_tax_python/models/
+    account_tax.py:17``): al retirarse el valor, el impuesto pasa a
+    porcentaje y se archiva."""
+    taxes.write({'amount_type': 'percent', 'active': False})
+
+
+def add_code_amount_type():
+    """≙ ``amount_type = fields.Selection(selection_add=[('code', "Custom
+    Formula")], ondelete=…)`` (``odoo19c: account_tax_python/models/
+    account_tax.py:15-18``), con el mecanismo del arbol."""
+    return extend_selection_choices(
+        AccountTax, 'amount_type', [('code', 'Custom Formula')],
+        ondelete={'code': _ondelete_code_amount_type})
+
+
 def apply_account_tax_python_extensions():
     """≙ ``_inherit = 'account.tax'`` de ``account_tax_python``.
 
@@ -155,3 +172,4 @@ def apply_account_tax_python_extensions():
     AccountTaxQuerySet._eval_taxes_computation_prepare_product_uom_fields = (
         _eval_taxes_computation_prepare_product_uom_fields)
     AccountTax._eval_tax_amount_fixed_amount = _eval_tax_amount_fixed_amount
+    add_code_amount_type()

@@ -112,6 +112,10 @@ class DependsWizard(django_models.Model):
     echo = fields.Char(
         'Echo', max_length=32, compute='_compute_echo', store=True, blank=True
     )
+    #: Las fechas de acceso: el registro rechaza un transitorio sin ellas
+    #: (``check_transient_log_access``), igual que la fuente.
+    created_at = django_models.DateTimeField(null=True)
+    updated_at = django_models.DateTimeField(null=True)
 
     class Meta:
         app_label = 'base'

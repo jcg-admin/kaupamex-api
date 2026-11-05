@@ -142,10 +142,11 @@ class DbBackupDetails(TimeStampedModel):
 
     # --- Campos propios: el historial que UC-ADM-05 lista ---
     type = fields.Selection(
-        'Tipo', max_length=10, choices=TYPE_CHOICES, default=TYPE_AUTO
+        string='Tipo', max_length=10, choices=TYPE_CHOICES, default=TYPE_AUTO
     )
     status = fields.Selection(
-        'Estado', max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING
+        string='Estado', max_length=10, choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
     )
     size_bytes = models.PositiveBigIntegerField(null=True, blank=True)
     error_detail = fields.Text(blank=True, default='')
