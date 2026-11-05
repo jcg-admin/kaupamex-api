@@ -125,7 +125,7 @@ crm.lead	_validate_fields	patch	django.db.models.base.Model
 crm.lead	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
 crm.lead	_write	absent	
 crm.lead	_write_multi	absent	
-crm.lead	action_archive	absent	
+crm.lead	action_archive	mixin	orm.models.ArchiveMixin
 crm.lead	action_unarchive	production	addons.crm.models.crm_lead.CrmLead
 crm.lead	browse	absent	
 crm.lead	check_access	delegation	orm.models.AccessQuerySet
@@ -175,7 +175,7 @@ crm.lead	search_fetch	production	addons.crm.models.crm_lead.CrmLead
 crm.lead	search_read	absent	
 crm.lead	sorted	absent	
 crm.lead	sudo	absent	
-crm.lead	toggle_active	absent	
+crm.lead	toggle_active	mixin	orm.models.ArchiveMixin
 crm.lead	try_lock_for_update	absent	
 crm.lead	union	absent	
 crm.lead	unlink	absent	
@@ -313,8 +313,8 @@ res.partner	_validate_fields	patch	django.db.models.base.Model
 res.partner	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
 res.partner	_write	absent	
 res.partner	_write_multi	absent	
-res.partner	action_archive	absent	
-res.partner	action_unarchive	absent	
+res.partner	action_archive	mixin	orm.models.ArchiveMixin
+res.partner	action_unarchive	mixin	orm.models.ArchiveMixin
 res.partner	browse	absent	
 res.partner	check_access	delegation	orm.models.AccessQuerySet
 res.partner	check_access_rights	absent	
@@ -363,7 +363,7 @@ res.partner	search_fetch	absent
 res.partner	search_read	absent	
 res.partner	sorted	absent	
 res.partner	sudo	absent	
-res.partner	toggle_active	absent	
+res.partner	toggle_active	mixin	orm.models.ArchiveMixin
 res.partner	try_lock_for_update	absent	
 res.partner	union	absent	
 res.partner	unlink	absent	
@@ -501,8 +501,8 @@ sale.order	_validate_fields	patch	django.db.models.base.Model
 sale.order	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
 sale.order	_write	absent	
 sale.order	_write_multi	absent	
-sale.order	action_archive	absent	
-sale.order	action_unarchive	absent	
+sale.order	action_archive	mixin	orm.models.ArchiveMixin
+sale.order	action_unarchive	mixin	orm.models.ArchiveMixin
 sale.order	browse	absent	
 sale.order	check_access	delegation	orm.models.AccessQuerySet
 sale.order	check_access_rights	absent	
@@ -551,7 +551,7 @@ sale.order	search_fetch	absent
 sale.order	search_read	absent	
 sale.order	sorted	absent	
 sale.order	sudo	absent	
-sale.order	toggle_active	absent	
+sale.order	toggle_active	mixin	orm.models.ArchiveMixin
 sale.order	try_lock_for_update	absent	
 sale.order	union	absent	
 sale.order	unlink	absent	
@@ -689,8 +689,8 @@ product.template	_validate_fields	patch	django.db.models.base.Model
 product.template	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
 product.template	_write	absent	
 product.template	_write_multi	absent	
-product.template	action_archive	absent	
-product.template	action_unarchive	absent	
+product.template	action_archive	mixin	orm.models.ArchiveMixin
+product.template	action_unarchive	mixin	orm.models.ArchiveMixin
 product.template	browse	absent	
 product.template	check_access	delegation	orm.models.AccessQuerySet
 product.template	check_access_rights	absent	
@@ -739,7 +739,7 @@ product.template	search_fetch	absent
 product.template	search_read	absent	
 product.template	sorted	absent	
 product.template	sudo	absent	
-product.template	toggle_active	absent	
+product.template	toggle_active	mixin	orm.models.ArchiveMixin
 product.template	try_lock_for_update	absent	
 product.template	union	absent	
 product.template	unlink	absent	
@@ -877,8 +877,8 @@ stock.picking	_validate_fields	patch	django.db.models.base.Model
 stock.picking	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
 stock.picking	_write	absent	
 stock.picking	_write_multi	absent	
-stock.picking	action_archive	absent	
-stock.picking	action_unarchive	absent	
+stock.picking	action_archive	mixin	orm.models.ArchiveMixin
+stock.picking	action_unarchive	mixin	orm.models.ArchiveMixin
 stock.picking	browse	absent	
 stock.picking	check_access	delegation	orm.models.AccessQuerySet
 stock.picking	check_access_rights	absent	
@@ -927,7 +927,7 @@ stock.picking	search_fetch	absent
 stock.picking	search_read	absent	
 stock.picking	sorted	absent	
 stock.picking	sudo	absent	
-stock.picking	toggle_active	absent	
+stock.picking	toggle_active	mixin	orm.models.ArchiveMixin
 stock.picking	try_lock_for_update	absent	
 stock.picking	union	absent	
 stock.picking	unlink	production	addons.stock.models.stock_picking.StockPicking
@@ -1065,8 +1065,8 @@ res.users	_validate_fields	patch	django.db.models.base.Model
 res.users	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
 res.users	_write	absent	
 res.users	_write_multi	absent	
-res.users	action_archive	absent	
-res.users	action_unarchive	absent	
+res.users	action_archive	mixin	orm.models.ArchiveMixin
+res.users	action_unarchive	mixin	orm.models.ArchiveMixin
 res.users	browse	absent	
 res.users	check_access	delegation	orm.models.AccessQuerySet
 res.users	check_access_rights	absent	
@@ -1115,7 +1115,7 @@ res.users	search_fetch	absent
 res.users	search_read	absent	
 res.users	sorted	absent	
 res.users	sudo	absent	
-res.users	toggle_active	absent	
+res.users	toggle_active	mixin	orm.models.ArchiveMixin
 res.users	try_lock_for_update	absent	
 res.users	union	absent	
 res.users	unlink	absent	

@@ -14,7 +14,7 @@
   ],
   "reach_by_channel": {
     "inheritance": 68,
-    "mixin": 35,
+    "mixin": 38,
     "patch": 19,
     "delegation": 8,
     "production": 25,

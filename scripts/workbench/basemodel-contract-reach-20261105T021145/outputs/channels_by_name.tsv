@@ -125,8 +125,8 @@ _validate_fields	0	0	396	0	0	0	0	0
 _validate_properties_definition	0	298	0	0	0	0	0	98
 _write	0	0	0	0	0	0	0	396
 _write_multi	0	0	0	0	0	0	0	396
-action_archive	1	0	0	0	0	0	0	395
-action_unarchive	1	0	0	0	1	0	0	394
+action_archive	1	292	0	0	0	0	0	103
+action_unarchive	1	291	0	0	1	0	0	103
 browse	1	0	0	0	0	0	0	395
 check_access	1	0	0	388	0	0	0	7
 check_access_rights	1	0	0	0	0	0	0	395
@@ -175,7 +175,7 @@ search_fetch	0	0	0	0	1	0	0	395
 search_read	0	0	0	0	0	0	0	396
 sorted	1	0	0	0	0	0	0	395
 sudo	1	0	0	0	0	0	0	395
-toggle_active	1	0	0	0	0	0	0	395
+toggle_active	1	292	0	0	0	0	0	103
 try_lock_for_update	0	0	0	0	0	0	0	396
 union	1	0	0	0	0	0	0	395
 unlink	1	0	0	0	10	0	0	385
