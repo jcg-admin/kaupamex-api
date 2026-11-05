@@ -1546,17 +1546,17 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy	class	not_ver
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__init__	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__class__	property	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy._wrapped__	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py		file	not_verified	mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	round	function	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	_float_check_precision	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_round	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_is_zero	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_compare	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py		file	satisfied	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	round	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	_float_check_precision	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_round	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_is_zero	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_compare	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_repr	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_float_presentation.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_split_str	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_float_presentation.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_split	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_float_presentation.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	json_float_round	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_float_presentation.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_invert	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	float_invert	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/func.py		file	satisfied	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/func.py	reset_cached_properties	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_func_reset_cached_properties.py::TestResetCachedPropertiesClearsWhatWasMemoized::test_after_the_reset_it_is_computed_again
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/func.py	lazy_property	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_func_reference.py

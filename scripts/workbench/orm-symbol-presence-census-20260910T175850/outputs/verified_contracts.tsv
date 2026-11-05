@@ -579,3 +579,9 @@ src/tools/date_utils.py	sum_intervals	function	tests/unit/tools/test_contract_da
 src/tools/date_utils.py	weeknumber	function	tests/unit/tools/test_contract_date_utils_reference.py
 src/tools/date_utils.py	weekstart	function	tests/unit/tools/test_contract_date_utils_reference.py
 src/tools/date_utils.py	weekend	function	tests/unit/tools/test_contract_date_utils_reference.py
+src/tools/float_utils.py	round	function	tests/unit/tools/test_contract_float_utils_reference.py
+src/tools/float_utils.py	_float_check_precision	function	tests/unit/tools/test_contract_float_utils_reference.py
+src/tools/float_utils.py	float_round	function	tests/unit/tools/test_contract_float_utils_reference.py
+src/tools/float_utils.py	float_is_zero	function	tests/unit/tools/test_contract_float_utils_reference.py
+src/tools/float_utils.py	float_compare	function	tests/unit/tools/test_contract_float_utils_reference.py
+src/tools/float_utils.py	float_invert	function	tests/unit/tools/test_contract_float_utils_reference.py
