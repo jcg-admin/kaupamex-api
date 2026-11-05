@@ -638,3 +638,17 @@ src/tools/facade.py	Proxy	class	tests/unit/tools/test_contract_facade_reference.
 src/tools/facade.py	Proxy.__init__	method	tests/unit/tools/test_contract_facade_reference.py
 src/tools/facade.py	Proxy.__class__	property	tests/unit/tools/test_contract_facade_reference.py
 src/tools/facade.py	Proxy._wrapped__	attribute	tests/unit/tools/test_contract_facade_reference.py
+src/tools/cache.py	ormcache_counter	class	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache_counter.__init__	method	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache_counter.ratio	property	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache_counter.tx_ratio	property	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache_counter.tx_calls	property	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache	class	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache.__init__	method	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache.__call__	method	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache.add_value	method	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache.determine_key	method	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache.lookup	method	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	get_cache_size	function	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache.key	attribute	tests/unit/tools/test_contract_cache_reference.py
+src/tools/cache.py	ormcache_counter.__slots__	attribute	tests/unit/tools/test_contract_cache_reference.py
