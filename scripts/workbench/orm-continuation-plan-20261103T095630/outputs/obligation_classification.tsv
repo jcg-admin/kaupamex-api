@@ -1422,7 +1422,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.conditional_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.sanitize_style	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.strip_classes	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	guess_mimetype	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	guess_mimetype	function	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py	Sentinel	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py	find_in_path	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
@@ -1533,8 +1533,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py	unquote.__slots__	att
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	zip_dir	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	is_running_as_nt_service	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py	_parse_version_parts	function	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py		file	not_verified	task_without_unit	TASK-API-0490		mirror=no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py	PdfReader	class	absent	task_without_unit	TASK-API-0490		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py	PdfReader.isEncrypted	property	absent	task_without_unit	TASK-API-0490		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-

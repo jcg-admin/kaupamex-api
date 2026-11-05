@@ -1804,14 +1804,14 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner._style_white
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.conditional_comments	attribute	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.sanitize_style	attribute	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.strip_classes	attribute	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py		file	not_verified	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py		file	satisfied	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	_check_ooxml	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes_discriminants.py::test_ooxml_is_told_by_its_content_types_and_directory
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	_check_open_container_format	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes_discriminants.py::test_open_document_declares_its_type_in_the_mimetype_entry
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	_check_olecf	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes_discriminants.py::test_olecf_subheader_at_0x200_tells_a_word_document
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	_check_svg	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_svg
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	_check_webp	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_webp
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	_odoo_guess_mimetype	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_png
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	guess_mimetype	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	guess_mimetype	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_mimetypes_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	neuter_mimetype	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes_discriminants.py::test_neuter_mimetype_degrades_markup_unless_system
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	get_extension	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_get_extension
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mimetypes.py	fix_filename_extension	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_mimetypes.py::TestGuessMimetype::test_mimetype_fix_extension
