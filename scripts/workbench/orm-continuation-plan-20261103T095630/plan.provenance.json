@@ -114,6 +114,13 @@
         "fields-reference-classes-0485"
       ],
       "writtenAt": "2026-11-05T21:14:30Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-intervals-reference-0485"
+      ],
+      "writtenAt": "2026-11-05T21:18:27Z"
     }
   ]
 }
