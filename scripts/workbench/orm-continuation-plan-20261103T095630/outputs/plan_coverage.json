@@ -101,9 +101,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 16,
+  "task_units_settled": 31,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 2165
+  "task_without_unit": 2150
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -148,7 +148,8 @@
   "decorators-model-private-readonly-create-multi-0485",
   "models-transient-class-attributes-0485",
   "models-transient-log-access-columns-0485",
-  "fields-selection-class-0485"
+  "fields-selection-class-0485",
+  "fields-reference-classes-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

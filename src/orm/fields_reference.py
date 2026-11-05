@@ -26,6 +26,8 @@ de los ``One2many`` que tienen a este campo por inverso. Ningún modelo del
 medirlos; se portan cuando el primero lo declare.
 """
 
+from operator import attrgetter
+
 from django.db import models
 
 import orm.utils as orm_utils
@@ -116,15 +118,10 @@ class Many2oneReference(models.IntegerField):
         if model_field is not None:
             self.model_field = model_field
 
-    @property
-    def _related_model_field(self):
-        """≙ ``property(attrgetter('model_field'))`` (``:77``)."""
-        return self.model_field
+    #: ``:77`` y ``:79``, verbatim: los dos lectores de ``model_field``.
+    _related_model_field = property(attrgetter('model_field'))
 
-    @property
-    def _description_model_field(self):
-        """≙ ``:79``."""
-        return self.model_field
+    _description_model_field = property(attrgetter('model_field'))
 
     def deconstruct(self):
         """La ruta de ``IntegerField``: la columna es un entero, sin más."""
