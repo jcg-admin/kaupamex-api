@@ -1,0 +1,10 @@
+== M1 horas como constante 0
+FAILED TestTransientLimitsComeFromConfiguration::test_the_reference_defaults
+FAILED TestTransientLimitsComeFromConfiguration::test_a_configured_limit_is_read_on_first_access
+2 failed, 1 passed, 2 warnings in 6.84s
+== M2 tope leído al importar
+FAILED TestTransientLimitsComeFromConfiguration::test_a_configured_limit_is_read_on_first_access
+1 failed, 2 passed, 2 warnings in 6.64s
+== M3 sin _register
+FAILED TestTransientFlags::test_the_four_declared_flags
+1 failed, 2 passed, 2 warnings in 6.94s

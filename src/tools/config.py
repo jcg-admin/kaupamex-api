@@ -142,3 +142,22 @@ def http_port():
     ``HTTP_PORT`` lo fija si el despliegue escucha en otro.
     """
     return getattr(settings, 'HTTP_PORT', 8000)
+
+
+def osv_memory_count_limit():
+    """≙ ``config['osv_memory_count_limit']`` — tope de filas transitorias.
+
+    ``odoo19c: odoo/tools/config.py:436-439`` lo declara con ``my_default=0``:
+    sin tope. Aquí el valor sale de la setting ``OSV_MEMORY_COUNT_LIMIT``.
+    """
+    return int(getattr(settings, 'OSV_MEMORY_COUNT_LIMIT', 0))
+
+
+def transient_age_limit():
+    """≙ ``config['transient_age_limit']`` — vida ociosa de un transitorio.
+
+    ``odoo19c: odoo/tools/config.py:440-443`` lo declara en horas con
+    ``my_default=1.0``: un registro de asistente se conserva una hora. Aquí el
+    valor sale de la setting ``TRANSIENT_AGE_LIMIT``.
+    """
+    return float(getattr(settings, 'TRANSIENT_AGE_LIMIT', 1.0))

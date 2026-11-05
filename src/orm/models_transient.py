@@ -38,16 +38,9 @@ from django.utils import timezone
 
 from orm.decorators import autovacuum
 from orm.models import Model
+from tools import config
 from tools.constants import GC_UNLINK_LIMIT
-
-#: ≙ ``config['osv_memory_count_limit']`` (``:25``). La fuente lo resuelve con
-#: un ``lazy_classproperty`` sobre su archivo de configuración; aquí es una
-#: constante del módulo porque este árbol no tiene ese archivo — su config vive
-#: en ``config/settings`` y en ``ir.config_parameter``, ninguno de los dos
-#: legible al construir la clase. Un modelo que quiera otro tope lo declara.
-DEFAULT_TRANSIENT_MAX_COUNT = 0
-#: ≙ ``config['transient_age_limit']`` (``:27``), por la misma razón.
-DEFAULT_TRANSIENT_MAX_HOURS = 0
+from tools.func import lazy_classproperty
 
 #: Ninguna fila usada en los últimos cinco minutos se borra — ≙ ``:77``.
 MINIMUM_IDLE_SECONDS = 300
@@ -73,11 +66,22 @@ class TransientModel(Model):
     class Meta:
         abstract = True
 
+    #: ≙ ``:18-21``. ``_auto``: crea tabla; ``_register``: no se registra
+    #: como modelo propio, sólo se hereda; ``_abstract``: no es abstracto.
+    #: Aquí la tabla la decide ``Meta.abstract`` de Django; los tres se
+    #: declaran porque ``is_abstract`` (``orm/model_classes.py``) y quien lea
+    #: la cabecera los consultan como en la fuente.
+    _auto = True
+    _register = False
+    _abstract = False
     _transient = True
-    #: nº máximo de registros transitorios (0 = ilimitado)
-    _transient_max_count = DEFAULT_TRANSIENT_MAX_COUNT
-    #: vida ociosa máxima en horas (0 = ilimitado)
-    _transient_max_hours = DEFAULT_TRANSIENT_MAX_HOURS
+    #: ≙ ``:24-27``: el tope de filas y la vida ociosa en horas salen de la
+    #: configuración al primer acceso, no al importar. Por defecto ``0`` (sin
+    #: tope) y ``1.0`` horas (``odoo19c: odoo/tools/config.py:436-443``).
+    _transient_max_count = lazy_classproperty(
+        lambda _: int(config.osv_memory_count_limit()))
+    _transient_max_hours = lazy_classproperty(
+        lambda _: float(config.transient_age_limit()))
 
     @classmethod
     @autovacuum

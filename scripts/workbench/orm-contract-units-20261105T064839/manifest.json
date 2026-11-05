@@ -3,7 +3,8 @@
   "instrument": [
     "tests/integration/test_orm/test_contract_identifiers_newid_class.py",
     "tests/integration/test_orm/test_contract_utils_functions_and_originids.py",
-    "tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py"
+    "tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py",
+    "tests/integration/test_orm/test_contract_models_transient_class_attributes.py"
   ],
   "metric": "por unidad, cada mutación aplicada al código bajo prueba y las pruebas que caen con ella, con la restauración verificada por cmp",
   "blind_to": [
@@ -14,12 +15,14 @@
   "outputs": [
     "outputs/identifiers-newid-mutations.txt",
     "outputs/utils-functions-and-originids-mutations.txt",
-    "outputs/decorators-model-private-readonly-create-multi-mutations.txt"
+    "outputs/decorators-model-private-readonly-create-multi-mutations.txt",
+    "outputs/models-transient-class-attributes-mutations.txt"
   ],
   "source": [
     "odoo19c: odoo/orm/identifiers.py (odoo-tools@abe4040e)",
     "odoo19c: odoo/orm/utils.py:76-146 (odoo-tools@abe4040e)",
-    "odoo19c: odoo/orm/decorators.py:313-371 (odoo-tools@abe4040e)"
+    "odoo19c: odoo/orm/decorators.py:313-371 (odoo-tools@abe4040e)",
+    "odoo19c: odoo/orm/models_transient.py:18-27; odoo/tools/config.py:436-443 (odoo-tools@abe4040e)"
   ],
   "tasks": [
     "TASK-API-0485"
