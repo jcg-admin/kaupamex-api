@@ -90,12 +90,12 @@
   "TASK-API-0485"
  ],
  "obligations": {
-  "satisfied": 290,
+  "satisfied": 291,
   "absent": 625,
   "divergent": 0,
-  "not_verified": 1591,
+  "not_verified": 1590,
   "applicable": 2506,
-  "pending": 2216,
+  "pending": 2215,
   "source": {
    "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
    "revisions": [
@@ -106,7 +106,7 @@
  "obligations_without_task": {},
  "obligation_classes": {
   "task_with_blocked_unit": 1,
-  "task_without_unit": 2215
+  "task_without_unit": 2214
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -142,7 +142,8 @@
   "models-basemodel-p-is-an-ordinary-table-0485",
   "models-basemodel-p-get-base-lang-0485",
   "decorators-deprecated-0485",
-  "models-basemodel-toggle-active-0485"
+  "models-basemodel-toggle-active-0485",
+  "models-basemodel-write-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
