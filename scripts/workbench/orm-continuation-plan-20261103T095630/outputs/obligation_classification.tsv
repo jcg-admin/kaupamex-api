@@ -1551,20 +1551,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON	class	not_verifi
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON.loads	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON.dumps	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	stringify_keys	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.count	property	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__contains__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__getitem__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__setitem__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__delitem__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__len__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__iter__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.snapshot	property	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.pop	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.clear	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__slots__	attribute	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	getaddresses	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner	class	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
