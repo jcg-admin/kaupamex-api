@@ -626,3 +626,15 @@ src/tools/speedscope.py	Speedscope.make	method	tests/unit/tools/test_contract_sp
 src/tools/speedscope.py	Speedscope.get_frame_id	method	tests/unit/tools/test_contract_speedscope_reference.py
 src/tools/speedscope.py	Speedscope.stack_to_ids	method	tests/unit/tools/test_contract_speedscope_reference.py
 src/tools/speedscope.py	Speedscope.process	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/facade.py	ProxyAttr	class	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyAttr.__init__	method	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyAttr.__set_name__	method	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyFunc	class	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyFunc.__init__	method	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyFunc.__set_name__	method	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyMeta	class	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	ProxyMeta.__new__	method	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	Proxy	class	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	Proxy.__init__	method	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	Proxy.__class__	property	tests/unit/tools/test_contract_facade_reference.py
+src/tools/facade.py	Proxy._wrapped__	attribute	tests/unit/tools/test_contract_facade_reference.py

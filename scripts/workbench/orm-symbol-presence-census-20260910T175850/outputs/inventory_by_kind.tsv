@@ -1533,19 +1533,19 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/date_utils.py	sum_intervals	f
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/date_utils.py	weeknumber	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_date_utils_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/date_utils.py	weekstart	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_date_utils_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/date_utils.py	weekend	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_date_utils_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py		file	not_verified	mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__init__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__set_name__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__init__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__set_name__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta.__new__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__init__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__class__	property	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy._wrapped__	attribute	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py		file	satisfied	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__set_name__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__set_name__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta.__new__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__class__	property	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy._wrapped__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_facade_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py		file	satisfied	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	round	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/float_utils.py	_float_check_precision	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_float_utils_reference.py

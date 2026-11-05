@@ -1368,18 +1368,18 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/convert.py	xml_import.DATA_RO
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/date_utils.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/date_utils.py	parse_date	function	not_verified	task_units_settled	TASK-API-0486		structural=signature;write_path=-;evidence=tests/unit/tools/test_contract_date_utils_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__set_name__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__set_name__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta.__new__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__class__	property	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy._wrapped__	attribute	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__init__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyAttr.__set_name__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__init__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyFunc.__set_name__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	ProxyMeta.__new__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__init__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy.__class__	property	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/facade.py	Proxy._wrapped__	attribute	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/gc.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/gc.py	_timing_gc_callback	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/image.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
@@ -1718,18 +1718,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sourcemap_generator.py	Source
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sourcemap_generator.py	SourceMapGenerator.get_content	method	not_verified	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sourcemap_generator.py	SourceMapGenerator.add_source	method	absent	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sourcemap_generator.py	base64vlq_encode	function	absent	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.__init__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.add	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.convert_stack	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.add_output	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.add_memory_output	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.add_default	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.make	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.get_frame_id	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.stack_to_ids	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.process	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__init__	method	not_verified	task_without_unit	TASK-API-0486	TASK-API-0476	structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__code	attribute	not_verified	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
