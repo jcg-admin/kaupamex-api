@@ -1977,8 +1977,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	clean_filename	func
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	zip_dir	function	not_verified	structural=match;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	memory_info	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_osutil.py::TestMemoryInfo::test_the_measured_system_is_the_one_platform_reports
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	is_running_as_nt_service	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py		file	not_verified	mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py	_parse_version_parts	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py		file	satisfied	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py	_parse_version_parts	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_parse_version_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py	parse_version	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_parse_version.py::TestChronologicalOrder::test_the_series_grows
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py		file	not_verified	mirror=no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py	PdfReader	class	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-

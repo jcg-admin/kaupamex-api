@@ -1237,24 +1237,10 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	get_barcode_font	f
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	get_barcode_check_digit	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	check_barcode_encoding	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter.__init__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter.ratio	property	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter.tx_ratio	property	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter.tx_calls	property	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache	class	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache.__init__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache.__call__	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache.add_value	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache.determine_key	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache.lookup	method	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_context	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_context.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_context.determine_key	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	log_ormcache_stats	function	not_verified	task_without_unit	TASK-API-0486		structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	get_cache_size	function	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache.key	attribute	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter.__slots__	attribute	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cloc.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cloc.py	Cloc	class	absent	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cloc.py	Cloc.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
@@ -1548,7 +1534,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py		file	not_verified	
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	zip_dir	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/osutil.py	is_running_as_nt_service	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py	_parse_version_parts	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/parse_version.py	_parse_version_parts	function	not_verified	task_units_settled	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py		file	not_verified	task_without_unit	TASK-API-0490		mirror=no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py	PdfReader	class	absent	task_without_unit	TASK-API-0490		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/pdf/_pypdf.py	PdfReader.isEncrypted	property	absent	task_without_unit	TASK-API-0490		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-

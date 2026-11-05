@@ -652,3 +652,4 @@ src/tools/cache.py	ormcache.lookup	method	tests/unit/tools/test_contract_cache_r
 src/tools/cache.py	get_cache_size	function	tests/unit/tools/test_contract_cache_reference.py
 src/tools/cache.py	ormcache.key	attribute	tests/unit/tools/test_contract_cache_reference.py
 src/tools/cache.py	ormcache_counter.__slots__	attribute	tests/unit/tools/test_contract_cache_reference.py
+src/tools/parse_version.py	_parse_version_parts	function	tests/unit/tools/test_contract_parse_version_reference.py
