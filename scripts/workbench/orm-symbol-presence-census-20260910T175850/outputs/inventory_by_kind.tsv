@@ -1738,14 +1738,14 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	is_odoo_modu
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	get_aliased_odoo_define_content	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	convert_as	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	remove_as	function	absent	structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py		file	not_verified	mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	_ScriptSafe	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	_ScriptSafe.__html__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON.loads	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON.dumps	method	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py		file	satisfied	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	_ScriptSafe	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_json_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	_ScriptSafe.__html__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_json_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_json_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON.loads	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_json_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	JSON.dumps	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_json_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	json_default	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_json_default.py::test_serializes_a_datetime_with_the_server_format
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	stringify_keys	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/json.py	stringify_keys	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_json_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py		file	satisfied	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_lru_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/lru.py	LRU.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_lru_reference.py
