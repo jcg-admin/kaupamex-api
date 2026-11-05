@@ -37,7 +37,6 @@ from django.db import models as django_models
 import api
 import fields
 from orm import registry
-from orm.models_transient import TransientModel
 
 
 class DependsOwner(django_models.Model):
@@ -90,10 +89,19 @@ class DependsChild(django_models.Model):
         self.owner_label = ''
 
 
-class DependsWizard(TransientModel):
-    """Un transitorio que depende de un campo de un modelo normal."""
+class DependsWizard(django_models.Model):
+    """Un transitorio que depende de un campo de un modelo normal.
+
+    Declara ``_transient`` en vez de heredar ``TransientModel``: lo que se mide
+    es la rama ``Model0._transient`` de ``resolve_depends``, que lo lee con
+    ``getattr``. Heredar ``TransientModel`` dejaba en el registro global un
+    transitorio sin tabla —``managed = False``— que el autovacuum barre al
+    recorrer todos los modelos; la referencia no admite un transitorio así
+    (``odoo19c: odoo/orm/model_classes.py:217-220``).
+    """
 
     _name = 'orm.depends.wizard'
+    _transient = True
 
     owner = django_models.ForeignKey(
         DependsOwner,

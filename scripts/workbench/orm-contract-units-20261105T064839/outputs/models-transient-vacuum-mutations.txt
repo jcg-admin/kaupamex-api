@@ -1,0 +1,12 @@
+== M1 sin piso de cinco minutos
+FAILED TestTheAgeCleanup::test_a_row_written_in_the_last_five_minutes_is_kept
+1 failed, 3 passed, 2 warnings in 6.95s
+== M2 no borra
+FAILED TestTheAgeCleanup::test_a_row_older_than_the_limit_is_removed
+1 failed, 3 passed, 2 warnings in 6.83s
+== M3 sin columnas de fecha
+FAILED TestTheAgeCleanup::test_a_row_older_than_the_limit_is_removed
+FAILED TestTheAgeCleanup::test_a_row_written_in_the_last_five_minutes_is_kept
+FAILED TestTheAgeCleanup::test_the_vacuum_reports_the_model_and_whether_rows_remain
+FAILED TestEveryTransientHasAWriteDate::test_each_concrete_transient_declares_updated_at
+4 failed, 2 warnings in 7.24s

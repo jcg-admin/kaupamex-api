@@ -93,6 +93,13 @@
         "models-transient-class-attributes-0485"
       ],
       "writtenAt": "2026-11-05T07:14:12Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "models-transient-log-access-columns-0485"
+      ],
+      "writtenAt": "2026-11-05T07:33:48Z"
     }
   ]
 }

@@ -34,6 +34,7 @@ así que ``_transient_vacuum`` entra en su pasada sin cablear nada más.
 
 import datetime
 
+from django.db import models
 from django.utils import timezone
 
 from orm.decorators import autovacuum
@@ -65,6 +66,14 @@ class TransientModel(Model):
 
     class Meta:
         abstract = True
+
+    #: ≙ las columnas que ``_log_access`` añade (``odoo19c:
+    #: odoo/orm/models.py:296``), que la fuente exige a todo transitorio
+    #: (``odoo/orm/model_classes.py:217-220``): sin fecha de escritura no hay
+    #: limpieza por antigüedad. Mismos nombres que ``TimeStampedModel``, la
+    #: convención del árbol para ``create_date``/``write_date``.
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     #: ≙ ``:18-21``. ``_auto``: crea tabla; ``_register``: no se registra
     #: como modelo propio, sólo se hereda; ``_abstract``: no es abstracto.
