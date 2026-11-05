@@ -307,3 +307,12 @@ src/orm/commands.py	Command.UNLINK	attribute	tests/integration/test_orm/test_con
 src/orm/commands.py	Command.LINK	attribute	tests/integration/test_orm/test_contract_commands_command_class.py
 src/orm/commands.py	Command.CLEAR	attribute	tests/integration/test_orm/test_contract_commands_command_class.py
 src/orm/commands.py	Command.SET	attribute	tests/integration/test_orm/test_contract_commands_command_class.py
+src/orm/identifiers.py	NewId	class	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__init__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__bool__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__eq__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__hash__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__lt__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__repr__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__str__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/identifiers.py	NewId.__slots__	attribute	tests/integration/test_orm/test_contract_identifiers_newid_class.py
