@@ -762,3 +762,4 @@
 {"id":"c-e84c94d6-5945-4ce4-9138-27f56056bb6d","op":"claim","path":"src/orm/fields_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-05T21:13:46.767Z","task":"TASK-API-0485"}
 {"id":"c-48d8cf24-48bf-4b3c-9244-c13bd3632a8e","op":"claim","path":"tests/integration/test_orm/test_contract_fields_reference_classes.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-05T21:13:46.767Z","task":"TASK-API-0485"}
 {"id":"c-a48cf520-042c-4850-9737-93ccf1ad67e1","op":"claim","path":"tests/unit/orm/test_field_class_attributes.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-05T21:13:46.767Z","task":"TASK-API-0485"}
+{"id":"c-41d64b79-4f8d-4948-8f53-9b25cc779c93","op":"claim","path":"tests/unit/tools/test_contract_intervals_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-05T21:18:11.898Z","task":"TASK-API-0485"}
