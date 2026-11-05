@@ -18,6 +18,7 @@ import pytest
 
 from addons.base.models import ResCountry, ResCountryState, ResPartner
 from addons.base_address_extended.models import AddressStructured, ResCity
+from orm.utils import model_field_registry
 
 pytestmark = pytest.mark.django_db
 
@@ -98,6 +99,10 @@ class TestCityIdSurface:
     def test_writing_city_id_creates_the_structured_row(self, guadalajara):
         partner = ResPartner.objects.create(name='Óptica La Luz')
         partner.city_id = guadalajara
+        # El inverso se despacha al guardar: una asignación llega a la base
+        # en ``save()`` en este árbol (``orm/fields.py``,
+        # ``_mark_pending_inverse``), donde la fuente escribe al asignar.
+        partner.save()
 
         assert partner.city_id == guadalajara
         assert AddressStructured.objects.filter(partner=partner).exists()
@@ -265,3 +270,26 @@ class TestResCityDisplayName:
 
     def test_str_delegates_to_the_compute(self, guadalajara):
         assert str(guadalajara) == guadalajara._compute_display_name()
+
+
+class TestCityIdIsTheSourceMany2one:
+    """``odoo19c: base_address_extended/models/res_partner.py:17`` —
+    ``city_id = fields.Many2one(comodel_name='res.city', string='City ID')``.
+
+    Qué lo haría fallar: volver al descriptor sin tipo que lo portaba
+    (TASK-API-0418), o darle columna en ``res_partner``, donde el dato no
+    vive (DEC-SALE-01).
+    """
+
+    def test_it_is_a_many2one_to_res_city(self):
+        field = model_field_registry(ResPartner)['city_id']
+        assert field.type == 'many2one'
+        assert field.comodel_name == 'res.city'
+        assert field.string == 'City ID'
+
+    def test_it_takes_no_column_on_the_partner(self):
+        field = model_field_registry(ResPartner)['city_id']
+        assert not field.store
+        assert field.column is None
+        columns = {f.column for f in ResPartner._meta.concrete_fields}
+        assert 'city_id' not in columns

@@ -53,7 +53,6 @@ from addons.base_address_extended.models.res_city import ResCity
 from addons.base_address_extended.models.res_partner import AddressStructured
 from addons.base.models.res_country import ResCountry
 from orm.environments import context_scope
-from orm.fields_nonstored import NonStored
 
 pytestmark = pytest.mark.integration
 
@@ -98,7 +97,8 @@ class TestTheRegistryHoldsEveryDeclaredField:
             'el registro del modelo dejó fuera un campo que el propio '
             '_address_fields() devuelve'
         )
-        assert isinstance(registry['city_id'], NonStored)
+        assert registry['city_id'].type == 'many2one'
+        assert registry['city_id'].store is False
 
     def test_every_address_field_is_in_the_registry(self, db):
         """La lista que ``_address_fields()`` publica es consultable entera.
@@ -143,6 +143,8 @@ class TestWritingTheFieldWithoutAColumn:
         assert not AddressStructured.objects.filter(partner=who).exists()
 
         who.city_id = _city()
+        # El inverso se despacha al guardar (``_mark_pending_inverse``).
+        who.save()
 
         assert who.city_id.name == 'Guadalajara'
         assert (
@@ -155,6 +157,7 @@ class TestWritingTheFieldWithoutAColumn:
         AddressStructured.objects.create(partner=who, street_name='Vallarta')
 
         who.city_id = _city('Zapopan')
+        who.save()
 
         row = AddressStructured.objects.get(partner=who)
         assert row.city_id.name == 'Zapopan'
