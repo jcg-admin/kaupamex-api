@@ -100,6 +100,13 @@
         "models-transient-log-access-columns-0485"
       ],
       "writtenAt": "2026-11-05T07:33:48Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "fields-selection-class-0485"
+      ],
+      "writtenAt": "2026-11-05T19:15:04Z"
     }
   ]
 }
