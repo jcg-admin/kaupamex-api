@@ -1,0 +1,2172 @@
+{
+ "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+ "psycopg": "3.3.4",
+ "python": "3.13.18",
+ "comparisons": 44,
+ "divergent": [
+  {
+   "type": "int4",
+   "items": [
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "int4",
+   "items": [
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a"
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a"
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    "c"
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    "c"
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "b",
+    "b"
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "b",
+    "b"
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  }
+ ],
+ "results": [
+  {
+   "type": "int4",
+   "items": [
+    1
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    2
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    2
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    2
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    2
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    2,
+    2,
+    5
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    2,
+    2,
+    5
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    2,
+    2,
+    5
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    2,
+    2,
+    5
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    null
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    null
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    1,
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    null
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    null
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "int4",
+   "items": [
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     null
+    ],
+    [
+     2,
+     null
+    ],
+    [
+     3,
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "int4",
+   "items": [
+    4
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    4
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    4
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     false
+    ],
+    [
+     2,
+     false
+    ],
+    [
+     3,
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "int4",
+   "items": [
+    4
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     1,
+     true
+    ],
+    [
+     2,
+     true
+    ],
+    [
+     3,
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a"
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a"
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a"
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a"
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    "c"
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    "c"
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    "c"
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    "c"
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "b",
+    "b"
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "b",
+    "b"
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "b",
+    "b"
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     true
+    ],
+    [
+     "c",
+     false
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "b",
+    "b"
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     false
+    ],
+    [
+     "c",
+     true
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    null
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    null
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     true
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    "a",
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     false
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    null
+   ],
+   "form": "in vs any",
+   "reference": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    null
+   ],
+   "form": "not in vs not any",
+   "reference": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "equal": true
+  },
+  {
+   "type": "text",
+   "items": [
+    null
+   ],
+   "form": "in vs in unnest",
+   "reference": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  },
+  {
+   "type": "text",
+   "items": [
+    null
+   ],
+   "form": "not in vs not in unnest",
+   "reference": [
+    [
+     "a",
+     null
+    ],
+    [
+     "b",
+     null
+    ],
+    [
+     "c",
+     null
+    ],
+    [
+     null,
+     null
+    ]
+   ],
+   "ported": {
+    "error": "AmbiguousFunction",
+    "message": "function unnest(unknown) is not unique"
+   },
+   "equal": false
+  }
+ ]
+}

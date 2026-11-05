@@ -13,9 +13,10 @@ después, tres sustitutos:
 - un ``psycopg2`` con la única excepción que ``sql.py`` nombra
   (``NotSupportedError``): este stack usa psycopg 3, y la ruta que la captura
   (``create_index``) no se ejercita aquí;
-- un ``misc`` que expone ``named_to_positional_printf`` **del puerto**: el
-  ``misc`` de la referencia arrastra media plataforma. Es la única pieza
-  compartida, y sólo interviene al pasar parámetros con nombre a ``SQL``.
+- un ``misc`` con ``named_to_positional_printf`` y ``_PrintfArgs`` **de la
+  referencia**, extraídos por AST de su ``misc.py`` y ejecutados solos: el
+  módulo completo arrastra media plataforma, y esas dos definiciones sólo
+  usan ``Mapping``. Ninguna pieza del puerto entra en el lado de referencia.
 
 El ``env`` es un registrador: anota cada SQL que recibe en
 ``execute_query`` y devuelve filas fijas, porque la fuente sólo le pide eso.
@@ -29,10 +30,12 @@ en una lista de ``IN``. Fuera de esas dos cadenas exactas no se traduce nada.
 *Métrica:* para cada escenario, la secuencia de resultados —``SQL`` como
 ``(code, params)``, o el nombre de la excepción— y la secuencia de consultas
 que llegan al ``env``.
-*Ciega a:* la ejecución real contra PostgreSQL, a una divergencia en
-``named_to_positional_printf`` (los dos lados usan la del puerto) y a toda
+*Ciega a:* la ejecución contra PostgreSQL —la equivalencia de las dos formas
+traducidas se mide aparte, en
+``scripts/workbench/sql-in-vs-any-equivalence-20261105/``— y a toda
 divergencia que la fuente comparta con nosotros.
 """
+import ast
 import importlib.util
 import pathlib
 import sys
@@ -40,7 +43,6 @@ import types
 
 import pytest
 
-from tools import misc as ported_misc
 from tools import query as ported
 from tools import sql as ported_sql
 
@@ -64,6 +66,19 @@ def load(name, path):
     return module
 
 
+PRINTF_DEFINITIONS = ('named_to_positional_printf', '_PrintfArgs')
+
+
+def printf_definitions(path):
+    """El código fuente de las dos definiciones de ``misc`` que ``sql`` usa."""
+    tree = ast.parse(path.read_text())
+    nodes = [node for node in tree.body
+             if getattr(node, 'name', None) in PRINTF_DEFINITIONS]
+    assert len(nodes) == len(PRINTF_DEFINITIONS), 'la fuente cambió de forma'
+    header = 'from collections.abc import Mapping\n'
+    return header + '\n'.join(ast.unparse(node) for node in nodes)
+
+
 def reference_modules():
     """``(sql, query)`` de la fuente, o None si el árbol no está montado."""
     try:
@@ -76,7 +91,8 @@ def reference_modules():
     package = types.ModuleType(PACKAGE)
     package.__path__ = []
     misc = types.ModuleType(f'{PACKAGE}.misc')
-    misc.named_to_positional_printf = ported_misc.named_to_positional_printf
+    exec(compile(printf_definitions(tools / 'misc.py'), 'misc.py', 'exec'),
+         misc.__dict__)
     driver = types.ModuleType('psycopg2')
     driver.NotSupportedError = type('NotSupportedError', (Exception,), {})
     saved_driver = sys.modules.get('psycopg2')

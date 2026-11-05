@@ -1,10 +1,11 @@
 """``tools.set_expression`` medido contra la fuente, ejecutandola.
 
-**Por que existe, si ya hay ``test_set_expression.py``.** Aquel porta los quince
-casos de ``odoo19c: addons/base/tests/test_groups.py`` y mide lo que la fuente
-decidio mirar. Este mide otra cosa: **ejecuta el modulo de la referencia** y
-compara su conducta con la nuestra sobre una bateria generada, operacion por
-operacion. No hay aserciones escritas a mano — el oraculo es la fuente misma.
+**Por que existe, si ya hay ``test_set_expression.py``.** Aquel porta los
+quince casos de ``odoo19c: addons/base/tests/test_groups.py`` y mide lo que la
+fuente decidio mirar. Este mide otra cosa: **ejecuta el modulo de la
+referencia** y compara su conducta con la nuestra sobre una bateria generada,
+operacion por operacion. No hay aserciones escritas a mano: la expectativa la
+produce la implementacion de referencia ejecutada.
 
 Se puede hacer porque los dos modulos son **stdlib pura**: la fuente importa
 ``ast``, ``abc`` y ``typing``, y nada de Odoo. Es el unico archivo del arbol
@@ -38,7 +39,7 @@ ids, y ``get_id`` / ``get_superset_ids`` / ``get_subset_ids`` /
 *Ciega a:* el rendimiento y el numero de pasos de la simplificacion; a las
 definiciones que no esten en el fixture (ocho conjuntos con supraconjuntos y
 disjuntos, no un universo arbitrario); y a cualquier divergencia que la fuente
-comparta con nosotros, porque el oraculo es ella.
+comparta con nosotros, porque la expectativa sale de ella.
 """
 import ast
 import importlib.util

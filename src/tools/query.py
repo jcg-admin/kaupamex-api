@@ -9,7 +9,7 @@ Por qué dejó de ser un alias de ``QuerySet``
 
 Hasta ``api@38b4e64e`` este archivo era ``Query = models.QuerySet`` — quince
 líneas que declaraban la equivalencia y no portaban nada. La equivalencia es
-cierta a grandes rasgos (los dos componen una consulta sin ejecutarla) y **es
+cierta en un solo punto (los dos componen una consulta sin ejecutarla) y **es
 insuficiente donde importa**: la referencia expone ``make_alias`` y
 ``add_join``, que es la superficie con la que un campo relacional añade su
 LEFT JOIN a una consulta ajena (``odoo19c:
@@ -61,10 +61,20 @@ PostgreSQL rechaza la sentencia. Medido en este contenedor::
 
 Por eso los dos sitios que la fuente escribe con ``IN`` sobre una tupla
 —``subselect`` con ids memorizados y ``set_result_ids(ordered=False)``— emiten
-aquí ``(SELECT unnest(%s))`` y ``= ANY(%s)`` sobre una lista. Es la **misma
-operación sobre el mismo conjunto**, en la forma que este controlador adapta;
-no es una libertad de diseño sino el precio de cambiar de driver, y sin ella
-las dos rutas producían SQL inválido en tiempo de ejecución.
+aquí ``(SELECT unnest(%s))`` y ``= ANY(%s)`` sobre una lista: sin ellas las
+dos rutas producían SQL inválido en tiempo de ejecución.
+
+La equivalencia está medida en PostgreSQL 16.15 con psycopg 3.3.4, con verdad
+de tres estados
+(``scripts/workbench/sql-in-vs-any-equivalence-20261105T224049/``):
+
+- ``= ANY(%s)`` da el mismo resultado que ``IN (v1, ..., vn)`` para listas de
+  enteros y de texto, con duplicados y con NULL.
+- ``IN (SELECT unnest(%s))`` coincide para listas de enteros con algún valor
+  no nulo, y **falla** (``unnest(unknown) is not unique``) con listas de texto
+  o con ``[None]``, que psycopg 3 envía sin tipo. ``_ids`` sólo guarda ids de
+  registro enteros, así que la ruta de ``subselect`` queda dentro del dominio
+  medido; fuera de él las formas no son equivalentes.
 """
 
 import itertools

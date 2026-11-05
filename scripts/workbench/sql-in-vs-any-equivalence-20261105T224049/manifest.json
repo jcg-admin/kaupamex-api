@@ -1,0 +1,20 @@
+{
+  "question": "¿Las formas SQL que tools.query escribe con psycopg 3 —`= ANY(%s)` y `IN (SELECT unnest(%s))` sobre una lista— dan en PostgreSQL el mismo valor de verdad que la forma de la referencia, `IN %s` con una tupla que psycopg 2 expande a `IN (v1, ..., vn)`?",
+  "instrument": [
+    "scripts/workbench/sql-in-vs-any-equivalence-20261105T224049/measure_in_any_equivalence.py"
+  ],
+  "metric": "para cada lista de prueba (enteros y texto, con duplicados y con NULL) y cada par de formas (IN/ANY, NOT IN/NOT ANY, IN/IN unnest, NOT IN/NOT IN unnest), la tabla [valor, predicado] con verdad de tres estados sobre cuatro filas, o la clase y el mensaje del error SQL; 44 comparaciones.",
+  "blind_to": [
+    "psycopg 2 real: no está instalado; la forma de la referencia se compone con un marcador por elemento, que es lo que psycopg 2 emite al expandir una tupla",
+    "listas vacías: la referencia nunca emite IN () (set_result_ids vacío añade FALSE, subselect vacío tiene rama propia)",
+    "el plan de ejecución y el coste: sólo se mide el valor de verdad",
+    "tipos distintos de int4 y text"
+  ],
+  "control": "las 22 comparaciones de `= ANY(%s)` coinciden; 12 de las 22 de `IN (SELECT unnest(%s))` fallan con AmbiguousFunction (texto y [None]): la medición discrimina entre las dos formas del puerto.",
+  "reproducible": "DJANGO_SETTINGS_MODULE=config.settings.testing PYTHONPATH=src .venv/bin/python scripts/workbench/sql-in-vs-any-equivalence-20261105T224049/measure_in_any_equivalence.py",
+  "outputs": [
+    "outputs/result.json",
+    "outputs/run.txt"
+  ],
+  "destination": "src/tools/query.py (docstring de la divergencia de controlador) y tests/unit/tools/test_contract_query_reference.py; TASK-API-0495"
+}

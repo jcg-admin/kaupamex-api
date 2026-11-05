@@ -4,8 +4,10 @@ Se carga ``odoo19c: odoo/tools/json.py`` por ruta y se comparan ``JSON``,
 ``_ScriptSafe`` y ``stringify_keys`` con los nuestros. La fuente importa
 ``.func`` y ``.misc`` de forma relativa: ``.func`` es la ``func.py`` **de la
 referencia**, que sólo usa la biblioteca estándar; ``.misc`` es un sustituto
-que expone el ``ReadonlyDict`` **del puerto**, porque el ``misc`` de la
-referencia arrastra media plataforma. Los dos se retiran tras la carga.
+con una clase ``ReadonlyDict`` vacía, porque el ``misc`` de la referencia
+arrastra media plataforma. Medido por AST sobre la fuente: ``ReadonlyDict``
+sólo aparece en ``json_default``, que no se compara, así que el sustituto no
+interviene en ningún símbolo comparado. Los dos se retiran tras la carga.
 
 ``json_default`` no entra: importa ``odoo.fields`` en cada llamada, y su
 evidencia ya vive en ``tests/unit/tools/test_json_default.py``.
@@ -13,8 +15,8 @@ evidencia ya vive en ``tests/unit/tools/test_json_default.py``.
 *Métrica:* el valor devuelto —o el nombre de la excepción— de ``loads``,
 ``dumps``, ``__html__`` y ``stringify_keys`` sobre una rejilla de cargas con
 los cinco caracteres que el escape protege.
-*Ciega a:* ``ReadonlyDict`` (los dos lados usan el del puerto) y a toda
-divergencia que la fuente comparta con nosotros.
+*Ciega a:* ``json_default`` y a toda divergencia que la fuente comparta con
+nosotros.
 """
 import importlib.util
 import pathlib
@@ -26,7 +28,6 @@ import markupsafe
 import pytest
 
 from tools import json as ported
-from tools import misc as ported_misc
 
 pytestmark = pytest.mark.unit
 
@@ -71,7 +72,7 @@ def reference_module():
     package = types.ModuleType(PACKAGE)
     package.__path__ = []
     misc = types.ModuleType(f'{PACKAGE}.misc')
-    misc.ReadonlyDict = ported_misc.ReadonlyDict
+    misc.ReadonlyDict = type('ReadonlyDict', (), {})
     sys.modules.update({PACKAGE: package, f'{PACKAGE}.misc': misc})
     try:
         load(f'{PACKAGE}.func', tools / 'func.py')
