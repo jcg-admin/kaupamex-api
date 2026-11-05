@@ -127,15 +127,15 @@ def main(models_py, outputs):
     per_name = {name: collections.Counter() for name in names}
     representative = {}
     for model in production:
-        odoo_name = model.__dict__.get('_name')
+        reference_name = model.__dict__.get('_name')
         row = {}
         for name in names:
             channel, owner = classify(model, name, ours,
                                       django_models.Model, BaseModel)
             per_name[name][channel] += 1
             row[name] = (channel, owner)
-        if odoo_name in REPRESENTATIVE:
-            representative[odoo_name] = row
+        if reference_name in REPRESENTATIVE:
+            representative[reference_name] = row
 
     out = pathlib.Path(outputs)
     with (out / 'channels_by_name.tsv').open('w') as handle:
@@ -147,10 +147,10 @@ def main(models_py, outputs):
                 str(per_name[name][c]) for c in channels) + '\n')
     with (out / 'representative.tsv').open('w') as handle:
         handle.write('model\tname\tchannel\towner\n')
-        for odoo_name in REPRESENTATIVE:
+        for reference_name in REPRESENTATIVE:
             for name, (channel, owner) in representative.get(
-                    odoo_name, {}).items():
-                handle.write(f'{odoo_name}\t{name}\t{channel}\t{owner}\n')
+                    reference_name, {}).items():
+                handle.write(f'{reference_name}\t{name}\t{channel}\t{owner}\n')
     summary = {
         'reference_members': len(names),
         'concrete_models': len(concrete),
