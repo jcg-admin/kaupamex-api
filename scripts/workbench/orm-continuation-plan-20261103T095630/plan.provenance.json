@@ -191,6 +191,13 @@
         "tools-cache-reference-0486"
       ],
       "writtenAt": "2026-11-05T22:17:52Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-parse-version-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:21:05Z"
     }
   ]
 }
