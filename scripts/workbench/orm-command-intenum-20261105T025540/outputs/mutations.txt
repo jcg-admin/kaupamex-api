@@ -1,0 +1,20 @@
+== M1 clase plana de enteros
+FAILED TestCommandIsTheReferenceEnum::test_it_is_an_int_enum_with_the_seven_codes_in_order
+FAILED TestCommandIsTheReferenceEnum::test_a_literal_rpc_code_resolves_to_its_member
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple0-0-expected0]
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple1-1-expected1]
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple2-2-expected2]
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple3-3-expected3]
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple4-4-expected4]
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple5-5-expected5]
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_the_triple_and_its_code[triple6-6-expected6]
+9 failed, 4 passed, 2 warnings in 4.11s
+== M2 set copia ids a lista
+FAILED TestEachFactoryReturnsTheReferenceTriple::test_set_returns_the_ids_it_received
+1 failed, 12 passed, 2 warnings in 4.22s
+== M3 is_command_list con type() is int
+FAILED TestCommandListsAreRecognised::test_a_triple_built_by_the_factory
+1 failed, 12 passed, 2 warnings in 4.61s
+== M4 is_command_list acepta bool
+FAILED TestCommandListsAreRecognised::test_a_boolean_is_not_a_command_code
+1 failed, 12 passed, 2 warnings in 4.15s

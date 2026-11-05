@@ -10,13 +10,15 @@ Reproduce la intención de cada tupla-comando de Odoo (0=create, 1=update,
 manager* de Django.
 """
 
+import enum
+
 from django.db import models as _django_models
 from django.db.models.fields import related_descriptors as _related_descriptors
 
 from exceptions import MissingError
 
 
-class Command:
+class Command(enum.IntEnum):
     """Operaciones one2many/many2many — ≙ ``odoo19c: odoo/orm/commands.py``.
 
     **Las dos formas conviven, y la aridad las distingue.** La fuente es un
@@ -28,6 +30,10 @@ class Command:
     **vals)``). Cada método mira lo que recibe: un id, una lista de ids, un
     ``dict`` o nada es la forma de la fuente; un manager o una fila es la
     ejecutiva. :func:`apply_many2many_commands` interpreta los triples.
+
+    Como en la fuente, la clase es un ``IntEnum`` (``:11``): el primer elemento
+    del triple es el **miembro** (``Command.LINK``), que compara igual a su
+    entero, y ``Command(4)`` resuelve el código literal que llega por RPC.
     """
 
     CREATE = 0
@@ -38,16 +44,16 @@ class Command:
     CLEAR = 5
     SET = 6
 
-    @staticmethod
-    def create(*args, **values):
+    @classmethod
+    def create(cls, *args, **values):
         """``(CREATE, 0, values)`` — o, ejecutivo, crea y enlaza un hijo."""
         if len(args) == 1 and isinstance(args[0], dict) and not values:
-            return (Command.CREATE, 0, args[0])
+            return (cls.CREATE, 0, args[0])
         (manager,) = args
         return manager.create(**values)
 
-    @staticmethod
-    def update(target, values=None, **kwargs):
+    @classmethod
+    def update(cls, target, values=None, **kwargs):
         """``(UPDATE, id, values)`` — o, ejecutivo, escribe sobre un hijo.
 
         La forma ejecutiva la pidió el porte de
@@ -55,7 +61,8 @@ class Command:
         (``odoo19c: addons/stock/models/stock_move.py:2490``).
         """
         if _is_id(target):
-            return (Command.UPDATE, target, values if values is not None else kwargs)
+            return (cls.UPDATE, target,
+                    values if values is not None else kwargs)
         if values is not None:
             kwargs = {**values, **kwargs}
         for campo, valor in kwargs.items():
@@ -69,42 +76,43 @@ class Command:
         )
         return target
 
-    @staticmethod
-    def delete(target):
+    @classmethod
+    def delete(cls, target):
         """``(DELETE, id, 0)`` — o, ejecutivo, borra el hijo."""
         if _is_id(target):
-            return (Command.DELETE, target, 0)
+            return (cls.DELETE, target, 0)
         target.delete()
 
-    @staticmethod
-    def unlink(*args):
+    @classmethod
+    def unlink(cls, *args):
         """``(UNLINK, id, 0)`` — o, ejecutivo, desenlaza sin borrar (m2m)."""
         if len(args) == 1:
-            return (Command.UNLINK, args[0], 0)
+            return (cls.UNLINK, args[0], 0)
         manager, obj = args
         manager.remove(obj)
 
-    @staticmethod
-    def link(*args):
+    @classmethod
+    def link(cls, *args):
         """``(LINK, id, 0)`` — o, ejecutivo, enlaza un registro (m2m)."""
         if len(args) == 1:
-            return (Command.LINK, args[0], 0)
+            return (cls.LINK, args[0], 0)
         manager, obj = args
         manager.add(obj)
 
-    @staticmethod
-    def clear(*args):
+    @classmethod
+    def clear(cls, *args):
         """``(CLEAR, 0, 0)`` — o, ejecutivo, desenlaza todos (m2m)."""
         if not args:
-            return (Command.CLEAR, 0, 0)
+            return (cls.CLEAR, 0, 0)
         (manager,) = args
         manager.clear()
 
-    @staticmethod
-    def set(*args):
+    @classmethod
+    def set(cls, *args):
         """``(SET, 0, ids)`` — o, ejecutivo, reemplaza el conjunto (m2m)."""
         if len(args) == 1:
-            return (Command.SET, 0, list(args[0]))
+            # ``:126`` devuelve ``ids`` tal cual, sin copiarlo.
+            return (cls.SET, 0, args[0])
         manager, objs = args
         manager.set(objs)
 
@@ -115,10 +123,15 @@ def _is_id(value):
 
 
 def is_command_list(value):
-    """``True`` si ``value`` es una lista de triples de comando de la fuente."""
+    """``True`` si ``value`` es una lista de triples de comando de la fuente.
+
+    El código es un ``int`` —el literal de RPC o el miembro de
+    :class:`Command`, que es un ``IntEnum``—, nunca un ``bool``.
+    """
     return (isinstance(value, (list, tuple)) and bool(value)
             and all(isinstance(item, (list, tuple)) and len(item) == 3
-                    and type(item[0]) is int for item in value))
+                    and isinstance(item[0], int)
+                    and not isinstance(item[0], bool) for item in value))
 
 
 def _row_id(value):
@@ -147,7 +160,8 @@ def related_manager(record, name):
 
 
 def apply_many2many_commands(record, field, value):
-    """Aplica el valor x2many de la fuente sobre el manager de un ``Many2many``.
+    """Aplica el valor x2many de la fuente sobre el manager de un
+    ``Many2many``.
 
     ≙ ``Many2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py``):
     los siete comandos, más las dos abreviaturas que ``convert_to_cache``
@@ -288,9 +302,11 @@ def apply_one2many_commands(record, rel, value, create=False):
             to_link.append(target)
             allow_full_delete = False
         elif code in (Command.CLEAR, Command.SET):
-            line_ids = [_row_id(item) for item in payload] if code == Command.SET else []
+            line_ids = ([_row_id(item) for item in payload]
+                        if code == Command.SET else [])
             if not allow_full_delete:
-                # do not try to delete anything in creation mode if nothing has been created before
+                # do not try to delete anything in creation mode if nothing
+                # has been created before
                 to_link.extend(i for i in line_ids if i)
                 continue
             flush()

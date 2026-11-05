@@ -58,6 +58,13 @@
         "models-basemodel-write-0485"
       ],
       "writtenAt": "2026-11-05T00:05:34Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "commands-command-class-0485"
+      ],
+      "writtenAt": "2026-11-05T02:55:03Z"
     }
   ]
 }

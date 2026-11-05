@@ -1,0 +1,35 @@
+{
+  "question": "¿Qué exige la referencia de Command, quién consume su forma de IntEnum en odoo19c y en nuestro árbol, y qué cambia para un consumidor si el primer elemento del triple es un miembro de IntEnum?",
+  "instrument": [
+    "scripts/workbench/orm-command-intenum-20261105T025540/probes/reference_usage_census.py",
+    "scripts/workbench/orm-command-intenum-20261105T025540/probes/intenum_behaviour.py",
+    "tests/integration/test_orm/test_contract_commands_command_class.py"
+  ],
+  "metric": "apariciones de Command en el AST de los 8566 *.py de odoo19c clasificadas por forma (fábrica, constante, comparación, construcción, API del enum, otras); conducta de str, format, %, JSON, pickle, deepcopy, igualdad, hash, type e isinstance de un IntEnum frente a int en el intérprete instalado; trece pruebas de contrato con cuatro mutaciones.",
+  "blind_to": [
+    "un consumidor que reciba el código por una vía indirecta sin nombrar Command",
+    "los clientes JavaScript, que envían el entero literal por RPC",
+    "la clase homónima de odoo/cli, contada en otras apariciones y excluida a mano"
+  ],
+  "corrected_premise": {
+    "decia": "ningún consumidor del árbol de la referencia usa la API del enum",
+    "mide": "la búsqueda inicial sólo probó cuatro patrones (Command(x[0]), .name, for in Command, list(Command))",
+    "consecuencia": "el censo por AST encuentra tuple(Command) e isinstance(x, Command | int) en chart_template.py y el registro del tipo en el serializador XML-RPC"
+  },
+  "reproducible": "ver README.md, sección Comandos",
+  "outputs": [
+    "outputs/reference.txt",
+    "outputs/reference_usage_census.txt",
+    "outputs/intenum_behaviour.txt",
+    "outputs/mutations.txt"
+  ],
+  "source": [
+    "odoo19c: odoo/orm/commands.py (odoo-tools@abe4040e)",
+    "odoo19c: odoo/orm/fields_relational.py:746-755",
+    "odoo19c: addons/account/models/chart_template.py:425,639,660,1300",
+    "odoo19c: addons/rpc/controllers/xmlrpc.py:108"
+  ],
+  "tasks": ["TASK-API-0485"],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-command-como-intenum.rst",
+  "measured_at": "2026-11-05T02:55:40"
+}

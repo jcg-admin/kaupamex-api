@@ -1,0 +1,64 @@
+archivos .py recorridos: 8566
+
+forma	apariciones	archivos
+factory	7300	921
+constant	26	6
+compare	104	19
+construct	0	0
+member_api	4	1
+other	31	24
+
+# muestras: compare
+addons/account/models/account_account.py:1036: case Command.CREATE, _, {'company_id': company_id, 'code': code} if company_id == companies[0].id:
+addons/account/models/account_bank_statement.py:345: if orm_command[0] == Command.LINK:
+addons/account/models/account_bank_statement.py:347: elif orm_command[0] == Command.SET:
+addons/account/models/account_full_reconcile.py:16: if command[0] == Command.LINK:
+addons/account/models/account_full_reconcile.py:18: elif command[0] == Command.SET:
+
+# muestras: construct
+
+# muestras: member_api
+addons/account/models/chart_template.py:639: case int() as command, *_ if command in tuple(Command):
+addons/account/models/chart_template.py:1300: case int() as command, _, {'tag_ids': str() as tags} as values if command in tuple(Command):
+addons/account/models/chart_template.py:425: case int() as command, _, {'tag_ids': tags} as repartition_line_values if command in tuple(Command):
+addons/account/models/chart_template.py:660: and isinstance(x[0], Command | int) for x in field_val
+
+# muestras: constant
+addons/point_of_sale/models/pos_order.py:122: line[0] = Command.UPDATE
+addons/pos_self_order/models/pos_order.py:133: return [Command.DELETE, line[1]]
+addons/pos_self_order/models/pos_order.py:135: return [Command.UNLINK, line[1]]
+addons/pos_self_order/models/pos_order.py:141: command = Command.CREATE if line[0] == Command.CREATE else Command.UPDATE
+addons/pos_self_order/models/pos_order.py:141: command = Command.CREATE if line[0] == Command.CREATE else Command.UPDATE
+
+# muestras: other
+addons/calendar/models/calendar_event.py:1033: if op in (2, 3, Command.delete, Command.unlink):  # Remove partner
+addons/calendar/models/calendar_event.py:1033: if op in (2, 3, Command.delete, Command.unlink):  # Remove partner
+addons/calendar/models/calendar_event.py:1035: elif op in (6, Command.set):  # Replace all
+addons/calendar/models/calendar_event.py:1038: elif op in (4, Command.link):
+addons/iot_drivers/cli/genproxytoken.py:11: class GenProxyToken(Command):
+addons/rpc/controllers/xmlrpc.py:108: dispatch[Command] = dispatch[int]
+addons/web/models/models.py:2327: remove = Command.delete if field.type == 'one2many' else Command.unlink
+addons/web/models/models.py:2327: remove = Command.delete if field.type == 'one2many' else Command.unlink
+addons/website_sale/tests/test_product_public_category.py:15: return list(map(Command.create, vals_list))
+odoo/addons/base/models/ir_actions.py:152: 'Command': Command,
+odoo/cli/cloc.py:7: class Cloc(Command):
+odoo/cli/command.py:92: def find_command(name: str) -> Command | None:
+odoo/cli/command.py:75: elif not Command.is_valid_name(command):
+odoo/cli/command.py:82: if (found_command := fullpath.stem) and Command.is_valid_name(found_command):
+odoo/cli/db.py:28: class Db(Command):
+odoo/cli/deploy.py:10: class Deploy(Command):
+odoo/cli/help.py:10: class Help(Command):
+odoo/cli/i18n.py:27: class I18n(Command):
+odoo/cli/module.py:18: class Module(Command):
+odoo/cli/neutralize.py:14: class Neutralize(Command):
+odoo/cli/obfuscate.py:14: class Obfuscate(Command):
+odoo/cli/populate.py:20: class Populate(Command):
+odoo/cli/scaffold.py:10: class Scaffold(Command):
+odoo/cli/server.py:122: class Server(Command):
+odoo/cli/shell.py:55: class Shell(Command):
+odoo/cli/start.py:13: class Start(Command):
+odoo/cli/upgrade_code.py:176: class UpgradeCode(Command):
+odoo/init.py:43: odoo.Command = Command
+odoo/init.py:43: odoo.Command = Command
+odoo/orm/commands.py:130: CommandValue = tuple[Command, int, typing.Literal[0] | ValuesType | Collection[int]]
+odoo/tools/convert.py:44: context = dict(Command=fields.Command,

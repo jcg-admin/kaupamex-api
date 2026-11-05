@@ -1,0 +1,20 @@
+python	3.13.18
+str	4
+format	4
+percent_d	4
+percent_s	4
+repr	<Code.LINK: 4>
+json	[[4, 7, 0]]
+pickle_equal	True
+deepcopy_member	True
+equal_int	True
+hash_int	True
+dict_key_int	x
+in_tuple	True
+type_is_int	False
+isinstance_int	True
+isinstance_bool	False
+member_is_zero	False
+plain_zero_is_zero	True
+plain tuple(Command): TypeError 'type' object is not iterable
+True
