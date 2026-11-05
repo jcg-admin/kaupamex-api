@@ -163,6 +163,13 @@
         "tools-query-reference-0486"
       ],
       "writtenAt": "2026-11-05T21:59:37Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-json-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:02:34Z"
     }
   ]
 }
