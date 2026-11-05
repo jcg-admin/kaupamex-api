@@ -2686,7 +2686,7 @@ class RecordLoaderMixin(FieldSqlMixin):
         Reescribirlo es un no-op allá y aquí un ``ValueError`` de Django, así
         que se filtra en un solo sitio en vez de en cada llamador.
         """
-        # ``odoo19c: odoo/orm/models.py:4348-4352``: un nombre que no es campo
+        # ``odoo19c: odoo/orm/models.py:4379-4383``: un nombre que no es campo
         # se rechaza antes de escribir nada. Sin esto ``setattr`` lo colgaba
         # como atributo suelto y ``update_fields`` lo descartaba en silencio.
         declared = type(self)._fields
