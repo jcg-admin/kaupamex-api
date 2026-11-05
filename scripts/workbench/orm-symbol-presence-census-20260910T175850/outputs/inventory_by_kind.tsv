@@ -1378,8 +1378,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py		file	not_verified
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	_init_barcode	function	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	createBarcodeDrawing	function	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	get_barcode_font	function	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	get_barcode_check_digit	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	check_barcode_encoding	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	get_barcode_check_digit	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_barcode_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/barcode.py	check_barcode_encoding	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_barcode_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_cache_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/cache.py	ormcache_counter.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_cache_reference.py
