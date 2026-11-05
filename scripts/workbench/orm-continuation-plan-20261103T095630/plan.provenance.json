@@ -177,6 +177,13 @@
         "tools-speedscope-reference-0486"
       ],
       "writtenAt": "2026-11-05T22:07:01Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-facade-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:10:41Z"
     }
   ]
 }
