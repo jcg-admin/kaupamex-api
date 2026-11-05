@@ -1,0 +1,20 @@
+== M1 __bool__ verdadero
+FAILED TestNewIdBehavesLikeTheReference::test_every_operation_matches_the_reference_class
+FAILED TestNewIdLiteralContract::test_it_is_always_falsy
+2 failed, 6 passed, 2 warnings in 6.50s
+== M2 __eq__ sólo por origin
+FAILED TestNewIdBehavesLikeTheReference::test_every_operation_matches_the_reference_class
+FAILED TestNewIdLiteralContract::test_equality_by_origin_or_by_ref_only
+2 failed, 6 passed, 2 warnings in 6.86s
+== M3 __lt__ sin origen ajeno devuelve False
+FAILED TestNewIdBehavesLikeTheReference::test_every_operation_matches_the_reference_class
+FAILED TestNewIdLiteralContract::test_an_origin_against_a_newid_without_origin_raises
+2 failed, 6 passed, 2 warnings in 7.06s
+== M4 __hash__ sin ref
+FAILED TestNewIdBehavesLikeTheReference::test_every_operation_matches_the_reference_class
+FAILED TestNewIdLiteralContract::test_the_hash_follows_origin_then_ref
+2 failed, 6 passed, 2 warnings in 6.64s
+== M5 __str__ con otro prefijo
+FAILED TestNewIdBehavesLikeTheReference::test_every_operation_matches_the_reference_class
+FAILED TestNewIdLiteralContract::test_text_forms
+2 failed, 6 passed, 2 warnings in 6.52s

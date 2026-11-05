@@ -65,6 +65,13 @@
         "commands-command-class-0485"
       ],
       "writtenAt": "2026-11-05T02:55:03Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "identifiers-newid-class-0485"
+      ],
+      "writtenAt": "2026-11-05T06:49:13Z"
     }
   ]
 }
