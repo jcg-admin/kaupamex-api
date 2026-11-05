@@ -17,10 +17,10 @@ Los lectores no son hipotéticos —se midieron antes de tocar nada—: viven en
 ``_description_aggregator`` y la ``property`` ``column_type``.
 """
 
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
 from orm.fields import type_for
+from orm.fields_reference import Many2oneReference
 
 
 class TestThePrimaryKeyAnswersLikeTheSource:
@@ -181,8 +181,10 @@ class TestTheColumnTypeOfTheTwoTreeDivergences:
     def test_the_generic_reference_keeps_the_integer_column(self):
         """``Many2oneReference(Integer)`` guarda el id crudo del apuntado.
 
-        ``GenericForeignKey`` no desciende de ``IntegerField``, así que sin
-        declararlo respondía ``None``: la columna que la fuente declara
-        desaparecía del contrato.
+        Desde TASK-API-0485 es una subclase de ``IntegerField``, como allá de
+        ``Integer``: la columna, el ``falsy_value`` y el resto se heredan, y
+        el ``aggregator = None`` lo declara la clase.
         """
-        assert GenericForeignKey._column_type == ('int4', 'int4')
+        assert Many2oneReference._column_type == ('int4', 'int4')
+        assert Many2oneReference.falsy_value == 0
+        assert Many2oneReference.aggregator is None

@@ -89,16 +89,16 @@ sustrato y no se inventa aquí.
 Medido sobre el mapa declarado: de las **20** claves de ``FIELD_TYPES``, la
 reflexión puede producir **14**. Las **6** inalcanzables, con su motivo:
 
-===================== ==========================================================
+===================== =========================================================
 Clave                 Por qué la reflexión nunca la emite
-===================== ==========================================================
+===================== =========================================================
 ``html``              colapsa en ``text`` (mismo ``TextField``)
 ``one2many``          es el reverso de un FK; ``_reflect_fields`` lo salta
-``reference``         ``GenericForeignKey``: no es campo concreto
-``many2one_reference`` ídem
+``reference``         ningún modelo declara todavía un ``Reference``
+``many2one_reference`` ídem, ``Many2oneReference``
 ``properties``        es ``JSONField``; sale como ``json``
 ``properties_definition`` ídem
-===================== ==========================================================
+===================== =========================================================
 
 Que una clave sea inalcanzable **no** la saca del vocabulario: una fila
 escrita a mano (o por un cargador futuro) sí puede declararla, y quitarla de
@@ -2931,11 +2931,12 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
     lo gobiernan las migraciones de Django.
 
     ``res_id`` es un ``Many2oneReference`` allá: el par (``model`` Char,
-    ``res_id`` entero). Nuestro alias ``fields.Many2oneReference`` es
-    ``GenericForeignKey`` (``orm/fields_reference.py:12``), que exige un FK
-    ``content_type`` en lugar del Char y **cambia la forma de la tabla**. Se
-    porta el par tal como está en la fuente — mismo criterio que
-    ``ir_attachment.res_id`` ya usa en este árbol.
+    ``res_id`` entero). Se porta el par tal como está en la fuente — mismo
+    criterio que ``ir_attachment.res_id`` ya usa en este árbol. Hasta
+    TASK-API-0485 ``fields.Many2oneReference`` era un alias de
+    ``GenericForeignKey``, que exigía un FK ``content_type``; hoy es la clase
+    de la fuente, y declararlo aquí queda como sucesor sin migración de
+    columna, porque la columna ya es el entero.
     """
 
     _name = 'ir.model.data'

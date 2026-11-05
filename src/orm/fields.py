@@ -306,9 +306,9 @@ _CLASS_ATTRIBUTE_OVERRIDES = {
     #: la búsqueda para en la primera clase del MRO que lo tenga.
     'Id': {
         'falsy_value': None,
-        #: ``aggregator`` NO lo declara ``Id`` allá: lo hereda de ``Field``, que
-        #: dice ``None``. Aquí hay que decirlo **explícitamente** porque las
-        #: tres clases de clave automática de Django descienden de
+        #: ``aggregator`` NO lo declara ``Id`` allá: lo hereda de ``Field``,
+        #: que dice ``None``. Aquí hay que decirlo **explícitamente** porque
+        #: las tres clases de clave automática de Django descienden de
         #: ``IntegerField``, que sí recibe el ``'sum'`` de ``Integer``. La
         #: fuente no tiene ese problema: su ``Id`` cuelga de ``Field``, no de
         #: ``Integer``. Es la misma diferencia de árbol que obligó a declarar
@@ -334,24 +334,25 @@ _CLASS_ATTRIBUTE_OVERRIDES = {
     'Json': {                                      # ``fields_misc.py:65``
         '_column_type': ('jsonb', 'jsonb'),
     },
-    'Integer': {                                   # ``fields_numeric.py:20-21``
+    'Integer': {  # ``fields_numeric.py:20-21``
         'falsy_value': 0,
         'aggregator': 'sum',
         '_column_type': ('int4', 'int4'),
     },
     #: ``Float`` (``fields_numeric.py:107``, ``:125-133``). El agregado es
     #: literal allá; el tipo de columna es una ``property`` que devuelve
-    #: ``('numeric','numeric')`` con dígitos declarados y ``('float8','float8')``
-    #: sin ellos. **Divergencia de mecanismo declarada:** en este stack la rama
-    #: de dígitos es *otra clase* —``DecimalField``, que recibe la declaración
-    #: de ``Monetary``—, así que ``FloatField`` sólo puede ser la otra rama. No
-    #: se recorta nada: las dos ramas existen, repartidas en dos clases.
+    #: ``('numeric','numeric')`` con dígitos declarados y
+    #: ``('float8','float8')`` sin ellos. **Divergencia de mecanismo
+    #: declarada:** en este stack la rama de dígitos es *otra clase*
+    #: —``DecimalField``, que recibe la declaración de ``Monetary``—, así que
+    #: ``FloatField`` sólo puede ser la otra rama. No se recorta nada: las dos
+    #: ramas existen, repartidas en dos clases.
     'Float': {
         'falsy_value': 0.0,
         'aggregator': 'sum',
         '_column_type': ('float8', 'float8'),
     },
-    'Monetary': {                                  # ``fields_numeric.py:196-197``
+    'Monetary': {  # ``fields_numeric.py:196-197``
         'falsy_value': Decimal('0'),
         'aggregator': 'sum',
         '_column_type': ('numeric', 'numeric'),
@@ -362,36 +363,21 @@ _CLASS_ATTRIBUTE_OVERRIDES = {
     'Text': {                                      # ``fields_textual.py:542``
         '_column_type': ('text', 'text'),
     },
-    'Many2one': {                                  # ``fields_relational.py:245``
+    'Many2one': {  # ``fields_relational.py:245``
         '_column_type': ('int4', 'int4'),
     },
     'Binary': {                                    # ``fields_binary.py``
         'prefetch': False,
     },
-    'Properties': {                                # ``fields_properties.py:53``
+    'Properties': {  # ``fields_properties.py:53``
         '_column_type': ('jsonb', 'jsonb'),
         'prefetch': False,
         'readonly': False,
     },
-    'PropertiesDefinition': {                      # ``fields_properties.py:850``
+    'PropertiesDefinition': {  # ``fields_properties.py:850``
         '_column_type': ('jsonb', 'jsonb'),
         'readonly': False,
         'prefetch': True,
-    },
-    #: ``Many2oneReference`` (``fields_reference.py``) hereda de ``Integer``
-    #: allá, así que su ``falsy_value`` es el ``0`` de aquél; su ``aggregator``
-    #: sí lo declara propio, anulando el ``'sum'`` que heredaría. Aquí no
-    #: desciende de ``IntegerField``, de modo que las dos cosas hay que
-    #: decirlas: la heredada y la declarada.
-    'Many2oneReference': {
-        'falsy_value': 0,
-        'aggregator': None,
-        #: ``Many2oneReference(Integer)`` guarda el id crudo del registro
-        #: apuntado, así que hereda la columna del entero. Aquí
-        #: ``GenericForeignKey`` no desciende de ``IntegerField``, y sin
-        #: declararlo respondía ``None``: la columna que la fuente declara
-        #: desaparecía.
-        '_column_type': ('int4', 'int4'),
     },
 }
 
@@ -2466,6 +2452,12 @@ def type_for(field):
     declared = getattr(field, 'declared_type', None)
     if declared:
         return declared
+    #: La clase que declara su ``type`` como la fuente —``Reference``,
+    #: ``Many2oneReference``, ``SelectionField``— lo dice ella: su clase de
+    #: Django (``CharField``, ``IntegerField``) es la de otro tipo.
+    class_type = getattr(type(field), 'type', None)
+    if isinstance(class_type, str) and class_type:
+        return class_type
     internal = field.get_internal_type()
     if internal == 'CharField' and getattr(field, 'choices', None):
         return 'selection'

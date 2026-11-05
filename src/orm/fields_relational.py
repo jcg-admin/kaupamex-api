@@ -341,11 +341,10 @@ class One2many:
         FK polimorfico guarda modelo e id en dos columnas, y sin acotar el
         modelo el conjunto traeria las filas de todos los demas.
 
-        **DESCONOCIDO declarado, con su condicion de cierre.** Aqui
-        ``Many2oneReference`` es el ``GenericForeignKey`` de ``contenttypes``
-        (``orm/fields_reference.py:14``), que **no** expone ``model_field``: su
-        par de columnas se llama ``ct_field``/``fk_field`` y ningun addon
-        portado declara todavia un inverso polimorfico. La rama se cierra
+        **DESCONOCIDO declarado, con su condicion de cierre.** Desde
+        TASK-API-0485 ``Many2oneReference`` es la clase de la fuente y expone
+        ``model_field``, pero ningun addon portado declara todavia un inverso
+        polimorfico contra el que medir esta rama. La rama se cierra
         cuando exista el primero que medir — tarea **#240**. Hasta entonces
         devuelve el predicado vacio, que es lo que la fuente devuelve para los
         otros dos tipos de inverso (``Domain.TRUE``).
