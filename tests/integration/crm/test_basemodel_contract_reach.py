@@ -87,3 +87,26 @@ class TestDisplayNameReachesTheLead:
         lead = CrmLead.objects.create(name='Etiqueta de la iniciativa')
         assert lead._compute_display_name() == 'Etiqueta de la iniciativa'
         assert lead.display_name == 'Etiqueta de la iniciativa'
+
+
+class TestWriteReachesTheLead:
+    """``write`` (``models.py:4334-4353``) por ``RecordLoaderMixin``.
+
+    La fuente rechaza un nombre que no es campo con ``ValueError("Invalid
+    field ...")`` antes de escribir nada, y devuelve ``True``. Mutaciones que
+    la hacen caer: retirar la comprobación del nombre (cae la primera) o
+    devolver el registro (cae la segunda).
+    """
+
+    def test_a_name_that_is_not_a_field_is_rejected(self, db):
+        lead = CrmLead.objects.create(name='Nombre ajeno')
+        with pytest.raises(ValueError, match='Invalid field'):
+            lead.write({'name': 'No se escribe', 'no_such_field': 1})
+        lead.refresh_from_db()
+        assert lead.name == 'Nombre ajeno', 'nada se escribe antes del error'
+
+    def test_the_write_returns_true(self, db):
+        lead = CrmLead.objects.create(name='Retorno')
+        assert lead.write({'name': 'Retorno escrito'}) is True
+        lead.refresh_from_db()
+        assert lead.name == 'Retorno escrito'

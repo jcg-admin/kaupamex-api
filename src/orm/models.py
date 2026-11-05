@@ -2633,11 +2633,20 @@ class RecordLoaderMixin(FieldSqlMixin):
         Reescribirlo es un no-op allá y aquí un ``ValueError`` de Django, así
         que se filtra en un solo sitio en vez de en cada llamador.
         """
+        # ``odoo19c: odoo/orm/models.py:4348-4352``: un nombre que no es campo
+        # se rechaza antes de escribir nada. Sin esto ``setattr`` lo colgaba
+        # como atributo suelto y ``update_fields`` lo descartaba en silencio.
+        declared = type(self)._fields
+        for fname in values:
+            if fname not in declared:
+                model_name = getattr(type(self), '_name', self._meta.label)
+                raise ValueError(
+                    f"Invalid field {fname!r} in {model_name!r}")
         pk_name = self._meta.pk.name
         values = {fname: value for fname, value in values.items()
                   if fname not in (pk_name, 'id')}
         if not values:
-            return self
+            return True
         determine_inverses = self._group_written_inverses(values)
         self._warm_x2many_before_inverse(determine_inverses)
         protected = self._protected_while_writing(values)
@@ -2711,7 +2720,7 @@ class RecordLoaderMixin(FieldSqlMixin):
             # protección, una vez por grupo.
             for fields in determine_inverses.values():
                 fields[0].determine_inverse(self)
-        return self
+        return True
 
     def _pop_many2many_values(self, values):
         """Retira de ``values`` los ``Many2many`` escritos en la forma de la
