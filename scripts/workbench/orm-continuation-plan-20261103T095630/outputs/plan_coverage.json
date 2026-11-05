@@ -1,9 +1,14 @@
 {
- "verdict": "C",
+ "verdict": "B",
  "acceptance": "requires executor authority (I-011)",
  "population": 83,
  "open_tasks": 66,
- "frontier": [],
+ "frontier": [
+  {
+   "id": "nonstored-class-retired-0418",
+   "task": "TASK-API-0418"
+  }
+ ],
  "blocked": [
   {
    "id": "misc-stripped-sys-argv",
@@ -14,11 +19,6 @@
    "id": "attachment-record-access",
    "task": "TASK-API-0397",
    "reason": "state failed"
-  },
-  {
-   "id": "nonstored-class-retired-0418",
-   "task": "TASK-API-0418",
-   "reason": "claimed by codex-module-lifecycle (TASK-API-0267) on src/addons/base/models/ir_module.py"
   }
  ],
  "unrepresented": [
@@ -105,9 +105,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 3,
+  "task_units_settled": 16,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 2178
+  "task_without_unit": 2165
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -150,7 +150,8 @@
   "utils-functions-and-originids-0485",
   "decorators-model-private-readonly-create-multi-0485",
   "models-transient-class-attributes-0485",
-  "models-transient-log-access-columns-0485"
+  "models-transient-log-access-columns-0485",
+  "fields-selection-class-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

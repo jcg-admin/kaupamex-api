@@ -753,24 +753,24 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.relational	attribute	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_sequence	attribute	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py		file	not_verified	mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection	class	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.__init__	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection	class	absent	structural=unresolved;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.__init__	method	not_verified	structural=paired_by_name:_BoundValidate.__init__;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.setup_nonrelated	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.setup_related	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.setup_related	method	not_verified	structural=paired_by_name:SelectionField.setup_related;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._get_attrs	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._setup_attrs__	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._selection_modules	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._description_selection	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._default_group_expand	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.get_values	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.convert_to_column	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.convert_to_cache	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.convert_to_export	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._description_selection	method	not_verified	structural=paired_by_name:SelectionField._description_selection;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._default_group_expand	method	not_verified	structural=paired_by_name:SelectionField._default_group_expand;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.get_values	method	not_verified	structural=paired_by_name:SelectionField.get_values;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.convert_to_column	method	not_verified	structural=paired_by_name:SelectionField.convert_to_column;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.convert_to_cache	method	not_verified	structural=paired_by_name:SelectionField.convert_to_cache;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.convert_to_export	method	not_verified	structural=paired_by_name:SelectionField.convert_to_export;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._column_type	attribute	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.ondelete	attribute	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.selection	attribute	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.type	attribute	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.validate	attribute	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.ondelete	attribute	absent	structural=unresolved;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.selection	attribute	absent	structural=unresolved;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.type	attribute	absent	structural=unresolved;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.validate	attribute	absent	structural=unresolved;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate	class	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate.expression_getter	method	not_verified	structural=unresolved;write_path=-;evidence=-

@@ -335,3 +335,16 @@ src/orm/models_transient.py	TransientModel._abstract	attribute	tests/integration
 src/orm/models_transient.py	TransientModel._transient	attribute	tests/integration/test_orm/test_contract_models_transient_class_attributes.py
 src/orm/models_transient.py	TransientModel._transient_max_count	attribute	tests/integration/test_orm/test_contract_models_transient_class_attributes.py
 src/orm/models_transient.py	TransientModel._transient_max_hours	attribute	tests/integration/test_orm/test_contract_models_transient_class_attributes.py
+src/orm/fields_selection.py	Selection	class	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.__init__	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.setup_related	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.get_values	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.convert_to_cache	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.convert_to_column	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.convert_to_export	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection._default_group_expand	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection._description_selection	method	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.type	attribute	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.validate	attribute	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.ondelete	attribute	tests/integration/test_orm/test_contract_fields_selection_class.py
+src/orm/fields_selection.py	Selection.selection	attribute	tests/integration/test_orm/test_contract_fields_selection_class.py
