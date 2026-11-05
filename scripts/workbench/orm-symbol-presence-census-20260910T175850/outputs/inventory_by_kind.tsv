@@ -15,7 +15,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.LINK	attrib
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.SET	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.UNLINK	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.UPDATE	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py		file	not_verified	mirror=yes
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py		file	satisfied	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	deprecated	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_decorators_deprecated.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	deprecated.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_decorators_deprecated.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	deprecated.__call__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_decorators_deprecated.py
@@ -26,10 +26,10 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	onchange	function
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	depends	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_level_two_symbols.py::TestTheThreeSiblingsGainTheirMissingHalf::test_depends_stores_the_field_names
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	depends_context	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_level_two_symbols.py::TestDependsContextMarksTheContextKeys::test_it_stores_the_keys_and_returns_the_method
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	autovacuum	function	satisfied	structural=match;write_path=-;evidence=tests/unit/base/test_ir_autovacuum_gc_signaling.py::TestTheMethodIsCollected::test_its_name_stays_private
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	model	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	private	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	readonly	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	model_create_multi	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	model	function	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	private	function	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	readonly	function	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	model_create_multi	function	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.next_level	property	not_verified	structural=match;write_path=-;evidence=-

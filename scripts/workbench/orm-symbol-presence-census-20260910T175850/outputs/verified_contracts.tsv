@@ -325,3 +325,7 @@ src/orm/utils.py	OriginIds.__init__	method	tests/integration/test_orm/test_contr
 src/orm/utils.py	OriginIds.__iter__	method	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
 src/orm/utils.py	OriginIds.__reversed__	method	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
 src/orm/utils.py	OriginIds.__slots__	attribute	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/decorators.py	model	function	tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
+src/orm/decorators.py	private	function	tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
+src/orm/decorators.py	readonly	function	tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
+src/orm/decorators.py	model_create_multi	function	tests/integration/test_orm/test_contract_decorators_model_private_readonly_create_multi.py
