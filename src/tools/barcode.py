@@ -8,15 +8,14 @@ Porte símbolo por símbolo — 5 de 5
 
 Medido sobre ``odoo19c: odoo/tools/barcode.py`` (93 líneas): 5 símbolos.
 
-================================================  =====================================
-Símbolo de la referencia (línea)                  Aquí
-================================================  =====================================
-``get_barcode_check_digit`` (48-72)               ``get_barcode_check_digit``
-``check_barcode_encoding`` (75-93)                ``check_barcode_encoding``
-``BARCODE_SIZES`` (implícito, ``:82-88``)         constante nombrada
-``createBarcodeDrawing`` (38-40)                  ``render_barcode_png``
-``_init_barcode`` (15-35) · ``get_barcode_font``  divergencia declarada (abajo)
-================================================  =====================================
+Símbolo de la referencia (línea) → aquí:
+
+- ``get_barcode_check_digit`` (48-72) → ``get_barcode_check_digit``
+- ``check_barcode_encoding`` (75-93) → ``check_barcode_encoding``
+- ``BARCODE_SIZES`` (implícito, ``:82-88``) → constante nombrada
+- ``createBarcodeDrawing`` (38-40) → ``render_barcode_png``
+- ``_init_barcode`` (15-35) · ``get_barcode_font`` → divergencia declarada
+  (abajo)
 
 **Dos símbolos de más, y no son porte.** ``render_barcode_image`` e
 ``image_to_png`` son el corte en dos de ``render_barcode_png``: el gancho de
@@ -29,10 +28,11 @@ Divergencias declaradas
 =========================
 
 **El motor de raster es otro, y por eso dos símbolos no tienen contraparte.**
-La referencia rasteriza con ``reportlab.graphics.barcode``, que es su librería
-de PDF; este árbol no la integra (decreto del ejecutor: el motor de papel es
-nuestro). El raster lo hacen ``python-barcode`` —con el ``ImageWriter`` de
-Pillow— y ``qrcode``, que producen PNG y no tocan la generación de PDF.
+La referencia rasteriza con ``reportlab.graphics.barcode``, que es su
+biblioteca de PDF; este árbol no la integra (decreto del ejecutor: el motor de
+papel es nuestro). El raster lo hacen ``python-barcode`` —con el
+``ImageWriter`` de Pillow— y ``qrcode``, que producen PNG y no tocan la
+generación de PDF.
 
 Los dos símbolos que quedan fuera son **infraestructura de ReportLab**, no
 comportamiento del código de barras:
@@ -143,7 +143,9 @@ def check_barcode_encoding(barcode: str, encoding: str) -> bool:
     if encoding == 'any':
         return True
     size = BARCODE_SIZES[encoding]
-    return bool(
+    # Sin ``bool()``: la referencia devuelve el operando que corta la cadena,
+    # así que un código con caracteres no numéricos da ``None`` y no ``False``.
+    return (
         (encoding != 'ean13' or barcode[0] != '0')
         and len(barcode) == size
         and re.match(r'^\d+$', barcode)
@@ -159,7 +161,7 @@ def render_barcode_png(barcode_type, value, width=600, height=100,
     Devuelve el PNG del código, ya escalado a ``width`` × ``height``.
 
     **Divergencia de mecanismo, con su razón.** La referencia delega en
-    ``reportlab.graphics.barcode``, que es su librería de PDF; este árbol no
+    ``reportlab.graphics.barcode``, que es su biblioteca de PDF; este árbol no
     la integra (decreto del ejecutor: el motor de papel es nuestro). El
     contrato que sí se conserva es el que consume ``ir.actions.report``:
     entra un tipo y un valor, sale un PNG del tamaño pedido.
@@ -195,7 +197,7 @@ def render_barcode_image(barcode_type, value, width=600, height=100,
     entrega el ``Drawing`` de ReportLab, y aquí le entrega la imagen de
     Pillow. Sin este corte el gancho no tendría dónde morder.
 
-    **Traduce el error de la librería a ``ValueError``**, que es lo que
+    **Traduce el error de la biblioteca a ``ValueError``**, que es lo que
     ``createBarcodeDrawing`` alza y lo que su llamador atrapa
     (``except (ValueError, AttributeError)``). ``python-barcode`` tiene su
     propia jerarquía (``BarcodeError``) y ``Code128('')`` alza un

@@ -1407,6 +1407,7 @@ src/scripts/generate_oja_csv.py::_CORTE
 src/scripts/generate_oja_csv.py::_truncar
 src/scripts/generate_oja_csv.py::imagenes
 src/service/model.py::cla_method
+src/tools/barcode.py::sscc
 src/tools/cache.py::parametros
 src/tools/date_utils.py::doy
 src/tools/misc.py::configurado
