@@ -1514,20 +1514,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/image.py	ImageProcess.resize	
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/image.py	ImageProcess.crop_resize	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/image.py	ImageProcess.colorize	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/image.py	ImageProcess.add_padding	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	_boundaries	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__init__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__bool__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__len__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__iter__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__reversed__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__or__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__and__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.__sub__	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals._merge	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.remove	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/intervals.py	Intervals.items	method	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py		file	absent	task_without_unit	TASK-API-0486		mirror=no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	transpile_javascript	function	absent	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	url_to_module_path	function	absent	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-

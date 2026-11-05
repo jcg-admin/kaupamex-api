@@ -376,3 +376,16 @@ src/tools/intervals.py	Intervals.__sub__	method	tests/unit/tools/test_contract_i
 src/tools/intervals.py	Intervals._merge	method	tests/unit/tools/test_contract_intervals_reference.py
 src/tools/intervals.py	Intervals.remove	method	tests/unit/tools/test_contract_intervals_reference.py
 src/tools/intervals.py	Intervals.items	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/lru.py	LRU	class	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__init__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.count	property	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__contains__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__getitem__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__setitem__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__delitem__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__len__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__iter__	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.snapshot	property	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.pop	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.clear	method	tests/unit/tools/test_contract_lru_reference.py
+src/tools/lru.py	LRU.__slots__	attribute	tests/unit/tools/test_contract_lru_reference.py
