@@ -72,6 +72,13 @@
         "identifiers-newid-class-0485"
       ],
       "writtenAt": "2026-11-05T06:49:13Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "utils-functions-and-originids-0485"
+      ],
+      "writtenAt": "2026-11-05T06:54:16Z"
     }
   ]
 }

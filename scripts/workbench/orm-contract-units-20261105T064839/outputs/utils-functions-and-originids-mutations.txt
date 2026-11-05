@@ -1,0 +1,20 @@
+== M1 check_object_name admite mayúsculas
+FAILED TestUtilsBehaveLikeTheReference::test_every_input_matches_the_reference_module
+FAILED TestUtilsLiteralContract::test_object_names_are_lowercase_dotted
+2 failed, 6 passed, 2 warnings in 6.85s
+== M2 check_pg_name con tope 64
+FAILED TestUtilsBehaveLikeTheReference::test_every_input_matches_the_reference_module
+FAILED TestUtilsLiteralContract::test_pg_names_are_capped_at_63
+2 failed, 6 passed, 2 warnings in 6.88s
+== M3 parse_field_expr no rechaza campo vacío
+FAILED TestUtilsBehaveLikeTheReference::test_every_input_matches_the_reference_module
+FAILED TestUtilsLiteralContract::test_a_field_expression_needs_a_field
+2 failed, 6 passed, 2 warnings in 7.19s
+== M4 expand_ids sin filtro de clase
+FAILED TestUtilsBehaveLikeTheReference::test_every_input_matches_the_reference_module
+FAILED TestUtilsLiteralContract::test_expand_ids_keeps_the_kind_of_the_first
+2 failed, 6 passed, 2 warnings in 6.46s
+== M5 OriginIds.__iter__ emite NewId sin origen
+FAILED TestUtilsBehaveLikeTheReference::test_every_input_matches_the_reference_module
+FAILED TestUtilsLiteralContract::test_origin_ids_skip_new_ids_without_origin
+2 failed, 6 passed, 2 warnings in 6.58s
