@@ -363,3 +363,16 @@ src/orm/fields_reference.py	Many2oneReference.model_field	attribute	tests/integr
 src/orm/fields_reference.py	Many2oneReference.aggregator	attribute	tests/integration/test_orm/test_contract_fields_reference_classes.py
 src/orm/fields_reference.py	Many2oneReference._related_model_field	attribute	tests/integration/test_orm/test_contract_fields_reference_classes.py
 src/orm/fields_reference.py	Many2oneReference._description_model_field	attribute	tests/integration/test_orm/test_contract_fields_reference_classes.py
+src/tools/intervals.py	_boundaries	function	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals	class	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__init__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__bool__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__len__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__iter__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__reversed__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__or__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__and__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.__sub__	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals._merge	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.remove	method	tests/unit/tools/test_contract_intervals_reference.py
+src/tools/intervals.py	Intervals.items	method	tests/unit/tools/test_contract_intervals_reference.py
