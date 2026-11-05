@@ -866,16 +866,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html.type	att
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	LangProxyDict.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Text._column_type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Text.type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__init__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__bool__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__eq__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__hash__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__lt__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__repr__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__str__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/identifiers.py	NewId.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/model_classes.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/model_classes.py	is_model_definition	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/model_classes.py	is_model_class	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -1191,15 +1181,15 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/table_objects.py	TableObject.na
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/table_objects.py	UniqueIndex.unique	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/types.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	check_object_name	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	check_pg_name	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	parse_field_expr	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	expand_ids	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0129	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__iter__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__reversed__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	check_object_name	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	check_pg_name	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	parse_field_expr	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	expand_ids	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__init__	method	not_verified	task_units_settled	TASK-API-0485	TASK-API-0129	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__iter__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__reversed__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/utils.py	OriginIds.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/_vendor/send_file.py		file	absent	task_without_unit	TASK-API-0487		mirror=no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/_vendor/send_file.py	send_file	function	absent	task_without_unit	TASK-API-0487		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/_vendor/sessions.py		file	not_verified	task_without_unit	TASK-API-0487		mirror=no

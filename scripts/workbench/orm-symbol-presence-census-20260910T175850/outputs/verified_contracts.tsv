@@ -316,3 +316,12 @@ src/orm/identifiers.py	NewId.__lt__	method	tests/integration/test_orm/test_contr
 src/orm/identifiers.py	NewId.__repr__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
 src/orm/identifiers.py	NewId.__str__	method	tests/integration/test_orm/test_contract_identifiers_newid_class.py
 src/orm/identifiers.py	NewId.__slots__	attribute	tests/integration/test_orm/test_contract_identifiers_newid_class.py
+src/orm/utils.py	check_object_name	function	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	check_pg_name	function	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	parse_field_expr	function	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	expand_ids	function	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	OriginIds	class	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	OriginIds.__init__	method	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	OriginIds.__iter__	method	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	OriginIds.__reversed__	method	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
+src/orm/utils.py	OriginIds.__slots__	attribute	tests/integration/test_orm/test_contract_utils_functions_and_originids.py
