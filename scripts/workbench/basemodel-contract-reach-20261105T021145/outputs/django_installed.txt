@@ -1,0 +1,40 @@
+# Django instalado: 6.0.5 en /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django
+
+$ grep -n 'auto_created = True' -B6 db/models/base.py
+434-            if any(f.name == "objects" for f in opts.fields):
+435-                raise ValueError(
+436-                    "Model %s must specify a custom Manager, because it has a "
+437-                    "field named 'objects'." % cls.__name__
+438-                )
+439-            manager = Manager()
+440:            manager.auto_created = True
+
+$ grep -n 'seen_managers' -A3 db/models/options.py
+449:        seen_managers = set()
+450-        bases = (b for b in self.model.mro() if hasattr(b, "_meta"))
+451-        for depth, base in enumerate(bases):
+452-            for manager in base._meta.local_managers:
+453:                if manager.name in seen_managers:
+454-                    continue
+455-
+456-                manager = copy.copy(manager)
+--
+458:                seen_managers.add(manager.name)
+459-                managers.append((depth, manager.creation_counter, manager))
+460-
+461-        return make_immutable_fields_list(
+
+$ grep -n '    def __eq__' -A12 db/models/base.py
+616:    def __eq__(self, other):
+617-        if not isinstance(other, Model):
+618-            return NotImplemented
+619-        if self._meta.concrete_model != other._meta.concrete_model:
+620-            return False
+621-        my_pk = self.pk
+622-        if my_pk is None:
+623-            return self is other
+624-        return my_pk == other.pk
+625-
+626-    def __hash__(self):
+627-        if not self._is_pk_set():
+628-            raise TypeError("Model instances without primary key value are unhashable")

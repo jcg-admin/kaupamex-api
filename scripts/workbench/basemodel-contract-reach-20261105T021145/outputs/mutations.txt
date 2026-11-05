@@ -1,0 +1,9 @@
+== M1 OrderMixin._check_qorder sin raise
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestOrderClauseCheckReachesTheLead::test_an_injected_clause_is_rejected
+1 failed, 4 passed, 2 warnings in 4.81s
+== M2 AccessQuerySet._check_access devuelve None
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestAccessCheckReachesTheLeadThroughItsManager::test_a_user_without_model_permission_is_refused
+1 failed, 4 passed, 2 warnings in 4.73s
+== M3 DisplayNameMixin siempre modelo,id
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestDisplayNameReachesTheLead::test_the_label_is_the_name
+1 failed, 4 passed, 2 warnings in 5.10s

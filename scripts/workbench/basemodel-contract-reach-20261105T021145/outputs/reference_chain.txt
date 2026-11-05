@@ -1,0 +1,85 @@
+# odoo-tools commit
+abe4040ec1a45beee90fb694e4eae4453e46b389 2026-08-10T01:51:12-06:00
+
+$ grep -nE "^class (MetaModel|BaseModel|Model)|^AbstractModel =" odoo/orm/models.py; grep -n "^class TransientModel" odoo/orm/models_transient.py
+206:class MetaModel(type):
+334:class BaseModel(metaclass=MetaModel):
+7046:AbstractModel = BaseModel
+7049:class Model(AbstractModel):
+10:class TransientModel(Model):
+
+$ sed -n 7046,7062p odoo/orm/models.py
+AbstractModel = BaseModel
+
+
+class Model(AbstractModel):
+    """ Main super-class for regular database-persisted Odoo models.
+
+    Odoo models are created by inheriting from this class::
+
+        class ResUsers(Model):
+            ...
+
+    The system will later instantiate the class once per database (on
+    which the class' module is installed).
+    """
+    _auto: bool = True          # automatically create database backend
+    _register: bool = False     # not visible in ORM registry, meant to be python-inherited only
+    _abstract: typing.Literal[False] = False  # not abstract
+
+$ sed -n 10,20p odoo/orm/models_transient.py
+class TransientModel(Model):
+    """ Model super-class for transient records, meant to be temporarily
+    persistent, and regularly vacuum-cleaned.
+
+    A TransientModel has a simplified access rights management, all users can
+    create new records, and may only access the records they created. The
+    superuser has unrestricted access to all TransientModel records.
+    """
+    _auto: bool = True          # automatically create database backend
+    _register: bool = False     # not visible in ORM registry, meant to be python-inherited only
+    _abstract = False           # not abstract
+
+$ sed -n 165,206p odoo/orm/model_classes.py  # add_to_registry: base implícita y bases
+
+    # all models except 'base' implicitly inherit from 'base'
+    name = model_def._name
+    parent_names = list(model_def._inherit)
+    if name != 'base':
+        parent_names.append('base')
+
+    # create or retrieve the model's class
+    if name in parent_names:
+        if name not in registry:
+            raise TypeError(f"Model {name!r} does not exist in registry.")
+        model_cls = registry[name]
+        _check_model_extension(model_cls, model_def)
+    else:
+        model_cls = type(name, (model_def,), {
+            'pool': registry,                       # this makes it a model class
+            '_name': name,
+            '_register': False,
+            '_original_module': model_def._module,
+            '_inherit_module': {},                  # map parent to introducing module
+            '_inherit_children': OrderedSet(),      # names of children models
+            '_inherits_children': set(),            # names of children models
+            '_fields__': {},                        # populated in _setup()
+            '_table_objects': frozendict(),         # populated in _setup()
+        })
+        model_cls._fields = MappingProxyType(model_cls._fields__)
+
+    # determine all the classes the model should inherit from
+    bases = LastOrderedSet([model_def])
+    for parent_name in parent_names:
+        if parent_name not in registry:
+            raise TypeError(f"Model {name!r} inherits from non-existing model {parent_name!r}.")
+        parent_cls = registry[parent_name]
+        if parent_name == name:
+            for base in parent_cls._base_classes__:
+                bases.add(base)
+        else:
+            _check_model_parent_extension(model_cls, model_def, parent_cls)
+            bases.add(parent_cls)
+            model_cls._inherit_module[parent_name] = model_def._module
+            parent_cls._inherit_children.add(name)
+

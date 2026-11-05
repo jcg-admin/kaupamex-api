@@ -1,0 +1,15 @@
+{
+  "action_archive": {
+    "expected": "active pasa a False (models.py:5797-5806)",
+    "raised": "AttributeError: 'CrmLead' object has no attribute 'action_archive'",
+    "active_after": true
+  },
+  "write_unknown_field": {
+    "expected": "ValueError('Invalid field ...') (models.py write)",
+    "returned": "<CrmLead: Sonda de alcance>"
+  },
+  "write_return_value": {
+    "expected": "True (models.py write)",
+    "returned": "<CrmLead: Sonda renombrada>"
+  }
+}

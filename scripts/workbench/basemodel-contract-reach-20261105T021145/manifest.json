@@ -1,0 +1,39 @@
+{
+  "question": "¿Por qué vía llega a cada modelo de producción cada miembro que la clase BaseModel de odoo19c declara, y qué hace crm.lead ante los contratos que le llegan y ante los que no?",
+  "instrument": [
+    "scripts/workbench/basemodel-contract-reach-20261105T021145/probes/channel_census.py",
+    "scripts/workbench/basemodel-contract-reach-20261105T021145/probes/test_probe_crm_lead_behaviour.py",
+    "tests/integration/crm/test_basemodel_contract_reach.py"
+  ],
+  "metric": "clase del MRO que define cada uno de los 188 nombres de función del cuerpo de BaseModel (odoo19c), por modelo concreto de producción, clasificada en herencia, mixin de src/orm, parche sobre django.db.models.Model, delegación al queryset del manager, código de producción, Django, object o ausente; más el resultado observado de tres contratos en crm.lead y tres pruebas de comportamiento con su mutación.",
+  "blind_to": [
+    "la equivalencia de comportamiento de un nombre presente: la vía de llegada no prueba el contrato",
+    "un contrato que el modelo cumpla con otro nombre",
+    "los modelos abstractos y proxy, excluidos de la población",
+    "modelos de producción distintos de crm.lead en las pruebas de comportamiento"
+  ],
+  "corrected_premise": {
+    "decia": "395 de 396 modelos de producción no reciben los contratos de BaseModel porque no heredan de ella",
+    "mide": "issubclass(model, BaseModel) sólo ve la vía de herencia; los mixins de TimeStampedModel, los parches sobre Model y la delegación del manager quedan fuera",
+    "consecuencia": "19 nombres llegan a los 396, 106 a parte de ellos y 63 a ninguno; el incumplimiento global no se sigue de la medición de herencia"
+  },
+  "reproducible": "ver README.md, sección Comandos",
+  "outputs": [
+    "outputs/summary.json",
+    "outputs/channels_by_name.tsv",
+    "outputs/representative.tsv",
+    "outputs/crm_lead_behaviour.json",
+    "outputs/mutations.txt",
+    "outputs/reference_chain.txt",
+    "outputs/django_installed.txt"
+  ],
+  "source": [
+    "odoo19c: odoo/orm/models.py::BaseModel, Model, AbstractModel (odoo-tools@abe4040e)",
+    "odoo19c: odoo/orm/models_transient.py::TransientModel",
+    "odoo19c: odoo/orm/model_classes.py::add_to_registry",
+    "django 6.0.5 instalado: db/models/base.py, db/models/options.py"
+  ],
+  "tasks": ["TASK-API-0397", "TASK-API-0398"],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/hallazgos/hallazgo-H-API-1145-los-contratos-de-basemodel-no-llegan-a-los-modelos-de-produccion.rst",
+  "measured_at": "2026-11-05T02:11:45"
+}
