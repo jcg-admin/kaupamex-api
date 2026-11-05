@@ -205,6 +205,13 @@
         "tools-mimetypes-reference-0486"
       ],
       "writtenAt": "2026-11-05T22:26:18Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-barcode-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:35:48Z"
     }
   ]
 }
