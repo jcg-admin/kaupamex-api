@@ -232,6 +232,14 @@ class ormcache_context(ormcache):
     una secuencia de claves de diccionario. Esas claves se buscan en el
     parámetro ``context`` y se combinan con la clave que hace
     :class:`ormcache`.
+
+    DIVERGENCIA DE CONDUCTA, declarada: ``__init__`` guarda ``keys``. La
+    fuente no lo hace (``odoo19c: odoo/tools/cache.py``, ``ormcache_context``)
+    y su ``determine_key`` lee ``self.keys``, así que cualquier uso del
+    decorador falla con ``AttributeError`` al decorar. Medido ejecutando la
+    fuente en ``tests/unit/tools/test_contract_cache_reference.py``. Aquí se
+    guarda para que la variante obsoleta funcione; ningún consumidor del
+    árbol la usa hoy.
     """
 
     def __init__(self, *args: str, keys, skiparg=None, **kwargs):
