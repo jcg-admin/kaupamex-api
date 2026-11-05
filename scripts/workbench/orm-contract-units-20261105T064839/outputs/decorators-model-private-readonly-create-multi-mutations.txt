@@ -1,0 +1,17 @@
+== M1 model sin la rama de create
+FAILED TestDecoratorsBehaveLikeTheReference::test_every_decorator_matches_the_reference_module
+FAILED TestDecoratorsLiteralContract::test_model_turns_create_into_the_multi_wrapper
+2 failed, 3 passed, 2 warnings in 6.70s
+== M2 private sin marca
+FAILED TestDecoratorsBehaveLikeTheReference::test_every_decorator_matches_the_reference_module
+FAILED TestDecoratorsLiteralContract::test_private_and_readonly_mark_the_same_function
+2 failed, 3 passed, 2 warnings in 6.76s
+== M3 readonly sin marca
+FAILED TestDecoratorsBehaveLikeTheReference::test_every_decorator_matches_the_reference_module
+FAILED TestDecoratorsLiteralContract::test_private_and_readonly_mark_the_same_function
+2 failed, 3 passed, 2 warnings in 6.64s
+== M4 model_create_multi no envuelve el Mapping
+FAILED TestDecoratorsBehaveLikeTheReference::test_every_decorator_matches_the_reference_module
+FAILED TestDecoratorsLiteralContract::test_model_turns_create_into_the_multi_wrapper
+FAILED TestDecoratorsLiteralContract::test_create_multi_lists_a_single_mapping
+3 failed, 2 passed, 2 warnings in 6.83s

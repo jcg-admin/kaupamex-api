@@ -241,7 +241,14 @@ def model(method):
 
     Era ``return func`` —un no-op con el nombre de la referencia— hasta
     :ref:`h-api-639`.
+
+    Un ``create`` decorado así se convierte en :func:`model_create_multi`,
+    como en la fuente (``:323-324``): ``@api.model def create`` acepta
+    entonces un ``dict`` suelto o una lista. El nombre se lee del
+    ``__func__`` para que la regla valga también sobre un ``classmethod``.
     """
+    if getattr(method, '__func__', method).__name__ == 'create':
+        return model_create_multi(method)
     return _mark(method, '_api_model')
 
 
