@@ -170,6 +170,13 @@
         "tools-json-reference-0486"
       ],
       "writtenAt": "2026-11-05T22:02:34Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-speedscope-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:07:01Z"
     }
   ]
 }
