@@ -1,20 +1,20 @@
 revision	module	symbol	kind	category	reason
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py		file	not_verified	mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.create	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.update	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.delete	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.unlink	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.link	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.clear	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.set	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.CLEAR	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.CREATE	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.DELETE	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.LINK	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.SET	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.UNLINK	attribute	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.UPDATE	attribute	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command	class	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.create	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.update	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.delete	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.unlink	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.link	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.clear	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.set	method	not_verified	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.CLEAR	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.CREATE	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.DELETE	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.LINK	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.SET	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.UNLINK	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.UPDATE	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	deprecated	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_decorators_deprecated.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/decorators.py	deprecated.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_decorators_deprecated.py
