@@ -128,8 +128,8 @@ PARTNER_ADDRESS_FIELDS_TO_SYNC = [
     'country_id',
 ]
 
-# ≙ los dos tamaños de lote del cron de scoring (:78-80). La fuente los fija por
-# medición, no por gusto: minimizan tiempo de cómputo y de transacción.
+# ≙ los dos tamaños de lote del cron de scoring (:78-80). La fuente los fija
+# por medición, no por gusto: minimizan tiempo de cómputo y de transacción.
 PLS_COMPUTE_BATCH_STEP = 50000
 PLS_UPDATE_BATCH_STEP = 5000
 
@@ -223,7 +223,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         compute='_compute_team_id', store=True,
         readonly=False, precompute=True,
     )
-    # ≙ lead_properties (:114-116): definition='team_id.lead_properties_definition'.
+    # ≙ lead_properties (:114-116):
+    # definition='team_id.lead_properties_definition'.
     lead_properties = fields.Properties(
         definition='team_id.lead_properties_definition', null=True, blank=True,
         verbose_name='Properties',
@@ -285,7 +286,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                            help_text='Índice de color (Odoo color).')
 
     # -- Revenues ------------------------------------------------------------
-    # ≙ expected_revenue (:144), tracking=True, currency_field='company_currency'.
+    # ≙ expected_revenue (:144), tracking=True,
+    # currency_field='company_currency'.
     expected_revenue = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Expected Revenue',
         help_text='Ingreso esperado (Odoo expected_revenue).',
@@ -414,14 +416,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         compute='_compute_email_from', store=True,
         readonly=False, inverse='_inverse_email_from',
     )
-    # ≙ email_normalized (:190) — la fuente lo hereda de ``mail.thread.blacklist``
-    # y sólo lo redeclara para indexarlo. Ese mixin no existe aquí, así que la
-    # columna es propia de este modelo; mismo nombre, mismo papel.
+    # ≙ email_normalized (:190) — la fuente lo hereda de
+    # ``mail.thread.blacklist`` y sólo lo redeclara para indexarlo. Ese mixin
+    # no existe aquí, así que la columna es propia de este modelo; mismo
+    # nombre, mismo papel.
     email_normalized = fields.Char(
         max_length=255, blank=True, default='', db_index=True,
         help_text='Correo normalizado, en minúsculas (Odoo email_normalized).',
     )
-    # ≙ email_domain_criterion (:191-196), index='btree_not_null', compute + store.
+    # ≙ email_domain_criterion (:191-196), index='btree_not_null',
+    # compute + store.
     email_domain_criterion = fields.Char(
         max_length=255, blank=True, default='', db_index=True,
         verbose_name='Email Domain Criterion',
@@ -546,12 +550,12 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ------------------------------------------------------------
     # COMPUTES / ONCHANGES / CONSTRAINTS
     #
-    # Divergencia de forma, declarada una vez para todo el bloque: allá ``self``
-    # es un *recordset* y cada cómputo itera ``for lead in self``; aquí una
-    # instancia **es** un registro, así que el cuerpo del bucle se aplica a
-    # ``self``. Los que sí necesitan un conjunto (fusión, scoring, ``_handle_
-    # won_lost``) son ``classmethod`` y reciben el queryset explícito.
-    # ------------------------------------------------------------
+    # Divergencia de forma, declarada una vez para todo el bloque: allá
+    # ``self`` es un *recordset* y cada cómputo itera ``for lead in self``;
+    # aquí una instancia **es** un registro, así que el cuerpo del bucle se
+    # aplica a ``self``. Los que sí necesitan un conjunto (fusión, scoring,
+    # ``_handle_won_lost``) son ``classmethod`` y reciben el queryset
+    # explícito. ------------------------------------------------------------
 
     @api.constrains('probability', 'stage_id')
     def _check_won_validity(self):
@@ -1500,13 +1504,13 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         Al reactivar se fuerza el recálculo de la probabilidad. Archivar no
         dispara nada: una iniciativa puede estar archivada sin estar perdida.
         """
-        activada = not self.active
-        self.active = True
-        if activada:
-            self.lost_reason_id = None
+        activated = not self.active
+        result = super().action_unarchive()
+        if activated:
+            self.write({'lost_reason_id': None})
             self._compute_probabilities()
-        self.save()
-        return True
+            self.save(update_fields=['automated_probability', 'probability'])
+        return result
 
     def action_restore(self):
         """≙ ``action_restore`` (:1112-1119).

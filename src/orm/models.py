@@ -1297,6 +1297,23 @@ def _first_field_name(model, candidates):
     return None
 
 
+def active_field_name(cls):
+    """``_active_name`` de un modelo — ``'active'``, ``'x_active'`` o ``None``.
+
+    ≙ el ``_active_name`` que la fuente fija en el setup del modelo
+    (``odoo19c: odoo/orm/model_classes.py:444-448``). Lo comparten
+    ``BaseModel._active_field_name`` y :class:`ArchiveMixin`.
+    """
+    declared = getattr(cls, '_active_name', None)
+    if declared:
+        return declared
+    registry_ = model_field_registry(cls)
+    for name in ('active', 'x_active'):
+        if name in registry_:
+            return name
+    return None
+
+
 class BaseUrlMixin:
     """La URL raíz desde la que se sirve un registro.
 
@@ -1342,6 +1359,42 @@ class BaseUrlMixin:
         """
         parameters = registry.model_by_name('ir.config_parameter')
         return parameters.get_param('web.base.url') if parameters else None
+
+
+class ArchiveMixin:
+    """``action_archive``, ``action_unarchive`` y ``toggle_active``, por fila.
+
+    ≙ ``BaseModel`` en ``odoo19c: odoo/orm/models.py:5790-5816``. La fuente
+    recorre el recordset, se queda con los activos (o los archivados) y les
+    escribe el campo por ``write``, de modo que quien redefine ``write`` ve el
+    cambio. Aquí la instancia de Django es un recordset de uno: el filtro es la
+    condición sobre esa fila y la escritura pasa por el mismo ``write`` que el
+    modelo hereda. ``BaseModel`` conserva su versión de recordset.
+
+    Lo adopta ``TimeStampedModel``, la misma vía que :class:`OrderMixin`.
+    """
+
+    def toggle_active(self):
+        """Invierte ``active`` — ≙ ``:5790-5795``."""
+        field_name = active_field_name(type(self))
+        assert field_name, f"No 'active' field on model {self._meta.label}"
+        if getattr(self, field_name):
+            return self.action_archive()
+        return self.action_unarchive()
+
+    def action_archive(self):
+        """``active = False`` si la fila está activa — ≙ ``:5797-5806``."""
+        field_name = active_field_name(type(self))
+        assert field_name, f"No 'active' field on model {self._meta.label}"
+        if getattr(self, field_name):
+            self.write({field_name: False})
+
+    def action_unarchive(self):
+        """``active = True`` si la fila está archivada — ≙ ``:5808-5817``."""
+        field_name = active_field_name(type(self))
+        assert field_name, f"No 'active' field on model {self._meta.label}"
+        if not getattr(self, field_name):
+            self.write({field_name: True})
 
 
 class CheckCompanyMixin:
@@ -5508,13 +5561,7 @@ class BaseModel(DefaultGetMixin, Model):
         (``odoo19c: odoo/orm/model_classes.py``): un modelo con campo
         ``active`` filtra sus registros archivados al buscar.
         """
-        if cls._active_name:
-            return cls._active_name
-        registry_ = model_field_registry(cls)
-        for name in ('active', 'x_active'):
-            if name in registry_:
-                return name
-        return None
+        return active_field_name(cls)
 
     @classmethod
     def _search(cls, domain, offset=0, limit=None, order=None, *,

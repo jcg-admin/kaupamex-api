@@ -14,7 +14,7 @@ propio, y nombra la alteración que la hace caer.
 import pytest
 
 from addons.base.models.ir_model import IrModel, IrModelAccess
-from addons.crm.models import CrmLead
+from addons.crm.models import CrmLead, CrmLostReason
 from django.contrib.auth import get_user_model
 from exceptions import AccessError, UserError
 
@@ -110,3 +110,59 @@ class TestWriteReachesTheLead:
         assert lead.write({'name': 'Retorno escrito'}) is True
         lead.refresh_from_db()
         assert lead.name == 'Retorno escrito'
+
+
+class TestArchiveReachesTheLead:
+    """``action_archive`` / ``action_unarchive`` / ``toggle_active``
+    (``models.py:5790-5817``) por ``ArchiveMixin``.
+
+    La fuente filtra los activos (o archivados) y les escribe el campo por
+    ``write``. Mutación que la hace caer: un ``action_archive`` que no escribe;
+    caen la primera y la de ``toggle_active``.
+    """
+
+    def test_archiving_an_active_lead_clears_active(self, db):
+        lead = CrmLead.objects.create(name='Archivar')
+        lead.action_archive()
+        lead.refresh_from_db()
+        assert lead.active is False
+
+    def test_unarchiving_an_archived_lead_sets_active(self, db):
+        lead = CrmLead.objects.create(name='Desarchivar', active=False)
+        lead.action_unarchive()
+        lead.refresh_from_db()
+        assert lead.active is True
+
+    def test_toggle_inverts_active(self, db):
+        lead = CrmLead.objects.create(name='Alternar')
+        lead.toggle_active()
+        lead.refresh_from_db()
+        assert lead.active is False
+
+
+class TestLeadUnarchiveComposesWithItsParent:
+    """``crm.lead.action_unarchive`` (``odoo19c:
+    addons/crm/models/crm_lead.py:1101-1110``).
+
+    La fuente llama a ``super().action_unarchive()`` y, sólo para los que se
+    reactivaron, borra el motivo de pérdida. Mutación que la hace caer: un
+    ``ArchiveMixin.action_unarchive`` que no escribe; la iniciativa queda
+    archivada.
+    """
+
+    def test_reactivating_clears_the_lost_reason(self, db):
+        reason = CrmLostReason.objects.create(name='Precio')
+        lead = CrmLead.objects.create(
+            name='Perdida', active=False, lost_reason_id=reason)
+        lead.action_unarchive()
+        lead.refresh_from_db()
+        assert lead.active is True
+        assert lead.lost_reason_id is None
+
+    def test_an_active_lead_keeps_its_lost_reason(self, db):
+        reason = CrmLostReason.objects.create(name='Plazo')
+        lead = CrmLead.objects.create(
+            name='Activa', active=True, lost_reason_id=reason)
+        lead.action_unarchive()
+        lead.refresh_from_db()
+        assert lead.lost_reason_id == reason

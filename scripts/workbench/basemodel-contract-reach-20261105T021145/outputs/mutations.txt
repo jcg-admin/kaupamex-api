@@ -13,3 +13,11 @@ FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestWriteReachesT
 == M5 write devuelve el registro
 FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestWriteReachesTheLead::test_the_write_returns_true
 1 failed, 6 passed, 2 warnings in 4.61s
+== M6 ArchiveMixin.action_archive no escribe
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestArchiveReachesTheLead::test_archiving_an_active_lead_clears_active
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestArchiveReachesTheLead::test_toggle_inverts_active
+2 failed, 10 passed, 2 warnings in 4.94s
+== M7 ArchiveMixin.action_unarchive no escribe (composición de crm.lead)
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestArchiveReachesTheLead::test_unarchiving_an_archived_lead_sets_active
+FAILED tests/integration/crm/test_basemodel_contract_reach.py::TestLeadUnarchiveComposesWithItsParent::test_reactivating_clears_the_lost_reason
+2 failed, 10 passed, 2 warnings in 4.96s

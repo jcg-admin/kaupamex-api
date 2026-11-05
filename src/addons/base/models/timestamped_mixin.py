@@ -56,6 +56,7 @@ que ``DefaultGetMixin``.
 from django.db import models
 
 from orm.models import (
+    ArchiveMixin,
     BaseUrlMixin,
     CheckCompanyMixin,
     DisplayNameMixin,
@@ -70,6 +71,7 @@ class TimeStampedModel(
     OrderMixin,
     CheckCompanyMixin,
     BaseUrlMixin,
+    ArchiveMixin,
     models.Model,
 ):
     """
