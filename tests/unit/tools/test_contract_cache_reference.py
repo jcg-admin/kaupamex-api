@@ -268,11 +268,16 @@ SHAPES = (
     ({1, 2}, frozenset({3})), Slotted(), [Slotted(), Slotted()], Plain(),
     [Plain(), Slotted()],
 )
+#: Ids fijos: el ``repr`` de una instancia lleva su dirección de memoria, que
+#: cambia entre procesos, y con ``-n`` cada trabajador recolectaría otras
+#: pruebas.
+SHAPE_IDS = ('none', 'int', 'str', 'bytes', 'nested-list', 'nested-dict',
+             'sets', 'slotted', 'slotted-list', 'plain', 'plain-and-slotted')
 
 
 class TestGetCacheSizeMatchesTheReference:
 
-    @pytest.mark.parametrize('shape', SHAPES, ids=repr)
+    @pytest.mark.parametrize('shape', SHAPES, ids=SHAPE_IDS)
     def test_the_estimate_matches(self, reference, shape):
         with size_stand_ins():
             expected = reference.get_cache_size(shape)
