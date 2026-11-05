@@ -128,6 +128,13 @@
         "tools-lru-reference-0485"
       ],
       "writtenAt": "2026-11-05T21:22:58Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-set-expression-reference-0485"
+      ],
+      "writtenAt": "2026-11-05T21:30:32Z"
     }
   ]
 }
