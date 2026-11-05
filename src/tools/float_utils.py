@@ -17,25 +17,28 @@ import builtins
 import math
 from typing import Literal
 
+# ``__all__`` verbatim: la fuente no exporta ``float_invert`` ni
+# ``json_float_round`` por ``import *``, aunque los declare públicos.
 __all__ = [
-    'float_compare',
-    'float_invert',
-    'float_is_zero',
-    'float_repr',
-    'float_round',
-    'float_split',
-    'float_split_str',
-    'json_float_round',
+    "float_compare",
+    "float_is_zero",
+    "float_repr",
+    "float_round",
+    "float_split",
+    "float_split_str",
 ]
 
 RoundingMethod = Literal['UP', 'DOWN', 'HALF-UP', 'HALF-DOWN', 'HALF-EVEN']
 
 
-def _round_half_away(f: float) -> float:
+def round(f: float) -> float:
     """Redondeo con empate **alejándose de cero**, y preservando el signo.
 
     El ``round`` interno de Python redondea el empate al par más cercano y
     pierde el signo de ``-0.``; la referencia mantiene este shim por eso mismo.
+    Lleva el nombre de la fuente aunque oculte el ``round`` interno dentro del
+    módulo: aquí ninguna llamada quiere el interno sin ``builtins.``, y el
+    símbolo es parte de lo que el módulo declara.
     """
     roundf = builtins.round(f)
     if builtins.round(f + 1) - roundf != 1:
@@ -166,7 +169,7 @@ def float_round(
 
     match rounding_method:
         case 'HALF-UP':  # el empate se aleja de cero
-            result = _round_half_away(
+            result = round(
                 normalized_value + math.copysign(epsilon, normalized_value)
             )
         case 'HALF-EVEN':  # el empate va al par más cercano
@@ -176,10 +179,10 @@ def float_round(
             result = (
                 integral + (integral & 1)
                 if is_half
-                else _round_half_away(normalized_value)
+                else round(normalized_value)
             )
         case 'HALF-DOWN':  # el empate va hacia cero
-            result = _round_half_away(
+            result = round(
                 normalized_value - math.copysign(epsilon, normalized_value)
             )
         case 'UP':  # siempre al más lejano de cero
