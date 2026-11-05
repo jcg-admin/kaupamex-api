@@ -51,6 +51,13 @@
         "models-basemodel-toggle-active-0485"
       ],
       "writtenAt": "2026-11-04T23:34:19Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "models-basemodel-write-0485"
+      ],
+      "writtenAt": "2026-11-05T00:05:34Z"
     }
   ]
 }

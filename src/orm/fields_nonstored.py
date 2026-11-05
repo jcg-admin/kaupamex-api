@@ -650,6 +650,21 @@ class _RegistryCache:
 _REGISTRY_CACHE = _RegistryCache()
 
 
+def _is_declared_one2many(held):
+    """Si ``held`` es un ``fields.One2many(comodel, inverse)`` declarado.
+
+    Ese campo no pasa por ``_meta`` (su ``contribute_to_class`` sólo hace
+    ``setattr``), así que tampoco tiene columna ni lo ve ``get_fields``. Se
+    reconoce por el atributo de la fuente, ``type == 'one2many'``
+    (``odoo19c: odoo/orm/fields_relational.py:866``), y no por su clase:
+    ``orm.fields_relational`` importa este módulo, y la importación inversa
+    cerraría un ciclo. Un ``models.Field`` de Django con ese tipo ya está en
+    ``_meta`` y no se recoge aquí.
+    """
+    return getattr(held, 'type', None) == 'one2many' and not isinstance(
+        held, models.Field)
+
+
 def non_stored_fields(cls):
     """Los campos sin columna que ``cls`` declara, por nombre.
 
@@ -707,7 +722,7 @@ def non_stored_fields(cls):
     found = {}
     for klass in reversed(getattr(cls, '__mro__', (cls,))):
         for name, held in vars(klass).items():
-            if isinstance(held, NonStored):
+            if isinstance(held, NonStored) or _is_declared_one2many(held):
                 found[name] = held
     meta = getattr(cls, '_meta', None)
     for field in getattr(meta, 'private_fields', ()) or ():

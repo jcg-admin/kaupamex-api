@@ -1014,7 +1014,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.check_acces
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._filter_access_rules	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_models_basemodel_p_filter_access_rules.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._filter_access_rules_python	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_models_basemodel_p_filter_access_rules_python.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.unlink	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.write	method	not_verified	structural=paired_by_name:RecordLoaderMixin.write;write_path=agree;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.write	method	satisfied	structural=match;write_path=agree;evidence=tests/integration/test_orm/test_contract_models_basemodel_write.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._write	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._write_multi	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.create	method	not_verified	structural=paired_by_name:DefaultGetMixin.create;write_path=agree;evidence=-

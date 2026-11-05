@@ -34,7 +34,10 @@ RANDOM_STR_2 = 'Crypto-money base'
 
 
 @pytest.fixture
-def discussion():
+def discussion(env):
+    """Como ``TransactionCase``: la escritura corre como superusuario
+    (``odoo19c: odoo/tests/common.py:1192``). Sin el fixture ``env`` no hay
+    entorno activo, ``uid`` es ``None`` y ``write`` rehúsa por la ACL."""
     return TestOrmDiscussion.objects.create(name='Test Discussion JSON field')
 
 

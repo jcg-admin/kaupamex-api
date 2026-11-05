@@ -2751,8 +2751,13 @@ class RecordLoaderMixin(FieldSqlMixin):
         popped = []
         for fname in list(values):
             field = registry_.get(fname)
+            # Sólo la relación inversa de Django: un ``fields.One2many``
+            # declarado (``type == 'one2many'``) aplica sus comandos con su
+            # propio descriptor al asignarse, y desde que figura en
+            # ``_fields`` también aparecería aquí.
             if (getattr(field, 'one_to_many', False)
                     and not isinstance(field, Field)
+                    and getattr(field, 'type', None) != 'one2many'
                     and is_command_list(values[fname])):
                 popped.append((field, values.pop(fname)))
         return popped
@@ -6432,6 +6437,33 @@ class BaseModel(DefaultGetMixin, Model):
             return self, make_error
         return self.browse(list(forbidden.values_list('pk', flat=True))), \
             make_error
+
+    def write(self, vals):
+        """Escribe ``vals`` en todos los registros de ``self`` — la entrada de
+        ``BaseModel.write`` (``odoo19c: odoo/orm/models.py``, antes de
+        ``_write``).
+
+        Vacío devuelve ``True`` sin tocar nada; con registros, primero
+        ``check_access('write')`` y el acceso de escritura de cada campo, y un
+        nombre que no es campo levanta ``ValueError``. Después cada registro
+        se escribe con la escritura de una fila que ya existe
+        (:meth:`RecordLoaderMixin.write`). El volcado por lotes de la fuente
+        (``_write``/``_write_multi``) sigue ausente: aquí la escritura es por
+        registro.
+        """
+        if not self:
+            return True
+        self.check_access('write')
+        for field_name in vals:
+            try:
+                self._check_field_access(self._fields[field_name], 'write')
+            except KeyError as error:
+                raise ValueError(
+                    f"Invalid field {field_name!r} in {self._name!r}",
+                ) from error
+        for record in self:
+            super(BaseModel, record).write(vals)
+        return True
 
     @api.deprecated("Deprecated since 19.0, use action_archive or "
                     "action_unarchive")

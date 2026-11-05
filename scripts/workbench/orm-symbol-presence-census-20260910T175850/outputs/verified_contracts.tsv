@@ -288,3 +288,4 @@ src/orm/models.py	BaseModel._filter_access_rules_python	method	tests/integration
 src/orm/models.py	BaseModel.toggle_active	method	tests/integration/test_orm/test_contract_models_basemodel_toggle_active.py
 src/orm/models.py	BaseModel.action_archive	method	tests/integration/test_orm/test_contract_models_basemodel_action_archive.py
 src/orm/models.py	BaseModel.action_unarchive	method	tests/integration/test_orm/test_contract_models_basemodel_action_unarchive.py
+src/orm/models.py	BaseModel.write	method	tests/integration/test_orm/test_contract_models_basemodel_write.py
