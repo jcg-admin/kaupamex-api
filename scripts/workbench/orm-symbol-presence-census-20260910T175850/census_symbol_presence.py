@@ -171,24 +171,65 @@ def declared_symbols(path):
             'decorators': [ast.unparse(d) for d in node.decorator_list],
         }
 
-    for node in tree.body:
+    add = records.append
+
+    for node in surface_statements(tree.body):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            records.append(function_record(node, None))
+            add(function_record(node, None))
         elif isinstance(node, ast.ClassDef):
-            records.append({
+            add({
                 'kind': 'class', 'owner': None, 'name': node.name,
                 'lineno': node.lineno, 'signature': None,
                 'body': 'substantive',
                 'decorators': [ast.unparse(d) for d in node.decorator_list],
             })
-            for child in node.body:
+            for child in surface_statements(node.body):
                 if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    records.append(function_record(child, node.name))
+                    add(function_record(child, node.name))
     return records
 
 
+#: Sentencias compuestas cuyo cuerpo sigue siendo superficie del modulo: una
+#: definicion bajo ``try``/``if``/``with`` existe al importar, igual que la
+#: directa (``odoo19c: odoo/orm/decorators.py`` declara ``deprecated`` bajo
+#: ``except ImportError``).
+COMPOUND = (ast.If, ast.Try, ast.With) + (
+    (ast.TryStar,) if hasattr(ast, 'TryStar') else ())
+
+
+def _not_contract(node):
+    """Un ``if`` cuyo cuerpo no es superficie: ``TYPE_CHECKING`` no se
+    ejecuta y ``__name__ == '__main__'`` es un guion, no algo importable."""
+    if not isinstance(node, ast.If):
+        return False
+    test = ast.unparse(node.test)
+    return test in ('TYPE_CHECKING', 'typing.TYPE_CHECKING') or (
+        test in ("__name__ == '__main__'", '__name__ == "__main__"'))
+
+
+def surface_statements(body):
+    """Las sentencias de ``body`` y las de sus bloques compuestos, en orden.
+
+    No entra en funciones (un cierre no es superficie) ni en los ``if`` de
+    :func:`_not_contract`.
+    """
+    for node in body:
+        if isinstance(node, COMPOUND):
+            if _not_contract(node):
+                continue
+            blocks = [getattr(node, attr, None) or []
+                      for attr in ('body', 'orelse', 'finalbody')]
+            blocks += [handler.body
+                       for handler in getattr(node, 'handlers', ())]
+            for block in blocks:
+                yield from surface_statements(block)
+        else:
+            yield node
+
+
 def _by_name(records):
-    """``{nombre: registro}``. Un homonimo en dos clases se queda con el primero.
+    """``{nombre: registro}``. Un homonimo en dos clases se queda con el
+    primero.
 
     Es una perdida declarada: el emparejamiento de este censo es por NOMBRE,
     igual que el de los cinco instrumentos previos, porque la referencia
@@ -214,7 +255,8 @@ def census(roots=CENSUS_ROOTS):
                 continue
             ours = declared_symbols(our_file)
             reference_file = pathlib.Path(reference_root) / our_file.name
-            reference = declared_symbols(reference_file) if reference_file.is_file() else []
+            reference = (declared_symbols(reference_file)
+                         if reference_file.is_file() else [])
             our_index, reference_index = _by_name(ours), _by_name(reference)
             our_names = set(our_index)
 
@@ -241,8 +283,8 @@ def census(roots=CENSUS_ROOTS):
             resolved_names = {resolve(n, our_names) for n in reference_index}
             report.append({
                 'file': str(our_file.relative_to(REPO)),
-                'reference_file': (str(reference_file) if reference_file.is_file()
-                                   else None),
+                'reference_file': (str(reference_file)
+                                   if reference_file.is_file() else None),
                 'classes': sum(1 for r in ours if r['kind'] == 'class'),
                 'functions': sum(1 for r in ours if r['kind'] != 'class'),
                 'stubs': sum(1 for r in ours if r['body'] == 'stub'),
@@ -251,7 +293,8 @@ def census(roots=CENSUS_ROOTS):
                 'hole': hole,
                 'fidelity': fidelity,
                 'diverged': diverged,
-                'ours_only': sorted(our_names - {n for n in resolved_names if n}),
+                'ours_only': sorted(
+                    our_names - {n for n in resolved_names if n}),
             })
     return report
 
@@ -260,8 +303,9 @@ def main(argv=None):
     report = census()
     destination = RUN_DIR / 'outputs' / 'census.json'
     destination.parent.mkdir(exist_ok=True)
-    destination.write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n',
-                           encoding='utf-8')
+    destination.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + '\n',
+        encoding='utf-8')
 
     header = ('archivo', 'cls', 'fn', 'stub', 'ref', 'match', 'hueco', 'fidel',
               'diverg', 'propio')
@@ -270,7 +314,8 @@ def main(argv=None):
     for row in report:
         values = (row['classes'], row['functions'], row['stubs'],
                   row['reference_symbols'], row['matched'], len(row['hole']),
-                  len(row['fidelity']), len(row['diverged']), len(row['ours_only']))
+                  len(row['fidelity']), len(row['diverged']),
+                  len(row['ours_only']))
         for key, value in zip(header[1:], values):
             totals[key] += value
         print(f'{row["file"]:<38}' + ''.join(f'{v:>8}' for v in values))
