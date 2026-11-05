@@ -184,6 +184,13 @@
         "tools-facade-reference-0486"
       ],
       "writtenAt": "2026-11-05T22:10:41Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-cache-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:17:52Z"
     }
   ]
 }
