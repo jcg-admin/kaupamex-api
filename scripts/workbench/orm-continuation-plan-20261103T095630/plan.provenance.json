@@ -198,6 +198,13 @@
         "tools-parse-version-reference-0486"
       ],
       "writtenAt": "2026-11-05T22:21:05Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-mimetypes-reference-0486"
+      ],
+      "writtenAt": "2026-11-05T22:26:18Z"
     }
   ]
 }
