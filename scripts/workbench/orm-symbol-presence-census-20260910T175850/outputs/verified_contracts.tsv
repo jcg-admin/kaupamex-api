@@ -615,3 +615,14 @@ src/tools/json.py	JSON	class	tests/unit/tools/test_contract_json_reference.py
 src/tools/json.py	JSON.loads	method	tests/unit/tools/test_contract_json_reference.py
 src/tools/json.py	JSON.dumps	method	tests/unit/tools/test_contract_json_reference.py
 src/tools/json.py	stringify_keys	function	tests/unit/tools/test_contract_json_reference.py
+src/tools/speedscope.py	Speedscope	class	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.__init__	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.add	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.convert_stack	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.add_output	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.add_memory_output	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.add_default	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.make	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.get_frame_id	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.stack_to_ids	method	tests/unit/tools/test_contract_speedscope_reference.py
+src/tools/speedscope.py	Speedscope.process	method	tests/unit/tools/test_contract_speedscope_reference.py
