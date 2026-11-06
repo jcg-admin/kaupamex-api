@@ -317,6 +317,13 @@
         "orm-environments-identity-reference-0485"
       ],
       "writtenAt": "2026-11-06T20:40:55Z"
+    },
+    {
+      "planner": "orm-domains-abstract-base",
+      "items": [
+        "orm-domains-abstract-base-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T21:19:54Z"
     }
   ]
 }
