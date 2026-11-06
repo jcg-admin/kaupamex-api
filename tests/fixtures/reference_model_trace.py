@@ -9,8 +9,9 @@ inicializa con el addon ``base`` de la referencia.
 Uso: ``python -I -B reference_model_trace.py <raíz> <base> <data_dir>
 <rejilla.py> <modelo> <su|user> [<contexto JSON>]``; imprime la traza.
 Con ``environment`` en lugar de un modelo, la rejilla es la de
-``environment_grid`` y recibe una fábrica de entornos; con ``registry``, la
-de ``registry_grid``, que recibe el módulo del registro sin abrir cursor;
+``environment_grid`` y recibe una fábrica de entornos; con ``registry`` o
+``models``, la de ``registry_grid`` o ``models_grid``, que reciben sus
+módulos sin abrir cursor (``MODULE_GRIDS``);
 imprime la traza
 como JSON. El contexto (p. ej. ``{"tz": "America/Mexico_City"}``) es el
 del ``Environment``; ``env.tz`` lo lee primero (``environments.py:286-294``).
@@ -27,6 +28,12 @@ import sys
 
 SUPERUSER_ID = 1
 ADMIN_ID = 2
+#: Rejillas sin base: el nombre que se pasa en lugar de un modelo y los
+#: módulos de la referencia que reciben, en orden.
+MODULE_GRIDS = {
+    'registry': ('odoo.orm.registry', 'psycopg2.sql'),
+    'models': ('odoo.orm.models',),
+}
 
 
 def _load_grid(grid_path):
@@ -43,13 +50,13 @@ def main(root, database, data_dir, grid_path, model_name, mode,
     # La raíz de la referencia sólo se conoce al ejecutar: los módulos se
     # resuelven después de añadirla, con llamadas y no con sentencias.
     importlib.import_module('odoo.tools').config['data_dir'] = data_dir
-    if model_name == 'registry':
-        # ``TriggerTree``, ``DummyRLock`` y ``_unaccent`` no necesitan base:
-        # la rejilla recibe el módulo del registro y no se abre cursor.
+    if model_name in MODULE_GRIDS:
+        # Las piezas que no necesitan base reciben sus módulos y no se abre
+        # cursor.
         grid = _load_grid(grid_path)
-        print(json.dumps(grid.trace(
-            importlib.import_module('odoo.orm.registry'),
-            importlib.import_module('psycopg2.sql'))))
+        modules = [importlib.import_module(name)
+                   for name in MODULE_GRIDS[model_name]]
+        print(json.dumps(grid.trace(*modules)))
         return
     Domain = importlib.import_module('odoo.orm.domains').Domain
     Environment = importlib.import_module('odoo.orm.environments').Environment
