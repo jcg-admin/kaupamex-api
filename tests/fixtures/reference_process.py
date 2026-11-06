@@ -73,10 +73,11 @@ def _database_environment():
             if database.get(key)}
 
 
-def trace(grid_path, model_name, mode):
+def trace(grid_path, model_name, mode, context=None):
     """La traza de ``grid_path`` sobre ``model_name`` en la referencia.
 
-    ``mode`` es ``'su'`` o ``'user'`` (ver ``reference_model_trace``).
+    ``mode`` es ``'su'`` o ``'user'`` (ver ``reference_model_trace``);
+    ``context`` es el del ``Environment`` de la referencia.
     """
     environment = {'PATH': os.environ['PATH'],
                    'PYTHONDONTWRITEBYTECODE': '1',
@@ -85,7 +86,7 @@ def trace(grid_path, model_name, mode):
                str(DRIVER), str(reference_tree.reference_root()),
                os.environ['CONTRACT_REFERENCE_DATABASE'],
                os.environ['CONTRACT_REFERENCE_DATA_DIR'], str(grid_path),
-               model_name, mode]
+               model_name, mode, json.dumps(context or {})]
     done = subprocess.run(command, capture_output=True, text=True,
                           env=environment, timeout=TIMEOUT, check=False)
     assert done.returncode == 0, done.stderr[-2000:]

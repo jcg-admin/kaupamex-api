@@ -21,6 +21,7 @@ Símbolo de la fuente                 Desenlace aquí
 ``Binary._description_attachment``   portado
 ``Image.max_width`` / ``max_height`` portado
 ``Image.verify_resolution``          portado
+``Image.attachment``                 heredado de ``Binary``; aquí ``True``
 los 17 métodos                       bloqueo medido, sucesor en el tablero
 ===================================  =========================================
 
@@ -116,6 +117,17 @@ class Image(models.ImageField):
     """
 
     type = 'binary'
+
+    #: ≙ ``:39``, heredado de ``Binary`` por ``class Image(Binary)``
+    #: (``:246``) con su default ``True``. Aquí el default no diverge: un
+    #: ``ImageField`` guarda el contenido en el storage y en la columna sólo
+    #: la ruta, así que el valor tampoco vive en una columna consultable.
+    #: ``domains._optimize_type_binary_attachment`` lo lee para admitir sólo
+    #: la comprobación de existencia, como la fuente.
+    attachment = True
+
+    #: ≙ ``:51``, heredado de ``Binary``.
+    _description_attachment = property(attrgetter('attachment'))
 
     #: ≙ ``:250-252`` — el recorte máximo, y si se verifica la resolución.
     max_width = 0

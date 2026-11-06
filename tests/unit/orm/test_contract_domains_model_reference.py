@@ -9,73 +9,106 @@ que decide si la subconsulta del comodelo aplica permisos.
 La rejilla (``tests/fixtures/model_domain_grid.py``) se ejecuta tal cual en
 los dos lados: en la referencia, en un subproceso con su propio intérprete y
 un ``Registry`` sobre una base con ``base`` (``reference_process``); aquí,
-con ``orm.domains.Domain`` sobre ``IrRule``. Se comparan las trazas cadena a
-cadena, en dos modos: sin elevación y con ella, porque
-``_optimize_any_with_rights`` lee ``env.su`` en la referencia e ``is_su()``
-aquí.
+con ``orm.domains.Domain`` sobre el modelo del mismo ``_name``. Se comparan
+las trazas cadena a cadena. ``ir.rule`` va en dos modos —sin elevación y con
+ella— porque ``_optimize_any_with_rights`` lee ``env.su`` en la referencia e
+``is_su()`` aquí; los modelos con fechas van en dos husos, porque la
+conversión de una fecha a fecha-hora lee ``env.tz``.
 
 *Métrica:* ``repr`` del resultado de ``optimize``, ``optimize_full`` y
-``validate``, o la clase de la excepción, para 286 condiciones sobre seis
-campos de ``ir.rule`` (solas y negadas) y 596 pares sobre un mismo campo
-unidos con ``&`` y con ``|``: 3 814 pasos por modo, en los dos modos.
-*Ciega a:* los campos de ``ir.rule`` que no comparten tipo en los dos árboles
-(``model_id`` many2one contra ``model_name`` char); los optimizadores de
-fecha, binario y propiedades, que ``ir.rule`` no ejercita; el texto de los
-mensajes de error, del que sólo se compara la clase.
+``validate``, o la clase de la excepción. En ``ir.rule``: 286 condiciones
+(solas y negadas) y 596 pares unidos con ``&`` y ``|``, 3 814 pasos por modo
+de elevación. En ``ir.cron`` (fecha-hora) y ``res.currency.rate`` (fecha):
+800 y 210 pasos por huso, UTC y ``America/Mexico_City``. En ``res.partner``
+(binario e ``image_1920``, many2one, texto): 600 pasos.
+*Ciega a:* los campos que no comparten nombre y tipo en los dos árboles; los
+valores relativos al instante (``now``), que difieren entre dos procesos; el
+operador ``child_of``, cuyo resultado depende de los datos de cada base; el
+texto de los mensajes de error, del que sólo se compara la clase.
 """
 import pathlib
 
 import pytest
+from django.apps import apps
 
-from addons.base.models.ir_rule import IrRule
 from orm.domains import Domain
-from orm.environments import sudo
+from orm.environments import context_scope, sudo
 from tests.fixtures import model_domain_grid, reference_process
 
 pytestmark = pytest.mark.reference
 
 GRID = pathlib.Path(model_domain_grid.__file__)
-MODEL = 'ir.rule'
-#: Pasos en que la referencia levanta, por modo: la comparación de clases de
-#: excepción sólo cuenta si las dos trazas producen además valores.
-STEPS_THAT_RAISE = 570
+MEXICO = 'America/Mexico_City'
+UTC = 'UTC'
+#: (modelo, modo, huso) y los pasos que levantan en la referencia: la
+#: comparación de clases de excepción sólo cuenta si además hay valores.
+CASES = {
+    ('ir.rule', 'user', None): 570,
+    ('ir.rule', 'su', None): 570,
+    ('ir.cron', 'user', UTC): 120,
+    ('ir.cron', 'user', MEXICO): 120,
+    ('res.currency.rate', 'user', UTC): 60,
+    ('res.currency.rate', 'user', MEXICO): 60,
+    ('res.partner', 'user', UTC): 60,
+}
+IDS = [f'{model}-{mode}-{tz or "-"}' for model, mode, tz in CASES]
 
 
-def _ours(mode):
-    if mode == 'su':
-        with sudo():
-            return model_domain_grid.trace(Domain, IrRule)
-    return model_domain_grid.trace(Domain, IrRule)
+def _model(name):
+    return next(model for model in apps.get_models()
+                if getattr(model, '_name', None) == name)
+
+
+def _context(tz):
+    return {'tz': tz} if tz else {}
+
+
+def _ours(model_name, mode, tz):
+    model = _model(model_name)
+    with context_scope(**_context(tz)):
+        if mode == 'su':
+            with sudo():
+                return model_domain_grid.trace(Domain, model, model_name)
+        return model_domain_grid.trace(Domain, model, model_name)
 
 
 @pytest.fixture(scope='module')
 def reference_traces():
     reference_process.require()
-    return {mode: reference_process.trace(GRID, MODEL, mode)
-            for mode in ('user', 'su')}
+    return {case: reference_process.trace(GRID, case[0], case[1],
+                                          _context(case[2]))
+            for case in CASES}
 
 
-@pytest.mark.parametrize('mode', ['user', 'su'])
-def test_the_trace_matches_the_reference(reference_traces, mode):
-    reference = reference_traces[mode]
-    ours = _ours(mode)
+@pytest.mark.parametrize('case', CASES, ids=IDS)
+def test_the_trace_matches_the_reference(reference_traces, case):
+    reference = reference_traces[case]
+    ours = _ours(*case)
     assert len(ours) == len(reference)
     differences = [(theirs, mine) for theirs, mine in zip(reference, ours)
                    if theirs != mine]
     assert differences == []
 
 
-@pytest.mark.parametrize('mode', ['user', 'su'])
-def test_the_comparison_is_not_made_of_errors(reference_traces, mode):
-    raising = [line for line in reference_traces[mode] if ' raises ' in line]
-    assert len(raising) == STEPS_THAT_RAISE
-    assert len(reference_traces[mode]) - len(raising) > 0
+@pytest.mark.parametrize('case', CASES, ids=IDS)
+def test_the_comparison_is_not_made_of_errors(reference_traces, case):
+    raising = [line for line in reference_traces[case] if ' raises ' in line]
+    assert len(raising) == CASES[case]
+    assert len(reference_traces[case]) - len(raising) > 0
 
 
 def test_the_elevation_mode_changes_the_reference(reference_traces):
     """Control: los dos modos difieren en la referencia, o el modo no mide."""
-    changed = [line for line, other in zip(reference_traces['user'],
-                                           reference_traces['su'])
-               if line != other]
+    changed = [line for line, other in zip(
+        reference_traces[('ir.rule', 'user', None)],
+        reference_traces[('ir.rule', 'su', None)]) if line != other]
     assert changed
     assert all("'any'" in line or "'not any'" in line for line in changed)
+
+
+def test_the_time_zone_changes_the_reference(reference_traces):
+    """Control: el huso cambia la conversión de fechas a fecha-hora."""
+    changed = [line for line, other in zip(
+        reference_traces[('ir.cron', 'user', UTC)],
+        reference_traces[('ir.cron', 'user', MEXICO)]) if line != other]
+    assert changed

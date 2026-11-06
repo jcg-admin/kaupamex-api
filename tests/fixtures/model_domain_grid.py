@@ -33,10 +33,39 @@ FIELDS = (
 )
 
 
-def conditions():
-    """Las condiciones de la rejilla, en orden estable."""
+TEMPORAL_OPERATORS = ('=', '!=', 'in', 'not in', '<', '>=')
+DATE_VALUES = ('2024-03-10', '2024-03-10 23:30:00', False, ['2024-03-10'],
+               'not a date', 'today', 3)
+DATETIME_VALUES = ('2024-03-10', '2024-03-10 23:30:00', False,
+                   ['2024-03-10', '2024-11-03 01:30:00'], 'not a date',
+                   'today', 3)
+BINARY_OPERATORS = ('=', '!=', 'in', 'not in', 'like')
+BINARY_VALUES = (False, True, 'abc', [False])
+
+#: Campos con el mismo nombre y tipo en los dos árboles, por modelo.
+MODEL_FIELDS = {
+    'ir.rule': FIELDS,
+    'ir.cron': (
+        ('nextcall', TEMPORAL_OPERATORS, DATETIME_VALUES),
+        ('first_failure_date', TEMPORAL_OPERATORS, DATETIME_VALUES),
+        ('interval_number', INTEGER_OPERATORS, INTEGER_VALUES),
+        ('active', BOOLEAN_OPERATORS, BOOLEAN_VALUES),
+    ),
+    'res.currency.rate': (
+        ('name', TEMPORAL_OPERATORS, DATE_VALUES),
+    ),
+    'res.partner': (
+        ('image_1920', BINARY_OPERATORS, BINARY_VALUES),
+        ('parent_id', RELATIONAL_OPERATORS, RELATIONAL_VALUES),
+        ('name', TEXT_OPERATORS, TEXT_VALUES),
+    ),
+}
+
+
+def conditions(model_name='ir.rule'):
+    """Las condiciones de la rejilla de ``model_name``, en orden estable."""
     return [(field, operator, value)
-            for field, operators, values in FIELDS
+            for field, operators, values in MODEL_FIELDS[model_name]
             for operator in operators for value in values]
 
 
@@ -51,10 +80,14 @@ PAIR_FIELDS = (
 )
 
 
-def pairs():
+#: Pares por modelo; sólo ``ir.rule`` los ejerce.
+MODEL_PAIR_FIELDS = {'ir.rule': PAIR_FIELDS}
+
+
+def pairs(model_name='ir.rule'):
     """Pares de condiciones sobre un mismo campo, con operadores de fusión."""
     result = []
-    for field, values in PAIR_FIELDS:
+    for field, values in MODEL_PAIR_FIELDS.get(model_name, ()):
         operators = (PAIR_OPERATORS if field == 'groups'
                      else PAIR_OPERATORS[:4])
         atoms = [(field, operator, value) for operator in operators
@@ -72,7 +105,7 @@ def _step(function):
         return f'raises {type(error).__name__}'
 
 
-def trace(domain_class, model):
+def trace(domain_class, model, model_name='ir.rule'):
     """``optimize``, ``optimize_full`` y ``validate`` sobre ``model``.
 
     Cada condición sola, y la misma negada con ``'!'``, para que el empuje de
@@ -80,7 +113,7 @@ def trace(domain_class, model):
     ``pairs()`` unidos con ``'&'`` y con ``'|'``, para los de fusión.
     """
     lines = []
-    for condition in conditions():
+    for condition in conditions(model_name):
         for prefix in ((), ('!',)):
             source = [*prefix, condition]
             lines.append(
@@ -92,7 +125,7 @@ def trace(domain_class, model):
         validated = _step(lambda: domain_class([condition]).validate(model))
         lines.append(f'{condition!r} validate {validated}')
     for operator in ('&', '|'):
-        for first, second in pairs():
+        for first, second in pairs(model_name):
             source = [operator, first, second]
             lines.append(
                 f'{source!r} optimize '

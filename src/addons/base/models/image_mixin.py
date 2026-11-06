@@ -19,6 +19,14 @@ dentro de la columna (``fields.Image`` es un ``Binary`` con adjunto). Aquí son
 ``ImageField``, es decir archivos en el storage con la ruta en la columna. Es
 la convención del árbol —el resto de modelos con imagen ya la usa— y evita
 cargar un blob de 1920px en cada consulta.
+
+Los cinco campos son ``fields.Image``, no ``models.ImageField`` a secas: el
+contrato que el ORM lee está en el tipo. Con el contenido en el storage, el
+campo publica ``attachment = True`` como la fuente, y una condición de dominio
+sobre él sólo admite la comprobación de existencia
+(``_optimize_type_binary_attachment``, ``odoo19c: odoo/orm/domains.py:1690``).
+``max_width``/``max_height`` no se declaran todavía: el recorte lo hace
+``save()``, y declararlos cambiaría la ruta que la migración registra.
 """
 
 from io import BytesIO
@@ -26,6 +34,8 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from django.db import models
 from PIL import Image
+
+import fields
 
 # Los cuatro derivados y su lado mayor, verbatim de la referencia.
 _DERIVED_SIZES = {
@@ -59,35 +69,35 @@ class ImageMixin(models.Model):
     (SPA) pide la que le cabe en pantalla.
     """
 
-    image_1920 = models.ImageField(
+    image_1920 = fields.Image(
         upload_to='images/original/',
         null=True,
         blank=True,
         verbose_name='Imagen',
         help_text='Odoo image_1920. Original; las derivadas salen de aquí.',
     )
-    image_1024 = models.ImageField(
+    image_1024 = fields.Image(
         upload_to='images/1024/',
         null=True,
         blank=True,
         editable=False,
         verbose_name='Imagen 1024',
     )
-    image_512 = models.ImageField(
+    image_512 = fields.Image(
         upload_to='images/512/',
         null=True,
         blank=True,
         editable=False,
         verbose_name='Imagen 512',
     )
-    image_256 = models.ImageField(
+    image_256 = fields.Image(
         upload_to='images/256/',
         null=True,
         blank=True,
         editable=False,
         verbose_name='Imagen 256',
     )
-    image_128 = models.ImageField(
+    image_128 = fields.Image(
         upload_to='images/128/',
         null=True,
         blank=True,
