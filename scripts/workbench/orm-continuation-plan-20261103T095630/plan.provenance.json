@@ -219,6 +219,13 @@
         "orm-domains-model-free-reference-0485"
       ],
       "writtenAt": "2026-11-06T05:34:27Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-domains-surface-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T06:26:52Z"
     }
   ]
 }
