@@ -16,7 +16,7 @@ S="$(mktemp -d)"
 test -n "$S" || exit 9
 trap 'rm -rf "${S:?}"' EXIT
 F=$1 M=$2 ID=$3 TASK=$4 MSG=$5 EXCLUDE=${6:-}
-NODE="${CYCLE_NODE:-VM-x2hokp}"
+NODE="${CYCLE_NODE:-x2hokp}"
 THYROX="${THYROX_ROOT:-/home/user/thyrox}"
 if [ -n "${CYCLE_INCLUDE:-}" ] && [ ! -s "$CYCLE_INCLUDE" ]; then
   echo "CYCLE_INCLUDE missing or empty: $CYCLE_INCLUDE"; exit 8
@@ -41,7 +41,7 @@ import json, os, sys, uuid, datetime
 from session import claim_fold as c
 path, task = sys.argv[1], sys.argv[2]
 L = os.environ['API'] + '/.claude/coordination/claims.jsonl'
-node = os.environ['NODE']
+node = 'VM-' + os.environ['NODE']  # dueño del ledger; Thyrox compara vm-<nodo> en minúsculas
 n = datetime.datetime.now(datetime.timezone.utc)
 at = n.strftime('%Y-%m-%dT%H:%M:%S.') + '%03dZ' % (n.microsecond // 1000)
 rows = [json.loads(l) for l in open(L) if l.strip()]
