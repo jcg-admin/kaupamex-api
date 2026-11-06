@@ -344,7 +344,10 @@ class Query:
             # constructor de fila. psycopg 3 la adapta a un literal de registro
             # entrecomillado, así que `IN (...)` sale con un `'(1,2,3)'` que
             # PostgreSQL rechaza. `unnest` de una lista ocupa la misma posición
-            # —una subconsulta— y devuelve el mismo conjunto.
+            # —una subconsulta—. Da el mismo conjunto sólo para listas de
+            # enteros, que es el dominio que declara `set_result_ids`
+            # (`Iterable[int]`); con texto o `[None]` falla. Medido en
+            # scripts/workbench/sql-in-vs-any-equivalence-20261105T224049.
             return SQL("(SELECT unnest(%s))", list(self._ids))
 
         if self.limit or self.offset:
@@ -404,8 +407,9 @@ class Query:
             self.order = SQL.identifier(alias, 'ordinality')
         else:
             # Misma divergencia de controlador que en `subselect`: `= ANY`
-            # sobre una lista es la forma que psycopg 3 adapta, y es
-            # equivalente a `IN` sobre el mismo conjunto.
+            # sobre una lista es la forma que psycopg 3 adapta. Coincide con
+            # `IN` en las 22 comparaciones medidas —enteros y texto, con
+            # duplicados y con NULL— (ver la cabecera del módulo).
             self.add_where(
                 SQL(
                     "%s = ANY(%s)", SQL.identifier(self.table, 'id'), list(ids)
