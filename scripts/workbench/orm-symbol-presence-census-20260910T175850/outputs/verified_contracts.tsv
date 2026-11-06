@@ -829,3 +829,15 @@ src/tools/misc.py	StackMap.__slots__	attribute	tests/unit/tools/test_contract_mi
 src/tools/misc.py	_PrintfArgs.__slots__	attribute	tests/unit/tools/test_contract_misc_collections_reference.py
 src/tools/misc.py	frozendict.__slots__	attribute	tests/unit/tools/test_contract_misc_collections_reference.py
 src/tools/misc.py	unquote.__slots__	attribute	tests/unit/tools/test_contract_misc_collections_reference.py
+src/orm/domains.py	Domain.validate	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	Domain._optimize	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	DomainNot._optimize_step	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	DomainNary._optimize_step	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	DomainCondition._negate	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	DomainCondition._field	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	DomainCondition.__get_field	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	DomainCondition._optimize_step	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_any_domain	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_any_domain_at_level	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_like_str	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_merge_set_conditions_mono_value	function	tests/unit/orm/test_contract_domains_model_reference.py
