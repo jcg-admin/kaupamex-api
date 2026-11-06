@@ -11,7 +11,9 @@ con cero, uno y dos registros, sin argumentos y con nombre de campo y token,
 y los tres alias deprecados ``_cr``, ``_uid`` y ``_context``
 (``:5911-5924``): a qué atributo del entorno responden y qué advertencia
 emiten. ``__deepcopy__`` (``:6665-6666``) devuelve el propio recordset, con
-cero, uno y dos registros.
+cero, uno y dos registros. ``_convert_to_record`` (``:6094-6101``) pasa
+valores de caché al formato de registro con el ``convert_to_record`` de cada
+campo: texto, entero de referencia y booleano, y un campo inexistente.
 
 El alias se compara por igualdad con su atributo, no por identidad: aquí
 ``env.context`` devuelve una copia nueva en cada acceso, y la identidad
@@ -21,6 +23,13 @@ import copy
 import warnings
 
 IDS = ((), (1,), (1, 2))
+#: Valores en formato de caché sobre campos de ``ir.attachment``.
+CACHE_VALUES = (
+    ('empty', {}),
+    ('scalars', {'name': 'x', 'res_id': 3, 'public': True}),
+    ('falsy', {'name': False, 'res_id': 0, 'public': False}),
+    ('unknown field', {'no_such_field': 1}),
+)
 #: Alias deprecado y el atributo del entorno al que responde.
 ALIASES = (('_cr', 'cr'), ('_uid', 'uid'), ('_context', 'context'))
 ARGUMENTS = ((), ('datas', None), ('datas', 'token'))
@@ -51,6 +60,9 @@ def trace(Domain, model, model_name):
              for ids in IDS for arguments in ARGUMENTS]
     steps += [(f'deepcopy {len(ids)}', lambda ids=ids: _deepcopy_is_self(
         model.browse(ids))) for ids in IDS]
+    for label, values in CACHE_VALUES:
+        steps.append((f'convert_to_record {label}', lambda values=values:
+                      base._convert_to_record(model.browse(()), values)))
     for alias, attribute in ALIASES:
         steps += [
             (f'{alias} equals env.{attribute}', lambda alias=alias,

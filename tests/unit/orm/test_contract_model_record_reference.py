@@ -48,8 +48,12 @@ def test_the_trace_matches_the_reference(reference_trace):
 def test_only_the_non_singletons_raise(reference_trace):
     """Cero o dos registros rehúsan por ``ensure_one``; uno responde, y
     ningún paso de los alias rehúsa."""
-    raising = [line for line in reference_trace if ' raises ' in line]
+    raising = [line for line in reference_trace if ' raises ' in line
+               and line.startswith('can_return')]
     assert len(raising) == 6
     assert all(line.endswith('raises ValueError') for line in raising)
+    others = [line for line in reference_trace if ' raises ' in line
+              and not line.startswith('can_return')]
+    assert others == ['convert_to_record unknown field raises KeyError']
     assert all(' 1 ' in line for line in reference_trace
                if line not in raising and line.startswith('can_return'))
