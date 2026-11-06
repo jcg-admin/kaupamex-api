@@ -9,7 +9,8 @@ decide qué ítem sigue: eso es ``task_continuation next``.
 
 El commit que se cita es el del consumidor en el momento del ``verify``; un
 árbol sucio rehúsa con exit 2, porque el veredicto no correspondería a ningún
-commit.
+commit. Una fila que declara ``obligations`` vacía también rehúsa con exit 2,
+sin escribir ``attempt`` ni ``accepted``.
 
 Precondición declarada: el entorno trae las variables de base de datos y
 ``SECRET_KEY`` que la suite necesita (no se guardan en Git).
@@ -46,30 +47,41 @@ def plan_row(workbench, item):
 def main(argv):
     workbench, item = pathlib.Path(argv[0]).resolve(), argv[1]
     row = plan_row(workbench, item)
+    # Una unidad que declara obligaciones y no trae ninguna no tiene qué
+    # asentar: aceptarla registraría progreso sin contrato verificado
+    # (INC-01, orm-environments-reference-0485 en api@a7063ffb).
+    if 'obligations' in row and not row['obligations']:
+        print(f'settle_item: {item} no declara obligaciones; no se asienta',
+              file=sys.stderr)
+        return 2
     # El registro del propio banco cambia con cada asiento: no ensucia el
     # veredicto, que es del codigo.
     own_log = str((workbench / 'outputs').relative_to(REPO))
     if subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--',
                        '.', f':!{own_log}'],
                       capture_output=True, text=True).stdout.strip():
-        print('settle_item: arbol sucio; el veredicto no tendria commit', file=sys.stderr)
+        print('settle_item: arbol sucio; el veredicto no tendria commit',
+              file=sys.stderr)
         return 2
-    commit = subprocess.run(['git', '-C', str(REPO), 'rev-parse', '--short', 'HEAD'],
-                            capture_output=True, text=True).stdout.strip()
+    commit = subprocess.run(
+        ['git', '-C', str(REPO), 'rev-parse', '--short', 'HEAD'],
+        capture_output=True, text=True).stdout.strip()
     result = subprocess.run(row['verify'], shell=True, cwd=REPO,
                             capture_output=True, text=True)
     lines = [line for line in (result.stdout + result.stderr).splitlines()
              if line.strip() and not line.startswith('warning:')]
     tail = lines[-3:]
+    outcome = 'success' if result.returncode == 0 else 'verify-failed'
     append_log(workbench, {'kind': 'attempt', 'item': item, 'attempt': 0,
-                           'model': 'conversational-session', 'outcome':
-                           'success' if result.returncode == 0 else 'verify-failed',
-                           'source': 'preexisting', 'verifyExit': result.returncode,
+                           'model': 'conversational-session',
+                           'outcome': outcome, 'source': 'preexisting',
+                           'verifyExit': result.returncode,
                            'commit': commit, 'verifyTail': tail})
     if result.returncode == 0:
-        append_log(workbench, {'kind': 'accepted', 'item': item, 'commitExit': 0,
-                               'commit': commit})
-    print(f'{item}: verify={result.returncode} commit={commit} {tail[-1] if tail else ""}')
+        append_log(workbench, {'kind': 'accepted', 'item': item,
+                               'commitExit': 0, 'commit': commit})
+    last = tail[-1] if tail else ''
+    print(f'{item}: verify={result.returncode} commit={commit} {last}')
     report_coverage(workbench)
     return 0 if result.returncode == 0 else 1
 
