@@ -324,6 +324,13 @@
         "orm-domains-abstract-base-reference-0485"
       ],
       "writtenAt": "2026-11-06T21:19:54Z"
+    },
+    {
+      "planner": "orm-environments-starred",
+      "items": [
+        "orm-environments-starred-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T21:22:37Z"
     }
   ]
 }
