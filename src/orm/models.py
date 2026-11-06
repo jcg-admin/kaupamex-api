@@ -5796,6 +5796,15 @@ class BaseModel(DefaultGetMixin, Model):
         """ ≙ ``:6659`` """
         return f"{self._name}{self._ids!r}"
 
+    def __deepcopy__(self, memo):
+        """≙ ``:6665-6666`` — un recordset se copia a sí mismo.
+
+        Un recordset nombra filas, no las contiene: copiarlo en profundidad no
+        debe duplicar el objeto. Sin este método rige la copia por defecto
+        que Django hereda de ``object``, que construye otra instancia.
+        """
+        return self
+
     def __str__(self):
         """Rutea a :meth:`__repr__`.
 
