@@ -33,6 +33,7 @@ ADMIN_ID = 2
 MODULE_GRIDS = {
     'registry': ('odoo.orm.registry', 'psycopg2.sql'),
     'models': ('odoo.orm.models',),
+    'environments': ('odoo.orm.environments',),
 }
 
 
