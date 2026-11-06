@@ -7,7 +7,9 @@ que sólo ve la raíz de ``odoo19c``: ni ``src/`` ni los settings de Django
 inicializa con el addon ``base`` de la referencia.
 
 Uso: ``python -I -B reference_model_trace.py <raíz> <base> <data_dir>
-<rejilla.py> <modelo> <su|user> [<contexto JSON>]``; imprime la traza
+<rejilla.py> <modelo> <su|user> [<contexto JSON>]``; imprime la traza.
+Con ``environment`` en lugar de un modelo, la rejilla es la de
+``environment_grid`` y recibe una fábrica de entornos; imprime la traza
 como JSON. El contexto (p. ej. ``{"tz": "America/Mexico_City"}``) es el
 del ``Environment``; ``env.tz`` lo lee primero (``environments.py:286-294``).
 
@@ -42,7 +44,14 @@ def main(root, database, data_dir, grid_path, model_name, mode,
         uid = SUPERUSER_ID if mode == 'su' else ADMIN_ID
         env = Environment(cursor, uid, json.loads(context))
         assert env.su == (mode == 'su'), (mode, env.su)
-        lines = grid.trace(Domain, env[model_name], model_name)
+        if model_name == 'environment':
+            # La rejilla de ``Environment`` recibe una fábrica: cada paso
+            # construye su entorno sobre el mismo cursor.
+            lines = grid.trace(
+                lambda user, values, elevated: Environment(
+                    cursor, user, values, elevated))
+        else:
+            lines = grid.trace(Domain, env[model_name], model_name)
         cursor.rollback()
     print(json.dumps(lines))
 

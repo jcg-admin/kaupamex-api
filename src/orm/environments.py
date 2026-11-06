@@ -95,12 +95,13 @@ from django.utils import translation
 from django.utils.functional import Promise
 from django.utils.translation.trans_real import to_language
 
-from exceptions import AccessError, CacheMiss
+from exceptions import AccessError, CacheMiss, UserError
 from orm import registry
 from orm.utils import (SUPERUSER_ID, browse, model_of, model_field_registry,
                        model_of_field, record_ids)
 from tools.func import reset_cached_properties
-from tools.misc import SENTINEL, OrderedSet, StackMap, frozendict
+from tools.misc import (SENTINEL, OrderedSet, StackMap, clean_context,
+                        frozendict)
 from tools.query import Query
 from tools.sql import SQL, execute_sql
 from tools.translate import _translate_and_format
@@ -985,13 +986,25 @@ class Environment:
 
         «Return an environment based on ``self``» — los ejes que no se nombran
         se heredan. ``user`` admite el registro o su PK, igual que allá.
+
+        Dos reglas de la fuente (``:141-144``), verbatim en su efecto:
+
+        - al **elevar** sin contexto explícito, el contexto se limpia con
+          ``clean_context`` — las claves ``default_*`` de quien llamaba no
+          viajan al entorno elevado;
+        - **cambiar de usuario** sin ``su`` explícito **no** hereda la
+          elevación: ``su = (user is None and self.su)``.
         """
-        uid = self.uid if user is None else getattr(user, 'pk', user)
+        uid = self.uid if user is None else int(getattr(user, 'pk', user))
+        if context is None:
+            context = (clean_context(self.context) if su and not self.su
+                       else self.context)
+        su = (user is None and self.su) if su is None else su
         return Environment(
             cr=self._using if cr is None else cr,
             uid=uid,
-            context=self.context if context is None else context,
-            su=self.su if su is None else su,
+            context=context,
+            su=su,
         )
 
     def __enter__(self):
@@ -1095,14 +1108,38 @@ class Environment:
         distinción importa: ``_description_string`` sólo traduce si hay
         idioma. Por eso NO cae al idioma activo de Django, que siempre tiene
         uno.
+
+        La fuente valida además el código (``:299-302``): un idioma distinto de
+        ``en_US`` que no esté activo levanta ``UserError``, porque no hay con
+        qué traducir. Aquí la misma consulta, ``res.lang._get_data``.
         """
         value = self.context.get('lang')
+        if value and value != 'en_US' and not self['res.lang']._get_data(
+                code=value):
+            # no se traduce aquí: no hay un idioma válido con qué hacerlo
+            raise UserError(f'Invalid language code: {value}')
         return value or None
 
     @property
     def tz(self):
-        """≙ ``env.tz`` — la zona horaria efectiva."""
-        return get_current_tz()
+        """≙ ``env.tz`` (``:285-294``) — la zona horaria efectiva.
+
+        Manda la clave ``tz`` del contexto **de este entorno** y, si no está,
+        la del usuario; una zona inválida cae a UTC. Leía
+        ``get_current_tz()``, que consulta el contexto del canal ambiental y
+        no el del objeto: ``Environment(None, uid, {'tz': ...}).tz`` devolvía
+        UTC fuera de un ``with``.
+        """
+        tz_name = self.context.get('tz')
+        if not tz_name:
+            tz_name = getattr(self.user, 'tz', None)
+        if tz_name:
+            try:
+                return ZoneInfo(tz_name)
+            except (ZoneInfoNotFoundError, ValueError):
+                _logger.debug("Zona horaria inválida %r", tz_name,
+                              exc_info=True)
+        return timezone.utc
 
     # --- el registro y la transacción --------------------------------------
 

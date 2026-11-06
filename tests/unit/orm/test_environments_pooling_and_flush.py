@@ -231,8 +231,22 @@ class TestTheResetTossesWhatWasMemoized:
             assert not transaction.field_data
 
 
+@pytest.fixture
+def active_spanish(db):
+    """``es_MX`` activo: ``Environment.lang`` valida el código contra los
+    idiomas activos, como la fuente (``odoo19c: environments.py:299-302``).
+    La semilla ``base/0026_seed_langs`` lo deja inactivo; ``save()`` limpia
+    la caché ``stable`` de la que lee ``_get_data``."""
+    language = registry.MODELS_BY_NAME['res.lang'].objects.get(code='es_MX')
+    language.active = True
+    language.save()
+    return language
+
+
 class TestTheTechnicalLanguageCode:
     """≙ ``Environment._lang`` (``:305-313``)."""
+
+    pytestmark = pytest.mark.usefixtures('active_spanish')
 
     def test_without_a_language_in_the_context_it_falls_back(self):
         assert env()._lang == 'en_US'

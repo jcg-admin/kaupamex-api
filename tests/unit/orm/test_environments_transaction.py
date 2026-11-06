@@ -347,7 +347,8 @@ class TestTheEnvironmentSugar:
     def test_the_transaction_is_the_one_in_scope(self):
         assert env().transaction is get_transaction()
 
-    def test_lang_is_none_when_the_context_does_not_declare_it(self):
+    def test_lang_is_none_when_the_context_does_not_declare_it(
+            self, active_spanish):
         """La fuente distingue «sin idioma» de «idioma por defecto», y de esa
         distinción depende que ``_description_string`` traduzca o no."""
         assert env().lang is None
@@ -406,3 +407,15 @@ class TestTheCommitCutLeavesNoOpenTransaction:
         monkeypatch.undo()
         assert connection.connection.info.transaction_status.name == 'IDLE'
         assert connection.get_autocommit() is True
+
+
+@pytest.fixture
+def active_spanish(db):
+    """``es_MX`` activo: ``Environment.lang`` valida el código contra los
+    idiomas activos, como la fuente (``odoo19c: environments.py:299-302``).
+    La semilla ``base/0026_seed_langs`` lo deja inactivo; ``save()`` limpia
+    la caché ``stable`` de la que lee ``_get_data``."""
+    language = apps.get_model('base', 'ResLang').objects.get(code='es_MX')
+    language.active = True
+    language.save()
+    return language
