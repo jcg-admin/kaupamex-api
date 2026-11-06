@@ -6051,6 +6051,14 @@ class BaseModel(DefaultGetMixin, Model):
                 for invf in registry.field_inverses[field]:
                     invf._update_inverse(inv_recs, self)
 
+    def _convert_to_record(self, values):
+        """ Convert the ``values`` dictionary from the cache format to the
+        record format. — ≙ ``:6094-6101`` """
+        return {
+            name: self._fields[name].convert_to_record(value, self)
+            for name, value in values.items()
+        }
+
     def _convert_to_write(self, values):
         """ Convert the ``values`` dictionary into the format of
         :meth:`write`. — ≙ ``:6103`` """
