@@ -884,6 +884,11 @@ class Environment:
         self._using = cr
         self._uid_override = uid
         self._context_override = context
+        #: ≙ ``self.context = frozendict(context)`` (``:82``): el contexto se
+        #: congela al construir, así que dos lecturas devuelven el mismo
+        #: objeto y ninguna puede mutarlo.
+        self._frozen_context = (None if context is None
+                                else frozendict(context))
         self._su_override = su
         #: La pila de marcos de activación — una lista por cada ``with``
         #: abierto sobre ESTE objeto. Era una lista plana, y con ``__new__``
@@ -1059,9 +1064,18 @@ class Environment:
 
     @property
     def context(self):
-        """≙ ``env.context`` — el contexto, de solo lectura como allá."""
-        values = self._context_override
-        return dict(values if values is not None else get_context())
+        """≙ ``env.context`` (``:55,82``) — un ``frozendict``.
+
+        Con contexto declarado al construir, es el ``frozendict`` que se fijó
+        entonces: el mismo objeto en cada lectura, como en la fuente. Sin él,
+        el entorno lee el canal ambiental (divergencia declarada en
+        :meth:`__new__`) y el valor se congela en cada lectura: inmutable,
+        pero no idéntico entre lecturas, porque el canal puede cambiar.
+        Antes devolvía un ``dict`` nuevo y mutable (H-API-1156).
+        """
+        if self._frozen_context is not None:
+            return self._frozen_context
+        return frozendict(get_context())
 
     @property
     def user(self):
