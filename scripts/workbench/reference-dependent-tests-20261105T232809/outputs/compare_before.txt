@@ -1,0 +1,54 @@
+with: Counter({'passed': 12116, 'skipped': 31, 'error': 5})
+without: Counter({'passed': 11859, 'skipped': 256, 'failure': 32, 'error': 5})
+keys only in one run: 0
+transitions: {('passed', 'skipped'): 225, ('passed', 'failure'): 32}
+  tests.integration.test_orm.test_contract_decorators_model_private_readonly_create_multi: {('passed', 'skipped'): 1}
+  tests.integration.test_orm.test_contract_identifiers_newid_class: {('passed', 'skipped'): 1}
+  tests.integration.test_orm.test_contract_utils_functions_and_originids: {('passed', 'skipped'): 2}
+  tests.unit.orm.test_related_shape_in_the_reference: {('passed', 'skipped'): 4}
+  tests.unit.sale: {('passed', 'skipped'): 15}
+  tests.unit.scripts: {('passed', 'skipped'): 8, ('passed', 'failure'): 2}
+  tests.unit.scripts.test_census_class: {('passed', 'skipped'): 6}
+  tests.unit.scripts.test_check_bloqueo_vigente: {('passed', 'failure'): 5}
+  tests.unit.scripts.test_check_fk_naming: {('passed', 'failure'): 3}
+  tests.unit.scripts.test_check_write_path: {('passed', 'failure'): 2}
+  tests.unit.scripts.test_counterpart_body: {('passed', 'failure'): 8}
+  tests.unit.scripts.test_reference_flow: {('passed', 'failure'): 12}
+  tests.unit.tools.test_contract_barcode_reference: {('passed', 'skipped'): 18}
+  tests.unit.tools.test_contract_cache_reference: {('passed', 'skipped'): 20}
+  tests.unit.tools.test_contract_date_utils_reference: {('passed', 'skipped'): 50}
+  tests.unit.tools.test_contract_facade_reference: {('passed', 'skipped'): 1}
+  tests.unit.tools.test_contract_float_utils_reference: {('passed', 'skipped'): 3}
+  tests.unit.tools.test_contract_func_reference: {('passed', 'skipped'): 9}
+  tests.unit.tools.test_contract_intervals_reference: {('passed', 'skipped'): 1}
+  tests.unit.tools.test_contract_json_reference: {('passed', 'skipped'): 2}
+  tests.unit.tools.test_contract_lru_reference: {('passed', 'skipped'): 2}
+  tests.unit.tools.test_contract_mimetypes_reference: {('passed', 'skipped'): 24}
+  tests.unit.tools.test_contract_parse_version_reference: {('passed', 'skipped'): 38}
+  tests.unit.tools.test_contract_query_reference: {('passed', 'skipped'): 6}
+  tests.unit.tools.test_contract_set_expression_relations: {('passed', 'skipped'): 10}
+  tests.unit.tools.test_contract_speedscope_reference: {('passed', 'skipped'): 3}
+  tests.unit.tools.test_set_expression_against_the_reference: {('passed', 'skipped'): 1}
+skip messages without reference:
+    188 la referencia no está montada en esta sesión
+     15 referencia ausente: /nonexistent-odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/sale/models no existe (odoo-tools 
+      6 la referencia no esta montada: /nonexistent-odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/models.py
+      5 árbol de referencia no montado en /nonexistent-odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0
+      3 AssertionError: assert 'no-medible' == 'falta'
+  - falta
+  + no-medible
+      3 AssertionError: PosixPath('src/orm/models.py')
+assert (PosixPath('/nonexistent-odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-
+      2 referencia ausente: /nonexistent-odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/utils.py no existe (odoo-tools n
+      2 AssertionError: assert 'no-medible' == 'existe'
+  - existe
+  + no-medible
+      2 requiere el árbol de referencia clonado (ODOO19C) y src/orm del propio repo
+      2 AssertionError: PosixPath('src/orm/fields_properties.py')
+assert (PosixPath('/nonexistent-odoo-tools/19.x/odoo-19.0/odoo
+failing with reference: 5
+   tests.integration.company.test_multidb_isolation.TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default failed on setup with "RuntimeError: Isolation fixture requires an explicitly owned disposable default"
+   tests.integration.company.test_multidb_isolation.TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base failed on setup with "RuntimeError: Isolation fixture requires an explicitly owned disposable default"
+   tests.integration.company.test_multidb_isolation.TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope failed on setup with "RuntimeError: Isolation fixture requires an explicitly owned disposable default"
+   tests.integration.company.test_multidb_isolation.TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base failed on setup with "RuntimeError: Isolation fixture requires an explicitly owned disposable default"
+   tests.integration.company.test_multidb_isolation::test_company_schemas_and_native_connections failed on setup with "RuntimeError: Isolation fixture requires an explicitly owned disposable default"

@@ -1,0 +1,3 @@
+referencia: 257 pruebas marcadas, árbol presente en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0
+12127 passed, 27 skipped, 4 xfailed, 320 warnings, 5 errors in 564.28s (0:09:24)
+with=1

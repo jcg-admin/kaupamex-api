@@ -72,6 +72,7 @@ def _related_declarations():
     return counts
 
 
+@pytest.mark.reference
 class TestARelatedIsAProjectionNotACopy:
     """La premisa que dos bloques de prosa daban por buena, medida."""
 
@@ -93,7 +94,8 @@ class TestARelatedIsAProjectionNotACopy:
         counts = _related_declarations()
         plain, total = counts['plain'], counts['total']
         assert plain / total > 0.85, (
-            f'{plain} de {total} sin store ({plain / total:.0%}): si esto baja, '
+            f'{plain} de {total} sin store ({plain / total:.0%}): '
+            'si esto baja, '
             'la razón que se retiró de res_bank.py y de account_peppol vuelve '
             'a ser discutible y hay que re-medirla, no restaurarla a ciegas')
 
@@ -135,4 +137,5 @@ class TestARelatedIsAProjectionNotACopy:
             if 'company_id' in line and RELATED.search(line))
         assert STORED.search(declaration), (
             'el detector de store no vio un store que la fuente sí declara: '
-            f'los otros casos de este archivo no distinguen nada — {declaration.strip()}')
+            'los otros casos de este archivo no distinguen nada — '
+            f'{declaration.strip()}')

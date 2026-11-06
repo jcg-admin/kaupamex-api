@@ -110,6 +110,7 @@ class TestItReadsTheRealTree:
 class TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat:
     """Una declaración listada no bloquea; una nueva sí."""
 
+    @pytest.mark.reference
     def test_every_offender_measured_today_is_in_the_baseline(self):
         rows, _counts = gate.survey()
         baseline = gate.load_baseline()
@@ -215,6 +216,7 @@ class TestTheReferenceDecidesTheSymbolNotTheSuffix:
     ):
         assert gate.classify('recurring_plan', True) == 'D'
 
+    @pytest.mark.reference
     def test_a_divergent_symbol_is_not_absolved_by_the_counterpart(self):
         """
         ``partner`` no está en la contraparte de ``crm_lead``; sigue siendo A.
@@ -225,6 +227,7 @@ class TestTheReferenceDecidesTheSymbolNotTheSuffix:
         assert 'recurring_plan' in fieles and 'partner' not in fieles
         assert gate.classify('partner', False, reference_names=fieles) == 'A'
 
+    @pytest.mark.reference
     def test_the_real_declaration_is_measured_as_faithful(self):
         path = REPO / 'addons' / 'crm' / 'models' / 'crm_lead.py'
         forms = {name: form for _k, name, form in gate.declarations(path)}

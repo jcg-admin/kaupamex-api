@@ -57,6 +57,7 @@ def tree_root():
     return reference_roots.tree()
 
 
+@pytest.mark.reference
 class TestTheExtractorSeesClassesAndAssignments:
     """Regresion 1 — una clase reportada como no declarada es un cero falso.
 
@@ -76,6 +77,7 @@ class TestTheExtractorSeesClassesAndAssignments:
         assert [decl.kind for _, decl in found] == ['assign']
 
 
+@pytest.mark.reference
 class TestTheSymbolIsReadAcrossItsWholeFamily:
     """Unidad 1 y 4 — ``convert_to_column`` lo declaran quince clases.
 
@@ -105,6 +107,7 @@ class TestTheSymbolIsReadAcrossItsWholeFamily:
         assert len(siblings) == 14
 
 
+@pytest.mark.reference
 class TestTheBasesCarryTheContract:
     """Unidad 2 — el contrato puede vivir arriba en la jerarquia."""
 
@@ -125,6 +128,7 @@ class TestTheCallersAreMethodsNotTheirClasses:
     ya estaban en la lista.
     """
 
+    @pytest.mark.reference
     def test_a_real_caller_edge_exists(self, index):
         flow = reference_flow.flow_of('frozendict', index)
         callers = {site.caller for site in flow.callers}
@@ -161,6 +165,7 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
         assert flow.scope.files_parsed == len(index)
         assert flow.scope.declarations == len(flow.declarations)
 
+    @pytest.mark.reference
     def test_the_universe_is_not_the_files_that_survived_the_prefilter(self):
         # Publicar una sola cifra confundiria "cuanto se midio" con "de
         # cuantos se leyo el AST" — el sub-patron A, un encabezado unico
@@ -194,6 +199,7 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
         )
         assert 'no se declara en el alcance medido' in text
 
+    @pytest.mark.reference
     def test_the_run_publishes_its_blind_spots(self, capsys):
         assert (
             reference_flow.main(
@@ -206,6 +212,7 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
         assert 'Ciega a:' in out
 
 
+@pytest.mark.reference
 class TestThePrefilterWidensTheScopeWithoutLosingEdges:
     """El prefiltro es lo que hace medible el arbol entero.
 
@@ -282,6 +289,7 @@ class TestTheGuardCanFail:
         assert 'raiz inexistente' in captured.err
         assert captured.out == ''
 
+    @pytest.mark.reference
     def test_a_missing_file_refuses(self, capsys):
         code = reference_flow.main(['--file', 'odoo/tools/no-existe.py'])
         assert code == 2

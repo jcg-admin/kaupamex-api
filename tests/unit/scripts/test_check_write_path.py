@@ -206,6 +206,7 @@ class TestTheInstrumentDeclaresWhatItCannotDecide:
             check_write_path.MIXED, check_write_path.VIA_ORM
         ) == (counterpart_body.INDETERMINATE)
 
+    @pytest.mark.reference
     def test_the_scope_counts_them_apart(self):
         # Contarlos como acuerdo publicaria un verde que no discrimina.
         findings, scope = check_write_path.scan_with_scope(
@@ -219,6 +220,7 @@ class TestTheInstrumentDeclaresWhatItCannotDecide:
         ]
 
 
+@pytest.mark.reference
 class TestTheGateDeclaresWhatItMeasured:
     """Un conteo sin denominador no es un resultado."""
 

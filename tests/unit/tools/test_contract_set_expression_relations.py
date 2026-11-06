@@ -77,6 +77,7 @@ def both():
     return reference, layers(reference, their), layers(ported, ours)
 
 
+@pytest.mark.reference
 class TestTheRelationsMatchTheReference:
     """Cada relación entre dos elementos de una capa, contra la fuente."""
 
@@ -121,6 +122,7 @@ class TestTheRelationsMatchTheReference:
             assert hash(union) == hash(union.key)
 
 
+@pytest.mark.reference
 class TestTheDeclarationsMatchTheReference:
     """Lo que la clase declara, no lo que una instancia hace."""
 

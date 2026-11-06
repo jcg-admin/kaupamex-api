@@ -51,11 +51,29 @@ from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
 from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
+from tests.fixtures import reference_tree
 
 import pytest
 from orm.environments import get_transaction
 from orm.registry import clear_cache
 from pytest_django.plugin import blocking_manager_key
+
+# ─── Pruebas que dependen del árbol de referencia ───────────────────────────
+# El criterio y el conteo viven en ``tests/fixtures/reference_tree.py``; estos
+# hooks sólo delegan, para que pytest los registre en este conftest.
+
+
+def pytest_configure(config):
+    reference_tree.pytest_configure(config)
+
+
+def pytest_collection_modifyitems(config, items):
+    reference_tree.pytest_collection_modifyitems(config, items)
+
+
+def pytest_runtest_setup(item):
+    reference_tree.pytest_runtest_setup(item)
+
 
 # ─── PostgreSQL keepalive (ADR-028) ──────────────────────────────────────────
 # Gate de SESION, no fixture por test. La diferencia no es de estilo: el

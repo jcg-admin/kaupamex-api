@@ -138,6 +138,7 @@ PROBES = (
 )
 
 
+@pytest.mark.reference
 class TestTheBehaviourMatchesTheReference:
     """Ejecuta los dos modulos y compara su salida, no sus nombres."""
 
@@ -159,22 +160,31 @@ class TestTheBehaviourMatchesTheReference:
             if left != right:
                 divergences.append((label, left, right))
 
-        compare('battery size', lambda: len(their_battery), lambda: len(our_battery))
+        compare('battery size',
+                lambda: len(their_battery), lambda: len(our_battery))
         for identifier in IDS:
             ref_name = DEFINITIONS[identifier]['ref']
             compare(f'get_id({ref_name})',
-                    lambda n=ref_name: their.get_id(n), lambda n=ref_name: ours.get_id(n))
-            for name in ('get_superset_ids', 'get_subset_ids', 'get_disjoint_ids'):
-                compare(f'{name}({identifier})',
-                        lambda n=name, i=identifier: sorted(getattr(their, n)([i])),
-                        lambda n=name, i=identifier: sorted(getattr(ours, n)([i])))
+                    lambda n=ref_name: their.get_id(n),
+                    lambda n=ref_name: ours.get_id(n))
+            for name in ('get_superset_ids', 'get_subset_ids',
+                         'get_disjoint_ids'):
+                compare(
+                    f'{name}({identifier})',
+                    lambda n=name, i=identifier: sorted(
+                        getattr(their, n)([i])),
+                    lambda n=name, i=identifier: sorted(
+                        getattr(ours, n)([i])))
         compare('get_id(absent)',
-                lambda: their.get_id('NOT_A_REF'), lambda: ours.get_id('NOT_A_REF'))
+                lambda: their.get_id('NOT_A_REF'),
+                lambda: ours.get_id('NOT_A_REF'))
 
-        for index, (theirs, mine) in enumerate(zip(their_battery, our_battery)):
+        pairs = enumerate(zip(their_battery, our_battery))
+        for index, (theirs, mine) in pairs:
             for name, probe in PROBES:
                 compare(f'[{index}] {name}',
-                        lambda p=probe, x=theirs: p(x), lambda p=probe, x=mine: p(x))
+                        lambda p=probe, x=theirs: p(x),
+                        lambda p=probe, x=mine: p(x))
             compare(f'[{index}] from_key',
                     lambda x=theirs: str(their.from_key(x.key)),
                     lambda x=mine: str(ours.from_key(x.key)))
@@ -188,11 +198,11 @@ class TestTheBehaviourMatchesTheReference:
                             lambda x=mine, s=subset: x.matches(s))
 
         assert comparisons > 100_000, (
-            f'la bateria encogio a {comparisons} comparaciones: mide menos que '
-            'cuando se escribio y su verde ya no dice lo mismo')
+            f'la bateria encogio a {comparisons} comparaciones: mide menos '
+            'que cuando se escribio y su verde ya no dice lo mismo')
         assert not divergences, (
-            f'{len(divergences)} de {comparisons} comparaciones divergen de la '
-            f'fuente; las tres primeras: {divergences[:3]}')
+            f'{len(divergences)} de {comparisons} comparaciones divergen de '
+            f'la fuente; las tres primeras: {divergences[:3]}')
 
 
 class TestTheBatteryCoversWhatMakesItDiscriminate:

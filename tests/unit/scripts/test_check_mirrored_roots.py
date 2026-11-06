@@ -241,6 +241,7 @@ _REFERENCE_TREE_PRESENT = gate.REFERENCE_ROOT.is_dir()
 _SRC_ORM_PRESENT = (REPO / 'src' / 'orm').is_dir()
 
 
+@pytest.mark.reference
 @pytest.mark.skipif(
     not (_REFERENCE_TREE_PRESENT and _SRC_ORM_PRESENT),
     reason=(
@@ -267,6 +268,7 @@ def test_src_orm_is_clean_against_the_real_baseline():
     assert new == []
 
 
+@pytest.mark.reference
 @pytest.mark.skipif(
     not (_REFERENCE_TREE_PRESENT and _SRC_ORM_PRESENT),
     reason=(

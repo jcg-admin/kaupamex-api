@@ -1,0 +1,26 @@
+{
+  "question": "¿Qué pruebas dependen del árbol de referencia odoo19c y qué hacen en un entorno sin él, como el CI?",
+  "instrument": [
+    "scripts/workbench/reference-dependent-tests-20261105T232809/run_with_and_without_reference.sh",
+    "scripts/workbench/reference-dependent-tests-20261105T232809/compare_junit.py"
+  ],
+  "metric": "resultado de cada prueba de la suite completa con la referencia y con ODOO_TOOLS inexistente; la población dependiente es la que cambia de resultado. Antes: 257 cambian, 225 a skipped y 32 a failure. Después: 257, todas a skipped.",
+  "blind_to": [
+    "una prueba que lea la referencia sin marca ni fixture: falla sin referencia en vez de omitirse; el conteo no la ve",
+    "un árbol presente pero parcial: el criterio es la raíz del alias",
+    "odoo19e, odoo18c y odoo18e: ninguna prueba de la población los exige"
+  ],
+  "control": "con el skip anulado, la población sin referencia vuelve a exactamente 32 failed; cada una de las tres mutaciones de tests/fixtures/reference_tree.py tumba un solo caso de tests/unit/test_reference_tree_plugin.py",
+  "reproducible": "bash scripts/workbench/reference-dependent-tests-20261105T232809/run_with_and_without_reference.sh <salida> && .venv/bin/python scripts/workbench/reference-dependent-tests-20261105T232809/compare_junit.py <salida>/junit_with_reference.xml <salida>/junit_without_reference.xml",
+  "outputs": [
+    "outputs/population_before.tsv",
+    "outputs/compare_before.txt",
+    "outputs/compare_after.txt",
+    "outputs/explicit_marks.txt",
+    "outputs/before_suite_with_reference_tail.txt",
+    "outputs/before_suite_without_reference_tail.txt",
+    "outputs/after_suite_with_reference_tail.txt",
+    "outputs/after_suite_without_reference_tail.txt"
+  ],
+  "destination": "tests/fixtures/reference_tree.py, tests/conftest.py, pytest.ini y las 44 declaraciones marcadas; TASK-API-0494"
+}

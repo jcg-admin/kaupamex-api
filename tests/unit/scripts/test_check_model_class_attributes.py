@@ -216,6 +216,7 @@ def test_addon_and_relpath_is_none_outside_any_addons_root():
 # --- el positivo conocido del repo: res_partner.py ----------------------
 
 
+@pytest.mark.reference
 @requires_reference_tree
 def test_the_real_positive_res_partner_names_its_one_remaining_gap():
     """``res_partner.py`` — 8 de 9 portados; el gate reproduce el que falta.
@@ -263,6 +264,7 @@ def test_the_real_positive_res_partner_names_its_one_remaining_gap():
     assert '_complete_name_displayed_types' not in missing
 
 
+@pytest.mark.reference
 @requires_reference_tree
 def test_a_genuinely_clean_pair_of_the_repo_yields_no_findings():
     """
@@ -324,6 +326,7 @@ def test_load_baseline_skips_comments_and_blank_lines(tmp_path, monkeypatch):
 # nuevo?
 
 
+@pytest.mark.reference
 @requires_reference_tree
 def test_cli_exits_zero_on_a_clean_scope(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(gate, 'BASELINE', tmp_path / 'vacio.txt')
@@ -338,6 +341,7 @@ def test_cli_exits_zero_on_a_clean_scope(monkeypatch, tmp_path, capsys):
     assert 'OK' in capsys.readouterr().out
 
 
+@pytest.mark.reference
 @requires_reference_tree
 def test_cli_exits_one_and_names_the_real_positive(
     monkeypatch, tmp_path, capsys
@@ -354,6 +358,7 @@ def test_cli_exits_one_and_names_the_real_positive(
     assert '_check_company_domain' in output
 
 
+@pytest.mark.reference
 @requires_reference_tree
 def test_cli_write_baseline_freezes_current_findings(monkeypatch, tmp_path):
     destination = tmp_path / 'baseline.txt'

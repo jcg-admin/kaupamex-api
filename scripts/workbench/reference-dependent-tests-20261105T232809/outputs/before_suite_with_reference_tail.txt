@@ -1,0 +1,3 @@
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+12116 passed, 27 skipped, 4 xfailed, 320 warnings, 5 errors in 599.80s (0:09:59)
+with=1

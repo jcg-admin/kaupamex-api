@@ -34,6 +34,7 @@ def gate():
         os.chdir(previo)
 
 
+@pytest.mark.reference
 class TestTheDestinationResolvesInBothDirections:
 
     def test_a_model_that_exists_expires_its_marker(self, gate):
@@ -121,6 +122,7 @@ class TestTheSymbolIsLookedUpInItsOwnModel:
     árbol entero daba por caducado el bloqueo raíz de la tarea #274.
     """
 
+    @pytest.mark.reference
     def test_a_symbol_of_another_model_does_not_expire_it(self, gate):
         assert 'ir.ui.view' in gate.declared_model_names()
         assert '_render_template' not in gate.symbols_of_model('ir.ui.view')

@@ -68,6 +68,7 @@ def _pairs(path):
     }
 
 
+@pytest.mark.reference
 class TestTheCollapseByNameComparesTheWrongBody:
     """
     El defecto que el emparejamiento nuevo cierra, medido antes de cerrarlo.
@@ -111,6 +112,7 @@ class TestTheCollapseByNameComparesTheWrongBody:
 class TestTheModuleLevelFunctionIsPaired:
     """La forma dominante de ``odoo/tools`` entra al universo."""
 
+    @pytest.mark.reference
     @pytest.mark.parametrize('symbol', ['create_column', 'drop_constraint'])
     def test_a_module_writer_is_now_visible(self, symbol):
         pair = _pairs(MODULE_LEVEL)[symbol]
@@ -122,6 +124,7 @@ class TestTheModuleLevelFunctionIsPaired:
         assert 'create_column' not in counterpart_body.methods_of(MODULE_LEVEL)
 
 
+@pytest.mark.reference
 class TestTheDissolvedBaseKeepsItsPairs:
     """Emparejar SOLO por duena perderia los 63 pares del nucleo del ORM."""
 
@@ -136,7 +139,8 @@ class TestTheDissolvedBaseKeepsItsPairs:
     def test_the_pair_names_the_reference_owner(self):
         # La duena de la referencia no es la nuestra: sin ella el veredicto no
         # se puede atribuir al simbolo de la fuente.
-        create = next(p for p in _pairs(DISSOLVED_BASE).values() if p.name == 'create')
+        create = next(p for p in _pairs(DISSOLVED_BASE).values()
+                      if p.name == 'create')
         assert create.owner != 'BaseModel'
         assert create.their_owner == 'BaseModel'
         assert create.reference_key == 'BaseModel.create'

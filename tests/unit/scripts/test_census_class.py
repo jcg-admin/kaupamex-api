@@ -58,6 +58,7 @@ def base_model():
     return census_class.census(REFERENCE_MODELS, ['BaseModel'])['BaseModel']
 
 
+@pytest.mark.reference
 class TestTheAnnotatedFormIsSeen:
 
     def test_base_model_declares_thirty_one_class_attributes(self, base_model):
@@ -107,6 +108,7 @@ class TestItAlsoSeesTheOrdinaryAddonForm(object):
         assert not any(a.annotated for a in got.attributes)
 
 
+@pytest.mark.reference
 class TestMethodsAndRange:
 
     def test_it_reports_the_methods_too(self, base_model):

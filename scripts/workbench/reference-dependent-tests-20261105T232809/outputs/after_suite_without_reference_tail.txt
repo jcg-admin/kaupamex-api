@@ -1,0 +1,3 @@
+referencia: 257 de 257 pruebas marcadas se omitieron (/nonexistent-odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0 no existe); sus contratos NO se verificaron en esta ejecución
+11870 passed, 284 skipped, 4 xfailed, 317 warnings, 5 errors in 558.81s (0:09:18)
+without=1

@@ -28,10 +28,12 @@ def test_the_bucket_of_a_column(values, null, expected):
     assert census.bucket(values, null) == expected
 
 
-@pytest.mark.skipif(not reference_roots.tree('odoo19c').is_dir(),
-                    reason='odoo19c no está montado')
+@pytest.mark.reference
 def test_no_column_is_required_only_by_omission():
     declared, tables = census.reference_index()
+    # Un índice vacío no da infractores: sin este piso, una raíz que existe
+    # pero no es la referencia haría pasar el caso sin medir nada.
+    assert declared, 'el índice de la referencia salió vacío'
     offenders = []
     for model, field in census.consumer_columns():
         _, _, result = census.column_bucket(model, field, declared, tables)

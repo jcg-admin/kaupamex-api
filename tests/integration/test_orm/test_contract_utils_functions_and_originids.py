@@ -100,6 +100,7 @@ def _behaviour(module):
     return rows
 
 
+@pytest.mark.reference
 @pytest.mark.skipif(
     not REFERENCE_FILE.is_file(),
     reason=f'referencia ausente: {REFERENCE_FILE} no existe (odoo-tools no '

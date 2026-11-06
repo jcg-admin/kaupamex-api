@@ -264,6 +264,7 @@ def _correr(*argv):
     return salida.getvalue()
 
 
+@pytest.mark.reference
 def test_a_scoped_run_names_no_entry_as_dead():
     """El recorrido acotado no puede saber qué entrada está muerta.
 
@@ -288,6 +289,7 @@ def test_a_scoped_run_names_no_entry_as_dead():
     assert nombradas == [], nombradas
 
 
+@pytest.mark.reference
 def test_a_scoped_run_names_the_scope_of_its_count():
     """El conteo no se calla el alcance: lo dice en la misma línea.
 

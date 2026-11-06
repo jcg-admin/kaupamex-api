@@ -130,6 +130,7 @@ HEADER_ATTRS_TO_COMPARE = (
 )
 
 
+@pytest.mark.reference
 @pytest.mark.parametrize('filename,ref_class,our_class', NAME_OWNING_CLASSES)
 def test_name_owning_class_ports_every_header_attribute(
     filename, ref_class, our_class
@@ -160,6 +161,7 @@ def test_name_owning_class_ports_every_header_attribute(
     )
 
 
+@pytest.mark.reference
 def test_sale_order_rec_names_search_is_a_property_here_too():
     """
     ``_rec_names_search`` de ``SaleOrder`` es ``@property`` en los dos lados.
@@ -204,6 +206,7 @@ def test_sale_order_rec_names_search_is_a_property_here_too():
     )
 
 
+@pytest.mark.reference
 @pytest.mark.parametrize('filename,ref_class,our_class', NAME_OWNING_CLASSES)
 def test_db_table_matches_name_replace_dot_underscore(
     filename, ref_class, our_class
@@ -274,6 +277,7 @@ EXTENSION_ONLY_CLASSES = [
 ]
 
 
+@pytest.mark.reference
 @pytest.mark.parametrize(
     'filename,ref_class,attr_map',
     EXTENSION_ONLY_CLASSES,
@@ -307,6 +311,7 @@ def test_extension_only_file_declares_the_header_as_module_constant(
         )
 
 
+@pytest.mark.reference
 def test_no_extension_only_class_is_missing_from_the_parametrization():
     """Control de cobertura: todo archivo de ``addons/sale/models/`` con
     contraparte en la referencia, y cuya única clase-atributo es ``_inherit``
