@@ -6950,13 +6950,11 @@ class BaseModel(DefaultGetMixin, Model):
 
         :param ordered: si la consulta debe respetar el orden de ``self``.
 
-        La fuente pasa además ``self._table_sql``. La propiedad existe aquí
-        (:attr:`_table_sql`), pero ``Query`` todavía no la recibe: toma la
-        tabla por su identificador, que coincide para una tabla sin
-        ``_table_query`` y no para un modelo de consulta. Pasársela queda bajo
-        ``TASK-API-0485``.
+        Como en la fuente, la tabla de la consulta es :attr:`_table_sql`: el
+        identificador para una tabla normal y la subconsulta para un modelo
+        con ``_table_query``.
         """
-        query = Query(self.env, self._table)
+        query = Query(self.env, self._table, self._table_sql)
         query.set_result_ids(self._ids, ordered)
         return query
 
