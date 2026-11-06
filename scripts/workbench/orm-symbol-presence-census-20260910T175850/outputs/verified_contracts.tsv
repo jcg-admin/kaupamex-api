@@ -927,3 +927,5 @@ src/orm/environments.py	Starred	class	tests/unit/orm/test_contract_environments_
 src/orm/environments.py	Starred.__init__	method	tests/unit/orm/test_contract_environments_module_reference.py
 src/orm/environments.py	Starred.__repr__	method	tests/unit/orm/test_contract_environments_module_reference.py
 src/orm/environments.py	Starred.__slots__	attribute	tests/unit/orm/test_contract_environments_module_reference.py
+src/orm/models.py	BaseModel._register_hook	method	tests/unit/orm/test_contract_models_reference.py
+src/orm/models.py	BaseModel._unregister_hook	method	tests/unit/orm/test_contract_models_reference.py

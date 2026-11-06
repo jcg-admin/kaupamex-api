@@ -1057,8 +1057,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.search_read
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.toggle_active	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_models_basemodel_toggle_active.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.action_archive	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_models_basemodel_action_archive.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.action_unarchive	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_models_basemodel_action_unarchive.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._register_hook	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._unregister_hook	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._register_hook	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_models_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._unregister_hook	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_models_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._get_redirect_suggested_company	method	not_verified	structural=paired_by_name:AccessQuerySet._get_redirect_suggested_company;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._can_return_content	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.__init__	method	not_verified	structural=signature;write_path=-;evidence=-
