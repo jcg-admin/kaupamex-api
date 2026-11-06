@@ -240,6 +240,13 @@
         "tools-misc-collections-reference-0486"
       ],
       "writtenAt": "2026-11-06T06:51:47Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-domains-model-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T07:33:20Z"
     }
   ]
 }
