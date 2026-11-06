@@ -1,20 +1,32 @@
 {
   "question": "¿La carga del ORM de odoo19c exige dependencias en el Consumer, o es una limitación del intérprete con que se carga la referencia?",
   "instrument": [
-    "scripts/workbench/reference-environment-isolated-20261106T071536/build_reference_environment.py"
+    "scripts/workbench/reference-environment-isolated-20261106T071536/build_reference_environment.py",
+    "scripts/workbench/reference-environment-isolated-20261106T071536/initialize_reference_database.py",
+    "tests/fixtures/reference_process.py",
+    "tests/fixtures/reference_model_trace.py",
+    "tests/fixtures/model_domain_grid.py",
+    "tests/unit/orm/test_contract_domains_model_reference.py"
   ],
-  "metric": "código de salida de importar odoo, odoo.orm.models, fields, domains, environments y registry con python -I -B y sólo la raíz de odoo19c en sys.path, en dos intérpretes: el venv construido desde odoo19c/requirements.txt (dos sustituciones declaradas) y el .venv del Consumer. Resultado: referencia exit 0 con 59 módulos odoo y django ausente del proceso; Consumer exit 1 por lxml_html_clean; git status de odoo-tools vacío antes y después.",
+  "metric": "código de salida de importar odoo, odoo.orm.models, fields, domains, environments y registry con python -I -B y sólo la raíz de odoo19c en sys.path, en dos intérpretes: el venv construido desde odoo19c/requirements.txt (dos sustituciones declaradas) y el .venv del Consumer. Resultado: referencia exit 0 con 59 módulos odoo y django ausente del proceso; Consumer exit 1 por lxml_html_clean; git status de odoo-tools vacío antes y después. Con base inicializada (initialize_reference_database.py, base orm_refproc_contract, init exit 0, 0 errores), la rejilla de 286 condiciones sobre seis campos de ir.rule, solas y negadas, optimize y optimize_full, coincide 1144 de 1144 pasos con la referencia en modo user (uid 2) y en modo su (uid 1 contra sudo()); 72 pasos levantan en ambos lados.",
   "blind_to": [
     "si las dos sustituciones (retirar python-ldap, psycopg2 por psycopg2-binary 2.9.10) alteran alguna ruta que un diferencial llegue a ejercer; el ORM no importa ldap y psycopg2-binary es el mismo código en rueda",
     "la carga de addons y la creación de un Registry sobre una base: aquí sólo se importan los módulos del ORM",
-    "la reproducibilidad en CI: el venv vive fuera del repositorio y se reconstruye con este script"
+    "la reproducibilidad en CI: el venv vive fuera del repositorio y se reconstruye con este script",
+    "los optimizadores de fecha, binario, propiedades y many2one, que los campos comparables de ir.rule no ejercitan"
   ],
-  "control": "el mismo probe con el intérprete del Consumer falla (ImportError de lxml.html.clean): la carga depende del intérprete, no del código del Consumer, que no participa en ninguno de los dos procesos",
+  "control": "el mismo probe con el intérprete del Consumer falla (ImportError de lxml.html.clean): la carga depende del intérprete, no del código del Consumer, que no participa en ninguno de los dos procesos; sin las variables CONTRACT_REFERENCE_* las cinco pruebas se omiten y con CONTRACT_REFERENCE_REQUIRED=1 dan ERROR; con _optimize_any_with_rights sin leer la elevación cae sólo el caso [su], restaurado con cmp",
   "reproducible": "UV_CACHE_DIR=<cache> python3 scripts/workbench/reference-environment-isolated-20261106T071536/build_reference_environment.py <venv fuera del repo> scripts/workbench/reference-environment-isolated-20261106T071536/outputs",
   "outputs": [
     "outputs/record.json",
     "outputs/reference-requirements.txt",
-    "outputs/reference-freeze.txt"
+    "outputs/reference-freeze.txt",
+    "outputs/initialize-record.json",
+    "outputs/initialize-base.log",
+    "outputs/contract_model_domains.log",
+    "outputs/no_env.log",
+    "outputs/no_env_required.log",
+    "outputs/mutation_any_with_rights.log"
   ],
   "destination": "TASK-API-0498 (premisa corregida): pyproject.toml y uv.lock sin cambios; los diferenciales con modelo ejecutan la referencia en un subproceso con este intérprete"
 }

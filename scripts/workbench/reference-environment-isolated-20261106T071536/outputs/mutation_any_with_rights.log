@@ -1,0 +1,2 @@
+FAILED tests/unit/orm/test_contract_domains_model_reference.py::test_the_trace_matches_the_reference[su]
+1 failed, 4 passed, 2 warnings in 11.56s

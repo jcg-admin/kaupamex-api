@@ -29,3 +29,21 @@ serializadas entre ese subproceso y el puerto.
 Ver `outputs/record.json`: referencia exit 0 (59 módulos `odoo`, Django
 ausente del proceso), control con el intérprete del Consumer exit 1, y
 `odoo-tools` sin cambios.
+
+## Base de referencia y diferencial con modelo
+
+Un `Registry` real necesita `base` instalado (sin él, `KeyError: 'ir.model'`).
+`initialize_reference_database.py` crea `orm_refproc_<sufijo>` con el rol de QA
+y ejecuta `odoo.cli.main -i base` con el intérprete de referencia; imprime las
+variables que lee `tests/fixtures/reference_process.py`:
+
+```bash
+.venv/bin/python scripts/workbench/reference-environment-isolated-20261106T071536/initialize_reference_database.py \
+    <venv>/bin/python orm_refproc_contract <data_dir> scripts/workbench/reference-environment-isolated-20261106T071536/outputs
+CONTRACT_REFERENCE_REQUIRED=1 uv run pytest tests/unit/orm/test_contract_domains_model_reference.py -q
+```
+
+Resultado: 1 144 de 1 144 pasos iguales en modo `user` y en modo `su`. El
+modo existe porque `Environment.__new__` fuerza `su=True` para el uid 1
+(`odoo19c: odoo/orm/environments.py:64-67`): sin declararlo, la primera
+comparación dio cuatro diferencias que eran del arnés (H-API-1154).
