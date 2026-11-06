@@ -16,6 +16,8 @@ las dos rejillas.
 ``validate``, ``_as_predicate``, la traducción a SQL— y a toda divergencia
 que la fuente comparta con nosotros.
 """
+import collections
+import itertools
 import pathlib
 
 import pytest
@@ -202,7 +204,108 @@ def surface_trace(module):
     return steps
 
 
+#: Los optimizadores que reciben el modelo y no lo usan (medido por AST
+#: sobre la fuente): se comparan llamándolos directamente, sin modelo.
+CONDITION_OPTIMIZERS = (
+    '_operator_equal_if_value', '_operator_different', '_operator_equals',
+    '_operator_equal_as_in', '_optimize_in_set',
+    '_optimize_relational_name_search', '_optimize_boolean_in',
+    '_optimize_boolean_in_all',
+)
+SET_OPTIMIZERS = (
+    '_optimize_merge_set_conditions_x2many_in',
+    '_optimize_merge_set_conditions_x2many_not_in',
+)
+OPTIMIZER_OPERATORS = ('=', '!=', 'in', 'not in', 'like', 'ilike')
+
+
+def optimizer_values(ordered_set):
+    return (1, 'x', None, False, True, 0, '', [1, 2], (1, 2), {1}, [],
+            [None], [False], [1, 1], ordered_set([1, 2]),
+            ordered_set([True]), ordered_set([True, False]),
+            ordered_set([False]))
+
+
+def shaped(value):
+    """Lo comparable de un resultado: condiciones como listas."""
+    if isinstance(value, list) and value and hasattr(value[0], 'field_expr'):
+        return [list(condition) for condition in value]
+    if hasattr(value, 'iter_conditions'):
+        return list(value)
+    return value
+
+
+def optimizer_trace(module, ordered_set):
+    condition = module.DomainCondition
+    steps = []
+
+    def step(label, call):
+        steps.append((label, outcome(lambda: shaped(call()))))
+
+    for name in CONDITION_OPTIMIZERS:
+        function = getattr(module, name)
+        for operator in OPTIMIZER_OPERATORS:
+            for value in optimizer_values(ordered_set):
+                step(f'{name} {operator} {value!r}',
+                     lambda f=function, o=operator, v=value:
+                     f(condition('a', o, v), None))
+    sets = (('in', [1, 2]), ('in', [2, 3]), ('not in', [3]),
+            ('not in', [1, 4]), ('in', []))
+    for nary in (module.DomainAnd, module.DomainOr):
+        for size in (1, 2, 3):
+            for combination in itertools.combinations(sets, size):
+                conditions = [condition('a', operator, ordered_set(values))
+                              for operator, values in combination]
+                label = f'{nary.__name__} {combination}'
+                step(f'_merge_set_conditions {label}',
+                     lambda n=nary, c=conditions:
+                     module._merge_set_conditions(n, c))
+                for name in SET_OPTIMIZERS:
+                    step(f'{name} {label}',
+                         lambda f=getattr(module, name), n=nary, c=conditions:
+                         f(n, c, None))
+        for pair in ((1, 1), (1, 2), (1, 1, 2), (1,)):
+            conditions = [condition('a', '=', value) for value in pair]
+            step(f'_optimize_same_conditions {nary.__name__} {pair}',
+                 lambda n=nary, c=conditions:
+                 module._optimize_same_conditions(n, c, None))
+    return steps
+
+
+def transformed_by_reference(module, ordered_set):
+    """Por optimizador, cuántas condiciones de la rejilla cambia la fuente."""
+    counts = collections.Counter()
+    for name in CONDITION_OPTIMIZERS:
+        function = getattr(module, name)
+        for operator in OPTIMIZER_OPERATORS:
+            for value in optimizer_values(ordered_set):
+                original = module.DomainCondition('a', operator, value)
+                try:
+                    result = function(original, None)
+                except Exception:
+                    continue
+                counts[name] += result is not original
+    return counts
+
+
 class TestDomainsBehaveLikeTheReference:
+
+    def test_the_model_free_optimizers_match_the_reference(self, reference):
+        with reference_domains.runtime():
+            theirs = optimizer_trace(reference, reference.OrderedSet)
+        ours = optimizer_trace(ported, OrderedSet)
+        divergences = [(a[0], a[1], b[1])
+                       for a, b in zip(theirs, ours) if a != b]
+        assert len(ours) >= 900
+        assert not divergences, divergences[:3]
+
+    def test_every_compared_optimizer_transforms_part_of_the_grid(
+            self, reference):
+        """Una función que devuelve su entrada intacta coincide sin medir."""
+        with reference_domains.runtime():
+            counts = transformed_by_reference(reference, reference.OrderedSet)
+        assert set(counts) == set(CONDITION_OPTIMIZERS)
+        assert all(counts[name] > 0 for name in CONDITION_OPTIMIZERS), counts
 
     def test_the_surface_matches_the_reference(self, reference):
         with reference_domains.runtime():
