@@ -123,7 +123,7 @@ def comparable(value):
 #: elemento neutro ni inverso.
 SURFACE_STEPS_THAT_RAISE = {
     'setattr', 'delattr', 'DomainNary.OPERATOR', 'DomainNary.INVERSE',
-    'DomainNot.ZERO', 'DomainNot.INVERSE',
+    'DomainNot.ZERO', 'DomainNot.INVERSE', 'NEGATIVE_OPERATORS write',
 }
 
 
@@ -172,6 +172,10 @@ def surface_trace(module):
     step('delattr', lambda: delattr(domain('a', '=', 1), 'field_expr'))
     step('NEGATIVE_OPERATORS',
          lambda: sorted(domain.NEGATIVE_OPERATORS.items()))
+    step('NEGATIVE_OPERATORS type',
+         lambda: type(domain.NEGATIVE_OPERATORS).__name__)
+    step('NEGATIVE_OPERATORS write', lambda: domain.NEGATIVE_OPERATORS
+         .__setitem__('like', 'like'))
     for name in ('DomainAnd', 'DomainOr', 'DomainNot', 'DomainNary'):
         cls = getattr(module, name)
         step(f'{name}.OPERATOR', lambda cls=cls: cls.OPERATOR)
@@ -206,7 +210,7 @@ class TestDomainsBehaveLikeTheReference:
         ours = surface_trace(ported)
         divergences = [(a[0], a[1], b[1])
                        for a, b in zip(theirs, ours) if a != b]
-        assert len(ours) >= 44
+        assert len(ours) >= 46
         assert not divergences, divergences[:3]
 
     def test_only_the_expected_steps_raise_in_the_reference(self, reference):

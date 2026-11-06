@@ -99,6 +99,8 @@ import inspect
 import itertools
 import logging
 import operator as operator_module
+import types
+import typing
 import warnings
 from datetime import date, datetime, time, timedelta, timezone
 
@@ -306,6 +308,7 @@ class Domain:
     """
 
     __slots__ = ('_opt_level',)
+    _opt_level: OptimizationLevel
 
     def __new__(cls, *args, internal=False):
         """Construye el AST — ≙ ``domains.py:206-275``.
@@ -382,7 +385,9 @@ class Domain:
     def FALSE(cls):
         return _FALSE_DOMAIN
 
-    NEGATIVE_OPERATORS = NEGATIVE_CONDITION_OPERATORS
+    # De sólo lectura, como en la fuente (``:286``): un consumidor no puede
+    # alterar el mapa global de negaciones a través de la clase.
+    NEGATIVE_OPERATORS = types.MappingProxyType(NEGATIVE_CONDITION_OPERATORS)
 
     @staticmethod
     def custom(*, to_q, predicate=None):
@@ -549,6 +554,7 @@ class DomainBool(Domain):
     """
 
     __slots__ = ('value',)
+    value: bool
 
     def __new__(cls, value):
         self = object.__new__(cls)
@@ -611,6 +617,7 @@ class DomainNot(Domain):
     OPERATOR = '!'
 
     __slots__ = ('child',)
+    child: Domain
 
     def __new__(cls, child):
         self = object.__new__(cls)
@@ -675,6 +682,7 @@ class DomainNary(Domain):
     """Operador n-ario: AND u OR con varios hijos — ≙ ``:576``."""
 
     __slots__ = ('children',)
+    children: tuple[Domain, ...]
 
     # Sólo anotado, como en la fuente (``:578``): la clase base no tiene
     # operador, y leerlo de ella rehúsa con ``AttributeError``.
@@ -883,6 +891,9 @@ class DomainCondition(Domain):
     """Condición sobre un campo: ``(campo, operador, valor)`` — ≙ ``:787``."""
 
     __slots__ = ('_field_instance', 'field_expr', 'operator', 'value')
+    field_expr: str
+    operator: str
+    value: typing.Any
 
     def __new__(cls, field_expr, operator, value):
         self = object.__new__(cls)
