@@ -1,0 +1,7 @@
+{"utc": "2026-11-06T20:22:28Z", "epoch": 1793996548.059, "kind": "attempt", "item": "A", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "14cae294", "verifyTail": []}
+{"utc": "2026-11-06T20:22:28Z", "epoch": 1793996548.059, "kind": "accepted", "item": "A", "commitExit": 0, "commit": "14cae294"}
+{"utc": "2026-11-06T20:22:29Z", "epoch": 1793996549.205, "kind": "hard_block", "item": "E", "reason": "sin obligaciones"}
+{"utc": "2026-11-06T20:22:29Z", "epoch": 1793996549.276, "kind": "attempt", "item": "B", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "14cae294", "verifyTail": []}
+{"utc": "2026-11-06T20:22:29Z", "epoch": 1793996549.276, "kind": "accepted", "item": "B", "commitExit": 0, "commit": "14cae294"}
+{"utc": "2026-11-06T20:22:30Z", "epoch": 1793996550.341, "kind": "attempt", "item": "C", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "14cae294", "verifyTail": []}
+{"utc": "2026-11-06T20:22:30Z", "epoch": 1793996550.341, "kind": "accepted", "item": "C", "commitExit": 0, "commit": "14cae294"}
