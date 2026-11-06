@@ -254,6 +254,13 @@
         "orm-domains-temporal-binary-reference-0485"
       ],
       "writtenAt": "2026-11-06T07:44:36Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-domains-any-merges-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T07:49:28Z"
     }
   ]
 }
