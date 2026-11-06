@@ -876,3 +876,5 @@ src/orm/registry.py	TriggerTree.increase	method	tests/unit/orm/test_contract_reg
 src/orm/registry.py	TriggerTree.depth_first	method	tests/unit/orm/test_contract_registry_reference.py
 src/orm/registry.py	TriggerTree.merge	method	tests/unit/orm/test_contract_registry_reference.py
 src/orm/registry.py	TriggerTree.__slots__	attribute	tests/unit/orm/test_contract_registry_reference.py
+src/orm/domains.py	Domain.optimize	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	Domain.optimize_full	method	tests/unit/orm/test_contract_domains_model_reference.py
