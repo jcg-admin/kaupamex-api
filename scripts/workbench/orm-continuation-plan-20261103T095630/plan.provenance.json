@@ -296,6 +296,13 @@
         "orm-domains-optimize-signature-reference-0485"
       ],
       "writtenAt": "2026-11-06T16:36:13Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-models-module-pieces-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T16:39:54Z"
     }
   ]
 }
