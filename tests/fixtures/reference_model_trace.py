@@ -9,7 +9,9 @@ inicializa con el addon ``base`` de la referencia.
 Uso: ``python -I -B reference_model_trace.py <raíz> <base> <data_dir>
 <rejilla.py> <modelo> <su|user> [<contexto JSON>]``; imprime la traza.
 Con ``environment`` en lugar de un modelo, la rejilla es la de
-``environment_grid`` y recibe una fábrica de entornos; imprime la traza
+``environment_grid`` y recibe una fábrica de entornos; con ``registry``, la
+de ``registry_grid``, que recibe el módulo del registro sin abrir cursor;
+imprime la traza
 como JSON. El contexto (p. ej. ``{"tz": "America/Mexico_City"}``) es el
 del ``Environment``; ``env.tz`` lo lee primero (``environments.py:286-294``).
 
@@ -27,19 +29,31 @@ SUPERUSER_ID = 1
 ADMIN_ID = 2
 
 
+def _load_grid(grid_path):
+    """El módulo de la rejilla, cargado por su ruta."""
+    spec = importlib.util.spec_from_file_location('reference_grid', grid_path)
+    grid = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(grid)
+    return grid
+
+
 def main(root, database, data_dir, grid_path, model_name, mode,
          context='{}'):
     sys.path.insert(0, root)
     # La raíz de la referencia sólo se conoce al ejecutar: los módulos se
     # resuelven después de añadirla, con llamadas y no con sentencias.
     importlib.import_module('odoo.tools').config['data_dir'] = data_dir
+    if model_name == 'registry':
+        # ``TriggerTree``, ``DummyRLock`` y ``_unaccent`` no necesitan base:
+        # la rejilla recibe el módulo del registro y no se abre cursor.
+        grid = _load_grid(grid_path)
+        print(json.dumps(grid.trace(
+            importlib.import_module('odoo.orm.registry'))))
+        return
     Domain = importlib.import_module('odoo.orm.domains').Domain
     Environment = importlib.import_module('odoo.orm.environments').Environment
     Registry = importlib.import_module('odoo.orm.registry').Registry
-    spec = importlib.util.spec_from_file_location('model_domain_grid',
-                                                  grid_path)
-    grid = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(grid)
+    grid = _load_grid(grid_path)
     with Registry(database).cursor() as cursor:
         uid = SUPERUSER_ID if mode == 'su' else ADMIN_ID
         env = Environment(cursor, uid, json.loads(context))
