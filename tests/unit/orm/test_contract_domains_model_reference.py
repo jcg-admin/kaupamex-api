@@ -22,7 +22,9 @@ de elevación. En ``ir.cron`` (fecha-hora) y ``res.currency.rate`` (fecha):
 800 y 210 pasos por huso, UTC y ``America/Mexico_City``. En ``res.partner``
 (binario e ``image_1920``, many2one, texto): 600 pasos.
 *Ciega a:* los campos que no comparten nombre y tipo en los dos árboles; los
-valores relativos al instante (``now``), que difieren entre dos procesos; el
+valores relativos al instante (``now``), que difieren entre dos procesos —
+``'today'`` sí entra, y una ejecución que cruce la medianoche del huso
+entre los dos procesos daría una diferencia que no es del puerto—; el
 operador ``child_of``, cuyo resultado depende de los datos de cada base; el
 texto de los mensajes de error, del que sólo se compara la clase.
 """
