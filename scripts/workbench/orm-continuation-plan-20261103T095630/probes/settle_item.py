@@ -9,8 +9,9 @@ decide qué ítem sigue: eso es ``task_continuation next``.
 
 El commit que se cita es el del consumidor en el momento del ``verify``; un
 árbol sucio rehúsa con exit 2, porque el veredicto no correspondería a ningún
-commit. Una fila que declara ``obligations`` vacía también rehúsa con exit 2,
-sin escribir ``attempt`` ni ``accepted``.
+commit. Una fila que declara ``obligations`` vacía también rehúsa con exit 2:
+no escribe ``attempt`` ni ``accepted``, sino ``hard_block`` (``failed`` para
+``continuation_frontier``), que la saca de la frontera de esta ejecución.
 
 Precondición declarada: el entorno trae las variables de base de datos y
 ``SECRET_KEY`` que la suite necesita (no se guardan en Git).
@@ -51,6 +52,10 @@ def main(argv):
     # asentar: aceptarla registraría progreso sin contrato verificado
     # (INC-01, orm-environments-reference-0485 en api@a7063ffb).
     if 'obligations' in row and not row['obligations']:
+        # ``hard_block`` es el estado ``failed`` del controlador: sin él la
+        # fila seguiría en la frontera y ``local_plan supply`` no abastecería.
+        append_log(workbench, {'kind': 'hard_block', 'item': item,
+                               'reason': 'sin obligaciones'})
         print(f'settle_item: {item} no declara obligaciones; no se asienta',
               file=sys.stderr)
         return 2

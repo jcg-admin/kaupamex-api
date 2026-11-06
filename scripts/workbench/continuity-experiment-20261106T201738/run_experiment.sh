@@ -43,7 +43,7 @@ step "6. A no vuelve a la frontera"; frontier | grep -qw A && echo "A REPETIDA" 
 step "7. asiento de E, sin obligaciones"; settle E
 step "8. asiento de B y C"; settle B; settle C
 step "9. frontera agotada"; frontier
-step "10. abastecimiento con la candidata F"
+step "10. abastecimiento: F sin prueba roja, G con prueba existente"
 (cd "$THYROX" && PYTHONPATH=src python3 -m session.local_plan supply "$BENCH" \
   --candidates "$BENCH/candidates.jsonl" --node VM-x2hokp \
   --claims-ledger "$BENCH/claims-fixture.jsonl" --planner continuity-experiment \

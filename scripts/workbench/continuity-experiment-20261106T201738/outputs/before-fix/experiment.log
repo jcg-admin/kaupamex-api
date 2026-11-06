@@ -1,0 +1,24 @@
+== 1. frontera inicial
+A B E
+== 2. frontera del nodo
+A
+== 3. ítems que no pueden correr en esta ejecución
+D -> credencial expuesta: FIXTURE_EXPOSED
+== 4. asiento de A (vía Consumer)
+settle A exit=0: A: verify=0 commit=54fc5d17 
+== 5. frontera tras A: B, C (dependía de A) y E
+B C E
+== 6. A no vuelve a la frontera
+B C E
+A no se repite
+== 7. asiento de E, sin obligaciones
+settle E exit=0: E: verify=0 commit=54fc5d17 
+== 8. asiento de B y C
+settle B exit=0: B: verify=0 commit=54fc5d17 
+settle C exit=0: C: verify=0 commit=54fc5d17 
+== 9. frontera agotada
+frontera vacía
+== 10. abastecimiento con la candidata F
+{"selectable": null, "incorporated": null, "candidates": 1, "skipped": {"missing-test": 1}, "firstSkipped": [["F", "missing-test"]]}
+== 11. frontera tras abastecer
+frontera vacía

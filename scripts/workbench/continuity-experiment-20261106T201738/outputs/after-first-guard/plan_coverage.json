@@ -1,0 +1,109 @@
+{
+ "verdict": "B",
+ "acceptance": "requires executor authority (I-011)",
+ "population": 90,
+ "open_tasks": 66,
+ "frontier": [
+  {
+   "id": "D",
+   "task": "TASK-API-0485"
+  },
+  {
+   "id": "E",
+   "task": "TASK-API-0485"
+  }
+ ],
+ "blocked": [],
+ "unrepresented": [
+  "TASK-API-0092",
+  "TASK-API-0115",
+  "TASK-API-0152",
+  "TASK-API-0173",
+  "TASK-API-0174",
+  "TASK-API-0190",
+  "TASK-API-0216",
+  "TASK-API-0217",
+  "TASK-API-0239",
+  "TASK-API-0240",
+  "TASK-API-0241",
+  "TASK-API-0265",
+  "TASK-API-0267",
+  "TASK-API-0269",
+  "TASK-API-0282",
+  "TASK-API-0283",
+  "TASK-API-0305",
+  "TASK-API-0379",
+  "TASK-API-0381",
+  "TASK-API-0382",
+  "TASK-API-0383",
+  "TASK-API-0397",
+  "TASK-API-0398",
+  "TASK-API-0399",
+  "TASK-API-0401",
+  "TASK-API-0402",
+  "TASK-API-0403",
+  "TASK-API-0404",
+  "TASK-API-0406",
+  "TASK-API-0407",
+  "TASK-API-0408",
+  "TASK-API-0409",
+  "TASK-API-0410",
+  "TASK-API-0411",
+  "TASK-API-0413",
+  "TASK-API-0414",
+  "TASK-API-0417",
+  "TASK-API-0418",
+  "TASK-API-0419",
+  "TASK-API-0420",
+  "TASK-API-0422",
+  "TASK-API-0424",
+  "TASK-API-0427",
+  "TASK-API-0429",
+  "TASK-API-0478",
+  "TASK-API-0479",
+  "TASK-API-0480",
+  "TASK-API-0486",
+  "TASK-API-0487",
+  "TASK-API-0490",
+  "TASK-API-0492",
+  "TASK-API-0493",
+  "TASK-DOCS-0111",
+  "TASK-DOCS-0539",
+  "TASK-GEN-0058",
+  "TASK-GEN-0060",
+  "TASK-GEN-0062",
+  "TASK-GEN-0312",
+  "TASK-GEN-0356",
+  "TASK-GEN-0391",
+  "TASK-GEN-0453",
+  "TASK-GEN-0558",
+  "TASK-GEN-0559",
+  "TASK-GEN-0633",
+  "TASK-GEN-0634"
+ ],
+ "settled_task_open": [],
+ "obligations": {
+  "satisfied": 900,
+  "absent": 618,
+  "divergent": 0,
+  "not_verified": 994,
+  "applicable": 2512,
+  "pending": 1612,
+  "source": {
+   "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
+   "revisions": [
+    "abe4040ec1a45beee90fb694e4eae4453e46b389"
+   ]
+  }
+ },
+ "obligations_without_task": {},
+ "obligation_classes": {
+  "task_without_unit": 1612
+ },
+ "settled_not_integrated": [
+  "A",
+  "B",
+  "C"
+ ],
+ "integration_ref": "origin/feature/codex-workspace-bootstrap"
+}
