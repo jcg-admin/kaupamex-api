@@ -886,7 +886,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models_transient.py	TransientMo
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476,TASK-THYROX-0901	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.__new__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.new	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.new	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.init	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.delete	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.delete_all	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -897,7 +897,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.__setitem_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.__delitem__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.descendants	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.load	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry._setup_models__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry._setup_models__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.field_inverses	property	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.field_computed	property	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.get_trigger_tree	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
