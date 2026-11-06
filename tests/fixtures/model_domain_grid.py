@@ -121,7 +121,14 @@ def trace(domain_class, model, model_name='ir.rule'):
     ``pairs()`` unidos con ``'&'`` y con ``'|'``, solos y negados, para los
     de fusión y el ``_negate`` de los n-arios, más su ``surface()``.
     """
-    lines = []
+    # ``model`` es obligatorio en ``optimize``/``optimize_full``: sin él, la
+    # fuente levanta ``TypeError`` por la firma.
+    lines = [
+        'optimize without model '
+        + _step(lambda: domain_class([('id', '=', 1)]).optimize()),
+        'optimize_full without model '
+        + _step(lambda: domain_class([('id', '=', 1)]).optimize_full()),
+    ]
     for condition in conditions(model_name):
         for prefix in ((), ('!',)):
             source = [*prefix, condition]

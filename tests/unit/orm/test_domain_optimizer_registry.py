@@ -212,7 +212,7 @@ class TestTheNaryMerge:
 
         DomainAnd(
             [DomainCondition('a', '=', 1), DomainCondition('b', '=', 2)]
-        ).optimize()
+        ).optimize(None)
         assert DomainAnd in seen
 
     def test_the_nary_step_applies_what_the_merge_returns(self):
@@ -222,7 +222,7 @@ class TestTheNaryMerge:
 
         result = DomainAnd(
             [DomainCondition('a', '=', 1), DomainCondition('b', '=', 2)]
-        ).optimize()
+        ).optimize(None)
         assert list(result.iter_conditions())[0].field_expr == 'merged'
 
     def test_the_children_reach_the_merge_already_sorted(self):
@@ -235,7 +235,7 @@ class TestTheNaryMerge:
 
         DomainAnd(
             [DomainCondition('zeta', '=', 1), DomainCondition('alfa', '=', 2)]
-        ).optimize()
+        ).optimize(None)
         assert seen[0] == ['alfa', 'zeta']
 
     def test_an_or_domain_runs_the_merge_too(self):
@@ -250,7 +250,7 @@ class TestTheNaryMerge:
 
         DomainOr(
             [DomainCondition('a', '=', 1), DomainCondition('b', '=', 2)]
-        ).optimize()
+        ).optimize(None)
         assert DomainOr in seen
 
 
@@ -271,7 +271,7 @@ class TestTheConditionBlockAdapter:
                 DomainCondition('a', 'in', [2]),
                 DomainCondition('b', '>', 3),
             ]
-        ).optimize()
+        ).optimize(None)
         # ``optimize`` repite hasta punto fijo, asi que la fusion puede correr
         # mas de una vez; lo que se asierta es QUE bloque recibe, no cuantas.
         assert set(map(tuple, seen)) == {('a', 'a')}
@@ -286,7 +286,7 @@ class TestTheConditionBlockAdapter:
 
         DomainAnd(
             [DomainCondition('a', 'in', [1]), DomainCondition('b', 'in', [2])]
-        ).optimize()
+        ).optimize(None)
         assert seen == []
 
     def test_what_it_returns_replaces_the_block(self):
@@ -296,7 +296,7 @@ class TestTheConditionBlockAdapter:
 
         result = DomainAnd(
             [DomainCondition('a', 'in', [1]), DomainCondition('a', 'in', [2])]
-        ).optimize()
+        ).optimize(None)
         conditions = list(result.iter_conditions())
         assert len(conditions) == 1
         assert list(conditions[0].value) == [9]
@@ -312,7 +312,7 @@ class TestTheConditionBlockAdapter:
                 DomainCondition('a', 'in', [2]),
                 DomainCondition('z', '>', 3),
             ]
-        ).optimize()
+        ).optimize(None)
         assert {c.field_expr for c in result.iter_conditions()} == {'a', 'z'}
 
     def test_an_operator_outside_the_set_is_not_grouped(self):
@@ -325,7 +325,7 @@ class TestTheConditionBlockAdapter:
 
         DomainAnd(
             [DomainCondition('a', '>', 1), DomainCondition('a', '>', 2)]
-        ).optimize()
+        ).optimize(None)
         assert seen == []
 
 
@@ -340,7 +340,7 @@ class TestTheConditionDispatch:
             seen.append(condition.field_expr)
             return condition
 
-        DomainCondition('a', '>', 1).optimize()
+        DomainCondition('a', '>', 1).optimize(None)
         assert seen == ['a']
 
     def test_what_it_returns_replaces_the_condition(self):
@@ -348,7 +348,7 @@ class TestTheConditionDispatch:
         def optimizer(condition, model):
             return DomainCondition('replaced', '=', 1)
 
-        result = DomainCondition('a', '>', 1).optimize()
+        result = DomainCondition('a', '>', 1).optimize(None)
         assert list(result.iter_conditions())[0].field_expr == 'replaced'
 
     def test_an_optimizer_of_another_operator_does_not_run(self):
@@ -359,7 +359,7 @@ class TestTheConditionDispatch:
             seen.append(condition)
             return condition
 
-        DomainCondition('a', '>', 1).optimize()
+        DomainCondition('a', '>', 1).optimize(None)
         assert seen == []
 
     def test_the_first_that_changes_the_domain_wins(self):
@@ -381,7 +381,7 @@ class TestTheConditionDispatch:
             seen.append('second')
             return condition
 
-        DomainCondition('a', '>', 1).optimize()
+        DomainCondition('a', '>', 1).optimize(None)
         assert seen == ['first']
 
     def test_an_optimizer_that_changes_nothing_lets_the_next_run(self):
@@ -397,7 +397,7 @@ class TestTheConditionDispatch:
             seen.append('second')
             return condition
 
-        DomainCondition('a', '>', 1).optimize()
+        DomainCondition('a', '>', 1).optimize(None)
         assert seen == ['first', 'second']
 
     def test_a_full_level_optimizer_does_not_run_at_basic(self):
@@ -408,5 +408,5 @@ class TestTheConditionDispatch:
             seen.append(condition)
             return condition
 
-        DomainCondition('a', '>', 1).optimize()
+        DomainCondition('a', '>', 1).optimize(None)
         assert seen == []

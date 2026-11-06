@@ -43,13 +43,13 @@ class TestEqualIfValue:
         assert '=?' in CONDITION_OPERATORS
 
     def test_a_falsy_value_makes_the_condition_true(self):
-        assert DomainCondition('name', '=?', False).optimize().is_true()
+        assert DomainCondition('name', '=?', False).optimize(None).is_true()
 
     def test_an_empty_string_makes_it_true_too(self):
-        assert DomainCondition('name', '=?', '').optimize().is_true()
+        assert DomainCondition('name', '=?', '').optimize(None).is_true()
 
     def test_a_truthy_value_becomes_a_plain_equality(self):
-        result = _sole(DomainCondition('name', '=?', 'a').optimize())
+        result = _sole(DomainCondition('name', '=?', 'a').optimize(None))
         assert result.operator == 'in'
         assert list(result.value) == ['a']
 
@@ -59,17 +59,18 @@ class TestTheDeprecatedSpellings:
 
     def test_the_diamond_becomes_not_equal(self):
         with pytest.warns(DeprecationWarning, match="'<>'"):
-            result = _sole(DomainCondition('name', '<>', 'a').optimize())
+            result = _sole(DomainCondition('name', '<>', 'a').optimize(None))
         assert result.operator == 'not in'
 
     def test_the_double_equal_becomes_equal(self):
         with pytest.warns(DeprecationWarning, match="'=='"):
-            result = _sole(DomainCondition('name', '==', 'a').optimize())
+            result = _sole(DomainCondition('name', '==', 'a').optimize(None))
         assert result.operator == 'in'
 
     def test_both_carry_their_value_through(self):
         with pytest.warns(DeprecationWarning):
-            result = _sole(DomainCondition('name', '==', 'valor').optimize())
+            result = _sole(
+                DomainCondition('name', '==', 'valor').optimize(None))
         assert list(result.value) == ['valor']
 
 
@@ -78,35 +79,35 @@ class TestEqualityAsMembership:
 
     def test_equal_becomes_in(self):
         assert (
-            _sole(DomainCondition('name', '=', 'a').optimize()).operator
+            _sole(DomainCondition('name', '=', 'a').optimize(None)).operator
             == 'in'
         )
 
     def test_not_equal_becomes_not_in(self):
         assert (
-            _sole(DomainCondition('name', '!=', 'a').optimize()).operator
+            _sole(DomainCondition('name', '!=', 'a').optimize(None)).operator
             == 'not in'
         )
 
     def test_the_scalar_becomes_a_one_element_set(self):
-        result = _sole(DomainCondition('name', '=', 'a').optimize())
+        result = _sole(DomainCondition('name', '=', 'a').optimize(None))
         assert isinstance(result.value, OrderedSet)
         assert list(result.value) == ['a']
 
     def test_a_collection_is_kept_as_a_set(self):
-        result = _sole(DomainCondition('name', '=', ['a', 'b']).optimize())
+        result = _sole(DomainCondition('name', '=', ['a', 'b']).optimize(None))
         assert list(result.value) == ['a', 'b']
 
     def test_an_empty_collection_compares_against_unset(self):
         """La fuente lo comenta verbatim: *"views sometimes use
         ``('user_ids', '!=', [])`` to indicate the user is set"*."""
-        result = _sole(DomainCondition('user_ids', '!=', []).optimize())
+        result = _sole(DomainCondition('user_ids', '!=', []).optimize(None))
         assert result.operator == 'not in'
         assert list(result.value) == [False]
 
     def test_a_repeated_value_appears_once(self):
         result = _sole(
-            DomainCondition('name', '=', ['a', 'a', 'b']).optimize()
+            DomainCondition('name', '=', ['a', 'a', 'b']).optimize(None)
         )
         assert list(result.value) == ['a', 'b']
 
@@ -115,17 +116,18 @@ class TestTheMembershipSet:
     """``in``/``not in`` — ≙ ``_optimize_in_set``."""
 
     def test_a_list_becomes_an_ordered_set(self):
-        result = _sole(DomainCondition('name', 'in', ['a', 'b']).optimize())
+        result = _sole(
+            DomainCondition('name', 'in', ['a', 'b']).optimize(None))
         assert isinstance(result.value, OrderedSet)
 
     def test_an_empty_in_collapses_to_false(self):
-        assert DomainCondition('name', 'in', []).optimize().is_false()
+        assert DomainCondition('name', 'in', []).optimize(None).is_false()
 
     def test_an_empty_not_in_collapses_to_true(self):
-        assert DomainCondition('name', 'not in', []).optimize().is_true()
+        assert DomainCondition('name', 'not in', []).optimize(None).is_true()
 
     def test_a_scalar_is_wrapped_in_a_set(self):
-        result = _sole(DomainCondition('name', 'in', 'a').optimize())
+        result = _sole(DomainCondition('name', 'in', 'a').optimize(None))
         assert list(result.value) == ['a']
 
     def test_a_domain_value_switches_to_the_any_operator(self):
@@ -133,7 +135,7 @@ class TestTheMembershipSet:
         result = _sole(
             DomainCondition(
                 'partner_id', 'in', Domain('name', '=', 'a')
-            ).optimize()
+            ).optimize(None)
         )
         assert result.operator == 'any'
 
@@ -141,7 +143,7 @@ class TestTheMembershipSet:
         result = _sole(
             DomainCondition(
                 'partner_id', 'not in', Domain('name', '=', 'a')
-            ).optimize()
+            ).optimize(None)
         )
         assert result.operator == 'not any'
 
@@ -150,7 +152,7 @@ class TestTheMembershipSet:
         new Domain instance"*. Se asierta por IDENTIDAD, no por igualdad.
         """
         condition = DomainCondition('name', 'in', OrderedSet(['a']))
-        assert _sole(condition.optimize()) is condition
+        assert _sole(condition.optimize(None)) is condition
 
 
 class TestTheHandWrittenDebtIsGone:
@@ -177,7 +179,7 @@ class TestTheHandWrittenDebtIsGone:
             warnings.simplefilter('ignore', DeprecationWarning)
             for operator in ('=', '!=', '<>', '=='):
                 result = _sole(
-                    DomainCondition('name', operator, 'a').optimize()
+                    DomainCondition('name', operator, 'a').optimize(None)
                 )
                 assert result.operator in ('in', 'not in'), (
                     operator,

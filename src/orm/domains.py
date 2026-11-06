@@ -486,8 +486,15 @@ class Domain:
         """Valida el dominio contra el modelo, o levanta — ≙ ``:404``."""
         self._optimize(model, OptimizationLevel.FULL)
 
-    def optimize(self, model=None):
+    def optimize(self, model):
         """Optimizaciones básicas — ≙ ``:418``.
+
+        ``model`` es obligatorio, como en la fuente. **Extensión declarada:**
+        aquí ``None`` se admite y optimiza sin consultar campos —sólo los
+        optimizadores de operador y la forma del árbol—; la fuente no tiene
+        ese caso y levanta al leer ``model._fields``. Ningún consumidor de
+        producción pasa ``None``; lo usan las pruebas de los optimizadores
+        que no dependen del campo.
 
         Reescribe el dominio en uno lógicamente equivalente y más canónico. En
         este árbol las reescrituras vivas son el **empuje de la negación a las
@@ -500,8 +507,9 @@ class Domain:
         """
         return self._optimize(model, OptimizationLevel.BASIC)
 
-    def optimize_full(self, model=None):
-        """Básicas más avanzadas — ≙ ``:436``."""
+    def optimize_full(self, model):
+        """Básicas más avanzadas — ≙ ``:436``. ``model`` como en
+        :meth:`optimize`, con la misma extensión para ``None``."""
         return self._optimize(model, OptimizationLevel.FULL)
 
     def _optimize(self, model, level):

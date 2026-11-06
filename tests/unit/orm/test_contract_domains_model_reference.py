@@ -47,13 +47,13 @@ UTC = 'UTC'
 #: (modelo, modo, huso) y los pasos que levantan en la referencia: la
 #: comparación de clases de excepción sólo cuenta si además hay valores.
 CASES = {
-    ('ir.rule', 'user', None): 3290,
-    ('ir.rule', 'su', None): 3290,
-    ('ir.cron', 'user', UTC): 120,
-    ('ir.cron', 'user', MEXICO): 120,
-    ('res.currency.rate', 'user', UTC): 60,
-    ('res.currency.rate', 'user', MEXICO): 60,
-    ('res.partner', 'user', UTC): 3900,
+    ('ir.rule', 'user', None): 3292,
+    ('ir.rule', 'su', None): 3292,
+    ('ir.cron', 'user', UTC): 122,
+    ('ir.cron', 'user', MEXICO): 122,
+    ('res.currency.rate', 'user', UTC): 62,
+    ('res.currency.rate', 'user', MEXICO): 62,
+    ('res.partner', 'user', UTC): 3902,
 }
 IDS = [f'{model}-{mode}-{tz or "-"}' for model, mode, tz in CASES]
 

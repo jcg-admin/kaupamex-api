@@ -154,7 +154,7 @@ class TestNegationReachesTheLeaves:
     """El empuje de la negación — ≙ ``DomainNot._optimize_step``."""
 
     def test_optimizing_a_negation_inverts_the_operator(self):
-        domain = Domain(['!', ('a', 'in', [1, 2])]).optimize()
+        domain = Domain(['!', ('a', 'in', [1, 2])]).optimize(None)
         assert isinstance(domain, DomainCondition)
         assert domain.operator == 'not in'
 
@@ -168,7 +168,8 @@ class TestNegationReachesTheLeaves:
         conservaba el ``!=`` — este caso lo asertaba, y encodificaba la
         AUSENCIA del optimizador, no el contrato.
         """
-        domain = Domain(['!', '|', ('a', '=', 1), ('b', '=', 2)]).optimize()
+        domain = Domain(
+            ['!', '|', ('a', '=', 1), ('b', '=', 2)]).optimize(None)
         assert isinstance(domain, DomainAnd)
         assert all(child.operator == 'not in' for child in domain.children)
 
@@ -176,19 +177,19 @@ class TestNegationReachesTheLeaves:
         """
         Sin valor *falsy*, ``NOT (a < v)`` debe incluir la fila sin valor.
         """
-        domain = Domain(['!', ('a', '<', 5)]).optimize()
+        domain = Domain(['!', ('a', '<', 5)]).optimize(None)
         assert isinstance(domain, DomainOr)
         operators = {child.operator for child in domain.children}
         assert operators == {'in', '>='}
 
     def test_a_dotted_path_is_not_inverted(self):
         """Conservador con las rutas, igual que la fuente: to-many difiere."""
-        domain = Domain(['!', ('a.b', '=', 1)]).optimize()
+        domain = Domain(['!', ('a.b', '=', 1)]).optimize(None)
         assert isinstance(domain, DomainNot)
 
     def test_optimize_reaches_a_fixed_point(self):
         domain = Domain(['!', '!', ('a', '=', 1)])
-        assert domain.optimize()._opt_level >= OptimizationLevel.BASIC
+        assert domain.optimize(None)._opt_level >= OptimizationLevel.BASIC
 
 
 # === La compilación a Q =====================================================
