@@ -261,6 +261,13 @@
         "orm-domains-any-merges-reference-0485"
       ],
       "writtenAt": "2026-11-06T07:49:28Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-domains-classes-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T08:17:17Z"
     }
   ]
 }
