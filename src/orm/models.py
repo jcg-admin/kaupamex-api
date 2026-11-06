@@ -5576,6 +5576,42 @@ class BaseModel(DefaultGetMixin, Model):
         """
         return dict(registry.onchange_methods(type(self)))
 
+    @property
+    def _table_sql(self):
+        """El ``SQL`` de la tabla del modelo, o de su consulta — ≙
+        ``:488-515``.
+
+        Docstring de la fuente: *"Return an :class:`SQL` object that
+        represents SQL table identifier or table query."* Si el modelo
+        declara ``_depends``, los campos de esa clausura viajan como
+        ``to_flush``, para que leer de la consulta vuelque antes lo que
+        está pendiente en esos campos.
+        """
+        table_query = self._table_query
+        if table_query and isinstance(table_query, SQL):
+            table_sql = SQL("(%s)", table_query)
+        elif table_query:
+            table_sql = SQL(f"({table_query})")
+        else:
+            table_sql = SQL.identifier(self._table)
+        if not self._depends:
+            return table_sql
+
+        fields_to_flush = []
+        models = [self]
+        while models:
+            current_model = models.pop()
+            for model_name, field_names in current_model._depends.items():
+                model = self.env[model_name]
+                models.append(model)
+                fields_to_flush.extend(model._fields[fname]
+                                       for fname in field_names)
+
+        return SQL().join([
+            table_sql,
+            *(SQL(to_flush=field) for field in fields_to_flush),
+        ])
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
@@ -6914,9 +6950,11 @@ class BaseModel(DefaultGetMixin, Model):
 
         :param ordered: si la consulta debe respetar el orden de ``self``.
 
-        La fuente pasa además ``self._table_sql``, que aquí no tiene
-        contraparte (ver :meth:`exists`); ``Query`` toma entonces la tabla
-        por su identificador, que es la misma.
+        La fuente pasa además ``self._table_sql``. La propiedad existe aquí
+        (:attr:`_table_sql`), pero ``Query`` todavía no la recibe: toma la
+        tabla por su identificador, que coincide para una tabla sin
+        ``_table_query`` y no para un modelo de consulta. Pasársela queda bajo
+        ``TASK-API-0485``.
         """
         query = Query(self.env, self._table)
         query.set_result_ids(self._ids, ordered)
@@ -6929,8 +6967,8 @@ class BaseModel(DefaultGetMixin, Model):
         By convention, new records are returned as existing.
 
         **Divergencia de mecanismo.** La fuente arma ``Query(self.env,
-        self._table, self._table_sql)`` y ejecuta el ``SELECT``;
-        ``_table_sql`` no tiene contraparte aquí (declarado en
+        self._table, self._table_sql)`` y ejecuta el ``SELECT``; aquí
+        :attr:`_table_sql` existe pero este camino no lo usa (ver
         ``orm/environments.py:1831``). El stack trae el mecanismo: el manager
         base del modelo emite el mismo ``id IN (…)`` sin aplicar filtros
         del manager público y devuelve los ids reales, sin SQL a mano.

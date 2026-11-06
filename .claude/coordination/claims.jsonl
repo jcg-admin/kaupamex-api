@@ -1088,3 +1088,4 @@
 {"id":"c-cb534ccb-0d80-43e9-ac92-afb81e85ff80","op":"claim","path":"tests/unit/orm/test_contract_model_record_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:29:48.774Z","task":"TASK-API-0485"}
 {"id":"c-707d967a-6f5e-4a52-8015-ed78d8ba52d6","op":"claim","path":"tests/unit/orm/test_basemodel_table_sql.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:29:48.774Z","task":"TASK-API-0485"}
 {"id":"c-2e46f755-9189-481a-a0c1-f548bfa5cadb","op":"claim","path":"src/orm/models.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:29:48.774Z","task":"TASK-API-0485"}
+{"id":"c-d4cb6554-ca5f-4918-a56d-259e401ff9cf","op":"claim","path":"src/orm/environments.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:32:16.354Z","task":"TASK-API-0485"}

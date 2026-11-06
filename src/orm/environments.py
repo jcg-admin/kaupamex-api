@@ -1927,7 +1927,8 @@ class Cache:
         declaran aquí porque ninguna recorta lo que el método comprueba:
 
         - ``model._table`` es ``model._meta.db_table``;
-        - ``model._table_sql`` **no tiene contraparte** — es el ``SQL`` con
+        - ``model._table_sql`` existe (``BaseModel._table_sql``) pero este
+          método no lo pasa — es el ``SQL`` con
           que la fuente nombra una tabla que puede ser una vista. Aquí
           ``Query`` ya usa ``SQL.identifier(alias)`` cuando no se le pasa
           tabla, que es exactamente lo que ese argumento produce para una
