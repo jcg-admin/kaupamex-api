@@ -101,9 +101,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 20,
+  "task_units_settled": 21,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1567
+  "task_without_unit": 1566
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -184,7 +184,8 @@
   "orm-models-registry-hooks-reference-0485",
   "orm-models-can-return-content-reference-0485",
   "orm-registry-hook-lifecycle-reference-0485",
-  "orm-models-env-aliases-reference-0485"
+  "orm-models-env-aliases-reference-0485",
+  "orm-environments-context-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
