@@ -1,0 +1,2 @@
+BLOCKED: CI requiere una base exclusiva kaupamex_ci_* (o del harness orm_bootstrap_*).
+exit=2

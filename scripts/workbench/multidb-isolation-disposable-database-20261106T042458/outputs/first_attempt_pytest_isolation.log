@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-7.4.4, pluggy-1.6.0 -- /home/user/kaupamex-api/.venv/bin/python
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /home/user/kaupamex-api
+configfile: pytest.ini
+plugins: Faker-40.20.0, xdist-3.6.1, django-4.7.0
+collecting ... collected 5 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default PASSED [ 20%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base 

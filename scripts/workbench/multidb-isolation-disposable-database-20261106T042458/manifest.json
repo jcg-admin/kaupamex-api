@@ -1,0 +1,25 @@
+{
+  "question": "¿Los cinco ERROR de tests/integration/company/test_multidb_isolation.py son un defecto o el guard que rehúsa la QA compartida?",
+  "instrument": [
+    "scripts/workbench/multidb-isolation-disposable-database-20261106T042458/run_isolation_on_disposable_database.py"
+  ],
+  "metric": "resultado de los cinco tests sobre una base orm_bootstrap_* creada por la ejecución, con check_ci_database.py en PASS; dueño de la base en pg_database antes y después; bases company_* restantes tras la limpieza. Resultado: 5 passed, exit 0, 0 bases restantes.",
+  "blind_to": [
+    "la duración en otros runners",
+    "la suite completa sobre base desechable (make ci-verify, TASK-API-0478)",
+    "en una suite contra la QA compartida los cinco siguen dando ERROR por diseño del guard"
+  ],
+  "control": "contra la QA compartida, check_ci_database.py da BLOCKED (exit 2) y el fixture rehúsa con RuntimeError: el guard discrimina entre la base desechable y la compartida",
+  "reproducible": ".venv/bin/python scripts/workbench/multidb-isolation-disposable-database-20261106T042458/run_isolation_on_disposable_database.py <salida>",
+  "outputs": [
+    "outputs/record.json",
+    "outputs/pytest_isolation.log",
+    "outputs/junit_isolation.xml",
+    "outputs/check_ci_database.log",
+    "outputs/negative_check_ci_database_shared_qa.log",
+    "outputs/negative_guard_shared_qa.log",
+    "outputs/first_attempt_pytest_isolation.log",
+    "outputs/first_attempt_check_ci_database.log"
+  ],
+  "destination": "TASK-API-0496; tests/integration/company/test_multidb_isolation.py sin cambios"
+}

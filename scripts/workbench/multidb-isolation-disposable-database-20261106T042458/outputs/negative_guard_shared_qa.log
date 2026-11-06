@@ -1,0 +1,22 @@
+E                                                                        [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+tests/integration/company/test_multidb_isolation.py:69: in isolation_database_access
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:37: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /home/user/kaupamex-api/src/orm/fields.py:4319: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /home/user/kaupamex-api/src/orm/fields.py:4319: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+2 warnings, 1 error in 9.78s
+exit=1
