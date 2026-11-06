@@ -338,6 +338,13 @@
         "orm-models-registry-hooks-reference-0485"
       ],
       "writtenAt": "2026-11-06T21:24:33Z"
+    },
+    {
+      "planner": "orm-models-can-return-content",
+      "items": [
+        "orm-models-can-return-content-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T22:21:20Z"
     }
   ]
 }
