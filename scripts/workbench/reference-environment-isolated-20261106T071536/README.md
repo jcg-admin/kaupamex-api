@@ -46,4 +46,5 @@ CONTRACT_REFERENCE_REQUIRED=1 uv run pytest tests/unit/orm/test_contract_domains
 Resultado: 1 144 de 1 144 pasos iguales en modo `user` y en modo `su`. El
 modo existe porque `Environment.__new__` fuerza `su=True` para el uid 1
 (`odoo19c: odoo/orm/environments.py:64-67`): sin declararlo, la primera
-comparación dio cuatro diferencias que eran del arnés (H-API-1154).
+comparación dio cuatro diferencias que eran de la configuración de la prueba
+diferencial, no del puerto (H-API-1154).
