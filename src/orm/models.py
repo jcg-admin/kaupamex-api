@@ -5549,6 +5549,33 @@ class BaseModel(DefaultGetMixin, Model):
         """Alias deprecado de ``self.env.context`` — ≙ ``:5921-5924``."""
         return self.env.context
 
+    @property
+    def _constraint_methods(self):
+        """Los métodos de ``@api.constrains`` del modelo — ≙ ``:519-546``.
+
+        La recolección y su caché viven en
+        :data:`orm.registry.constraint_methods`, con su consumidor
+        ``_validate_fields``; la propiedad la expone donde la fuente la
+        declara.
+        """
+        return list(registry.constraint_methods(type(self)))
+
+    @property
+    def _ondelete_methods(self):
+        """Los métodos de ``@api.ondelete`` del modelo — ≙ ``:548-558``.
+
+        Ver :data:`orm.registry.ondelete_methods`.
+        """
+        return list(registry.ondelete_methods(type(self)))
+
+    @property
+    def _onchange_methods(self):
+        """Nombre de campo → métodos de ``@api.onchange`` — ≙ ``:560-593``.
+
+        Ver :data:`orm.registry.onchange_methods`.
+        """
+        return dict(registry.onchange_methods(type(self)))
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
