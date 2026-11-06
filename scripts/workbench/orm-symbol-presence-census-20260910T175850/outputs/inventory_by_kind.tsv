@@ -170,8 +170,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	union	function	satis
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_set_conditions_mono_value	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_set_conditions_x2many_in	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_set_conditions_x2many_not_in	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_any	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_not_any	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_any	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_not_any	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_same_conditions	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.NEGATIVE_OPERATORS	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py

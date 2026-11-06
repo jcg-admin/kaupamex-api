@@ -847,3 +847,5 @@ src/orm/domains.py	_optimize_type_date_relative	function	tests/unit/orm/test_con
 src/orm/domains.py	_optimize_type_datetime	function	tests/unit/orm/test_contract_domains_model_reference.py
 src/orm/domains.py	_optimize_type_datetime_relative	function	tests/unit/orm/test_contract_domains_model_reference.py
 src/orm/domains.py	_optimize_type_binary_attachment	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_merge_any	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_merge_not_any	function	tests/unit/orm/test_contract_domains_model_reference.py

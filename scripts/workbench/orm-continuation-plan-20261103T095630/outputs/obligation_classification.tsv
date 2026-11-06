@@ -11,7 +11,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py		file	not_verified	t
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213,TASK-API-0247,TASK-API-0345,TASK-API-0445,TASK-API-0497	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.custom	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._negate	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__eq__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__hash__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0497	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__iter__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -46,16 +45,11 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._opt
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._as_predicate	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0498	structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_value_to_date	function	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_date	function	not_verified	task_units_settled	TASK-API-0485	TASK-API-0212	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_date_relative	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_value_to_datetime	function	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_datetime	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_datetime_relative	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_properties_date_datetime	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_binary_attachment	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_operator_hierarchy	function	not_verified	task_without_unit	TASK-API-0485	TASK-API-0212	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_any	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_not_any	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_any	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_not_any	function	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR_SQL	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._field_instance	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=value;write_path=-;evidence=-
