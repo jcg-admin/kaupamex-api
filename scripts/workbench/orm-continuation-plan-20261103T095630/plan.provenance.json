@@ -331,6 +331,13 @@
         "orm-environments-starred-reference-0485"
       ],
       "writtenAt": "2026-11-06T21:22:37Z"
+    },
+    {
+      "planner": "orm-models-registry-hooks",
+      "items": [
+        "orm-models-registry-hooks-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T21:24:33Z"
     }
   ]
 }
