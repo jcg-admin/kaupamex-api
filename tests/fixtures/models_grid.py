@@ -5,8 +5,9 @@ su módulo de modelos —``odoo.orm.models`` en el proceso de referencia,
 ``orm.models`` aquí—. Cubre ``fix_import_export_id_paths``,
 ``itemgetter_tuple``, ``ReversibleComparator`` (orden con ``None`` y con
 inversión, igualdad, ``hash`` estable sobre enteros, ``repr`` y
-``__slots__``) y los valores por defecto de los atributos de clase de
-``BaseModel``.
+``__slots__``), los valores por defecto de los atributos de clase de
+``BaseModel`` y sus ganchos base ``_valid_field_parameter`` y
+``_post_model_setup__``.
 """
 import functools
 
@@ -74,4 +75,12 @@ def trace(module):
     ]
     steps += [(f'attribute {name}', functools.partial(
         getattr, module.BaseModel, name)) for name in CLASS_ATTRIBUTES]
+    # Los dos ganchos base de la configuración de un modelo (``:479-486``):
+    # se invocan sin instancia, porque ninguno lee ``self``.
+    steps += [(f'valid field parameter {name}',
+               lambda name=name: module.BaseModel._valid_field_parameter(
+                   None, None, name))
+              for name in ('related_sudo', 'related', 'config_parameter', '')]
+    steps.append(('post model setup',
+                  lambda: module.BaseModel._post_model_setup__(None)))
     return [f'{name} {_step(function)}' for name, function in steps]
