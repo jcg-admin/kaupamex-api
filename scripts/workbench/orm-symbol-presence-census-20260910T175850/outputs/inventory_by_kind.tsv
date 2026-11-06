@@ -288,16 +288,16 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Cache.clear_dir
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Cache.invalidate	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Cache.clear	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Cache.check	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred	class	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred.__init__	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred.__repr__	method	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_environments_module_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred.__init__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_environments_module_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred.__repr__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_environments_module_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Cache.__slots__	attribute	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.context	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.cr	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.su	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.transaction	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.uid	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred.__slots__	attribute	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Starred.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_environments_module_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Transaction.__slots__	attribute	not_verified	structural=value;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	resolve_mro	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_fields_module_symbols.py::TestResolveMro::test_it_returns_the_overrides_most_derived_first

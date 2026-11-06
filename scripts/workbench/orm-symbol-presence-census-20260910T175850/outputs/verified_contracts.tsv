@@ -923,3 +923,7 @@ src/orm/domains.py	Domain.__iter__	method	tests/unit/orm/test_contract_domains_r
 src/orm/domains.py	Domain.map_conditions	method	tests/unit/orm/test_contract_domains_reference.py
 src/orm/domains.py	Domain._optimize_step	method	tests/unit/orm/test_contract_domains_reference.py
 src/orm/domains.py	DomainNary._negate	method	tests/unit/orm/test_contract_domains_reference.py
+src/orm/environments.py	Starred	class	tests/unit/orm/test_contract_environments_module_reference.py
+src/orm/environments.py	Starred.__init__	method	tests/unit/orm/test_contract_environments_module_reference.py
+src/orm/environments.py	Starred.__repr__	method	tests/unit/orm/test_contract_environments_module_reference.py
+src/orm/environments.py	Starred.__slots__	attribute	tests/unit/orm/test_contract_environments_module_reference.py
