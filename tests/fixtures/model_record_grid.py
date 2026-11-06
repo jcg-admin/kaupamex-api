@@ -11,6 +11,10 @@ con cero, uno y dos registros, sin argumentos y con nombre de campo y token,
 y los tres alias deprecados ``_cr``, ``_uid`` y ``_context``
 (``:5911-5924``): a qué atributo del entorno responden y qué advertencia
 emiten.
+
+El alias se compara por igualdad con su atributo, no por identidad: aquí
+``env.context`` devuelve una copia nueva en cada acceso, y la identidad
+mediría esa propiedad del entorno, no la del alias.
 """
 import warnings
 
@@ -45,8 +49,8 @@ def trace(Domain, model, model_name):
              for ids in IDS for arguments in ARGUMENTS]
     for alias, attribute in ALIASES:
         steps += [
-            (f'{alias} is env.{attribute}', lambda alias=alias,
-             attribute=attribute: _alias(base, model, alias) is getattr(
+            (f'{alias} equals env.{attribute}', lambda alias=alias,
+             attribute=attribute: _alias(base, model, alias) == getattr(
                  model.browse(()).env, attribute)),
             (f'{alias} warns', lambda alias=alias: _warnings(base, model,
                                                              alias)),

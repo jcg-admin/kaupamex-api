@@ -5531,6 +5531,24 @@ class BaseModel(DefaultGetMixin, Model):
         self.ensure_one()
         return False
 
+    @property
+    @api.deprecated("Deprecated since 19.0, use self.env.cr directly")
+    def _cr(self):
+        """Alias deprecado de ``self.env.cr`` — ≙ ``:5911-5914``."""
+        return self.env.cr
+
+    @property
+    @api.deprecated("Deprecated since 19.0, use self.env.uid directly")
+    def _uid(self):
+        """Alias deprecado de ``self.env.uid`` — ≙ ``:5916-5919``."""
+        return self.env.uid
+
+    @property
+    @api.deprecated("Deprecated since 19.0, use self.env.context directly")
+    def _context(self):
+        """Alias deprecado de ``self.env.context`` — ≙ ``:5921-5924``."""
+        return self.env.context
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
