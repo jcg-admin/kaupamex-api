@@ -956,14 +956,19 @@ class DomainCondition(Domain):
             isinstance(other, DomainCondition)
             and self.field_expr == other.field_expr
             and self.operator == other.operator
+            # Igualdad más estricta que ``OrderedSet([x]) == {x}``, para que
+            # las optimizaciones siempre devuelvan valores ``OrderedSet``
+            # (``:882-883``).
             and self.value.__class__ is other.value.__class__
             and self.value == other.value
         )
 
     def __hash__(self):
-        return (
-            hash(self.field_expr) ^ hash(self.operator) ^ hash(str(self.value))
-        )
+        # ≙ ``:888-889``. Se hashea el valor, no su texto: un valor no
+        # hashable (lista, conjunto, ``OrderedSet``) rehúsa con ``TypeError``,
+        # como en la fuente, y dos valores iguales hashean igual aunque se
+        # impriman distinto.
+        return hash(self.field_expr) ^ hash(self.operator) ^ hash(self.value)
 
     def iter_conditions(self):
         yield self
