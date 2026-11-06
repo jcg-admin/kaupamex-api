@@ -1,0 +1,4 @@
+ERROR tests/unit/tools/test_set_expression_against_the_reference.py::TestTheBehaviourMatchesTheReference::test_every_operation_returns_what_the_reference_returns
+1 skipped, 16 warnings, 259 errors in 9.71s
+make: *** [Makefile:165: check-contracts] Error 1
+exit=2

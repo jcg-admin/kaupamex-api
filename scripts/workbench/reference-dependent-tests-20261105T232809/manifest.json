@@ -20,7 +20,9 @@
     "outputs/before_suite_with_reference_tail.txt",
     "outputs/before_suite_without_reference_tail.txt",
     "outputs/after_suite_with_reference_tail.txt",
-    "outputs/after_suite_without_reference_tail.txt"
+    "outputs/after_suite_without_reference_tail.txt",
+    "outputs/check_contracts_with_reference_tail.txt",
+    "outputs/check_contracts_without_reference_tail.txt"
   ],
   "destination": "tests/fixtures/reference_tree.py, tests/conftest.py, pytest.ini y las 44 declaraciones marcadas; TASK-API-0494"
 }

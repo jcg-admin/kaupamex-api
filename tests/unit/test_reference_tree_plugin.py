@@ -76,6 +76,40 @@ class TestTheTreeDecidesTheSkip:
         assert reference_tree.pytest_runtest_setup(Item([])) is None
 
 
+class TestTheContractGateRefusesTheSkip:
+
+    def test_a_required_reference_fails_instead_of_skipping(
+            self, tmp_path, monkeypatch):
+        monkeypatch.setattr(reference_tree, 'reference_root',
+                            lambda: tmp_path / 'absent')
+        monkeypatch.setenv(reference_tree.REQUIRED_ENV, '1')
+        # Un ``pytest.skip`` que escape omitiría ESTE caso en vez de hacerlo
+        # fallar, y un caso omitido no pone la suite en rojo: se captura.
+        try:
+            reference_tree.pytest_runtest_setup(Item([], marked=True))
+        except pytest.skip.Exception:
+            outcome = 'skipped'
+        except pytest.fail.Exception as error:
+            outcome = str(error)
+        else:
+            outcome = 'ran'
+        assert reference_tree.REQUIRED_ENV in outcome
+
+    def test_a_required_reference_that_exists_runs(
+            self, tmp_path, monkeypatch):
+        monkeypatch.setattr(reference_tree, 'reference_root',
+                            lambda: tmp_path)
+        monkeypatch.setenv(reference_tree.REQUIRED_ENV, '1')
+        assert reference_tree.pytest_runtest_setup(
+            Item([], marked=True)) is None
+
+    def test_only_the_value_one_requires_it(self, monkeypatch):
+        monkeypatch.setenv(reference_tree.REQUIRED_ENV, '0')
+        assert reference_tree.reference_required() is False
+        monkeypatch.setenv(reference_tree.REQUIRED_ENV, '1')
+        assert reference_tree.reference_required() is True
+
+
 class TestTheCountReadsReports:
 
     def test_only_setup_reports_of_marked_tests_count(self):
@@ -87,6 +121,10 @@ class TestTheCountReadsReports:
 
 
 class TestTheSummarySaysWhatWasNotVerified:
+
+    def test_a_present_tree_names_its_revision(self, tmp_path):
+        line = reference_tree.summary_line(257, 0, tmp_path, 'abe4040ec1')
+        assert line.endswith('(odoo-tools@abe4040ec1)')
 
     def test_no_marked_test_prints_nothing(self, tmp_path):
         assert reference_tree.summary_line(0, 0, tmp_path) is None

@@ -71,6 +71,10 @@ def pytest_collection_modifyitems(config, items):
     reference_tree.pytest_collection_modifyitems(config, items)
 
 
+# ``tryfirst``: bajo ``CONTRACT_REFERENCE_REQUIRED=1`` la ausencia de la
+# referencia tiene que fallar ANTES de que el plugin ``skipping`` evalúe los
+# ``skipif`` propios de cada módulo, que si no la convierten en omisión.
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
     reference_tree.pytest_runtest_setup(item)
 

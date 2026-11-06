@@ -92,6 +92,49 @@ lo hace visible, no lo resuelve. Las dos salidas:
 
 No se elige aquí: cambia el workflow y sus credenciales.
 
+## El gate contractual (2026-11-06)
+
+Un SKIP por referencia ausente es «verificación contractual no ejecutada», no
+«contrato satisfecho». El CI general sigue sin referencia (credencial privada
+no disponible en el workflow; no se inventa), y la verificación contractual
+tiene su propia ejecución, en el ambiente con la revisión fijada:
+
+```bash
+CONTRACT_REFERENCE_REQUIRED=1 uv run pytest -m reference -n 4 -q -p no:cacheprovider --reuse-db
+```
+
+
+- `CONTRACT_REFERENCE_REQUIRED=1` convierte la ausencia del árbol en **fallo**
+  de cada prueba marcada, no en omisión;
+- el hook de la marca corre `tryfirst`: sin eso, 30 pruebas con `skipif`
+  propio (`sale`, `mirrored_roots`, …) se omitían antes de que el modo
+  obligatorio decidiera;
+- el resumen imprime la revisión de `odoo-tools` verificada.
+
+| ejecución contractual | resultado |
+|---|---|
+| con `odoo19c` (`odoo-tools@abe4040ec1`) | 259 passed, exit 0 |
+| sin `odoo19c` | 259 errors, exit 2 |
+
+El único skip en las dos ejecuciones es `tests/unit/sale/test_address_mx_validation.py`,
+que se omite a sí mismo al colectarse (sus serializers esperan redomicilio) y
+no depende de la referencia. Controles: sin la rama obligatoria cae un solo
+caso de `tests/unit/test_reference_tree_plugin.py`; sin `tryfirst`, 30
+pruebas vuelven a omitirse. Salidas: `outputs/check_contracts_*`.
+
+**El target `make check-contracts` no se pudo publicar.** Tocar el
+`Makefile` dispara la cualificación de `check_python_style_increment.py`, y
+dentro del hook falla: su subproceso hereda el `GIT_INDEX_FILE` temporal del
+commit por pathspec y 7 de sus 99 pruebas leen otro índice. Medido: sin la
+variable, 99 passed; con un índice alterno, 7 failed. El mecanismo es de
+TASK-API-0478 (owner `codex-ci-local`); el target se añade cuando se corrija.
+
+**La dependencia que queda registrada:** ejecutar este target en GitHub
+Actions exige una credencial de lectura de `jcg-admin/odoo-tools` en el
+workflow; hasta que la autoridad la provea, la aceptación contractual se toma
+de este target en el ambiente autorizado, nunca de una suite que omitió los
+contratos.
+
 ## Ciega a
 
 - una prueba que lea la referencia sin marca ni fixture: falla sin referencia

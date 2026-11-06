@@ -24,6 +24,15 @@ Y el resumen de la ejecución separa las omisiones por referencia ausente del
 resto: un CI sin referencia que reporta «verde» no ha verificado ninguno de
 esos contratos, y la cifra tiene que estar a la vista.
 
+**La verificación contractual no admite la omisión.** Con
+``CONTRACT_REFERENCE_REQUIRED=1`` una prueba marcada sin árbol **falla** en
+vez de omitirse: un SKIP significa
+«verificación contractual no ejecutada», nunca «contrato satisfecho», y en esa
+ejecución no puede pasar por verde. El resumen lleva entonces la revisión de
+``odoo-tools`` sobre la que se verificó. La ejecución contractual es::
+
+    CONTRACT_REFERENCE_REQUIRED=1 uv run pytest -m reference -n 4 -q
+
 *Métrica:* pruebas marcadas, y cuántas de ellas se omitieron porque el árbol
 no existe.
 *Ciega a:* la prueba que lee la referencia sin marca ni fixture. Esa prueba
@@ -31,12 +40,15 @@ no existe.
 alarma que obliga a marcarla; el conteo no la ve.
 """
 import importlib.util
+import os
 import pathlib
+import subprocess
 
 import pytest
 
 MARKER = 'reference'
 FIXTURE = 'reference'
+REQUIRED_ENV = 'CONTRACT_REFERENCE_REQUIRED'
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
 _SPEC = importlib.util.spec_from_file_location(
@@ -48,6 +60,22 @@ _SPEC.loader.exec_module(reference_roots)
 def reference_root():
     """La raíz de ``odoo19c`` que declara ``reference_roots``, exista o no."""
     return pathlib.Path(reference_roots.tree('odoo19c'))
+
+
+def reference_required():
+    """``True`` si la ejecución exige la referencia (gate contractual)."""
+    return os.environ.get(REQUIRED_ENV) == '1'
+
+
+def reference_revision():
+    """El commit de ``odoo-tools`` en uso, o ``None`` si no se puede leer.
+
+    Sólo lee (``git rev-parse``): ``odoo-tools`` es referencia y no se escribe.
+    """
+    result = subprocess.run(
+        ['git', '-C', str(reference_roots.TOOLS_ROOT), 'rev-parse', '--short',
+         'HEAD'], capture_output=True, text=True, check=False)
+    return result.stdout.strip() or None
 
 
 def missing_reason(root):
@@ -76,8 +104,12 @@ def pytest_runtest_setup(item):
     if item.get_closest_marker(MARKER) is None:
         return
     reason = missing_reason(reference_root())
-    if reason is not None:
-        pytest.skip(reason)
+    if reason is None:
+        return
+    if reference_required():
+        pytest.fail(f'{reason}; {REQUIRED_ENV}=1 exige la referencia',
+                    pytrace=False)
+    pytest.skip(reason)
 
 
 class ReferenceCount:
@@ -103,7 +135,8 @@ class ReferenceCount:
             self.skipped += 1
 
     def pytest_terminal_summary(self, terminalreporter):
-        line = summary_line(self.marked, self.skipped, reference_root())
+        line = summary_line(self.marked, self.skipped, reference_root(),
+                            reference_revision())
         if line is not None:
             terminalreporter.write_line(line)
 
@@ -112,13 +145,14 @@ def pytest_configure(config):
     config.pluginmanager.register(ReferenceCount(), 'reference-count')
 
 
-def summary_line(marked, skipped, root):
+def summary_line(marked, skipped, root, revision=None):
     """La línea del resumen: cuántas pruebas dependen de la referencia."""
     if not marked:
         return None
     if not skipped:
+        pinned = f' (odoo-tools@{revision})' if revision else ''
         return (f'referencia: {marked} pruebas marcadas, '
-                f'árbol presente en {root}')
+                f'árbol presente en {root}{pinned}')
     cause = (f'{root} no existe' if missing_reason(root)
              else f'el árbol está en {root}; los motivos, con -rs')
     return (f'referencia: {skipped} de {marked} pruebas marcadas se omitieron '
