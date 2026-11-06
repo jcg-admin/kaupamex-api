@@ -1,0 +1,2 @@
+FAILED tests/unit/orm/test_contract_domains_model_reference.py::test_the_trace_matches_the_reference[res.partner-user-UTC]
+1 failed, 15 passed, 2 warnings in 26.59s
