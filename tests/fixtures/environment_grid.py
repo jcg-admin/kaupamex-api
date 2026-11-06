@@ -8,7 +8,8 @@ aquí, ``Environment(None, uid, context, su)``.
 Sólo entran contratos que no dependen de los datos de cada base: la
 agrupación por ejes de ``__new__``, la elevación implícita del uid 1, la
 identidad (``==``/``!=``/``hash``, por objeto como en la fuente), la
-coherencia entre ``iter`` y ``len``, la guarda de ``__setattr__``, la
+coherencia entre ``iter`` y ``len``, el contexto (tipo, estabilidad entre
+lecturas e inmutabilidad), la guarda de ``__setattr__``, la
 pertenencia de un modelo, la derivación con ``__call__``, ``lang`` y
 ``tz`` leídos del contexto del propio entorno, y ``is_superuser``. El uid 2
 nunca se materializa como registro: ningún paso lee ``env.user``.
@@ -36,6 +37,11 @@ def _context(env):
     return sorted(env.context.items())
 
 
+def _stable_context(factory):
+    environment = factory(ADMIN, {'a': 1}, False)
+    return environment.context is environment.context
+
+
 def trace(factory):
     """Los pasos de la rejilla, cada uno como ``nombre resultado``."""
     plain = factory(ADMIN, {}, False)
@@ -61,6 +67,11 @@ def trace(factory):
         ('contains model', lambda: 'res.partner' in plain),
         ('contains missing', lambda: 'no.such.model' in plain),
         ('getitem missing', lambda: plain['no.such.model']),
+        ('context type', lambda: type(
+            factory(ADMIN, {'a': 1}, False).context).__name__),
+        ('context stable', lambda: _stable_context(factory)),
+        ('context immutable', lambda: factory(
+            ADMIN, {'a': 1}, False).context.__setitem__('b', 2)),
         ('call keeps uid', lambda: plain(context={'a': 1}).uid),
         ('call context', lambda: _context(plain(context={'a': 1}))),
         ('call su elevates', lambda: plain(su=True).su),

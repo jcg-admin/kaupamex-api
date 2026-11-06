@@ -48,5 +48,5 @@ def test_the_trace_matches_the_reference(reference_trace):
 
 def test_the_comparison_is_not_made_of_errors(reference_trace):
     raising = [line for line in reference_trace if ' raises ' in line]
-    assert len(raising) == 3
+    assert len(raising) == 4
     assert len(reference_trace) > len(raising)
