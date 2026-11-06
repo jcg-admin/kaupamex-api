@@ -5517,6 +5517,20 @@ class BaseModel(DefaultGetMixin, Model):
         ``registry.py:399``.
         """
 
+    def _can_return_content(self, field_name=None, access_token=None):
+        """Si se puede servir un archivo del campo aunque el registro no sea
+        accesible — ≙ ``:5841-5855``.
+
+        Verbatim de la fuente: *"Determine whether one can export a file or
+        an image from a field of record ``self``, even if ``self`` is not
+        accessible to the current user."* La base exige un registro y nunca
+        concede: devuelve ``False``. Los modelos que conceden lo redefinen;
+        el bypass por token que lo consume en ``ir.binary`` es divergencia
+        declarada por DEC-11 en ``src/addons/base/models/ir_binary.py``.
+        """
+        self.ensure_one()
+        return False
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
@@ -5731,6 +5745,13 @@ class BaseModel(DefaultGetMixin, Model):
         ``:5930``
 
         :raise ValueError: ``len(self) != 1``
+
+        El mensaje interpola el ``repr`` del recordset. La fuente escribe
+        ``%s``, y allí ``str`` cae en ``__repr__``; aquí un modelo puede
+        declarar el ``__str__`` de Django (``IrAttachment`` devuelve su
+        ``name``), que sobre cero o dos registros devuelve un no-texto o
+        recurre, y convertía el ``ValueError`` en ``TypeError`` o
+        ``RecursionError``. El texto resultante es el de la fuente.
         """
         try:
             # unpack to ensure there is only one value is faster than len when
@@ -5739,7 +5760,7 @@ class BaseModel(DefaultGetMixin, Model):
             _id, = self._ids
             return self
         except ValueError:
-            raise ValueError("Expected singleton: %s" % self)
+            raise ValueError("Expected singleton: %r" % (self,))
 
     def __bool__(self):
         """ Test whether ``self`` is nonempty. — ≙ ``:6475`` """
