@@ -394,6 +394,13 @@
         "orm-models-table-sql-reference-0485"
       ],
       "writtenAt": "2026-11-06T23:30:29Z"
+    },
+    {
+      "planner": "orm-models-as-query-table-sql",
+      "items": [
+        "orm-models-as-query-table-sql-0485"
+      ],
+      "writtenAt": "2026-11-06T23:37:30Z"
     }
   ]
 }
