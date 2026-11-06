@@ -387,6 +387,13 @@
         "orm-models-marked-method-properties-0485"
       ],
       "writtenAt": "2026-11-06T23:26:34Z"
+    },
+    {
+      "planner": "orm-models-table-sql",
+      "items": [
+        "orm-models-table-sql-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T23:30:29Z"
     }
   ]
 }
