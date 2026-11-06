@@ -14,6 +14,8 @@ emiten. ``__deepcopy__`` (``:6665-6666``) devuelve el propio recordset, con
 cero, uno y dos registros. ``_convert_to_record`` (``:6094-6101``) pasa
 valores de caché al formato de registro con el ``convert_to_record`` de cada
 campo: texto, entero de referencia y booleano, y un campo inexistente.
+``_table_sql`` (``:488-515``) se mide en su rama de identificador de tabla:
+código, parámetros y campos por volcar.
 
 El alias se compara por igualdad con su atributo, no por identidad: aquí
 ``env.context`` devuelve una copia nueva en cada acceso, y la identidad
@@ -63,6 +65,8 @@ def trace(Domain, model, model_name):
     for label, values in CACHE_VALUES:
         steps.append((f'convert_to_record {label}', lambda values=values:
                       base._convert_to_record(model.browse(()), values)))
+    steps.append(('table_sql', lambda: _sql_shape(
+        base._table_sql.fget(model.browse(())))))
     for alias, attribute in ALIASES:
         steps += [
             (f'{alias} equals env.{attribute}', lambda alias=alias,
@@ -72,6 +76,10 @@ def trace(Domain, model, model_name):
                                                              alias)),
         ]
     return [f'{name} {_step(function)}' for name, function in steps]
+
+
+def _sql_shape(sql):
+    return (sql.code, tuple(sql.params), len(tuple(sql.to_flush)))
 
 
 def _deepcopy_is_self(records):
