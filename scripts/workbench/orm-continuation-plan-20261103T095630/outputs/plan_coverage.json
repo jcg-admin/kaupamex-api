@@ -189,7 +189,8 @@
   "orm-models-deepcopy-reference-0485",
   "orm-models-convert-to-record-reference-0485",
   "orm-models-marked-method-properties-0485",
-  "orm-models-table-sql-reference-0485"
+  "orm-models-table-sql-reference-0485",
+  "orm-models-as-query-table-sql-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
