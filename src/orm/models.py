@@ -5478,6 +5478,27 @@ class BaseModel(DefaultGetMixin, Model):
     class Meta:
         abstract = True
 
+    def _valid_field_parameter(self, field, name):
+        """Si ``name`` es un parámetro válido del campo — ≙ ``:479-481``.
+
+        Verbatim de la fuente: *"Return whether the given parameter name is
+        valid for the field."* Sus consumidores en la referencia son
+        ``Field.__init__`` y ``Field._setup_attrs`` (``odoo19c:
+        odoo/orm/fields.py:531,652``), que avisan de una clave que ningún
+        modelo admite. Esa mitad de validación aquí es divergencia de
+        mecanismo declarada en :func:`orm.fields._field_setup`.
+        """
+        return name == 'related_sudo'
+
+    @api.model
+    def _post_model_setup__(self):
+        """Gancho tras el montaje del modelo — ≙ ``:483-486``.
+
+        Verbatim de la fuente: *"Method called after the model has been
+        setup."* La base no hace nada; un modelo lo redefine.
+        """
+        pass
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
