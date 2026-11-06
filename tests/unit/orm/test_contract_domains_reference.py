@@ -111,7 +111,115 @@ def hash_trace(module, ordered_set):
     return steps
 
 
+def comparable(value):
+    """Una clase se compara por nombre: el módulo difiere entre los lados."""
+    if isinstance(value, type):
+        return ('class', value.__name__)
+    return value
+
+
+#: Los pasos cuyo contrato en la fuente es rehusar: el dominio es inmutable,
+#: la base n-aria no tiene operador ni inverso, y la negación no tiene
+#: elemento neutro ni inverso.
+SURFACE_STEPS_THAT_RAISE = {
+    'setattr', 'delattr', 'DomainNary.OPERATOR', 'DomainNary.INVERSE',
+    'DomainNot.ZERO', 'DomainNot.INVERSE',
+}
+
+
+def surface_trace(module):
+    """Constructores, constantes, inmutabilidad y niveles de optimización.
+
+    ``OPERATOR_SQL`` y los ``__slots__`` de ``DomainCustom`` no entran: son la
+    divergencia declarada ``_to_sql`` → ``_to_q`` de la cabecera del puerto.
+    """
+    domain = module.Domain
+    steps = []
+
+    def step(label, call):
+        steps.append((label, outcome(lambda: comparable(call()))))
+
+    def rewrite(condition):
+        return module.DomainCondition(condition.field_expr,
+                                      condition.operator, 5)
+
+    step('TRUE', lambda: domain.TRUE)
+    step('FALSE', lambda: domain.FALSE)
+    step('TRUE is TRUE', lambda: domain.TRUE is domain.TRUE)
+    step('OR', lambda: list(domain.OR(
+        [[('a', '=', 1)], [('b', '=', 2)], []])))
+    step('OR empty', lambda: list(domain.OR([])))
+    step('AND empty', lambda: list(domain.AND([])))
+    step('radd', lambda: [('z', '=', 1)] + domain('a', '=', 1))
+    step('map_conditions', lambda: list(domain(
+        ['|', ('a', '=', 1), '!', ('b', 'in', [1])]).map_conditions(rewrite)))
+
+    # ``child_of`` no tiene operador negado: su ``!`` queda como ``DomainNot``
+    # en los dos lados, que es lo que estos casos necesitan ejercitar.
+    def negated(value=1):
+        return domain(['!', ('a', 'child_of', value)])
+
+    step('not type', lambda: type(negated()).__name__)
+    step('not equal', lambda: negated() == negated())
+    step('not distinct', lambda: negated() == negated(2))
+    step('not hash', lambda: hash(negated()) == hash(negated()))
+    step('not invert', lambda: list(~negated()))
+    step('not conditions',
+         lambda: [list(c) for c in negated().iter_conditions()])
+    step('not map_conditions',
+         lambda: list(negated().map_conditions(rewrite)))
+    step('setattr', lambda: setattr(domain('a', '=', 1), 'x', 1))
+    step('delattr', lambda: delattr(domain('a', '=', 1), 'field_expr'))
+    step('NEGATIVE_OPERATORS',
+         lambda: sorted(domain.NEGATIVE_OPERATORS.items()))
+    for name in ('DomainAnd', 'DomainOr', 'DomainNot', 'DomainNary'):
+        cls = getattr(module, name)
+        step(f'{name}.OPERATOR', lambda cls=cls: cls.OPERATOR)
+        step(f'{name}.ZERO', lambda cls=cls: cls.ZERO)
+        step(f'{name}.INVERSE', lambda cls=cls: cls.INVERSE)
+        step(f'{name}.__slots__', lambda cls=cls: cls.__dict__['__slots__'])
+    for name in ('Domain', 'DomainBool', 'DomainCondition'):
+        step(f'{name}.__slots__',
+             lambda name=name: getattr(module, name).__dict__['__slots__'])
+    levels = module.OptimizationLevel
+    step('levels', lambda: [(level.name, int(level)) for level in levels])
+    step('next_level', lambda: [
+        (level.name, outcome(lambda level=level: level.next_level))
+        for level in levels])
+    step('_opt_level', lambda: domain('a', '=', 1)._opt_level)
+    step('DomainBool.value', lambda: (domain(True).value,
+                                      domain(False).value))
+    step('condition fields', lambda: (domain('a', 'in', [1]).field_expr,
+                                      domain('a', 'in', [1]).operator,
+                                      domain('a', 'in', [1]).value))
+    step('children', lambda: domain(
+        ['&', ('a', '=', 1), ('b', '=', 2)]).children)
+    step('child', lambda: negated().child)
+    return steps
+
+
 class TestDomainsBehaveLikeTheReference:
+
+    def test_the_surface_matches_the_reference(self, reference):
+        with reference_domains.runtime():
+            theirs = surface_trace(reference)
+        ours = surface_trace(ported)
+        divergences = [(a[0], a[1], b[1])
+                       for a, b in zip(theirs, ours) if a != b]
+        assert len(ours) >= 44
+        assert not divergences, divergences[:3]
+
+    def test_only_the_expected_steps_raise_in_the_reference(self, reference):
+        """Dos lados que rehúsan igual coinciden sin medir nada.
+
+        Un paso mal construido que rehúsa en los dos lados pasaría la
+        comparación; aquí sólo pueden rehusar los pasos cuyo contrato es
+        rehusar.
+        """
+        with reference_domains.runtime():
+            theirs = surface_trace(reference)
+        raising = {label for label, result in theirs if result[0] == 'raises'}
+        assert raising == SURFACE_STEPS_THAT_RAISE
 
     def test_every_operation_matches_the_reference(self, reference):
         divergences = []

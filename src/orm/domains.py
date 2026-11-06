@@ -676,7 +676,9 @@ class DomainNary(Domain):
 
     __slots__ = ('children',)
 
-    OPERATOR = '???'
+    # Sólo anotado, como en la fuente (``:578``): la clase base no tiene
+    # operador, y leerlo de ella rehúsa con ``AttributeError``.
+    OPERATOR: str
     ZERO = _FALSE_DOMAIN  # defecto para los checks del linter
 
     def __new__(cls, children):
