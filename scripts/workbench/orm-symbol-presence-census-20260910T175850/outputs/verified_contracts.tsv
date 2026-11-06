@@ -857,3 +857,9 @@ src/orm/domains.py	DomainNary	class	tests/unit/orm/test_contract_domains_model_r
 src/orm/domains.py	DomainAnd	class	tests/unit/orm/test_contract_domains_model_reference.py
 src/orm/domains.py	DomainOr	class	tests/unit/orm/test_contract_domains_model_reference.py
 src/orm/domains.py	DomainCondition	class	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/environments.py	Environment.__setattr__	method	tests/unit/orm/test_contract_environments_reference.py
+src/orm/environments.py	Environment.__contains__	method	tests/unit/orm/test_contract_environments_reference.py
+src/orm/environments.py	Environment.__call__	method	tests/unit/orm/test_contract_environments_reference.py
+src/orm/environments.py	Environment.is_superuser	method	tests/unit/orm/test_contract_environments_reference.py
+src/orm/environments.py	Environment.tz	property	tests/unit/orm/test_contract_environments_reference.py
+src/orm/environments.py	Environment.lang	property	tests/unit/orm/test_contract_environments_reference.py
