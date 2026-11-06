@@ -1,0 +1,88 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "removed": [
+    "python-ldap"
+  ],
+  "replaced": {
+    "psycopg2==2.9.10 ": "psycopg2-binary==2.9.10 "
+  },
+  "install_exits": [
+    0
+  ],
+  "reference_load": {
+    "exit": 0,
+    "result": {
+      "version": "19.0",
+      "odoo_modules": [
+        "odoo",
+        "odoo._monkeypatches",
+        "odoo._monkeypatches._cpython",
+        "odoo._monkeypatches.ast",
+        "odoo._monkeypatches.csv",
+        "odoo._monkeypatches.email",
+        "odoo._monkeypatches.locale",
+        "odoo._monkeypatches.lxml",
+        "odoo._monkeypatches.markupsafe",
+        "odoo._monkeypatches.mimetypes",
+        "odoo._monkeypatches.pytz",
+        "odoo._monkeypatches.re",
+        "odoo._monkeypatches.site",
+        "odoo._monkeypatches.werkzeug",
+        "odoo.exceptions",
+        "odoo.init",
+        "odoo.loglevels",
+        "odoo.netsvc",
+        "odoo.orm",
+        "odoo.orm.commands",
+        "odoo.orm.decorators",
+        "odoo.orm.domains",
+        "odoo.orm.environments",
+        "odoo.orm.fields",
+        "odoo.orm.fields_misc",
+        "odoo.orm.fields_numeric",
+        "odoo.orm.fields_temporal",
+        "odoo.orm.fields_textual",
+        "odoo.orm.identifiers",
+        "odoo.orm.model_classes",
+        "odoo.orm.models",
+        "odoo.orm.registry",
+        "odoo.orm.utils",
+        "odoo.release",
+        "odoo.sql_db",
+        "odoo.tools",
+        "odoo.tools.appdirs",
+        "odoo.tools.cache",
+        "odoo.tools.config",
+        "odoo.tools.constants",
+        "odoo.tools.convert",
+        "odoo.tools.date_utils",
+        "odoo.tools.float_utils",
+        "odoo.tools.func",
+        "odoo.tools.gc",
+        "odoo.tools.i18n",
+        "odoo.tools.json",
+        "odoo.tools.lru",
+        "odoo.tools.mail",
+        "odoo.tools.misc",
+        "odoo.tools.parse_version",
+        "odoo.tools.query",
+        "odoo.tools.safe_eval",
+        "odoo.tools.set_expression",
+        "odoo.tools.sql",
+        "odoo.tools.translate",
+        "odoo.tools.urls",
+        "odoo.tools.which",
+        "odoo.tools.xml_utils"
+      ],
+      "django_loaded": false,
+      "werkzeug_loaded": true
+    },
+    "stderr_tail": ""
+  },
+  "consumer_load_control": {
+    "exit": 1,
+    "stderr_tail": "\", line 88, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/_monkeypatches/lxml.py\", line 1, in <module>\n    import lxml.html.clean\n  File \"/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/lxml/html/clean.py\", line 18, in <module>\n    raise ImportError(\n    ...<2 lines>...\n    ) from None\nImportError: lxml.html.clean module is now a separate project lxml_html_clean.\nInstall lxml[html-clean] or lxml_html_clean directly.\n"
+  },
+  "tools_status_before": "",
+  "tools_status_after": ""
+}

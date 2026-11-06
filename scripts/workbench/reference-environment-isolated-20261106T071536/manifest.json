@@ -1,0 +1,20 @@
+{
+  "question": "¿La carga del ORM de odoo19c exige dependencias en el Consumer, o es una limitación del intérprete con que se carga la referencia?",
+  "instrument": [
+    "scripts/workbench/reference-environment-isolated-20261106T071536/build_reference_environment.py"
+  ],
+  "metric": "código de salida de importar odoo, odoo.orm.models, fields, domains, environments y registry con python -I -B y sólo la raíz de odoo19c en sys.path, en dos intérpretes: el venv construido desde odoo19c/requirements.txt (dos sustituciones declaradas) y el .venv del Consumer. Resultado: referencia exit 0 con 59 módulos odoo y django ausente del proceso; Consumer exit 1 por lxml_html_clean; git status de odoo-tools vacío antes y después.",
+  "blind_to": [
+    "si las dos sustituciones (retirar python-ldap, psycopg2 por psycopg2-binary 2.9.10) alteran alguna ruta que un diferencial llegue a ejercer; el ORM no importa ldap y psycopg2-binary es el mismo código en rueda",
+    "la carga de addons y la creación de un Registry sobre una base: aquí sólo se importan los módulos del ORM",
+    "la reproducibilidad en CI: el venv vive fuera del repositorio y se reconstruye con este script"
+  ],
+  "control": "el mismo probe con el intérprete del Consumer falla (ImportError de lxml.html.clean): la carga depende del intérprete, no del código del Consumer, que no participa en ninguno de los dos procesos",
+  "reproducible": "UV_CACHE_DIR=<cache> python3 scripts/workbench/reference-environment-isolated-20261106T071536/build_reference_environment.py <venv fuera del repo> scripts/workbench/reference-environment-isolated-20261106T071536/outputs",
+  "outputs": [
+    "outputs/record.json",
+    "outputs/reference-requirements.txt",
+    "outputs/reference-freeze.txt"
+  ],
+  "destination": "TASK-API-0498 (premisa corregida): pyproject.toml y uv.lock sin cambios; los diferenciales con modelo ejecutan la referencia en un subproceso con este intérprete"
+}
