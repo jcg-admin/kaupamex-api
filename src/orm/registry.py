@@ -1871,6 +1871,11 @@ class Registry(Mapping):
             del cls.registries[db_name]
             raise
 
+        # ≙ STEP 9 de ``load_modules`` (``odoo19c: odoo/modules/loading.py:
+        # 588-595``): los ganchos se instalan una sola vez, con el registro
+        # todavía sin ``ready``, así que ``_setup_models__`` no los toca.
+        _call_hooks(registry, '_register_hook')
+        orm.environments.env().flush_all()
         registry._init = False
         registry.ready = True
         _logger.debug("Registry loaded in %.3fs", time.time() - t0)
@@ -2208,6 +2213,11 @@ class Registry(Mapping):
         ``model_names`` acota el descarte a los descendientes nombrados por los
         dos ejes, como alla; sin el, se descarta todo.
         """
+        # ≙ ``:396-399``: sobre un registro ya cargado se desinstalan los
+        # ganchos antes de rehacer el setup; mientras carga, no.
+        if self.ready:
+            _call_hooks(self, '_unregister_hook')
+
         for cache in _CACHES.values():
             cache.clear()
 
@@ -2226,6 +2236,11 @@ class Registry(Mapping):
                 for pair in list(fields):
                     if pair[0] in impacted:
                         fields.discard(pair)
+
+        # ≙ ``:498-503``: y se reinstalan al terminar.
+        if self.ready:
+            _call_hooks(self, '_register_hook')
+            orm.environments.env().flush_all()
 
     def post_init(self, func, *args, **kwargs):
         """Encola una llamada para el final de ``init_models`` — ≙ ``:686-688``.
@@ -3017,3 +3032,19 @@ class Registry(Mapping):
         if kind == '_inherits':
             return orm.model_classes.inherits_children(model._name)
         return ()
+
+
+def _call_hooks(registry, name):
+    """Invoca el gancho ``name`` sobre un recordset vacío de cada modelo.
+
+    Es el ``for model in env.values(): model.<gancho>()`` de la fuente
+    (``odoo19c: odoo/orm/registry.py:396-399,498-503`` y
+    ``odoo/modules/loading.py:588-595``). Sólo los modelos que derivan de
+    ``BaseModel`` declaran el gancho y responden a ``browse``; un modelo de
+    Django sin ellos no tiene qué invocar. Quien instala los ganchos vuelca
+    después lo que escribieron, con ``env.flush_all()``, como la fuente.
+    """
+    for model in list(registry.models.values()):
+        if (isinstance(model, type) and hasattr(model, name)
+                and hasattr(model, 'browse')):
+            getattr(model.browse(), name)()

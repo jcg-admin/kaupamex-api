@@ -10,12 +10,16 @@ modelo (``env.values()``).
 
 *Métrica:* la secuencia de llamadas a los dos ganchos, por modelo, y el valor
 de ``ready`` en el momento de cada una.
-*Ciega a:* ``env.flush_all()`` tras la reinstalación, que no tiene efecto
-observable sin escrituras pendientes; y a los modelos de Django que no derivan
-de ``BaseModel``, que no tienen ganchos.
+El volcado que sigue a cada instalación (``env.flush_all()``,
+``loading.py:595`` y ``registry.py:503``) se mide por su llamada.
+
+*Ciega a:* lo que un gancho concreto escriba, que no existe todavía en este
+árbol; y a los modelos de Django que no derivan de ``BaseModel``, que no
+tienen ganchos.
 """
 import pytest
 
+from orm.environments import Environment
 from orm.models import BaseModel
 from orm.registry import Registry
 
@@ -37,9 +41,15 @@ def calls(monkeypatch):
     monkeypatch.setattr(BaseModel, '_register_hook', recorder('register'))
     monkeypatch.setattr(BaseModel, '_unregister_hook',
                         recorder('unregister'))
+    monkeypatch.setattr(Environment, 'flush_all',
+                        lambda self: seen.append(('flush', None, True, None)))
     Registry.delete_all()
     yield seen
     Registry.delete_all()
+
+
+def _hook_calls(calls):
+    return [call for call in calls if call[0] != 'flush']
 
 
 def _hooked(registry):
@@ -51,10 +61,12 @@ def test_loading_registers_each_model_once_before_ready(calls):
     registry = Registry(NAME)
     assert registry.ready is True
     assert _hooked(registry)
-    assert sorted(call[1] for call in calls) == _hooked(registry)
-    assert {call[0] for call in calls} == {'register'}
-    assert all(call[2] for call in calls)
-    assert {call[3] for call in calls} == {False}
+    hooks = _hook_calls(calls)
+    assert sorted(call[1] for call in hooks) == _hooked(registry)
+    assert {call[0] for call in hooks} == {'register'}
+    assert all(call[2] for call in hooks)
+    assert {call[3] for call in hooks} == {False}
+    assert calls[-1][0] == 'flush'
 
 
 def test_setup_on_a_ready_registry_unregisters_then_registers(calls):
@@ -63,7 +75,7 @@ def test_setup_on_a_ready_registry_unregisters_then_registers(calls):
     registry._setup_models__(None)
     names = _hooked(registry)
     assert [call[0] for call in calls] == (
-        ['unregister'] * len(names) + ['register'] * len(names))
+        ['unregister'] * len(names) + ['register'] * len(names) + ['flush'])
     assert sorted(call[1] for call in calls if call[0] == 'register') == names
     assert sorted(call[1] for call in calls
                   if call[0] == 'unregister') == names
