@@ -1,0 +1,8 @@
+{
+  "question": "¿Qué incidentes de ejecución de completar-raiz-orm no son progreso contractual y quién los examina?",
+  "instrument": ["git log", "scripts/workbench/orm-continuation-plan-20261103T095630/plan.jsonl", "scripts/workbench/orm-continuation-plan-20261103T095630/outputs/continuation.jsonl", "thyrox pre-push hook output"],
+  "metric": "filas del plan y registros accepted por unidad; commits locales del Provider sin publicar respecto de origin/claude/bold-fermat-x2hokp",
+  "blind_to": ["incidentes que no dejaron fila en el plan ni rechazo en un hook"],
+  "destination": "INC-01: VM-x2hokp, resuelto por la unidad que lo sustituye; INC-02: VM-A (TASK-THYROX-1132, H-THYROX-704)",
+  "outputs": ["outputs/incidents.tsv", "outputs/provider-unpublished-commits.tsv"]
+}
