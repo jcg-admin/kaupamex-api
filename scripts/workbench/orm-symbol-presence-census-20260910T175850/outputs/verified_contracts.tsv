@@ -740,3 +740,15 @@ src/orm/domains.py	OptimizationLevel.BASIC	attribute	tests/unit/orm/test_contrac
 src/orm/domains.py	OptimizationLevel.DYNAMIC_VALUES	attribute	tests/unit/orm/test_contract_domains_reference.py
 src/orm/domains.py	OptimizationLevel.FULL	attribute	tests/unit/orm/test_contract_domains_reference.py
 src/orm/domains.py	OptimizationLevel.NONE	attribute	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_operator_equal_if_value	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_operator_different	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_operator_equals	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_operator_equal_as_in	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_in_set	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_relational_name_search	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_boolean_in	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_boolean_in_all	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_merge_set_conditions	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_merge_set_conditions_x2many_in	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_merge_set_conditions_x2many_not_in	function	tests/unit/orm/test_contract_domains_reference.py
+src/orm/domains.py	_optimize_same_conditions	function	tests/unit/orm/test_contract_domains_reference.py
