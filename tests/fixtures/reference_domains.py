@@ -41,14 +41,36 @@ MISC_HEADER = (
 )
 
 
-def misc_definitions(path):
+def _defined_names(node):
+    """Los nombres que declara una sentencia de nivel superior."""
+    if hasattr(node, 'name'):
+        return {node.name}
+    targets = getattr(node, 'targets', [])
+    return {target.id for target in targets if isinstance(target, ast.Name)}
+
+
+def misc_definitions(path, names=MISC_DEFINITIONS, header=MISC_HEADER):
+    """El texto de ``names`` extraído de ``path``, en su orden de la fuente.
+
+    Se toman las sentencias de nivel superior (clases, funciones y
+    asignaciones) sin modificar su texto; ``header`` aporta sólo lo que esas
+    definiciones importan.
+    """
     tree = ast.parse(path.read_text())
-    nodes = [node for node in tree.body
-             if getattr(node, 'name', None) in MISC_DEFINITIONS]
-    found = {node.name for node in nodes}
-    missing = set(MISC_DEFINITIONS) - found
+    nodes = [node for node in tree.body if _defined_names(node) & set(names)]
+    found = set().union(*(_defined_names(node) for node in nodes))
+    missing = set(names) - found
     assert not missing, f'faltan {missing}'
-    return MISC_HEADER + '\n'.join(ast.unparse(node) for node in nodes)
+    return header + '\n'.join(ast.unparse(node) for node in nodes)
+
+
+def load_misc_definitions(root, names, header):
+    """Un módulo con ``names`` de ``odoo/tools/misc.py`` de la referencia."""
+    module = types.ModuleType('reference_misc_definitions')
+    path = pathlib.Path(root) / 'odoo' / 'tools' / 'misc.py'
+    exec(compile(misc_definitions(path, names, header), str(path), 'exec'),
+         module.__dict__)
+    return module
 
 
 def _load(name, path):

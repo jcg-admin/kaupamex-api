@@ -935,7 +935,7 @@ class OrderedSet(MutableSet[T], typing.Generic[T]):
 
 
 class LastOrderedSet(OrderedSet[T], typing.Generic[T]):
-    """≙ ``LastOrderedSet`` (``odoo19c: odoo/tools/misc.py:1098-1102``).
+    """≙ ``LastOrderedSet`` (``odoo19c: odoo/tools/misc.py:1098-1108``).
 
     «A set collection that remembers the elements last insertion order.»
 
@@ -946,6 +946,13 @@ class LastOrderedSet(OrderedSet[T], typing.Generic[T]):
     def add(self, elem):
         self.discard(elem)
         super().add(elem)
+
+    def copy(self):
+        # ≙ ``:1104-1107``: la copia conserva el tipo, y con él la regla de
+        # que re-insertar mueve el elemento al final.
+        new_set = LastOrderedSet()
+        new_set._map = self._map.copy()      # copia atómica del dict
+        return new_set
 
 
 def groupby(iterable: Iterable[T], key: Callable[[T], K] = lambda arg: arg):
