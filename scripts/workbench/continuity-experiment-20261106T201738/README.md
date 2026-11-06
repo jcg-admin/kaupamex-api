@@ -44,3 +44,16 @@ la exigencia de prueba roja de `supply` es el contrato TDD.
 
 Reproducir: `bash scripts/workbench/continuity-experiment-20261106T201738/run_experiment.sh`
 (árbol limpio; `supply` añade G a `plan.jsonl` del banco).
+
+## Aplicación al plan real
+
+El caso C se cerró sobre el plan real con la misma vía: prueba RED
+(`2f66cb99`), fila candidata, `local_plan supply` (`8dd2a7df`), selección por
+`task_continuation next`, implementación (`c5be9ff0`) y asiento (`11bb3430`).
+
+Uso de `--node`: recibe el nodo (`x2hokp`), y el Provider compara el dueño de
+cada claim como `vm-<nodo>` en minúsculas. Con `--node VM-x2hokp` el supply
+rechazó la unidad como `foreign-claim` sobre los claims propios. El experimento
+de esta carpeta no lo detectaba porque su ledger es un fixture.
+`probes/unit_cycle.sh` pasa ahora `x2hokp` y escribe los claims como
+`VM-x2hokp`.
