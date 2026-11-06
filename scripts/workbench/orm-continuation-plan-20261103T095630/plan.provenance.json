@@ -282,6 +282,13 @@
         "orm-environments-contracts-reference-0485"
       ],
       "writtenAt": "2026-11-06T08:35:18Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-registry-trigger-tree-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T08:38:29Z"
     }
   ]
 }
