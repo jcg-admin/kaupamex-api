@@ -1032,3 +1032,4 @@
 {"id":"c-68bf06d6-ca67-4c47-92e8-6139a12f1e49","op":"release","path":"tests/unit/orm/test_contract_environments_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T20:54:03.071Z","task":"TASK-API-0485"}
 {"id":"c-3916853d-0da7-43ba-b38e-c09f6e9f449d","op":"release","path":"src/orm/environments.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T20:54:03.071Z","task":"TASK-API-0485"}
 {"id":"c-0107c3d3-ce94-442b-aa4f-3fc98a529252","op":"release","path":"tests/unit/orm/test_environments_transaction.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T20:54:03.071Z","task":"TASK-API-0485"}
+{"id":"c-f6ada2ae-c38d-4c5f-a7f7-48ffe3a2c648","op":"claim","path":"tests/unit/orm/test_contract_domains_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T21:18:30.743Z","task":"TASK-API-0485"}

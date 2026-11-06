@@ -126,6 +126,7 @@ def comparable(value):
 SURFACE_STEPS_THAT_RAISE = {
     'setattr', 'delattr', 'DomainNary.OPERATOR', 'DomainNary.INVERSE',
     'DomainNot.ZERO', 'DomainNot.INVERSE', 'NEGATIVE_OPERATORS write',
+    'Domain.__eq__', 'Domain.__hash__', 'Domain.__iter__',
 }
 
 
@@ -201,6 +202,22 @@ def surface_trace(module):
     step('children', lambda: domain(
         ['&', ('a', '=', 1), ('b', '=', 2)]).children)
     step('child', lambda: negated().child)
+
+    # Los métodos de la base abstracta, llamados sin enlazar sobre una
+    # instancia concreta: la fuente los declara para rehusar (``__eq__``,
+    # ``__hash__``, ``__iter__``) o para devolver el propio dominio
+    # (``map_conditions``, ``_optimize_step``; ``:369-468``).
+    def pair():
+        return domain(['&', ('a', '=', 1), ('b', 'in', [1, 2])])
+
+    step('Domain.__eq__', lambda: domain.__eq__(pair(), pair()))
+    step('Domain.__hash__', lambda: domain.__hash__(pair()))
+    step('Domain.__iter__', lambda: list(domain.__iter__(pair())))
+    step('Domain.map_conditions', lambda: list(
+        domain.map_conditions(pair(), rewrite)))
+    step('Domain._optimize_step', lambda: list(
+        domain._optimize_step(pair(), None, levels.BASIC)))
+    step('DomainNary._negate', lambda: list(pair()._negate(None)))
     return steps
 
 
