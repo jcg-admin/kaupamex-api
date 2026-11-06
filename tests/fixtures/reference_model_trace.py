@@ -48,7 +48,8 @@ def main(root, database, data_dir, grid_path, model_name, mode,
         # la rejilla recibe el módulo del registro y no se abre cursor.
         grid = _load_grid(grid_path)
         print(json.dumps(grid.trace(
-            importlib.import_module('odoo.orm.registry'))))
+            importlib.import_module('odoo.orm.registry'),
+            importlib.import_module('psycopg2.sql'))))
         return
     Domain = importlib.import_module('odoo.orm.domains').Domain
     Environment = importlib.import_module('odoo.orm.environments').Environment

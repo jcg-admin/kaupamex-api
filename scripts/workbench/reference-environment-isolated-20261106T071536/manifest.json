@@ -15,7 +15,7 @@
     "la reproducibilidad en CI: el venv vive fuera del repositorio y se reconstruye con este script",
     "los optimizadores de fecha, binario, propiedades y many2one, que los campos comparables de ir.rule no ejercitan"
   ],
-  "control": "el mismo probe con el intérprete del Consumer falla (ImportError de lxml.html.clean): la carga depende del intérprete, no del código del Consumer, que no participa en ninguno de los dos procesos; sin las variables CONTRACT_REFERENCE_* las cinco pruebas se omiten y con CONTRACT_REFERENCE_REQUIRED=1 dan ERROR; con _optimize_any_with_rights sin leer la elevación cae sólo el caso [su], restaurado con cmp; la rejilla ampliada (ir.cron, res.currency.rate en dos husos, res.partner) dio rojo sólo en res.partner por Image.attachment (H-API-1155), verde tras el arreglo, y con attachment=False cae sólo ese caso; con _optimize_merge_any cortocircuitado caen exactamente los tres casos con pares fusionables",
+  "control": "el mismo probe con el intérprete del Consumer falla (ImportError de lxml.html.clean): la carga depende del intérprete, no del código del Consumer, que no participa en ninguno de los dos procesos; sin las variables CONTRACT_REFERENCE_* las cinco pruebas se omiten y con CONTRACT_REFERENCE_REQUIRED=1 dan ERROR; con _optimize_any_with_rights sin leer la elevación cae sólo el caso [su], restaurado con cmp; la rejilla ampliada (ir.cron, res.currency.rate en dos husos, res.partner) dio rojo sólo en res.partner por Image.attachment (H-API-1155), verde tras el arreglo, y con attachment=False cae sólo ese caso; con _optimize_merge_any cortocircuitado caen exactamente los tres casos con pares fusionables; _unaccent comparado en sus tres ramas contra odoo.orm.registry con psycopg2.sql (referencia) y psycopg.sql (puerto): anular la rama SQL o la Composable hace caer la comparación",
   "reproducible": "UV_CACHE_DIR=<cache> python3 scripts/workbench/reference-environment-isolated-20261106T071536/build_reference_environment.py <venv fuera del repo> scripts/workbench/reference-environment-isolated-20261106T071536/outputs",
   "outputs": [
     "outputs/record.json",
@@ -29,7 +29,8 @@
     "outputs/mutation_any_with_rights.log",
     "outputs/red_partner_image_attachment.log",
     "outputs/mutation_image_attachment.log",
-    "outputs/mutation_merge_any.log"
+    "outputs/mutation_merge_any.log",
+    "outputs/mutation_unaccent.log"
   ],
   "destination": "TASK-API-0498 (premisa corregida): pyproject.toml y uv.lock sin cambios; los diferenciales con modelo ejecutan la referencia en un subproceso con este intérprete"
 }

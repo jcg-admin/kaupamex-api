@@ -6,6 +6,11 @@ su módulo de registro —``odoo.orm.registry`` en el proceso de referencia,
 tres piezas necesita modelo ni base: los nodos del árbol se rotulan con
 cadenas, que es lo único que ``TriggerTree`` exige de un campo (ser
 hashable y tener ``repr``).
+
+``_unaccent`` se mide en sus tres ramas: texto, ``SQL`` (código y
+parámetros, también anidado y compuesto dos veces) y ``Composable``
+(``Identifier``, ``Composed`` y ``Literal``), más dos entradas que no son de
+ninguno de esos tipos y caen a la rama de texto.
 """
 
 
@@ -42,7 +47,40 @@ def _lock(module):
     return (lock.acquire(), lock.release(), inside)
 
 
-def trace(module):
+def _wrapped(module, value):
+    """El resultado de ``_unaccent``: código y parámetros si es ``SQL``."""
+    result = module._unaccent(value)
+    if isinstance(result, module.SQL):
+        return ('SQL', result.code, result.params)
+    return (type(result).__name__, result)
+
+
+def unaccent_steps(module, composable):
+    """Las tres ramas de ``_unaccent`` (``odoo19c: registry.py:76-81``).
+
+    ``composable`` es el módulo ``sql`` del controlador de cada lado:
+    ``psycopg2.sql`` en la referencia y ``psycopg.sql`` aquí, que es la
+    divergencia de mecanismo que el puerto declara.
+    """
+    sql = module.SQL
+    return [
+        ('unaccent sql', lambda: _wrapped(module, sql('%s', 'x'))),
+        ('unaccent sql nested', lambda: _wrapped(
+            module, sql('lower(%s)', sql.identifier('t', 'c')))),
+        ('unaccent sql twice', lambda: _wrapped(
+            module, module._unaccent(sql('%s', 'x')))),
+        ('unaccent identifier', lambda: _wrapped(
+            module, composable.Identifier('name'))),
+        ('unaccent composed', lambda: _wrapped(module, composable.SQL(
+            'lower({})').format(composable.Identifier('x')))),
+        ('unaccent literal', lambda: _wrapped(
+            module, composable.Literal('á'))),
+        ('unaccent integer', lambda: _wrapped(module, 3)),
+        ('unaccent none', lambda: _wrapped(module, None)),
+    ]
+
+
+def trace(module, composable):
     """Los pasos de la rejilla, cada uno como ``nombre resultado``."""
     tree_class = module.TriggerTree
     steps = [
@@ -67,5 +105,6 @@ def trace(module):
         ('set attribute', lambda: setattr(tree_class(), 'other', 1)),
         ('lock', lambda: _lock(module)),
         ('unaccent text', lambda: module._unaccent('name')),
+        *unaccent_steps(module, composable),
     ]
     return [f'{name} {_step(function)}' for name, function in steps]

@@ -5,16 +5,20 @@ registro: ``odoo.orm.registry`` en el proceso de referencia (sin base ni
 cursor) y ``orm.registry`` aquí. Cubre el árbol de disparadores del docstring
 de la fuente (G, ``X.F``, ``W.X.F``, ``Y.F``), su ``__bool__``, ``increase``,
 ``depth_first``, ``merge`` con y sin ``select``, ``__slots__``, el cerrojo
-nulo y ``_unaccent`` sobre texto.
+nulo y ``_unaccent`` en sus tres ramas: texto, ``SQL`` (código y parámetros,
+anidado y compuesto dos veces) y ``Composable`` (``Identifier``,
+``Composed``, ``Literal``), más dos entradas de otro tipo.
 
 *Métrica:* el ``repr`` de cada paso, o la clase de su excepción.
-*Ciega a:* ``_unaccent`` sobre ``SQL`` y sobre ``psycopg2.sql.Composable``,
-cuyos tipos difieren entre los dos procesos; y los ``TriggerTree`` con campos
-reales, que el registro construye a partir de los modelos.
+*Ciega a:* la cadena SQL que un ``Composed`` produce al renderizarse, que
+exige una conexión (aquí se compara su ``repr``, que nombra cada pieza); y los
+``TriggerTree`` con campos reales, que el registro construye a partir de los
+modelos.
 """
 import pathlib
 
 import pytest
+from psycopg import sql as composable
 
 import orm.registry as registry_module
 from tests.fixtures import reference_process, registry_grid
@@ -31,7 +35,7 @@ def reference_trace():
 
 
 def test_the_trace_matches_the_reference(reference_trace):
-    ours = registry_grid.trace(registry_module)
+    ours = registry_grid.trace(registry_module, composable)
     assert len(ours) == len(reference_trace)
     differences = [(theirs, mine) for theirs, mine
                    in zip(reference_trace, ours) if theirs != mine]
