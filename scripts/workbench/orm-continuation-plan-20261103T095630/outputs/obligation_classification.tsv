@@ -8,8 +8,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.link	method
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.clear	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0190	structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.set	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain	class	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213,TASK-API-0247,TASK-API-0345,TASK-API-0445	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.custom	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__eq__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__hash__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -20,18 +18,13 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.optimize	meth
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.optimize_full	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._optimize_step	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._negate	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DomainNary._as_predicate;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__new__	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
@@ -40,7 +33,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__eq__	
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__hash__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__iter__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition	class	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._optimize_field_search_method	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
