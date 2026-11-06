@@ -2,7 +2,7 @@
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
  "population": 90,
- "open_tasks": 73,
+ "open_tasks": 66,
  "frontier": [],
  "blocked": [
   {
@@ -56,15 +56,10 @@
   "TASK-API-0429",
   "TASK-API-0478",
   "TASK-API-0480",
-  "TASK-API-0483",
   "TASK-API-0487",
   "TASK-API-0490",
   "TASK-API-0492",
   "TASK-API-0493",
-  "TASK-API-0494",
-  "TASK-API-0495",
-  "TASK-API-0497",
-  "TASK-API-0498",
   "TASK-DOCS-0111",
   "TASK-DOCS-0539",
   "TASK-GEN-0058",
@@ -87,18 +82,16 @@
   "TASK-API-0417",
   "TASK-API-0418",
   "TASK-API-0479",
-  "TASK-API-0482",
-  "TASK-API-0484",
   "TASK-API-0485",
   "TASK-API-0486"
  ],
  "obligations": {
-  "satisfied": 839,
+  "satisfied": 841,
   "absent": 618,
   "divergent": 0,
-  "not_verified": 1055,
+  "not_verified": 1053,
   "applicable": 2512,
-  "pending": 1673,
+  "pending": 1671,
   "source": {
    "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
    "revisions": [
@@ -108,9 +101,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 19,
+  "task_units_settled": 25,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1653
+  "task_without_unit": 1645
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -177,7 +170,8 @@
   "tools-misc-collections-reference-0486",
   "orm-domains-model-reference-0485",
   "orm-domains-temporal-binary-reference-0485",
-  "orm-domains-any-merges-reference-0485"
+  "orm-domains-any-merges-reference-0485",
+  "orm-domains-classes-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
