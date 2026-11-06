@@ -233,6 +233,13 @@
         "orm-domains-model-free-optimizers-0485"
       ],
       "writtenAt": "2026-11-06T06:40:17Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "tools-misc-collections-reference-0486"
+      ],
+      "writtenAt": "2026-11-06T06:51:47Z"
     }
   ]
 }
