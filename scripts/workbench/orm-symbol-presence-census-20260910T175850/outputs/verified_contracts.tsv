@@ -934,3 +934,4 @@ src/orm/models.py	BaseModel._cr	property	tests/unit/orm/test_contract_model_reco
 src/orm/models.py	BaseModel._uid	property	tests/unit/orm/test_contract_model_record_reference.py
 src/orm/models.py	BaseModel._context	property	tests/unit/orm/test_contract_model_record_reference.py
 src/orm/environments.py	Environment.context	property	tests/unit/orm/test_contract_environments_reference.py
+src/orm/models.py	BaseModel.__deepcopy__	method	tests/unit/orm/test_contract_model_record_reference.py
