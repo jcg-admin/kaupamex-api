@@ -9,16 +9,16 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.clear	metho
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/commands.py	Command.set	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=tests/integration/test_orm/test_contract_commands_command_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.next_level	property	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.next_level	property	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213,TASK-API-0247,TASK-API-0345,TASK-API-0445,TASK-API-0497	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.TRUE	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.FALSE	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0206	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.TRUE	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.FALSE	method	not_verified	task_units_settled	TASK-API-0485	TASK-API-0206	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.custom	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.OR	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__setattr__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__delattr__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.OR	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__setattr__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__delattr__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._negate	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__radd__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__radd__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__eq__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__hash__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0497	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__iter__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -34,18 +34,18 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool	class	not
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__invert__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.iter_conditions	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.map_conditions	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__invert__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.iter_conditions	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.map_conditions	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._optimize_step	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__eq__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__hash__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0497	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__eq__	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__hash__	method	not_verified	task_units_settled	TASK-API-0485	TASK-API-0497	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._as_predicate	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.INVERSE	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.INVERSE	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._negate	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.map_conditions	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.map_conditions	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._optimize_step	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -61,7 +61,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__iter_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0497	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._negate	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.map_conditions	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.map_conditions	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._field	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0418	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.__get_field	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._optimize_step	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
@@ -95,39 +95,39 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_set_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_any	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_merge_not_any	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_same_conditions	function	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.NEGATIVE_OPERATORS	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=value;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._opt_level	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.NEGATIVE_OPERATORS	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213	structural=value;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._opt_level	attribute	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR_SQL	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.ZERO	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.value	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213,TASK-API-0497	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.ZERO	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.value	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213,TASK-API-0497	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._field_instance	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.field_expr	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.operator	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0212	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.value	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213,TASK-API-0497	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.field_expr	attribute	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.operator	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0212	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.value	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213,TASK-API-0497	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=value;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._filtered	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._sql	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.OPERATOR	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=value;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.OPERATOR	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213	structural=value;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.OPERATOR_SQL	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.ZERO	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.children	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.OPERATOR	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.child	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0193,TASK-API-0212	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.OPERATOR	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.ZERO	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.children	attribute	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.OPERATOR	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.child	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0193,TASK-API-0212	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.OPERATOR	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0213	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.OPERATOR_SQL	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.ZERO	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.BASIC	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.DYNAMIC_VALUES	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.FULL	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.NONE	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.ZERO	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.__slots__	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.BASIC	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.DYNAMIC_VALUES	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.FULL	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.NONE	attribute	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.reset	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-

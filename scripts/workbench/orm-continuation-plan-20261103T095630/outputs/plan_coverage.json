@@ -1,8 +1,8 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 87,
- "open_tasks": 70,
+ "population": 89,
+ "open_tasks": 72,
  "frontier": [],
  "blocked": [
   {
@@ -61,7 +61,9 @@
   "TASK-API-0490",
   "TASK-API-0492",
   "TASK-API-0493",
+  "TASK-API-0494",
   "TASK-API-0495",
+  "TASK-API-0497",
   "TASK-DOCS-0111",
   "TASK-DOCS-0539",
   "TASK-GEN-0058",
@@ -105,9 +107,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 17,
+  "task_units_settled": 58,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1803
+  "task_without_unit": 1762
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -168,7 +170,8 @@
   "tools-parse-version-reference-0486",
   "tools-mimetypes-reference-0486",
   "tools-barcode-reference-0486",
-  "orm-domains-model-free-reference-0485"
+  "orm-domains-model-free-reference-0485",
+  "orm-domains-surface-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
