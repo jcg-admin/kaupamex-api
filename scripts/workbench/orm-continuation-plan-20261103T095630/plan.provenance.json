@@ -380,6 +380,13 @@
         "orm-models-convert-to-record-reference-0485"
       ],
       "writtenAt": "2026-11-06T23:19:30Z"
+    },
+    {
+      "planner": "orm-models-marked-method-properties",
+      "items": [
+        "orm-models-marked-method-properties-0485"
+      ],
+      "writtenAt": "2026-11-06T23:26:34Z"
     }
   ]
 }
