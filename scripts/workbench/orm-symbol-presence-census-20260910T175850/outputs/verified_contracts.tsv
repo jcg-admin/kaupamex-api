@@ -841,3 +841,9 @@ src/orm/domains.py	_optimize_any_domain	function	tests/unit/orm/test_contract_do
 src/orm/domains.py	_optimize_any_domain_at_level	function	tests/unit/orm/test_contract_domains_model_reference.py
 src/orm/domains.py	_optimize_like_str	function	tests/unit/orm/test_contract_domains_model_reference.py
 src/orm/domains.py	_optimize_merge_set_conditions_mono_value	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	Domain._negate	method	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_type_date	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_type_date_relative	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_type_datetime	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_type_datetime_relative	function	tests/unit/orm/test_contract_domains_model_reference.py
+src/orm/domains.py	_optimize_type_binary_attachment	function	tests/unit/orm/test_contract_domains_model_reference.py

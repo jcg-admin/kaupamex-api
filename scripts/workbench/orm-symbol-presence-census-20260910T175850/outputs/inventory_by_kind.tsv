@@ -45,7 +45,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__delattr__	m
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__and__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__or__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__invert__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._negate	method	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._negate	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__add__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__radd__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__bool__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -152,13 +152,13 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_relational
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_boolean_in	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_boolean_in_all	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_value_to_date	function	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_date	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_date_relative	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_date	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_date_relative	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_value_to_datetime	function	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_datetime	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_datetime_relative	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_datetime	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_datetime_relative	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_properties_date_datetime	function	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_binary_attachment	function	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_type_binary_attachment	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_operator_hierarchy	function	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_operator_child_of_domain	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_domain_hierarchy.py::TestTheMaterializedPathIsAShortcutAndNotAnotherResult::test_child_of_returns_a_domain_when_the_path_is_materialized
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_operator_parent_of_domain	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_domain_hierarchy.py::TestTheMaterializedPathIsAShortcutAndNotAnotherResult::test_parent_of_reads_the_ancestors_from_the_path_without_walking
