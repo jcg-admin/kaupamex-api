@@ -384,9 +384,9 @@ class Transaction:
 
     Las cinco estructuras que se portan son las que tienen consumidor hoy:
 
-    ================== ==========================================================
+    ================== ========================================================
     Estructura         Quién la consume
-    ================== ==========================================================
+    ================== ========================================================
     ``field_data``     ``Field._get_cache`` — el mapa ``{campo: {id: valor}}``
     ``field_dirty``    ``Field._update_cache`` — lo escrito en caché y no
                        volcado aún a la base
@@ -395,7 +395,7 @@ class Transaction:
     ``protected``      ``Field.compute_value`` — los campos que un cómputo
                        protege mientras corre, apilados por alcance
     ``tocompute``      ``Field.recompute`` — los cómputos pendientes
-    ================== ==========================================================
+    ================== ========================================================
 
     De los ocho ``__slots__`` de la fuente queda fuera **uno**, y por razón
     medida, no por conveniencia:
@@ -413,16 +413,17 @@ class Transaction:
     :meth:`flush` ni :meth:`reset` se pueden portar: los dos recorren los
     entornos vivos. La corrección entra por la Clausula 2 del principio rector.
     Lo único que cambia de mecanismo es el contenedor: una **lista de
-    referencias débiles** en vez de un ``WeakSet``, porque
-    :meth:`Environment.__hash__` lee el canal ambiental y no es estable.
+    referencias débiles** en vez de un ``WeakSet``; la razón original —un
+    :meth:`Environment.__hash__` que leía el canal ambiental— desapareció al
+    igualarlo con la identidad de la fuente, y el contenedor queda pendiente.
 
     ``cache`` **sí se porta**, y la versión anterior de este docstring lo
     describía mal: no es «el nombre viejo de ``field_data``» sino la
     :class:`Cache`, una fachada de 28 métodos cuyo almacén **es**
-    ``field_data``. El comentario de la fuente que se citaba —«backward-compatible
-    view of the cache»— acompaña a ``field_data``, no a ``cache``. La
-    corrección entra por la Clausula 2 del principio rector: estado heredado
-    incorrecto se corrige donde se encuentra.
+    ``field_data``. El comentario de la fuente que se citaba
+    —«backward-compatible view of the cache»— acompaña a ``field_data``, no a
+    ``cache``. La corrección entra por la Clausula 2 del principio rector:
+    estado heredado incorrecto se corrige donde se encuentra.
 
     El ``_Transaction__file_open_tmp_paths`` de la fuente **sí** existe en
     este árbol, y con su nombre: vive en ``tools/misc.py``
@@ -460,17 +461,16 @@ class Transaction:
         #: transacción. **No es un cambio de contrato, es su hogar
         #: correcto**: el propio docstring de la fuente ata la vida del memo
         #: a la transacción —*"unless the transaction was entirely
-        #: invalidated"*—, y aquí ``Environment`` declara ``__eq__`` y
-        #: ``__hash__``, así que se compara por valor y se reconstruye a
-        #: voluntad; un memo por instancia fallaría entre dos entornos
-        #: iguales y no ahorraría nada.
+        #: invalidated"*—. Cuando se escribió, ``Environment`` se comparaba
+        #: por valor; hoy compara por identidad como la fuente, y mover el
+        #: memo al entorno queda pendiente con el porte de ``Transaction``.
         self.field_cache_memo = {}
         #: ≙ ``Transaction.envs`` (``odoo19c: odoo/orm/environments.py:557``)
         #: — los entornos vivos de esta transacción. La fuente usa un
         #: ``WeakSet``; aquí es una **lista de referencias débiles**, y la
-        #: razón está medida: :meth:`Environment.__hash__` lee el canal
-        #: ambiental, así que su hash NO es estable y un ``WeakSet`` perdería
-        #: el elemento en cuanto alguien abriera un ``context_scope``. La
+        #: razón medida era que :meth:`Environment.__hash__` leía el canal
+        #: ambiental; hoy es el hash del objeto, como en la fuente, y el
+        #: cambio de contenedor queda pendiente con ``Transaction``. La
         #: búsqueda de la fuente es de todos modos un recorrido lineal con
         #: ``==`` (``:73-75``), que es exactamente lo que la lista entrega —
         #: sin exigir hashabilidad. La poda de las muertas la hace
@@ -959,21 +959,23 @@ class Environment:
     # --- identidad del objeto ---------------------------------------------
 
     def __eq__(self, other):
-        """≙ ``Environment.__eq__`` (``:117``) — dos entornos son el mismo si
-        coinciden sus tres ejes y su conexión."""
-        if not isinstance(other, Environment):
-            return NotImplemented
-        return (self.uid, self.su, self.context, self._using) == (
-            other.uid, other.su, other.context, other._using)
+        """≙ ``Environment.__eq__`` (``:117-118``) — identidad de objeto.
+
+        :meth:`__new__` agrupa por ejes y devuelve el mismo objeto para los
+        mismos overrides, así que la identidad basta, como en la fuente.
+        Comparar los ejes resueltos —la forma anterior— igualaba dos entornos
+        distintos cuyo canal ambiental coincidía en ese instante.
+        """
+        return self is other
 
     def __ne__(self, other):
-        result = self.__eq__(other)
-        return result if result is NotImplemented else not result
+        """≙ ``Environment.__ne__`` (``:120-121``)."""
+        return self is not other
 
     def __hash__(self):
-        """El contexto es un dict: se congela para poder hashear."""
-        return hash((self.uid, self.su, self._using,
-                     frozenset(self.context.items())))
+        """≙ ``Environment.__hash__`` (``:123-124``) — el hash del objeto,
+        estable durante su vida aunque el canal ambiental cambie."""
+        return object.__hash__(self)
 
     def __repr__(self):
         return (f'<Environment uid={self.uid} su={self.su} '
@@ -1197,8 +1199,8 @@ class Environment:
         Allá el memo nace vacío en el entorno; aquí cuelga de la transacción, y
         la razón está escrita en :class:`Transaction`: el propio docstring de
         la fuente ata su vida a la transacción —*"unless the transaction was
-        entirely invalidated"*—, y aquí el entorno se compara por valor, así
-        que un memo por instancia fallaría entre dos entornos iguales.
+        entirely invalidated"*—. El entorno compara ya por identidad, como la
+        fuente; devolver el memo al entorno queda con ``Transaction``.
         """
         return self.transaction.field_cache_memo
 
