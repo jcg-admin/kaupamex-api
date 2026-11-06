@@ -6,8 +6,8 @@ su módulo de modelos —``odoo.orm.models`` en el proceso de referencia,
 ``itemgetter_tuple``, ``ReversibleComparator`` (orden con ``None`` y con
 inversión, igualdad, ``hash`` estable sobre enteros, ``repr`` y
 ``__slots__``), los valores por defecto de los atributos de clase de
-``BaseModel`` y sus ganchos base ``_valid_field_parameter`` y
-``_post_model_setup__``.
+``BaseModel`` y sus ganchos base ``_valid_field_parameter``,
+``_post_model_setup__``, ``_register_hook`` y ``_unregister_hook``.
 """
 import functools
 
@@ -83,4 +83,7 @@ def trace(module):
               for name in ('related_sudo', 'related', 'config_parameter', '')]
     steps.append(('post model setup',
                   lambda: module.BaseModel._post_model_setup__(None)))
+    steps += [(f'{hook} base', lambda hook=hook: getattr(
+        module.BaseModel, hook)(None))
+        for hook in ('_register_hook', '_unregister_hook')]
     return [f'{name} {_step(function)}' for name, function in steps]
