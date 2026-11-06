@@ -16,11 +16,13 @@ ella— porque ``_optimize_any_with_rights`` lee ``env.su`` en la referencia e
 conversión de una fecha a fecha-hora lee ``env.tz``.
 
 *Métrica:* ``repr`` del resultado de ``optimize``, ``optimize_full`` y
-``validate``, o la clase de la excepción. En ``ir.rule``: 286 condiciones
-(solas y negadas) y 596 pares unidos con ``&`` y ``|``, 3 814 pasos por modo
-de elevación. En ``ir.cron`` (fecha-hora) y ``res.currency.rate`` (fecha):
-800 y 210 pasos por huso, UTC y ``America/Mexico_City``. En ``res.partner``
-(binario e ``image_1920``, many2one, texto): 600 pasos.
+``validate``, o la clase de la excepción, más ``iter``, ``==`` y
+``map_conditions`` de cada par sin optimizar. En ``ir.rule``: 286 condiciones
+(solas y negadas) y 1 172 pares unidos con ``&`` y ``|`` (solos y negados),
+17 838 pasos por modo de elevación. En ``ir.cron`` (fecha-hora) y
+``res.currency.rate`` (fecha): 800 y 210 pasos por huso, UTC y
+``America/Mexico_City``. En ``res.partner`` (``image_1920``, many2one con
+fusión de ``any`` bajo ``&``, texto): 13 200 pasos.
 *Ciega a:* los campos que no comparten nombre y tipo en los dos árboles; los
 valores relativos al instante (``now``), que difieren entre dos procesos —
 ``'today'`` sí entra, y una ejecución que cruce la medianoche del huso
@@ -45,13 +47,13 @@ UTC = 'UTC'
 #: (modelo, modo, huso) y los pasos que levantan en la referencia: la
 #: comparación de clases de excepción sólo cuenta si además hay valores.
 CASES = {
-    ('ir.rule', 'user', None): 570,
-    ('ir.rule', 'su', None): 570,
+    ('ir.rule', 'user', None): 3290,
+    ('ir.rule', 'su', None): 3290,
     ('ir.cron', 'user', UTC): 120,
     ('ir.cron', 'user', MEXICO): 120,
     ('res.currency.rate', 'user', UTC): 60,
     ('res.currency.rate', 'user', MEXICO): 60,
-    ('res.partner', 'user', UTC): 60,
+    ('res.partner', 'user', UTC): 3900,
 }
 IDS = [f'{model}-{mode}-{tz or "-"}' for model, mode, tz in CASES]
 

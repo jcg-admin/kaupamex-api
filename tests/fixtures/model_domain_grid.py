@@ -75,20 +75,28 @@ PAIR_OPERATORS = ('=', '!=', 'in', 'not in', 'any', 'not any')
 PAIR_FIELDS = (
     ('name', ('a', ['b', 'a'], False)),
     ('active', (True, [False])),
-    ('groups', ([1, 2], [2, 3], False)),
+    ('groups', ([1, 2], [2, 3], False, [('name', '=', 'a')],
+                [('id', 'in', [1])])),
     ('id', ([1, 2], 3)),
+)
+#: ``parent_id`` es many2one: ``_optimize_merge_any`` fusiona también bajo
+#: ``&``, cosa que con un x2many no hace.
+PARTNER_PAIR_FIELDS = (
+    ('parent_id', ([1, 2], False, [('name', '=', 'a')],
+                   [('name', 'in', ['b'])], [('id', 'in', [3])])),
 )
 
 
-#: Pares por modelo; sólo ``ir.rule`` los ejerce.
-MODEL_PAIR_FIELDS = {'ir.rule': PAIR_FIELDS}
+#: Pares por modelo.
+MODEL_PAIR_FIELDS = {'ir.rule': PAIR_FIELDS,
+                     'res.partner': PARTNER_PAIR_FIELDS}
 
 
 def pairs(model_name='ir.rule'):
     """Pares de condiciones sobre un mismo campo, con operadores de fusión."""
     result = []
     for field, values in MODEL_PAIR_FIELDS.get(model_name, ()):
-        operators = (PAIR_OPERATORS if field == 'groups'
+        operators = (PAIR_OPERATORS if field in ('groups', 'parent_id')
                      else PAIR_OPERATORS[:4])
         atoms = [(field, operator, value) for operator in operators
                  for value in values]
@@ -110,7 +118,8 @@ def trace(domain_class, model, model_name='ir.rule'):
 
     Cada condición sola, y la misma negada con ``'!'``, para que el empuje de
     la negación pase por los optimizadores del campo; después, los pares de
-    ``pairs()`` unidos con ``'&'`` y con ``'|'``, para los de fusión.
+    ``pairs()`` unidos con ``'&'`` y con ``'|'``, solos y negados, para los
+    de fusión y el ``_negate`` de los n-arios, más su ``surface()``.
     """
     lines = []
     for condition in conditions(model_name):
@@ -126,11 +135,36 @@ def trace(domain_class, model, model_name='ir.rule'):
         lines.append(f'{condition!r} validate {validated}')
     for operator in ('&', '|'):
         for first, second in pairs(model_name):
-            source = [operator, first, second]
-            lines.append(
-                f'{source!r} optimize '
-                + _step(lambda: domain_class(source).optimize(model)))
-            lines.append(
-                f'{source!r} optimize_full '
-                + _step(lambda: domain_class(source).optimize_full(model)))
+            for prefix in ((), ('!',)):
+                source = [*prefix, operator, first, second]
+                lines.append(
+                    f'{source!r} optimize '
+                    + _step(lambda: domain_class(source).optimize(model)))
+                lines.append(
+                    f'{source!r} optimize_full '
+                    + _step(lambda: domain_class(source).optimize_full(model)))
+            lines.extend(surface(domain_class, [operator, first, second]))
     return lines
+
+
+def _rename_equality(domain_class):
+    def function(condition):
+        if condition.operator == '=':
+            return domain_class(condition.field_expr, 'in', [condition.value])
+        return condition
+    return function
+
+
+def surface(domain_class, source):
+    """Iteración, igualdad y ``map_conditions`` sobre el dominio sin optimizar.
+
+    Sin modelo: miden la forma del árbol que construye el constructor. El
+    ``hash`` no entra: el de una cadena cambia entre procesos.
+    """
+    return [
+        f'{source!r} iter ' + _step(lambda: list(domain_class(source))),
+        f'{source!r} eq ' + _step(
+            lambda: domain_class(source) == domain_class(list(source))),
+        f'{source!r} map ' + _step(lambda: domain_class(source).map_conditions(
+            _rename_equality(domain_class))),
+    ]
