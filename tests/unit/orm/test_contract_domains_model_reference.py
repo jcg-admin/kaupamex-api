@@ -14,9 +14,10 @@ cadena, en dos modos: sin elevación y con ella, porque
 ``_optimize_any_with_rights`` lee ``env.su`` en la referencia e ``is_su()``
 aquí.
 
-*Métrica:* ``repr`` del resultado de ``optimize`` y ``optimize_full``, o la
-clase de la excepción, para 286 condiciones sobre seis campos de
-``ir.rule``, solas y negadas, en los dos modos.
+*Métrica:* ``repr`` del resultado de ``optimize``, ``optimize_full`` y
+``validate``, o la clase de la excepción, para 286 condiciones sobre seis
+campos de ``ir.rule`` (solas y negadas) y 596 pares sobre un mismo campo
+unidos con ``&`` y con ``|``: 3 814 pasos por modo, en los dos modos.
 *Ciega a:* los campos de ``ir.rule`` que no comparten tipo en los dos árboles
 (``model_id`` many2one contra ``model_name`` char); los optimizadores de
 fecha, binario y propiedades, que ``ir.rule`` no ejercita; el texto de los
@@ -37,7 +38,7 @@ GRID = pathlib.Path(model_domain_grid.__file__)
 MODEL = 'ir.rule'
 #: Pasos en que la referencia levanta, por modo: la comparación de clases de
 #: excepción sólo cuenta si las dos trazas producen además valores.
-STEPS_THAT_RAISE = 72
+STEPS_THAT_RAISE = 570
 
 
 def _ours(mode):
