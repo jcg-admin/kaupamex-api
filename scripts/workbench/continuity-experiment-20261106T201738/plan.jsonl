@@ -1,0 +1,5 @@
+{"id": "A", "taskId": "TASK-API-0485", "candidates": ["conversational-session"], "owned": ["fixture/A"], "dependsOn": [], "mutates": false, "verify": "true", "prompt": "fixture A", "obligations": ["fixture::A"]}
+{"id": "B", "taskId": "TASK-API-0485", "candidates": ["conversational-session"], "owned": ["fixture/B"], "dependsOn": [], "mutates": false, "verify": "true", "prompt": "fixture B", "obligations": ["fixture::B"]}
+{"id": "C", "taskId": "TASK-API-0485", "candidates": ["conversational-session"], "owned": ["fixture/C"], "dependsOn": ["A"], "mutates": false, "verify": "true", "prompt": "fixture C", "obligations": ["fixture::C"]}
+{"id": "D", "taskId": "TASK-API-0485", "candidates": ["conversational-session"], "owned": ["fixture/D"], "dependsOn": [], "mutates": false, "verify": "true", "prompt": "fixture D", "obligations": ["fixture::D"], "secrets": ["FIXTURE_EXPOSED"]}
+{"id": "E", "taskId": "TASK-API-0485", "candidates": ["conversational-session"], "owned": ["fixture/E"], "dependsOn": [], "mutates": false, "verify": "true", "prompt": "fixture E", "obligations": []}

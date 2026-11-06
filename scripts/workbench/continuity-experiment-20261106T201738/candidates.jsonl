@@ -1,0 +1,1 @@
+{"id": "F", "taskId": "TASK-API-0485", "candidates": ["conversational-session"], "owned": ["fixture/F"], "dependsOn": [], "mutates": false, "verify": "true", "prompt": "fixture F", "obligations": ["fixture::F"]}

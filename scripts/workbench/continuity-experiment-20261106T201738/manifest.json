@@ -1,0 +1,7 @@
+{
+  "question": "¿Dónde se interrumpe la continuación de completar-raiz-orm: en la selección del Provider, en la representación de obligaciones, en el asiento o en el ejecutor?",
+  "instrument": ["scripts/workbench/continuity-experiment-20261106T201738/run_experiment.sh", "thyrox: src/session/task_continuation.py next", "thyrox: src/session/local_plan.py supply", "scripts/workbench/orm-continuation-plan-20261103T095630/probes/settle_item.py"],
+  "metric": "salida de task_continuation next antes y después de cada asiento; doomed_items; resultado de settle_item por ítem; resultado de local_plan supply sobre una frontera agotada",
+  "blind_to": ["el despacho a trabajadores de task_continuation run, que exige unidades de Podman ausentes en este nodo", "la continuidad entre sesiones (G1/G2)"],
+  "destination": "TASK-API-0485; INC-01 del banco orm-execution-incidents-20261106T162633"
+}
