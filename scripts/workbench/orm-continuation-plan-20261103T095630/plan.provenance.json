@@ -289,6 +289,13 @@
         "orm-registry-trigger-tree-reference-0485"
       ],
       "writtenAt": "2026-11-06T08:38:29Z"
+    },
+    {
+      "planner": "plan_coverage",
+      "items": [
+        "orm-domains-optimize-signature-reference-0485"
+      ],
+      "writtenAt": "2026-11-06T16:36:13Z"
     }
   ]
 }
