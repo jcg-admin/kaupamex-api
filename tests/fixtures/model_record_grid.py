@@ -10,12 +10,14 @@ Cubre ``_can_return_content`` (``odoo19c: odoo/orm/models.py:5841-5855``)
 con cero, uno y dos registros, sin argumentos y con nombre de campo y token,
 y los tres alias deprecados ``_cr``, ``_uid`` y ``_context``
 (``:5911-5924``): a qué atributo del entorno responden y qué advertencia
-emiten.
+emiten. ``__deepcopy__`` (``:6665-6666``) devuelve el propio recordset, con
+cero, uno y dos registros.
 
 El alias se compara por igualdad con su atributo, no por identidad: aquí
 ``env.context`` devuelve una copia nueva en cada acceso, y la identidad
 mediría esa propiedad del entorno, no la del alias.
 """
+import copy
 import warnings
 
 IDS = ((), (1,), (1, 2))
@@ -47,6 +49,8 @@ def trace(Domain, model, model_name):
               lambda ids=ids, arguments=arguments:
               base._can_return_content(model.browse(ids), *arguments))
              for ids in IDS for arguments in ARGUMENTS]
+    steps += [(f'deepcopy {len(ids)}', lambda ids=ids: _deepcopy_is_self(
+        model.browse(ids))) for ids in IDS]
     for alias, attribute in ALIASES:
         steps += [
             (f'{alias} equals env.{attribute}', lambda alias=alias,
@@ -56,6 +60,10 @@ def trace(Domain, model, model_name):
                                                              alias)),
         ]
     return [f'{name} {_step(function)}' for name, function in steps]
+
+
+def _deepcopy_is_self(records):
+    return copy.deepcopy(records) is records
 
 
 def _alias(base, model, alias):
