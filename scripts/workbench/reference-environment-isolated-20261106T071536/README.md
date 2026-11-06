@@ -48,3 +48,31 @@ modo existe porque `Environment.__new__` fuerza `su=True` para el uid 1
 (`odoo19c: odoo/orm/environments.py:64-67`): sin declararlo, la primera
 comparación dio cuatro diferencias que eran de la configuración de la prueba
 diferencial, no del puerto (H-API-1154).
+
+## Frontera del ORM central y siguiente trabajo ejecutable
+
+`outputs/core_orm_frontier.tsv` clasifica, desde el inventario vigente, cada
+obligación no satisfecha de `domains.py`, `environments.py`, `registry.py` y
+`models.py`:
+
+| Estado | Qué significa | Cómo se cierra |
+|---|---|---|
+| `pending_verification` | estructura igual, sin evidencia | una prueba diferencial que la ejerza y discrimine |
+| `signature_divergence` | firma distinta de la fuente | alinear, o declarar la divergencia y dejarla `not_verified` |
+| `name_divergence` | homónimo o emparejado por nombre | decidir si es el mismo contrato |
+| `not_resolved_in_port` | el censo no resuelve el símbolo aquí | portarlo o declarar su ausencia |
+| `not_implemented` | ausente en el puerto | portar con TDD |
+| `value_divergence` | atributo con otro valor | igualar o declarar |
+
+Divergencias declaradas que quedan `not_verified` a propósito:
+`_value_to_date`/`_value_to_datetime` (sin `env`: la zona y el idioma salen
+del canal de `orm.environments`), `_as_predicate` (la hoja no admite `any`
+sobre relaciones ni valores `Query`/`SQL`), `Environment.__getitem__` (clase
+contra recordset vacío), `Environment.__eq__`/`__ne__` (por valor contra
+identidad), `check_company_domain_parent_of` y
+`check_companies_domain_parent_of` (leen `parent_path` de la base).
+
+Siguiente trabajo ejecutable: los `pending_verification` de `registry.py` y
+`environments.py` que no dependen de datos de la base (las vistas de la
+transacción y las guardas de elevación), con la misma prueba diferencial
+contra el proceso de referencia.

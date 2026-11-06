@@ -31,7 +31,8 @@
     "outputs/mutation_image_attachment.log",
     "outputs/mutation_merge_any.log",
     "outputs/mutation_unaccent.log",
-    "outputs/mutation_models.log"
+    "outputs/mutation_models.log",
+    "outputs/core_orm_frontier.tsv"
   ],
   "destination": "TASK-API-0498 (premisa corregida): pyproject.toml y uv.lock sin cambios; los diferenciales con modelo ejecutan la referencia en un subproceso con este intérprete"
 }
