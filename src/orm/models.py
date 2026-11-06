@@ -5499,6 +5499,24 @@ class BaseModel(DefaultGetMixin, Model):
         """
         pass
 
+    def _register_hook(self):
+        """Gancho tras construir el registro — ≙ ``:5819-5820``.
+
+        Verbatim de la fuente: *"stuff to do right after the registry is
+        built"*. La base no hace nada; un modelo lo redefine. Allá lo invoca
+        el registro (``odoo19c: odoo/orm/registry.py:502``); aquí ese momento
+        es ``AppConfig.ready()``, divergencia de mecanismo que ya declaran
+        ``res_users`` y ``base_automation``.
+        """
+
+    def _unregister_hook(self):
+        """Deshace lo que hizo :meth:`_register_hook` — ≙ ``:5822-5823``.
+
+        Verbatim de la fuente: *"Clean up what `~._register_hook` has
+        done."* La base no hace nada; su punto de llamada en la fuente es
+        ``registry.py:399``.
+        """
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
