@@ -17,6 +17,10 @@ sobre el propio modelo; después la rejilla cierra el ciclo con un ``UPDATE``
 directo —``_has_cycle`` lee la base, no la caché— y vuelve a preguntar. El
 alias deprecado ``_check_recursion`` (``:5684-5686``) responde lo contrario.
 
+``lock_for_update`` (``:5564-5588``) bloquea todas o lanza ``LockError``: se
+pide sobre la cadena, con ``allow_referencing``, vacío, sobre un registro de
+``new()`` —sin id que bloquear— y sobre un id que no existe.
+
 ``try_lock_for_update`` (``:5592-5622``) bloquea filas en la única conexión
 de la rejilla, sin competencia: devuelve lo que puede bloquear, en el orden
 de ``self``, con ventana, con un registro nuevo, con un id que no existe y
@@ -438,6 +442,14 @@ def trace(Domain, model, model_name):
             {'name': 'N'}).try_lock_for_update(limit=1))),
         ('lock chain and new', lambda: _names((chain + model.new(
             {'name': 'N'})).try_lock_for_update())),
+        ('lock_for_update chain', lambda: chain.lock_for_update()),
+        ('lock_for_update referencing', lambda: chain.lock_for_update(
+            allow_referencing=True)),
+        ('lock_for_update empty', lambda: model.browse(()).lock_for_update()),
+        ('lock_for_update new', lambda: model.new(
+            {'name': 'N'}).lock_for_update()),
+        ('lock_for_update missing', lambda: model.browse(
+            (MISSING_ID,)).lock_for_update()),
         ('lock empty', lambda: _names(model.browse(
             ()).try_lock_for_update())),
     ]
