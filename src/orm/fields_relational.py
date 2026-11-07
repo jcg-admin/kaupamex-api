@@ -752,6 +752,18 @@ class Many2manyField(models.ManyToManyField):
     inverso, que es el orden de declaración de la fuente.
     """
 
+    def get_internal_type(self):
+        """El tipo interno de su padre de Django, ``ManyToManyField``.
+
+        ``Field.get_internal_type`` devuelve el nombre de la clase, y
+        ``ManyToManyField`` no lo redefine: sin este método la subclase se
+        anunciaba como ``Many2manyField``, que ningún mapa conoce, y
+        ``type_for`` y ``ir.model.fields.ttype_for`` la reflejaban como
+        ``char`` (H-API-1163). Una subclase que sólo nombra tabla y columnas
+        no cambia de tipo.
+        """
+        return 'ManyToManyField'
+
     def __init__(self, *args, relation=None, column1=None, column2=None,
                  **kwargs):
         if relation is not None:
@@ -810,7 +822,8 @@ class Many2manyField(models.ManyToManyField):
         return None
 
     def _explicit_through_fields(self, through):
-        """Los campos del ``through`` cuyas columnas son ``column1``/``column2``."""
+        """Los campos del ``through`` cuyas columnas son ``column1`` y
+        ``column2``."""
         by_column = {field.column: field.name
                      for field in through._meta.local_fields
                      if isinstance(field, models.ForeignKey)}
@@ -841,7 +854,8 @@ class Many2manyField(models.ManyToManyField):
             self.set_attributes_from_name(name)
             self.model = cls
             self.mirror_of = owner
-            # ``deconstruct`` lee ``_related_name``; el accesor, ``remote_field``.
+            # ``deconstruct`` lee ``_related_name``; el accesor,
+            # ``remote_field``.
             owner.remote_field.related_name = name
             owner._related_name = name
             return

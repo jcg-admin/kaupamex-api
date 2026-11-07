@@ -506,7 +506,13 @@ def _field_meta(field):
             'required': False,
             'readonly': True,  # un reverso o2m no se escribe desde este lado
         }
-    if getattr(field, 'many_to_many', False) and not getattr(field, 'concrete', True):
+    # Sólo el ``ManyToManyRel`` inverso: un ``ManyToManyField`` declarado
+    # tampoco es concreto —no tiene columna propia—, pero no es
+    # ``auto_created`` y no tiene ``get_accessor_name``. Ése va a la rama
+    # general, como un ``Many2many`` de ``fields_get`` (H-API-1163).
+    if (getattr(field, 'many_to_many', False)
+            and not getattr(field, 'concrete', True)
+            and getattr(field, 'auto_created', False)):
         remote = field.related_model
         return {
             'type': 'many2many',
