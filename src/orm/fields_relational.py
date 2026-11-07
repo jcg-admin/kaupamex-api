@@ -105,7 +105,7 @@ from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import Command, apply_one2many_commands, is_command_list
-from orm.environments import context_scope, get_context, env as get_environment
+from orm.environments import env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -1979,17 +1979,28 @@ def _read_one2many(field, instance, comodel):
     descartan las líneas archivadas salvo que el contexto del campo o el
     del entorno apaguen ``active_test``.
 
+    Las dos mitades leen el entorno **del registro**, no el ambiental: la
+    búsqueda corre sobre ``record.env`` con el contexto del campo encima
+    (``records.env[comodel].with_context(**context)``, ``:942-944``), y las
+    líneas se devuelven en ``record.env`` y se filtran con su contexto
+    (``Comodel(record.env, value, ...)``, ``:645-650``). Así ``copy``, que
+    lee las líneas bajo ``with_context(active_test=False)``, copia también
+    las archivadas.
+
     **Divergencia de mecanismo:** sin caché por campo, se lee en cada
     acceso y para un solo registro; la fuente lee en lote y guarda los
     ids, incluidos los inactivos.
     """
     field_context = dict(field.context or {})
-    with context_scope(**{'active_test': False, **field_context}):
+    reading = comodel._from_ids(instance.env, (), ()).with_context(
+        **{'active_test': False, **field_context})
+    with reading.env:
         domain = (field.get_comodel_domain(instance)
                   + [(field.inverse_name, 'in', [instance.id])])
-        lines = comodel.search(domain)
+        ids = reading.search(domain)._ids
+    lines = comodel._from_ids(instance.env, ids, ids)
     active = comodel._active_field_name()
     if active and field_context.get(
-            'active_test', get_context().get('active_test', True)):
+            'active_test', instance.env.context.get('active_test', True)):
         lines = lines.filtered(active)
     return lines

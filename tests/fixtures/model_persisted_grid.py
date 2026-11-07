@@ -346,6 +346,9 @@ def trace(Domain, model, model_name):
             discussions[:1], 'very_important_messages')),
         ('one2many archived', lambda: _archive_last(discussions[:1])),
         ('copy archived lines', lambda: _copied_archived(discussions[:1])),
+        ('one2many record env', lambda: (lambda lines: (
+            lines.env.context.get('active_test'), _priorities(lines)))(
+            discussions[:1].with_context(active_test=False).messages)),
     ]
     chain = model.search(DOMAIN, order='name desc')
     root = model.search([('name', '=', f'{PREFIX}a-root')])
