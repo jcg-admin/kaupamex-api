@@ -618,6 +618,13 @@
         "base-ttype-for-delegation-0501"
       ],
       "writtenAt": "2026-11-07T23:19:20Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-parent-store-compute-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T23:30:26Z"
     }
   ]
 }

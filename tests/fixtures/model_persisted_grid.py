@@ -505,6 +505,24 @@ def _rec_name_fallbacks(model):
                          'test_orm.model_active_field', 'test_orm.mixed')]
 
 
+def _parent_paths_recomputed(model, chain):
+    """``_parent_store_compute`` (``odoo19c: odoo/orm/models.py:3071-3105``)
+    reconstruye ``parent_path`` desde cero con un ``WITH RECURSIVE`` sobre
+    la columna del padre. Se corrompe la ruta de la cadena con un ``UPDATE``
+    directo —la base, no la caché—, se recalcula y se lee de vuelta con
+    ``search_read``; cada id de la ruta se traduce al nombre de su registro."""
+    ids = [record.id for record in chain]
+    _execute(model, f"UPDATE {model._table} SET parent_path = 'x/' "
+             'WHERE id = ANY(%s)', [ids])
+    model.browse(())._parent_store_compute()
+    names = {record.id: record.name for record in chain}
+    rows = model.browse(()).search_read([('id', 'in', ids)],
+                                        ['name', 'parent_path'])
+    return sorted((row['name'], [names.get(int(part), part) for part
+                                 in row['parent_path'].split('/') if part])
+                  for row in rows)
+
+
 def _metadata(chain):
     """``get_metadata`` (``odoo19c: odoo/orm/models.py``,
     ``BaseModel.get_metadata``) sobre la cadena, después del paso de ids
@@ -696,6 +714,8 @@ def trace(Domain, model, model_name):
         ('lock chain and new', lambda: _names((chain + model.new(
             {'name': 'N'})).try_lock_for_update())),
         ('external ids', lambda: _external_ids(model, chain)),
+        ('parent store compute', lambda: _parent_paths_recomputed(
+            model, chain)),
         ('metadata', lambda: _metadata(chain)),
         ('metadata empty', lambda: model.browse(()).get_metadata()),
         ('lock_for_update chain', lambda: chain.lock_for_update()),
