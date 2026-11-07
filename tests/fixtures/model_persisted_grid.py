@@ -48,6 +48,11 @@ resultado sale de ``self``), así que una búsqueda encadenada sobre el
 resultado también ve la fila archivada; ``search_count`` (``:1347-1359``)
 acepta ``limit`` como cota superior.
 
+``unlink`` se mide por sus efectos: el ``member_count`` almacenado de
+``test_orm.compute.container`` baja al borrar un miembro —la fuente marca lo
+dependiente antes de borrar—, una discusión se lleva sus mensajes por
+``ondelete='cascade'`` y un recordset vacío devuelve ``True``.
+
 ``with_user`` (``:5981-5988``) y ``with_company`` (``:5991-6018``) se miden
 por lo que dejan en el entorno: usuario y elevación —el superusuario va
 siempre elevado— y el orden de ``allowed_company_ids``, sin datos: las
@@ -380,6 +385,42 @@ def _integer_conversions(model):
     return values
 
 
+def _unlinked_member(model):
+    """``unlink`` (``odoo19c: odoo/orm/models.py``, ``BaseModel.unlink``)
+    marca para recalcular lo que depende de las filas antes de borrarlas
+    (``self.modified(self._fields, before=True)``): el ``member_count``
+    almacenado del contenedor baja al borrar un miembro. Devuelve el valor
+    antes y después, y lo que ``unlink`` devuelve."""
+    env = model.browse(()).env
+    name = f'{PREFIX}container'
+    Container = env['test_orm.compute.container'].browse(())
+    Member = env['test_orm.compute.member'].browse(())
+    container = Container.create({'name': name})
+    members = Member.create([{'name': name}, {'name': name}])
+    before = container.member_count
+    result = members[:1].unlink()
+    return before, container.member_count, result
+
+
+def _unlinked_discussion(model):
+    """Borrar una discusión borra sus mensajes por ``ondelete='cascade'``;
+    un recordset vacío devuelve ``True`` sin tocar nada."""
+    env = model.browse(()).env
+    Discussion = env['test_orm.discussion'].browse(())
+    Message = env['test_orm.message'].browse(())
+    # el autor del mensaje tiene que participar (``_check_author`` de la
+    # fuente), como en ``_seed_discussions``
+    participants = list(env.user.ids) if env.user else []
+    discussion = Discussion.create({
+        'name': f'{PREFIX}to-unlink', 'participants': [(6, 0, participants)]})
+    Message.create([{'discussion': discussion.id, 'priority': 1}])
+    domain = [('discussion', '=', discussion.id)]
+    before = Message.search_count(domain)
+    result = discussion.unlink()
+    return (before, Message.search_count(domain), result,
+            Discussion.unlink(), discussion.exists().ids)
+
+
 def _by_id(record):
     return record.id
 
@@ -458,6 +499,8 @@ def trace(Domain, model, model_name):
         ('with_user', lambda: _with_user(model)),
         ('with_company', lambda: _with_company(model)),
         ('integer conversions', lambda: _integer_conversions(model)),
+        ('unlink member', lambda: _unlinked_member(model)),
+        ('unlink discussion', lambda: _unlinked_discussion(model)),
         ('name_search', lambda: _name_searched(model, 'child', DOMAIN)),
         ('name_search empty', lambda: _name_searched(
             model, '', DOMAIN, limit=2)),

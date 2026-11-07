@@ -541,6 +541,13 @@
         "orm-integer-conversions-reference-0485"
       ],
       "writtenAt": "2026-11-07T21:28:50Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-unlink-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T21:41:21Z"
     }
   ]
 }
