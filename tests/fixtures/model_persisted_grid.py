@@ -56,6 +56,12 @@ reglas de acceso por usuario difieren por construcción (DEC-11).
 ``name_search`` (``odoo19c: odoo/orm/models.py``, sección ``display_name,
 name_create, name_search``) se pide con un patrón positivo, vacío con
 ``limit``, exacto y negativo, siempre acotado a las filas sembradas.
+``_search_display_name`` se mide además con ``in``, ``not in`` e ``=`` sobre
+``display_name``, y sobre ``test_orm.empty_int``, sin ``_rec_name``, donde el
+dominio no restringe nada. Con ``_rec_names_search`` puesto durante la
+búsqueda se miden las dos ramas que un ``_rec_name`` de texto no alcanza: un
+``Many2one`` busca por el ``display_name`` del comodelo, y un ``Integer``
+convierte el valor y descarta el que no convierte.
 
 ``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
 sobre un modelo sin campo ``name`` (``test_orm.empty_int``), que no tiene
@@ -318,6 +324,25 @@ def _name_searched(model, *args, **kwargs):
             for id_, name in pairs]
 
 
+def _rec_names_searched(model, fname, operator, value):
+    """``_search_display_name`` con ``_rec_names_search = [fname]`` puesto en
+    la clase sólo durante la búsqueda: un ``Many2one`` busca por el
+    ``display_name`` del comodelo, y un campo no textual convierte el valor a
+    su tipo y descarta el que no convierte."""
+    cls = type(model.browse(()))
+    missing = object()
+    previous = cls.__dict__.get('_rec_names_search', missing)
+    cls._rec_names_search = [fname]
+    try:
+        return _names(model.search(
+            DOMAIN + [('display_name', operator, value)]))
+    finally:
+        if previous is missing:
+            del cls._rec_names_search
+        else:
+            cls._rec_names_search = previous
+
+
 def _by_id(record):
     return record.id
 
@@ -404,6 +429,21 @@ def trace(Domain, model, model_name):
             model, 'root', DOMAIN, operator='not ilike')),
         ('name_search domain', lambda: _name_searched(
             model, '', [('name', '=', f'{PREFIX}c-grandchild')])),
+        ('display_name in', lambda: _names(model.search(DOMAIN + [(
+            'display_name', 'in', [f'{PREFIX}a-root', f'{PREFIX}b-child'])]))),
+        ('display_name not in', lambda: _names(model.search(DOMAIN + [(
+            'display_name', 'not in', [f'{PREFIX}a-root'])]))),
+        ('display_name equal', lambda: _names(model.search(DOMAIN + [(
+            'display_name', '=', f'{PREFIX}c-grandchild')]))),
+        ('rec_names_search relational', lambda: _rec_names_searched(
+            model, 'parent', 'ilike', 'a-root')),
+        ('rec_names_search typed', lambda: _rec_names_searched(
+            model, 'color', 'in', ['0', '7'])),
+        ('rec_names_search unconvertible', lambda: _rec_names_searched(
+            model, 'color', '=', 'abc')),
+        ('display_name without rec_name', lambda: (lambda Empty: len(
+            Empty.search([('display_name', 'ilike', 'zzz')])) == len(
+            Empty.search([])))(model.browse(()).env['test_orm.empty_int'])),
     ]
     steps += [
         ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),

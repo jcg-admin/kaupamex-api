@@ -527,6 +527,13 @@
         "orm-models-lock-for-update-reference-0485"
       ],
       "writtenAt": "2026-11-07T20:04:34Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-search-display-name-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T20:12:16Z"
     }
   ]
 }
