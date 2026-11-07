@@ -1,9 +1,14 @@
 {
- "verdict": "C",
+ "verdict": "B",
  "acceptance": "requires executor authority (I-011)",
  "population": 91,
  "open_tasks": 66,
- "frontier": [],
+ "frontier": [
+  {
+   "id": "orm-models-env-classmethod-reference-0485",
+   "task": "TASK-API-0485"
+  }
+ ],
  "blocked": [
   {
    "id": "misc-stripped-sys-argv",
@@ -82,7 +87,6 @@
   "TASK-API-0417",
   "TASK-API-0418",
   "TASK-API-0479",
-  "TASK-API-0485",
   "TASK-API-0486"
  ],
  "obligations": {
