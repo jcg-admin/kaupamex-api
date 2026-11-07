@@ -38,7 +38,11 @@ campo que los dos declaran y que no se calcula.
 ``with_context`` (``:6021-6055``) tiene que llegar a lo que se llama sobre
 el recordset que devuelve: ``search`` y ``search_count`` sobre
 ``test_orm.model_active_field``, con una fila archivada, sin contexto, con
-``active_test=False`` y de vuelta a ``True``.
+``active_test=False`` y de vuelta a ``True``. Lo que ``search`` y
+``search_fetch`` devuelven queda en ese mismo entorno (``:1383-1418``: el
+resultado sale de ``self``), así que una búsqueda encadenada sobre el
+resultado también ve la fila archivada; ``search_count`` (``:1347-1359``)
+acepta ``limit`` como cota superior.
 
 ``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
 sobre un modelo sin campo ``name`` (``test_orm.empty_int``), que no tiene
@@ -182,6 +186,22 @@ def _active_counts(model, back=False):
             unarchived.search_count(domain))
 
 
+def _returned_env(model):
+    """El entorno del recordset que devuelven ``search`` y ``search_fetch``
+    llamados sobre ``with_context(active_test=False)``: la clave del contexto
+    que conserva, y lo que ve una búsqueda encadenada sobre el resultado, con
+    ``search_count`` acotado por ``limit``."""
+    Active = model.browse(()).env['test_orm.model_active_field'].browse(())
+    _active_counts(model)
+    domain = [('name', '=like', f'{PREFIX}%')]
+    unarchived = Active.with_context(active_test=False)
+    found = unarchived.search(domain)
+    fetched = unarchived.search_fetch(domain, ['name'])
+    return (found.env.context.get('active_test'),
+            fetched.env.context.get('active_test'),
+            len(found.search(domain)), found.search_count(domain, limit=1))
+
+
 def _name_created(model, name):
     """El par que devuelve ``name_create``, con el id como nombre, y si el
     registro quedó escrito."""
@@ -292,6 +312,7 @@ def trace(Domain, model, model_name):
     steps += [
         ('with_context search', lambda: _active_counts(model)),
         ('with_context search back', lambda: _active_counts(model, True)),
+        ('search returns its env', lambda: _returned_env(model)),
     ]
     steps += [
         ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),
