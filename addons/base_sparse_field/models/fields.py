@@ -156,18 +156,20 @@ class Serialized(models.JSONField):
 
     Atributos de clase de la fuente y su destino aquí — ninguno se omite:
 
-    ==========================  ==================================================
+    ==========================  ===============================================
     ``odoo19c: fields.py``      Aquí
-    ==========================  ==================================================
-    ``type = 'serialized'``     lo declara ``SERIALIZED_TTYPE`` en el archivo
-                                hermano ``ir_model_fields.py``, que es quien lo
-                                consume (``sparse_ttype_for``); el ORM de este
-                                árbol no lee un ``type`` de la clase del campo
+    ==========================  ===============================================
+    ``type = 'serialized'``     verbatim: ``orm.fields.type_for`` lee el
+                                ``type`` de la clase del campo, y
+                                ``SERIALIZED_TTYPE`` del archivo hermano se
+                                deriva de él (H-API-1164)
     ``column_type = ('text',    ``jsonb``, que es lo que declara ``JSONField``;
     'text')``                   divergencia de almacén, ver el encabezado
     ``prefetch = False``        sin receptor: no hay prefetch por campo
-    ==========================  ==================================================
+    ==========================  ===============================================
     """
+
+    type = 'serialized'
 
     def convert_to_column_insert(
         self, value, record, values=None, validate=True

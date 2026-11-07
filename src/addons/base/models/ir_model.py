@@ -220,7 +220,11 @@ from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from exceptions import AccessError, UserError
 from orm import registry
 from orm.environments import get_current_user, is_su, is_system
-from orm.fields import __all__ as _FIELD_NAMES
+from orm.fields import (
+    DJANGO_TYPE_TO_TTYPE as _ORM_TYPE_MAP,
+    __all__ as _FIELD_NAMES,
+    type_for,
+)
 from orm.models import MAGIC_COLUMNS
 from orm.utils import check_object_name, check_pg_name
 from tools.safe_eval import safe_eval
@@ -248,36 +252,11 @@ def _type_key(exported_name):
 #: referencia. Ver el docstring del módulo para el delta medido (``image``).
 FIELD_TYPES = sorted((_type_key(name), _type_key(name)) for name in _FIELD_NAMES)
 
-#: Tipo interno de Django → clave de tipo Odoo, para la reflexión inversa.
-#: Declarado, no derivado: el mapa de alias es muchos-a-uno y no se puede
-#: invertir (ver el docstring del módulo).
-DJANGO_TYPE_TO_TTYPE = {
-    'AutoField': 'integer',
-    'BigAutoField': 'integer',
-    'BigIntegerField': 'integer',
-    'BinaryField': 'binary',
-    'BooleanField': 'boolean',
-    'CharField': 'char',
-    'DateField': 'date',
-    'DateTimeField': 'datetime',
-    'DecimalField': 'monetary',
-    'EmailField': 'char',
-    'FileField': 'binary',
-    'FloatField': 'float',
-    'ForeignKey': 'many2one',
-    'ImageField': 'image',
-    'IntegerField': 'integer',
-    'JSONField': 'json',
-    'ManyToManyField': 'many2many',
-    'OneToOneField': 'many2one',
-    'PositiveIntegerField': 'integer',
-    'PositiveSmallIntegerField': 'integer',
-    'SlugField': 'char',
-    'SmallIntegerField': 'integer',
-    'TextField': 'text',
-    'URLField': 'char',
-    'UUIDField': 'char',
-}
+#: Tipo interno de Django → clave de tipo Odoo. El dueño es
+#: :data:`orm.fields.DJANGO_TYPE_TO_TTYPE`, que consume ``type_for``; el
+#: nombre se conserva aquí porque ``base.models`` lo reexporta. Era una copia
+#: idéntica con vida propia (H-API-1164).
+DJANGO_TYPE_TO_TTYPE = _ORM_TYPE_MAP
 
 #: ≙ ``RE_ORDER_FIELDS`` (``odoo19c: ir_model.py:37``), verbatim. Saca el
 #: nombre de cada campo de una cláusula de orden ya validada, para comprobar
@@ -1638,13 +1617,16 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
     def ttype_for(field):
         """Tipo Django → clave de tipo Odoo.
 
-        ``selection`` se recupera porque ``choices`` lo delata; ``html`` no se
-        recupera nunca (colapsa en ``text``). Ver el docstring del módulo.
+        La referencia refleja ``'ttype': field.type`` (``odoo19c:
+        odoo/addons/base/models/ir_model.py:1173``), y el porte de
+        ``Field.type`` es :func:`orm.fields.type_for`: se delega en él. Con
+        un mapa propio, este método reflejaba los ``Selection`` como
+        ``char`` y un ``Selection`` dependiente de empresa como ``json``,
+        porque no leía ni ``declared_type`` ni el ``type`` de clase
+        (H-API-1164). Sigue siendo el punto de extensión que
+        ``base_sparse_field`` encadena (``sparse_ttype_for``).
         """
-        internal = field.get_internal_type()
-        if internal == 'CharField' and getattr(field, 'choices', None):
-            return 'selection'
-        return DJANGO_TYPE_TO_TTYPE.get(internal, 'char')
+        return type_for(field)
 
     @classmethod
     def _reflect_field_params(cls, field, model_row):

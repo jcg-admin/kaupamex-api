@@ -88,7 +88,7 @@ from orm.model_classes import extend_selection_choices
 
 #: Clave de tipo que la referencia añade al vocabulario de ``ttype``
 #: (``odoo19c: base_sparse_field/models/models.py:19-21``).
-SERIALIZED_TTYPE = 'serialized'
+SERIALIZED_TTYPE = Serialized.type
 
 
 def _add_if_absent(model, name, field):
