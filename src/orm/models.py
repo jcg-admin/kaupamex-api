@@ -5933,6 +5933,78 @@ class BaseModel(DefaultGetMixin, Model):
             records = records.with_context(context)
         return records._read_format(fnames=fields, **read_kwargs)
 
+    def _has_cycle(self, field_name=None):
+        """Si los registros de ``self`` están en un ciclo siguiendo la
+        relación ``field_name``, o la del padre si se omite. — ≙
+        ``_has_cycle`` (``odoo19c: odoo/orm/models.py:5624-5682``)
+
+        Como allá, la consulta ignora ``active`` y las reglas de fila, y no
+        toma un bloqueo exclusivo: transacciones concurrentes aún pueden crear
+        un ciclo. **Divergencia de nombres:** la columna de un ``Many2one`` es
+        su ``column`` de Django (``parent_id`` para ``parent``), y la tabla y
+        las columnas de un ``Many2many`` salen de su modelo intermedio, porque
+        una relación sin ``relation`` explícito conserva el nombrado de
+        Django. El ``IN %s`` de la fuente es ``= ANY(%s)``: psycopg 3 adapta
+        una lista a un arreglo y no expande una tupla.
+
+        :raise ValueError: si el campo no existe o no es una relación
+            ``many2one``/``many2many`` almacenada sobre el propio modelo.
+        """
+        if not field_name:
+            field_name = parent_name_of(type(self))
+        field = self._fields.get(field_name)
+        if not field:
+            raise ValueError(f'Invalid field_name: {field_name!r}')
+        if not (field.type in ('many2many', 'many2one')
+                and field.comodel_name == self._name
+                and field.store):
+            raise ValueError('Field must be a many2one or many2many relation '
+                             f'on itself: {field_name!r}')
+        if not self.ids:
+            return False
+        # se ignoran 'active', las reglas, etc.: consulta recursiva directa
+        self.flush_model([field_name])
+        if field.type == 'many2many':
+            relation = field.remote_field.through._meta.db_table
+            column1 = field.m2m_column_name()
+            column2 = field.m2m_reverse_name()
+        else:
+            relation = self._table
+            column1 = 'id'
+            column2 = field.column
+        rows = self.env.execute_query(SQL(
+            """
+            WITH RECURSIVE __reachability AS (
+                SELECT %(col1)s AS source, %(col2)s AS destination
+                FROM %(rel)s
+                WHERE %(col1)s = ANY(%(ids)s) AND %(col2)s IS NOT NULL
+            UNION
+                SELECT r.source, t.%(col2)s
+                FROM __reachability r
+                JOIN %(rel)s t
+                    ON r.destination = t.%(col1)s AND t.%(col2)s IS NOT NULL
+            )
+            SELECT 1 FROM __reachability
+            WHERE source = destination
+            LIMIT 1
+            """,
+            ids=list(self.ids),
+            rel=SQL.identifier(relation),
+            col1=SQL.identifier(column1),
+            col2=SQL.identifier(column2),
+        ))
+        return bool(rows)
+
+    @api.deprecated("Deprecated since 18.0, use _has_cycle() instead")
+    def _check_recursion(self, parent=None):
+        """≙ ``:5684-5686``."""
+        return not self._has_cycle(parent)
+
+    @api.deprecated("Deprecated since 18.0, use _has_cycle() instead")
+    def _check_m2m_recursion(self, field_name):
+        """≙ ``:5688-5690``."""
+        return not self._has_cycle(field_name)
+
     #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
     #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
     #: da el recordset vacío del entorno activo, como a ``browse``.

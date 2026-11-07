@@ -44,7 +44,7 @@ def _seed(model):
 
 def _execute(model, query, params):
     """Allá ``env.cr`` es un cursor; aquí es la conexión de Django."""
-    cr = model.env.cr
+    cr = model.browse(()).env.cr
     if getattr(cr, 'execute', None) is not None:
         cr.execute(query, params)
         return
