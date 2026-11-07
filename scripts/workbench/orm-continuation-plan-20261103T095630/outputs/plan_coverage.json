@@ -101,9 +101,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 22,
+  "task_units_settled": 23,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1553
+  "task_without_unit": 1552
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -194,7 +194,8 @@
   "orm-domains-custom-reference-0485",
   "orm-models-fields-get-reference-0485",
   "orm-models-read-format-reference-0485",
-  "orm-many2one-convert-to-read-reference-0485"
+  "orm-many2one-convert-to-read-reference-0485",
+  "orm-many2one-convert-to-write-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

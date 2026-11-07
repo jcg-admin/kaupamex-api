@@ -946,3 +946,5 @@ src/orm/domains.py	DomainCustom.__iter__	method	tests/unit/orm/test_contract_dom
 src/orm/models.py	BaseModel.fields_get	method	tests/unit/orm/test_contract_model_record_reference.py
 src/orm/models.py	BaseModel._read_format	method	tests/unit/orm/test_contract_model_record_reference.py
 src/orm/models.py	BaseModel.read	method	tests/unit/orm/test_contract_model_record_reference.py
+src/orm/fields_relational.py	Many2one.convert_to_read	method	tests/unit/orm/test_contract_model_relational_reference.py
+src/orm/fields_relational.py	Many2one.convert_to_write	method	tests/unit/orm/test_contract_model_relational_reference.py
