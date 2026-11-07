@@ -6553,6 +6553,56 @@ class BaseModel(DefaultGetMixin, Model):
         else:
             return self.browse((self._ids[key],))
 
+    def __setitem__(self, key, value):
+        """ Assign the field ``key`` to ``value`` in record ``self``.
+        — ≙ ``:6694``
+
+        La fuente delega en ``Field.__set__`` (``odoo19c:
+        odoo/orm/fields.py:1807-1841``), que reparte los ids en tres cubos.
+        Aquí ese reparto se escribe en el registro y no en el descriptor:
+        :class:`~orm.fields.FieldDescriptor` es el ``__set__`` de una
+        **instancia** de Django, cuyo cubo real no emite SQL (divergencia
+        declarada en su docstring). La asignación por clave es la del
+        *recordset*, y en ella el cubo real va a ``write``, como en la fuente.
+        """
+        field = self._fields[key]
+        protected_map = self.env._protected
+        protected_ids = protected_map[field] if field in protected_map else ()
+        protected, new, other = [], [], []
+        for record_id in self._ids:
+            if record_id in protected_ids:
+                protected.append(record_id)
+            elif not record_id:
+                new.append(record_id)
+            else:
+                other.append(record_id)
+
+        if protected:
+            # filas en cómputo: sin lógica de negocio ni recálculo
+            field.write(self.browse(tuple(protected)), value)
+
+        if new:
+            # filas nuevas: sin lógica de negocio. El cubo lo porta
+            # ``FieldDescriptor.__set__`` —protección, ``modified`` y
+            # ``field.write``—, y se le delega por fila porque la instancia
+            # de Django también guarda el valor: escribir sólo la caché del
+            # entorno dejaba la instancia que llama con el valor anterior.
+            new_records = (self if len(new) == len(self._ids)
+                           else self.browse(tuple(new)))
+            for record in new_records:
+                setattr(record, key, value)
+
+        if other:
+            # caso base: lógica de negocio completa
+            records = self.browse(tuple(other))
+            records.write({key: field.convert_to_write(value, records)})
+
+    @api.private
+    def update(self, values):
+        """ Update the records in ``self`` with ``values``. — ≙ ``:6347`` """
+        for name, value in values.items():
+            self[name] = value
+
     def _read_field(self, field):
         """Lee ``field`` sobre ``self`` aplicando la guarda de tamaño de la
         fuente.
