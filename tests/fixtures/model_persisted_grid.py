@@ -56,7 +56,10 @@ calculado de ``very_important_messages``, y las líneas tras archivar la
 última. Con esa línea archivada se copia la discusión: ``copy`` pide
 ``copy_data`` con ``active_test=False`` y ``convert_to_record`` filtra con el
 contexto del registro (``:643-653``), así que la copia lleva también la
-línea archivada; ``copy_data`` a secas, no.
+línea archivada; ``copy_data`` a secas, no. La guarda de recursión se mide con
+el mismo registro dos veces en un recordset: el segundo ``copy_data`` es
+``None`` (``:5440-5444``). El filtro de ``convert_to_record`` se mide también
+sobre un ``Many2many`` con un enlace archivado.
 """
 
 import warnings
@@ -254,6 +257,21 @@ def _copied_archived(discussion):
             Message.search_count(domain))
 
 
+def _relatives_read(model):
+    """Un ``Many2many`` con un enlace archivado, leído sin contexto y con
+    ``active_test=False``: el filtro de ``convert_to_record`` sobre la otra
+    familia de x2many (``:643-653``)."""
+    Active = model.browse(()).env['test_orm.model_active_field'].browse(())
+    on, off = Active.create([{'name': f'{PREFIX}rel-on'},
+                             {'name': f'{PREFIX}rel-off', 'active': False}])
+    owner = Active.create([{'name': f'{PREFIX}rel-owner',
+                            'relatives_ids': [(6, 0, [on.id, off.id])]}])
+    unarchived = owner.with_context(active_test=False).relatives_ids
+    return (sorted(r.name for r in owner.relatives_ids),
+            sorted(r.name for r in unarchived),
+            unarchived.env.context.get('active_test'))
+
+
 def _by_id(record):
     return record.id
 
@@ -346,6 +364,10 @@ def trace(Domain, model, model_name):
             discussions[:1], 'very_important_messages')),
         ('one2many archived', lambda: _archive_last(discussions[:1])),
         ('copy archived lines', lambda: _copied_archived(discussions[:1])),
+        ('copy_data seen twice', lambda: [
+            values is None
+            for values in (discussions[:1] + discussions[:1]).copy_data()]),
+        ('many2many archived', lambda: _relatives_read(model)),
         ('one2many record env', lambda: (lambda lines: (
             lines.env.context.get('active_test'), _priorities(lines)))(
             discussions[:1].with_context(active_test=False).messages)),
