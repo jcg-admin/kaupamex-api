@@ -967,3 +967,8 @@ src/orm/models.py	BaseModel.with_company	method	tests/unit/orm/test_contract_mod
 src/orm/models.py	BaseModel.name_search	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.lock_for_update	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._search_display_name	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Integer.convert_to_cache	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Integer.convert_to_record	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Integer.convert_to_read	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Integer.convert_to_export	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Integer.convert_to_column	method	tests/unit/orm/test_contract_model_persisted_reference.py
