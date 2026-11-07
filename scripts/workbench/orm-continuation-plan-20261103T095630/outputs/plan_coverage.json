@@ -104,9 +104,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 36,
+  "task_units_settled": 37,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1519
+  "task_without_unit": 1518
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -224,7 +224,8 @@
   "orm-models-has-onchange-reference-0485",
   "web-export-rec-name-fallback-0499",
   "web-export-many2many-meta-0500",
-  "base-ttype-for-delegation-0501"
+  "base-ttype-for-delegation-0501",
+  "orm-models-parent-store-compute-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

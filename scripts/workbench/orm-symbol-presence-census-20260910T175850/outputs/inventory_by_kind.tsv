@@ -980,7 +980,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._traverse_r
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._field_to_sql	method	not_verified	structural=paired_by_name:FieldSqlMixin._field_to_sql;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_groupby_properties	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.get_property_definition	method	not_verified	structural=paired_by_name:RecordLoaderMixin.get_property_definition;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._parent_store_compute	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._parent_store_compute	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_removed_columns	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._init_column	method	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._table_has_rows	method	not_verified	structural=homonym;write_path=-;evidence=-

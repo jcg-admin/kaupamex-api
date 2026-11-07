@@ -982,3 +982,4 @@ src/orm/models.py	BaseModel.get_metadata	method	tests/unit/orm/test_contract_mod
 src/orm/models.py	BaseModel._rec_name_fallback	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields.py	Field.determine_inverse	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._has_onchange	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel._parent_store_compute	method	tests/unit/orm/test_contract_model_persisted_reference.py
