@@ -60,7 +60,8 @@ name_create, name_search``) se pide con un patrón positivo, vacío con
 ``display_name``, y sobre ``test_orm.empty_int``, sin ``_rec_name``, donde el
 dominio no restringe nada. Con ``_rec_names_search`` puesto durante la
 búsqueda se miden las dos ramas que un ``_rec_name`` de texto no alcanza: un
-``Many2one`` busca por el ``display_name`` del comodelo, y un ``Integer``
+relacional —el ``Many2many`` ``discussions``— busca por el ``display_name`` del
+comodelo, y un ``Integer``
 convierte el valor y descarta el que no convierte.
 
 ``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
@@ -435,12 +436,16 @@ def trace(Domain, model, model_name):
             'display_name', 'not in', [f'{PREFIX}a-root'])]))),
         ('display_name equal', lambda: _names(model.search(DOMAIN + [(
             'display_name', '=', f'{PREFIX}c-grandchild')]))),
+        # sobre ``parent`` la búsqueda vuelve a la misma regla y las dos
+        # bases levantan RecursionError: se mide sobre otro comodelo
         ('rec_names_search relational', lambda: _rec_names_searched(
-            model, 'parent', 'ilike', 'a-root')),
+            model, 'discussions', 'ilike', 'd1')),
         ('rec_names_search typed', lambda: _rec_names_searched(
             model, 'color', 'in', ['0', '7'])),
         ('rec_names_search unconvertible', lambda: _rec_names_searched(
             model, 'color', '=', 'abc')),
+        ('rec_names_search converted', lambda: _rec_names_searched(
+            model, 'color', '=', '')),
         ('display_name without rec_name', lambda: (lambda Empty: len(
             Empty.search([('display_name', 'ilike', 'zzz')])) == len(
             Empty.search([])))(model.browse(()).env['test_orm.empty_int'])),

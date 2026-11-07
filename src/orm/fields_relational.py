@@ -2004,3 +2004,11 @@ def _read_one2many(field, instance, comodel):
             'active_test', instance.env.context.get('active_test', True)):
         lines = lines.filtered(active)
     return lines
+
+
+#: ≙ ``_RelationalMulti.convert_to_write`` (``:671-711``) también para el
+#: ``Many2many``: hasta ahora sólo el uno-a-muchos lo tenía, y el
+#: ``Many2many`` caía en la cadena genérica, que deja pasar un texto donde la
+#: fuente levanta ``ValueError``. ``_search_display_name`` descarta con ese
+#: ``ValueError`` el valor que no es del tipo del campo.
+models.ManyToManyField.convert_to_write = _reverse_one2many_convert_to_write

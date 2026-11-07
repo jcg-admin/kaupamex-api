@@ -161,8 +161,14 @@ class TestSearchDisplayNameReturnsADomain:
         )
 
     def test_it_searches_over_the_rec_name(self, config_parameter):
-        assert config_parameter._search_display_name('ilike', 'x') == Domain(
-            'key', 'ilike', 'x'
+        """La fuente añade la condición dos veces: la rama ``like`` y, al
+        final, ``convert_to_write`` del valor entero, que con un texto no
+        falla. Su ``Domain.OR`` no reduce la repetida al construir; medido
+        con el ``Domain`` de ``odoo19c``: ``['|', c, c]``. La reducción
+        llega al buscar, no aquí."""
+        condition = Domain('key', 'ilike', 'x')
+        assert config_parameter._search_display_name('ilike', 'x') == (
+            Domain.OR([condition, condition])
         )
 
     def test_the_empty_like_short_circuit_is_kept(self, config_parameter):

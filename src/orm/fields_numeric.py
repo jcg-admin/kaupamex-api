@@ -205,3 +205,36 @@ def _decimal_convert_to_column(
 
 
 models.DecimalField.convert_to_column = _decimal_convert_to_column
+
+
+def _integer_convert_to_cache(self, value, record, validate=True):
+    """``Integer.convert_to_cache`` — ≙ ``odoo19c:
+    odoo/orm/fields_numeric.py:35-39``.
+
+    ``int(value or 0)``, salvo el dict que llega cuando un entero hace de
+    inverso de un ``One2many``, del que se toma ``id``. Un valor que no es
+    entero levanta ``ValueError`` o ``TypeError``, como allá: es lo que
+    ``_search_display_name`` usa para descartar un valor que no convierte.
+
+    **Las claves primarias se excluyen.** ``AutoField`` deriva de
+    ``IntegerField`` en Django, y la referencia modela el id con otra clase
+    (``Id``): pasarle este conversor convertiría el ``pk`` ausente de una fila
+    sin guardar en ``0``. Siguen con el conversor genérico.
+    """
+    if isinstance(self, models.AutoField):
+        return models.Field.convert_to_cache(self, value, record, validate)
+    if isinstance(value, dict):
+        return value.get('id', None)
+    return int(value or 0)
+
+
+def _integer_convert_to_record(self, value, record):
+    """``Integer.convert_to_record`` — ≙ ``:41-42``: la ausencia se lee como
+    ``0``. Las claves primarias siguen con el conversor genérico."""
+    if isinstance(self, models.AutoField):
+        return models.Field.convert_to_record(self, value, record)
+    return value or 0
+
+
+models.IntegerField.convert_to_cache = _integer_convert_to_cache
+models.IntegerField.convert_to_record = _integer_convert_to_record

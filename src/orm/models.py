@@ -102,9 +102,9 @@ from orm.fields_textual import Char
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
-                       browse, check_object_name, model_field_registry,
-                       parse_field_expr, record_ids)
+from orm.utils import (COLLECTION_TYPES, FieldRegistryDescriptor, OriginIds,
+                       as_record_list, browse, check_object_name,
+                       model_field_registry, parse_field_expr, record_ids)
 from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
@@ -3678,13 +3678,58 @@ def search_display_name(model_cls, operator, value):
             'No se puede buscar por display_name: %s no declara _rec_name '
             'ni _rec_names_search', cls._meta.label)
         return Domain.TRUE
-    negative = operator in NEGATIVE_DISPLAY_NAME_OPERATORS
+    # ≙ ``Domain.NEGATIVE_OPERATORS``: incluye ``not in``, que la tercera
+    # copia local de abajo no lleva y que combina con AND, no con OR
+    negative = operator in Domain.NEGATIVE_OPERATORS
     if operator.endswith('like') and not value and '=' not in operator:
         return Domain.FALSE if negative else Domain.TRUE
 
     combine = Domain.AND if negative else Domain.OR
-    return combine([Domain(field_expr, operator, value)
-                    for field_expr in search_fnames])
+    record = cls.browse(()) if hasattr(cls, '_from_ids') else None
+    domains = []
+    for field_name in search_fnames:
+        # un camino ``partner_id.name``: el campo es el último del camino
+        model = cls
+        try:
+            for fname in field_name.split('.'):
+                # un modelo de Django sin ``_fields`` lo resuelve por ``_meta``
+                fields = getattr(model, '_fields', None)
+                field = (fields[fname]
+                         if fields is not None and fname in fields
+                         else model._meta.get_field(fname))
+                model = getattr(field, 'related_model', None)
+        except (KeyError, AttributeError, FieldDoesNotExist):
+            # silent OK because el nombre llega por delegación de ``_inherits``
+            # (``res.users.name`` es del partner) y no es campo de este
+            # modelo: la condición va sin convertir y la resuelve el dominio
+            domains.append(Domain(field_name, operator, value))
+            continue
+        # según el operador el valor se convierte al tipo del campo, y el
+        # que no convierte se descarta
+        if getattr(field, 'is_relation', False):
+            # un relacional busca por el ``display_name`` del comodelo
+            domains.append(Domain(field_name + '.display_name', operator,
+                                  value))
+        elif operator.endswith('like'):
+            domains.append(Domain(field_name, operator, value))
+        elif isinstance(value, COLLECTION_TYPES):
+            typed_value = []
+            for item in value:
+                with contextlib.suppress(ValueError, TypeError):
+                    typed_value.append(field.convert_to_write(item, record))
+            domains.append(Domain(field_name, operator, typed_value))
+        else:
+            with contextlib.suppress(ValueError):
+                typed_value = field.convert_to_write(value, record)
+                domains.append(Domain(field_name, operator, typed_value))
+            continue
+        with contextlib.suppress(ValueError, TypeError):
+            # se descarta si el valor entero no es del tipo del campo
+            # con ``like`` sobre un texto la condición se añade dos veces,
+            # como en la fuente: su ``Domain.OR`` no las reduce al construir
+            domains.append(Domain(field_name, operator,
+                                  field.convert_to_write(value, record)))
+    return combine(domains)
 
 
 class OrderMixin:
