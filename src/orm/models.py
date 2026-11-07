@@ -5986,9 +5986,17 @@ class BaseModel(DefaultGetMixin, Model):
         rows = AccessQuerySet(model=type(self)).filter(pk__in=self.ids)
         rows.check_access('unlink')
         environment = env()
-        for field in set(model_field_registry(type(self)).values()):
+        registry_ = model_field_registry(type(self))
+        for field in set(registry_.values()):
             environment.remove_to_compute(field, self.ids)
         environment.flush_all()
+        # ≙ ``with self.env.protecting(self._fields.values(), self):
+        # self.modified(self._fields, before=True)``: lo que depende de estas
+        # filas se marca para recalcular ANTES de borrarlas, mientras todavía
+        # se puede seguir la relación inversa (la suma de unas líneas tras
+        # borrar una)
+        with environment.protecting(set(registry_.values()), self):
+            self.modified(list(registry_), before=True)
         rows.delete()
         environment.invalidate_all(flush=False)
         return True
