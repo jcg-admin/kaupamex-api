@@ -34,6 +34,12 @@ mensajes, por su ``priority`` y en orden de id, que es el orden que la fuente
 garantiza para emparejar traducciones. El ``test_orm.message`` del puerto es
 un porte parcial sin ``body``, así que se identifica cada mensaje por un
 campo que los dos declaran y que no se calcula.
+
+La lectura del ``One2many`` declarado (``odoo19c:
+odoo/orm/fields_relational.py:940-967``) se pide sobre la misma discusión:
+si devuelve un recordset, sus líneas, las que cumplen el ``domain`` de
+``important_messages`` antes y después de marcar una, y las líneas tras
+archivar la última.
 """
 
 import warnings
@@ -149,6 +155,24 @@ def _copied(names, vals_list):
     return rows
 
 
+def _priorities(lines):
+    return [line.priority for line in sorted(lines, key=_by_id)]
+
+
+def _mark_important(discussion):
+    """Marca el primer mensaje y vuelve a leer el One2many con ``domain``."""
+    first = sorted(discussion.messages, key=_by_id)[0]
+    first.write({'important': True})
+    return _priorities(discussion.important_messages)
+
+
+def _archive_last(discussion):
+    """Archiva el último mensaje y vuelve a leer ``messages``."""
+    last = sorted(discussion.messages, key=_by_id)[-1]
+    last.write({'active': False})
+    return _priorities(discussion.messages)
+
+
 def _by_id(record):
     return record.id
 
@@ -219,6 +243,15 @@ def trace(Domain, model, model_name):
         ('copy one2many default', lambda: _discussions(
             names, discussions[:1].copy({'messages': [(6, 0, [
                 sorted(discussions[1:].messages, key=_by_id)[0].id])]}))),
+    ]
+    steps += [
+        ('one2many is a recordset', lambda: hasattr(
+            discussions[:1].messages, '_ids')),
+        ('one2many lines', lambda: _priorities(discussions[:1].messages)),
+        ('one2many domain', lambda: _priorities(
+            discussions[:1].important_messages)),
+        ('one2many domain after', lambda: _mark_important(discussions[:1])),
+        ('one2many archived', lambda: _archive_last(discussions[:1])),
     ]
     chain = model.search(DOMAIN, order='name desc')
     root = model.search([('name', '=', f'{PREFIX}a-root')])
