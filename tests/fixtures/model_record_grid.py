@@ -16,6 +16,10 @@ valores de caché al formato de registro con el ``convert_to_record`` de cada
 campo: texto, entero de referencia y booleano, y un campo inexistente.
 ``_table_sql`` (``:488-515``) se mide en su rama de identificador de tabla:
 código, parámetros y campos por volcar.
+``fields_get`` (``:3343-3366``) se pide sobre campos que los dos
+``ir.attachment`` declaran con el mismo tipo, y sólo con el atributo
+``type``, para medir el método y no el porte del addon: filtrado por
+``allfields``, un nombre inexistente ignorado y el filtro de atributos.
 
 El alias se compara por igualdad con su atributo, no por identidad: aquí
 ``env.context`` devuelve una copia nueva en cada acceso, y la identidad
@@ -31,6 +35,12 @@ CACHE_VALUES = (
     ('scalars', {'name': 'x', 'res_id': 3, 'public': True}),
     ('falsy', {'name': False, 'res_id': 0, 'public': False}),
     ('unknown field', {'no_such_field': 1}),
+)
+#: Nombres de campo que se piden a ``fields_get``.
+FIELDS_GET = (
+    ('two fields', ['name', 'public']),
+    ('with unknown', ['name', 'no_such_field']),
+    ('none', ['no_such_field']),
 )
 #: Alias deprecado y el atributo del entorno al que responde.
 ALIASES = (('_cr', 'cr'), ('_uid', 'uid'), ('_context', 'context'))
@@ -65,6 +75,9 @@ def trace(Domain, model, model_name):
     for label, values in CACHE_VALUES:
         steps.append((f'convert_to_record {label}', lambda values=values:
                       base._convert_to_record(model.browse(()), values)))
+    for label, allfields in FIELDS_GET:
+        steps.append((f'fields_get {label}', lambda allfields=allfields:
+                      _fields_get(base, model, allfields)))
     steps.append(('table_sql', lambda: _sql_shape(
         base._table_sql.fget(model.browse(())))))
     for alias, attribute in ALIASES:
@@ -76,6 +89,12 @@ def trace(Domain, model, model_name):
                                                              alias)),
         ]
     return [f'{name} {_step(function)}' for name, function in steps]
+
+
+def _fields_get(base, model, allfields):
+    described = base.fields_get(model.browse(()), allfields, ['type'])
+    return sorted((name, sorted(values.items()))
+                  for name, values in described.items())
 
 
 def _sql_shape(sql):
