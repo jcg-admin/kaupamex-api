@@ -944,3 +944,5 @@ src/orm/domains.py	DomainCustom.__eq__	method	tests/unit/orm/test_contract_domai
 src/orm/domains.py	DomainCustom.__hash__	method	tests/unit/orm/test_contract_domains_reference.py
 src/orm/domains.py	DomainCustom.__iter__	method	tests/unit/orm/test_contract_domains_reference.py
 src/orm/models.py	BaseModel.fields_get	method	tests/unit/orm/test_contract_model_record_reference.py
+src/orm/models.py	BaseModel._read_format	method	tests/unit/orm/test_contract_model_record_reference.py
+src/orm/models.py	BaseModel.read	method	tests/unit/orm/test_contract_model_record_reference.py
