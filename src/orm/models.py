@@ -5038,6 +5038,8 @@ def _x2many_descriptor_get(self, instance, cls=None):
     if order:
         rows = rows.order_by(*order_to_django(comodel, order))
     ids = tuple(rows.values_list('pk', flat=True))
+    if isinstance(self, _related_descriptors.ManyToManyDescriptor):
+        return _many2many_lines(self, instance, comodel, ids)
     return comodel._from_ids(env(), ids, ids)
 
 
@@ -7748,3 +7750,24 @@ def _wrap_existing_models(cls):
 
 BaseModel.__init_subclass__ = classmethod(_wrap_subclass_classmethods)
 _wrap_existing_models(BaseModel)
+
+
+def _many2many_lines(descriptor, instance, comodel, ids):
+    """Las líneas de un ``Many2many`` como las devuelve la referencia. —
+    ≙ ``Many2many.read`` (``odoo19c: odoo/orm/fields_relational.py:1370-1410``)
+    seguido de ``_RelationalMulti.convert_to_record`` (``:643-653``).
+
+    La lectura trae todos los enlaces —allá la búsqueda va con
+    ``active_test=False``— y la conversión los devuelve en el entorno del
+    registro, descartando los archivados salvo que el contexto del campo o el
+    del registro apaguen ``active_test``. El gestor de Django ya devuelve
+    todos los enlaces: lo que faltaba es el filtro y el entorno.
+    """
+    field_context = (getattr(descriptor.field, 'context', None) or {}
+                     if not descriptor.reverse else {})
+    lines = comodel._from_ids(instance.env, ids, ids)
+    active = comodel._active_field_name()
+    if active and field_context.get(
+            'active_test', instance.env.context.get('active_test', True)):
+        lines = lines.filtered(active)
+    return lines
