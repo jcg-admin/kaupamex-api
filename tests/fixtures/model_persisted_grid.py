@@ -48,6 +48,10 @@ resultado sale de ``self``), así que una búsqueda encadenada sobre el
 resultado también ve la fila archivada; ``search_count`` (``:1347-1359``)
 acepta ``limit`` como cota superior.
 
+``search`` (``:1363-1382``, que delega en ``search_fetch``) se pide con
+ventana y orden, con el orden del modelo, con un orden inválido —lo rechaza
+``_check_qorder``—, con un campo que no existe y con un dominio vacío acotado.
+
 ``unlink`` se mide por sus efectos: el ``member_count`` almacenado de
 ``test_orm.compute.container`` baja al borrar un miembro —la fuente marca lo
 dependiente antes de borrar—, una discusión se lleva sus mensajes por
@@ -499,6 +503,14 @@ def trace(Domain, model, model_name):
         ('with_user', lambda: _with_user(model)),
         ('with_company', lambda: _with_company(model)),
         ('integer conversions', lambda: _integer_conversions(model)),
+        ('search window', lambda: _names(model.search(
+            DOMAIN, offset=1, limit=1, order='name desc'))),
+        ('search default order', lambda: _names(model.search(DOMAIN))),
+        ('search invalid order', lambda: _names(model.search(
+            DOMAIN, order='name; drop'))),
+        ('search unknown field', lambda: _names(model.search(
+            [('no_such_field', '=', 1)]))),
+        ('search empty domain limit', lambda: len(model.search([], limit=2))),
         ('unlink member', lambda: _unlinked_member(model)),
         ('unlink discussion', lambda: _unlinked_discussion(model)),
         ('name_search', lambda: _name_searched(model, 'child', DOMAIN)),
