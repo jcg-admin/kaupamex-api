@@ -42,3 +42,12 @@ en parte. El pendiente #209 queda con esta tabla como su análisis.
 `ModelBase` medidos en Django prístino.
 *Ciega a:* los subcontratos marcados «sin medir aquí», que necesitan su propia
 prueba.
+
+## Obligaciones evaluadas después, en la misma sesión
+
+| Obligación | Resultado | Causa / siguiente paso |
+|---|---|---|
+| `DomainCustom.__eq__/__hash__/__iter__` y su predicado | asentada (`orm-domains-custom-reference-0485`, `de762a73`) | — |
+| `_value_to_date` / `_value_to_datetime` | no priorizada | firma divergente ya declarada (sin `env`); su conducta la ejerce la rejilla de dominios con modelo a través de los optimizadores de fecha |
+| `search_fetch`, y con ella `search_read` | **bloqueada** | `_search` del puerto devuelve un `QuerySet` de Django (divergencia declarada) y `_fetch_query`, como la fuente, recibe un `Query`; unir los dos exige decidir el paso de uno a otro |
+| `fields_get`, `_read_format` | pendientes | dependencias de `search_read`; se evalúan independientemente de ella |
