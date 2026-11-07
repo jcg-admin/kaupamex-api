@@ -372,7 +372,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__get__	method	
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__set__	method	not_verified	structural=paired_by_name:FieldDescriptor.__set__;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.recompute	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute_value	method	not_verified	structural=owner_absent;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_inverse	method	not_verified	structural=owner_absent;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_inverse	method	not_verified	structural=owner_absent;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_domain	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_group_expand	method	not_verified	structural=dissolved:_field_determine_group_expand;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._args__	attribute	absent	structural=unresolved;write_path=-;evidence=-
