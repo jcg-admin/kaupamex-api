@@ -105,7 +105,7 @@ from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import Command, apply_one2many_commands, is_command_list
-from orm.environments import env as get_environment
+from orm.environments import context_scope, get_context, env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -396,7 +396,15 @@ class One2many:
         Lo que SI esta portado es la **composicion**, que es el contenido del
         metodo: el dominio declarado en el campo mas el del inverso.
         """
-        declarado = list(self.domain) if self.domain else []
+        domain = self.domain
+        if callable(domain):
+            # el callable puede devolver una lista, un Domain o una cadena
+            domain = domain(model)
+        if not domain or isinstance(domain, str):
+            # una cadena sólo vale para el cliente (``fields.py:99-109``)
+            declarado = []
+        else:
+            declarado = list(domain)
         return declarado + list(self._additional_domain())
 
     # -- protocolo de nombre ------------------------------------------------
@@ -507,6 +515,8 @@ class One2many:
             # columna no tiene SQL que emitir.
             raise ValueError(
                 f'Cannot convert {inverse} to SQL because it is not stored')
+        if _reads_as_recordset(instance, comodel):
+            return _read_one2many(self, instance, comodel)
         accessor = inverse.remote_field.get_accessor_name()
         if accessor is not None and hasattr(instance, accessor):
             # El manager del reverso: trae ademas la escritura (``add``,
@@ -1946,3 +1956,40 @@ def _many2one_convert_to_write(self, value, record):
 
 models.ForeignKey.convert_to_read = _many2one_convert_to_read
 models.ForeignKey.convert_to_write = _many2one_convert_to_write
+
+
+def _reads_as_recordset(instance, comodel):
+    """Si un ``One2many`` se lee como recordset: dueño y comodelo
+    ``BaseModel`` y una fila guardada. Lo demás conserva el gestor de Django,
+    que es la forma declarada para los modelos de ``TimeStampedModel``."""
+    return (hasattr(instance, '_ids') and isinstance(comodel, type)
+            and hasattr(comodel, '_from_ids')
+            and isinstance(instance.pk, int))
+
+
+def _read_one2many(field, instance, comodel):
+    """Las líneas de ``instance`` en el ``One2many`` ``field``, como
+    recordset del comodelo. — ≙ ``One2many.read`` (``odoo19c:
+    odoo/orm/fields_relational.py:940-967``)
+    seguido de ``_RelationalMulti.convert_to_record`` (``:643-653``).
+
+    La búsqueda lleva ``active_test=False`` y el ``context`` del campo,
+    sobre el ``domain`` del campo más el inverso; el orden es el
+    ``_order`` del comodelo. Después, como ``convert_to_record``, se
+    descartan las líneas archivadas salvo que el contexto del campo o el
+    del entorno apaguen ``active_test``.
+
+    **Divergencia de mecanismo:** sin caché por campo, se lee en cada
+    acceso y para un solo registro; la fuente lee en lote y guarda los
+    ids, incluidos los inactivos.
+    """
+    field_context = dict(field.context or {})
+    with context_scope(**{'active_test': False, **field_context}):
+        domain = (field.get_comodel_domain(instance)
+                  + [(field.inverse_name, 'in', [instance.id])])
+        lines = comodel.search(domain)
+    active = comodel._active_field_name()
+    if active and field_context.get(
+            'active_test', get_context().get('active_test', True)):
+        lines = lines.filtered(active)
+    return lines

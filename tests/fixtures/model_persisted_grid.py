@@ -38,8 +38,9 @@ campo que los dos declaran y que no se calcula.
 La lectura del ``One2many`` declarado (``odoo19c:
 odoo/orm/fields_relational.py:940-967``) se pide sobre la misma discusión:
 si devuelve un recordset, sus líneas, las que cumplen el ``domain`` de
-``important_messages`` antes y después de marcar una, y las líneas tras
-archivar la última.
+``important_messages`` antes y después de marcar una, las del ``domain``
+calculado de ``very_important_messages``, y las líneas tras archivar la
+última.
 """
 
 import warnings
@@ -159,6 +160,15 @@ def _priorities(lines):
     return [line.priority for line in sorted(lines, key=_by_id)]
 
 
+def _fresh_priorities(discussion, name):
+    """Las líneas de ``name`` leídas sin caché. Un ``domain`` calculado no
+    declara dependencias, así que la caché de la fuente no se invalida al
+    escribir en las líneas; aquí se invalida a mano para medir el
+    ``domain`` y no la caché."""
+    discussion.invalidate_recordset([name])
+    return _priorities(discussion[name])
+
+
 def _mark_important(discussion):
     """Marca el primer mensaje y vuelve a leer el One2many con ``domain``."""
     first = sorted(discussion.messages, key=_by_id)[0]
@@ -251,6 +261,8 @@ def trace(Domain, model, model_name):
         ('one2many domain', lambda: _priorities(
             discussions[:1].important_messages)),
         ('one2many domain after', lambda: _mark_important(discussions[:1])),
+        ('one2many callable domain', lambda: _fresh_priorities(
+            discussions[:1], 'very_important_messages')),
         ('one2many archived', lambda: _archive_last(discussions[:1])),
     ]
     chain = model.search(DOMAIN, order='name desc')

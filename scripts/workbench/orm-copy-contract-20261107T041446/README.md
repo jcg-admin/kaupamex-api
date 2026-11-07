@@ -71,7 +71,11 @@ el flujo de la referencia:
   `discussion.messages` es un `AccessQuerySet`, y `important_messages`
   (`domain=[('important', '=', True)]`) devuelve los dos mensajes aunque
   ninguno es importante. En la fuente la lectura es el recordset filtrado
-  (`One2many.read`). Hallazgo propio, en la iniciativa.
+  (`One2many.read`). H-API-1159, resuelto en la unidad siguiente,
+  `orm-one2many-read-reference-0485`.
+- **`test_orm.emailmessage` no existe en el puerto**: `discussion.emails` e
+  `important_emails` apuntan a un comodelo ausente y leerlos levanta
+  `LookupError`. Ya ocurría antes de este pase.
 - **`test_orm.message` es un porte parcial**: 6 campos contra más de 15, sin
   `body` ni `author` ni `_check_author`. La rejilla identifica los mensajes
   por `priority`.
