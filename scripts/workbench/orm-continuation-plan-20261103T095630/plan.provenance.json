@@ -597,6 +597,13 @@
         "orm-models-has-onchange-reference-0485"
       ],
       "writtenAt": "2026-11-07T22:53:40Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "web-export-rec-name-fallback-0499"
+      ],
+      "writtenAt": "2026-11-07T22:57:18Z"
     }
   ]
 }
