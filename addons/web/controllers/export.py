@@ -547,15 +547,20 @@ def _fields_get(model):
 
 
 def _rec_name_fallback(model):
-    """≙ ``Model._rec_name_fallback()`` — ``name`` si existe; si no, el
-    primer ``CharField`` propio; si no, ``id``."""
-    concrete_names = {f.name for f in model._meta.get_fields() if getattr(f, 'concrete', False)}
-    if 'name' in concrete_names:
-        return 'name'
-    for f in model._meta.get_fields():
-        if getattr(f, 'concrete', False) and f.get_internal_type() == 'CharField':
-            return f.name
-    return 'id'
+    """≙ ``Model._rec_name_fallback()`` (``odoo19c:
+    addons/web/controllers/export.py:379``), que es ``_rec_name or 'id'``
+    (``odoo/orm/models.py:1340-1343``).
+
+    Un modelo que deriva de ``BaseModel`` responde con su propio método.
+    Uno que no —``res.groups``, H-API-1083— no lo tiene, y se le aplica la
+    misma fórmula: ``_rec_name`` lo fija ``resolve_rec_name`` en todo modelo.
+    La heurística anterior del primer ``CharField`` no existe en la
+    referencia y se retira (H-API-1162).
+    """
+    fallback = getattr(model, '_rec_name_fallback', None)
+    if fallback is not None:
+        return fallback()
+    return getattr(model, '_rec_name', None) or 'id'
 
 
 def _get_property_fields(fields_map, model, domain=()):

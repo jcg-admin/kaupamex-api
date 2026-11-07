@@ -9,14 +9,16 @@ aplicaba (H-API-1162, TASK-API-0499).
 
 ``test_orm.mixed`` no tiene ``_rec_name`` y sí un ``CharField`` (``foo``): la
 referencia reduce el árbol a ``id``; la heurística lo reducía a ``id`` y
-``foo``. ``test_orm.category`` resuelve ``_rec_name`` a ``name``.
+``foo``. ``test_orm.country`` resuelve ``_rec_name`` a ``name``; se elige
+sin ``Many2many``, porque con uno ``_fields_get`` revienta antes de llegar
+aquí (H-API-1163).
 """
 
 import pytest
 
 from addons.test_orm.models.test_orm import (
+    TestOrmCountry,
     TestOrmMixed,
-    TestOrmModelActiveField,
 )
 from addons.web.controllers.export import get_fields
 
@@ -33,4 +35,4 @@ def test_a_model_without_rec_name_keeps_only_the_id():
 
 
 def test_a_model_with_rec_name_keeps_it():
-    assert _names(TestOrmModelActiveField) == ['id', 'name']
+    assert _names(TestOrmCountry) == ['id', 'name']
