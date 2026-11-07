@@ -955,3 +955,5 @@ src/orm/models.py	BaseModel._check_recursion	method	tests/unit/orm/test_contract
 src/orm/models.py	BaseModel.try_lock_for_update	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.copy	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.copy_data	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_relational.py	One2many.read	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_relational.py	One2many.__get__	method	tests/unit/orm/test_contract_model_persisted_reference.py
