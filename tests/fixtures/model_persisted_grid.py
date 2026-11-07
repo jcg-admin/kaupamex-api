@@ -49,6 +49,10 @@ por lo que dejan en el entorno: usuario y elevación —el superusuario va
 siempre elevado— y el orden de ``allowed_company_ids``, sin datos: las
 reglas de acceso por usuario difieren por construcción (DEC-11).
 
+``name_search`` (``odoo19c: odoo/orm/models.py``, sección ``display_name,
+name_create, name_search``) se pide con un patrón positivo, vacío con
+``limit``, exacto y negativo, siempre acotado a las filas sembradas.
+
 ``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
 sobre un modelo sin campo ``name`` (``test_orm.empty_int``), que no tiene
 ``_rec_name`` y devuelve ``False``.
@@ -302,6 +306,14 @@ def _with_company(model):
                 'allowed_company_ids']))
 
 
+def _name_searched(model, *args, **kwargs):
+    """Los nombres que devuelve ``name_search``, con el id comprobado contra
+    el registro: los ids difieren entre bases, el par no."""
+    pairs = model.browse(()).name_search(*args, **kwargs)
+    return [(model.browse(id_).display_name == name, name)
+            for id_, name in pairs]
+
+
 def _by_id(record):
     return record.id
 
@@ -379,6 +391,13 @@ def trace(Domain, model, model_name):
         ('search returns its env', lambda: _returned_env(model)),
         ('with_user', lambda: _with_user(model)),
         ('with_company', lambda: _with_company(model)),
+        ('name_search', lambda: _name_searched(model, 'child', DOMAIN)),
+        ('name_search empty', lambda: _name_searched(
+            model, '', DOMAIN, limit=2)),
+        ('name_search exact', lambda: _name_searched(
+            model, f'{PREFIX}a-root', DOMAIN, operator='=')),
+        ('name_search negative', lambda: _name_searched(
+            model, 'root', DOMAIN, operator='not ilike')),
     ]
     steps += [
         ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),
