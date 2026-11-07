@@ -112,7 +112,7 @@ from .float_utils import float_round
 
 from django.apps import apps
 
-from orm.environments import get_current_user
+from orm.environments import get_context, get_current_user
 
 if typing.TYPE_CHECKING:
     import babel
@@ -225,15 +225,18 @@ def _tz_key(tz: tzinfo) -> str:
 
 
 def _current_timezone() -> tzinfo:
-    """La zona horaria del usuario activo, con UTC de respaldo.
+    """La zona horaria efectiva, con UTC de respaldo.
 
-    ≙ lo que la fuente obtiene de ``env.user.tz`` dentro de
-    ``Datetime.context_timestamp`` (``odoo19c: odoo/orm/fields_temporal.py``).
-    Aquí el usuario activo lo entrega ``orm.environments``, que es el hogar
-    espejado de ``odoo/orm/environments.py``.
+    ≙ ``env.tz`` (``odoo19c: odoo/orm/environments.py:285-294``), que es lo
+    que leen ``Date.context_today`` y ``Datetime.context_timestamp`` dentro
+    de ``parse_date``: primero la clave ``tz`` del contexto y, si falta, la
+    del usuario. Aquí contexto y usuario los entrega ``orm.environments``.
     """
-    user = get_current_user()
-    name = getattr(getattr(user, 'partner', None), 'tz', None) if user else None
+    name = get_context().get('tz')
+    if not name:
+        user = get_current_user()
+        name = (getattr(getattr(user, 'partner', None), 'tz', None)
+                if user else None)
     if not name:
         return utc
     try:
