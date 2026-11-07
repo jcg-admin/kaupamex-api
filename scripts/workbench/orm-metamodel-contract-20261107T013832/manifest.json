@@ -1,0 +1,8 @@
+{
+  "question": "¿Qué subcontratos de MetaModel cubre Django ModelBase, cuáles construye el puerto y cuáles necesitan decisión?",
+  "instrument": ["odoo19c: odoo/orm/models.py:206-292", ".venv/bin/python -I sobre django.db.models.base.ModelBase", "src/orm/registry.py (Registry.load)", "src/models/__init__.py"],
+  "metric": "subcontratos de la fuente y su clasificación por capacidad, procedencia y conformidad",
+  "blind_to": ["los subcontratos sin prueba propia"],
+  "destination": "TASK-API-0485; pendiente #209 de src/models/__init__.py",
+  "outputs": ["README.md"]
+}
