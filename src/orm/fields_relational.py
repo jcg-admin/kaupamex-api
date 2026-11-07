@@ -101,7 +101,8 @@ import itertools
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
-from django.db.models.fields.related import RelatedField
+from django.db.models.fields.related import (RelatedField,
+                                             lazy_related_operation)
 
 from orm.commands import Command, apply_one2many_commands, is_command_list
 from orm.environments import env as get_environment
@@ -112,7 +113,7 @@ from orm.fields_nonstored import (
     apply_source_defaults,
     derive_source_attrs,
 )
-from django.db.models.fields.related import lazy_related_operation
+from exceptions import MissingError
 from orm.identifiers import NewId
 from orm.model_classes import is_transient
 from orm.registry import (IR_MODELS, field_inverses, model_by_key, model_by_name,
@@ -1891,3 +1892,57 @@ def _many2one_get_db_prep_save(self, value, connection):
 
 
 models.ForeignKey.get_db_prep_save = _many2one_get_db_prep_save
+
+
+def _many2one_convert_to_read(self, value, record, use_display_name=True):
+    """``Many2one.convert_to_read`` — ≙ ``:366-378``.
+
+    Con ``use_display_name`` y valor, el par ``(id, display_name)``; la
+    etiqueta se evalúa en superusuario, porque su visibilidad depende del
+    acceso al registro que lee, no al apuntado. Sin etiqueta, el id. Una FK
+    vacía es aquí ``None`` y allá un conjunto vacío cuyo ``id`` vale
+    ``False``: la guarda devuelve ese mismo ``False``. Un modelo de Django
+    que no es ``BaseModel`` no tiene ``sudo``; su etiqueta se lee tal cual.
+    """
+    if use_display_name and value:
+        target = value.sudo() if hasattr(value, 'sudo') else value
+        try:
+            return (value.id, display_name_of(target))
+        except MissingError:
+            # sólo si falta la fila apuntada
+            return False
+    return value.id if value else False
+
+
+def _many2one_convert_to_write(self, value, record):
+    """``Many2one.convert_to_write`` — ≙ ``:380-392``.
+
+    Un id, o un ``NewId``, pasa tal cual; vacío es ``False``; un registro del
+    comodelo da su id; un par ``(id, nombre)`` o una tupla de ids, su primer
+    elemento; un diccionario, el id de un registro nuevo. La fuente reconoce el
+    registro por ``_name``; aquí un comodelo puede ser un modelo de Django que
+    no es ``BaseModel``, así que se reconoce por ``isinstance`` contra el
+    modelo relacionado, que cubre a los dos.
+
+    El cuerpo propio evita la cadena genérica de ``Field``
+    (``convert_to_cache`` → ``convert_to_record`` → ``convert_to_read``):
+    aquí ``convert_to_record`` de un ``Many2one`` devuelve el id crudo de la
+    caché, y ``convert_to_read`` espera un registro.
+    """
+    if type(value) is int or type(value) is NewId:
+        return value
+    if not value:
+        return False
+    if isinstance(value, self.related_model):
+        # un comodelo con clave propia no declara ``id``
+        return value.id if hasattr(value, 'id') else value.pk
+    if isinstance(value, tuple):
+        # un par (id, nombre) o una tupla de ids
+        return value[0] if value else False
+    if isinstance(value, dict):
+        return record.env[self.comodel_name].new(value).id
+    raise ValueError(f'Wrong value for {self}: {value!r}')
+
+
+models.ForeignKey.convert_to_read = _many2one_convert_to_read
+models.ForeignKey.convert_to_write = _many2one_convert_to_write

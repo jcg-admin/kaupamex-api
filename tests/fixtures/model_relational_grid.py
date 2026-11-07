@@ -11,8 +11,10 @@ así que los registros nuevos bastan: ninguna lectura toca la base.
 (``odoo19c: odoo/orm/fields_relational.py:366-378``) se pide con valor y sin
 él, con ``display_name`` y sin él; y ``BaseModel._read_format`` sobre el
 hijo, con los dos modos de carga, que es el consumidor que decide
-``use_display_name``. Un id de registro nuevo se compara por su clase, no
-por su ``repr``, que lleva una dirección de memoria.
+``use_display_name``. ``Many2one.convert_to_write`` (``:380-392``) se pide
+con un id, un id nuevo, vacío, el registro, un par, una tupla vacía, un
+diccionario y un valor que no admite. Un id de registro nuevo se compara por
+su clase, no por su ``repr``, que lleva una dirección de memoria.
 """
 
 FIELDS = ['name', 'parent']
@@ -30,7 +32,7 @@ def _shape(value):
     """Un id nuevo por su clase; el par conserva la etiqueta."""
     if isinstance(value, tuple):
         return (type(value[0]).__name__, value[1])
-    if value is False or value is None:
+    if value is False or value is None or type(value) is int:
         return value
     return type(value).__name__
 
@@ -55,6 +57,12 @@ def trace(Domain, model, model_name):
                 lambda record=record, display=display: _shape(
                     field.convert_to_read(record['parent'], record,
                                           display))))
+    for label, value in (('int', 7), ('new id', parent.id), ('false', False),
+                         ('record', parent), ('pair', (7, 'P')),
+                         ('empty tuple', ()), ('dict', {'name': 'D'}),
+                         ('string', 'x')):
+        steps.append((f'convert_to_write {label}', lambda value=value: _shape(
+            field.convert_to_write(value, child))))
     for load in ('_classic_read', None):
         steps.append((f'read_format load={load}', lambda load=load: _rows(
             child._read_format(FIELDS, load))))
