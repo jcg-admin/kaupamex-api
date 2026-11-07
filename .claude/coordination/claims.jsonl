@@ -1288,3 +1288,5 @@
 {"id": "c-1ffc3915-91da-4561-a235-a3316f94e69e", "op": "release", "path": "src/orm/models.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-07T22:55:15.991Z", "task": "TASK-API-0485"}
 {"id": "c-2686a73b-2285-4696-8753-af00a5772c8d", "op": "claim", "path": "addons/web/controllers/export.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-07T22:56:44.291Z", "task": "TASK-API-0499"}
 {"id": "c-60f67309-aa70-4c39-b67d-af03ac49b1be", "op": "claim", "path": "tests/unit/web/test_export_rec_name_fallback.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-07T22:56:44.291Z", "task": "TASK-API-0499"}
+{"id": "c-249211da-1ad1-4dea-b5fe-9554bcbbbebf", "op": "release", "path": "addons/web/controllers/export.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-07T23:02:02.254Z", "task": "TASK-API-0499"}
+{"id": "c-e81082ea-179e-4121-89c2-715d20594ec5", "op": "release", "path": "tests/unit/web/test_export_rec_name_fallback.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-07T23:02:02.254Z", "task": "TASK-API-0499"}
