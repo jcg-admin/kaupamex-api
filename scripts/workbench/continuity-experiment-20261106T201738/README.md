@@ -81,3 +81,18 @@ La recuperación es, por tanto, desde el estado durable: `task_continuation
 next` y el inventario dicen dónde seguir, sin reconstruir nada. Lo que falta
 es el disparador que vuelva a invocar al ejecutor; es capacidad pendiente del
 Provider, no del Consumer.
+
+## Reclamo observado con una suite en segundo plano (2026-11-07)
+
+La suite completa de la unidad `orm-models-name-create-reference-0485` corría
+en segundo plano con un `Monitor` que sólo emitía en cada 50 %; el contenedor
+se reclamó a mitad de la ejecución y la suite se perdió sin resultado. Al
+volver: `uptime -s` 2026-11-07 05:06:17, `boot_id` nuevo (`aa446e65`),
+PostgreSQL caído (`pg_ctlcluster 16 main start` lo recuperó), y el árbol, los
+claims y el scratchpad intactos. La suite se repitió completa con un `Monitor`
+que emite cada 10 % y anota el `boot_id`: terminó sin otro reclamo
+(12196 passed, 5 errors de `test_multidb_isolation`).
+
+Es coherente con la hipótesis de H-THYROX-682 —cuenta el turno, no el
+`Monitor` armado— y no la prueba: no se registró el instante exacto del
+reclamo ni la última emisión anterior a él.
