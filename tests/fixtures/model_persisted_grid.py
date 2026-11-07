@@ -344,6 +344,42 @@ def _rec_names_searched(model, fname, operator, value):
             cls._rec_names_search = previous
 
 
+def _integer_conversions(model):
+    """La cadena de conversiones de ``Integer`` (``odoo19c:
+    odoo/orm/fields_numeric.py:17-57``) sobre ``test_orm.category.color``:
+    columna, caché —con el dict de inverso y un valor que no convierte—,
+    registro, lectura —por encima de ``MAXINT`` pasa a float—, escritura y
+    exportación; y el resultado observable de escribir un texto y leerlo."""
+    field = model._fields['color']
+    record = model.browse(())
+    values = []
+    for convert, args in (
+            (field.convert_to_column, (False,)),
+            (field.convert_to_column, ('5',)),
+            (field.convert_to_cache, ('7',)),
+            (field.convert_to_cache, (None,)),
+            (field.convert_to_cache, ({'id': 4},)),
+            (field.convert_to_cache, ('x',)),
+            (field.convert_to_record, (None,)),
+            (field.convert_to_read, (2 ** 31,)),
+            (field.convert_to_read, (12,)),
+            (field.convert_to_write, ('3',)),
+            (field.convert_to_export, (0,)),
+            (field.convert_to_export, (None,))):
+        try:
+            values.append(repr(convert(*args, record)))
+        except (ValueError, TypeError) as error:
+            values.append(type(error).__name__)
+    written = model.search(DOMAIN, order='name', limit=1)
+    written.write({'color': '9'})
+    written.invalidate_recordset(['color'])
+    values.append(repr(written.color))
+    written.write({'color': False})
+    written.invalidate_recordset(['color'])
+    values.append(repr(written.color))
+    return values
+
+
 def _by_id(record):
     return record.id
 
@@ -421,6 +457,7 @@ def trace(Domain, model, model_name):
         ('search returns its env', lambda: _returned_env(model)),
         ('with_user', lambda: _with_user(model)),
         ('with_company', lambda: _with_company(model)),
+        ('integer conversions', lambda: _integer_conversions(model)),
         ('name_search', lambda: _name_searched(model, 'child', DOMAIN)),
         ('name_search empty', lambda: _name_searched(
             model, '', DOMAIN, limit=2)),
