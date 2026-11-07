@@ -29,3 +29,19 @@ Corresponde examinarlo a VM-A. No se eluden los hooks, no se toca la autoridad
 del TaskStore de Thyrox y ningún commit del Provider entra en el Consumer. El
 Consumer sigue admitiendo y ejecutando unidades con los mecanismos
 disponibles.
+
+## INC-03 — unidad asentada con un caso sin cubrir
+
+`tools-date-utils-reference-0485` (`api@79503129`) asentó `parse_date`
+mientras `_current_timezone` ignoraba la clave `tz` del contexto, que la
+fuente lee antes que la del usuario (`odoo19c: odoo/orm/environments.py:285-294`).
+La rejilla de dominios lo expuso sólo cuando la fecha UTC y la de Ciudad de
+México difirieron. Prueba roja `api@76b29461`, corrección `api@df027b8c`
+(H-API-1157).
+
+El candidato correctivo `tools-date-utils-context-tz-0486`
+(`outputs/rejected-candidate-tools-date-utils-context-tz-0486.jsonl`) lo
+rechazó `local_plan supply` como duplicado: una obligación que ya está en el
+plan, aunque esté aceptada, no tiene vía de reapertura. La corrección se hizo
+bajo los claims vigentes de `TASK-API-0485`. La vía de reapertura es una
+capacidad pendiente del Provider; corresponde a VM-A.
