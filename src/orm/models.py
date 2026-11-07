@@ -77,7 +77,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 
 import api
 
-from exceptions import AccessError, MissingError, UserError
+from exceptions import AccessError, LockError, MissingError, UserError
 from orm.environments import (
     context_scope, env, execute_query, get_context, get_current_company,
     get_current_cr,
@@ -6076,6 +6076,35 @@ class BaseModel(DefaultGetMixin, Model):
     def _check_m2m_recursion(self, field_name):
         """≙ ``:5688-5690``."""
         return not self._has_cycle(field_name)
+
+    def lock_for_update(self, *, allow_referencing=False):
+        """Bloquea en exclusiva todas las filas de ``self`` o lanza
+        ``LockError``. — ≙ ``lock_for_update``
+        (``odoo19c: odoo/orm/models.py:5564-5588``)
+
+        :param allow_referencing: un bloqueo que deja a otras transacciones
+            referenciar la fila; sólo para cambiar valores que no son
+            identificadores.
+        :raises LockError: si alguna fila no se pudo bloquear.
+
+        Como allá, ``SKIP LOCKED`` y no ``NOWAIT``: el segundo aborta la
+        transacción. Los registros sin id real —los de ``new()``— no se
+        bloquean. El ``IN %s`` de la fuente es ``= ANY(%s)`` por la misma
+        razón que en :meth:`try_lock_for_update`.
+        """
+        ids = {id_ for id_ in self._ids if id_}
+        if not ids:
+            return
+        query = Query(self.env, self._table, self._table_sql)
+        query.add_where(SQL('%s = ANY(%s)',
+                            SQL.identifier(self._table, 'id'), list(ids)))
+        if allow_referencing:
+            lock_sql = SQL('FOR NO KEY UPDATE SKIP LOCKED')
+        else:
+            lock_sql = SQL('FOR UPDATE SKIP LOCKED')
+        rows = self.env.execute_query(SQL('%s %s', query.select(), lock_sql))
+        if len(rows) != len(ids):
+            raise LockError(self.env._('Cannot grab a lock on records'))
 
     def try_lock_for_update(self, *, allow_referencing=False, limit=None):
         """Bloquea en exclusiva las filas de ``self`` que pueda, salta las
