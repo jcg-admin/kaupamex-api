@@ -6409,6 +6409,40 @@ class BaseModel(DefaultGetMixin, Model):
     invalidate_model = _on_empty_recordset(invalidate_model)
 
     @_on_empty_recordset
+    def _parent_store_compute(self):
+        """ Compute parent_path field from scratch. — ≙
+        ``_parent_store_compute`` (``odoo19c: odoo/orm/models.py:3071-3105``)
+
+        Cada registro guarda en ``parent_path`` la ruta desde su raíz: los
+        ids de los nodos, cada uno seguido de una barra (``42/63/84/``). La
+        barra final hace que ``42/63/`` no sea prefijo de ``42/630/``. El SQL
+        es el de la fuente; la columna del padre la resuelve
+        :func:`_parent_column`, porque aquí el nombre del campo y el de la
+        columna pueden diferir.
+        """
+        cls = type(self)
+        if not getattr(cls, '_parent_store', False):
+            return
+        _logger.info('Computing parent_path for table %s...', cls._table)
+        execute_query(SQL(
+            """ WITH RECURSIVE __parent_store_compute(id, parent_path) AS (
+                    SELECT row.id, concat(row.id, '/')
+                    FROM %(table)s row
+                    WHERE row.%(parent)s IS NULL
+                UNION
+                    SELECT row.id, concat(comp.parent_path, row.id, '/')
+                    FROM %(table)s row, __parent_store_compute comp
+                    WHERE row.%(parent)s = comp.id
+                )
+                UPDATE %(table)s row SET parent_path = comp.parent_path
+                FROM __parent_store_compute comp
+                WHERE row.id = comp.id """,
+            table=SQL.identifier(cls._table),
+            parent=SQL.identifier(_parent_column(cls)),
+        ))
+        self.invalidate_model(['parent_path'])
+
+    @_on_empty_recordset
     @api.private
     def browse(self, ids=()):
         """Return a recordset for the ids provided as parameter in the current

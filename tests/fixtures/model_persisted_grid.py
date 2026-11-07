@@ -514,13 +514,20 @@ def _parent_paths_recomputed(model, chain):
     ids = [record.id for record in chain]
     _execute(model, f"UPDATE {model._table} SET parent_path = 'x/' "
              'WHERE id = ANY(%s)', [ids])
+    # la ruta corrupta entra en la caché: sin la invalidación de la fuente,
+    # la lectura posterior la devolvería
+    chain.invalidate_model(['parent_path'])
+    cached = [record.parent_path for record in model.browse(ids)]
     model.browse(())._parent_store_compute()
     names = {record.id: record.name for record in chain}
-    rows = model.browse(()).search_read([('id', 'in', ids)],
-                                        ['name', 'parent_path'])
-    return sorted((row['name'], [names.get(int(part), part) for part
-                                 in row['parent_path'].split('/') if part])
-                  for row in rows)
+
+    def _path(value):
+        return [names.get(int(part), part)
+                for part in value.split('/') if part]
+
+    return (sorted(set(cached)),
+            sorted((record.name, _path(record.parent_path))
+                   for record in model.browse(ids)))
 
 
 def _metadata(chain):
