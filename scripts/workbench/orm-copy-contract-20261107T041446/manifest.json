@@ -1,0 +1,8 @@
+{
+  "question": "¿Qué exige el flujo completo de copy en odoo19c y cómo lo satisface el BaseModel del puerto?",
+  "instrument": ["odoo19c: odoo/orm/models.py:5406-5545", "odoo19c: odoo/addons/test_orm/tests/test_fields.py:2647-2669", "odoo19c: odoo/addons/test_orm/tests/test_onchange.py:989-1033", "src/orm/models.py (CopyMixin, BaseModel)", "tests/fixtures/model_persisted_grid.py"],
+  "metric": "pasos de la rejilla persistida sobre test_orm.discussion, comparados con la referencia en orm_refproc_test_orm",
+  "blind_to": ["copy_translations con traducciones almacenadas (bloqueado por #333)", "la cuenta de consultas de test_copy_batch", "los modelos que derivan de TimeStampedModel y adoptan CopyMixin"],
+  "destination": "TASK-API-0485, unidad orm-models-copy-reference-0485",
+  "outputs": ["README.md"]
+}

@@ -128,7 +128,9 @@ class TestTheModuleLevelFunctionIsPaired:
 class TestTheDissolvedBaseKeepsItsPairs:
     """Emparejar SOLO por duena perderia los 63 pares del nucleo del ORM."""
 
-    @pytest.mark.parametrize('symbol', ['create', 'copy'])
+    # ``copy`` salió de esta lista al portarse en ``BaseModel``, su sitio en
+    # la fuente: hoy empareja por dueña. ``default_get`` sigue en el mixin.
+    @pytest.mark.parametrize('symbol', ['create', 'default_get'])
     def test_the_mixin_still_pairs_against_base_model(self, symbol):
         matched = [
             p for p in _pairs(DISSOLVED_BASE).values() if p.name == symbol

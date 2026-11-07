@@ -22,10 +22,18 @@ de la rejilla, sin competencia: devuelve lo que puede bloquear, en el orden
 de ``self``, con ventana, con un registro nuevo, con un id que no existe y
 con el bloqueo que admite referencias.
 
-``copy`` (``:5530-5545``) y ``copy_data`` (``:5406-5463``) se piden sobre la
-hija, con y sin ``default``, y sobre la cadena entera; de ``copy_data`` se
-comparan sólo las claves que los dos modelos declaran (``name``, ``parent``,
-``color``), porque el resto depende de los campos que cada lado añade.
+``copy`` (``:5530-5545``), ``copy_data`` (``:5406-5463``) y
+``copy_translations`` (``:5465-5528``) se piden con el flujo entero sobre
+``test_orm.discussion``: su ``messages`` es un ``One2many`` con
+``copy=True``, ``important_messages`` y ``emails`` lo heredan en ``False``,
+y ``categories`` es un ``Many2many`` hacia las categorías sembradas. Se copia
+una discusión con mensajes y categorías, con y sin ``default`` —un
+``default`` que pisa el ``Many2many`` incluido— y dos discusiones a la vez.
+De ``copy_data`` se comparan las claves que los dos modelos declaran; los
+mensajes, por su ``priority`` y en orden de id, que es el orden que la fuente
+garantiza para emparejar traducciones. El ``test_orm.message`` del puerto es
+un porte parcial sin ``body``, así que se identifica cada mensaje por un
+campo que los dos declaran y que no se calcula.
 """
 
 import warnings
@@ -34,8 +42,11 @@ PREFIX = 'grid-persisted-'
 DOMAIN = [('name', '=like', f'{PREFIX}%')]
 NOTHING = [('name', '=', f'{PREFIX}none')]
 FIELDS = ['name', 'parent']
-#: Claves de ``copy_data`` que los dos ``test_orm.category`` declaran.
-COPIED = ('name', 'parent', 'color')
+#: Claves de ``copy_data`` que los dos ``test_orm.discussion`` declaran.
+#: ``message_concat`` queda fuera: el puerto declara su ``Text`` sin
+#: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
+#: nulabilidad de la columna y no ``copy``.
+COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
 #: Id que ninguna de las dos bases de prueba alcanza.
 MISSING_ID = 987654321
 
@@ -88,9 +99,73 @@ def _named(names, value):
     return value
 
 
+def _seed_discussions(model):
+    """Dos discusiones con mensajes y con las dos primeras categorías."""
+    env = model.browse(()).env
+    categories = model.search(DOMAIN, order='name')[:2]
+    Discussion = env['test_orm.discussion']
+    Message = env['test_orm.message']
+    found = Discussion.browse(())
+    # el autor por defecto de un mensaje es el usuario del entorno, y la
+    # fuente exige que participe en la discusión (``_check_author``)
+    user = env.user
+    participants = list(user.ids) if user else []
+    for label in ('d1', 'd2'):
+        discussion = Discussion.create({
+            'name': f'{PREFIX}{label}', 'categories': [(6, 0, categories.ids)],
+            'participants': [(6, 0, participants)],
+        })
+        for priority in (1, 2):
+            Message.create({'discussion': discussion.id,
+                            'priority': int(label[1]) * 10 + priority})
+        found |= discussion
+    return found
+
+
+def _command(names, command):
+    """Un comando x2many con sus ids traducidos y su carga recortada."""
+    code, _id, payload = command
+    if isinstance(payload, dict):
+        payload = sorted((key, value) for key, value in payload.items()
+                         if key in ('priority',))
+    elif isinstance(payload, (list, tuple)):
+        payload = sorted(names.get(item, item) for item in payload)
+    return (int(code), payload)
+
+
 def _copied(names, vals_list):
-    return [sorted((key, _named(names, value)) for key, value in vals.items()
-                   if key in COPIED) for vals in vals_list]
+    rows = []
+    for vals in vals_list:
+        if vals is None:
+            rows.append(None)
+            continue
+        row = []
+        for key in sorted(set(vals) & set(COPIED)):
+            value = vals[key]
+            if isinstance(value, list):
+                value = [_command(names, command) for command in value]
+            row.append((key, _named(names, value)))
+        rows.append(row)
+    return rows
+
+
+def _by_id(record):
+    return record.id
+
+
+def _discussions(names, records):
+    return [(record.name,
+             sorted(names.get(category.id, category.id)
+                    for category in record.categories),
+             # ordenado a mano: el One2many declarado del puerto se lee hoy
+             # como un QuerySet, sin ``sorted``
+             [message.priority
+              for message in sorted(record.messages, key=_by_id)],
+             # cuántos mensajes apuntan a la copia, contados por búsqueda: el
+             # One2many declarado del puerto aún no aplica su ``domain``
+             record.browse(()).env['test_orm.message'].search_count(
+                 [('discussion', '=', record.id)]))
+            for record in records]
 
 
 def _names(records):
@@ -128,14 +203,22 @@ def trace(Domain, model, model_name):
         ('search_read nothing', lambda: _rows(names, model.search_read(
             NOTHING, FIELDS))),
     ]
-    child = model.search([('name', '=', f'{PREFIX}b-child')])
+    discussions = _seed_discussions(model)
     steps += [
-        ('copy_data child', lambda: _copied(names, child.copy_data())),
-        ('copy_data default', lambda: _copied(names, child.copy_data(
-            {'name': f'{PREFIX}z-default'}))),
-        ('copy child', lambda: _records(child.copy())),
-        ('copy default', lambda: _records(child.copy(
-            {'name': f'{PREFIX}z-copy', 'parent': False}))),
+        ('copy_data discussion', lambda: _copied(
+            names, discussions[:1].copy_data())),
+        ('copy_data default', lambda: _copied(names, discussions[:1].copy_data(
+            {'name': f'{PREFIX}d-default', 'categories': False}))),
+        ('copy discussion', lambda: _discussions(
+            names, discussions[:1].copy())),
+        ('copy default', lambda: _discussions(names, discussions[:1].copy(
+            {'name': f'{PREFIX}d-copy'}))),
+        ('copy two', lambda: _discussions(names, discussions.copy())),
+        ('copy empty', lambda: _discussions(names, discussions[:0].copy())),
+        # el último: el comando mueve el mensaje de la segunda discusión
+        ('copy one2many default', lambda: _discussions(
+            names, discussions[:1].copy({'messages': [(6, 0, [
+                sorted(discussions[1:].messages, key=_by_id)[0].id])]}))),
     ]
     chain = model.search(DOMAIN, order='name desc')
     root = model.search([('name', '=', f'{PREFIX}a-root')])

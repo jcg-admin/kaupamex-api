@@ -5293,6 +5293,64 @@ def _read_properties(records, field, name, data):
         record_read_vals[1][name] = convert_result
 
 
+def _copies(field):
+    """Si ``copy`` copia el campo: su atributo ``copy``, o el default de la
+    fuente por tipo — ``False`` para un ``One2many`` (``odoo19c:
+    odoo/orm/fields_relational.py:869``) y ``True`` para el resto
+    (``odoo/orm/fields.py:281``). Una relación inversa de Django no lleva el
+    atributo."""
+    return getattr(field, 'copy', field.type != 'one2many')
+
+
+def _readable_ids(field, value):
+    """Los ids que el usuario puede leer de un valor ``Many2many``: el
+    recordset de un comodelo ``BaseModel``, o el gestor de Django de uno que
+    no lo es."""
+    if hasattr(value, '_filtered_access'):
+        return value._filtered_access('read').ids
+    rows = AccessQuerySet(model=field.related_model).filter(
+        pk__in=value.values_list('pk', flat=True))
+    return list(rows._filtered_access('read').values_list('pk', flat=True))
+
+
+def _x2many_records(field, value):
+    """El recordset del comodelo para un valor x2many: el que ya lo es, o el
+    ``QuerySet`` con que se lee hoy un ``One2many`` declarado, con los mismos
+    ids. Un comodelo que no es ``BaseModel`` no tiene recordset y rehúsa."""
+    if hasattr(value, '_ids'):
+        return value
+    comodel = field.related_model
+    if not (isinstance(comodel, type) and issubclass(comodel, BaseModel)):
+        raise TypeError(f'{field} apunta a un modelo sin recordset: '
+                        f'{comodel!r}')
+    ids = tuple(value.values_list('pk', flat=True))
+    return comodel._from_ids(env(), ids, ids)
+
+
+def _copy_data_blacklist(records, default):
+    """La lista negra de ``BaseModel.copy_data`` (``odoo19c:
+    odoo/orm/models.py:5418-5434``): las columnas mágicas, ``parent_path`` y
+    los FK de ``_inherits``; si el ``default`` trae el FK, también los campos
+    del padre que el modelo no redefine."""
+    blacklist = set(MAGIC_COLUMNS) | {'parent_path'}
+    whitelist = {name for name, field in records._fields.items()
+                 if not getattr(field, 'inherited', False)}
+
+    def blacklist_given_fields(model):
+        for parent_field in getattr(model, '_inherits', {}).values():
+            blacklist.add(parent_field)
+            parent = _inherits_parent(model, parent_field)
+            if parent is None:
+                continue
+            if parent_field in default:
+                blacklist.update(set(parent._fields) - whitelist)
+            else:
+                blacklist_given_fields(parent)
+
+    blacklist_given_fields(type(records))
+    return blacklist
+
+
 class BaseModel(DefaultGetMixin, Model):
     """El recordset — ≙ ``BaseModel`` (``odoo19c:
     odoo/orm/models.py:334-7004``).
@@ -6040,6 +6098,109 @@ class BaseModel(DefaultGetMixin, Model):
         real_ids = (id_ for [id_] in self.env.execute_query(sql))
         valid_ids = {*real_ids, *new_ids}
         return self.browse(i for i in self._ids if i in valid_ids)
+
+    def copy_data(self, default=None):
+        """Copy given record's data with all its fields values. — ≙
+        ``copy_data`` (``odoo19c: odoo/orm/models.py:5406-5463``)
+
+        :param default: valores que pisan a los del registro copiado.
+        :returns: un dict por registro, o ``None`` por uno ya visitado.
+
+        Es el flujo de la fuente sobre el recordset; :class:`CopyMixin` porta
+        la variante por instancia que adoptan los modelos de
+        ``TimeStampedModel``. La guarda de recursión viaja en el contexto,
+        como allá: el contexto congela sus claves, no el ``defaultdict`` que
+        guarda.
+
+        **Divergencias declaradas.** ``_fields`` incluye aquí las relaciones
+        inversas de Django, que la fuente no declara: sin atributo ``copy``
+        rige el default de la fuente por tipo (:func:`_copies`), así que un
+        ``ManyToOneRel`` no se copia y un ``ManyToManyRel`` sí, como un
+        ``Many2many`` declarado; un inverso automático de ``Many2many`` no se
+        distingue de un espejo declarado. Un ``Many2many`` hacia un modelo que
+        no es ``BaseModel`` se lee como el gestor de Django, y sus enlaces
+        legibles salen de :class:`AccessQuerySet` (:func:`_readable_ids`). Un
+        ``One2many`` declarado se lee hoy como ``AccessQuerySet`` y no como el
+        recordset del comodelo; :func:`_x2many_records` lo convierte.
+        """
+        vals_list = []
+        default = dict(default or {})
+        # se evita recorrer de nuevo lo ya copiado en una relación circular
+        if '__copy_data_seen' not in self.env.context:
+            self = self.with_context(
+                __copy_data_seen=collections.defaultdict(set))
+        blacklist = _copy_data_blacklist(self, default)
+        fields_to_copy = {
+            name: field for name, field in self._fields.items()
+            if _copies(field) and name not in default and name not in blacklist
+        }
+        for record in self:
+            seen_map = self.env.context['__copy_data_seen']
+            if record.id in seen_map[record._name]:
+                vals_list.append(None)
+                continue
+            seen_map[record._name].add(record.id)
+            vals = default.copy()
+            for name, field in fields_to_copy.items():
+                if field.type == 'one2many':
+                    # en orden de id: copy_translations empareja por él
+                    lines = _x2many_records(field, record[name]).sorted(
+                        key='id').copy_data()
+                    vals[name] = [Command.create(line)
+                                  for line in lines if line]
+                elif field.type == 'many2many':
+                    # sólo los enlaces legibles, o la escritura fallaría
+                    vals[name] = [Command.set(
+                        _readable_ids(field, record[name]))]
+                else:
+                    vals[name] = field.convert_to_write(record[name], record)
+            vals_list.append(vals)
+        return vals_list
+
+    def copy_translations(self, new, excluded=()):
+        """Recursively copy the translations from original to new record.
+        — ≙ ``copy_translations`` (``odoo19c: odoo/orm/models.py:5465-5528``)
+
+        Se portan la guarda, la exclusión de lo heredado de un padre dado y
+        la recursión por las líneas ``One2many``, emparejadas por id. La rama
+        de los campos traducibles no tiene qué copiar: la columna guarda un
+        solo idioma y lo copia ``copy_data``; el almacenamiento por idioma es
+        la tarea #333, y con él esta rama recibe el cuerpo de la fuente.
+        """
+        old = self
+        if '__copy_translations_seen' not in old.env.context:
+            old = old.with_context(
+                __copy_translations_seen=collections.defaultdict(set))
+        seen_map = old.env.context['__copy_translations_seen']
+        if old.id in seen_map[old._name]:
+            return
+        seen_map[old._name].add(old.id)
+        for name, field in old._fields.items():
+            if not _copies(field):
+                continue
+            related = getattr(field, 'related', None)
+            if (getattr(field, 'inherited', False) and related
+                    and related.split('.')[0] in excluded):
+                # lo heredado de un padre dado por el usuario no es copia
+                continue
+            if field.type == 'one2many' and field.name not in excluded:
+                old_lines = _x2many_records(field, old[name]).sorted(key='id')
+                new_lines = _x2many_records(field, new[name]).sorted(key='id')
+                for old_line, new_line in zip(old_lines, new_lines):
+                    old_line.copy_translations(new_line)
+
+    def copy(self, default=None):
+        """Duplicate record ``self`` updating it with default values. — ≙
+        ``copy`` (``odoo19c: odoo/orm/models.py:5530-5545``)
+
+        :param default: valores que pisan a los del registro copiado.
+        :returns: los registros nuevos, en el orden de ``self``.
+        """
+        vals_list = self.with_context(active_test=False).copy_data(default)
+        new_records = self.create(vals_list)
+        for old_record, new_record in zip(self, new_records):
+            old_record.copy_translations(new_record, excluded=default or ())
+        return new_records
 
     #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
     #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
