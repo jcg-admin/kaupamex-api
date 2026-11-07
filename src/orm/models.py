@@ -6139,6 +6139,34 @@ class BaseModel(DefaultGetMixin, Model):
         """≙ ``:5688-5690``."""
         return not self._has_cycle(field_name)
 
+    def _get_external_ids(self):
+        """Los ids externos de cada registro — ``{id: ['modulo.nombre']}``.
+        — ≙ ``_get_external_ids`` (``odoo19c: odoo/orm/models.py:5695-5714``)
+
+        Todos los que tenga cada registro, en orden de ``id`` de
+        ``ir.model.data``, y lista vacía si no tiene ninguno; la clave es el id
+        de origen, como allá. El ``sudo()`` de la fuente es aquí el gestor de
+        Django de ``ir.model.data``, que no filtra por permiso. La columna
+        ``model`` guarda la etiqueta de Django —la escribe
+        ``IrModelData._update_xmlids``, su único escritor—, la misma
+        convención que :meth:`AccessQuerySet._get_external_ids`.
+        """
+        Data = apps.get_model('base', 'IrModelData')
+        result = collections.defaultdict(list)
+        rows = Data.objects.filter(
+            model=self._meta.label, res_id__in=list(self.ids),
+        ).order_by('pk').values_list('module', 'name', 'res_id')
+        for module, name, res_id in rows:
+            result[res_id].append('%s.%s' % (module, name))
+        return {record.id: result[record._origin.id] for record in self}
+
+    def get_external_id(self):
+        """Un id externo por registro, o ``''`` — ≙ ``get_external_id``
+        (``:5716-5735``): con varios, el primero de ``_get_external_ids``."""
+        results = self._get_external_ids()
+        return {key: val[0] if val else ''
+                for key, val in results.items()}
+
     def lock_for_update(self, *, allow_referencing=False):
         """Bloquea en exclusiva todas las filas de ``self`` o lanza
         ``LockError``. — ≙ ``lock_for_update``
