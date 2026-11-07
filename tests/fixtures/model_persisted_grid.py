@@ -454,6 +454,22 @@ def _external_ids(model, chain):
                    for key, value in chain.get_external_id().items()))
 
 
+def _updated(model):
+    """``update`` (``odoo19c: odoo/orm/models.py``, ``BaseModel.update``)
+    asigna cada valor con ``self[name] = value``: sobre un registro guardado
+    la asignación escribe en la base, y sobre uno de ``new()`` sólo en su
+    caché. Se lee de vuelta con ``search_read``, que va a la base."""
+    record = model.browse(()).create({'name': f'{PREFIX}to-update'})
+    record.update({'name': f'{PREFIX}updated', 'color': 4})
+    record['color'] = 6
+    stored = model.browse(()).search_read([('id', '=', record.id)],
+                                          ['name', 'color'])
+    draft = model.new({'name': 'N'})
+    draft.update({'name': 'M'})
+    return ([(row['name'], row['color']) for row in stored], draft.name,
+            model.browse(()).search_count([('name', '=', 'M')]))
+
+
 def _by_id(record):
     return record.id
 
@@ -532,6 +548,7 @@ def trace(Domain, model, model_name):
         ('with_user', lambda: _with_user(model)),
         ('with_company', lambda: _with_company(model)),
         ('integer conversions', lambda: _integer_conversions(model)),
+        ('update', lambda: _updated(model)),
         ('search window', lambda: _names(model.search(
             DOMAIN, offset=1, limit=1, order='name desc'))),
         ('search default order', lambda: _names(model.search(DOMAIN))),

@@ -562,6 +562,13 @@
         "orm-models-external-ids-reference-0485"
       ],
       "writtenAt": "2026-11-07T21:54:11Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-update-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T21:59:49Z"
     }
   ]
 }
