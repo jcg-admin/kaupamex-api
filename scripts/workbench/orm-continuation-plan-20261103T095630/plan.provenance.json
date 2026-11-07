@@ -506,6 +506,13 @@
         "orm-many2many-read-reference-0485"
       ],
       "writtenAt": "2026-11-07T19:45:43Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-with-user-company-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T19:53:49Z"
     }
   ]
 }

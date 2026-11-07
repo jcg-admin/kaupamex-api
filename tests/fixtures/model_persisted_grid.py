@@ -44,6 +44,11 @@ resultado sale de ``self``), así que una búsqueda encadenada sobre el
 resultado también ve la fila archivada; ``search_count`` (``:1347-1359``)
 acepta ``limit`` como cota superior.
 
+``with_user`` (``:5981-5988``) y ``with_company`` (``:5991-6018``) se miden
+por lo que dejan en el entorno: usuario y elevación —el superusuario va
+siempre elevado— y el orden de ``allowed_company_ids``, sin datos: las
+reglas de acceso por usuario difieren por construcción (DEC-11).
+
 ``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
 sobre un modelo sin campo ``name`` (``test_orm.empty_int``), que no tiene
 ``_rec_name`` y devuelve ``False``.
@@ -272,6 +277,31 @@ def _relatives_read(model):
             unarchived.env.context.get('active_test'))
 
 
+def _with_user(model):
+    """``with_user`` (``:5981-5988``): el usuario y la elevación del entorno
+    derivado, para un usuario cualquiera, para el superusuario —que por
+    convención va siempre elevado— y para un usuario vacío, que devuelve el
+    mismo recordset."""
+    records = model.browse(())
+    other = records.with_user(2)
+    root = records.with_user(1)
+    return ((other.env.uid, other.env.su), (root.env.uid, root.env.su),
+            records.with_user(False) is records)
+
+
+def _with_company(model):
+    """``with_company`` (``:5991-6018``): el orden de ``allowed_company_ids``
+    tras pedir una empresa nueva, una ya permitida y la que ya va primera, y
+    que una empresa vacía o la primera devuelven el mismo recordset."""
+    records = model.browse(()).with_context(allowed_company_ids=[3, 4])
+    return (list(records.with_company(5).env.context['allowed_company_ids']),
+            list(records.with_company(4).env.context['allowed_company_ids']),
+            records.with_company(3) is records,
+            records.with_company(False) is records,
+            list(model.browse(()).with_company(7).env.context[
+                'allowed_company_ids']))
+
+
 def _by_id(record):
     return record.id
 
@@ -347,6 +377,8 @@ def trace(Domain, model, model_name):
         ('with_context search', lambda: _active_counts(model)),
         ('with_context search back', lambda: _active_counts(model, True)),
         ('search returns its env', lambda: _returned_env(model)),
+        ('with_user', lambda: _with_user(model)),
+        ('with_company', lambda: _with_company(model)),
     ]
     steps += [
         ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),
