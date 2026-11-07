@@ -401,6 +401,13 @@
         "orm-models-as-query-table-sql-0485"
       ],
       "writtenAt": "2026-11-06T23:37:30Z"
+    },
+    {
+      "planner": "orm-domains-custom",
+      "items": [
+        "orm-domains-custom-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T01:41:56Z"
     }
   ]
 }
