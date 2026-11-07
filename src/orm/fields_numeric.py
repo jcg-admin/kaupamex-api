@@ -36,6 +36,7 @@ tarea **#135**.
 """
 
 import decimal
+from xmlrpc.client import MAXINT
 
 from django.db import models
 
@@ -238,3 +239,30 @@ def _integer_convert_to_record(self, value, record):
 
 models.IntegerField.convert_to_cache = _integer_convert_to_cache
 models.IntegerField.convert_to_record = _integer_convert_to_record
+
+
+def _integer_convert_to_read(self, value, record, use_display_name=True):
+    """``Integer.convert_to_read`` — ≙ ``:44-49``. Por encima de ``MAXINT``
+    (``2**31 - 1``, el de ``xmlrpc.client`` como allá) el valor viaja como
+    ``float``: XML-RPC puro no admite enteros mayores. Las claves primarias
+    siguen con el conversor genérico."""
+    if isinstance(self, models.AutoField):
+        return models.Field.convert_to_read(self, value, record,
+                                            use_display_name)
+    if value and value > MAXINT:
+        return float(value)
+    return value
+
+
+def _integer_convert_to_export(self, value, record):
+    """``Integer.convert_to_export`` — ≙ ``:54-57``: el ``0`` se exporta como
+    ``0`` y sólo la ausencia como texto vacío."""
+    if isinstance(self, models.AutoField):
+        return models.Field.convert_to_export(self, value, record)
+    if value or value == 0:
+        return value
+    return ''
+
+
+models.IntegerField.convert_to_read = _integer_convert_to_read
+models.IntegerField.convert_to_export = _integer_convert_to_export

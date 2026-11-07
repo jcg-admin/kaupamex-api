@@ -2637,6 +2637,15 @@ class RecordLoaderMixin(FieldSqlMixin):
             if (field.is_relation and field.many_to_one and attname
                     and attname != fname and not isinstance(value, Model)):
                 coerced[attname] = value
+            elif (isinstance(field, IntegerField)
+                  and not isinstance(field, AutoField)):
+                # ≙ el valor escrito pasa por ``convert_to_cache`` y se lee con
+                # ``convert_to_record``: un entero escrito como texto se lee
+                # como entero y ``False`` como ``0`` (``odoo19c:
+                # odoo/orm/fields_numeric.py:35-42``). Sólo ``Integer``: el
+                # resto de tipos sigue sin esa conversión en la escritura.
+                coerced[fname] = field.convert_to_record(
+                    field.convert_to_cache(value, None), None)
             else:
                 coerced[fname] = value
         return coerced
