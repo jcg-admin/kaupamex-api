@@ -459,13 +459,14 @@ def _rec_name_fallbacks(model):
     ``_rec_name`` si el modelo lo tiene, ``'id'`` si no. Lo consumen las
     vistas por defecto (``ir_ui_view.py:2816-2883``) y la exportación
     (``web/controllers/export.py:379``). Se pide sobre modelos con ``name``
-    resuelto, sin campo ``name`` y con ``_rec_name`` declarado distinto
-    (``res.groups``, ``full_name``)."""
+    resuelto y sin campo ``name``. La rama del ``_rec_name`` declarado
+    distinto de ``name`` queda sin medir: ningún modelo del puerto que derive
+    de ``BaseModel`` lo declara, y ``res.groups`` —que sí lo hace— no deriva
+    de ella (H-API-1083)."""
     env = model.browse(()).env
     return [(name, env[name]._rec_name_fallback())
             for name in ('test_orm.category', 'test_orm.empty_int',
-                         'test_orm.model_active_field', 'test_orm.mixed',
-                         'res.groups')]
+                         'test_orm.model_active_field', 'test_orm.mixed')]
 
 
 def _metadata(chain):

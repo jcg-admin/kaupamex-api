@@ -6014,6 +6014,19 @@ class BaseModel(DefaultGetMixin, Model):
         return cls._from_ids(env(), ids, ids)
 
     @classmethod
+    def _rec_name_fallback(cls):
+        """``_rec_name`` del modelo, o ``'id'`` si no tiene. — ≙
+        ``_rec_name_fallback`` (``odoo19c: odoo/orm/models.py:1340-1343``)
+
+        Allá es ``@api.model``; aquí, ``classmethod``, la forma con que este
+        archivo porta los métodos de modelo. El comentario de la fuente
+        —*"if self._rec_name is set, it belongs to self._fields"*— lo
+        garantiza :func:`~orm.model_classes.resolve_rec_name`, que valida el
+        declarado y deja ``None`` cuando no hay campo que lo respalde.
+        """
+        return cls._rec_name or 'id'
+
+    @classmethod
     def search_count(cls, domain, limit=None):
         """Cuántos registros cumplen ``domain`` — ≙ ``search_count``
         (``:1347``)."""
