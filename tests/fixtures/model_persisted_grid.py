@@ -454,6 +454,21 @@ def _external_ids(model, chain):
                    for key, value in chain.get_external_id().items()))
 
 
+def _assigned_inverse(model):
+    """``self[name] = value`` sobre un registro guardado pasa por
+    ``write`` (``odoo19c: odoo/orm/fields.py:1837-1841``), y ``write``
+    despacha el inverso de un campo calculado (``models.py``,
+    ``BaseModel.write``). ``display_name`` de la categoría es calculado con
+    inverso (``_inverse_display_name``): el valor ``'padre / nombre'``
+    reasigna el padre y el nombre. Se lee de vuelta con ``search_read``."""
+    record = model.browse(()).create({'name': f'{PREFIX}to-inverse'})
+    record['display_name'] = f'{PREFIX}a-root / {PREFIX}inversed'
+    stored = model.browse(()).search_read([('id', '=', record.id)],
+                                          ['name', 'parent'])
+    return [(row['name'], row['parent'] and row['parent'][1])
+            for row in stored]
+
+
 def _rec_name_fallbacks(model):
     """``_rec_name_fallback`` (``odoo19c: odoo/orm/models.py:1341-1343``):
     ``_rec_name`` si el modelo lo tiene, ``'id'`` si no. Lo consumen las
@@ -581,6 +596,7 @@ def trace(Domain, model, model_name):
         ('integer conversions', lambda: _integer_conversions(model)),
         ('update', lambda: _updated(model)),
         ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
+        ('assigned inverse', lambda: _assigned_inverse(model)),
         ('search window', lambda: _names(model.search(
             DOMAIN, offset=1, limit=1, order='name desc'))),
         ('search default order', lambda: _names(model.search(DOMAIN))),

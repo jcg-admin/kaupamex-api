@@ -58,6 +58,26 @@ odoo/orm/fields_relational.py:643-653`), estaba libre y entró como
 `orm-x2many-record-env-reference-0485`. La evidencia de `copy` se reabre
 dentro de esa unidad.
 
+### INC-03, tercera ocurrencia — `__setitem__` sin distinguir `write`
+
+`orm-models-update-reference-0485` asentó `BaseModel.update` y
+`BaseModel.__setitem__` con una rejilla que no distinguía el caso real
+—`write()`, como en `odoo19c: odoo/orm/fields.py:1837-1841`— de la
+asignación directa al descriptor: con ese reemplazo la prueba seguía verde,
+porque `search_read` vuelca la caché sucia y el valor guardado es el mismo.
+La ceguera quedó declarada en el mensaje de `api@22c807f3`.
+
+El paso `assigned inverse` asigna por clave el `display_name` de una
+categoría guardada; ese campo es calculado con inverso, y `write` lo
+despacha. Con el reemplazo cae (`('grid-persisted-to-inverse', False)`
+contra `('grid-persisted-inversed', 'grid-persisted-a-root')`); con
+`determine_inverse` anulado, también. El candidato que reabría
+`BaseModel.__setitem__` volvió de `supply` con `duplicate`. La obligación
+libre que lleva el mecanismo, `Field.determine_inverse`, entró como
+`orm-field-determine-inverse-reference-0485`, y la evidencia de
+`__setitem__` se cierra dentro de esa unidad. El settlement de
+`orm-models-update-reference-0485` no se toca.
+
 ## INC-04 — regresión introducida y corregida antes del settlement
 
 Portar `Many2one.convert_to_read` solo rompió las escrituras: 302 failed y
