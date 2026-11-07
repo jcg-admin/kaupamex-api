@@ -54,6 +54,7 @@ def test_only_the_non_singletons_raise(reference_trace):
     assert all(line.endswith('raises ValueError') for line in raising)
     others = [line for line in reference_trace if ' raises ' in line
               and not line.startswith('can_return')]
-    assert others == ['convert_to_record unknown field raises KeyError']
+    assert others == ['convert_to_record unknown field raises KeyError',
+                      'read_format unknown field raises KeyError']
     assert all(' 1 ' in line for line in reference_trace
                if line not in raising and line.startswith('can_return'))

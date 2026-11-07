@@ -1664,10 +1664,17 @@ class FieldDescriptor(DeferredAttribute):
             # por escritura del usuario y dejaba el campo sucio, y el volcado
             # siguiente reescribía la base con lo leído. La marca es la misma
             # que usa ``from_db``: el valor entra en caché, limpio.
+            # ``:1708-1712`` — la fila ausente es ``MissingError``, no el
+            # ``DoesNotExist`` con que Django responde a la recarga.
             building = instance.__dict__.get('_orm_building')
             instance.__dict__['_orm_building'] = True
             try:
                 value = super().__get__(instance, cls)
+            except ObjectDoesNotExist:
+                raise MissingError(
+                    'Record does not exist or has been deleted.\n'
+                    f'(Record: {instance!r}, User: {environment.uid})'
+                ) from None
             finally:
                 if building is None:
                     instance.__dict__.pop('_orm_building', None)

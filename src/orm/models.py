@@ -5276,6 +5276,23 @@ class _on_empty_recordset:
         return on_empty
 
 
+def _read_properties(records, field, name, data):
+    """La rama ``properties`` de ``BaseModel._read_format`` (``odoo19c:
+    odoo/orm/models.py:3726-3738``): los valores de todos los registros se
+    convierten juntos con ``convert_to_read_multi``."""
+    values_list = []
+    ids = []
+    for record, vals in data:
+        try:
+            values_list.append(record[name])
+            ids.append(record.id)
+        except MissingError:
+            vals.clear()
+    results = field.convert_to_read_multi(values_list, records.browse(ids))
+    for record_read_vals, convert_result in zip(data, results):
+        record_read_vals[1][name] = convert_result
+
+
 class BaseModel(DefaultGetMixin, Model):
     """El recordset — ≙ ``BaseModel`` (``odoo19c:
     odoo/orm/models.py:334-7004``).
@@ -5647,6 +5664,51 @@ class BaseModel(DefaultGetMixin, Model):
             res[fname] = description
 
         return res
+
+    def read(self, fields=None, load='_classic_read'):
+        """Los campos pedidos de cada registro de ``self``, como una lista de
+        diccionarios. — ≙ ``read`` (``odoo19c: odoo/orm/models.py:3469-3490``)
+
+        :param fields: nombres de campo; todos los legibles si se omite.
+        :param load: con ``None`` no se resuelve el ``display_name`` de las
+            relaciones.
+        :raise AccessError: si el usuario no puede leer lo pedido.
+        :raise ValueError: si un campo pedido no existe.
+        """
+        if not fields:
+            fields = list(self.fields_get(attributes=()))
+        elif not self and not self.env.su:
+            # con registros, el acceso al campo lo comprueba fetch
+            self._determine_fields_to_fetch(fields)
+        self._origin.fetch(fields)
+        return self._read_format(fnames=fields, load=load)
+
+    def _read_format(self, fnames, load='_classic_read'):
+        """Un diccionario por registro que existe, con el formato de
+        :meth:`read`, tomado de lo que ya está en memoria. — ≙ ``:3709-3751``
+
+        Un registro que levanta ``MissingError`` al leerse queda fuera. Los
+        campos ``properties`` se convierten en lote con
+        ``convert_to_read_multi``.
+        """
+        data = [(record, {'id': record.id}) for record in self]
+        use_display_name = (load == '_classic_read')
+        for name in fnames:
+            field = self._fields[name]
+            if field.type == 'properties':
+                _read_properties(self, field, name, data)
+                continue
+            convert = field.convert_to_read
+            for record, vals in data:
+                # un registro ausente deja su diccionario vacío
+                if not vals:
+                    continue
+                try:
+                    vals[name] = convert(record[name], record,
+                                         use_display_name)
+                except MissingError:
+                    vals.clear()
+        return [vals for record, vals in data if vals]
 
     # === construcción =====================================================
 
