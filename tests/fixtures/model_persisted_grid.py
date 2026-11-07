@@ -53,7 +53,10 @@ odoo/orm/fields_relational.py:940-967``) se pide sobre la misma discusión:
 si devuelve un recordset, sus líneas, las que cumplen el ``domain`` de
 ``important_messages`` antes y después de marcar una, las del ``domain``
 calculado de ``very_important_messages``, y las líneas tras archivar la
-última.
+última. Con esa línea archivada se copia la discusión: ``copy`` pide
+``copy_data`` con ``active_test=False`` y ``convert_to_record`` filtra con el
+contexto del registro (``:643-653``), así que la copia lleva también la
+línea archivada; ``copy_data`` a secas, no.
 """
 
 import warnings
@@ -238,6 +241,19 @@ def _archive_last(discussion):
     return _priorities(discussion.messages)
 
 
+def _copied_archived(discussion):
+    """Con un mensaje archivado: cuántas líneas trae ``copy_data`` sin
+    contexto, y cuántos mensajes —archivados incluidos y sólo activos—
+    apuntan a la copia que hace ``copy``, que pide ``active_test=False``."""
+    lines = discussion.copy_data()[0]['messages']
+    copy = discussion.copy()
+    Message = discussion.browse(()).env['test_orm.message'].browse(())
+    domain = [('discussion', '=', copy.id)]
+    return (len(lines),
+            Message.with_context(active_test=False).search_count(domain),
+            Message.search_count(domain))
+
+
 def _by_id(record):
     return record.id
 
@@ -329,6 +345,7 @@ def trace(Domain, model, model_name):
         ('one2many callable domain', lambda: _fresh_priorities(
             discussions[:1], 'very_important_messages')),
         ('one2many archived', lambda: _archive_last(discussions[:1])),
+        ('copy archived lines', lambda: _copied_archived(discussions[:1])),
     ]
     chain = model.search(DOMAIN, order='name desc')
     root = model.search([('name', '=', f'{PREFIX}a-root')])

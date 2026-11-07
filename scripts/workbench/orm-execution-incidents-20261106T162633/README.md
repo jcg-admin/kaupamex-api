@@ -46,6 +46,18 @@ plan, aunque esté aceptada, no tiene vía de reapertura. La corrección se hizo
 bajo los claims vigentes de `TASK-API-0485`. La vía de reapertura es una
 capacidad pendiente del Provider; corresponde a VM-A.
 
+### INC-03, segunda ocurrencia — `copy` sin líneas archivadas
+
+`orm-models-copy-reference-0485` asentó `BaseModel.copy` con una rejilla sin
+líneas `One2many` archivadas; el banco `orm-copy-contract-20261107T041446`
+declaraba esa ceguera. Con un mensaje archivado la referencia deja 2 mensajes
+en la copia y el puerto 1. El candidato que reabría `BaseModel.copy` volvió de
+`supply` con `duplicate`; la obligación que de verdad lleva el defecto,
+`_RelationalMulti.convert_to_record` (`odoo19c:
+odoo/orm/fields_relational.py:643-653`), estaba libre y entró como
+`orm-x2many-record-env-reference-0485`. La evidencia de `copy` se reabre
+dentro de esa unidad.
+
 ## INC-04 — regresión introducida y corregida antes del settlement
 
 Portar `Many2one.convert_to_read` solo rompió las escrituras: 302 failed y
