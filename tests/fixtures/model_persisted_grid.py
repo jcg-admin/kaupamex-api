@@ -35,6 +35,11 @@ garantiza para emparejar traducciones. El ``test_orm.message`` del puerto es
 un porte parcial sin ``body``, así que se identifica cada mensaje por un
 campo que los dos declaran y que no se calcula.
 
+``with_context`` (``:6021-6055``) tiene que llegar a lo que se llama sobre
+el recordset que devuelve: ``search`` y ``search_count`` sobre
+``test_orm.model_active_field``, con una fila archivada, sin contexto, con
+``active_test=False`` y de vuelta a ``True``.
+
 ``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
 sobre un modelo sin campo ``name`` (``test_orm.empty_int``), que no tiene
 ``_rec_name`` y devuelve ``False``.
@@ -160,6 +165,23 @@ def _copied(names, vals_list):
     return rows
 
 
+def _active_counts(model, back=False):
+    """Cuántos registros de ``test_orm.model_active_field`` ve un método de
+    clase llamado sobre ``with_context``: sin contexto, con
+    ``active_test=False`` y, con ``back``, de vuelta a ``active_test=True``
+    sobre ese mismo recordset."""
+    Active = model.browse(()).env['test_orm.model_active_field'].browse(())
+    if not Active.search([('name', '=like', f'{PREFIX}%')]):
+        Active.create([{'name': f'{PREFIX}on', 'active': True},
+                       {'name': f'{PREFIX}off', 'active': False}])
+    domain = [('name', '=like', f'{PREFIX}%')]
+    unarchived = Active.with_context(active_test=False)
+    if back:
+        unarchived = unarchived.with_context(active_test=True)
+    return (len(Active.search(domain)), len(unarchived.search(domain)),
+            unarchived.search_count(domain))
+
+
 def _name_created(model, name):
     """El par que devuelve ``name_create``, con el id como nombre, y si el
     registro quedó escrito."""
@@ -266,6 +288,10 @@ def trace(Domain, model, model_name):
         ('copy one2many default', lambda: _discussions(
             names, discussions[:1].copy({'messages': [(6, 0, [
                 sorted(discussions[1:].messages, key=_by_id)[0].id])]}))),
+    ]
+    steps += [
+        ('with_context search', lambda: _active_counts(model)),
+        ('with_context search back', lambda: _active_counts(model, True)),
     ]
     steps += [
         ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),
