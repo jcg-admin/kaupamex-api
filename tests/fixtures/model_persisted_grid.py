@@ -454,6 +454,20 @@ def _external_ids(model, chain):
                    for key, value in chain.get_external_id().items()))
 
 
+def _rec_name_fallbacks(model):
+    """``_rec_name_fallback`` (``odoo19c: odoo/orm/models.py:1341-1343``):
+    ``_rec_name`` si el modelo lo tiene, ``'id'`` si no. Lo consumen las
+    vistas por defecto (``ir_ui_view.py:2816-2883``) y la exportación
+    (``web/controllers/export.py:379``). Se pide sobre modelos con ``name``
+    resuelto, sin campo ``name`` y con ``_rec_name`` declarado distinto
+    (``res.groups``, ``full_name``)."""
+    env = model.browse(()).env
+    return [(name, env[name]._rec_name_fallback())
+            for name in ('test_orm.category', 'test_orm.empty_int',
+                         'test_orm.model_active_field', 'test_orm.mixed',
+                         'res.groups')]
+
+
 def _metadata(chain):
     """``get_metadata`` (``odoo19c: odoo/orm/models.py``,
     ``BaseModel.get_metadata``) sobre la cadena, después del paso de ids
@@ -565,6 +579,7 @@ def trace(Domain, model, model_name):
         ('with_company', lambda: _with_company(model)),
         ('integer conversions', lambda: _integer_conversions(model)),
         ('update', lambda: _updated(model)),
+        ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
         ('search window', lambda: _names(model.search(
             DOMAIN, offset=1, limit=1, order='name desc'))),
         ('search default order', lambda: _names(model.search(DOMAIN))),
