@@ -78,3 +78,20 @@ compartida y pasan sobre una desechable (TASK-API-0496).
 porte de `convert_to_write`, y las trazas agrupadas por marco.
 *Ciega a:* un consumidor cuyo comportamiento cambie sin fallar; la suite mide
 lo que sus pruebas preguntan.
+
+## INC-05 — una divergencia sin obligación que la admita
+
+H-API-1161: `CopyMixin` duplica todo hijo `one_to_many` cuyo modelo lo adopte
+y omite los `Many2many` (medido sobre `res.partner`). `CopyMixin` no existe en
+la referencia, así que el censo de `src/orm` no le da obligaciones propias, y
+las que cubren su regla —`BaseModel.copy` y `BaseModel.copy_data`— ya están
+asentadas: `supply` las rechaza como duplicadas (INC-03). El trabajo queda sin
+unidad admisible. No se fabrica una obligación ajena para meterlo en el plan.
+
+Causa: el plan sólo admite obligaciones del censo de la referencia y no tiene
+vía de reapertura. Evidencia: el hallazgo, la sonda (`PROBE 1 2 probe-company
+(copy) 1`) y el contrato en
+`kaupamex-docs: .../completar-raiz-orm/analisis-contrato-de-copy.rst`.
+La capacidad que falta (reapertura u obligaciones de adaptación) corresponde
+al Provider, VM-A. Mientras tanto se continúa con obligaciones independientes.
+
