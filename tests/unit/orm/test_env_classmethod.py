@@ -16,7 +16,8 @@ import pytest
 from django.apps import apps
 
 from orm.environments import (
-    context_scope, get_context, get_current_uid, is_su, user_scope)
+    context_scope, env as current_environment, get_context, get_current_uid,
+    is_su, sudo, user_scope)
 from orm.models import _EnvClassmethod
 
 MODEL = 'test_orm.model_active_field'
@@ -106,3 +107,28 @@ def test_a_classmethod_declared_by_the_model_is_wrapped():
     bar = next(model for model in apps.get_models()
                if getattr(model, '_name', None) == 'test_orm.bar')
     assert isinstance(vars(bar)['_search_foo'], _EnvClassmethod)
+
+
+def test_env_returns_the_entered_environment(model):
+    """Dentro de ``with <entorno>:``, ``env()`` es ese entorno y no una vista
+    nueva de los canales: lo construido ahí conserva el contexto al salir.
+    Fuera del bloque vuelve a ser la vista ambiental."""
+    with user_scope(7):
+        derived = model.browse(()).with_context(active_test=False).env
+        with derived:
+            assert current_environment() is derived
+        assert current_environment() is not derived
+        assert current_environment().context.get('active_test') is None
+
+
+def test_a_nested_scope_wins_over_the_entered_environment(model):
+    """Un ``sudo()`` o un ``user_scope`` abierto dentro de ``with <entorno>:``
+    cambia el canal, y ``env()`` refleja lo que el bloque interior pidió."""
+    with user_scope(7):
+        derived = model.browse(()).with_context(active_test=False).env
+        with derived:
+            with sudo():
+                assert current_environment().su is True
+            with user_scope(9):
+                assert current_environment().uid == 9
+            assert current_environment() is derived

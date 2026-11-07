@@ -1031,6 +1031,7 @@ class Environment:
                 dict(self._context_override))))
         if self._su_override is not None:
             frame.append((_su, _su.set(bool(self._su_override))))
+        frame.append((_active_env, _active_env.set(self)))
         self._tokens.append(frame)
         return self
 
@@ -2016,7 +2017,23 @@ def env():
 
     Se llama en vez de ser un singleton porque el entorno es una **vista** de
     los canales: construirlo es barato y así nunca guarda una lectura vieja.
+
+    Dentro de un ``with <entorno>:`` devuelve **ese** entorno, con sus ejes
+    fijados: lo que se construya ahí —el recordset que devuelve un ``search``
+    llamado sobre ``records.with_context(...)``— queda en él y conserva su
+    contexto al salir del bloque, como el ``self.env`` de la referencia
+    (``odoo19c: odoo/orm/models.py:1383-1418``). Fuera de todo bloque sigue
+    siendo la vista de los canales.
+
+    El entorno abierto sólo se devuelve **mientras los canales coinciden con
+    él**: un ``sudo()``, ``user_scope`` o ``context_scope`` abierto dentro del
+    ``with`` cambia el canal y entonces gana la vista, que es lo que el bloque
+    interior pidió.
     """
+    active = _active_env.get()
+    if (active is not None and active.uid == get_current_uid()
+            and active.su == is_su() and active.context == get_context()):
+        return active
     return Environment()
 
 
@@ -2074,3 +2091,8 @@ def get_current_cr():
     declaró uno — ≙ el ``env.cr`` que comparten los recordsets de un
     entorno (``odoo19c: odoo/orm/environments.py:54``)."""
     return _cr.get()
+
+
+#: El entorno del ``with`` más interno abierto en este alcance, o ``None``.
+#: Lo fija :meth:`Environment.__enter__` y lo lee :func:`env`.
+_active_env: ContextVar = ContextVar('active_env', default=None)
