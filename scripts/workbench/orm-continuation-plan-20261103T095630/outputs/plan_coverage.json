@@ -60,7 +60,6 @@
   "TASK-API-0490",
   "TASK-API-0492",
   "TASK-API-0493",
-  "TASK-API-0501",
   "TASK-DOCS-0111",
   "TASK-DOCS-0539",
   "TASK-GEN-0058",
@@ -86,7 +85,8 @@
   "TASK-API-0485",
   "TASK-API-0486",
   "TASK-API-0499",
-  "TASK-API-0500"
+  "TASK-API-0500",
+  "TASK-API-0501"
  ],
  "obligations": {
   "satisfied": 956,
@@ -223,7 +223,8 @@
   "orm-field-determine-inverse-reference-0485",
   "orm-models-has-onchange-reference-0485",
   "web-export-rec-name-fallback-0499",
-  "web-export-many2many-meta-0500"
+  "web-export-many2many-meta-0500",
+  "base-ttype-for-delegation-0501"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
