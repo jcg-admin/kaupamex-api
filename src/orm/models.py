@@ -6167,6 +6167,46 @@ class BaseModel(DefaultGetMixin, Model):
         return {key: val[0] if val else ''
                 for key, val in results.items()}
 
+    def get_metadata(self):
+        """Return some metadata about the given records.
+        — ≙ ``get_metadata`` (``odoo19c: odoo/orm/models.py``)
+
+        :returns: list of ownership dictionaries for each requested record
+            with the keys ``id``, the ``_log_access`` columns, ``xmlid``,
+            ``xmlids`` and ``noupdate``.
+
+        **Divergencia declarada, la de** ``LOG_ACCESS_COLUMNS``: allá son
+        los dos usuarios y las dos fechas; aquí, las dos fechas que el árbol
+        declara (``orm/model_classes.py``). Se leen sólo si el modelo las
+        tiene, porque ``_log_access`` no las crea: son campos declarados.
+        El ``sudo()`` sobre ``ir.model.data`` es el gestor de Django, que no
+        filtra por permiso, como en :meth:`_get_external_ids`.
+        """
+        Data = apps.get_model('base', 'IrModelData')
+        fields_ = self._fields
+        if (getattr(type(self), '_log_access', True)
+                and all(name in fields_ for name in LOG_ACCESS_COLUMNS)):
+            res = self.read(LOG_ACCESS_COLUMNS)
+        else:
+            res = [{'id': x} for x in self.ids]
+
+        xml_data = collections.defaultdict(list)
+        imds = Data.objects.filter(
+            model=self._meta.label, res_id__in=list(self.ids),
+        ).order_by('-pk').values('res_id', 'noupdate', 'module', 'name')
+        for imd in imds:
+            xml_data[imd['res_id']].append({
+                'xmlid': "%s.%s" % (imd['module'], imd['name']),
+                'noupdate': imd['noupdate'],
+            })
+
+        for r in res:
+            main = xml_data.get(r['id'], [{}])[-1]
+            r['xmlid'] = main.get('xmlid', False)
+            r['noupdate'] = main.get('noupdate', False)
+            r['xmlids'] = xml_data.get(r['id'], [])[::-1]
+        return res
+
     def lock_for_update(self, *, allow_referencing=False):
         """Bloquea en exclusiva todas las filas de ``self`` o lanza
         ``LockError``. — ≙ ``lock_for_update``
