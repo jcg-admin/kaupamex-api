@@ -87,15 +87,34 @@ el flujo de la referencia:
   de `CopyMixin` podrían pasar sus `One2many` por `copy_data` como la fuente;
   sucesor en TASK-API-0485.
 
+## 3-bis. Reapertura: líneas archivadas y `CopyMixin` (adenda 3.2.7)
+
+- **`active_test` no era una ceguera inocua.** Con un mensaje archivado la
+  referencia deja 2 mensajes en la copia (1 activo) y el puerto dejaba 1: la
+  lectura del `One2many` filtraba con el contexto ambiental, no con el del
+  registro (`convert_to_record`, `fields_relational.py:643-653`). Prueba roja
+  `api@14000fd3`, corrección `api@0be433be`, unidad
+  `orm-x2many-record-env-reference-0485`. `supply` rechazó reabrir
+  `BaseModel.copy` como duplicado (INC-03, segunda ocurrencia).
+- **`CopyMixin` decide por otra regla** (H-API-1161): duplica todo hijo
+  `one_to_many` cuyo modelo lo adopte y omite los `Many2many`. Medido: copiar
+  una empresa `res.partner` duplica su contacto. Sin unidad todavía.
+- El contrato, los dos flujos y el criterio de cierre del contrato padre
+  viven en `kaupamex-docs:
+  source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-copy.rst`.
+- En el inventario `_RelationalMulti.convert_to_record` queda `not_verified`
+  con evidencia: el puerto lo implementa como función de módulo y el censo no
+  empareja esas adjunciones.
+
 ## 4. Controles de anulación
 
 Ignorar `field.copy`, saltar el `Many2many`, vaciar el `One2many`, ignorar
 el `default` al elegir campos y crear sólo el primero de un lote: cada uno
 hace fallar la rejilla. Quedan ciegos, por construcción de la rejilla: el
 `convert_to_write` de los escalares (el valor es el mismo), la guarda de
-recursión (no hay relación circular), `active_test` (no hay líneas
-archivadas), el filtro de enlaces legibles (modo superusuario) y
-`copy_translations` (#333).
+recursión (no hay relación circular), el filtro de enlaces legibles (modo
+superusuario) y `copy_translations` (#333). `active_test` dejó de ser ciego
+en la reapertura (3-bis).
 
 ## 5. Verificación
 
