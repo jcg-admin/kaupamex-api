@@ -425,6 +425,35 @@ def _unlinked_discussion(model):
             Discussion.unlink(), discussion.exists().ids)
 
 
+def _external_ids(model, chain):
+    """``_get_external_ids`` y ``get_external_id`` (``odoo19c:
+    odoo/orm/models.py:5695-5735``) sobre la cadena: la raíz con
+    dos ids externos, en orden de creación, el hijo con uno y el nieto sin
+    ninguno. Las claves se traducen al nombre del registro."""
+    Data = model.browse(()).env['ir.model.data']
+    by_name = {record.name: record for record in chain}
+    root, child = by_name[f'{PREFIX}a-root'], by_name[f'{PREFIX}b-child']
+    rows = [('root_one', root.id), ('root_two', root.id), ('child', child.id)]
+    if hasattr(Data, 'search'):
+        # la referencia: ``ir.model.data`` es un modelo de su ORM, y la
+        # columna ``model`` lleva el nombre con puntos
+        if not Data.search([('module', '=', 'grid')]):
+            Data.create([{'module': 'grid', 'name': name,
+                          'model': model._name, 'res_id': res_id}
+                         for name, res_id in rows])
+    elif not Data.objects.filter(module='grid').exists():
+        # el puerto: un modelo de Django, y la columna ``model`` lleva la
+        # etiqueta de Django, que es lo que escribe su único escritor
+        Data.objects.bulk_create([
+            Data(module='grid', name=name, model=model._meta.label,
+                 res_id=res_id) for name, res_id in rows])
+    names = {record.id: record.name for record in chain}
+    return (sorted((names[key], value)
+                   for key, value in chain._get_external_ids().items()),
+            sorted((names[key], value)
+                   for key, value in chain.get_external_id().items()))
+
+
 def _by_id(record):
     return record.id
 
@@ -579,6 +608,7 @@ def trace(Domain, model, model_name):
             {'name': 'N'}).try_lock_for_update(limit=1))),
         ('lock chain and new', lambda: _names((chain + model.new(
             {'name': 'N'})).try_lock_for_update())),
+        ('external ids', lambda: _external_ids(model, chain)),
         ('lock_for_update chain', lambda: chain.lock_for_update()),
         ('lock_for_update referencing', lambda: chain.lock_for_update(
             allow_referencing=True)),
