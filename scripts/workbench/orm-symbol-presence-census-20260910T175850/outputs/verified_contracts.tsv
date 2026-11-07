@@ -961,3 +961,4 @@ src/orm/models.py	BaseModel.name_create	method	tests/unit/orm/test_contract_mode
 src/orm/models.py	BaseModel.with_context	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.search_count	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	_RelationalMulti.convert_to_record	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_relational.py	Many2many.read	method	tests/unit/orm/test_contract_model_persisted_reference.py
