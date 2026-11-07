@@ -454,6 +454,22 @@ def _external_ids(model, chain):
                    for key, value in chain.get_external_id().items()))
 
 
+def _metadata(chain):
+    """``get_metadata`` (``odoo19c: odoo/orm/models.py``,
+    ``BaseModel.get_metadata``) sobre la cadena, después del paso de ids
+    externos: la raíz con dos, el hijo con uno y el nieto sin ninguno. Se
+    compara la parte de ``ir.model.data`` —``xmlid``, ``noupdate`` y
+    ``xmlids``, en el orden que la fuente fija—. Las columnas de
+    ``_log_access`` quedan fuera: el puerto declara otras
+    (``LOG_ACCESS_COLUMNS``, ``orm/model_classes.py``), divergencia ya
+    registrada."""
+    names = {record.id: record.name for record in chain}
+    return sorted((names[row['id']], row['xmlid'], row['noupdate'],
+                   [item['xmlid'] for item in row['xmlids']],
+                   [item['noupdate'] for item in row['xmlids']])
+                  for row in chain.get_metadata())
+
+
 def _updated(model):
     """``update`` (``odoo19c: odoo/orm/models.py``, ``BaseModel.update``)
     asigna cada valor con ``self[name] = value``: sobre un registro guardado
@@ -626,6 +642,8 @@ def trace(Domain, model, model_name):
         ('lock chain and new', lambda: _names((chain + model.new(
             {'name': 'N'})).try_lock_for_update())),
         ('external ids', lambda: _external_ids(model, chain)),
+        ('metadata', lambda: _metadata(chain)),
+        ('metadata empty', lambda: model.browse(()).get_metadata()),
         ('lock_for_update chain', lambda: chain.lock_for_update()),
         ('lock_for_update referencing', lambda: chain.lock_for_update(
             allow_referencing=True)),
