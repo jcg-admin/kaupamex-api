@@ -5719,6 +5719,20 @@ class BaseModel(DefaultGetMixin, Model):
         """
         return dict(registry.onchange_methods(type(self)))
 
+    def _has_onchange(self, field, other_fields):
+        """ Return whether ``field`` should trigger an onchange event in the
+            presence of ``other_fields``. — ≙ ``_has_onchange``
+            (``odoo19c: odoo/orm/models.py``)
+
+        El ``self.pool`` de la fuente es aquí el módulo :mod:`orm.registry`,
+        que expone ``get_dependent_fields`` con la misma firma (la anotación
+        ``pool`` de esta clase no lleva valor, ver su comentario).
+        """
+        return (field.name in self._onchange_methods) or any(
+            dep in other_fields
+            for dep in registry.get_dependent_fields(field.base_field)
+        )
+
     @property
     def _table_sql(self):
         """El ``SQL`` de la tabla del modelo, o de su consulta — ≙
