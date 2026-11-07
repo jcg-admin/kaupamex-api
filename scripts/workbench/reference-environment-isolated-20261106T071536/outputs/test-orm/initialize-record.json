@@ -1,0 +1,7 @@
+{
+  "database": "orm_refproc_test_orm",
+  "created": true,
+  "modules": "test_orm",
+  "init_exit": 0,
+  "log_errors": 0
+}

@@ -1,0 +1,195 @@
+Running as user 'root' is a security risk.
+2026-11-07 02:23:12,177 18099 WARNING ? odoo.tools.config: option --without-demo: since 19.0, invalid boolean value: 'all', assume True 
+2026-11-07 02:23:12,177 18099 WARNING ? odoo.tools.config: missing --http-interface/http_interface, using 0.0.0.0 by default, will change to 127.0.0.1 in 20.0 
+2026-11-07 02:23:12,178 18099 INFO ? odoo: Odoo version 19.0 
+2026-11-07 02:23:12,178 18099 INFO ? odoo: addons paths: _NamespacePath(['/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons', '/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/refdata3/addons/19.0', '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons']) 
+2026-11-07 02:23:12,178 18099 INFO ? odoo: database: orm_x2hokp@127.0.0.1:5432 
+2026-11-07 02:23:13,710 18099 INFO orm_refproc_test_orm odoo.modules.loading: Initializing database orm_refproc_test_orm 
+2026-11-07 02:23:14,788 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading 1 modules... 
+2026-11-07 02:23:14,788 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module base (1/1) 
+2026-11-07 02:23:14,820 18099 INFO orm_refproc_test_orm odoo.registry: module base: creating or updating database tables 
+2026-11-07 02:23:15,152 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of ir.module.module.menus_by_module 
+2026-11-07 02:23:15,153 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of ir.module.module.reports_by_module 
+2026-11-07 02:23:15,153 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of ir.module.module.views_by_module 
+2026-11-07 02:23:15,283 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.user_id 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.commercial_partner_id 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.complete_name 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.lang 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.company_registry 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.commercial_company_name 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.properties 
+2026-11-07 02:23:15,284 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.partner.partner_share 
+2026-11-07 02:23:15,326 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.currency.decimal_places 
+2026-11-07 02:23:15,350 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.company.uses_default_logo 
+2026-11-07 02:23:15,350 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.company.logo_web 
+2026-11-07 02:23:15,352 18099 INFO orm_refproc_test_orm odoo.models: Computing parent_path for table res_company... 
+2026-11-07 02:23:15,379 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.users.signature 
+2026-11-07 02:23:15,379 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.users.share 
+2026-11-07 02:23:16,853 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_bank.xml 
+2026-11-07 02:23:16,861 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res.lang.csv 
+2026-11-07 02:23:16,892 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_lang_data.xml 
+2026-11-07 02:23:16,937 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_partner_data.xml 
+2026-11-07 02:23:16,994 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_currency_data.xml 
+2026-11-07 02:23:17,834 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_company_data.xml 
+2026-11-07 02:23:17,845 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_users_data.xml 
+2026-11-07 02:23:18,511 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/report_paperformat_data.xml 
+2026-11-07 02:23:18,523 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res_country_data.xml 
+2026-11-07 02:23:19,239 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/ir_demo_data.xml 
+2026-11-07 02:23:19,255 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/security/base_groups.xml 
+2026-11-07 02:23:19,428 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/security/base_security.xml 
+2026-11-07 02:23:19,598 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/wizard_ir_model_menu_create_views.xml 
+2026-11-07 02:23:19,610 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/base_menus.xml 
+2026-11-07 02:23:19,671 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/decimal_precision_views.xml 
+2026-11-07 02:23:19,700 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_config_views.xml 
+2026-11-07 02:23:19,708 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/res.country.state.csv 
+2026-11-07 02:23:20,048 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_actions_views.xml 
+2026-11-07 02:23:20,231 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_asset_views.xml 
+2026-11-07 02:23:20,255 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_config_parameter_views.xml 
+2026-11-07 02:23:20,281 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_cron_views.xml 
+2026-11-07 02:23:20,321 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_cron_trigger_views.xml 
+2026-11-07 02:23:20,348 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_filters_views.xml 
+2026-11-07 02:23:20,379 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_mail_server_views.xml 
+2026-11-07 02:23:20,405 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_model_views.xml 
+2026-11-07 02:23:20,568 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_attachment_views.xml 
+2026-11-07 02:23:20,598 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_rule_views.xml 
+2026-11-07 02:23:20,628 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_sequence_views.xml 
+2026-11-07 02:23:20,659 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_ui_menu_views.xml 
+2026-11-07 02:23:20,685 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_ui_view_views.xml 
+2026-11-07 02:23:20,749 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_default_views.xml 
+2026-11-07 02:23:20,776 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/ir_config_parameter_data.xml 
+2026-11-07 02:23:20,780 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/ir_cron_data.xml 
+2026-11-07 02:23:20,795 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/report/ir_model_report.xml 
+2026-11-07 02:23:20,800 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/report/ir_model_templates.xml 
+2026-11-07 02:23:20,809 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_logging_views.xml 
+2026-11-07 02:23:20,834 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_qweb_widget_templates.xml 
+2026-11-07 02:23:20,850 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_module_views.xml 
+2026-11-07 02:23:20,912 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/ir_module_category_data.xml 
+2026-11-07 02:23:20,966 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/ir_module_module.xml 
+2026-11-07 02:23:21,047 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/report/ir_module_reports.xml 
+2026-11-07 02:23:21,053 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/report/ir_module_report_templates.xml 
+2026-11-07 02:23:21,061 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_module_update_views.xml 
+2026-11-07 02:23:21,079 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_language_install_views.xml 
+2026-11-07 02:23:21,102 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_import_language_views.xml 
+2026-11-07 02:23:21,118 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_module_upgrade_views.xml 
+2026-11-07 02:23:21,142 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_module_uninstall_views.xml 
+2026-11-07 02:23:21,153 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_export_language_views.xml 
+2026-11-07 02:23:21,169 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/wizard/base_partner_merge_views.xml 
+2026-11-07 02:23:21,188 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/data/ir_demo_failure_data.xml 
+2026-11-07 02:23:21,209 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/ir_profile_views.xml 
+2026-11-07 02:23:21,240 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_company_views.xml 
+2026-11-07 02:23:21,266 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_lang_views.xml 
+2026-11-07 02:23:21,293 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_partner_views.xml 
+2026-11-07 02:23:21,405 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_bank_views.xml 
+2026-11-07 02:23:21,449 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_country_views.xml 
+2026-11-07 02:23:21,506 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_currency_views.xml 
+2026-11-07 02:23:21,549 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_groups_views.xml 
+2026-11-07 02:23:21,603 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_users_views.xml 
+2026-11-07 02:23:21,722 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_users_apikeys_views.xml 
+2026-11-07 02:23:21,730 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_device_views.xml 
+2026-11-07 02:23:21,755 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_users_identitycheck_views.xml 
+2026-11-07 02:23:21,763 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/res_config_settings_views.xml 
+2026-11-07 02:23:21,773 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/views/report_paperformat_views.xml 
+2026-11-07 02:23:21,804 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base/security/ir.model.access.csv 
+2026-11-07 02:23:21,917 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module base loaded in 7.13s, 8410 queries (+8410 other) 
+2026-11-07 02:23:21,917 18099 INFO orm_refproc_test_orm odoo.modules.loading: 1 modules loaded in 7.13s, 8410 queries (+8410 extra) 
+2026-11-07 02:23:21,921 18099 INFO orm_refproc_test_orm odoo.modules.loading: updating modules list 
+2026-11-07 02:23:21,922 18099 INFO orm_refproc_test_orm odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-11-07 02:23:22,771 18099 INFO orm_refproc_test_orm odoo.addons.base.models.ir_module: ALLOW access to module.button_install on ['Test ORM'] to user __system__ #1 via n/a 
+2026-11-07 02:23:22,823 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading 15 modules... 
+2026-11-07 02:23:22,823 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module rpc (2/15) 
+2026-11-07 02:23:22,849 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module rpc loaded in 0.03s, 9 queries (+9 other) 
+2026-11-07 02:23:22,850 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module web (3/15) 
+2026-11-07 02:23:22,890 18099 INFO orm_refproc_test_orm odoo.registry: module web: creating or updating database tables 
+2026-11-07 02:23:23,407 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/security/ir.model.access.csv 
+2026-11-07 02:23:23,417 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/security/web_security.xml 
+2026-11-07 02:23:23,433 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/webclient_templates.xml 
+2026-11-07 02:23:23,500 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/report_templates.xml 
+2026-11-07 02:23:23,620 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/base_document_layout_views.xml 
+2026-11-07 02:23:23,639 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/partner_view.xml 
+2026-11-07 02:23:23,648 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/speedscope_template.xml 
+2026-11-07 02:23:23,658 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/memory_template.xml 
+2026-11-07 02:23:23,664 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/speedscope_config_wizard.xml 
+2026-11-07 02:23:23,672 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/neutralize_views.xml 
+2026-11-07 02:23:23,681 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/views/ir_ui_view_views.xml 
+2026-11-07 02:23:23,692 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/data/ir_attachment.xml 
+2026-11-07 02:23:23,698 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web/data/report_layout.xml 
+2026-11-07 02:23:23,749 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module web loaded in 0.90s, 1232 queries (+1232 other) 
+2026-11-07 02:23:23,749 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module api_doc (4/15) 
+2026-11-07 02:23:23,761 18099 INFO orm_refproc_test_orm odoo.registry: module api_doc: creating or updating database tables 
+2026-11-07 02:23:23,782 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading api_doc/security/res_groups.xml 
+2026-11-07 02:23:23,805 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading api_doc/views/docclient.xml 
+2026-11-07 02:23:23,831 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module api_doc loaded in 0.08s, 63 queries (+63 other) 
+2026-11-07 02:23:23,832 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module auth_totp (5/15) 
+2026-11-07 02:23:23,878 18099 INFO orm_refproc_test_orm odoo.registry: module auth_totp: creating or updating database tables 
+2026-11-07 02:23:23,963 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_totp/security/security.xml 
+2026-11-07 02:23:23,994 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_totp/security/ir.model.access.csv 
+2026-11-07 02:23:24,002 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_totp/data/ir_action_data.xml 
+2026-11-07 02:23:24,011 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_totp/views/res_users_views.xml 
+2026-11-07 02:23:24,053 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_totp/views/templates.xml 
+2026-11-07 02:23:24,059 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_totp/wizard/auth_totp_wizard_views.xml 
+2026-11-07 02:23:24,085 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module auth_totp loaded in 0.25s, 218 queries (+218 other) 
+2026-11-07 02:23:24,085 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module base_import (6/15) 
+2026-11-07 02:23:24,127 18099 INFO orm_refproc_test_orm odoo.registry: module base_import: creating or updating database tables 
+2026-11-07 02:23:24,643 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_import/security/ir.model.access.csv 
+2026-11-07 02:23:24,660 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module base_import loaded in 0.58s, 956 queries (+956 other) 
+2026-11-07 02:23:24,661 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module base_import_module (7/15) 
+2026-11-07 02:23:24,675 18099 INFO orm_refproc_test_orm odoo.registry: module base_import_module: creating or updating database tables 
+2026-11-07 02:23:24,755 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_import_module/security/ir.model.access.csv 
+2026-11-07 02:23:24,764 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_import_module/views/base_import_module_view.xml 
+2026-11-07 02:23:24,793 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_import_module/views/ir_module_views.xml 
+2026-11-07 02:23:24,854 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module base_import_module loaded in 0.19s, 172 queries (+172 other) 
+2026-11-07 02:23:24,854 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module base_setup (8/15) 
+2026-11-07 02:23:24,866 18099 INFO orm_refproc_test_orm odoo.registry: module base_setup: creating or updating database tables 
+2026-11-07 02:23:24,916 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_setup/data/base_setup_data.xml 
+2026-11-07 02:23:24,922 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_setup/views/res_config_settings_views.xml 
+2026-11-07 02:23:24,960 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading base_setup/views/res_partner_views.xml 
+2026-11-07 02:23:24,990 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module base_setup loaded in 0.14s, 152 queries (+152 other) 
+2026-11-07 02:23:24,990 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module bus (9/15) 
+2026-11-07 02:23:25,018 18099 INFO orm_refproc_test_orm odoo.registry: module bus: creating or updating database tables 
+2026-11-07 02:23:25,120 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading bus/security/ir.model.access.csv 
+2026-11-07 02:23:25,133 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module bus loaded in 0.14s, 155 queries (+155 other) 
+2026-11-07 02:23:25,133 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module web_tour (10/15) 
+2026-11-07 02:23:25,143 18099 INFO orm_refproc_test_orm odoo.registry: module web_tour: creating or updating database tables 
+2026-11-07 02:23:25,148 18099 INFO orm_refproc_test_orm odoo.models: Prepare computation of res.users.tour_enabled 
+2026-11-07 02:23:25,229 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web_tour/security/ir.model.access.csv 
+2026-11-07 02:23:25,239 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web_tour/views/tour_views.xml 
+2026-11-07 02:23:25,290 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module web_tour loaded in 0.16s, 180 queries (+180 other) 
+2026-11-07 02:23:25,290 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module test_orm (11/15) 
+2026-11-07 02:23:25,356 18099 INFO orm_refproc_test_orm odoo.registry: module test_orm: creating or updating database tables 
+2026-11-07 02:23:27,735 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading test_orm/security/ir.model.access.csv 
+2026-11-07 02:23:27,824 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading test_orm/security/test_orm_security.xml 
+2026-11-07 02:23:27,836 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading test_orm/views/test_orm_views.xml 
+2026-11-07 02:23:28,043 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading test_orm/data/test_orm_data.xml 
+2026-11-07 02:23:28,104 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module test_orm loaded in 2.81s, 3231 queries (+3231 other) 
+2026-11-07 02:23:28,104 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module auth_passkey (12/15) 
+2026-11-07 02:23:28,205 18099 INFO orm_refproc_test_orm odoo.registry: module auth_passkey: creating or updating database tables 
+2026-11-07 02:23:28,299 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_passkey/views/auth_passkey_key_views.xml 
+2026-11-07 02:23:28,327 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_passkey/views/auth_passkey_login_templates.xml 
+2026-11-07 02:23:28,344 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_passkey/views/res_users_identitycheck_views.xml 
+2026-11-07 02:23:28,356 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_passkey/views/res_users_views.xml 
+2026-11-07 02:23:28,380 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_passkey/security/ir.model.access.csv 
+2026-11-07 02:23:28,391 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading auth_passkey/security/security.xml 
+2026-11-07 02:23:28,426 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module auth_passkey loaded in 0.32s, 218 queries (+218 other) 
+2026-11-07 02:23:28,426 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module html_editor (13/15) 
+2026-11-07 02:23:28,846 18099 INFO orm_refproc_test_orm odoo.registry: module html_editor: creating or updating database tables 
+2026-11-07 02:23:29,870 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading html_editor/security/ir.model.access.csv 
+2026-11-07 02:23:29,888 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module html_editor loaded in 1.46s, 1878 queries (+1878 other) 
+2026-11-07 02:23:29,888 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module iap (14/15) 
+2026-11-07 02:23:29,893 18099 INFO orm_refproc_test_orm odoo.registry: module iap: creating or updating database tables 
+2026-11-07 02:23:29,970 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading iap/data/services.xml 
+2026-11-07 02:23:29,976 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading iap/security/ir.model.access.csv 
+2026-11-07 02:23:29,984 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading iap/security/ir_rule.xml 
+2026-11-07 02:23:29,992 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading iap/views/iap_views.xml 
+2026-11-07 02:23:30,020 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading iap/views/res_config_settings.xml 
+2026-11-07 02:23:30,046 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module iap loaded in 0.16s, 182 queries (+182 other) 
+2026-11-07 02:23:30,046 18099 INFO orm_refproc_test_orm odoo.modules.loading: Loading module web_unsplash (15/15) 
+2026-11-07 02:23:30,059 18099 INFO orm_refproc_test_orm odoo.registry: module web_unsplash: creating or updating database tables 
+2026-11-07 02:23:30,098 18099 INFO orm_refproc_test_orm odoo.modules.loading: loading web_unsplash/views/res_config_settings_view.xml 
+2026-11-07 02:23:30,134 18099 INFO orm_refproc_test_orm odoo.modules.loading: Module web_unsplash loaded in 0.09s, 93 queries (+93 other) 
+2026-11-07 02:23:30,134 18099 INFO orm_refproc_test_orm odoo.modules.loading: 15 modules loaded in 7.31s, 8739 queries (+8739 extra) 
+2026-11-07 02:23:30,518 18099 INFO orm_refproc_test_orm odoo.modules.loading: Modules loaded. 
+2026-11-07 02:23:30,528 18099 INFO orm_refproc_test_orm odoo.registry: Registry changed, signaling through the database 
+2026-11-07 02:23:30,530 18099 INFO orm_refproc_test_orm odoo.registry: Registry loaded in 17.057s 
+2026-11-07 02:23:30,530 18099 INFO orm_refproc_test_orm odoo.service.server: Initiating shutdown 
+2026-11-07 02:23:30,530 18099 INFO orm_refproc_test_orm odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-11-07 02:23:30,530 18099 INFO orm_refproc_test_orm odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  

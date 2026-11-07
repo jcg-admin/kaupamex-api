@@ -76,3 +76,29 @@ Siguiente trabajo ejecutable: los `pending_verification` de `registry.py` y
 `environments.py` que no dependen de datos de la base (las vistas de la
 transacción y las guardas de elevación), con la misma prueba diferencial
 contra el proceso de referencia.
+
+## La base con `test_orm` (2026-11-07)
+
+`initialize_reference_database.py` acepta un quinto argumento con los módulos
+de `-i`; por omisión sigue siendo `base`. La ruta de addons incluye ahora
+`odoo/addons` y `addons`, porque `test_orm` depende de `web` y `web_tour`.
+
+```bash
+.venv/bin/python initialize_reference_database.py "$S/refenv/bin/python" \
+    orm_refproc_test_orm "$S/refdata3" outputs/test-orm test_orm
+```
+
+Resultado: `outputs/test-orm/initialize-record.json`, salida 0 y 0 líneas
+de error en el registro. Sirve para las rejillas que necesitan un modelo con
+relaciones o con padre que exista a la vez aquí y en el puerto: el puerto
+declara los mismos modelos en `addons/test_orm`.
+
+Las 25 suites que usan el proceso de referencia dan el mismo resultado sobre
+las dos bases: 282 passed, sin omisiones, con
+`CONTRACT_REFERENCE_DATABASE=orm_refproc_contract` y con
+`orm_refproc_test_orm`.
+
+*Métrica:* el recuento de pytest de las suites marcadas `reference` sobre
+cada base.
+*Ciega a:* una diferencia de respuesta que las rejillas actuales no
+preguntan; las dos bases difieren en los addons instalados, no en `base`.

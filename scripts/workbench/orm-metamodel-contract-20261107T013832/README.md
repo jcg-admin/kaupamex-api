@@ -50,4 +50,12 @@ prueba.
 | `DomainCustom.__eq__/__hash__/__iter__` y su predicado | asentada (`orm-domains-custom-reference-0485`, `de762a73`) | — |
 | `_value_to_date` / `_value_to_datetime` | no priorizada | firma divergente ya declarada (sin `env`); su conducta la ejerce la rejilla de dominios con modelo a través de los optimizadores de fecha |
 | `search_fetch`, y con ella `search_read` | **bloqueada** | `_search` del puerto devuelve un `QuerySet` de Django (divergencia declarada) y `_fetch_query`, como la fuente, recibe un `Query`; unir los dos exige decidir el paso de uno a otro |
-| `fields_get`, `_read_format` | pendientes | dependencias de `search_read`; se evalúan independientemente de ella |
+| `fields_get` | asentada (`orm-models-fields-get-reference-0485`, `3437414e`) | sus consumidores siguen con sustitutos; sucesor en TASK-API-0485 |
+| `_read_format`, `read` | asentadas (`orm-models-read-format-reference-0485`, `8123601d`) | destapó H-API-1158: leer un registro ausente levantaba `DoesNotExist` |
+| `Many2one.convert_to_read` | **bloqueada por la rejilla** | ningún modelo con un `Many2one` hacia un `BaseModel` existe a la vez en la base de referencia (sólo `base`) y en el puerto: el `ir.attachment` del puerto sólo apunta a `res.company`, que no es `BaseModel`. Se desbloquea instalando `test_orm` en la base de referencia (`initialize_reference_database.py`, quinto argumento) |
+
+**Revisión de `search_fetch`.** `fetch` ya resuelve la misma distancia entre
+`QuerySet` y `Query`: pide primero los ids visibles y arma la consulta con
+`_as_query` sobre ellos. `search_fetch` puede reutilizar esa forma, que es una
+divergencia ya declarada y no una decisión nueva; deja de estar bloqueada en
+cuanto exista una rejilla con registros persistidos.

@@ -1,4 +1,4 @@
-"""Crea la base desechable de la referencia e instala el addon ``base``.
+"""Crea la base desechable de la referencia e instala ``base`` u otros addons.
 
 Los diferenciales con modelo (``tests/fixtures/reference_process.py``)
 necesitan un ``Registry`` real de ``odoo19c``, y ese registro no se monta sin
@@ -15,7 +15,12 @@ comando, y no se escriben en el registro.
 Uso::
 
     .venv/bin/python initialize_reference_database.py <python de referencia>
-        <base> <data_dir> <salida>
+        <base> <data_dir> <salida> [<módulos>]
+
+``<módulos>`` es la lista separada por comas que recibe ``-i``; por omisión,
+``base``. Con ``test_orm`` la base trae los modelos de prueba de la fuente
+(``odoo19c: odoo/addons/test_orm``), que dependen de ``web`` y ``web_tour``;
+por eso la ruta de addons incluye las dos raíces del árbol.
 
 Al terminar imprime las tres variables que ``reference_process`` lee.
 """
@@ -32,6 +37,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 REFERENCE_ROOT = pathlib.Path(
     '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0')
 PREFIX = 'orm_refproc_'
+ADDONS_PATH = ','.join(str(REFERENCE_ROOT / part)
+                       for part in ('odoo/addons', 'addons'))
 #: La instalación de ``base`` tardó menos de dos minutos; el tope corta un
 #: bloqueo, no una ejecución lenta.
 INIT_BUDGET = 1800
@@ -61,8 +68,8 @@ def create_database(environment, name):
         return not exists
 
 
-def main(python, name, data_dir, out):
-    """Crea la base, instala ``base`` y registra el resultado."""
+def main(python, name, data_dir, out, modules='base'):
+    """Crea la base, instala ``modules`` y registra el resultado."""
     assert name.startswith(PREFIX), f'la base debe empezar por {PREFIX}'
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -73,13 +80,12 @@ def main(python, name, data_dir, out):
     with log.open('w') as handle:
         done = subprocess.run(
             [python, '-I', '-B', '-c', CLI, str(REFERENCE_ROOT), '-d', name,
-             '-i', 'base', '--stop-after-init', '--without-demo=all',
-             '--data-dir', data_dir,
-             f'--addons-path={REFERENCE_ROOT / "odoo" / "addons"}'],
+             '-i', modules, '--stop-after-init', '--without-demo=all',
+             '--data-dir', data_dir, f'--addons-path={ADDONS_PATH}'],
             stdout=handle, stderr=subprocess.STDOUT, timeout=INIT_BUDGET,
             env={'PATH': os.environ['PATH'], 'PYTHONDONTWRITEBYTECODE': '1',
                  **environment}, check=False)
-    record = {'database': name, 'created': created,
+    record = {'database': name, 'created': created, 'modules': modules,
               'init_exit': done.returncode,
               'log_errors': sum(1 for line in log.read_text().splitlines()
                                 if ' ERROR ' in line or 'Traceback' in line)}
@@ -94,4 +100,4 @@ def main(python, name, data_dir, out):
 
 
 if __name__ == '__main__':
-    sys.exit(main(*sys.argv[1:5]))
+    sys.exit(main(*sys.argv[1:6]))
