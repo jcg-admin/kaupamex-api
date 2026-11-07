@@ -469,6 +469,7 @@ def adopt_display_name(model_cls):
 
     mixin = importlib.import_module('orm.models').DisplayNameMixin
     adopted = 0
+    hung = []
 
     if _lacks_contributed_display_name(model_cls):
         model_cls.add_to_class(
@@ -481,7 +482,17 @@ def adopt_display_name(model_cls):
             continue
         if getattr(model_cls, name, None) is None:
             setattr(model_cls, name, mixin.__dict__[name])
+            hung.append(name)
             adopted += 1
+    # Lo colgado aquí no pasó por ``BaseModel.__init_subclass__``: sus
+    # métodos de clase se envuelven para que, pedidos sobre un recordset,
+    # corran en su entorno (H-API-1160). Durante la importación de
+    # ``orm.models`` la envoltura aún no existe; los modelos preparados en
+    # ese tramo los envuelve el barrido del final de ese módulo.
+    models_module = importlib.import_module('orm.models')
+    wrap = getattr(models_module, 'wrap_env_classmethods', None)
+    if hung and wrap and issubclass(model_cls, models_module.BaseModel):
+        wrap(model_cls, hung)
     return adopted
 
 

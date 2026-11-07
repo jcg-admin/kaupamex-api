@@ -1168,3 +1168,4 @@
 {"id":"c-bfc928ee-4869-43bf-87e0-a127acdcf93c","op":"claim","path":"src/orm/environments.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T05:23:09.230Z","task":"TASK-API-0485"}
 {"id":"c-f40c8ab0-7d6d-4600-bfff-3cc58ca39422","op":"claim","path":"tests/fixtures/model_persisted_grid.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T05:23:09.230Z","task":"TASK-API-0485"}
 {"id":"c-c6a5648f-1a95-4da9-bb81-ae19634ed50e","op":"claim","path":"tests/unit/orm/test_contract_model_persisted_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T05:23:09.230Z","task":"TASK-API-0485"}
+{"id": "c-2b8caab8-7715-4892-95ed-364e8f4e11d5", "op": "claim", "path": "src/orm/model_classes.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-07T05:33:43.213Z", "task": "TASK-API-0485"}

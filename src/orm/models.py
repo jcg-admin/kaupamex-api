@@ -7668,3 +7668,83 @@ def _table_has_rows(cls) -> bool:
 
 Model._init_column = classmethod(_init_column)
 Model._table_has_rows = classmethod(ormcache()(_table_has_rows))
+
+
+class _EnvClassmethod(classmethod):
+    """Método de clase que, pedido sobre un recordset, corre en su entorno.
+
+    ≙ la llamada ``records.search(...)`` de la referencia, donde ``search`` es
+    un método de instancia y lee ``self.env`` (``odoo19c:
+    odoo/orm/models.py:1363``): el ``uid``, la elevación y el contexto que
+    ``with_context``, ``sudo`` y ``with_user`` fijaron viajan con el
+    recordset. Aquí ``search``, ``create`` o ``name_create`` son métodos de
+    clase y leen los canales de :mod:`orm.environments`; sin esta envoltura el
+    entorno del recordset se perdía en la llamada (H-API-1160).
+
+    **Divergencia de mecanismo, declarada.** No se convierten en métodos de
+    instancia: la clase sigue siendo el modelo vacío de la referencia y la
+    llaman cientos de sitios sin recordset. Lo que se añade es entrar en
+    ``instance.env`` —:meth:`Environment.__enter__` activa sus ejes y
+    ``__exit__`` restaura los previos— cuando el método se pide desde una
+    instancia. Pedido desde la clase, se comporta como un ``classmethod``.
+    """
+
+    def __init__(self, method):
+        super().__init__(method.__func__)
+        self.__dict__.update(getattr(method, '__dict__', {}))
+
+    def __get__(self, instance, owner=None):
+        bound = super().__get__(instance, owner)
+        environment = getattr(instance, 'env', None) if instance is not None \
+            else None
+        if environment is None or not hasattr(environment, '__enter__'):
+            return bound
+
+        @functools.wraps(bound)
+        def within_environment(*args, **kwargs):
+            with environment:
+                return bound(*args, **kwargs)
+
+        return within_environment
+
+
+def wrap_env_classmethods(cls, names=None):
+    """Envuelve, en ``cls``, cada método de clase que resuelva por su MRO a
+    un ``classmethod`` sin envolver. Los nombres con doble guion bajo se
+    excluyen: son protocolo de Python (``__init_subclass__``,
+    ``__class_getitem__``), no API del modelo.
+
+    Es pública porque ``__init_subclass__`` sólo ve lo que la clase trae al
+    crearse: quien cuelgue un método de clase después —
+    :func:`orm.model_classes.adopt_display_name` lo hace con los de
+    ``display_name``— la llama para que lo colgado también corra en el
+    entorno del recordset. ``names`` acota la envoltura a lo que colgó."""
+    for name in dir(cls) if names is None else names:
+        if name.startswith('__'):
+            continue
+        for klass in cls.__mro__:
+            if name in vars(klass):
+                value = vars(klass)[name]
+                break
+        else:
+            continue
+        if isinstance(value, classmethod) and not isinstance(
+                value, _EnvClassmethod):
+            setattr(cls, name, _EnvClassmethod(value))
+
+
+def _wrap_subclass_classmethods(cls, **kwargs):
+    """``__init_subclass__`` de :class:`BaseModel`: todo modelo nuevo recibe
+    la envoltura de sus métodos de clase al crearse."""
+    super(BaseModel, cls).__init_subclass__(**kwargs)
+    wrap_env_classmethods(cls)
+
+
+def _wrap_existing_models(cls):
+    wrap_env_classmethods(cls)
+    for subclass in cls.__subclasses__():
+        _wrap_existing_models(subclass)
+
+
+BaseModel.__init_subclass__ = classmethod(_wrap_subclass_classmethods)
+_wrap_existing_models(BaseModel)
