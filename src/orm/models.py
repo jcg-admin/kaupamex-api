@@ -3865,7 +3865,7 @@ class DisplayNameMixin:
 
     @classmethod
     def name_create(cls, name):
-        """Crea el registro a partir de su sola etiqueta — ≙ ``:1493``.
+        """Crea el registro a partir de su sola etiqueta — ≙ ``:1493-1510``.
 
         Escribe ``name`` en el campo que ``_rec_name`` nombra y devuelve el par
         ``(id, display_name)``. Sin ``_rec_name`` avisa y devuelve ``False``,
@@ -3878,8 +3878,13 @@ class DisplayNameMixin:
                 'No se puede ejecutar name_create: %s no declara _rec_name',
                 cls._meta.label)
             return False
-        record = cls.objects.create(**{rec_name: name})
-        return record.pk, record.display_name
+        # el alta de la fuente: defaults, contexto y acceso; un modelo sin
+        # ``create`` propio (no adopta DefaultGetMixin) usa el de Django
+        if hasattr(cls, 'create'):
+            record = cls.create({rec_name: name})
+        else:
+            record = cls.objects.create(**{rec_name: name})
+        return record.id, record.display_name
 
     @classmethod
     def name_search(cls, name='', domain=None, operator='ilike', limit=100):

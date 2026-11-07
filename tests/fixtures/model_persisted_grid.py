@@ -35,6 +35,10 @@ garantiza para emparejar traducciones. El ``test_orm.message`` del puerto es
 un porte parcial sin ``body``, así que se identifica cada mensaje por un
 campo que los dos declaran y que no se calcula.
 
+``name_create`` (``:1493-1510``) crea una categoría por su nombre y se pide
+sobre un modelo sin campo ``name`` (``test_orm.empty_int``), que no tiene
+``_rec_name`` y devuelve ``False``.
+
 La lectura del ``One2many`` declarado (``odoo19c:
 odoo/orm/fields_relational.py:940-967``) se pide sobre la misma discusión:
 si devuelve un recordset, sus líneas, las que cumplen el ``domain`` de
@@ -156,6 +160,15 @@ def _copied(names, vals_list):
     return rows
 
 
+def _name_created(model, name):
+    """El par que devuelve ``name_create``, con el id como nombre, y si el
+    registro quedó escrito."""
+    record_id, display_name = model.name_create(name)
+    found = model.search([('id', '=', record_id)])
+    return (found.name, display_name, found.parent.name if found.parent
+            else False)
+
+
 def _priorities(lines):
     return [line.priority for line in sorted(lines, key=_by_id)]
 
@@ -253,6 +266,11 @@ def trace(Domain, model, model_name):
         ('copy one2many default', lambda: _discussions(
             names, discussions[:1].copy({'messages': [(6, 0, [
                 sorted(discussions[1:].messages, key=_by_id)[0].id])]}))),
+    ]
+    steps += [
+        ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),
+        ('name_create without rec_name', lambda: model.browse(()).env[
+            'test_orm.empty_int'].name_create('7')),
     ]
     steps += [
         ('one2many is a recordset', lambda: hasattr(
