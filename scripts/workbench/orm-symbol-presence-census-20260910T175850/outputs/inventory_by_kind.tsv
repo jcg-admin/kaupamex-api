@@ -952,7 +952,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._extract_re
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._convert_records	method	not_verified	structural=paired_by_name:RecordLoaderMixin._convert_records;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._validate_fields	method	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.default_get	method	not_verified	structural=paired_by_name:DefaultGetMixin.default_get;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._rec_name_fallback	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._rec_name_fallback	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.search_count	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.search	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.search_fetch	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
