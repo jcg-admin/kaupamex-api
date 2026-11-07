@@ -52,7 +52,7 @@ prueba.
 | `search_fetch`, y con ella `search_read` | **bloqueada** | `_search` del puerto devuelve un `QuerySet` de Django (divergencia declarada) y `_fetch_query`, como la fuente, recibe un `Query`; unir los dos exige decidir el paso de uno a otro |
 | `fields_get` | asentada (`orm-models-fields-get-reference-0485`, `3437414e`) | sus consumidores siguen con sustitutos; sucesor en TASK-API-0485 |
 | `_read_format`, `read` | asentadas (`orm-models-read-format-reference-0485`, `8123601d`) | destapó H-API-1158: leer un registro ausente levantaba `DoesNotExist` |
-| `Many2one.convert_to_read` | **bloqueada por la rejilla** | ningún modelo con un `Many2one` hacia un `BaseModel` existe a la vez en la base de referencia (sólo `base`) y en el puerto: el `ir.attachment` del puerto sólo apunta a `res.company`, que no es `BaseModel`. Se desbloquea instalando `test_orm` en la base de referencia (`initialize_reference_database.py`, quinto argumento) |
+| `Many2one.convert_to_read`, `convert_to_write` | asentadas (`085b5b17`, unidades `...-convert-to-read-...` y `...-convert-to-write-...`) | se desbloqueó con la base `orm_refproc_test_orm` y la rejilla sobre `test_orm.category`. El inventario las deja `not_verified` con evidencia: el censo estático no empareja una función adjuntada a `models.ForeignKey` con la clase `Many2one` de la referencia (`structural=unresolved`) |
 
 **Revisión de `search_fetch`.** `fetch` ya resuelve la misma distancia entre
 `QuerySet` y `Query`: pide primero los ids visibles y arma la consulta con
