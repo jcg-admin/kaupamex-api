@@ -6005,6 +6005,42 @@ class BaseModel(DefaultGetMixin, Model):
         """≙ ``:5688-5690``."""
         return not self._has_cycle(field_name)
 
+    def try_lock_for_update(self, *, allow_referencing=False, limit=None):
+        """Bloquea en exclusiva las filas de ``self`` que pueda, salta las
+        bloqueadas y devuelve el recordset de las bloqueadas. — ≙
+        ``try_lock_for_update`` (``odoo19c: odoo/orm/models.py:5592-5622``)
+
+        :param allow_referencing: un bloqueo que deja a otras transacciones
+            referenciar la fila; sólo para cambiar valores que no son
+            identificadores.
+        :param limit: cuántas filas bloquear como máximo.
+
+        Los registros nuevos no se bloquean y se devuelven siempre, como
+        allá. El ``IN %s`` de la fuente es ``= ANY(%s)``: psycopg 3 adapta una
+        lista a un arreglo y no expande una tupla.
+        """
+        new_ids, ids = partition(lambda i: isinstance(i, NewId), self._ids)
+        if limit is not None:
+            if len(new_ids) >= limit:
+                return self.browse(new_ids[:limit])
+            # se conserva el orden de los ids al intentar el bloqueo
+            query = self.browse(ids)._as_query(ordered=True)
+            query.limit = limit - len(new_ids)
+        else:
+            query = Query(self.env, self._table, self._table_sql)
+            query.add_where(SQL('%s = ANY(%s)',
+                                SQL.identifier(self._table, 'id'), list(ids)))
+        if not ids:
+            return self
+        if allow_referencing:
+            lock_sql = SQL('FOR NO KEY UPDATE SKIP LOCKED')
+        else:
+            lock_sql = SQL('FOR UPDATE SKIP LOCKED')
+        sql = SQL('%s %s', query.select(), lock_sql)
+        real_ids = (id_ for [id_] in self.env.execute_query(sql))
+        valid_ids = {*real_ids, *new_ids}
+        return self.browse(i for i in self._ids if i in valid_ids)
+
     #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
     #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
     #: da el recordset vacío del entorno activo, como a ``browse``.

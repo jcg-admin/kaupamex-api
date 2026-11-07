@@ -45,3 +45,24 @@ rechazó `local_plan supply` como duplicado: una obligación que ya está en el
 plan, aunque esté aceptada, no tiene vía de reapertura. La corrección se hizo
 bajo los claims vigentes de `TASK-API-0485`. La vía de reapertura es una
 capacidad pendiente del Provider; corresponde a VM-A.
+
+## INC-04 — regresión introducida y corregida antes del settlement
+
+Portar `Many2one.convert_to_read` solo rompió las escrituras: 302 failed y
+133 errors en la suite completa, con un único origen. El `ForeignKey` del
+puerto usaba la cadena genérica de `Field.convert_to_write` (caché → registro →
+lectura), cuyo paso de registro devuelve el id crudo; el `convert_to_read`
+nuevo esperaba un registro (`'int' object has no attribute 'id'`, 430 trazas
+por `_field_convert_to_write`). No son 435 defectos: es una causa.
+
+No llegó a ningún commit. Se corrigió portando `Many2one.convert_to_write`
+(`odoo19c: odoo/orm/fields_relational.py:380-392`) en `api@085b5b17`, antes
+de asentar la unidad. Verificación posterior, sobre la suite completa:
+12193 passed, 27 skipped, 4 xfailed, 5 errors. Los cinco errores son los de
+`test_multidb_isolation`, que es ambiente: su guard rehúsa la base de QA
+compartida y pasan sobre una desechable (TASK-API-0496).
+
+*Métrica:* el recuento de pytest de la suite completa antes y después del
+porte de `convert_to_write`, y las trazas agrupadas por marco.
+*Ciega a:* un consumidor cuyo comportamiento cambie sin fallar; la suite mide
+lo que sus pruebas preguntan.

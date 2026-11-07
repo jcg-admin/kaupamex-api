@@ -127,6 +127,8 @@ def trace(Domain, model, model_name):
             (MISSING_ID,)).try_lock_for_update())),
         ('lock new', lambda: _names(model.new(
             {'name': 'N'}).try_lock_for_update(limit=1))),
+        ('lock chain and new', lambda: _names((chain + model.new(
+            {'name': 'N'})).try_lock_for_update())),
         ('lock empty', lambda: _names(model.browse(
             ()).try_lock_for_update())),
     ]
