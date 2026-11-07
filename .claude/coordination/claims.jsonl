@@ -1098,3 +1098,4 @@
 {"id":"c-86e93a3b-6dc2-4894-b64f-b1428e0ae677","op":"claim","path":"src/orm/models.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:36:59.530Z","task":"TASK-API-0485"}
 {"id":"c-a6cd2171-ee2b-479a-8081-ae103db5cbc9","op":"release","path":"tests/unit/orm/test_as_query_table_sql.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:42:03.197Z","task":"TASK-API-0485"}
 {"id":"c-c22f46e6-467e-47ac-8bf3-000c7ab3ae28","op":"release","path":"src/orm/models.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-06T23:42:03.197Z","task":"TASK-API-0485"}
+{"id":"c-2272c339-103d-4ad5-a0d3-ed1b6cdc73c2","op":"claim","path":"tests/unit/orm/test_contract_domains_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T01:39:39.308Z","task":"TASK-API-0485"}

@@ -130,6 +130,10 @@ SURFACE_STEPS_THAT_RAISE = {
 }
 
 
+def _yields_itself(domain):
+    return list(domain) == [domain] and next(iter(domain)) is domain
+
+
 def surface_trace(module):
     """Constructores, constantes, inmutabilidad y niveles de optimización.
 
@@ -218,6 +222,35 @@ def surface_trace(module):
     step('Domain._optimize_step', lambda: list(
         domain._optimize_step(pair(), None, levels.BASIC)))
     step('DomainNary._negate', lambda: list(pair()._negate(None)))
+
+    # ``DomainCustom`` con los mismos invocables en los dos lados: la ranura
+    # que guarda el generador se llama ``_sql`` allá y ``_q`` aquí (la
+    # divergencia ``_to_sql`` → ``_to_q``), pero igualdad, hash, iteración y
+    # el predicado declarado no dependen de ese nombre.
+    def generator(*args):
+        return None
+
+    def other_generator(*args):
+        return None
+
+    def keep(record):
+        return True
+
+    custom = module.DomainCustom
+    step('DomainCustom eq', lambda: custom(generator, keep)
+         == custom(generator, keep))
+    step('DomainCustom eq other generator', lambda: custom(generator, keep)
+         == custom(other_generator, keep))
+    step('DomainCustom eq other predicate', lambda: custom(generator, keep)
+         == custom(generator, None))
+    step('DomainCustom hash', lambda: hash(custom(generator))
+         == hash(custom(generator, keep)))
+    step('DomainCustom iter', lambda: [
+        type(item).__name__ for item in custom(generator)])
+    step('DomainCustom iter is self', lambda: _yields_itself(
+        custom(generator)))
+    step('DomainCustom predicate', lambda: custom(
+        generator, keep)._as_predicate(None) is keep)
     return steps
 
 
