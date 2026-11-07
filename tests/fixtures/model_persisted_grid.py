@@ -16,6 +16,11 @@ recordset vacío, con un campo que no existe y con uno que no es relación
 sobre el propio modelo; después la rejilla cierra el ciclo con un ``UPDATE``
 directo —``_has_cycle`` lee la base, no la caché— y vuelve a preguntar. El
 alias deprecado ``_check_recursion`` (``:5684-5686``) responde lo contrario.
+
+``try_lock_for_update`` (``:5592-5622``) bloquea filas en la única conexión
+de la rejilla, sin competencia: devuelve lo que puede bloquear, en el orden
+de ``self``, con ventana, con un registro nuevo, con un id que no existe y
+con el bloqueo que admite referencias.
 """
 
 import warnings
@@ -24,6 +29,8 @@ PREFIX = 'grid-persisted-'
 DOMAIN = [('name', '=like', f'{PREFIX}%')]
 NOTHING = [('name', '=', f'{PREFIX}none')]
 FIELDS = ['name', 'parent']
+#: Id que ninguna de las dos bases de prueba alcanza.
+MISSING_ID = 987654321
 
 
 def _step(function):
@@ -74,6 +81,10 @@ def _named(names, value):
     return value
 
 
+def _names(records):
+    return [record.name for record in records]
+
+
 def _records(records):
     # un Many2one vacío es allá un conjunto vacío y aquí ``None``
     return [(record.name, record.parent.name if record.parent else False)
@@ -105,8 +116,20 @@ def trace(Domain, model, model_name):
         ('search_read nothing', lambda: _rows(names, model.search_read(
             NOTHING, FIELDS))),
     ]
-    chain = model.search(DOMAIN)
+    chain = model.search(DOMAIN, order='name desc')
     root = model.search([('name', '=', f'{PREFIX}a-root')])
+    steps += [
+        ('lock chain', lambda: _names(chain.try_lock_for_update())),
+        ('lock limit', lambda: _names(chain.try_lock_for_update(limit=2))),
+        ('lock referencing', lambda: _names(chain.try_lock_for_update(
+            allow_referencing=True))),
+        ('lock missing', lambda: _names(model.browse(
+            (MISSING_ID,)).try_lock_for_update())),
+        ('lock new', lambda: _names(model.new(
+            {'name': 'N'}).try_lock_for_update(limit=1))),
+        ('lock empty', lambda: _names(model.browse(
+            ()).try_lock_for_update())),
+    ]
     steps += [
         ('has_cycle chain', lambda: chain._has_cycle()),
         ('has_cycle root', lambda: root._has_cycle('parent')),
