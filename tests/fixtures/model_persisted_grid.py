@@ -21,6 +21,11 @@ alias deprecado ``_check_recursion`` (``:5684-5686``) responde lo contrario.
 de la rejilla, sin competencia: devuelve lo que puede bloquear, en el orden
 de ``self``, con ventana, con un registro nuevo, con un id que no existe y
 con el bloqueo que admite referencias.
+
+``copy`` (``:5530-5545``) y ``copy_data`` (``:5406-5463``) se piden sobre la
+hija, con y sin ``default``, y sobre la cadena entera; de ``copy_data`` se
+comparan sólo las claves que los dos modelos declaran (``name``, ``parent``,
+``color``), porque el resto depende de los campos que cada lado añade.
 """
 
 import warnings
@@ -29,6 +34,8 @@ PREFIX = 'grid-persisted-'
 DOMAIN = [('name', '=like', f'{PREFIX}%')]
 NOTHING = [('name', '=', f'{PREFIX}none')]
 FIELDS = ['name', 'parent']
+#: Claves de ``copy_data`` que los dos ``test_orm.category`` declaran.
+COPIED = ('name', 'parent', 'color')
 #: Id que ninguna de las dos bases de prueba alcanza.
 MISSING_ID = 987654321
 
@@ -81,6 +88,11 @@ def _named(names, value):
     return value
 
 
+def _copied(names, vals_list):
+    return [sorted((key, _named(names, value)) for key, value in vals.items()
+                   if key in COPIED) for vals in vals_list]
+
+
 def _names(records):
     return [record.name for record in records]
 
@@ -115,6 +127,15 @@ def trace(Domain, model, model_name):
             DOMAIN, ['name'], offset=2, limit=5, order='name'))),
         ('search_read nothing', lambda: _rows(names, model.search_read(
             NOTHING, FIELDS))),
+    ]
+    child = model.search([('name', '=', f'{PREFIX}b-child')])
+    steps += [
+        ('copy_data child', lambda: _copied(names, child.copy_data())),
+        ('copy_data default', lambda: _copied(names, child.copy_data(
+            {'name': f'{PREFIX}z-default'}))),
+        ('copy child', lambda: _records(child.copy())),
+        ('copy default', lambda: _records(child.copy(
+            {'name': f'{PREFIX}z-copy', 'parent': False}))),
     ]
     chain = model.search(DOMAIN, order='name desc')
     root = model.search([('name', '=', f'{PREFIX}a-root')])
