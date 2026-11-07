@@ -530,6 +530,24 @@ def _parent_paths_recomputed(model, chain):
                    for record in model.browse(ids)))
 
 
+def _ordered_by_parent(model):
+    """Un ``Many2one`` se ordena por el ``_order`` de su comodelo —``name``
+    en la categoría—, no por el id del padre. Los padres se crean en orden
+    inverso al alfabético, así que los dos órdenes difieren; con
+    ``parent.id`` el orden sí es el del id. Los nombres quedan fuera de
+    ``DOMAIN`` para no alterar los demás pasos."""
+    categories = model.browse(())
+    found = categories.search([('name', '=like', 'order-probe-%')])
+    if not found:
+        late = categories.create({'name': 'order-probe-z-parent'})
+        early = categories.create({'name': 'order-probe-m-parent'})
+        categories.create({'name': 'order-probe-k1', 'parent': late.id})
+        categories.create({'name': 'order-probe-k2', 'parent': early.id})
+    domain = [('name', '=like', 'order-probe-k%')]
+    return (_names(categories.search(domain, order='parent')),
+            _names(categories.search(domain, order='parent.id')))
+
+
 def _metadata(chain):
     """``get_metadata`` (``odoo19c: odoo/orm/models.py``,
     ``BaseModel.get_metadata``) sobre la cadena, después del paso de ids
@@ -652,6 +670,19 @@ def trace(Domain, model, model_name):
         ('search unknown field', lambda: _names(model.search(
             [('no_such_field', '=', 1)]))),
         ('search empty domain limit', lambda: len(model.search([], limit=2))),
+        # ``_order_to_sql``/``_order_field_to_sql`` (``:5224-5322``): un
+        # ``Many2one`` se ordena por el ``_order`` de su comodelo, el sentido
+        # se invierte con ``desc`` y ``nulls first`` adelanta las raíces
+        ('search order many2one', lambda: _names(model.search(
+            DOMAIN, order='parent, name'))),
+        ('search order many2one desc', lambda: _names(model.search(
+            DOMAIN, order='parent desc, name'))),
+        ('search order many2one nulls first', lambda: _names(model.search(
+            DOMAIN, order='parent nulls first, name'))),
+        ('search order many2one id', lambda: _names(model.search(
+            DOMAIN, order='parent.id desc, name'))),
+        ('search order by comodel order', lambda: _ordered_by_parent(
+            model)),
         ('unlink member', lambda: _unlinked_member(model)),
         ('unlink discussion', lambda: _unlinked_discussion(model)),
         ('name_search', lambda: _name_searched(model, 'child', DOMAIN)),
