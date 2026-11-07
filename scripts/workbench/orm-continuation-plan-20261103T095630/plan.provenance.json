@@ -422,6 +422,13 @@
         "orm-models-read-format-reference-0485"
       ],
       "writtenAt": "2026-11-07T02:05:17Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-many2one-convert-to-read-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T02:27:24Z"
     }
   ]
 }
