@@ -1,7 +1,7 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 90,
+ "population": 91,
  "open_tasks": 66,
  "frontier": [],
  "blocked": [
@@ -101,9 +101,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 25,
+  "task_units_settled": 26,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1543
+  "task_without_unit": 1542
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -200,7 +200,8 @@
   "orm-models-has-cycle-reference-0485",
   "orm-models-try-lock-reference-0485",
   "orm-models-copy-reference-0485",
-  "orm-one2many-read-reference-0485"
+  "orm-one2many-read-reference-0485",
+  "orm-models-name-create-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
