@@ -727,7 +727,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.search	meth
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._compute_display_name	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DisplayNameMixin._compute_display_name;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._search_display_name	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DisplayNameMixin._search_display_name;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.name_create	method	not_verified	task_units_settled	TASK-API-0485		structural=paired_by_name:DisplayNameMixin.name_create;write_path=agree;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.name_search	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DisplayNameMixin.name_search;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.name_search	method	not_verified	task_units_settled	TASK-API-0485		structural=paired_by_name:DisplayNameMixin.name_search;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._add_missing_default_values	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DefaultGetMixin._add_missing_default_values;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_grouping_sets	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -798,8 +798,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.get_externa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.is_transient	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._get_redirect_suggested_company	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet._get_redirect_suggested_company;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397,TASK-API-0399,TASK-API-0402	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.with_user	method	not_verified	task_units_settled	TASK-API-0485	TASK-API-0397	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.with_company	method	not_verified	task_units_settled	TASK-API-0485	TASK-API-0397	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._sorted_order_to_function	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.update	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397,TASK-API-0398	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.flush_model	method	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
