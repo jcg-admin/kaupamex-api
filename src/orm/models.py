@@ -5612,6 +5612,42 @@ class BaseModel(DefaultGetMixin, Model):
             *(SQL(to_flush=field) for field in fields_to_flush),
         ])
 
+    #: ≙ ``_has_field_access`` (``:3368-3381``), declarado allá en
+    #: ``BaseModel``. Aquí lo implementa :class:`FieldSqlMixin`, que no está en
+    #: la MRO de esta clase; se liga la misma función para que
+    #: :meth:`fields_get` lo encuentre donde la fuente lo declara.
+    _has_field_access = FieldSqlMixin._has_field_access
+
+    def fields_get(self, allfields=None, attributes=None):
+        """ Return the definition of each field. — ≙ ``:3343-3366``
+
+        The returned value is a dictionary (indexed by field name) of
+        dictionaries. The _inherits'd fields are included. The string, help,
+        and selection (if present) attributes are translated.
+
+        :param allfields: fields to document, all if empty or not provided
+        :param attributes: attributes to return for each field, all if empty
+            or not provided
+        :return: dictionary mapping field names to a dictionary mapping
+            attributes to values.
+        """
+        res = {}
+        for fname, field in self._fields.items():
+            if allfields and fname not in allfields:
+                continue
+            if not self._has_field_access(field, 'read'):
+                continue
+
+            description = field.get_description(self.env,
+                                                attributes=attributes)
+            if 'readonly' in description:
+                description['readonly'] = (
+                    description['readonly']
+                    or not self._has_field_access(field, 'write'))
+            res[fname] = description
+
+        return res
+
     # === construcción =====================================================
 
     def __init__(self, *args, **kwargs):
