@@ -974,3 +974,5 @@ src/orm/fields_numeric.py	Integer.convert_to_export	method	tests/unit/orm/test_c
 src/orm/fields_numeric.py	Integer.convert_to_column	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.unlink	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.search	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel._get_external_ids	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel.get_external_id	method	tests/unit/orm/test_contract_model_persisted_reference.py
