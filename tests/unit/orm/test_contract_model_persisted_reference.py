@@ -54,3 +54,10 @@ def test_the_grid_reads_its_own_rows(reference_trace):
                    if line.startswith('search_fetch ordered'))
     assert 'c-grandchild' in ordered and 'a-root' in ordered
     assert ordered.index('c-grandchild') < ordered.index('a-root')
+
+
+def test_the_cycle_is_seen_by_the_reference(reference_trace):
+    """Cerrado el ciclo, la referencia lo detecta: un ``False`` igual en los
+    dos lados no probaría nada si el ``UPDATE`` no hubiera llegado."""
+    assert 'has_cycle after True' in reference_trace
+    assert 'has_cycle chain False' in reference_trace

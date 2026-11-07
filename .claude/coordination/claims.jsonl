@@ -1132,3 +1132,6 @@
 {"id":"c-4d3da406-56a1-4b73-8e45-0f8b8a5a3b52","op":"release","path":"src/orm/models.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T03:28:12.362Z","task":"TASK-API-0485"}
 {"id":"c-ae27bc3a-9760-4a6e-9aa7-73a5062a8f32","op":"release","path":"tests/fixtures/model_persisted_grid.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T03:28:12.362Z","task":"TASK-API-0485"}
 {"id":"c-0711c8bc-cf5b-448c-94cd-0582db1e2f7d","op":"release","path":"tests/unit/orm/test_contract_model_persisted_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T03:28:12.362Z","task":"TASK-API-0485"}
+{"id":"c-50157ae3-2f50-4e2c-a213-c1bbb97a6570","op":"claim","path":"src/orm/models.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T03:30:07.752Z","task":"TASK-API-0485"}
+{"id":"c-a40d86f6-2867-43b1-b694-1eb177858272","op":"claim","path":"tests/fixtures/model_persisted_grid.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T03:30:07.752Z","task":"TASK-API-0485"}
+{"id":"c-768b349f-5cd8-4d50-991a-a826880c2663","op":"claim","path":"tests/unit/orm/test_contract_model_persisted_reference.py","owner":"VM-x2hokp","branch":"claude/bold-fermat-x2hokp","at":"2026-11-07T03:30:07.752Z","task":"TASK-API-0485"}

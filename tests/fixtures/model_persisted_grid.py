@@ -10,7 +10,15 @@ nada queda en ninguna de las dos bases.
 ``search_read`` (``:6286-6329``) se piden con orden, con ventana y con un
 dominio vacío de resultado. Los ids difieren entre las dos bases, así que
 cada id se reemplaza por el nombre de su registro antes de comparar.
+
+``_has_cycle`` (``:5624-5682``) se pide sobre la cadena sin ciclo, sobre un
+recordset vacío, con un campo que no existe y con uno que no es relación
+sobre el propio modelo; después la rejilla cierra el ciclo con un ``UPDATE``
+directo —``_has_cycle`` lee la base, no la caché— y vuelve a preguntar. El
+alias deprecado ``_check_recursion`` (``:5684-5686``) responde lo contrario.
 """
+
+import warnings
 
 PREFIX = 'grid-persisted-'
 DOMAIN = [('name', '=like', f'{PREFIX}%')]
@@ -32,6 +40,30 @@ def _seed(model):
     model.create({'name': f'{PREFIX}c-grandchild', 'parent': child.id})
     return {record.id: record.name
             for record in model.search(DOMAIN)}
+
+
+def _execute(model, query, params):
+    """Allá ``env.cr`` es un cursor; aquí es la conexión de Django."""
+    cr = model.env.cr
+    if getattr(cr, 'execute', None) is not None:
+        cr.execute(query, params)
+        return
+    with cr.cursor() as cursor:
+        cursor.execute(query, params)
+
+
+def _close_cycle(model):
+    """La raíz pasa a colgar de la nieta: raíz → nieta → hija → raíz."""
+    by_name = {record.name: record.id for record in model.search(DOMAIN)}
+    _execute(model, f'UPDATE {model._table} SET parent = %s WHERE id = %s',
+             [by_name[f'{PREFIX}c-grandchild'], by_name[f'{PREFIX}a-root']])
+    return True
+
+
+def _recursion(records):
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        return records._check_recursion()
 
 
 def _named(names, value):
@@ -72,5 +104,19 @@ def trace(Domain, model, model_name):
             DOMAIN, ['name'], offset=2, limit=5, order='name'))),
         ('search_read nothing', lambda: _rows(names, model.search_read(
             NOTHING, FIELDS))),
+    ]
+    chain = model.search(DOMAIN)
+    root = model.search([('name', '=', f'{PREFIX}a-root')])
+    steps += [
+        ('has_cycle chain', lambda: chain._has_cycle()),
+        ('has_cycle root', lambda: root._has_cycle('parent')),
+        ('has_cycle empty', lambda: model.browse(())._has_cycle()),
+        ('has_cycle unknown field', lambda: chain._has_cycle('nope')),
+        ('has_cycle not a relation', lambda: chain._has_cycle('name')),
+        ('check_recursion chain', lambda: _recursion(chain)),
+        ('close cycle', lambda: _close_cycle(model)),
+        ('has_cycle after', lambda: chain._has_cycle()),
+        ('has_cycle root after', lambda: root._has_cycle()),
+        ('check_recursion after', lambda: _recursion(chain)),
     ]
     return [f'{name} {_step(function)}' for name, function in steps]
