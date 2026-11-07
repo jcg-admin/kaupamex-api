@@ -60,7 +60,6 @@
   "TASK-API-0490",
   "TASK-API-0492",
   "TASK-API-0493",
-  "TASK-API-0499",
   "TASK-DOCS-0111",
   "TASK-DOCS-0539",
   "TASK-GEN-0058",
@@ -84,15 +83,16 @@
   "TASK-API-0418",
   "TASK-API-0479",
   "TASK-API-0485",
-  "TASK-API-0486"
+  "TASK-API-0486",
+  "TASK-API-0499"
  ],
  "obligations": {
-  "satisfied": 955,
-  "absent": 596,
+  "satisfied": 956,
+  "absent": 595,
   "divergent": 0,
   "not_verified": 961,
   "applicable": 2512,
-  "pending": 1557,
+  "pending": 1556,
   "source": {
    "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
    "revisions": [
@@ -102,7 +102,7 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 37,
+  "task_units_settled": 36,
   "task_with_blocked_unit": 1,
   "task_without_unit": 1519
  },
@@ -219,7 +219,8 @@
   "orm-models-get-metadata-reference-0485",
   "orm-models-rec-name-fallback-reference-0485",
   "orm-field-determine-inverse-reference-0485",
-  "orm-models-has-onchange-reference-0485"
+  "orm-models-has-onchange-reference-0485",
+  "web-export-rec-name-fallback-0499"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

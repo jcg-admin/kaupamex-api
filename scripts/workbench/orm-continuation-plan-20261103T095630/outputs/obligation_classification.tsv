@@ -805,7 +805,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._modified_t
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._recompute_model	method	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._recompute_recordset	method	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._recompute_field	method	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._has_onchange	method	absent	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._apply_onchange_methods	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.onchange	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._get_placeholder_filename	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
