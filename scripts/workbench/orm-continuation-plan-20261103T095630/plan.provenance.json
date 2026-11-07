@@ -604,6 +604,13 @@
         "web-export-rec-name-fallback-0499"
       ],
       "writtenAt": "2026-11-07T22:57:18Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "web-export-many2many-meta-0500"
+      ],
+      "writtenAt": "2026-11-07T23:03:56Z"
     }
   ]
 }
