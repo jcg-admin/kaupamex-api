@@ -57,3 +57,27 @@ rechazó la unidad como `foreign-claim` sobre los claims propios. El experimento
 de esta carpeta no lo detectaba porque su ledger es un fixture.
 `probes/unit_cycle.sh` pasa ahora `x2hokp` y escribe los claims como
 `VM-x2hokp`.
+
+## Qué sobrevive al final de un turno (medido el 2026-11-07)
+
+Entre el último turno del 2026-11-06 y el siguiente, el contenedor se
+reclamó: `boot_id` nuevo, arranque a las 01:34:47Z, PostgreSQL caído. Murió
+todo lo de segundo plano. Sobrevivieron Git (HEAD `c2cd635b`, árbol limpio),
+el ledger de claims (`.claude/coordination/claims.jsonl`), el registro de
+asientos (`orm-continuation-plan-*/outputs/continuation.jsonl`, nueve
+unidades aceptadas en ese intervalo) y el scratchpad con el entorno de
+referencia.
+
+| Pregunta | Mecanismo | Sobrevive al reclamo |
+|---|---|---|
+| TASK | TaskStore de Thyrox (`agent_store.sqlite3`) | sí, en disco |
+| claims | `claims.jsonl` versionado | sí |
+| unidades pendientes y asentadas | `plan.jsonl` y `continuation.jsonl` del banco | sí |
+| admisión | `local_plan supply`, `task_continuation next` | se recalcula al volver |
+| ejecución de una unidad | la sesión conversacional | no |
+| despertar al ejecutor tras el turno | ninguno de Thyrox: H-THYROX-682 (la recuperación al arrancar no tiene disparador propio), H-THYROX-633 (un `Monitor` no evita el reclamo) | — |
+
+La recuperación es, por tanto, desde el estado durable: `task_continuation
+next` y el inventario dicen dónde seguir, sin reconstruir nada. Lo que falta
+es el disparador que vuelva a invocar al ejecutor; es capacidad pendiente del
+Provider, no del Consumer.
