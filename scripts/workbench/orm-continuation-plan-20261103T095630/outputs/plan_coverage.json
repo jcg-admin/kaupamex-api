@@ -1,14 +1,9 @@
 {
- "verdict": "B",
+ "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
  "population": 91,
  "open_tasks": 66,
- "frontier": [
-  {
-   "id": "orm-models-env-classmethod-reference-0485",
-   "task": "TASK-API-0485"
-  }
- ],
+ "frontier": [],
  "blocked": [
   {
    "id": "misc-stripped-sys-argv",
@@ -87,6 +82,7 @@
   "TASK-API-0417",
   "TASK-API-0418",
   "TASK-API-0479",
+  "TASK-API-0485",
   "TASK-API-0486"
  ],
  "obligations": {
@@ -205,7 +201,8 @@
   "orm-models-try-lock-reference-0485",
   "orm-models-copy-reference-0485",
   "orm-one2many-read-reference-0485",
-  "orm-models-name-create-reference-0485"
+  "orm-models-name-create-reference-0485",
+  "orm-models-env-classmethod-reference-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
