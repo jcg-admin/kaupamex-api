@@ -795,7 +795,6 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.copy_data	m
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.copy_translations	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:CopyMixin.copy_translations;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.copy	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:CopyMixin.copy;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.lock_for_update	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.try_lock_for_update	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_m2m_recursion	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._get_external_ids	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet._get_external_ids;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.get_external_id	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:AccessQuerySet.get_external_id;write_path=-;evidence=-

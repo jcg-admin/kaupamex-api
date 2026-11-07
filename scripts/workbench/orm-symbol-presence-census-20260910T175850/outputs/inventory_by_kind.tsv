@@ -1046,7 +1046,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.copy_transl
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.copy	method	not_verified	structural=paired_by_name:CopyMixin.copy;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.exists	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_base_model_recordset.py::TestExistsIsNotTheDjangoHomonym
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.lock_for_update	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.try_lock_for_update	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.try_lock_for_update	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._has_cycle	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_recursion	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_m2m_recursion	method	not_verified	structural=match;write_path=-;evidence=-
