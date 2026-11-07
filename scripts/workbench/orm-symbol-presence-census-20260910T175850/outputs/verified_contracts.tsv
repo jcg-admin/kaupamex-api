@@ -959,3 +959,4 @@ src/orm/fields_relational.py	One2many.read	method	tests/unit/orm/test_contract_m
 src/orm/fields_relational.py	One2many.__get__	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.name_create	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.with_context	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel.search_count	method	tests/unit/orm/test_contract_model_persisted_reference.py
