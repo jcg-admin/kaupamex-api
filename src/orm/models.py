@@ -5885,6 +5885,54 @@ class BaseModel(DefaultGetMixin, Model):
         (``:1347``)."""
         return cls._search(domain, limit=limit).count()
 
+    @classmethod
+    def search_fetch(cls, domain, field_names=None, offset=0, limit=None,
+                     order=None):
+        """Los registros que cumplen ``domain``, con ``field_names`` ya en
+        memoria. — ≙ ``search_fetch``
+        (``odoo19c: odoo/orm/models.py:1394-1428``)
+
+        :raise AccessError: si el usuario no puede leer lo pedido.
+
+        **Divergencia de mecanismo**, la misma de :meth:`fetch`: ``_search``
+        devuelve aquí un ``QuerySet`` y no un ``Query``. Se piden los ids que
+        cumplen dominio, reglas, orden y ventana, y la consulta de lectura se
+        arma con :meth:`_as_query` sobre ellos, que conserva su orden: dos
+        consultas en lugar de una, con el mismo resultado.
+        """
+        records = cls._search(domain, offset=offset, limit=limit,
+                              order=order or cls._order)
+        ids = tuple(records.values_list('pk', flat=True))
+        found = cls._from_ids(env(), ids, ids)
+        if not ids:
+            # sin filas no se consulta; sólo se comprueba el acceso al campo
+            if not is_su():
+                found._determine_fields_to_fetch(field_names)
+            return found
+        fields_to_fetch = found._determine_fields_to_fetch(field_names)
+        return found._fetch_query(found._as_query(), fields_to_fetch)
+
+    @classmethod
+    def search_read(cls, domain=None, fields=None, offset=0, limit=None,
+                    order=None, **read_kwargs):
+        """:meth:`search_fetch` seguido de :meth:`_read_format`. — ≙
+        ``search_read`` (``odoo19c: odoo/orm/models.py:6286-6329``)
+
+        ``read_kwargs`` llega a ``_read_format``; ``load=None`` evita el
+        ``display_name`` de las relaciones. La clave ``active_test`` del
+        contexto sólo vale para la búsqueda principal y no se reenvía a las
+        lecturas que el formato dispare.
+        """
+        if not fields:
+            fields = list(cls.browse().fields_get(attributes=()))
+        records = cls.search_fetch(domain or [], fields, offset=offset,
+                                   limit=limit, order=order)
+        if 'active_test' in records.env.context:
+            context = dict(records.env.context)
+            del context['active_test']
+            records = records.with_context(context)
+        return records._read_format(fnames=fields, **read_kwargs)
+
     #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
     #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
     #: da el recordset vacío del entorno activo, como a ``browse``.

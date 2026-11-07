@@ -43,7 +43,9 @@ def _named(names, value):
 
 
 def _records(records):
-    return [(record.name, record.parent.name or False) for record in records]
+    # un Many2one vacío es allá un conjunto vacío y aquí ``None``
+    return [(record.name, record.parent.name if record.parent else False)
+            for record in records]
 
 
 def _rows(names, rows):
