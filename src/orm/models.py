@@ -3890,22 +3890,29 @@ class DisplayNameMixin:
     def name_search(cls, name='', domain=None, operator='ilike', limit=100):
         """Los pares ``(id, etiqueta)`` que coinciden — ≙ ``:1512``.
 
-        Es :meth:`_search_display_name` acotado por el ``domain`` extra y por
-        ``limit``. El ``domain`` se recibe como ``Q`` de Django o ``None``,
-        que es la forma que ``website_rewrite.name_search`` ya usaba en este
-        árbol.
+        En un modelo de recordset (``BaseModel``) con un dominio de Odoo es el
+        flujo de la fuente: ``Domain('display_name', operator, name)`` y el
+        ``domain`` extra, ``search_fetch(['display_name'], limit=limit)`` —que
+        aplica acceso, reglas y ``_order``— y los pares leídos bajo
+        ``sudo()``, que sólo eleva la lectura de la etiqueta de lo que la
+        búsqueda ya seleccionó.
 
-        El ``.sudo()`` del final de la fuente no se porta: allá levanta el
-        permiso para poder leer la etiqueta de lo que la búsqueda ya
-        seleccionó. Aquí la selección la hace un ``QuerySet`` de Django, que no
-        filtra por permiso — el acotamiento por fila lo aplica
-        ``AccessQuerySet`` cuando el llamador lo pide, y elevarlo aquí sería
-        conceder un permiso que nadie otorgó.
+        **Divergencia declarada, la anterior forma del puerto:** un ``Q`` de
+        Django como ``domain``, o un modelo sin ``search_fetch``, siguen por
+        un ``QuerySet`` sin elevar nada, porque ahí la selección no filtra por
+        permiso y elevar sería conceder un permiso que nadie otorgó.
         """
+        if not isinstance(domain, Q) and hasattr(cls, 'search_fetch'):
+            full = (Domain('display_name', operator, name)
+                    & Domain(domain or Domain.TRUE))
+            records = cls.search_fetch(full, ['display_name'], limit=limit)
+            return [(record.id, record.display_name)
+                    for record in records.sudo()]
         queryset = cls.objects.filter(
             to_q(Domain('display_name', operator, name), cls))
         if domain is not None:
-            queryset = queryset.filter(domain)
+            queryset = queryset.filter(
+                domain if isinstance(domain, Q) else to_q(Domain(domain), cls))
         return [(record.pk, record.display_name)
                 for record in queryset[:limit]]
 

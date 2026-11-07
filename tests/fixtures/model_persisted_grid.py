@@ -398,6 +398,8 @@ def trace(Domain, model, model_name):
             model, f'{PREFIX}a-root', DOMAIN, operator='=')),
         ('name_search negative', lambda: _name_searched(
             model, 'root', DOMAIN, operator='not ilike')),
+        ('name_search domain', lambda: _name_searched(
+            model, '', [('name', '=', f'{PREFIX}c-grandchild')])),
     ]
     steps += [
         ('name_create', lambda: _name_created(model, f'{PREFIX}n-created')),
