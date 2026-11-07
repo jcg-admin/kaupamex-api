@@ -469,6 +469,27 @@ def _assigned_inverse(model):
             for row in stored]
 
 
+def _has_onchanges(model):
+    """``_has_onchange`` (``odoo19c: odoo/orm/models.py``,
+    ``BaseModel._has_onchange``): un campo dispara onchange si tiene un
+    método ``@api.onchange`` o si alguno de ``other_fields`` depende de él.
+    Lo consume la vista (``ir_ui_view.py:1597``) para marcar los campos.
+    Sobre la discusión, con métodos ``@api.onchange`` en ``name`` y
+    ``moderator``; sobre la categoría, cuyo ``display_name`` depende de
+    ``name`` y no de ``color``."""
+    env = model.browse(()).env
+    discussions = env['test_orm.discussion'].browse(())
+    categories = model.browse(())
+    dfields, cfields = discussions._fields, categories._fields
+    display = [cfields['display_name']]
+    return [discussions._has_onchange(dfields['name'], []),
+            discussions._has_onchange(dfields['moderator'], []),
+            discussions._has_onchange(dfields['history'], []),
+            categories._has_onchange(cfields['name'], display),
+            categories._has_onchange(cfields['color'], display),
+            categories._has_onchange(cfields['name'], [])]
+
+
 def _rec_name_fallbacks(model):
     """``_rec_name_fallback`` (``odoo19c: odoo/orm/models.py:1341-1343``):
     ``_rec_name`` si el modelo lo tiene, ``'id'`` si no. Lo consumen las
@@ -596,6 +617,7 @@ def trace(Domain, model, model_name):
         ('integer conversions', lambda: _integer_conversions(model)),
         ('update', lambda: _updated(model)),
         ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
+        ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),
         ('search window', lambda: _names(model.search(
             DOMAIN, offset=1, limit=1, order='name desc'))),

@@ -590,6 +590,13 @@
         "orm-field-determine-inverse-reference-0485"
       ],
       "writtenAt": "2026-11-07T22:50:56Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-has-onchange-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T22:53:40Z"
     }
   ]
 }
