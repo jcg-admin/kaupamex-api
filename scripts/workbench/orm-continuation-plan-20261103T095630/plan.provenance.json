@@ -415,6 +415,13 @@
         "orm-models-fields-get-reference-0485"
       ],
       "writtenAt": "2026-11-07T01:46:20Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-read-format-reference-0485"
+      ],
+      "writtenAt": "2026-11-07T02:05:17Z"
     }
   ]
 }
