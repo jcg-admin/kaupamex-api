@@ -96,3 +96,32 @@ que emite cada 10 % y anota el `boot_id`: terminó sin otro reclamo
 Es coherente con la hipótesis de H-THYROX-682 —cuenta el turno, no el
 `Monitor` armado— y no la prueba: no se registró el instante exacto del
 reclamo ni la última emisión anterior a él.
+
+## Qué hook `Stop` gobierna esta sesión (medido 2026-11-08T00:15:42)
+
+La instrucción 3.2.11 §9 pide investigar `stop-gate-hallazgo-pendiente.sh`
+antes de tocar nada. Lo medido:
+
+- **El gate existe con otro nombre.** Se renombró a
+  `kaupamex-docs: .claude/hooks/stop-gate-pending-finding.sh`
+  (`docs@a7488c264`); `docs@9ef85d240` lo apuntó a la primitiva del
+  transcript. Vive en el `Stop` de `kaupamex-docs/.claude/settings.json`, con
+  otros cuatro (`stop-gate-unpublished-work.sh`, `stop-gate-pending-wait.sh`,
+  `stop-gate-stale-board.sh`, `reconcile-store-on-stop.sh`).
+- **Ninguno de esos carga aquí.** La sesión corre con cwd `/home/user` y los
+  repositorios entran como directorios adicionales: aportan `CLAUDE.md` y
+  `.claude/rules/`, no hooks (H-DOCS-1010). `kaupamex-api/.claude/settings.json`
+  declara `Stop: []`.
+- **El único `Stop` activo es del lanzador.**
+  `/root/.claude/launcher-settings.json` declara
+  `~/.claude/stop-hook-git-check.sh`, fuera de todo repositorio: bloquea el
+  cierre si hay cambios sin commitear o sin publicar. No conoce el TaskStore,
+  la frontera ni las obligaciones admisibles.
+
+Consecuencia: ningún control instalado detiene un cierre de turno por haber
+trabajo admisible, y bloquear un `Stop` tampoco iniciaría una unidad —un hook
+devuelve una razón al modelo, no despacha un worker—. La reactivación que
+falta es la misma capacidad del Provider ya registrada (H-THYROX-682/633); el
+cableado de los hooks de proyecto en una sesión remota es decisión de quien
+administra el entorno (`/home/user/.claude/` o el lanzador). No se modificó
+ningún hook.
