@@ -523,6 +523,18 @@ def _recomputed_constraint(model):
     return before, raised, message.name.split(']')[0]
 
 
+def _field_strings(model):
+    """La etiqueta de cada campo (``odoo19c: odoo/orm/fields.py:506-511``):
+    la declarada si la hay; si no, el nombre sin el sufijo ``_id``/``_ids``,
+    con espacios y en mayúscula inicial. ``name`` y ``parent_path`` no
+    declaran etiqueta, ``color`` sí (``'Color Index'``), y ``country_id`` de
+    ``test_orm.city`` pierde su sufijo."""
+    city = model.browse(()).env['test_orm.city'].browse(())
+    return ([(name, model._fields[name].string)
+             for name in ('name', 'color', 'parent_path')]
+            + [('country_id', city._fields['country_id'].string)])
+
+
 def _empty_many2one(model):
     """Un ``Many2one`` sin valor se lee como el recordset vacío de su
     comodelo (``odoo19c: odoo/orm/fields_relational.py:354-358``,
@@ -706,6 +718,7 @@ def trace(Domain, model, model_name):
         ('update', lambda: _updated(model)),
         ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
         ('empty many2one', lambda: _empty_many2one(model)),
+        ('field strings', lambda: _field_strings(model)),
         ('recomputed constraint', lambda: _recomputed_constraint(model)),
         ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),
