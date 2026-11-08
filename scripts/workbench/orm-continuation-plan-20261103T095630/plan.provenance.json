@@ -716,6 +716,13 @@
         "orm-boolean-condition-to-sql-0485"
       ],
       "writtenAt": "2026-11-08T08:41:04Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-domains-to-sql-0485"
+      ],
+      "writtenAt": "2026-11-08T08:50:47Z"
     }
   ]
 }
