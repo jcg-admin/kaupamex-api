@@ -114,7 +114,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.tra
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Environment.uid	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/environments.py	Transaction.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=value;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field	class	absent	task_without_unit	TASK-API-0485	TASK-API-0213,TASK-API-0401,TASK-API-0419,TASK-API-0424,TASK-API-0476,TASK-API-0501,TASK-GEN-0071	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field	class	absent	task_without_unit	TASK-API-0485	TASK-API-0213,TASK-API-0401,TASK-API-0419,TASK-API-0424,TASK-API-0476,TASK-GEN-0071	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0403,TASK-API-0418,TASK-API-0419,TASK-API-0429,TASK-API-0476	structural=paired_by_name:_DerivedFromPrefix.__init__;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__str__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__repr__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -131,7 +131,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.traverse_relate
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._compute_related	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_compute_related;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._process_related	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_process_related;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._inverse_related	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=dissolved:_field_inverse_related;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._search_related	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._search_related	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.column_type	property	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=dissolved:_field_column_type;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.base_field	property	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_base_field;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.get_company_dependent_fallback	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_get_company_dependent_fallback;write_path=-;evidence=-
@@ -161,7 +161,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.update_db_colum
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._convert_db_column	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_convert_db_column;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.update_db_notnull	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_update_db_notnull;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.update_db_related	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_update_db_related;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.to_sql	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.property_to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_property_to_sql;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.condition_to_sql	method	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._condition_to_sql	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -183,84 +183,84 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._update_cache	m
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__get__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0401,TASK-API-0403,TASK-API-0476	structural=paired_by_name:NonStoredMany2oneAccessor.__get__;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.__set__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0403	structural=paired_by_name:FieldDescriptor.__set__;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.recompute	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417,TASK-API-0424	structural=owner_absent;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute_value	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0502	structural=owner_absent;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute_value	method	not_verified	task_without_unit	TASK-API-0485		structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_inverse	method	not_verified	task_units_settled	TASK-API-0485		structural=owner_absent;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_domain	method	not_verified	task_without_unit	TASK-API-0485		structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.determine_group_expand	method	not_verified	task_without_unit	TASK-API-0485		structural=dissolved:_field_determine_group_expand;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._args__	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0419,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._base_fields__	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._by_type__	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._column_type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._depends	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._depends_context	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_change_default	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_company_dependent	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_default_export_compatible	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_exportable	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_groups	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_manual	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_name	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_readonly	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_related	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_required	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_store	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._direct	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._extra_keys__	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._module	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._modules	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_aggregator	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_comodel_name	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_groups	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_help	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_string	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._args__	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0419,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._base_fields__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._by_type__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._column_type	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._depends	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._depends_context	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_change_default	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_company_dependent	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_default_export_compatible	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_exportable	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_groups	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_manual	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_name	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_readonly	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_related	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_required	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_store	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._description_type	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._direct	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._extra_keys__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._module	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._modules	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_aggregator	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_comodel_name	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_groups	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_help	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_string	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._sequence	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._setup_done	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._toplevel	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.aggregator	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.change_default	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.comodel_name	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.company_dependent	attribute	absent	task_without_unit	TASK-API-0485	TASK-DOCS-0109	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0401,TASK-API-0417,TASK-API-0424,TASK-API-0476,TASK-API-0502	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute_sudo	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.copy	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._setup_done	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._toplevel	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.aggregator	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.change_default	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.comodel_name	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.company_dependent	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-DOCS-0109	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0401,TASK-API-0417,TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.compute_sudo	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.copy	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.default	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0417,TASK-API-0476,TASK-DOCS-0109	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.default_export_compatible	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.export_string_translation	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.exportable	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.falsy_value	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.falsy_value_label	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.group_expand	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.groups	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-GEN-0071	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.help	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.index	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.inherited	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.inherited_field	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.inverse	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0424,TASK-API-0476,TASK-API-0502	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.is_text	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.manual	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0424	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.model_name	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.default_export_compatible	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.export_string_translation	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.exportable	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.falsy_value	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0213	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.falsy_value_label	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.group_expand	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.groups	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-GEN-0071	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.help	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.index	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.inherited	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.inherited_field	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.inverse	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.is_text	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.manual	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0424	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.model_name	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.name	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.precompute	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.prefetch	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.readonly	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.recursive	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.related	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417,TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.related_field	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.relational	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.required	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.search	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0424,TASK-API-0429,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.store	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417,TASK-API-0418,TASK-API-0424,TASK-API-0476,TASK-API-0502	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.string	attribute	absent	task_units_settled	TASK-API-0485	TASK-API-0401,TASK-API-0417,TASK-API-0418,TASK-API-0419,TASK-API-0476,TASK-GEN-0071	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.translate	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.write_sequence	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.precompute	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.prefetch	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.readonly	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.recursive	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.related	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417,TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.related_field	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.relational	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.required	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.search	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0424,TASK-API-0429,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.store	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0113,TASK-API-0417,TASK-API-0418,TASK-API-0424,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.string	attribute	not_verified	task_units_settled	TASK-API-0485	TASK-API-0401,TASK-API-0417,TASK-API-0418,TASK-API-0419,TASK-API-0476,TASK-GEN-0071	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.translate	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.type	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.write_sequence	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.column_type	property	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary._get_attrs	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.column_type	property	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary._get_attrs	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.get_column_update	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.get_column_update	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.convert_to_record	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.compute_value	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -272,9 +272,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image	class	no
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image.setup	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image.create	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image.write	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image._inverse_related	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image._inverse_related	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image._image_process	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image._process_related	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image._process_related	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary._depends_context	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary._description_attachment	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.attachment	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -295,11 +295,11 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json.convert_to_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json.convert_to_export	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.update_db	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.update_db	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.__get__	method	not_verified	task_with_blocked_unit	TASK-API-0397,TASK-API-0398,TASK-API-0401,TASK-API-0402	TASK-API-0403	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.__set__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0403	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.to_sql	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Id.expression_getter	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean._column_type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean.falsy_value	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -314,16 +314,16 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json._column_typ
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json.type	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer._get_attrs	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer._get_attrs	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer.convert_to_column	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer.convert_to_cache	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer.convert_to_record	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer.convert_to_read	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer._update_inverse	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer._update_inverse	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Integer.convert_to_export	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float	class	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float.__init__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float._column_type	property	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float._column_type	property	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float.get_digits	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float.get_min_display_digits	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float._description_digits	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -335,9 +335,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Float.convert
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary	class	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.__init__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary._description_currency_field	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary._description_aggregator	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary._description_aggregator	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.get_currency_field	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.setup_nonrelated	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.setup_nonrelated	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.setup_related	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.convert_to_column_insert	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_numeric.py	Monetary.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -438,9 +438,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Reference._
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.__get__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=owner_absent;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._update_inverse	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._update_inverse	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.convert_to_record_multi	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_nonrelated	method	absent	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_nonrelated	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_inverses	method	not_verified	task_without_unit	TASK-API-0485		structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.get_comodel_domain	method	not_verified	task_without_unit	TASK-API-0485		structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._related_domain	property	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -451,11 +451,11 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0410,TASK-API-0430,TASK-API-0476	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=paired_by_name:Many2manyField.__init__;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._setup_attrs__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.setup_nonrelated	method	absent	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db	method	absent	task_without_unit	TASK-API-0485	TASK-API-0430,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db_column	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.setup_nonrelated	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0430,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db_foreign_key	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverse	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverse	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_record	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -467,11 +467,11 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.c
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.write	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._remove_inverses	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverses	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.to_sql	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.condition_to_sql	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.join	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_inverse	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_inverse	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.convert_to_record	method	not_verified	task_units_settled	TASK-API-0485	TASK-API-0476	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -492,8 +492,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._condition_to_sql_relational	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0410,TASK-API-0476	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.setup_nonrelated	method	absent	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.update_db	method	absent	task_without_unit	TASK-API-0485	TASK-API-0430,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.setup_nonrelated	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.update_db	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0430,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._additional_domain	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.get_comodel_domain	method	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._internal_description_domain_raw	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -505,9 +505,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._condition_to_sql_relational	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0410	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0476	structural=owner_absent;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_nonrelated	method	absent	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_nonrelated	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0411	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_inverses	method	not_verified	task_without_unit	TASK-API-0485		structural=owner_absent;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.update_db	method	absent	task_without_unit	TASK-API-0485	TASK-API-0430,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.update_db	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0430,TASK-API-0476	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.update_db_foreign_keys	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.read	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.write_real	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -550,9 +550,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection	class	absent	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.__init__	method	not_verified	task_units_settled	TASK-API-0485		structural=paired_by_name:_BoundValidate.__init__;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.setup_nonrelated	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.setup_nonrelated	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection.setup_related	method	not_verified	task_units_settled	TASK-API-0485		structural=paired_by_name:SelectionField.setup_related;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._get_attrs	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._get_attrs	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._setup_attrs__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._selection_modules	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_selection.py	Selection._description_selection	method	not_verified	task_units_settled	TASK-API-0485		structural=paired_by_name:SelectionField._description_selection;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_selection_class.py
@@ -573,19 +573,19 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate._ex
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate.property_to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.today	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.context_today	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.to_date	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.to_string	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.today	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.context_today	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.to_date	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.to_string	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.convert_to_export	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.convert_to_display_name	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.now	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.today	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.context_timestamp	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.to_datetime	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.to_string	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.now	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.today	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.context_timestamp	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.to_datetime	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.to_string	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.expression_getter	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.convert_to_export	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -595,10 +595,10 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate.end
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate.start_of	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	BaseDate.subtract	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date._column_type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.from_string	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.from_string	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Date.type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime._column_type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.from_string	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.from_string	attribute	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_temporal.py	Datetime.type	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py		file	not_verified	task_without_unit	TASK-API-0485		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -606,12 +606,12 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.__
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._description_translate	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.setup_related	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.get_depends	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._convert_db_column	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._convert_db_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.get_trans_terms	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.get_text_content	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.convert_to_column_insert	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.get_column_update	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.get_column_update	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.convert_to_record	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.convert_to_write	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -621,21 +621,21 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.tr
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.get_translation_fallback_langs	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._get_cache_impl	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._cache_missing_ids	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._to_prefetch	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._to_prefetch	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._insert_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._update_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.write	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.to_sql	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.expression_getter	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.condition_to_sql	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char	class	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char._setup_attrs__	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char._column_type	property	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char.update_db_column	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char._column_type	property	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char.update_db_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char.get_depends	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Text	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html._get_attrs	method	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html._get_attrs	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html.convert_to_column	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html.convert_to_cache	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Html._convert	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -712,11 +712,11 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	check_companies_domai
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel	class	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel.__new__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel.__init__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397,TASK-API-0399,TASK-API-0402	structural=paired_by_name:_on_empty_recordset.__init__;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397,TASK-API-0398,TASK-API-0399,TASK-API-0401,TASK-API-0402,TASK-API-0422,TASK-API-0499,TASK-API-0502	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel	class	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397,TASK-API-0398,TASK-API-0399,TASK-API-0401,TASK-API-0402,TASK-API-0422	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.load	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:RecordLoaderMixin.load;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._extract_records	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:RecordLoaderMixin._extract_records;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._convert_records	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:RecordLoaderMixin._convert_records;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._validate_fields	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0502	structural=homonym;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._validate_fields	method	not_verified	task_without_unit	TASK-API-0485		structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.default_get	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DefaultGetMixin.default_get;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._compute_display_name	method	not_verified	task_without_unit	TASK-API-0485		structural=paired_by_name:DisplayNameMixin._compute_display_name;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._search_display_name	method	not_verified	task_units_settled	TASK-API-0485		structural=paired_by_name:DisplayNameMixin._search_display_name;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -808,11 +808,11 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	RecordCache.__contain
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	RecordCache.__getitem__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397,TASK-API-0401	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	RecordCache.__iter__	method	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	RecordCache.__len__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	Model	class	absent	task_without_unit	TASK-API-0485	TASK-API-0231,TASK-API-0397,TASK-API-0398,TASK-API-0399,TASK-API-0401,TASK-API-0402,TASK-API-0422,TASK-API-0499,TASK-API-0502	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	Model	class	absent	task_without_unit	TASK-API-0485	TASK-API-0231,TASK-API-0397,TASK-API-0398,TASK-API-0399,TASK-API-0401,TASK-API-0402,TASK-API-0422	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	get_columns_from_sql_diagnostics	function	not_verified	task_without_unit	TASK-API-0485		structural=signature;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.__slots__	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0397	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._depends	attribute	not_verified	task_without_unit	TASK-API-0485		structural=value;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._fields	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0231,TASK-API-0399,TASK-API-0502	structural=value;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._fields	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0231,TASK-API-0399	structural=value;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._fields__	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._inherit_children	attribute	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._inherits	attribute	not_verified	task_without_unit	TASK-API-0485	TASK-API-0422	structural=value;write_path=-;evidence=-
@@ -827,7 +827,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._inherit	at
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._log_access	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._module	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._module_to_models__	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._name	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0399,TASK-API-0499,TASK-API-0502	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._name	attribute	absent	task_without_unit	TASK-API-0485	TASK-API-0399	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._register	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel._table_object_definitions	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	MetaModel.pool	attribute	absent	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
@@ -1400,7 +1400,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	xml_term_convert
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	html_translate	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	html_term_converter	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	get_text_content	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	is_text	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	is_text	function	not_verified	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	get_translation	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	get_translated_module	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/translate.py	_get_cr	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-

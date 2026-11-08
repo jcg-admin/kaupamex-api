@@ -166,3 +166,67 @@ def test_a_property_with_a_setter_is_one_obligation(tmp_path):
         '        pass\n')
     records = [r for r in inv.typed_symbols(source) if r['name'] == 'count']
     assert [r['kind'] for r in records] == ['property']
+
+
+INSTALLING = '''
+from django.db import models
+
+DEFAULTS = {'help': None, 'groups': None}
+
+for _name, _value in DEFAULTS.items():
+    if not hasattr(models.Field, _name):
+        setattr(models.Field, _name, _value)
+
+models.Field.copy = True
+setattr(models.Field, 'exportable', True)
+
+for _key, _source in (('string', 'string'), ('help', 'help')):
+    setattr(models.Field, f'_related_{_key}', property(lambda f: f))
+
+
+class Holder:
+    def __init__(self):
+        self.secret = 1
+
+
+def touch(record):
+    record.local_only = 2
+'''
+
+
+def test_a_name_installed_on_another_class_is_known(tmp_path):
+    """H-API-1167: el puerto instala atributos en ``models.Field`` por
+    asignación, por ``setattr`` con nombre literal y por bucle sobre las
+    claves de un diccionario. Ninguno es una ``def`` ni una ``class``, y el
+    censo los contaba como ausentes. Un ``self.x`` es estado de instancia,
+    no una instalación, y no cuenta."""
+    path = tmp_path / 'installing.py'
+    path.write_text(INSTALLING)
+    names = inv.installed_names(path)
+    assert {'help', 'groups', 'copy', 'exportable'} <= names
+    assert {'Field.help', 'Field.groups', 'Field.copy',
+            'Field.exportable'} <= names
+    assert {'Field._related_string', 'Field._related_help'} <= names
+    assert 'secret' not in names
+    assert 'local_only' not in names
+
+
+def test_an_attribute_installed_on_its_class_is_not_absent(
+        tmp_path, monkeypatch):
+    """El atributo de clase ``Field.store`` de la referencia no tiene
+    ``class Field`` en el espejo cuando el puerto lo instala en la clase de
+    Django: conocido como ``Field.store``, pasa de ``absent`` a
+    ``not_verified`` —presencia, no contrato—."""
+    reference, ours = tmp_path / 'ref', tmp_path / 'ours'
+    reference.mkdir(parents=True), ours.mkdir(parents=True)
+    (reference / 'fields.py').write_text('class Field:\n    store = True\n')
+    (ours / 'fields.py').write_text('X = 1\n')
+    monkeypatch.setattr(inv._census, 'MIRRORED_ROOTS',
+                        (('x', ours, reference),))
+
+    def category(known):
+        rows = inv.inventory(('x',), 'rev', known=known, evidence={})
+        return next(r[4] for r in rows if r[2] == 'Field.store')
+
+    assert category(set()) == 'absent'
+    assert category({'Field.store'}) == 'not_verified'

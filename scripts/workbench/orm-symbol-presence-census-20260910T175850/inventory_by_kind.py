@@ -205,13 +205,15 @@ def engine_pairs(our_file, reference_file):
 
 
 def consumer_names(roots=('src', 'addons')):
-    """Todo nombre de clase o funcion que el arbol consumidor declara."""
+    """Todo nombre de clase o funcion que el arbol consumidor declara, mas
+    los que instala como atributo de otra clase (:func:`installed_names`)."""
     names = set()
     for root in roots:
         for path in pathlib.Path(REPO / root).rglob('*.py'):
             if 'migrations' in path.parts or '__pycache__' in path.parts:
                 continue
             names.update(r['name'] for r in _census.declared_symbols(path))
+            names.update(installed_names(path))
     return names
 
 
@@ -246,14 +248,16 @@ def principal(kind, structural, write_path, evidence, name_known):
     return 'not_verified'
 
 
-def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None, evidence=None):
+def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None,
+              evidence=None):
     pairs = {label: (ours, ref) for label, ours, ref in _census.MIRRORED_ROOTS}
     known = consumer_names() if known is None else known
     evidence = load_evidence() if evidence is None else evidence
     rows = []
     for label in roots:
         our_root, reference_root = pairs[label]
-        for reference_file in sorted(pathlib.Path(reference_root).rglob('*.py')):
+        for reference_file in sorted(
+                pathlib.Path(reference_root).rglob('*.py')):
             if reference_file.name == '__init__.py' or 'tests' in reference_file.parts:
                 continue
             relative = reference_file.relative_to(reference_root)
@@ -297,7 +301,9 @@ def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None, evidence=Non
                 else:
                     structural = 'unresolved'
                 test = evidence.get((module, qualified, 'attribute'), '')
-                category = principal('attribute', structural, '', test, owner in known)
+                category = principal('attribute', structural, '', test,
+                                     owner in known
+                                     or f'{owner}.{name}' in known)
                 file_rows.append(('attribute', qualified, category,
                                   f'structural={structural};write_path=-;evidence={test or "-"}'))
             categories = {row[2] for row in file_rows}
@@ -359,6 +365,144 @@ def main(argv=None):
               ' | '.join(str(c[x]) for x in CATEGORIES) + ' |')
     print(f'salida: {args.tsv}')
     return 0
+
+
+def installed_names(path):
+    """Los nombres que ``path`` instala como atributo de OTRA clase, como
+    ``nombre`` y como ``Clase.nombre``.
+
+    H-API-1167: el puerto disuelve ``class Field`` en ``models.Field`` de
+    Django y le instala atributos de tres maneras que no son ``def`` ni
+    ``class``: la asignacion ``models.Field.copy = ...``, ``setattr`` con el
+    nombre literal, y un bucle ``for nombre, valor in DICT.items():`` cuyo
+    cuerpo llama a ``setattr`` (las claves literales de ``DICT``). Sin esto,
+    ``absent`` contaba como ausente lo instalado. La forma ``Clase.nombre``
+    —la clase de destino es el ultimo segmento: ``Field`` en
+    ``models.Field``— es la que consulta un atributo de clase de la
+    referencia.
+
+    No cuenta ``self.x`` ni ``cls.x``, ni lo que ocurre dentro de una
+    funcion o una clase: es estado de un objeto, no una instalacion. Y un
+    nombre instalado es solo PRESENCIA: queda en ``not_verified`` hasta que
+    un contrato lo verifique.
+    """
+    tree = ast.parse(path.read_text(encoding='utf-8'))
+    dicts = {}
+    for node in tree.body:
+        if (isinstance(node, (ast.Assign, ast.AnnAssign))
+                and isinstance(node.value, ast.Dict)):
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target])
+            keys = {k.value for k in node.value.keys
+                    if isinstance(k, ast.Constant)
+                    and isinstance(k.value, str)}
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    dicts[target.id] = keys
+    names = set()
+
+    def add(owner, name):
+        names.add(name)
+        owner_name = _target_class(owner)
+        if owner_name:
+            names.add(f'{owner_name}.{name}')
+
+    for node in _module_level_nodes(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if (isinstance(target, ast.Attribute)
+                        and not (isinstance(target.value, ast.Name)
+                                 and target.value.id in ('self', 'cls'))):
+                    add(target.value, target.attr)
+        elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+              and node.func.id == 'setattr' and len(node.args) >= 2
+              and isinstance(node.args[1], ast.Constant)
+              and isinstance(node.args[1].value, str)):
+            add(node.args[0], node.args[1].value)
+        elif (isinstance(node, ast.For) and isinstance(node.iter, ast.Call)
+              and isinstance(node.iter.func, ast.Attribute)
+              and node.iter.func.attr == 'items'
+              and isinstance(node.iter.func.value, ast.Name)):
+            calls = [inner for inner in ast.walk(node)
+                     if isinstance(inner, ast.Call)
+                     and isinstance(inner.func, ast.Name)
+                     and inner.func.id == 'setattr' and inner.args]
+            for call in calls:
+                for key in dicts.get(node.iter.func.value.id, ()):
+                    add(call.args[0], key)
+        elif (isinstance(node, ast.For)
+              and isinstance(node.iter, (ast.Tuple, ast.List))):
+            # ``for _key, ... in (('name', ...), ...):`` con
+            # ``setattr(models.Field, f'_description_{_key}', ...)``.
+            loop_var = (node.target.elts[0]
+                        if isinstance(node.target, ast.Tuple)
+                        else node.target)
+            if not isinstance(loop_var, ast.Name):
+                continue
+            values = []
+            for element in node.iter.elts:
+                first = (element.elts[0] if isinstance(element, ast.Tuple)
+                         and element.elts else element)
+                if (isinstance(first, ast.Constant)
+                        and isinstance(first.value, str)):
+                    values.append(first.value)
+            for inner in ast.walk(node):
+                if not (isinstance(inner, ast.Call)
+                        and isinstance(inner.func, ast.Name)
+                        and inner.func.id == 'setattr'
+                        and len(inner.args) >= 2):
+                    continue
+                for value in values:
+                    name = _formatted_name(inner.args[1], loop_var.id, value)
+                    if name:
+                        add(inner.args[0], name)
+    return names
+
+
+def _formatted_name(node, variable, value):
+    """El nombre que una f-string como ``f'_related_{_key}'`` produce con
+    ``_key = value``, o ``None`` si usa otra cosa que la variable del
+    bucle. Un nombre literal se devuelve tal cual."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if not isinstance(node, ast.JoinedStr):
+        return None
+    parts = []
+    for piece in node.values:
+        if isinstance(piece, ast.Constant):
+            parts.append(str(piece.value))
+        elif (isinstance(piece, ast.FormattedValue)
+              and isinstance(piece.value, ast.Name)
+              and piece.value.id == variable):
+            parts.append(value)
+        else:
+            return None
+    return ''.join(parts)
+
+
+def _target_class(node):
+    """El nombre de la clase de destino de una instalacion: el ultimo
+    segmento de ``models.Field`` o el nombre de ``Field``."""
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Name):
+        return node.id
+    return None
+
+
+def _module_level_nodes(tree):
+    """Los nodos del modulo que no estan dentro de una ``def`` ni de una
+    ``class``: es donde se instala un atributo en una clase ajena. Una
+    asignacion ``registro.nombre = ...`` dentro de una funcion es estado de
+    un objeto, no una instalacion."""
+    pending = list(tree.body)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                             ast.ClassDef, ast.Lambda)):
+            continue
+        yield node
+        pending.extend(ast.iter_child_nodes(node))
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
  "population": 94,
- "open_tasks": 69,
+ "open_tasks": 66,
  "frontier": [],
  "blocked": [
   {
@@ -83,16 +83,13 @@
   "TASK-API-0418",
   "TASK-API-0479",
   "TASK-API-0485",
-  "TASK-API-0486",
-  "TASK-API-0499",
-  "TASK-API-0500",
-  "TASK-API-0501"
+  "TASK-API-0486"
  ],
  "obligations": {
   "satisfied": 962,
-  "absent": 587,
+  "absent": 475,
   "divergent": 0,
-  "not_verified": 963,
+  "not_verified": 1075,
   "applicable": 2512,
   "pending": 1550,
   "source": {
