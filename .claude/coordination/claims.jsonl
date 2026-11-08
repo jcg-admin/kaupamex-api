@@ -1447,3 +1447,6 @@
 {"id": "c-afb26906-1a8b-41fb-85f0-e7373b0f3c41", "op": "claim", "path": "src/orm/fields_relational.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T09:22:58.000Z", "task": "TASK-API-0485"}
 {"id": "c-201f9bdb-9455-4e17-a16d-0bb83590c175", "op": "claim", "path": "src/orm/domains.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T09:22:58.000Z", "task": "TASK-API-0485"}
 {"id": "c-11f03d7c-0238-44a7-b59b-0095cdfe1429", "op": "claim", "path": "tests/fixtures/model_persisted_grid.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T09:22:58.000Z", "task": "TASK-API-0485"}
+{"id": "c-9a01c5bd-e68a-4fb7-9cc5-8b138aa1fe5a", "op": "release", "path": "src/orm/fields_relational.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T09:27:56.000Z", "task": "TASK-API-0485"}
+{"id": "c-46706a1d-446f-4b9e-a030-7e461b48b4cb", "op": "release", "path": "src/orm/domains.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T09:27:56.000Z", "task": "TASK-API-0485"}
+{"id": "c-43106129-7f50-486f-aaa2-6d2bc472eed3", "op": "release", "path": "tests/fixtures/model_persisted_grid.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T09:27:56.000Z", "task": "TASK-API-0485"}

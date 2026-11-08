@@ -691,9 +691,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_real	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_new	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._check_sudo_commands	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._get_query_for_condition_value	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._condition_to_sql_relational	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._get_query_for_condition_value	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._condition_to_sql_relational	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.__init__	method	not_verified	structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.setup_nonrelated	method	not_verified	structural=unresolved;write_path=-;evidence=-
@@ -706,8 +706,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.read	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.write_real	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.write_new	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._get_query_for_condition_value	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._condition_to_sql_relational	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._get_query_for_condition_value	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._condition_to_sql_relational	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many	class	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.__init__	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_nonrelated	method	not_verified	structural=unresolved;write_path=-;evidence=-
@@ -717,7 +717,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.read	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.write_real	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.write_new	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many._condition_to_sql_relational	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many._condition_to_sql_relational	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	PrefetchMany2one	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	PrefetchMany2one.__init__	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	PrefetchMany2one.__iter__	method	not_verified	structural=match;write_path=-;evidence=-
