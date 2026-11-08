@@ -992,3 +992,6 @@ src/orm/fields_relational.py	One2many.copy	attribute	tests/integration/base/test
 src/orm/fields.py	Field.string	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._sql_error_to_message_generic	method	tests/unit/orm/test_sql_error_to_message.py
 src/orm/models.py	BaseModel._sql_error_to_message	method	tests/unit/orm/test_sql_error_to_message.py
+src/orm/models.py	BaseModel.export_data	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel._export_rows	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel.__ensure_xml_id	method	tests/unit/orm/test_contract_model_persisted_reference.py
