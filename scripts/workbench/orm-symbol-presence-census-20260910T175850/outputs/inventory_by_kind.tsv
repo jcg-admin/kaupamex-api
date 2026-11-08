@@ -351,9 +351,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.update_db_notnu
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.update_db_related	method	not_verified	structural=dissolved:_field_update_db_related;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.property_to_sql	method	not_verified	structural=dissolved:_field_property_to_sql;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._condition_to_sql_company	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.condition_to_sql	method	not_verified	structural=dissolved:_field_condition_to_sql;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._condition_to_sql	method	not_verified	structural=dissolved:_field_condition_to_sql;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._condition_to_sql_company	method	not_verified	structural=dissolved:_field_condition_to_sql_company;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.expression_getter	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.filter_function	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.read	method	not_verified	structural=dissolved:_field_read;write_path=-;evidence=-
@@ -455,7 +455,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.compute
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.read	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.create	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.write	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Binary.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image.setup	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_binary.py	Image.create	method	not_verified	structural=unresolved;write_path=-;evidence=-
@@ -476,7 +476,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean	class	ab
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean.convert_to_column	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean.convert_to_cache	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean.convert_to_export	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean._condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Boolean._condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json	class	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json.convert_to_record	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_misc.py	Json.convert_to_cache	method	not_verified	structural=unresolved;write_path=-;evidence=-
@@ -581,7 +581,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.expression_getter	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.filter_function	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.property_to_sql	method	not_verified	structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Property	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Property.__init__	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Property.__iter__	method	not_verified	structural=match;write_path=-;evidence=-
@@ -672,7 +672,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.w
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._remove_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.join	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti	class	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_inverse	method	not_verified	structural=unresolved;write_path=-;evidence=-
@@ -691,7 +691,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_real	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_new	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._check_sudo_commands	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._get_query_for_condition_value	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._condition_to_sql_relational	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many	class	not_verified	structural=match;write_path=-;evidence=-
@@ -832,7 +832,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString._u
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.write	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.expression_getter	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.condition_to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	BaseString.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char	class	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char._setup_attrs__	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_textual.py	Char._column_type	property	not_verified	structural=unresolved;write_path=-;evidence=-
