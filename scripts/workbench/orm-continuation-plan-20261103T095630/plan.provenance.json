@@ -800,6 +800,13 @@
         "base-inherits-access-on-read-0182"
       ],
       "writtenAt": "2026-11-08T20:31:20Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-field-groups-fast-path-0485"
+      ],
+      "writtenAt": "2026-11-08T21:21:22Z"
     }
   ]
 }
