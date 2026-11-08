@@ -765,6 +765,13 @@
         "orm-relational-description-0485"
       ],
       "writtenAt": "2026-11-08T11:01:24Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-inherited-fields-0485"
+      ],
+      "writtenAt": "2026-11-08T11:27:03Z"
     }
   ]
 }
