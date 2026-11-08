@@ -125,3 +125,27 @@ falta es la misma capacidad del Provider ya registrada (H-THYROX-682/633); el
 cableado de los hooks de proyecto en una sesión remota es decisión de quien
 administra el entorno (`/home/user/.claude/` o el lanzador). No se modificó
 ningún hook.
+
+## Quién ejecuta las unidades (medido 2026-11-08)
+
+La instrucción 3.2.11 §7 pide comprobar la cadena real de modelo. Lo medido
+en el contenedor de VM-x2hokp:
+
+- **Las 135 tentativas** de `orm-continuation-plan-20261103T095630/outputs/continuation.jsonl`
+  llevan `"model": "conversational-session"`: las escribe
+  `probes/settle_item.py:81` al asentar una unidad que hizo la sesión
+  conversacional. Ninguna la ejecutó un worker de Thyrox.
+- **El campo `candidates`** de un candidato (`claude-opus-5-5`) es metadato
+  del plan para un despacho de workers; `settle_item.py` no lo lee y nada en
+  este flujo lo resuelve a un backend.
+- **No hay cadena local aquí:** `which podman` no devuelve nada,
+  `bin/hardware-inventory` muere por falta de `gawk` y `bin/agent-recommend`
+  avisa de `node_modules` vacío. Sin unidad `model-runtime` no hay
+  procedencia que probar.
+
+Veredicto según `thyrox: .claude/rules/local-work-validation.md`:
+**`LOCAL_WORKER N/A`** —sin unidad viva ni línea `modelo:`—, no `PROVEN` ni
+`NOT_LOCAL`. El ejecutor de las unidades es la sesión conversacional que el
+usuario lanzó; no se hizo ninguna llamada a un proveedor fuera de ella. Pasar
+la ejecución a workers locales exige un nodo con el runtime cualificado, que
+es infraestructura del Provider, no de este Consumer.
