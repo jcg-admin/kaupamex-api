@@ -718,9 +718,13 @@ class TestOrmMessage(TestOrmModel):
     @depends('author.name', 'discussion.name')
     def _compute_name(self):
         for message in self:
+            # ``res.users`` no deriva de ``BaseModel`` (H-API-1083): su
+            # ``Many2one`` vacío es el ``None`` de Django y no el recordset
+            # vacío de la fuente, cuyo ``name`` vale ``False``
+            author = message.author
             message.name = self.env.context.get(
                 'compute_name', "[%s] %s" % (message.discussion.name or '',
-                                             message.author.name or ''))
+                                             (author and author.name) or ''))
 
     @constrains('name')
     def _check_name(self):

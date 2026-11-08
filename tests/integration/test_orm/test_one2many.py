@@ -108,20 +108,25 @@ def test_parent_id(env):
 
 def test_commands_on_a_declared_one2many(env):
     """Un ``fields.One2many(comodel, inverse)`` declarado —no el reverso de
-    Django— interpreta los mismos comandos al crear y al escribir."""
+    Django— interpreta los mismos comandos al crear y al escribir.
+
+    Discrimina por ``priority`` y no por ``name``: ``name`` es un campo
+    calculado almacenado, como en la referencia (``odoo19c: odoo/addons/
+    test_orm/models/test_orm.py:145``), y su cálculo sustituye el valor dado
+    al crear."""
     Discussion = env['test_orm.discussion']
     discussion = Discussion.create({
         'name': 'd',
-        'messages': [Command.create({'name': 'm1'}),
-                     Command.create({'name': 'm2'})],
+        'messages': [Command.create({'priority': 1}),
+                     Command.create({'priority': 2})],
     })
     m1, m2 = sorted(Discussion.browse(discussion.ids).messages,
-                    key=lambda message: message.name)
-    assert (m1.name, m2.name) == ('m1', 'm2')
-    discussion.write({'messages': [Command.update(m1.id, {'name': 'x'}),
+                    key=lambda message: message.priority)
+    assert (m1.priority, m2.priority) == (1, 2)
+    discussion.write({'messages': [Command.update(m1.id, {'priority': 9}),
                                    Command.delete(m2.id)]})
     messages = Discussion.browse(discussion.ids).messages
-    assert [message.name for message in messages] == ['x']
+    assert [message.priority for message in messages] == [9]
     assert not env['test_orm.message'].browse(m2.ids).exists()
 
 

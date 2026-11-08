@@ -4958,7 +4958,14 @@ def _invoke_compute_method(field, records):
     llamadas y el cómputo por lote dejaba de recibir su lote.
     """
     if getattr(records, '_ids', None) is not None:
-        determine(field.compute, records)
+        # ≙ ``records._compute_field_value(self)`` de ``Field.compute_value``
+        # (``odoo19c: odoo/orm/fields.py:1915``): el cálculo y la validación
+        # de lo calculado viven en el modelo
+        compute = getattr(records, '_compute_field_value', None)
+        if compute is not None:
+            compute(field)
+        else:
+            determine(field.compute, records)
         return
     for record in as_record_list(records):
         determine(field.compute, record)

@@ -93,7 +93,7 @@ from orm import registry
 from orm.domains import Domain, to_q
 from orm.model_classes import LOG_ACCESS_COLUMNS, parent_name_of
 from orm.fields_relational import One2many as DeclaredOne2many
-from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES,
+from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         FieldDescriptor, StoredMany2oneIdDescriptor,
                         _field_cache_record_id,
                         convert_to_display_name, determine_inverse,
@@ -6420,6 +6420,22 @@ class BaseModel(DefaultGetMixin, Model):
     #: da el recordset vacío del entorno activo, como a ``browse``.
     flush_model = _on_empty_recordset(flush_model)
     invalidate_model = _on_empty_recordset(invalidate_model)
+
+    def _compute_field_value(self, field):
+        """Calcula ``field`` sobre ``self`` y valida lo calculado. — ≙
+        ``_compute_field_value`` (``odoo19c: odoo/orm/models.py``)
+
+        Dos mitades, como en la fuente: ``determine(field.compute, self)`` y,
+        si el campo se almacena y hay filas guardadas, las restricciones de
+        los campos que calcula el mismo método (``field_computed[field]``).
+        Sin la segunda, una ``@api.constrains`` sobre un campo calculado
+        almacenado sólo se comprobaba al escribirlo y no al recalcularlo
+        (H-API-1165).
+        """
+        determine(field.compute, self)
+        if field.store and any(self._ids):
+            fnames = [f.name for f in registry.field_computed[field]]
+            self.filtered(lambda record: record.id)._validate_fields(fnames)
 
     @_on_empty_recordset
     def _parent_store_compute(self):

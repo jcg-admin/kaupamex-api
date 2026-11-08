@@ -57,7 +57,7 @@ from functools import partial
 from collections.abc import Callable, Collection, Iterator, Mapping
 
 from django.apps import apps
-from django.db import DatabaseError, connections, transaction
+from django.db import DatabaseError, connections, models, transaction
 from django.db.models.signals import class_prepared
 from django.db.models.utils import make_model_tuple
 from django.dispatch import receiver
@@ -1271,17 +1271,50 @@ class _TriggerRegistry:
 
     @staticmethod
     def _build_inverses():
+        def is_hidden(relation):
+            # Relación inversa oculta de Django: ``ForeignObjectRel`` cuyo
+            # ``related_name`` acaba en ``+``. En Django 6 es la propiedad
+            # ``hidden`` (``django/db/models/fields/reverse_related.py:65``);
+            # el método ``is_hidden()`` de versiones anteriores ya no existe.
+            return (isinstance(relation, models.ForeignObjectRel)
+                    and bool(getattr(relation, 'hidden', False)))
+
         inverses = Collector()
         for model in apps.get_models():
             for field in model._meta.get_fields():
                 remote = getattr(field, 'remote_field', None)
                 if remote is None:
                     continue
+                # Una relación inversa OCULTA (``related_name='+'``) no tiene
+                # accesor: recorrerla devuelve vacío, y como inverso tapaba la
+                # búsqueda de respaldo de ``_modified_triggers``. No se anota.
+                if is_hidden(field) or is_hidden(remote):
+                    continue
                 # ``remote_field`` del concreto es el objeto de relación
                 # inversa, y el de éste es el concreto: la vuelta es simétrica
                 # y basta con anotar las dos direcciones de cada par.
                 inverses.add(field, remote)
                 inverses.add(remote, field)
+            # ≙ ``One2many.setup_inverses`` (``odoo19c: odoo/orm/
+            # fields_relational.py:891-899``): el ``One2many`` declarado y su
+            # ``Many2one`` inverso se apuntan uno al otro. Aquí el declarado
+            # no está en ``_meta`` —es un descriptor—, así que no lo veía el
+            # recorrido de arriba.
+            for field in model_field_registry(model).values():
+                inverse_name = getattr(field, 'inverse_name', None)
+                comodel_name = getattr(field, 'comodel_name', None)
+                if not (inverse_name and comodel_name
+                        and type(field).__name__ == 'One2many'):
+                    continue
+                comodel = MODELS_BY_NAME.get(comodel_name)
+                if comodel is None:
+                    continue
+                invf = model_field_registry(comodel).get(inverse_name)
+                if invf is None:
+                    continue
+                if getattr(invf, 'many_to_one', False):
+                    inverses.add(field, invf)
+                inverses.add(invf, field)
         return inverses
 
     # --- los disparadores, invirtiendo lo declarado ------------------------
