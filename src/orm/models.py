@@ -71,6 +71,8 @@ from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
 from django.dispatch import receiver
 from psycopg import errors as pg_errors
+import uuid
+from contextvars import ContextVar
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
@@ -109,7 +111,8 @@ from orm.utils import (COLLECTION_TYPES, FieldRegistryDescriptor, OriginIds,
 from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
-from tools.misc import OrderedSet, ReadonlyDict, partition, split_every, unique
+from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
+                        split_every, unique)
 from tools.query import Query
 from tools.sql import SQL
 from tools.i18n import format_list
@@ -267,6 +270,24 @@ def _table_object_message(cons, model, diagnostics):
     if message is None or message == cons.default_violation_error_message:
         return None
     return cons.get_violation_error_message()
+
+
+#: ≙ ``self.env.cr.cache['export_properties_cache']`` de ``_export_rows``
+#: (``odoo19c: odoo/orm/models.py:687-690``): la caché de propiedades de una
+#: exportación de primer nivel, compartida con sus llamadas recursivas.
+_EXPORT_PROPERTIES_CACHE: ContextVar = ContextVar('export_properties_cache')
+
+
+def _relation_value_ids(value):
+    """Los ids de un valor relacional leído: un recordset, una fila de
+    Django, su manager o ``QuerySet``, o nada."""
+    if isinstance(value, BaseModel):
+        return value._ids
+    if value is None:
+        return ()
+    if hasattr(value, 'all'):
+        return tuple(value.all().values_list('pk', flat=True))
+    return (value.pk,)
 
 
 def _acting_user(user):
@@ -6938,6 +6959,10 @@ class BaseModel(DefaultGetMixin, Model):
         tiene receptor"*; con este núcleo sí lo tiene, y esa nota queda rancia
         (misma tarea).
         """
+        if len(self._ids) > 1 and getattr(field, 'relational', False):
+            # ≙ el caso de varios registros de ``_Relational.__get__``
+            # (``odoo19c: odoo/orm/fields_relational.py:42-79``)
+            return self._read_relational_multi(field)
         size = len(self._ids)
         if size != 1:
             if size:
@@ -7765,6 +7790,12 @@ class BaseModel(DefaultGetMixin, Model):
             if field in fields_done:
                 continue
             fields_done.add(field)
+            if isinstance(field, (DeclaredOne2many, ForeignObjectRel)):
+                # Un ``One2many`` declarado o el reverso de Django: allá un
+                # x2many se trae con ``field.read`` dentro de
+                # ``_fetch_query``; aquí sus líneas se leen al acceder al
+                # campo, así que no hay nada que traer por adelantado.
+                continue
             if (ignore_when_in_cache
                     and not any(field._cache_missing_ids(self))):
                 continue
@@ -7873,6 +7904,360 @@ class BaseModel(DefaultGetMixin, Model):
         )
         valid_ids = {*real_ids, *new_ids}
         return self.browse(i for i in self._ids if i in valid_ids)
+
+    def __ensure_xml_id(self, skip=False):
+        """ Create missing external ids for records in ``self``, and return an
+            iterator of pairs ``(record, xmlid)`` for the records in ``self``.
+            — ≙ ``__ensure_xml_id`` (``odoo19c: :599-676``)
+
+        :rtype: Iterable[Model, str | None]
+
+        Copia adaptada. Dos cambios de mecanismo, el mismo efecto: el
+        ``IN %s`` de la fuente es ``= ANY(%s)`` —psycopg 3 adapta una lista,
+        no una tupla—, y las filas que faltan se escriben con ``bulk_create``
+        en vez de ``COPY FROM``: ``ir_model_data`` exige aquí ``created_at``,
+        ``updated_at`` y ``noupdate`` sin defecto en la base, y el alta de
+        Django los pone. ``ir.model.data`` es un modelo de Django sin caché
+        de campos, así que la invalidación de la fuente no tiene destinatario.
+        """
+        if skip:
+            return ((record, None) for record in self)
+
+        if not self:
+            return iter([])
+
+        if not self._is_an_ordinary_table():
+            raise Exception(
+                "You can not export the column ID of model %s, because the "
+                "table %s is not an ordinary table."
+                % (self._name, self._table))
+
+        modname = '__export__'
+
+        rows = self.env.execute_query(SQL("""
+            SELECT res_id, module, name
+            FROM ir_model_data
+            WHERE model = %s AND res_id = ANY(%s)
+        """, self._name, list(self.ids)))
+        xids = {
+            res_id: (module, name)
+            for res_id, module, name in rows
+        }
+
+        def to_xid(record_id):
+            (module, name) = xids[record_id]
+            return ('%s.%s' % (module, name)) if module else name
+
+        # create missing xml ids
+        missing = self.filtered(lambda r: r.id not in xids)
+        if not missing:
+            return (
+                (record, to_xid(record.id))
+                for record in self
+            )
+
+        xids.update(
+            (r.id, (modname, '%s_%s_%s' % (
+                r._table,
+                r.id,
+                uuid.uuid4().hex[:8],
+            )))
+            for r in missing
+        )
+        IrModelData = apps.get_model('base', 'IrModelData')
+        IrModelData.objects.using(self.env.db_alias).bulk_create([
+            IrModelData(module=modname, model=record._name,
+                        name=xids[record.id][1], res_id=record.id)
+            for record in missing
+        ])
+
+        return (
+            (record, to_xid(record.id))
+            for record in self
+        )
+
+    def _export_rows(self, fields, *, _is_toplevel_call=True):
+        """ Export fields of the records in ``self``. — ≙ ``_export_rows``
+        (``odoo19c: :678-878``)
+
+        :param list fields: list of lists of fields to traverse
+        :param bool _is_toplevel_call:
+            used when recursing, avoid using when calling from outside
+        :return: list of lists of corresponding values
+
+        Copia adaptada. La caché de propiedades que la fuente guarda en
+        ``self.env.cr.cache['export_properties_cache']`` vive aquí en
+        :data:`_EXPORT_PROPERTIES_CACHE`: el ``cr`` de este árbol es un
+        alias, no un cursor con diccionario propio. Sigue siendo una por
+        exportación de primer nivel y compartida por las llamadas
+        recursivas.
+        """
+        import_compatible = self.env.context.get('import_compat', True)
+        lines = []
+
+        if not _is_toplevel_call:
+            # {properties_field: {property_name: [property_type,
+            #  {record_id: value}]}}
+            cache_properties = _EXPORT_PROPERTIES_CACHE.get()
+        else:
+            cache_properties = collections.defaultdict(dict)
+            cache_token = _EXPORT_PROPERTIES_CACHE.set(cache_properties)
+
+            def fill_properties_cache(records, fnames_by_path, fname):
+                """ Fill the cache for the ``fname`` properties field and
+                return it """
+                cache_properties_field = cache_properties[
+                    records._fields[fname]]
+
+                # read properties to have all the logic of
+                # Properties.convert_to_read_multi
+                for row in records.read([fname]):
+                    properties = row[fname]
+                    if not properties:
+                        continue
+                    rec_id = row['id']
+
+                    for property in properties:
+                        current_prop_name = property['name']
+                        if (f"{fname}.{current_prop_name}"
+                                not in fnames_by_path):
+                            continue
+                        property_type = property['type']
+                        if current_prop_name not in cache_properties_field:
+                            cache_properties_field[current_prop_name] = [
+                                property_type, {}]
+
+                        __, cache_by_id = cache_properties_field[
+                            current_prop_name]
+                        if rec_id in cache_by_id:
+                            continue
+
+                        value = property.get('value')
+                        if property_type in ('many2one', 'many2many'):
+                            if not isinstance(value, list):
+                                value = [value] if value else []
+                            value = self.env[property['comodel']].browse(
+                                [val[0] for val in value])
+                        elif property_type == 'tags' and value:
+                            value = ",".join(
+                                next(iter(tag[1] for tag in property['tags']
+                                          if tag[0] == v), '')
+                                for v in value
+                            )
+                        elif property_type == 'selection':
+                            value = dict(property['selection']).get(
+                                value, '')
+                        cache_by_id[rec_id] = value
+
+            def fetch_fields(records, field_paths):
+                """ Fill the cache of ``records`` for all ``field_paths``
+                recursively included properties"""
+                if not records:
+                    return
+
+                fnames_by_path = dict(groupby(
+                    [path for path in field_paths
+                     if path and path[0] not in ('id', '.id')],
+                    lambda path: path[0],
+                ))
+
+                # Fetch needed fields (remove '.property_name' part)
+                fnames = list(unique(
+                    fname.split('.')[0] for fname in fnames_by_path))
+                records.fetch(fnames)
+                # Fill the cache of the properties field
+                for fname in fnames:
+                    field = records._fields[fname]
+                    if field.type == 'properties':
+                        fill_properties_cache(records, fnames_by_path, fname)
+
+                # Call it recursively for relational field (included
+                # property relational field)
+                for fname, paths in fnames_by_path.items():
+                    if '.' in fname:  # Properties field
+                        fname, prop_name = fname.split('.')
+                        field = records._fields[fname]
+                        assert field.type == 'properties' and prop_name
+
+                        property_type, property_cache = cache_properties[
+                            field].get(prop_name, ('char', None))
+                        if (property_type not in ('many2one', 'many2many')
+                                or not property_cache):
+                            continue
+                        model = next(iter(property_cache.values())).browse()
+                        subrecords = model.union(*[
+                            property_cache[rec_id] for rec_id in records.ids
+                            if rec_id in property_cache])
+                    else:  # Normal field
+                        field = records._fields[fname]
+                        if not field.relational:
+                            continue
+                        subrecords = records[fname]
+
+                    paths = [path[1:] or ['display_name'] for path in paths]
+                    fetch_fields(subrecords, paths)
+
+            fetch_fields(self, fields)
+
+        for record in self:
+            # main line of record, initially empty
+            current = [''] * len(fields)
+            lines.append(current)
+
+            # list of primary fields followed by secondary field(s)
+            primary_done = []
+
+            # process column by column
+            for i, path in enumerate(fields):
+                if not path:
+                    continue
+
+                name = path[0]
+                if name in primary_done:
+                    continue
+
+                if name == '.id':
+                    current[i] = str(record.id)
+                elif name == 'id':
+                    current[i] = (record._name, record.id)
+                else:
+                    prop_name = None
+                    if '.' in name:  # Properties field
+                        fname, prop_name = name.split('.')
+                        field = record._fields[fname]
+                        field_type, cache_value = cache_properties[
+                            field].get(prop_name, ('char', None))
+                        value = (cache_value.get(record.id, '')
+                                 if cache_value else '')
+                    else:  # Normal field
+                        field = record._fields[name]
+                        field_type = field.type
+                        value = record[name]
+
+                    # this part could be simpler, but it has to be done this
+                    # way in order to reproduce the former behavior
+                    if not isinstance(value, BaseModel):
+                        current[i] = field.convert_to_export(value, record)
+
+                    elif import_compatible and field_type == 'reference':
+                        current[i] = f"{value._name},{value.id}"
+
+                    else:
+                        primary_done.append(name)
+                        # recursively export the fields that follow name; use
+                        # 'display_name' where no subfield is exported
+                        fields2 = [(p[1:] or ['display_name']
+                                    if p and p[0] == name else [])
+                                   for p in fields]
+
+                        # in import_compat mode, m2m should always be
+                        # exported as a comma-separated list of xids or
+                        # names in a single cell
+                        if import_compatible and field_type == 'many2many':
+                            index = None
+                            # find out which subfield the user wants & its
+                            # location as we might not get it as the first
+                            # column we encounter
+                            for name in ['id', 'name', 'display_name']:
+                                with contextlib.suppress(ValueError):
+                                    index = fields2.index([name])
+                                    break
+                            if index is None:
+                                # not found anything, assume we just want the
+                                # display_name in the first column
+                                name = None
+                                index = i
+
+                            if name == 'id':
+                                xml_ids = [
+                                    xid for _, xid in value.__ensure_xml_id()]
+                                current[index] = ','.join(xml_ids)
+                            else:
+                                current[index] = ','.join(
+                                    value.mapped('display_name')
+                                ) if value else ''
+                            continue
+
+                        lines2 = value._export_rows(
+                            fields2, _is_toplevel_call=False)
+                        if lines2:
+                            # merge first line with record's main line
+                            for j, val in enumerate(lines2[0]):
+                                if val or isinstance(val, (int, float)):
+                                    current[j] = val
+                            # append the other lines at the end
+                            lines += lines2[1:]
+                        else:
+                            current[i] = ''
+
+        # if any xid should be exported, only do so at toplevel
+        if _is_toplevel_call and any(f[-1] == 'id' for f in fields):
+            bymodels = collections.defaultdict(set)
+            xidmap = collections.defaultdict(list)
+            # collect all the tuples in "lines" (along with their
+            # coordinates)
+            for i, line in enumerate(lines):
+                for j, cell in enumerate(line):
+                    if isinstance(cell, tuple):
+                        bymodels[cell[0]].add(cell[1])
+                        xidmap[cell].append((i, j))
+            # for each model, xid-export everything and inject in matrix
+            for model, ids in bymodels.items():
+                for record, xid in self.env[model].browse(
+                        ids).__ensure_xml_id():
+                    for i, j in xidmap.pop((record._name, record.id)):
+                        lines[i][j] = xid
+            assert not xidmap, "failed to export xids for %s" % ', '.join(
+                '{}:{}' % it for it in xidmap.items())
+
+        if _is_toplevel_call:
+            _EXPORT_PROPERTIES_CACHE.reset(cache_token)
+
+        return lines
+
+    def export_data(self, fields_to_export):
+        """ Export fields for selected objects — ≙ ``export_data``
+        (``odoo19c: :880-892``)
+
+        This method is used when exporting data via client menu
+
+        :param list fields_to_export: list of fields
+        :returns: dictionary with a *datas* matrix
+        :rtype: dict
+        """
+        user = self.env.user
+        if not (self.env.is_admin() or (
+                user is not None
+                and user.has_group('base.group_allow_export'))):
+            raise UserError(self.env._(
+                "You don't have the rights to export data. Please contact "
+                "an Administrator."))
+        fields_to_export = [
+            fix_import_export_id_paths(f) for f in fields_to_export]
+        return {'datas': self._export_rows(fields_to_export)}
+
+    def _read_relational_multi(self, field):
+        """El valor de un campo relacional sobre varios registros: la unión
+        de sus valores, sin repetidos y en orden. — ≙ el caso de varios
+        registros de ``_Relational.__get__`` (``odoo19c: odoo/orm/
+        fields_relational.py:42-79``) con ``convert_to_record_multi``
+        (``:360-364`` y ``:655-667``).
+
+        Allá los valores salen de la caché de campo; aquí se leen registro a
+        registro con :meth:`_read_field`, que ya aplica el ``active_test`` de
+        cada ``One2many``. Un comodelo de Django —sin recordset— devuelve el
+        ``QuerySet`` de las mismas filas, que es como este árbol representa
+        un conjunto de ellas.
+        """
+        self._check_field_access(field, 'read')
+        values = [record._read_field(field) for record in self]
+        ids = tuple(unique(
+            id_ for value in values for id_ in _relation_value_ids(value)))
+        recordsets = [value for value in values
+                      if isinstance(value, BaseModel)]
+        if recordsets:
+            return recordsets[0].browse(ids)
+        return field.related_model._default_manager.filter(pk__in=ids)
 
 
 class IdFromIds:

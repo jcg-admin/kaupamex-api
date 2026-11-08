@@ -532,6 +532,15 @@ def _exported(discussions):
         ['name', 'messages/priority', 'categories/name'])['datas']
 
 
+def _relational_multi(discussions):
+    """Un relacional leído sobre varios registros es la unión de sus valores,
+    sin repetidos (``odoo19c: odoo/orm/fields_relational.py:42-79`` y
+    ``convert_to_record_multi``, ``:360-364``, ``:655-667``): las dos
+    discusiones comparten sus categorías, que salen una sola vez."""
+    return (sorted(discussions['messages'].mapped('priority')),
+            sorted(discussions['categories'].mapped('name')))
+
+
 def _exported_xids(discussions):
     """La columna ``id`` (``:858-874``): cada registro sin identificador
     externo recibe uno ``__export__.<tabla>_<id>_<uuid>`` (``:599-677``), y
@@ -743,6 +752,7 @@ def trace(Domain, model, model_name):
         ('field strings', lambda: _field_strings(model)),
         ('export_data', lambda: _exported(discussions)),
         ('export_data xid', lambda: _exported_xids(discussions)),
+        ('relational multi', lambda: _relational_multi(discussions)),
         ('recomputed constraint', lambda: _recomputed_constraint(model)),
         ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),
