@@ -64,7 +64,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.optimize	meth
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.optimize_full	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._optimize	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._optimize_step	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._to_sql	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__new__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__eq__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -76,7 +76,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__and__	m
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__or__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__iter__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._as_predicate	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool._to_sql	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__new__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__invert__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -87,7 +87,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._optimize_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__eq__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__hash__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._as_predicate	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot._to_sql	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.__new__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.apply	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -101,7 +101,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._negate	m
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.iter_conditions	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.map_conditions	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._optimize_step	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary._to_sql	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.INVERSE	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.__and__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -116,7 +116,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._as_pre
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__eq__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__hash__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__iter__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._to_sql	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition	class	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.__new__	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.checked	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -133,7 +133,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition.__ge
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._optimize_step	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_model_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._optimize_field_search_method	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._as_predicate	method	not_verified	structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._to_sql	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCondition._to_sql	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	operator_optimization	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_domain_optimizer_registry.py::TestRegisteringByOperator::test_it_lands_in_the_mapping_of_its_level
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	field_type_optimization	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_domain_optimizer_registry.py::TestRegisteringByFieldType::test_it_lands_under_the_field_type
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	_optimize_nary_sort_key	function	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_domain_optimizer_registry.py::TestTheSortKey::test_a_condition_sorts_by_its_field_first
@@ -177,7 +177,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.NEGATIVE_OPER
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	Domain._opt_level	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR_SQL	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.OPERATOR_SQL	attribute	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.ZERO	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainAnd.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainBool.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -191,7 +191,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom.__slots
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._filtered	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainCustom._sql	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.OPERATOR	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.OPERATOR_SQL	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.OPERATOR_SQL	attribute	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.ZERO	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNary.children	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
@@ -199,7 +199,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.OPERATOR	a
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainNot.child	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.OPERATOR	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.OPERATOR_SQL	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.OPERATOR_SQL	attribute	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.ZERO	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	DomainOr.__slots__	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/domains.py	OptimizationLevel.BASIC	attribute	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_domains_reference.py
