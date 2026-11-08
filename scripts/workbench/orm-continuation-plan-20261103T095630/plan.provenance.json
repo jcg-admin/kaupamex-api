@@ -772,6 +772,13 @@
         "orm-inherited-fields-0485"
       ],
       "writtenAt": "2026-11-08T11:27:03Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "base-res-users-inherited-redeclarations-0182"
+      ],
+      "writtenAt": "2026-11-08T17:50:40Z"
     }
   ]
 }
