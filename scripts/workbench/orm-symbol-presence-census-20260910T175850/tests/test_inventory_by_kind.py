@@ -258,3 +258,63 @@ def test_an_attribute_installed_in_a_loop_over_port_classes_is_located(
     assert category == 'not_verified'
     assert 'structural=installed_elsewhere' in reason
     assert rows['_Relational.domain'][0] == 'absent'
+
+
+INSTALLER = '''
+from django.db import models
+
+
+def _attach(field_class, type_name):
+    field_class.type = type_name
+    field_class._expression_property_getter = len
+    setattr(field_class, 'start_of', min)
+    local = field_class
+    local.not_on_param = 1
+
+
+def _unused(field_class):
+    field_class.never_called = 1
+
+
+_attach(models.DateField, 'date')
+'''
+
+
+def test_a_name_installed_by_a_module_level_installer_is_known(tmp_path):
+    """El puerto de ``BaseDate`` instala sus métodos desde
+    ``_attach_base_date(models.DateField, ...)``: una función llamada a
+    nivel de módulo cuyo cuerpo asigna sobre su primer parámetro. Lo que
+    instala es presencia en la clase del argumento; lo que asigna sobre otro
+    nombre, y una función que nadie llama, no cuentan."""
+    path = tmp_path / 'temporal.py'
+    path.write_text(INSTALLER)
+    names = inv.installed_names(path)
+    assert {'type', '_expression_property_getter', 'start_of'} <= names
+    assert {'DateField.type', 'DateField._expression_property_getter',
+            'DateField.start_of'} <= names
+    assert 'not_on_param' not in names
+    assert 'never_called' not in names
+
+
+def test_a_class_bound_by_a_module_assignment_is_known(tmp_path):
+    """``Integer = make_dispatcher('Integer', ...)`` liga en el espejo el
+    nombre de la clase de la referencia sin una ``class``. Es presencia del
+    nombre, no del contrato; un literal no liga una clase."""
+    path = tmp_path / 'numeric.py'
+    path.write_text("Integer = make_dispatcher('Integer', 'integer', X)\n"
+                    "Alias = models.Field\n"
+                    "LIMIT = 3\n")
+    names = inv.module_bindings(path)
+    assert {'Integer', 'Alias'} <= names
+    assert 'LIMIT' not in names
+
+
+def test_the_consumer_names_include_module_bindings(tmp_path):
+    """La ligadura entra al universo de nombres conocidos que decide
+    ``absent``, no sólo a la función que la lee."""
+    (tmp_path / 'numeric.py').write_text(
+        "Integer = make_dispatcher('Integer', 'integer', X)\n")
+    (tmp_path / 'temporal.py').write_text(INSTALLER)
+    names = inv.consumer_names(roots=(str(tmp_path),))
+    assert 'Integer' in names
+    assert 'DateField._expression_property_getter' in names

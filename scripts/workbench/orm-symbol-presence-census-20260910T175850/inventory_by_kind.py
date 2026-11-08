@@ -208,7 +208,8 @@ def engine_pairs(our_file, reference_file):
 
 def consumer_names(roots=('src', 'addons')):
     """Todo nombre de clase o funcion que el arbol consumidor declara, mas
-    los que instala como atributo de otra clase (:func:`installed_names`)."""
+    los que instala como atributo de otra clase (:func:`installed_names`) y
+    los que liga con una asignacion de modulo (:func:`module_bindings`)."""
     names = set()
     for root in roots:
         for path in pathlib.Path(REPO / root).rglob('*.py'):
@@ -216,6 +217,7 @@ def consumer_names(roots=('src', 'addons')):
                 continue
             names.update(r['name'] for r in _census.declared_symbols(path))
             names.update(installed_names(path))
+            names.update(module_bindings(path))
     return names
 
 
@@ -467,6 +469,64 @@ def installed_names(path):
                     name = _formatted_name(inner.args[1], loop_var.id, value)
                     if name:
                         add(inner.args[0], name)
+    installers = {node.name: node for node in tree.body
+                  if isinstance(node, ast.FunctionDef) and node.args.args}
+    for node in _module_level_nodes(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in installers and node.args):
+            for name in _installer_targets(installers[node.func.id]):
+                add(node.args[0], name)
+    return names
+
+
+def _installer_targets(function):
+    """Lo que una funcion instaladora asigna sobre su PRIMER parametro.
+
+    El puerto de BaseDate instala sus metodos con
+    _attach_base_date(models.DateField, ...): el cuerpo asigna
+    field_class.<nombre> = ... o llama setattr(field_class,
+    '<nombre>', ...), y la clase de destino es el argumento de la llamada
+    a nivel de modulo. Una asignacion sobre otro nombre no cuenta: seguir
+    alias seria inferir, no leer.
+    """
+    param = function.args.args[0].arg
+    names = []
+    for inner in ast.walk(function):
+        if isinstance(inner, ast.Assign):
+            for target in inner.targets:
+                if (isinstance(target, ast.Attribute)
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id == param):
+                    names.append(target.attr)
+        elif (isinstance(inner, ast.Call)
+              and isinstance(inner.func, ast.Name)
+              and inner.func.id == 'setattr' and len(inner.args) >= 2
+              and isinstance(inner.args[0], ast.Name)
+              and inner.args[0].id == param
+              and isinstance(inner.args[1], ast.Constant)
+              and isinstance(inner.args[1].value, str)):
+            names.append(inner.args[1].value)
+    return names
+
+
+def module_bindings(path):
+    """Los nombres que path liga a nivel de modulo con una llamada o
+    un alias: Integer = make_dispatcher('Integer', ...).
+
+    El puerto disuelve las clases de campo de la referencia en las de
+    Django y conserva su nombre con una asignacion, no con una class;
+    declared_symbols solo ve def y class. Un literal no liga una
+    clase y no cuenta. Es presencia del nombre: queda en not_verified.
+    """
+    tree = ast.parse(path.read_text(encoding='utf-8'))
+    names = set()
+    for node in tree.body:
+        if (isinstance(node, ast.Assign)
+                and isinstance(node.value, (ast.Call, ast.Name,
+                                            ast.Attribute))):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
     return names
 
 
