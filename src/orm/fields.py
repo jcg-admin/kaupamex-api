@@ -1530,6 +1530,14 @@ class FieldDescriptor(DeferredAttribute):
         if field.attname in instance.__dict__:
             if instance.__dict__.get('_orm_building'):
                 return instance.__dict__[field.attname]
+            # ``:1647-1651`` comprueba ``groups`` en CADA lectura, antes de la
+            # caché: un valor ya cargado en la fila no se entrega a quien el
+            # campo excluye. Sólo cuesta algo si el campo declara ``groups``.
+            if (getattr(field, 'groups', None)
+                    and hasattr(instance, '_has_field_access')
+                    and not get_environment().su
+                    and not instance._has_field_access(field, 'read')):
+                instance._check_field_access(field, 'read')
             if field.store and not field.compute and not field.related:
                 ids = getattr(instance, '_ids', None)
                 if ids is None or len(ids) == 1:

@@ -1182,3 +1182,72 @@ extend_model('test_orm.model_selection_base',
 #: (``:1498-1505``).
 extend_model('test_orm.model_selection_base',
              selection_add={'my_selection': [('ham', "Ham")]})
+
+
+# ---------------------------------------------------------------------------
+# ``test_orm.model.no_access`` / ``all_access`` / ``some_access`` — ≙
+# ``odoo19c: odoo/addons/test_orm/models/test_orm.py:1794-1830``: los
+# modelos con que la fuente prueba ``groups`` en el campo.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmModelNoAccess(TestOrmModel):
+    """≙ ``test_orm.model.no_access`` (``:1794-1799``)."""
+
+    _name = 'test_orm.model.no_access'
+    _description = "Testing Utilities attrs and groups: if never access rights"
+
+    ab = fields.Integer(default=1)
+    cd = fields.Integer(default=1, groups="base.group_portal")
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_no_access'
+
+
+class TestOrmModelAllAccess(TestOrmModel):
+    """≙ ``test_orm.model.all_access`` (``:1802-1811``)."""
+
+    _name = 'test_orm.model.all_access'
+    _description = "Testing Utilities attrs and groups: if free access rights"
+
+    ab = fields.Integer(default=1)
+    cd = fields.Integer(default=1, groups="base.group_portal")
+    ef = fields.Integer(default=1)
+
+    def action_full(self):
+        return
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_all_access'
+
+
+class TestOrmModelSomeAccess(TestOrmModel):
+    """≙ ``test_orm.model.some_access`` (``:1814-1830``)."""
+
+    _name = 'test_orm.model.some_access'
+    _description = 'Testing Utilities attrs and groups'
+
+    a = fields.Integer(null=True)
+    b = fields.Integer(null=True)
+    c = fields.Integer(null=True)
+    d = fields.Integer(default=1, groups="base.group_erp_manager")
+    e = fields.Integer(
+        default=1, groups="base.group_erp_manager,base.group_multi_company")
+    f = fields.Integer(
+        null=True, groups="base.group_erp_manager,base.group_portal")
+    g = fields.Integer(
+        default=1,
+        groups="base.group_erp_manager,base.group_multi_company,"
+               "!base.group_portal")
+    h = fields.Integer(
+        default=1, groups="base.group_erp_manager,!base.group_portal")
+    i = fields.Integer(default=1, groups="!base.group_portal")
+    j = fields.Integer(default=1, groups="base.group_portal")
+    k = fields.Integer(default=1, groups="base.group_public")
+    g_id = fields.Many2one(
+        'test_orm.model.all_access', string="m2o g_id", null=True,
+        related_name='+', db_column='g_id')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_some_access'
+
