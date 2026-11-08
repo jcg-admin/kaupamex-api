@@ -19,7 +19,7 @@ import itertools
 import fields
 import models
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from orm.models import BaseModel, get_current_user
+from orm.models import BaseModel, extend_model, get_current_user
 from api import autovacuum, constrains, depends, onchange
 from exceptions import AccessError, ValidationError
 
@@ -1149,3 +1149,36 @@ class TestOrmComputedInverseOne2manyLine(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_computed_inverse_one2many_line'
+
+
+class TestOrmModelSelectionBase(TestOrmModel):
+    """≙ ``test_orm.model_selection_base`` (``odoo19c: odoo/addons/test_orm/
+    models/test_orm.py:1477-1505``): la declaración base de ``my_selection``.
+
+    La fuente suma ``quux`` y ``ham`` con dos redefiniciones ``_inherit``
+    del mismo addon; aquí son las dos llamadas a :func:`extend_model` de
+    abajo, que anotan ``test_orm`` como el módulo que las define.
+    """
+
+    _name = 'test_orm.model_selection_base'
+    _description = "Model with a base selection field"
+
+    my_selection = fields.Selection([
+        ('foo', "Foo"),
+        ('bar', "Bar"),
+    ], null=True)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_selection_base'
+
+
+#: ≙ «Model with a selection field extension with ondelete null»
+#: (``:1488-1495``).
+extend_model('test_orm.model_selection_base',
+             selection_add={'my_selection': [('quux', "Quux")]},
+             ondelete={'my_selection': {'quux': 'set null'}})
+
+#: ≙ «Model with a selection field extension without ondelete»
+#: (``:1498-1505``).
+extend_model('test_orm.model_selection_base',
+             selection_add={'my_selection': [('ham', "Ham")]})

@@ -929,8 +929,11 @@ def check_ondelete_policies(field, ondelete, new_values, values):
                 f'invocable.')
 
 
-def extend_selection_choices(model, field_name, extra, ondelete=None):
-    """Amplia en sitio los ``choices`` de un campo ya declarado — ≙ ``selection_add``.
+def extend_selection_choices(model, field_name, extra, ondelete=None,
+                             module=None):
+    """Amplia en sitio los ``choices`` de un campo ya declarado.
+
+    ≙ ``selection_add``.
 
     ``extra`` es la lista de pares ``(valor, etiqueta)`` que el addon suma al
     vocabulario que otro ya declaro. Es exactamente lo que la referencia
@@ -958,9 +961,17 @@ def extend_selection_choices(model, field_name, extra, ondelete=None):
     **acumula** por la misma razon que alla (``self.ondelete.update``): dos
     addons pueden ampliar el mismo campo, y el segundo no borra al primero.
 
+    ``module`` es el addon que amplía, el ``_module`` de la redefinición en
+    la fuente; sin declararlo, el del llamador (:func:`calling_module`). Se
+    anota con su ``extra`` para que
+    :meth:`~orm.fields_selection.SelectionField._selection_modules` responda
+    qué módulo define cada valor (``odoo19c: fields_selection.py:179-197``).
+
     Devuelve los valores realmente agregados, para que el llamador pueda medir
     en vez de suponer.
     """
+    if module is None:
+        module = calling_module()
     field = model._meta.get_field(field_name)
     current = getattr(field, 'selection', None)
     if current is None and field.choices is not None:
@@ -979,6 +990,13 @@ def extend_selection_choices(model, field_name, extra, ondelete=None):
     added = [key for key in values_add if key not in values]
     merged = [(key, values_add.get(key) or values[key])
               for key in merge_sequences(values, values_add)]
+    if '_selection_declared' not in vars(field):
+        # Lo declarado antes de la primera ampliación: allá es el
+        # ``selection`` de la definición base, que aquí se amplía en sitio.
+        field._selection_declared = list(values)
+    extensions = vars(field).setdefault('_selection_extensions', [])
+    if module and (module, list(extra)) not in extensions:
+        extensions.append((module, list(extra)))
     field.choices = merged
     if isinstance(getattr(type(field), 'selection', None), property):
         # ``SelectionField`` deriva ``_selection`` de lo declarado: sin esto
@@ -1486,6 +1504,8 @@ def extend_model(*destino, campos=None, metodos=None, overrides=None,
     necesite la clase la pide dentro de ``luego``, que la recibe como
     argumento.
     """
+    module = calling_module()
+
     def aplicar(modelo):
         for nombre, field in (campos or {}).items():
             add_field_if_absent(modelo, nombre, field)
@@ -1498,7 +1518,7 @@ def extend_model(*destino, campos=None, metodos=None, overrides=None,
                 setattr(modelo, nombre, property(funcion))
         for nombre, extra in (selection_add or {}).items():
             extend_selection_choices(modelo, nombre, extra,
-                                     (ondelete or {}).get(nombre))
+                                     (ondelete or {}).get(nombre), module)
         for indice in (indexes or ()):
             add_meta_index(modelo, indice)
         if luego is not None:
@@ -1558,3 +1578,23 @@ def extend_property(modelo, nombre, funcion):
     fget.__name__ = nombre
     fget._extendida_por = funcion
     setattr(modelo, nombre, property(fget))
+
+
+def calling_module(depth=2):
+    """El addon del código que llama — ≙ ``_module`` de una clase de la fuente.
+
+    La fuente lo deriva del módulo de Python de la clase
+    (``odoo19c: odoo/orm/models.py:233-239``, ``odoo.addons.<addon>``). Aquí
+    quien amplía no declara una clase sino que llama a :func:`extend_model`,
+    así que el addon es la aplicación de Django que contiene el módulo del
+    llamador (``apps.get_containing_app_config``). ``None`` si no lo contiene
+    ninguna.
+    """
+    frame = inspect.currentframe()
+    for _level in range(depth):
+        frame = frame.f_back if frame is not None else None
+    if frame is None:
+        return None
+    config = apps.get_containing_app_config(
+        frame.f_globals.get('__name__', ''))
+    return config.label if config is not None else None

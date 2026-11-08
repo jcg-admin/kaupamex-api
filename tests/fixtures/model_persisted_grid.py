@@ -844,6 +844,18 @@ def _numeric_rounding(model):
     return [tuple(float(value) for value in row) for row in rows]
 
 
+def _selection_modules(model):
+    """``Selection._selection_modules`` sobre ``my_selection`` de
+    ``test_orm.model_selection_base`` (``odoo19c: odoo/orm/
+    fields_selection.py:179-197``): el valor declarado y los dos que suman
+    sus extensiones, cada uno con el módulo que lo define."""
+    base = model.browse(()).env['test_orm.model_selection_base'].browse(())
+    field = base._fields['my_selection']
+    return ([value for value, _label in field.selection],
+            sorted((value, sorted(modules)) for value, modules
+                   in field._selection_modules(base).items()))
+
+
 def _multi_records(discussions):
     """Las dos discusiones sembradas y una sin mensajes ni categorías."""
     Discussion = discussions.browse(())
@@ -1133,6 +1145,7 @@ def trace(Domain, model, model_name):
          lambda: _mixed(model)._fields['amount'].get_currency_field(
              _mixed(model))),
         ('numeric rounding', lambda: _numeric_rounding(model)),
+        ('selection modules', lambda: _selection_modules(model)),
     ]
     multi = _multi_records(discussions)
     builders = {'false': lambda D, m, r: [False],

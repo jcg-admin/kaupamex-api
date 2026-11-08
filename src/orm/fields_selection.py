@@ -44,9 +44,9 @@ Divergencias declaradas:
   (``:93-177``) no vive aquí: este stack no tiene ``_base_fields__`` por
   campo, y la ampliación por herencia la resuelve ``extend_model``
   (``orm/model_classes.py``).
-- ``_selection_modules`` (``:179-197``) depende de ``resolve_mro`` y del
-  ``_module`` de cada definición, que este stack no registra por campo.
-  DESCONOCIDO: se cierra cuando ``extend_model`` anote el addon que amplía.
+- ``_selection_modules`` (``:179-197``) no recorre redefiniciones: lee la
+  declaración base y las ampliaciones que ``extend_model`` anota con su
+  addon (:func:`orm.model_classes.calling_module`).
 """
 
 from django.db import models
@@ -229,6 +229,35 @@ class SelectionField(models.CharField):
             if item[0] == value:
                 return item[1]
         return value or ''
+
+    def _selection_modules(self, model):
+        """≙ ``_selection_modules``.
+
+        Fuente: ``odoo19c: odoo/orm/fields_selection.py:179-197``.
+
+        «Return a mapping from selection values to modules defining each
+        value.» La fuente recorre las redefiniciones del campo por la MRO;
+        aquí la declaración base es el campo y cada ``selection_add`` es una
+        ampliación en sitio que
+        :func:`~orm.model_classes.extend_selection_choices` anota con su
+        addon. El módulo de la declaración es la aplicación del modelo que la
+        contiene, el ``_module`` de su clase allá. Un singleton ``(valor,)``
+        sólo ancla el orden y no aporta módulo (``:194-196``).
+        """
+        if not isinstance(self.selection, list):
+            return {}
+        value_modules = {}
+        declared = vars(self).get('_selection_declared')
+        if declared is None:
+            declared = [value for value, _label in self.selection]
+        module = self.model._meta.app_label
+        for value in declared:
+            value_modules.setdefault(value, set()).add(module)
+        for module, extra in vars(self).get('_selection_extensions', ()):
+            for value_label in extra:
+                if len(value_label) > 1:
+                    value_modules.setdefault(value_label[0], set()).add(module)
+        return value_modules
 
 
 Selection = make_dispatcher('Selection', 'selection', SelectionField)

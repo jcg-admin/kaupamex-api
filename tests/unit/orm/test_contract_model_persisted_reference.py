@@ -45,6 +45,12 @@ def _ours():
                  if getattr(model, '_name', None) == MODEL)
     actor = get_user_model().objects.create_user(
         login='grid-root', password=None, name='Grid Root')
+    # La migración ``test_orm/0034`` siembra ``ORM Precision``, pero una
+    # prueba con ``transaction=True`` vacía las tablas al terminar y la
+    # caché ``stable`` de ``precision_get`` sobrevive al rollback. Se
+    # garantiza aquí, por ``save()``, que además vacía esa caché.
+    apps.get_model('base', 'DecimalPrecision').objects.update_or_create(
+        name='ORM Precision', defaults={'digits': 3})
     with user_scope(actor.pk), sudo():
         return model_persisted_grid.trace(Domain, model, MODEL)
 

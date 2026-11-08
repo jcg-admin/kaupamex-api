@@ -94,7 +94,7 @@ from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
                           is_command_list, related_manager)
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.model_classes import LOG_ACCESS_COLUMNS, parent_name_of
+from orm.model_classes import LOG_ACCESS_COLUMNS, extend_model, parent_name_of
 from orm.fields_relational import One2many as DeclaredOne2many
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         FieldDescriptor, StoredMany2oneIdDescriptor,
