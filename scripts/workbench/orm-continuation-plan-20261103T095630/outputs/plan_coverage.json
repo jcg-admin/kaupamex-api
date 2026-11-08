@@ -104,9 +104,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 39,
+  "task_units_settled": 40,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1513
+  "task_without_unit": 1512
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -230,7 +230,8 @@
   "orm-many2one-empty-recordset-0502",
   "orm-models-compute-field-value-0502",
   "fields-relational-one2many-setup-inverses-0485",
-  "fields-relational-one2many-copy-0485"
+  "fields-relational-one2many-copy-0485",
+  "fields-field-string-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
