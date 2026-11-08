@@ -709,6 +709,13 @@
         "orm-fields-sequence-0485"
       ],
       "writtenAt": "2026-11-08T08:31:32Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-boolean-condition-to-sql-0485"
+      ],
+      "writtenAt": "2026-11-08T08:41:04Z"
     }
   ]
 }
