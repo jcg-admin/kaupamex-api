@@ -985,3 +985,4 @@ src/orm/models.py	BaseModel._has_onchange	method	tests/unit/orm/test_contract_mo
 src/orm/models.py	BaseModel._parent_store_compute	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._order_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._order_field_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_relational.py	Many2one.convert_to_record	method	tests/unit/orm/test_contract_model_persisted_reference.py

@@ -1,8 +1,8 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 94,
- "open_tasks": 69,
+ "population": 95,
+ "open_tasks": 70,
  "frontier": [],
  "blocked": [
   {
@@ -86,7 +86,8 @@
   "TASK-API-0486",
   "TASK-API-0499",
   "TASK-API-0500",
-  "TASK-API-0501"
+  "TASK-API-0501",
+  "TASK-API-0502"
  ],
  "obligations": {
   "satisfied": 957,
@@ -226,7 +227,8 @@
   "web-export-many2many-meta-0500",
   "base-ttype-for-delegation-0501",
   "orm-models-parent-store-compute-reference-0485",
-  "orm-models-order-to-sql-reference-0485"
+  "orm-models-order-to-sql-reference-0485",
+  "orm-many2one-empty-recordset-0502"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
