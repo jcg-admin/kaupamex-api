@@ -523,6 +523,28 @@ def _recomputed_constraint(model):
     return before, raised, message.name.split(']')[0]
 
 
+def _exported(discussions):
+    """``export_data`` (``odoo19c: odoo/orm/models.py:880-892``) sobre las
+    discusiones sembradas: el ``One2many`` abre una fila por mensaje y el
+    ``Many2many``, en modo compatible con la importación —el defecto—, va en
+    una sola celda con los nombres separados por coma (``:820-844``)."""
+    return discussions.export_data(
+        ['name', 'messages/priority', 'categories/name'])['datas']
+
+
+def _exported_xids(discussions):
+    """La columna ``id`` (``:858-874``): cada registro sin identificador
+    externo recibe uno ``__export__.<tabla>_<id>_<uuid>`` (``:599-677``), y
+    la segunda exportación devuelve el mismo. El uuid y el id difieren entre
+    las dos bases; se mide la forma, la estabilidad y ``.id``."""
+    first = discussions.export_data(['name', 'id', '.id'])['datas']
+    again = discussions.export_data(['id'])['datas']
+    return [(name, xid.startswith('__export__.test_orm_discussion_'),
+             xid == row[0], dot_id == str(record.id))
+            for (name, xid, dot_id), row, record
+            in zip(first, again, discussions)]
+
+
 def _field_strings(model):
     """La etiqueta de cada campo (``odoo19c: odoo/orm/fields.py:506-511``):
     la declarada si la hay; si no, el nombre sin el sufijo ``_id``/``_ids``,
@@ -719,6 +741,8 @@ def trace(Domain, model, model_name):
         ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
         ('empty many2one', lambda: _empty_many2one(model)),
         ('field strings', lambda: _field_strings(model)),
+        ('export_data', lambda: _exported(discussions)),
+        ('export_data xid', lambda: _exported_xids(discussions)),
         ('recomputed constraint', lambda: _recomputed_constraint(model)),
         ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),
