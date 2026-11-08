@@ -688,6 +688,13 @@
         "web-export-delegates-export-data-0503"
       ],
       "writtenAt": "2026-11-08T02:31:37Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-fields-condition-to-sql-0485"
+      ],
+      "writtenAt": "2026-11-08T04:37:32Z"
     }
   ]
 }
