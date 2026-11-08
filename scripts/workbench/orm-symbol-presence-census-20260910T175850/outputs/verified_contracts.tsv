@@ -990,3 +990,5 @@ src/orm/models.py	BaseModel._compute_field_value	method	tests/unit/orm/test_cont
 src/orm/fields_relational.py	One2many.setup_inverses	method	tests/unit/orm/test_one2many_setup_inverses.py
 src/orm/fields_relational.py	One2many.copy	attribute	tests/integration/base/test_copy_follows_the_one2many_copy_flag.py
 src/orm/fields.py	Field.string	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/models.py	BaseModel._sql_error_to_message_generic	method	tests/unit/orm/test_sql_error_to_message.py
+src/orm/models.py	BaseModel._sql_error_to_message	method	tests/unit/orm/test_sql_error_to_message.py
