@@ -737,6 +737,13 @@
         "orm-relational-multi-condition-to-sql-0485"
       ],
       "writtenAt": "2026-11-08T09:22:58Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-properties-condition-to-sql-0485"
+      ],
+      "writtenAt": "2026-11-08T09:37:53Z"
     }
   ]
 }
