@@ -245,7 +245,8 @@
   "orm-selection-modules-0485",
   "orm-relational-description-0485",
   "orm-inherited-fields-0485",
-  "base-res-users-inherited-redeclarations-0182"
+  "base-res-users-inherited-redeclarations-0182",
+  "orm-inherits-delegation-all-fields-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
