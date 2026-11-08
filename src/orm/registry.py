@@ -71,7 +71,7 @@ from psycopg import sql as pg_sql
 import orm.environments
 
 from modules import db as modules_db
-from orm.utils import model_field_registry
+from orm.utils import FIELD_REGISTRY_HOOKS, model_field_registry
 from tools.func import locked, reset_cached_properties
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet, remove_accents

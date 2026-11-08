@@ -93,7 +93,8 @@ from django.dispatch import receiver
 from django.apps import apps
 
 from orm.method_chain import chain_method, wrap_method
-from orm.registry import (MODELS_BY_NAME, clear_field_depends, clear_marked_methods,
+from orm.registry import (FIELD_REGISTRY_HOOKS, MODELS_BY_NAME,
+                          clear_field_depends, clear_marked_methods,
                           field_depends, resolve_model_key)
 from tools.misc import discardattr, merge_sequences
 
@@ -1598,3 +1599,67 @@ def calling_module(depth=2):
     config = apps.get_containing_app_config(
         frame.f_globals.get('__name__', ''))
     return config.label if config is not None else None
+
+
+#: Los campos heredados ya construidos, por ``(modelo, nombre)``: ``_fields``
+#: se deriva en cada acceso y la copia no debe rehacerse cada vez.
+_INHERITED_FIELDS = {}
+
+
+def _add_inherited_fields(model_cls, fields):
+    """≙ ``_add_inherited_fields`` (``odoo19c: odoo/orm/model_classes.py:
+    480-508``) — «Determine inherited fields».
+
+    Cada campo de un modelo delegado por ``_inherits`` que el delegante no
+    redefine responde en su ``_fields`` como campo heredado: ``inherited``,
+    ``inherited_field`` (el del padre), ``related='<fk>.<nombre>'`` y
+    ``related_sudo=False``, que la fuente deriva a ``compute_sudo=False``
+    (``fields.py:456``). El orden es el suyo: un padre posterior pisa a uno
+    anterior en el mismo nombre, y un campo propio siempre gana.
+
+    La fuente añade el campo a la clase con ``add_field``; aquí lo añade al
+    mapa que deriva ``_fields`` (:func:`orm.utils.model_field_registry`), que
+    es la autoridad de campos del árbol. No tiene columna ni la crea: la
+    lectura y la escritura siguen pasando por la delegación de
+    ``orm.inherits``. Una redefinición explícita, como la de ``name``,
+    ``email`` y ``phone`` en ``res.users`` (``res_users.py:250-255``), es un
+    campo propio de ese modelo y no de este mecanismo.
+    """
+    if (getattr(model_cls._meta, 'abstract', False)
+            or not getattr(model_cls, '_inherits', None)):
+        return
+    to_inherit = {}
+    for parent_fname in model_cls._inherits.values():
+        fk = fields.get(parent_fname)
+        if fk is None or getattr(fk, 'related_model', None) is None:
+            continue
+        fk_name = getattr(fk, 'attname', None) or fk.name
+        for name, field in fk.related_model._fields.items():
+            to_inherit[name] = (fk_name, field)
+    for name, (fk_name, field) in to_inherit.items():
+        if name not in fields:
+            fields[name] = _inherited_field(model_cls, name, fk_name, field)
+
+
+def _inherited_field(model_cls, name, fk_name, field):
+    """La copia del campo del padre que ``_add_inherited_fields`` publica."""
+    cached = _INHERITED_FIELDS.get((model_cls, name))
+    if cached is not None and cached.inherited_field is field:
+        return cached
+    inherited = copy.copy(field)
+    inherited.inherited = True
+    inherited.inherited_field = field
+    inherited.related = f'{fk_name}.{name}'
+    inherited.compute_sudo = False
+    for attribute, value in (('store', False), ('concrete', False),
+                             ('model_name', getattr(model_cls, '_name', ''))):
+        # La relación inversa de Django deriva algunos de una ``property``
+        # de su clase: ahí se conserva el derivado.
+        if not isinstance(getattr(type(inherited), attribute, None),
+                          property):
+            setattr(inherited, attribute, value)
+    _INHERITED_FIELDS[(model_cls, name)] = inherited
+    return inherited
+
+
+FIELD_REGISTRY_HOOKS.append(_add_inherited_fields)

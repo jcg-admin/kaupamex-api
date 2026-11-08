@@ -1286,11 +1286,12 @@ def _create_field_lookup(model, name):
     ≙ ``self._fields.get(name)`` más ``field.inherited`` /
     ``field.related_field.model_name`` (``:4653``, ``:4675-4677``). Allá el
     campo heredado es un campo espejo del hijo que sabe de dónde viene; aquí
-    lo responde :func:`_delegated_origin` sobre el mapa de delegación, y el
-    campo es el del padre.
+    ``_fields`` también lo publica (``_add_inherited_fields``), con
+    ``inherited`` puesto, y su origen lo responde :func:`_delegated_origin`
+    sobre el mapa de delegación: el campo que se devuelve es el del padre.
     """
     fields = model_field_registry(model)
-    if name in fields:
+    if name in fields and not getattr(fields[name], 'inherited', False):
         return fields[name], None
     for field in model._meta.concrete_fields:
         if field.attname == name:

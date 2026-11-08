@@ -857,16 +857,11 @@ def _selection_modules(model):
 
 
 #: Campos relacionales presentes en las dos copias de ``test_orm``.
-#:
-#: ``participants`` apunta a ``res.users``, que en la fuente hereda
-#: ``parent_id`` de ``res.partner`` por ``_inherits``: su
-#: ``allow_hierachy_operators`` depende de que ``_fields`` incluya los campos
-#: delegados (``model_classes._add_inherited_fields``, ``odoo19c: odoo/orm/
-#: model_classes.py``), que es la unidad siguiente. Hasta entonces se compara
-#: sin esa clave.
+#: ``participants`` apunta a ``res.users``, cuyo ``parent_id`` heredado de
+#: ``res.partner`` decide ``allow_hierachy_operators``.
 RELATIONAL_DESCRIPTIONS = (
     ('test_orm.category', 'parent'),
-    ('test_orm.discussion', 'participants', ('allow_hierachy_operators',)),
+    ('test_orm.discussion', 'participants'),
     ('test_orm.discussion', 'messages'),
     ('test_orm.discussion', 'important_messages'),
     ('test_orm.discussion', 'categories'),
@@ -888,6 +883,73 @@ def _relational_description(model, model_name, field_name, skipped=()):
             if key not in skipped]
     return sorted(records._fields[field_name].get_description(
         records.env, keys).items())
+
+
+#: Los modelos con ``_inherits`` instalados en las dos bases, con su padre.
+INHERITS_MODELS = (
+    ('test_orm.related_inherits', 'test_orm.related'),
+    ('test_orm.any.child', 'test_orm.any.parent'),
+    ('res.users', 'res.partner'),
+    ('ir.cron', 'ir.actions.server'),
+)
+
+#: Campos que el hijo redefine explícitamente en la fuente y no genera
+#: ``_add_inherited_fields``: ``res.users`` los declara con
+#: ``inherited=True`` para saltar los permisos del partner
+#: (``odoo19c: odoo/addons/base/models/res_users.py:250-255``). Son un
+#: contrato de ``res.users``, que se mide aparte.
+INHERITS_REDECLARED = {'res.users': ('email', 'name', 'phone')}
+
+#: Nombres presentes en los dos árboles para comparar la precedencia.
+INHERITS_SPOT_NAMES = ('active', 'company_id', 'display_name', 'id', 'name',
+                       'parent_id')
+
+
+def _registry_of(model, model_name):
+    """El modelo vacío, o la clase cuando el modelo no es un ``BaseModel``
+    (``res.users`` aquí): las dos responden ``_fields``."""
+    records = model.browse(()).env[model_name]
+    return records.browse(()) if hasattr(records, 'browse') else records
+
+
+def _inherited_fields(model, child_name, parent_name):
+    """``_add_inherited_fields`` (``odoo19c: odoo/orm/model_classes.py:
+    480-508``): los campos del padre que el hijo no redefine responden en su
+    ``_fields`` como heredados, y los propios ganan. Se mide la regla y la
+    forma, no la lista: los dos árboles no tienen los mismos campos."""
+    child = _registry_of(model, child_name)
+    parent = _registry_of(model, parent_name)
+    fk_value = child._inherits[parent_name]
+    fk_field = child._fields[fk_value]
+    fk_name = getattr(fk_field, 'attname', None) or fk_field.name
+    inherited = {name: field for name, field in child._fields.items()
+                 if getattr(field, 'inherited', False)}
+    own = {name for name in child._fields if name not in inherited}
+    rule = sorted(inherited) == sorted(set(parent._fields) - own)
+    shape = (
+        all(field.inherited_field is parent._fields[name]
+            for name, field in inherited.items()),
+        all(field.related == f'{fk_name}.{name}'
+            for name, field in inherited.items()),
+        all(field.type == parent._fields[name].type
+            for name, field in inherited.items()),
+        all(not field.compute_sudo for name, field in inherited.items()
+            if name not in INHERITS_REDECLARED.get(child_name, ())),
+    )
+    spots = [(name, bool(getattr(child._fields[name], 'inherited', False)))
+             for name in INHERITS_SPOT_NAMES if name in child._fields]
+    return (bool(inherited), rule, shape, spots)
+
+
+def _inherited_read_write(model):
+    """Leer y escribir por el hijo un campo heredado de
+    ``test_orm.any.parent``: el valor vive en el padre."""
+    env = model.browse(()).env
+    parent = env['test_orm.any.parent'].create({'name': 'grid-inherits-p'})
+    child = env['test_orm.any.child'].create({'parent_id': parent.id})
+    read = child.name
+    child.write({'name': 'grid-inherits-q'})
+    return (read, parent.name, child.name)
 
 
 def _multi_records(discussions):
@@ -1186,6 +1248,12 @@ def trace(Domain, model, model_name):
          lambda case=case: _relational_description(model, *case))
         for case in RELATIONAL_DESCRIPTIONS
     ]
+    steps += [
+        (f'inherited fields {case[0]}',
+         lambda case=case: _inherited_fields(model, *case))
+        for case in INHERITS_MODELS
+    ]
+    steps += [('inherited read write', lambda: _inherited_read_write(model))]
     multi = _multi_records(discussions)
     builders = {'false': lambda D, m, r: [False],
                 '_priority_domain': _priority_domain,

@@ -476,6 +476,8 @@ def model_field_registry(model):
     }
     registry.update({field.name: field for field in fields})
     registry.update(non_stored_fields(model))
+    for hook in FIELD_REGISTRY_HOOKS:
+        hook(model, registry)
     return registry
 
 
@@ -583,3 +585,9 @@ SQL_OPERATORS = {
     "not =like": SQL(" NOT LIKE "),
     "not =ilike": SQL(" NOT ILIKE "),
 }
+
+
+#: Lo que completa el mapa de :func:`model_field_registry` desde una capa de
+#: arriba, que este módulo no puede importar. Hoy lo puebla
+#: ``orm.model_classes._add_inherited_fields`` con los campos de ``_inherits``.
+FIELD_REGISTRY_HOOKS = []
