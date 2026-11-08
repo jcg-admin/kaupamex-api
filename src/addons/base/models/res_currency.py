@@ -626,14 +626,14 @@ class ResCurrency(
         """≙ ``_activate_group_multi_currency`` (``odoo19c: :93-98``)."""
         group_user, group_mc = cls._group_pair()
         if group_user is not None and group_mc is not None:
-            group_user.apply_group(group_mc)
+            group_user._apply_group(group_mc)
 
     @classmethod
     def _deactivate_group_multi_currency(cls):
         """≙ ``_deactivate_group_multi_currency`` (``odoo19c: :99-104``)."""
         group_user, group_mc = cls._group_pair()
         if group_user is not None and group_mc is not None:
-            group_user.remove_group(group_mc)
+            group_user._remove_group(group_mc)
 
     def _check_company_currency_stays_active(self):
         """≙ ``_check_company_currency_stays_active`` (``odoo19c: :105-115``).

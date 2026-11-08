@@ -57,7 +57,8 @@ dos grupos con ``user_type`` no nulo son disjuntos entre sí. Es la misma
 semántica sin depender de identificadores XML que este árbol no tiene, y deja
 el conjunto extensible sin tocar código.
 
-``check_user_disjoint_groups`` conserva la decisión de escala de la fuente, que
+``_check_user_disjoint_groups`` conserva la decisión de escala de la fuente,
+que
 su comentario explica: **no** se recorren todos los usuarios del grupo —no
 escala pasados 10 000— sino que se **busca uno** que viole la exclusión. Si
 aparece, hay violación; si no, no la hay. Una consulta en vez de N.
@@ -402,7 +403,7 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
         """
         registry.clear_cache('groups')
         for group in self.all_implied_by_ids:
-            group.check_user_disjoint_groups()
+            group._check_user_disjoint_groups()
 
     def _check_inherited_view_groups(self):
         """Una vista heredada no declara grupos en el registro.
@@ -909,29 +910,39 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
 
     # === Invariantes ======================================================
 
-    def check_user_disjoint_groups(self):
-        """Verifica que ningún usuario esté en dos grupos disjuntos.
+    def _check_user_disjoint_groups(self):
+        """Busca un usuario activo del grupo en dos tipos de usuario a la vez.
 
-        Conserva la decisión de escala de la fuente, que su comentario
-        justifica: recorrer todos los usuarios del grupo no escala pasados
-        ~10 000, así que se **busca uno** que viole la exclusión. Si la
-        búsqueda devuelve algo, hay violación.
+        ≙ ``_check_user_disjoint_groups`` (``odoo19c: res_groups.py:92-112``).
+        Conserva la decisión de escala que su comentario justifica: no se
+        recorren todos los usuarios del grupo —no escala pasados ~10 000—,
+        sino que se **busca uno** cuya clausura toque dos tipos de usuario, y
+        el error lo da su ``_check_disjoint_groups``.
+
+        La fuente expresa la clausura con ``all_group_ids``, un campo
+        buscable; aquí la pertenencia transitiva a un tipo es estar
+        **directamente** en uno de los grupos que lo implican
+        (``all_implied_by_ids``, reflexiva), y cada par de tipos es una sola
+        consulta. El conjunto de usuarios es el mismo.
 
         :raises ValidationError: si existe tal usuario.
         """
-        disjoint = list(self.disjoint_ids.values_list('pk', flat=True))
-        if not disjoint:
-            return
-        offender = (
-            self.user_ids.filter(group_ids__in=disjoint)
-            .values_list('pk', flat=True)
-            .first()
-        )
-        if offender is not None:
-            raise ValidationError(
-                'El usuario %s no puede pertenecer a este grupo y a uno de sus '
-                'grupos disjuntos a la vez.' % offender
-            )
+        implying = {}
+        for group in self._get_user_type_groups():
+            implying.setdefault(group.user_type, set()).update(
+                group.all_implied_by_ids.values_list('pk', flat=True))
+        types = sorted(implying)
+        # desde el modelo y no desde ``self.user_ids``: el gestor de la
+        # relación deja su consulta pegajosa y el ``filter`` siguiente
+        # reutilizaría su unión, preguntando por el grupo y no por el tipo
+        members = ResUsers.objects.filter(active=True, group_ids=self)
+        for index, first in enumerate(types):
+            for second in types[index + 1:]:
+                user = (members.filter(group_ids__in=implying[first])
+                        .filter(group_ids__in=implying[second])
+                        .order_by('pk').first())
+                if user is not None:
+                    user._check_disjoint_groups()  # lanza ValidationError
 
     # === Usuarios de la clausura ==========================================
 
@@ -957,7 +968,7 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
 
     # === Mutación del grafo ===============================================
 
-    def apply_group(self, implied_group):
+    def _apply_group(self, implied_group):
         """Añade ``implied_group`` a los implicados — ``_apply_group``.
 
         No-op si ya está en la clausura: la fuente filtra por
@@ -968,7 +979,7 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
             return
         self.implied_ids.add(implied_group)
 
-    def remove_group(self, implied_group):
+    def _remove_group(self, implied_group):
         """Quita ``implied_group`` de los implicados — ``_remove_group``.
 
         La fuente lo quita de **todos** los grupos de la clausura que lo

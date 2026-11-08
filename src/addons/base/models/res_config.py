@@ -401,9 +401,9 @@ class ResConfigSettings(ResConfig):
                 continue
             for group in ResGroups.objects.filter(name__in=group_refs):
                 if value:
-                    group.apply_group(implied)
+                    group._apply_group(implied)
                 else:
-                    group.remove_group(implied)
+                    group._remove_group(implied)
 
         for name, param in classified['config']:
             value = getattr(self, name)

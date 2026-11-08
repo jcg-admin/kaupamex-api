@@ -177,7 +177,7 @@ _GROUP_IDS_CACHE_PREFIX = 'base:group_ids'
 #: El grafo de ``res.groups`` es **compartido**: reescribir un ``implied_ids``
 #: cambia la clausura de todos los usuarios a la vez, no la de uno. Purgar por
 #: usuario exigiría enumerarlos —lo que no escala y la propia fuente evita en
-#: ``check_user_disjoint_groups``—, así que el invalidador de grafo incrementa
+#: ``_check_user_disjoint_groups``—, así que el invalidador de grafo incrementa
 #: esta generación y con ello **jubila todas las claves vivas de golpe**.
 #:
 #: Es la adaptación de lo que la fuente resuelve con ``registry.clear_cache()``
@@ -234,13 +234,15 @@ def _invalidate_group_ids(user_pks=None):
 #: DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga del **registro**
 #: (``registry._login_failures``, ``odoo19c: res_users.py:1247-1250``), que en
 #: su arquitectura es un objeto por proceso y por base. Aquí no hay tal objeto,
-#: así que vive a nivel de módulo — **mismo alcance efectivo**: uno por proceso.
+#: así que vive a nivel de módulo — **mismo alcance efectivo**: uno por
+#: proceso.
 #:
 #: La fuente declara ella misma la limitación que esto acarrea, y vale igual
 #: aquí: *"The login counter is not shared between workers and not specifically
 #: thread-safe, the feature exists mostly for rate-limiting on large number of
 #: login attempts (brute-forcing passwords) so that should not be much of an
-#: issue."* Su punto de extensión para una estrategia compartida —base de datos,
+#: issue."* Su punto de extensión para una estrategia compartida —base de
+#: datos,
 #: caché distribuida— es sobrescribir ``_assert_can_auth``, y ese punto se
 #: conserva.
 _LOGIN_FAILURES: dict = {}
@@ -256,7 +258,8 @@ _SESSION_AUTH_KEY_SALT = (
 #: :meth:`ResUsers.has_group`.
 GROUP_NO_ONE_XMLID = 'base.group_no_one'
 
-#: El grupo de usuario interno. Es el que la guarda de :meth:`ResUsers.has_group`
+#: El grupo de usuario interno. Es el que la guarda de
+#: :meth:`ResUsers.has_group`
 #: exige a quien pregunta por los grupos de otro.
 GROUP_USER_XMLID = 'base.group_user'
 
@@ -1302,8 +1305,10 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.pk is None:
             return
+        # sobre la clausura, como ``user.all_group_ids & user_type_groups``:
+        # la implicación es el caso que la fuente nombra
         classes = set(
-            self.group_ids.exclude(user_type__isnull=True)
+            self.all_group_ids.exclude(user_type__isnull=True)
             .values_list('user_type', flat=True))
         if len(classes) > 1:
             raise ValidationError(
@@ -3060,7 +3065,8 @@ class IdentityCheck:
             ) from None
 
 
-@receiver(pre_delete, sender=ResUsers, dispatch_uid='base.res_users.master_data')
+@receiver(pre_delete, sender=ResUsers,
+          dispatch_uid='base.res_users.master_data')
 def _forbid_deleting_master_data(sender, instance, **kwargs):
     """≙ ``_unlink_except_master_data`` (``odoo19c: res_users.py:647-660``).
 
@@ -3260,7 +3266,8 @@ def _invalidate_on_implication_changed(sender, action, **kwargs):
     Una arista nueva entre dos grupos cambia la clausura de cualquier usuario
     que alcance el origen, y quiénes son ésos es justamente lo que el memo
     guarda. Enumerarlos exigiría recorrer todos los usuarios — la operación
-    que ``ResGroups.check_user_disjoint_groups`` evita por escala, siguiendo el
+    que ``ResGroups._check_user_disjoint_groups`` evita por escala, siguiendo
+    el
     comentario de la propia fuente.
 
     Purga **dos** memos, no uno. El de la clausura por usuario, que es el que

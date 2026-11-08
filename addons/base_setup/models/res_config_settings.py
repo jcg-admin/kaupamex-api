@@ -23,7 +23,7 @@ Aquí se usan los mismos tres destinos con los análogos vivos del árbol:
   el destino se atendería por los hooks que la propia referencia deja
   abiertos (``get_values``/``set_values``, categoría ``other``).
   **Hoy no es alcanzable**: ver "El destino per-company está bloqueado".
-- ``implied_group`` → ``ResGroups.apply_group`` — ya soportado por el motor
+- ``implied_group`` → ``ResGroups._apply_group`` — ya soportado por el motor
   portado en ``base/models/res_config.py``; hoy sin campos que lo usen.
 
 **Por qué esto reemplaza a ``SiteSettings``.** Aquella era una fila tipada y
