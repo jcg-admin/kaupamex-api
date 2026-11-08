@@ -19,7 +19,10 @@
     "outputs/negative_check_ci_database_shared_qa.log",
     "outputs/negative_guard_shared_qa.log",
     "outputs/first_attempt_pytest_isolation.log",
-    "outputs/first_attempt_check_ci_database.log"
+    "outputs/first_attempt_check_ci_database.log",
+    "outputs/ci_multidb_record.json",
+    "outputs/ci_multidb_pytest_tail.log"
   ],
-  "destination": "TASK-API-0496; tests/integration/company/test_multidb_isolation.py sin cambios"
+  "destination": "TASK-API-0496; tests/integration/company/test_multidb_isolation.py sin cambios",
+  "gate": "make ci-multidb (scripts/run_multidb_isolation.py), integrado en api@cc50c427; verificado sobre esa revisión: 5 passed en 2044 s, base orm_bootstrap_f102156ac503 eliminada, 0 bases company_* restantes."
 }
