@@ -21,7 +21,7 @@ from functools import partial
 
 from django.db import models
 
-from orm.fields_company_dependent import make_dispatcher
+from orm.fields_company_dependent import SQL, make_dispatcher
 from orm.fields_nonstored import (
     _UNSET,
     annotate_related,
@@ -186,3 +186,37 @@ def _id_convert_to_column(self, value, record, values=None, validate=True):
 models.AutoField.convert_to_column = _id_convert_to_column
 models.BigAutoField.convert_to_column = _id_convert_to_column
 models.SmallAutoField.convert_to_column = _id_convert_to_column
+
+
+def _boolean_condition_to_sql(self, field_expr, operator, value, model, alias,
+                              query):
+    """``Boolean._condition_to_sql``.
+
+    ≙ ``odoo19c: odoo/orm/fields_misc.py:35-49``.
+
+    Toda igualdad se expresa como el conjunto de valores posibles: si queda
+    uno solo, ``IS TRUE`` o ``IS NOT TRUE`` —que incluye la fila nula, porque
+    para un booleano ``False`` y la ausencia son el mismo valor—; si quedan
+    los dos, ``TRUE``; si ninguno, ``FALSE``. El resto de operadores va al
+    cuerpo de ``Field``, que es lo que el ``super()`` de la fuente alcanza.
+    """
+    if operator not in ('in', 'not in'):
+        return models.Field._condition_to_sql(
+            self, field_expr, operator, value, model, alias, query)
+
+    # el campo y su permiso de lectura
+    sql_field = model._field_to_sql(alias, field_expr, query)
+
+    # toda condición como (field_expr, 'in', valores posibles)
+    possible_values = (
+        {bool(v) for v in value} if operator == 'in' else
+        {True, False} - {bool(v) for v in value}  # operator == 'not in'
+    )
+    if len(possible_values) != 1:
+        return SQL("TRUE") if possible_values else SQL("FALSE")
+    is_true = True in possible_values
+    return (SQL("%s IS TRUE", sql_field) if is_true
+            else SQL("%s IS NOT TRUE", sql_field))
+
+
+models.BooleanField._condition_to_sql = _boolean_condition_to_sql

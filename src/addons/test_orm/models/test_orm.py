@@ -331,7 +331,7 @@ class TestOrmModelActiveField(TestOrmModel):
     _description = 'A model with active field'
 
     name = fields.Char()
-    active = fields.Boolean(default=True)
+    active = fields.Boolean(default=True, null=True)
     parent = fields.Many2one(
         'test_orm.model_active_field', null=True, related_name='+',
         db_column='parent')

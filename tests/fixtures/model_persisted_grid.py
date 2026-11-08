@@ -102,6 +102,12 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Casos de ``Boolean._condition_to_sql`` sobre ``active``.
+BOOLEAN_CONDITIONS = (
+    ('in', [True]), ('in', [False]), ('not in', [True]),
+    ('not in', [False]), ('in', [True, False]), ('not in', [True, False]),
+    ('in', []), ('<', True),
+)
 #: Campos de ``test_orm.category`` que declaran los dos árboles.
 SEQUENCED = ('discussions', 'parent', 'color', 'name', 'parent_path')
 #: Prefijo de las categorías que miden ``Field.condition_to_sql``.
@@ -694,6 +700,31 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _boolean_condition(model, operator, value):
+    """``Boolean._condition_to_sql`` sobre ``active``: código, parámetros y
+    filas.
+
+    El sobreescrito (``odoo19c: odoo/orm/fields_misc.py:35-49``) cambia la
+    **forma** del ``SQL`` —``IS TRUE`` / ``IS NOT TRUE``— y no el conjunto de
+    filas que daría el cuerpo de ``Field``; por eso se compara también el
+    código emitido, que es lo único que lo distingue.
+    """
+    Active = model.browse(()).env['test_orm.model_active_field'].browse(())
+    Active = Active.with_context(active_test=False)
+    records = Active.search([('name', '=like', f'{PREFIX}%')])
+    if not records:
+        records = Active.create([{'name': f'{PREFIX}on', 'active': True},
+                                 {'name': f'{PREFIX}off', 'active': False}])
+    query = records._as_query(ordered=False)
+    sql = Active._fields['active'].condition_to_sql(
+        'active', operator, value, Active, query.table, query)
+    query.add_where(sql)
+    rows = Active.env.execute_query(
+        query.select(Active._field_to_sql(query.table, 'name', query)))
+    return (sql.code, list(sql.params),
+            sorted(name.removeprefix(PREFIX) for name, in rows))
+
+
 def _sequence_order(model):
     """Los campos declarados de la categoría, ordenados por ``_sequence``.
 
@@ -830,6 +861,11 @@ def trace(Domain, model, model_name):
         ('relational multi', lambda: _relational_multi(discussions)),
     ]
     steps += [('field sequence order', lambda: _sequence_order(model))]
+    steps += [
+        (f'boolean condition_to_sql {operator} {value!r}',
+         lambda case=(operator, value): _boolean_condition(model, *case))
+        for operator, value in BOOLEAN_CONDITIONS
+    ]
     conditioned = _condition_records(model)
     steps += [
         (f'condition_to_sql {fname} {operator} '
