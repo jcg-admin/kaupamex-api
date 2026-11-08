@@ -1,0 +1,11 @@
+{
+  "question": "¿Qué son los 12 commits locales sin publicar de la rama claude/bold-fermat-x2hokp de Thyrox, a qué autoridad pertenecen, si ya existe un equivalente publicado y qué decisión requiere cada uno?",
+  "instrument": "git log / git show --stat / git patch-id --stable / git branch -r --contains / git merge-base --is-ancestor sobre /home/user/thyrox, más la VERIFICATION.md publicada por la autoridad en origin/integrate/x2hokp-local-plan-supply (1e26c8c57).",
+  "metric": "por commit: SHA, fecha, autoría, archivos tocados, TASK citada en el mensaje, rama remota que lo contiene o contiene su equivalente por asunto, y resultado de las pruebas de los módulos tocados en el HEAD local (test_local_plan 22 ok, test_task_continuation_node 15 ok).",
+  "blind_to": "la intención de la autoridad sobre los commits de datos: el instrumento mide qué contienen y dónde están, no si VM-A quiere sus filas. Y el patch-id distinto de los equivalentes publicados no prueba que el contenido difiera: la autoridad normalizó texto transcrito; la igualdad se toma de su VERIFICATION.md, no se remidió.",
+  "outputs": [
+    "README.md"
+  ],
+  "control": "el equivalente publicado se identificó por asunto y se comprobó en dos ejes independientes: la rama remota que lo contiene y la VERIFICATION.md con los patch-id del remitente. Un asunto repetido sin esa tabla se habría tratado como coincidencia, no como transferencia.",
+  "destination": "coordinación con VM-A (session_01QETVtqHP8og1XY9LsYwvgJ): una sola decisión sobre los 9 commits de datos; los 3 de código se conservan en local porque su versión corregida ya está publicada por la autoridad."
+}
