@@ -490,6 +490,18 @@ def _has_onchanges(model):
             categories._has_onchange(cfields['name'], [])]
 
 
+def _empty_many2one(model):
+    """Un ``Many2one`` sin valor se lee como el recordset vacío de su
+    comodelo (``odoo19c: odoo/orm/fields_relational.py:354-358``,
+    ``Many2one.convert_to_record``), no como ``None``: se puede preguntar su
+    longitud, su modelo y sus campos, que valen ``False``. La raíz de la
+    cadena no tiene padre."""
+    root = model.browse(()).search([('name', '=', f'{PREFIX}a-root')])
+    parent = root.parent
+    return (bool(parent), len(parent), parent._name, parent.name,
+            parent.ids, root.parent.parent.ids)
+
+
 def _rec_name_fallbacks(model):
     """``_rec_name_fallback`` (``odoo19c: odoo/orm/models.py:1341-1343``):
     ``_rec_name`` si el modelo lo tiene, ``'id'`` si no. Lo consumen las
@@ -660,6 +672,7 @@ def trace(Domain, model, model_name):
         ('integer conversions', lambda: _integer_conversions(model)),
         ('update', lambda: _updated(model)),
         ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
+        ('empty many2one', lambda: _empty_many2one(model)),
         ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),
         ('search window', lambda: _names(model.search(

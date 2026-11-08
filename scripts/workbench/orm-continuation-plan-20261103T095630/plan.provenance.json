@@ -632,6 +632,13 @@
         "orm-models-order-to-sql-reference-0485"
       ],
       "writtenAt": "2026-11-07T23:37:33Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-many2one-empty-recordset-0502"
+      ],
+      "writtenAt": "2026-11-08T00:12:38Z"
     }
   ]
 }
