@@ -83,7 +83,8 @@ def _seed():
         A.objects.create(
             name=f'{name} writer', model_id=IM.objects.get(model=label),
             group_id=writing, perm_read=True,
-            perm_write=name != 'test_orm.related', perm_create=True,
+            perm_write=name != 'test_orm.related',
+            perm_create=name != 'test_orm.related',
             perm_unlink=True)
     other = get_user_model().objects.create_user(
         login='access-other', password=None, name='secret-partner',
@@ -98,6 +99,7 @@ def _seed():
                                               'foo_id': foo.id})
     Child = env['test_orm.related_inherits']
     return {'user': reader.pk, 'writer': writer.pk, 'other': other.pk,
+            'foo': foo.id,
             'secret': secret.id,
             'visible': visible.id,
             'secret_child': Child.create({'base_id': secret.id}).id,
@@ -121,6 +123,11 @@ def _scenarios(env, ids):
         with user_scope(ids['writer']):
             return _written(current_env()['test_orm.related_inherits']
                             .browse(ids['visible_child']), values)
+
+    def writer_creates(values):
+        with user_scope(ids['writer']):
+            return _created(current_env()['test_orm.related_inherits'],
+                            values)
 
     def current_user_street():
         # ``env.user`` es elevado (``environments.py:208-213``): su campo
@@ -160,7 +167,27 @@ def _scenarios(env, ids):
          lambda: as_writer({'name': 'renamed'})),
         ('write without parent access own key',
          lambda: as_writer({'base_id': ids['visible']})),
+        ('create child inherited', lambda: _created(
+            Child, {'name': 'born', 'foo_id': ids['foo']})),
+        ('create without parent create access',
+         lambda: writer_creates({'name': 'born'})),
+        ('create with parent key without parent write',
+         lambda: writer_creates({'base_id': ids['visible'],
+                                 'name': 'born'})),
+        ('create with parent key only',
+         lambda: writer_creates({'base_id': ids['visible']})),
+        ('create with forbidden parent key', lambda: _created(
+            Child, {'base_id': ids['secret'], 'name': 'born'})),
     ]
+
+
+def _created(model, values):
+    """Crea, vuelca y lee el nombre heredado, como el espejo de la
+    referencia. ``env['…']`` devuelve aquí la clase del modelo, así que el
+    entorno se toma del registro creado, que es el mismo."""
+    record = model.create(values)
+    record.env.flush_all()
+    return record.name
 
 
 def _written(records, values):

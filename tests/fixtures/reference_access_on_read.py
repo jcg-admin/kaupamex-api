@@ -45,7 +45,8 @@ def seed(env):
             'name': f'{name} writer',
             'model_id': env['ir.model']._get(name).id,
             'group_id': writing.id, 'perm_read': True,
-            'perm_write': name != 'test_orm.related', 'perm_create': True,
+            'perm_write': name != 'test_orm.related',
+            'perm_create': name != 'test_orm.related',
             'perm_unlink': True})
     other = env['res.users'].create({'name': 'secret-partner',
                                      'login': 'access-other',
@@ -58,6 +59,7 @@ def seed(env):
                                               'foo_id': foo.id})
     Child = env['test_orm.related_inherits']
     return {'user': user.id, 'writer': writer.id, 'other': other.id,
+            'foo': foo.id,
             'secret': secret.id,
             'visible': visible.id,
             'secret_child': Child.create({'base_id': secret.id}).id,
@@ -106,7 +108,28 @@ def scenarios(env, ids):
         ('write without parent access own key', lambda: written(
             env(user=ids['writer'])['test_orm.related_inherits'].browse(
                 ids['visible_child']), {'base_id': ids['visible']})),
+        ('create child inherited', lambda: created(
+            Child, {'name': 'born', 'foo_id': ids['foo']})),
+        ('create without parent create access', lambda: created(
+            env(user=ids['writer'])['test_orm.related_inherits'],
+            {'name': 'born'})),
+        ('create with parent key without parent write', lambda: created(
+            env(user=ids['writer'])['test_orm.related_inherits'],
+            {'base_id': ids['visible'], 'name': 'born'})),
+        ('create with parent key only', lambda: created(
+            env(user=ids['writer'])['test_orm.related_inherits'],
+            {'base_id': ids['visible']})),
+        ('create with forbidden parent key', lambda: created(
+            Child, {'base_id': ids['secret'], 'name': 'born'})),
     ]
+
+
+def created(model, values):
+    """Crea, vuelca y lee de vuelta el nombre heredado: el padre se crea o
+    se escribe dentro de ``create`` con el usuario del entorno."""
+    record = model.create(values)
+    model.env.flush_all()
+    return record.name
 
 
 def written(records, values):
