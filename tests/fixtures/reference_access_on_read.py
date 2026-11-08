@@ -35,6 +35,18 @@ def seed(env):
         env['ir.rule'].create({
             'name': f'hide {name}', 'model_id': env['ir.model']._get(name).id,
             'domain_force': domain, 'groups': [(6, 0, [group.id])]})
+    # Escritor: escribe el hijo pero no ``test_orm.related``.
+    writing = env['res.groups'].create({'name': 'access-on-write'})
+    writer = env['res.users'].create({'name': 'access-writer',
+                                      'login': 'access-writer',
+                                      'group_ids': [(6, 0, [writing.id])]})
+    for name in ('test_orm.related', 'test_orm.related_inherits'):
+        env['ir.model.access'].create({
+            'name': f'{name} writer',
+            'model_id': env['ir.model']._get(name).id,
+            'group_id': writing.id, 'perm_read': True,
+            'perm_write': name != 'test_orm.related', 'perm_create': True,
+            'perm_unlink': True})
     other = env['res.users'].create({'name': 'secret-partner',
                                      'login': 'access-other',
                                      'email': 'other@x.test',
@@ -45,7 +57,8 @@ def seed(env):
     visible = env['test_orm.related'].create({'name': 'visible',
                                               'foo_id': foo.id})
     Child = env['test_orm.related_inherits']
-    return {'user': user.id, 'other': other.id, 'secret': secret.id,
+    return {'user': user.id, 'writer': writer.id, 'other': other.id,
+            'secret': secret.id,
             'visible': visible.id,
             'secret_child': Child.create({'base_id': secret.id}).id,
             'visible_child': Child.create({'base_id': visible.id}).id}
@@ -83,7 +96,25 @@ def scenarios(env, ids):
         ('users own login', lambda: Users.browse(ids['other']).login),
         ('current user inherited street',
          lambda: env(user=ids['other']).user.street),
+        ('write allowed child inherited', lambda: written(
+            Child.browse(ids['visible_child']), {'name': 'renamed'})),
+        ('write forbidden child inherited', lambda: written(
+            Child.browse(ids['secret_child']), {'name': 'renamed'})),
+        ('write without parent access inherited', lambda: written(
+            env(user=ids['writer'])['test_orm.related_inherits'].browse(
+                ids['visible_child']), {'name': 'renamed'})),
+        ('write without parent access own key', lambda: written(
+            env(user=ids['writer'])['test_orm.related_inherits'].browse(
+                ids['visible_child']), {'base_id': ids['visible']})),
     ]
+
+
+def written(records, values):
+    """Escribe y vuelca: la regla y la ACL se comprueban al escribir y el
+    inverso del campo heredado llega al padre al volcar."""
+    records.write(values)
+    records.env.flush_all()
+    return 'ok'
 
 
 def main(root, database, data_dir):
@@ -98,12 +129,17 @@ def main(root, database, data_dir):
         result = {}
         for label, read in scenarios(env, ids):
             env.invalidate_all()
+            savepoint = cursor.savepoint()
             try:
                 result[label] = repr(read())
             except Exception as error:
                 # Cualquier otro rechazo se registra por su tipo: la
                 # comparación lo distingue del valor y de AccessError.
                 result[label] = type(error).__name__
+            finally:
+                # Cada escenario parte del mismo estado: una escritura no
+                # se arrastra al siguiente.
+                savepoint.rollback()
         cursor.rollback()
     print(json.dumps(result))
 

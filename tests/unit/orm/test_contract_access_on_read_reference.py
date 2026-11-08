@@ -26,6 +26,7 @@ Lo que la referencia fija, medido:
 """
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
 from exceptions import AccessError
 
@@ -73,6 +74,17 @@ def _seed():
             name=f'hide {name}', model_name=MODELS_BY_NAME[name]._meta.label,
             domain_force=domain)
         rule.groups.add(group)
+    writing = G.objects.create(name='access-on-write')
+    writer = get_user_model().objects.create_user(
+        login='access-writer', password=None, name='access-writer')
+    writer.group_ids.add(writing)
+    for name in ('test_orm.related', 'test_orm.related_inherits'):
+        label = MODELS_BY_NAME[name]._meta.label
+        A.objects.create(
+            name=f'{name} writer', model_id=IM.objects.get(model=label),
+            group_id=writing, perm_read=True,
+            perm_write=name != 'test_orm.related', perm_create=True,
+            perm_unlink=True)
     other = get_user_model().objects.create_user(
         login='access-other', password=None, name='secret-partner',
         email='other@x.test')
@@ -85,7 +97,8 @@ def _seed():
     visible = env['test_orm.related'].create({'name': 'visible',
                                               'foo_id': foo.id})
     Child = env['test_orm.related_inherits']
-    return {'user': reader.pk, 'other': other.pk, 'secret': secret.id,
+    return {'user': reader.pk, 'writer': writer.pk, 'other': other.pk,
+            'secret': secret.id,
             'visible': visible.id,
             'secret_child': Child.create({'base_id': secret.id}).id,
             'visible_child': Child.create({'base_id': visible.id}).id}
@@ -103,6 +116,11 @@ def _scenarios(env, ids):
 
     def user():
         return MODELS_BY_NAME['res.users'].objects.get(pk=ids['other'])
+
+    def as_writer(values):
+        with user_scope(ids['writer']):
+            return _written(current_env()['test_orm.related_inherits']
+                            .browse(ids['visible_child']), values)
 
     def current_user_street():
         # ``env.user`` es elevado (``environments.py:208-213``): su campo
@@ -134,7 +152,26 @@ def _scenarios(env, ids):
         ('users inherited street', lambda: user().street),
         ('users own login', lambda: user().login),
         ('current user inherited street', current_user_street),
+        ('write allowed child inherited', lambda: _written(
+            Child.browse(ids['visible_child']), {'name': 'renamed'})),
+        ('write forbidden child inherited', lambda: _written(
+            Child.browse(ids['secret_child']), {'name': 'renamed'})),
+        ('write without parent access inherited',
+         lambda: as_writer({'name': 'renamed'})),
+        ('write without parent access own key',
+         lambda: as_writer({'base_id': ids['visible']})),
     ]
+
+
+def _written(records, values):
+    """Escribe y vuelca, como el espejo de la referencia."""
+    records.write(values)
+    records.env.flush_all()
+    return 'ok'
+
+
+class _Rollback(Exception):
+    """Deshace el escenario: cada uno parte del mismo estado."""
 
 
 def _ours():
@@ -148,7 +185,13 @@ def _ours():
         for label, read in _scenarios(env, ids):
             env.invalidate_all()
             try:
-                result[label] = repr(read())
+                with transaction.atomic():
+                    result[label] = repr(read())
+                    raise _Rollback
+            except _Rollback:
+                # silent OK because la excepción sólo deshace el escenario:
+                # el resultado ya quedó registrado antes de levantarla.
+                pass
             except AccessError:
                 # ``AccessError`` es aquí el alias de ``PermissionDenied``
                 # (``src/exceptions.py``): se compara la clase, no el nombre.

@@ -119,8 +119,8 @@ def _delegable_field_names(delegate_model, delegant_cls):
     )
 
 
-def _check_delegate_read(delegate):
-    """Las reglas del padre antes de entregar un campo heredado.
+def _check_delegate_access(delegate, operation='read'):
+    """Las reglas del padre antes de leer o escribir un campo heredado.
 
     La copia que publica ``_add_inherited_fields`` lleva
     ``related_sudo=False`` (``odoo19c: odoo/orm/model_classes.py:497``), así
@@ -130,15 +130,20 @@ def _check_delegate_read(delegate):
     comprobación se hace en la puerta. Un recordset de ``BaseModel`` la
     resuelve él; una fila de Django, el ``AccessQuerySet`` de su manager.
     En modo superusuario no se comprueba nada, como allá.
+
+    La escritura es la misma regla con ``'write'``: el inverso del
+    ``related`` escribe el padre como el usuario, así que sin permiso de
+    escritura sobre el modelo padre el campo heredado no se escribe,
+    aunque el hijo sí se pueda escribir.
     """
     if is_su() or delegate.pk is None:
         return
     if hasattr(delegate, 'check_access'):
-        delegate.check_access('read')
+        delegate.check_access(operation)
         return
     rows = type(delegate)._default_manager.filter(pk=delegate.pk)
     if hasattr(rows, 'check_access'):
-        rows.check_access('read')
+        rows.check_access(operation)
 
 
 class DelegatedFieldNames:
@@ -216,7 +221,7 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
             delegate = getattr(self, fk_name, None)
             if delegate is not None:
                 if not self.__dict__.get(CURRENT_USER_SU):
-                    _check_delegate_read(delegate)
+                    _check_delegate_access(delegate, 'read')
                 return getattr(delegate, name)
             return None
         # Un nombre que no se delega vuelve a la búsqueda normal, que relanza
@@ -233,6 +238,8 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
                 self, fk_name, None
             )
             if delegate is not None:
+                if not self.__dict__.get(CURRENT_USER_SU):
+                    _check_delegate_access(delegate, 'write')
                 setattr(delegate, name, value)
                 self.__dict__.setdefault('_inherits_dirty', set()).add(fk_name)
                 return
