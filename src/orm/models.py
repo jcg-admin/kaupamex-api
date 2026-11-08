@@ -70,6 +70,7 @@ from django.db.models.fields import related_descriptors as _related_descriptors
 from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
 from django.dispatch import receiver
+from psycopg import errors as pg_errors
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
@@ -111,6 +112,8 @@ from tools.constants import PREFETCH_MAX
 from tools.misc import OrderedSet, ReadonlyDict, partition, split_every, unique
 from tools.query import Query
 from tools.sql import SQL
+from tools.i18n import format_list
+from loglevels import exception_to_unicode
 
 _logger = logging.getLogger(__name__)
 
@@ -228,6 +231,42 @@ def get_columns_from_sql_diagnostics(connection, diagnostics, *,
         """, [diagnostics.constraint_name, diagnostics.table_name])
         columns = cursor.fetchone()
     return columns[0] if columns else []
+
+
+def _database_error(exc):
+    """El error de psycopg detrás de ``exc``: Django lo envuelve en su
+    ``DatabaseError`` y lo deja en ``__cause__`` (``django/db/utils.py``,
+    ``DatabaseErrorWrapper.__exit__``). Uno que ya es de psycopg se
+    devuelve tal cual."""
+    cause = getattr(exc, '__cause__', None)
+    return cause if getattr(cause, 'diag', None) is not None else exc
+
+
+def _model_name(model):
+    """El ``_name`` de la referencia, o la etiqueta de Django si no lo
+    declara."""
+    return getattr(model, '_name', None) or model._meta.label_lower
+
+
+def _table_object(model, constraint_name):
+    """El objeto de tabla de ``model`` con ese nombre: ≙
+    ``self._table_objects.get(constraint_name)``. Aquí su hogar es
+    ``Meta.constraints``."""
+    if not constraint_name:
+        return None
+    return next((cons for cons in model._meta.constraints
+                 if cons.name == constraint_name), None)
+
+
+def _table_object_message(cons, model, diagnostics):
+    """≙ ``cons.get_error_message(self, exc.diag)`` (``odoo19c:
+    odoo/orm/table_objects.py:60-69``): el mensaje que el objeto declara, o
+    ``None``. En Django es el ``violation_error_message``; el que Django pone
+    por defecto no es una declaración."""
+    message = cons.violation_error_message
+    if message is None or message == cons.default_violation_error_message:
+        return None
+    return cons.get_violation_error_message()
 
 
 def _acting_user(user):
@@ -3162,24 +3201,117 @@ class RecordLoaderMixin(FieldSqlMixin):
 
     @classmethod
     def _sql_error_to_message(cls, exc):
-        """≙ ``_sql_error_to_message`` (``odoo19c: :3270-3285``).
+        """≙ ``_sql_error_to_message`` (``odoo19c: :3269-3285``).
 
         «Convert a database exception to a user error message depending on the
         model.»
 
-        La restricción violada tiene un mensaje declarado en
-        ``ir.model.constraint``; si lo hay, ése es el que ve quien importa, y
-        no el texto de PostgreSQL. Sin él, se cae al mensaje genérico.
+        El orden de la fuente: si la restricción violada es un objeto de tabla
+        de este modelo, primero el mensaje que su fila de
+        ``ir.model.constraint`` registra para este modelo, después el que el
+        objeto declara; si no, el mensaje genérico.
+
+        El error llega aquí como el ``DatabaseError`` de Django, y el
+        diagnóstico de PostgreSQL vive en su ``__cause__``
+        (:func:`_database_error`): leer ``exc.diag`` no veía nunca el nombre
+        de la restricción. Los objetos de tabla tienen su hogar en
+        ``Meta.constraints`` (``atributos-de-clase-de-modelo.md``).
         """
-        IrModelConstraint = apps.get_model('base', 'IrModelConstraint')
-        constraint_name = getattr(getattr(exc, 'diag', None),
-                                  'constraint_name', None)
-        if constraint_name:
-            row = IrModelConstraint.objects.filter(
-                name=constraint_name).values_list('message', flat=True).first()
-            if row:
-                return row
-        return str(exc)
+        diag = getattr(_database_error(exc), 'diag', None)
+        constraint_name = getattr(diag, 'constraint_name', None)
+        cons = _table_object(cls, constraint_name)
+        if cons is not None:
+            IrModelConstraint = apps.get_model('base', 'IrModelConstraint')
+            message = IrModelConstraint.objects.filter(
+                name=constraint_name, model__model=_model_name(cls),
+            ).values_list('message', flat=True).first()
+            if message:
+                return message
+            # get the message from the object
+            if message := _table_object_message(cons, cls, diag):
+                return message
+        return cls._sql_error_to_message_generic(exc)
+
+    @classmethod
+    def _sql_error_to_message_generic(cls, exc):
+        """ Convert a database exception to a generic user error message. —
+        ≙ ``_sql_error_to_message_generic`` (``odoo19c: :3287-3339``)
+
+        Copia adaptada. El modelo se nombra por ``ir.model`` o por su
+        ``_description``, la columna por el campo cuya ``column`` es la del
+        diagnóstico —aquí el nombre del campo y el de su columna pueden
+        diferir (``privilege`` y ``privilege_id``)—, y la clase del error se
+        pregunta al error de psycopg, no al envoltorio de Django.
+        """
+        error = _database_error(exc)
+        diag = error.diag
+        environment = env()
+        unknown = environment._('Unknown')
+        name = _model_name(cls)
+        IrModel = apps.get_model('base', 'IrModel')
+        ir_model = IrModel._get(name)
+        model_string = (ir_model and ir_model.name) or getattr(
+            cls, '_description', None) or cls._meta.verbose_name
+        info = {
+            'model_display': f"'{model_string}' ({name})",
+            'table_name': diag.table_name,
+            'constraint_name': diag.constraint_name,
+        }
+        connection = connections[cls.objects.db]
+        if cls._meta.db_table == diag.table_name:
+            columns = get_columns_from_sql_diagnostics(
+                connection, diag, check_registry=True)
+        else:
+            columns = get_columns_from_sql_diagnostics(connection, diag)
+            info['model_display'] = unknown
+        fields = {field.column: field
+                  for field in cls._meta.concrete_fields}
+        if not columns:
+            info['field_display'] = unknown
+        elif len(columns) == 1 and (field := fields.get(columns[0])):
+            field_string = field._description_string(environment)
+            info['field_display'] = f"'{field_string}' ({field.name})"
+        else:
+            info['field_display'] = f"'{format_list(environment, columns)}'"
+
+        if isinstance(error, pg_errors.NotNullViolation):
+            return environment._(
+                "Missing required value for the field %(field_display)s.\n"
+                "Model: %(model_display)s\n"
+                "- create/update: a mandatory field is not set\n"
+                "- delete: another model requires the record being deleted, "
+                "you can archive it instead\n",
+                **info,
+            )
+
+        if isinstance(error, pg_errors.ForeignKeyViolation):
+            if len(columns) != 1:
+                info['field_display'] = info['constraint_name']
+            return environment._(
+                "Another model is using the record you are trying to "
+                "delete.\n\n"
+                "The troublemaker is: %(model_display)s\n"
+                "Thanks to the following constraint: %(field_display)s\n"
+                "How about archiving the record instead?",
+                **info,
+            )
+
+        if isinstance(error, pg_errors.UniqueViolation) and columns:
+            column_names = [fields[f].string if f in fields else f
+                            for f in columns]
+            info['field_display'] = (
+                f"'{', '.join(columns)}' "
+                f"({format_list(environment, column_names)})")
+            # contains conflicting key and value
+            info['detail'] = diag.message_detail
+            return environment._(
+                "The value for %(field_display)s already exists.\n\n"
+                "Detail: %(detail)s\n", **info)
+
+        # No good message can be created for psycopg2.errors.CheckViolation
+
+        # fallback
+        return exception_to_unicode(error)
 
     @classmethod
     def _extract_records(cls, field_paths, data, log=lambda a: None,
