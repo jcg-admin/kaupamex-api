@@ -108,7 +108,10 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models import Q
 
-from orm.fields_relational import One2many as DeclaredOne2many
+from orm.fields_relational import (
+    One2many as DeclaredOne2many,
+    install_domain_class,
+)
 from orm.fields import (
     SQL,
     NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
@@ -3307,3 +3310,8 @@ DeclaredOne2many.determine_domain = _one2many_related_domain
 #: ``tools.json.json_default`` serializa un ``Domain`` como su lista
 #: (``odoo19c: odoo/tools/json.py:74``); el tipo se registra desde aquí.
 register_domain_type(Domain)
+
+
+# ``orm.fields_relational`` arma condiciones x2many con ``Domain`` y no la
+# puede importar sin cerrar el ciclo; se la entrega este módulo al cargarse.
+install_domain_class(Domain)

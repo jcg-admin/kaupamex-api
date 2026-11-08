@@ -102,6 +102,22 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Prefijo de la discusión vacía de ``_RelationalMulti.condition_to_sql``.
+MULTI_PREFIX = 'grid-multi-'
+#: Casos de ``_RelationalMulti.condition_to_sql``: campo, operador, valor.
+MULTI_CONDITIONS = (
+    ('messages', 'any', '_priority_domain'),
+    ('messages', 'not any', '_priority_domain'),
+    ('messages', 'any!', '_priority_domain'),
+    ('messages', 'in', '_d2_messages'),
+    ('messages', 'not in', '_d2_messages'),
+    ('messages', 'in', 'false'),
+    ('messages', 'not in', 'false'),
+    ('categories', 'any', '_seeded_categories'),
+    ('categories', 'not any', '_seeded_categories'),
+    ('categories', 'in', 'false'),
+    ('categories', 'not in', 'false'),
+)
 #: Prefijo de las categorías que miden ``Many2one.condition_to_sql``.
 PARENT_PREFIX = 'grid-parent-'
 
@@ -735,6 +751,55 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _multi_records(discussions):
+    """Las dos discusiones sembradas y una sin mensajes ni categorías."""
+    Discussion = discussions.browse(())
+    user = Discussion.env.user
+    empty = Discussion.create({
+        'name': f'{MULTI_PREFIX}empty',
+        'participants': [(6, 0, [user.id] if user else [])],
+    })
+    return discussions | empty
+
+
+def _multi_selected(Domain, records, fname, operator, build):
+    """Las filas que ``_RelationalMulti.condition_to_sql`` selecciona.
+
+    ``odoo19c: odoo/orm/fields_relational.py:779-837`` y los
+    ``_condition_to_sql_relational`` de ``One2many`` (``:1154-1200``) y
+    ``Many2many`` (``:1705-1730``): ``in``/``not in`` con ids o con
+    ``False``, y ``any``/``not any``/``any!`` con un dominio del comodelo.
+    """
+    model = records.browse(())
+    query = records._as_query(ordered=False)
+    value = build(Domain, model, records)
+    sql = model._fields[fname].condition_to_sql(
+        fname, operator, value, model, query.table, query)
+    query.add_where(sql)
+    rows = model.env.execute_query(
+        query.select(model._field_to_sql(query.table, 'name', query)))
+    return sorted(name.removeprefix(MULTI_PREFIX).removeprefix(PREFIX)
+                  for name, in rows)
+
+
+def _priority_domain(D, model, records):
+    """Los mensajes de prioridad 11 —los de ``d1``—, optimizado."""
+    Message = model.env['test_orm.message'].browse(())
+    return D([('priority', '=', 11)]).optimize_full(Message)
+
+
+def _d2_messages(D, model, records):
+    """Los ids de los mensajes de ``d2``."""
+    d2 = records.filtered(lambda r: r.name == f'{PREFIX}d2')
+    return list(d2.messages.ids)
+
+
+def _seeded_categories(D, model, records):
+    """Las categorías sembradas por la rejilla, optimizado."""
+    Category = model.env['test_orm.category'].browse(())
+    return D([('name', '=like', f'{PREFIX}a%')]).optimize_full(Category)
+
+
 def _parent_records(model):
     """Una raíz, su hija y un huérfano, para ``Many2one.condition_to_sql``."""
     root = model.create({'name': f'{PARENT_PREFIX}root'})
@@ -960,6 +1025,17 @@ def trace(Domain, model, model_name):
         (f'boolean condition_to_sql {operator} {value!r}',
          lambda case=(operator, value): _boolean_condition(model, *case))
         for operator, value in BOOLEAN_CONDITIONS
+    ]
+    multi = _multi_records(discussions)
+    builders = {'false': lambda D, m, r: [False],
+                '_priority_domain': _priority_domain,
+                '_d2_messages': _d2_messages,
+                '_seeded_categories': _seeded_categories}
+    steps += [
+        (f'multi condition_to_sql {fname} {operator} {value}',
+         lambda case=(fname, operator, builders[value]): _multi_selected(
+             Domain, multi, *case))
+        for fname, operator, value in MULTI_CONDITIONS
     ]
     parented = _parent_records(model)
     steps += [

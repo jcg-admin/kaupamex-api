@@ -119,8 +119,8 @@ from orm.model_classes import is_transient
 from orm.registry import (IR_MODELS, field_inverses, is_not_null,
                           model_by_key, model_by_name, name_of,
                           sentinel_label)
-from orm.utils import (display_name_of, model_field_registry, model_of,
-                       record_ids)
+from orm.utils import (COLLECTION_TYPES, display_name_of,
+                       model_field_registry, model_of, record_ids)
 from tools.misc import SENTINEL, OrderedSet, unique
 from tools.sql import SQL
 
@@ -2163,3 +2163,233 @@ def _many2one_condition_to_sql(self, field_expr, operator, value, model,
 
 
 models.ForeignKey.condition_to_sql = _many2one_condition_to_sql
+
+
+# === _RelationalMulti.condition_to_sql — x2many en SQL ======================
+#
+# ``odoo19c: odoo/orm/fields_relational.py:779-841``, con los
+# ``_condition_to_sql_relational`` de ``One2many`` (``:1154-1203``) y
+# ``Many2many`` (``:1705-1731``). Se instalan sobre las tres formas que un
+# x2many tiene aquí: el ``One2many`` declarado, ``ManyToManyField`` y su lado
+# inverso ``ManyToManyRel`` —que es como queda un ``Many2many`` declarado en el
+# otro modelo—.
+#
+# La clase ``Domain`` la instala ``orm.domains`` al importarse
+# (:func:`install_domain_class`): este módulo no la puede importar sin cerrar
+# el ciclo que :meth:`One2many.get_comodel_domain` ya mide. Y como ``_search``
+# devuelve aquí un ``QuerySet``, la ``Query`` del comodelo se arma con
+# ``id IN (subselect)``: el mismo conjunto de filas.
+
+#: La clase ``Domain`` de ``orm.domains``, instalada al importarse aquél.
+_DOMAIN_CLASS = []
+
+
+def install_domain_class(domain_class):
+    """Registra la clase ``Domain`` para las condiciones x2many."""
+    _DOMAIN_CLASS[:] = [domain_class]
+
+
+def _domain(*args):
+    """Un ``Domain`` con la clase instalada."""
+    return _DOMAIN_CLASS[0](*args)
+
+
+def _multi_comodel_name(field):
+    """El comodelo de un x2many en cualquiera de sus tres formas."""
+    name = getattr(field, 'comodel_name', None)
+    return name or field.related_model._name
+
+
+def _queryset_query(comodel, queryset):
+    """La ``Query`` del comodelo cuyo resultado es ``queryset``."""
+    query = Query(comodel.env, comodel._table, comodel._table_sql)
+    query.add_where(SQL("%s IN %s", SQL.identifier(query.table, 'id'),
+                        _queryset_subselect(queryset)))
+    return query
+
+
+def _multi_comodel_domain(field, model):
+    """El ``domain`` del campo como ``Domain`` —``get_comodel_domain``—."""
+    getter = getattr(field, 'get_comodel_domain', None)
+    return _domain(getter(model) if getter else [])
+
+
+def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
+                            query):
+    """``_RelationalMulti.condition_to_sql`` — ≙ ``:779-818``."""
+    assert field_expr == self.name, "Supporting condition only to field"
+    comodel = model.env[_multi_comodel_name(self)].browse(())
+    if not getattr(self, 'store', True):
+        raise ValueError(
+            f"Cannot convert {self} to SQL because it is not stored")
+
+    # el operador pasa a 'any'
+    if operator in ('in', 'not in'):
+        operator = 'any' if operator == 'in' else 'not any'
+    assert operator in ('any', 'not any', 'any!', 'not any!'), \
+        f"Relational field {self} expects 'any' operator"
+    exists = operator in ('any', 'any!')
+
+    # el valor, y la consulta del comodelo
+    if isinstance(value, COLLECTION_TYPES):
+        value = OrderedSet(value)
+        comodel = comodel.sudo().with_context(active_test=False)
+        if False in value:
+            #  [not] in (False, 1): una condición por parte
+            if len(value) > 1:
+                in_operator = 'in' if exists else 'not in'
+                return SQL(
+                    "(%s OR %s)" if exists else "(%s AND %s)",
+                    self.condition_to_sql(field_expr, in_operator, (False,),
+                                          model, alias, query),
+                    self.condition_to_sql(field_expr, in_operator,
+                                          value - {False}, model, alias,
+                                          query),
+                )
+            #  in (False) => not any (TRUE); not in (False) => any (TRUE)
+            value = _queryset_query(
+                comodel, comodel._search([], active_test=False))
+            exists = not exists
+        else:
+            value = comodel.browse(list(value))._as_query(ordered=False)
+    elif isinstance(value, SQL):
+        # el SQL envuelto en una consulta simple
+        comodel = comodel.sudo()
+        value = _domain('id', 'any', value)
+    coquery = self._get_query_for_condition_value(
+        model, comodel, operator, value)
+    return self._condition_to_sql_relational(
+        model, alias, exists, coquery, query)
+
+
+def _multi_get_query_for_condition_value(self, model, comodel, operator,
+                                         value):
+    """La ``Query`` del comodelo con el ``domain`` del campo — ≙ ``:820-837``.
+    """
+    field_domain = _multi_comodel_domain(self, model)
+    if _is_domain(value):
+        domain = value & field_domain
+        comodel = comodel.with_context(**(getattr(self, 'context', None)
+                                          or {}))
+        bypass_access = (getattr(self, 'bypass_search_access', False)
+                         or operator in ('any!', 'not any!'))
+        return _queryset_query(
+            comodel, comodel._search(domain, bypass_access=bypass_access))
+    if isinstance(value, Query):
+        # el domain del campo, añadido a la consulta
+        domain = field_domain.optimize_full(comodel)
+        if not domain.is_true():
+            value.add_where(domain._to_sql(comodel, value.table, value))
+        return value
+    raise NotImplementedError(f"Cannot build query for {value}")
+
+
+def _one2many_get_query_for_condition_value(self, model, comodel, operator,
+                                            value):
+    """Sin ``NULL`` en el inverso de la subconsulta — ≙ ``:1154-1170``.
+
+    Un ``NULL`` en la subconsulta vuelve ``NULL`` la prueba ``IN``: ``id NOT
+    IN (42, NULL)`` nunca es cierto.
+    """
+    inverse_field = comodel._fields[self.inverse_name]
+    if not is_not_null(inverse_field):
+        if _is_domain(value):
+            value &= _domain(inverse_field.name, 'not in', {False})
+        else:
+            coquery = _multi_get_query_for_condition_value(
+                self, model, comodel, operator, value)
+            coquery.add_where(SQL(
+                "%s IS NOT NULL",
+                comodel._field_to_sql(coquery.table, inverse_field.name,
+                                      coquery),
+            ))
+            return coquery
+    return _multi_get_query_for_condition_value(
+        self, model, comodel, operator, value)
+
+
+def _one2many_condition_to_sql_relational(self, model, alias, exists,
+                                          coquery, query):
+    """El ``EXISTS`` sobre el inverso — ≙ ``:1172-1203``."""
+    if coquery.is_empty():
+        return SQL("FALSE") if exists else SQL("TRUE")
+
+    comodel = model.env[self.comodel_name].browse(()).sudo()
+    inverse_field = comodel._fields[self.inverse_name]
+    if not getattr(inverse_field, 'concrete', True):
+        # los ids del modelo ligados a los del comodelo, en memoria
+        recs = comodel.browse(coquery).with_context(prefetch_fields=False)
+        owners = {getattr(getattr(rec, self.inverse_name), 'id', None)
+                  for rec in recs}
+        owners.discard(None)
+        subselect = model.browse(sorted(owners))._as_query(
+            ordered=False).subselect()
+        return SQL(
+            "%s%s%s",
+            SQL.identifier(alias, 'id'),
+            SQL(" IN ") if exists else SQL(" NOT IN "),
+            subselect,
+        )
+
+    subselect = coquery.subselect(SQL(
+        "%s AS __inverse",
+        comodel._field_to_sql(coquery.table, inverse_field.name, coquery)))
+    return SQL(
+        "%sEXISTS(SELECT FROM %s AS __sub WHERE __inverse = %s)",
+        SQL() if exists else SQL("NOT "),
+        subselect,
+        SQL.identifier(alias, 'id'),
+    )
+
+
+def _m2m_relation(field):
+    """La tabla de relación y sus dos columnas —``relation``, ``column1``
+    (este modelo) y ``column2`` (el comodelo)— en cualquiera de las dos caras.
+    """
+    forward = field if isinstance(field, models.ManyToManyField) \
+        else field.field
+    table = forward.m2m_db_table()
+    if forward is field:
+        return table, forward.m2m_column_name(), forward.m2m_reverse_name()
+    return table, forward.m2m_reverse_name(), forward.m2m_column_name()
+
+
+def _many2many_condition_to_sql_relational(self, model, alias, exists,
+                                           coquery, query):
+    """El ``EXISTS`` sobre la tabla de relación — ≙ ``:1705-1731``."""
+    if coquery.is_empty():
+        return SQL("FALSE") if exists else SQL("TRUE")
+    rel_table, rel_id1, rel_id2 = _m2m_relation(self)
+    rel_alias = query.make_alias(alias, self.name)
+    if not coquery.where_clause:
+        # sin restricciones sobre la tabla y con claves foráneas: se invierte
+        # el operador y se comprueba la existencia
+        exists = not exists
+        return SQL(
+            "%sEXISTS (SELECT 1 FROM %s AS %s WHERE %s = %s)",
+            SQL("NOT ") if exists else SQL(),
+            SQL.identifier(rel_table),
+            SQL.identifier(rel_alias),
+            SQL.identifier(rel_alias, rel_id1),
+            SQL.identifier(alias, 'id'),
+        )
+    return SQL(
+        "%sEXISTS (SELECT 1 FROM %s AS %s WHERE %s = %s AND %s IN %s)",
+        SQL("NOT ") if not exists else SQL(),
+        SQL.identifier(rel_table),
+        SQL.identifier(rel_alias),
+        SQL.identifier(rel_alias, rel_id1),
+        SQL.identifier(alias, 'id'),
+        SQL.identifier(rel_alias, rel_id2),
+        coquery.subselect(),
+    )
+
+
+One2many.condition_to_sql = _multi_condition_to_sql
+One2many._get_query_for_condition_value = (
+    _one2many_get_query_for_condition_value)
+One2many._condition_to_sql_relational = _one2many_condition_to_sql_relational
+for _m2m in (models.ManyToManyField, models.ManyToManyRel):
+    _m2m.condition_to_sql = _multi_condition_to_sql
+    _m2m._get_query_for_condition_value = _multi_get_query_for_condition_value
+    _m2m._condition_to_sql_relational = _many2many_condition_to_sql_relational
