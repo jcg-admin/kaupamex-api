@@ -228,7 +228,8 @@
   "base-ttype-for-delegation-0501",
   "orm-models-parent-store-compute-reference-0485",
   "orm-models-order-to-sql-reference-0485",
-  "orm-many2one-empty-recordset-0502"
+  "orm-many2one-empty-recordset-0502",
+  "orm-models-compute-field-value-0502"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
