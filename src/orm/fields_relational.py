@@ -238,7 +238,7 @@ class One2many:
                  string=None, domain=None, context=None,
                  bypass_search_access=False, related=None, related_sudo=True,
                  compute=None, inverse=None, store=None, readonly=None,
-                 compute_sudo=None, **_ignored):
+                 compute_sudo=None, help=None, **_ignored):
         #: Se acepta con nombre para que **no** caiga en ``**_ignored``, que es
         #: como se tragaba antes: la declaración se escribía igual que la de la
         #: fuente (``fields.One2many(related='employee_id.subordinate_ids')``),
@@ -301,6 +301,9 @@ class One2many:
         self.compute_sudo = attrs.get('compute_sudo', True)
         self.copy = bool(attrs.get('copy', copy))
         self.string = string
+        #: ≙ ``help`` de ``Field`` (``odoo19c: odoo/orm/fields.py``): el texto
+        #: de ayuda de la declaración. Se tragaba en ``**_ignored``.
+        self.help = help
         self.name = None
 
     #: Un One2many es relacional: una ruta ``campo.subcampo`` lo atraviesa.

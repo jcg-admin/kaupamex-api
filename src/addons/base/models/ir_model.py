@@ -2576,7 +2576,7 @@ class IrModelAccess(TimeStampedModel):
     )
     group_id = fields.Many2one(
         ResGroups, on_delete=models.PROTECT, null=True, blank=True,
-        db_index=True, related_name='model_access', verbose_name='Grupo',
+        db_index=True, related_name='+', verbose_name='Grupo',
         help_text='Vacío = acceso global. ondelete restrict de la fuente: no '
                   'se borra un grupo que aún concede permisos.',
         db_column='group_id',

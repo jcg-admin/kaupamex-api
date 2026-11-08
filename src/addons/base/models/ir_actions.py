@@ -1089,21 +1089,29 @@ class IrActionsServer(IrActionsBase):
     #: ``multi``: una acción compuesta encadena a sus hijas. La fuente declara
     #: ``ondelete='cascade'`` e ``index=True``; los dos se conservan.
     #:
-    #: El inverso ``child_ids`` (``:649-650``) es aquí ``related_name``: en
-    #: Django la relación se declara una vez y el reverso lo da el ORM. Su
-    #: ``domain`` y su ``copy=True`` NO se portan — el primero es filtro de
-    #: vista y el segundo es semántica de ``copy()``, que este árbol resuelve
-    #: en el serializer. Divergencia declarada, no omisión.
+    #: El inverso ``child_ids`` (``:649-650``) se declara en esta misma clase
+    #: como ``One2many`` con su ``copy=True``: duplicar una acción compuesta
+    #: duplica sus hijas (H-API-1161). Este ``Many2one`` lleva
+    #: ``related_name='+'`` para no competir por el nombre.
     parent = fields.Many2one(
         'self',
         on_delete=models.CASCADE,
         db_index=True,
         null=True,
         blank=True,
-        related_name='child_ids',
+        related_name='+',
         verbose_name='Acción padre',
         help_text='Odoo parent_id. Acción compuesta que encadena a ésta.',
     )
+    #: ≙ ``child_ids`` (``odoo19c: ir_actions.py:649-650``), con su
+    #: ``domain``, ``string`` y ``help``.
+    child_ids = fields.One2many(
+        'ir.actions.server', 'parent', copy=True,
+        domain=lambda self: str(self._get_children_domain()),
+        string='Child Actions',
+        help='Child server actions that will be executed. Note that the last '
+             'return returned action value will be used as global return '
+             'value.')
 
     # ---- La superficie de configuración que los corredores consumen -------
     #

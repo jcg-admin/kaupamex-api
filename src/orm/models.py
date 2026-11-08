@@ -1849,7 +1849,9 @@ class CopyMixin:
             return None
         seen[cls._meta.label].add(self.pk)
 
-        blacklist = cls._copy_blacklist(default)
+        # Por la función del mixin y no por ``cls``: un comodelo que no adopta
+        # ``CopyMixin`` también se copia como hijo (``copy_children``).
+        blacklist = CopyMixin._copy_blacklist.__func__(cls, default)
         values = default.copy()
 
         for field in cls._meta.concrete_fields:
@@ -1868,20 +1870,28 @@ class CopyMixin:
 
         return values
 
-    def copy_children(self, new, seen=None):
-        """Duplica los hijos ``one2many`` del original bajo el nuevo registro.
+    def copy_children(self, new, seen=None, default=None):
+        """Duplica bajo ``new`` los ``One2many`` con ``copy=True`` y repone los
+        enlaces de los ``Many2many``.
 
-        ≙ la rama ``if field.type == 'one2many'`` de ``copy_data``
-        (``odoo19c: :5450-5455``), que allá vive **dentro** del mismo método
-        porque su ``Command.create`` es una tupla que el ORM aplica después.
+        ≙ las ramas ``one2many`` y ``many2many`` de ``copy_data``
+        (``odoo19c: odoo/orm/models.py:5436-5462``). Qué viaja lo decide el
+        atributo ``copy`` de cada campo, como allá:
 
-        Aquí no puede vivir dentro: nuestro ``Command`` es **ejecutivo**
-        —escribe al llamarlo (:ref:`h-api-589`, tarea **TASK-API-0190**)— y
-        Django exige la fila del padre antes de poder colgarle un hijo. Así que
-        el paso se separa y corre **después** del alta, con el padre ya con
-        ``pk``. El efecto es el mismo que el de la fuente: los hijos se
-        duplican *"using the wrong (old) parent, but then are reassigned to the
-        correct one"*.
+        - un ``One2many`` sólo si declara ``copy=True`` —su defecto es
+          ``False`` (``odoo19c: odoo/orm/fields_relational.py:869``)—. El
+          reverso de un ``Many2one`` que nadie declaró como ``One2many`` no es
+          un campo de la referencia y no se copia (H-API-1161);
+        - un ``Many2many`` con ``copy`` conserva los enlaces que se pueden
+          leer: *"copy only links that we can read, otherwise the write will
+          fail"*.
+
+        Allá las dos ramas viven **dentro** de ``copy_data`` porque sus
+        ``Command`` son tuplas que el ORM aplica al crear. Aquí corren
+        **después** del alta: un hijo de Django necesita la fila del padre, y
+        un ``Many2many`` no entra en ``objects.create``. El efecto es el de la
+        fuente: los hijos se duplican *"using the wrong (old) parent, but then
+        are reassigned to the correct one"*.
 
         El orden **por id** no es cosmético; el comentario de la fuente lo
         dice: *"duplicate following the order of the ids because we'll rely on
@@ -1889,24 +1899,46 @@ class CopyMixin:
         """
         cls = type(self)
         seen = collections.defaultdict(set) if seen is None else seen
-        for relation in cls._meta.related_objects:
-            if not relation.one_to_many:
+        default = dict(default or {})
+        blacklist = CopyMixin._copy_blacklist.__func__(cls, default)
+        for name, field in model_field_registry(cls).items():
+            if (getattr(field, 'type', None) != 'one2many'
+                    or not getattr(field, 'copy', False)
+                    or name in default or name in blacklist):
                 continue
-            accessor = relation.get_accessor_name()
-            if accessor is None or not hasattr(self, accessor):
-                continue
-            child_model = relation.related_model
-            if not issubclass(child_model, CopyMixin):
-                continue
-            fk_name = relation.field.name
-            for child in getattr(self, accessor).order_by('id'):
-                child_values = child.copy_data({fk_name: new}, seen=seen)
+            comodel, inverse = field._inverse_field()
+            for child in sorted(getattr(self, name).all(),
+                                key=lambda line: line.pk):
+                child_values = CopyMixin._copy_child_data(
+                    child, {inverse.name: new}, seen)
                 if child_values is None:
                     continue
-                child_values.pop(relation.field.attname, None)
-                child_values[fk_name] = new
-                nuevo_hijo, = child_model.create([child_values])
-                child.copy_children(nuevo_hijo, seen=seen)
+                child_values.pop(inverse.attname, None)
+                child_values[inverse.name] = new
+                if issubclass(comodel, DefaultGetMixin):
+                    new_child, = comodel.create([child_values])
+                else:
+                    new_child = comodel._default_manager.create(
+                        **child_values)
+                CopyMixin.copy_children(child, new_child, seen=seen)
+        for field in cls._meta.many_to_many:
+            if (not getattr(field, 'copy', True)
+                    or field.name in default or field.name in blacklist):
+                continue
+            links = getattr(self, field.name).all()
+            readable = getattr(links, '_filtered_access', None)
+            if readable is not None:
+                links = readable('read')
+            getattr(new, field.name).set(links)
+
+    @staticmethod
+    def _copy_child_data(child, default, seen):
+        """Los valores del duplicado de ``child``: su ``copy_data`` si adopta
+        el mixin —con las sobrescrituras de su modelo, como allá—, y la del
+        mixin si no."""
+        if isinstance(child, CopyMixin):
+            return child.copy_data(default, seen=seen)
+        return CopyMixin.copy_data(child, default, seen=seen)
 
     def copy_translations(self, new, excluded=()):
         """BLOQUEADO por ``translate`` — el almacenamiento por idioma.
@@ -1961,7 +1993,7 @@ class CopyMixin:
             new, = cls.create([values])
         else:
             new = cls.objects.create(**values)
-        self.copy_children(new, seen=seen)
+        self.copy_children(new, seen=seen, default=default)
         self.copy_translations(new, excluded=default or ())
         return new
 

@@ -69,8 +69,8 @@ Qué NO se porta, con su medición
   ``view_access`` (``ir.ui.view``): **los tres ya llegaron**, y llegaron como
   este párrafo predijo — *"aparecen solos cuando esos archivos lleguen, sin
   tocar éste"*. Ninguno necesitó una línea nueva aquí:
-  ``ir_rule.py`` declara ``related_name='rule_groups'``, ``ir_model.py``
-  declara ``related_name='model_access'`` en ``IrModelAccess.group_id``, e
+  ``ir_rule.py`` declara ``related_name='rule_groups'``, este archivo
+  declara ``model_access`` como ``One2many`` con ``copy=True`` (H-API-1161), e
   ``ir_ui_view.py`` declara ``related_name='view_access'``. [PROVEN] Se
   conserva el registro de que estuvieron pendientes —y de que la predicción
   se cumplió literalmente— en vez de borrarlo.
@@ -84,7 +84,8 @@ Qué NO se porta, con su medición
 - ``view_group_hierarchy`` / ``_get_view_group_hierarchy`` y
   ``action_show_all_users``: **portados**, y viven abajo en este archivo. Se
   declinaban citando que la capa de vistas seguía ausente; ese cero caducó al
-  portarse ``ir_ui_view.py``, que hoy declara ``IrUiView`` e ``IrUiViewCustom``.
+  portarse ``ir_ui_view.py``, que hoy declara ``IrUiView`` e
+  ``IrUiViewCustom``.
   La declinación sobrevivió al porte porque una frase dentro de un docstring no
   aparece en ninguna lista de trabajo — el defecto que el gate
   ``check_stale_zero_claims.py`` existe para atrapar.
@@ -123,10 +124,11 @@ from tools.set_expression import SetDefinitions
 _logger = logging.getLogger(__name__)
 
 #: Traducción del operador de dominio al ``lookup`` de Django, para los que
-#: ``_search_full_name`` admite. La fuente compone un ``Domain('name', operator,
-#: operand)`` y deja que su motor lo resuelva; aquí el motor es el ORM de
-#: Django y el operador viaja como sufijo del campo. Los negativos NO entran:
-#: la fuente los rechaza con ``NotImplemented`` (``Domain.NEGATIVE_OPERATORS``).
+#: ``_search_full_name`` admite. La fuente compone un
+#: ``Domain('name', operator, operand)`` y deja que su motor lo resuelva;
+#: aquí el motor es el ORM de Django y el operador viaja como sufijo del
+#: campo. Los negativos NO entran: la fuente los rechaza con
+#: ``NotImplemented`` (``Domain.NEGATIVE_OPERATORS``).
 _OPERATOR_LOOKUPS = {
     '=': 'exact',
     '==': 'exact',
@@ -147,7 +149,8 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
 
     #: Tipos de usuario mutuamente excluyentes. En la referencia son tres
     #: Los cinco atributos de ORM que la fuente declara (``:10-14``), verbatim.
-    #: Se completan al tocar el archivo, por ``atributos-de-clase-de-modelo.md``:
+    #: Se completan al tocar el archivo, por
+    #: ``atributos-de-clase-de-modelo.md``:
     #: antes eran **0 de 7** y la cabecera no se podía leer contra la de la
     #: fuente. Los dos que faltan son **objetos de tabla**, no atributos de
     #: ORM, y su hogar es ``Meta.constraints`` con el nombre conservado.
@@ -975,3 +978,11 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
         for group in self.all_implied_ids:
             if group.implied_ids.filter(pk=implied_group.pk).exists():
                 group.implied_ids.remove(implied_group)
+
+    #: ≙ ``model_access`` (``odoo19c: res_groups.py:24``), con su
+    #: ``copy=True``: duplicar un grupo duplica sus permisos. Se declara aquí,
+    #: en el padre, como en la fuente; el ``Many2one`` del hijo
+    #: (``IrModelAccess.group_id``) lleva ``related_name='+'`` para no
+    #: competir por el nombre (H-API-1161).
+    model_access = fields.One2many(
+        'ir.model.access', 'group_id', copy=True)

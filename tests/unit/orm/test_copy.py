@@ -184,32 +184,24 @@ class TestCopy:
         partner = ResPartner.objects.create(name='Original')
         assert partner.copy().active is True
 
-    def test_the_children_are_duplicated_under_the_new_parent(self):
-        """≙ la rama ``one2many`` de ``copy_data`` (``odoo19c: :5450-5455``).
-
-        Allá el hijo se duplica *"using the wrong (old) parent, but then is
-        reassigned to the correct one"*. Aquí el paso corre después del alta,
-        porque Django exige la fila del padre antes de colgarle un hijo.
+    def test_the_contacts_do_not_travel_with_the_copy(self):
+        """≙ la rama ``one2many`` de ``copy_data`` (``odoo19c: :5450-5455``):
+        sólo viaja un ``One2many`` con ``copy=True``. ``res.partner.child_ids``
+        no lo declara (``odoo19c: res_partner.py:217``), así que duplicar una
+        empresa no duplica sus contactos (H-API-1161).
         """
         padre = ResPartner.objects.create(name='Padre', is_company=True)
         ResPartner.objects.create(name='Hijo uno', parent=padre)
         ResPartner.objects.create(name='Hijo dos', parent=padre)
         copia = padre.copy()
-        assert copia.children.count() == 2
+        assert copia.children.count() == 0
 
     def test_the_original_keeps_its_children(self):
-        """El otro lado: duplicar no mueve a los hijos, los replica."""
+        """El otro lado: duplicar no mueve a los hijos."""
         padre = ResPartner.objects.create(name='Padre', is_company=True)
         ResPartner.objects.create(name='Hijo', parent=padre)
         padre.copy()
         assert padre.children.count() == 1
-
-    def test_a_child_is_not_visited_twice(self):
-        """El ``seen`` viaja del padre a los hijos, como el contexto allá."""
-        padre = ResPartner.objects.create(name='Padre', is_company=True)
-        ResPartner.objects.create(name='Hijo', parent=padre)
-        copia = padre.copy()
-        assert copia.children.count() == 1
 
 
 @pytest.mark.django_db
