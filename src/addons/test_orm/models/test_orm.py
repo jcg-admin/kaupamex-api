@@ -658,10 +658,13 @@ class TestOrmMixed(TestOrmModel):
     """≙ ``test_orm.mixed`` (``odoo19c: odoo/addons/test_orm/models/
     test_orm.py:362-402``), sujeto de ``TestDomain``.
 
-    pendiente: ``number2`` (``digits='ORM Precision'``, que exige el registro
-    de ``decimal.precision`` del addon), ``now``, ``lang``, ``reference``, los
-    seis ``Html`` y el defecto ``base.EUR`` de ``currency_id``; entran con los
-    casos de ``TestDomain`` que los usan.
+    ``number2`` lee su precisión del registro ``ORM Precision`` de
+    ``decimal.precision`` que siembra la migración ``0034``, como
+    ``test_orm_data.xml`` en la fuente.
+
+    pendiente: ``now``, ``lang``, ``reference``, los seis ``Html`` y el
+    defecto ``base.EUR`` de ``currency_id``; entran con los casos de
+    ``TestDomain`` que los usan.
     """
 
     _name = 'test_orm.mixed'
@@ -672,10 +675,12 @@ class TestOrmMixed(TestOrmModel):
     truth = fields.Boolean(default=False)
     count = fields.Integer(null=True)
     number = fields.Float(digits=(10, 2), default=3.14)
+    number2 = fields.Float(digits='ORM Precision', null=True)
     date = fields.Date(null=True)
     moment = fields.Datetime(null=True)
     currency_id = fields.Many2one('res.currency', null=True,
                                   related_name='+', db_column='currency_id')
+    amount = fields.Monetary(max_digits=20, decimal_places=2, null=True)
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_mixed'

@@ -40,8 +40,8 @@ from xmlrpc.client import MAXINT
 
 from django.db import models
 
-from orm.fields_company_dependent import make_dispatcher
-from tools.float_utils import float_round
+from orm.fields_company_dependent import current_env, make_dispatcher
+from tools.float_utils import float_repr, float_round
 from orm.fields_nonstored import (
     _UNSET,
     annotate_related,
@@ -76,31 +76,31 @@ class NumericFloat(models.FloatField):
     def from_db_value(self, value, expression, connection):
         return None if value is None else float(value)
 
-    def get_db_prep_save(self, value, connection):
-        """Redondea a la escala de ``digits`` antes de escribir — ≙
-        ``Float.convert_to_column`` (``:155-163``): ``float_round`` con
-        ``precision_digits=scale``.
-
-        pendiente: ``digits`` como nombre de ``decimal.precision`` (la
-        fuente lo resuelve con ``get_digits(env)``); hoy sólo la tupla.
-        """
-        digits = getattr(self, 'digits', None)
-        if value is not None and isinstance(digits, tuple):
-            value = float_round(float(value), precision_digits=digits[1])
-        return super().get_db_prep_save(value, connection)
-
 
 _float_plain = make_dispatcher('Float', 'float', models.FloatField)
 _float_numeric = make_dispatcher('Float', 'float', NumericFloat)
 
 
-def Float(*args, digits=None, **kwargs):
+def Float(*args, digits=None, min_display_digits=None, **kwargs):
     """``fields.Float`` — el despachador de ``company_dependent`` de
-    siempre, que con ``digits`` construye un :class:`NumericFloat`."""
+    siempre, que con ``digits`` construye un :class:`NumericFloat`.
+
+    ≙ ``Float.__init__`` (``odoo19c: odoo/orm/fields_numeric.py:113-121``):
+    ``min_display_digits`` sin ``digits`` declara ``digits=False``, una
+    columna ``numeric`` sin escala fija. ``digits`` es una tupla o el nombre
+    de un registro de ``decimal.precision``; los dos se guardan en
+    ``_digits`` y se resuelven con :func:`_float_get_digits`.
+    """
+    if digits is None and min_display_digits is not None:
+        digits = False
     if digits is None:
-        return _float_plain(*args, **kwargs)
-    field = _float_numeric(*args, **kwargs)
-    field.digits = digits
+        field = _float_plain(*args, **kwargs)
+    else:
+        field = _float_numeric(*args, **kwargs)
+        field.digits = digits
+        field._digits = digits
+    if min_display_digits is not None:
+        field._min_display_digits = min_display_digits
     return field
 
 
@@ -108,11 +108,14 @@ Float.company_dependent_base_type = _float_plain.company_dependent_base_type
 Float.plain_field_class = _float_plain.plain_field_class
 
 
-def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
+def Monetary(*args, store=_UNSET, help=None, related=None,
+             currency_field=None, **kwargs):
     """``fields.Monetary`` — ≙ el de la referencia, con y sin columna.
 
     ``help=`` es el alias de firma de la fuente para ``help_text=`` (misma
-    tabla de alias que ``Char``).
+    tabla de alias que ``Char``). ``currency_field`` nombra el campo de la
+    moneda (``odoo19c: odoo/orm/fields_numeric.py:202-203``); sin él,
+    :func:`_monetary_get_currency_field` busca ``currency_id``.
     """
     if help is not None:
         kwargs.setdefault('help_text', help)
@@ -124,6 +127,7 @@ def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
     #: El ``DecimalField`` se construye con columna y sin ella: ``store`` es
     #: atributo, no tipo (``odoo19c: odoo/orm/fields.py:455``).
     field = models.DecimalField(*args, **kwargs)
+    field.currency_field = currency_field
     return annotate_related(field, related, related_attrs)
 
 
@@ -168,15 +172,21 @@ def _float_convert_to_column(self, value, record, values=None, validate=True):
     el de la caché divergen en el último dígito y las comparaciones dejan de
     coincidir.
 
-    La fuente lee la precisión de ``self.get_digits(record.env)`` —un ajuste
-    por
-    empresa— y aquí la declara el propio campo (``decimal_places``), que es
-    donde este stack la pone. El registro no hace falta: por eso la firma lo
-    acepta y el cuerpo no lo consulta.
+    La precisión sale de ``self.get_digits(env)``, verbatim: la tupla
+    declarada o el registro de ``decimal.precision``. Sin registro —la
+    escritura de Django llama con ``record=None``— el entorno es el del
+    alcance (:func:`orm.environments.env`). Como allá, el valor redondeado
+    viaja como su representación textual, salvo en ``company_dependent``.
     """
-    value = float(value or 0.0)
-    scale = getattr(self, 'decimal_places', None)
-    return round(value, scale) if scale is not None else value
+    value_float = value = float(value or 0.0)
+    environment = record.env if record is not None else current_env()
+    if digits := self.get_digits(environment):
+        _precision, scale = digits
+        value_float = float_round(value, precision_digits=scale)
+        value = float_repr(value_float, precision_digits=scale)
+    if self.company_dependent:
+        return value_float
+    return value
 
 
 models.FloatField.convert_to_column = _float_convert_to_column
@@ -266,3 +276,68 @@ def _integer_convert_to_export(self, value, record):
 
 models.IntegerField.convert_to_read = _integer_convert_to_read
 models.IntegerField.convert_to_export = _integer_convert_to_export
+
+
+def _float_get_digits(self, env):
+    """≙ ``Float.get_digits``.
+
+    Fuente: ``odoo19c: odoo/orm/fields_numeric.py:135-140``.
+
+    Un nombre de ``decimal.precision`` da ``(16, precisión)``; una tupla, o
+    su ausencia, se devuelve tal cual.
+    """
+    if isinstance(self._digits, str):
+        precision = env['decimal.precision'].precision_get(self._digits)
+        return 16, precision
+    return self._digits
+
+
+def _float_get_min_display_digits(self, env):
+    """≙ ``Float.get_min_display_digits`` (``:142-145``)."""
+    if isinstance(self._min_display_digits, str):
+        return env['decimal.precision'].precision_get(
+            self._min_display_digits)
+    return self._min_display_digits
+
+
+def _float_description_digits(self, env):
+    """≙ ``Float._description_digits`` (``:149-150``)."""
+    return self.get_digits(env)
+
+
+def _float_description_min_display_digits(self, env):
+    """≙ ``Float._description_min_display_digits`` (``:152-153``)."""
+    return self.get_min_display_digits(env)
+
+
+#: ≙ los atributos de clase ``_digits`` y ``_min_display_digits``
+#: (``:109-110``): sin declaración, ``None``.
+models.FloatField._digits = None
+models.FloatField._min_display_digits = None
+models.FloatField.get_digits = _float_get_digits
+models.FloatField.get_min_display_digits = _float_get_min_display_digits
+models.FloatField._description_digits = _float_description_digits
+models.FloatField._description_min_display_digits = (
+    _float_description_min_display_digits)
+
+
+def _monetary_get_currency_field(self, model):
+    """≙ ``Monetary.get_currency_field`` (``:222-228``) — «Return the name
+    of the currency field.»"""
+    return self.currency_field or (
+        'currency_id' if 'currency_id' in model._fields else
+        'x_currency_id' if 'x_currency_id' in model._fields else
+        None
+    )
+
+
+def _monetary_description_currency_field(self, env):
+    """≙ ``Monetary._description_currency_field`` (``:205-206``)."""
+    return self.get_currency_field(env[self.model_name])
+
+
+#: ≙ ``currency_field: Field | None = None`` (``:197``).
+models.DecimalField.currency_field = None
+models.DecimalField.get_currency_field = _monetary_get_currency_field
+models.DecimalField._description_currency_field = (
+    _monetary_description_currency_field)

@@ -137,7 +137,7 @@ from django.apps import apps
 from django.db import models
 from django.db.models.query_utils import DeferredAttribute
 
-from orm.environments import get_current_company
+from orm.environments import env as current_env, get_current_company
 from orm.fields_nonstored import (
     annotate_related,
     apply_source_defaults,

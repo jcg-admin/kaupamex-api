@@ -806,6 +806,44 @@ def _property_selected(discussions, field_expr, operator, value):
     return sorted(priority for priority, in rows)
 
 
+def _mixed(model):
+    """El modelo vacío de ``test_orm.mixed``, sujeto de los pasos numéricos."""
+    return model.browse(()).env['test_orm.mixed'].browse(())
+
+
+def _numeric_digits(model):
+    """``Float.get_digits`` y ``get_min_display_digits`` de ``number`` y
+    ``number2`` (``odoo19c: odoo/orm/fields_numeric.py:135-147``):
+    la tupla declarada, y la precisión con nombre leída de
+    ``decimal.precision``."""
+    mixed = _mixed(model)
+    return [(mixed._fields[name].get_digits(mixed.env),
+             mixed._fields[name].get_min_display_digits(mixed.env))
+            for name in ('number', 'number2')]
+
+
+def _numeric_description(model):
+    """Las claves ``digits``, ``min_display_digits`` y ``currency_field``
+    que ``get_description`` publica (``:149-153``, ``:205-206``)."""
+    mixed = _mixed(model)
+    keys = ['digits', 'min_display_digits', 'currency_field']
+    return [sorted(mixed._fields[name].get_description(
+        mixed.env, keys).items()) for name in ('number', 'number2', 'amount')]
+
+
+def _numeric_rounding(model):
+    """Lo que la columna guarda tras escribir más decimales de los
+    declarados: ``convert_to_column`` redondea con ``get_digits``
+    (``:155-163``)."""
+    mixed = _mixed(model)
+    record = mixed.create({'number': 2.345678, 'number2': 1.23456})
+    query = record._as_query(ordered=False)
+    rows = mixed.env.execute_query(query.select(
+        mixed._field_to_sql(query.table, 'number', query),
+        mixed._field_to_sql(query.table, 'number2', query)))
+    return [tuple(float(value) for value in row) for row in rows]
+
+
 def _multi_records(discussions):
     """Las dos discusiones sembradas y una sin mensajes ni categorías."""
     Discussion = discussions.browse(())
@@ -1087,6 +1125,14 @@ def trace(Domain, model, model_name):
          lambda case=(fexpr, operator, value): _property_selected(
              discussions, *case))
         for fexpr, operator, value in PROPERTY_CONDITIONS
+    ]
+    steps += [
+        ('numeric get_digits', lambda: _numeric_digits(model)),
+        ('numeric description', lambda: _numeric_description(model)),
+        ('monetary get_currency_field',
+         lambda: _mixed(model)._fields['amount'].get_currency_field(
+             _mixed(model))),
+        ('numeric rounding', lambda: _numeric_rounding(model)),
     ]
     multi = _multi_records(discussions)
     builders = {'false': lambda D, m, r: [False],

@@ -90,7 +90,10 @@ class TestCreate:
             ]
         )
         assert [r.name for r in creados] == ['Product Price', 'Product Unit']
-        assert DecimalPrecision.objects.count() == 2
+        # Sólo los creados aquí: la tabla trae el registro que siembra
+        # ``test_orm`` (``ORM Precision``, como ``test_orm_data.xml``).
+        assert DecimalPrecision.objects.filter(
+            name__in=['Product Price', 'Product Unit']).count() == 2
 
     def test_a_single_dict_also_works(self):
         creados = DecimalPrecision.create({'name': 'Account', 'digits': 6})
