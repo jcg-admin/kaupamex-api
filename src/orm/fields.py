@@ -1383,6 +1383,18 @@ def _field_setup_attrs(self, model_class, name):
 
     self.__dict__.update(attrs)
 
+    # ≙ ``:506-511``: la etiqueta. Aquí la declarada viaja como
+    # ``verbose_name`` —el nombre que Django da al mismo parámetro—, y sólo
+    # cuenta si el autor la escribió: el ``verbose_name`` que Django deriva
+    # solo no es una declaración.
+    if not self.string and not self.related:
+        declared = (getattr(self, '_args__', None) or {}).get('verbose_name')
+        # related fields get their string from their parent field
+        self.string = declared or (
+            name[:-4] if name.endswith('_ids') else
+            name[:-3] if name.endswith('_id') else name
+        ).replace('_', ' ').title()
+
 
 models.Field._get_attrs = _field_get_attrs
 models.Field._setup_attrs__ = _field_setup_attrs
