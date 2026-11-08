@@ -33,6 +33,7 @@ help:
 	@echo '  make ci-test           db-up + pytest suite completa (--reuse-db)'
 	@echo '  make ci-test-fast      db-up + subset de humo sale/ (--reuse-db)'
 	@echo '  make ci-verify         Contrato local/CI; exige PostgreSQL desechable'
+	@echo '  make ci-multidb        Gate multidb local sobre base desechable propia'
 	@echo '  make serve             Servidor de aplicacion embebido (ADR-027)'
 	@echo '  make check-serve       Gate: valida gunicorn.conf.py y que la app importe'
 	@echo '  make pdf               Compila los helpers PDF (libharu vendorizada; ADR-017)'
@@ -152,6 +153,14 @@ ci-verify:
 	uv run --frozen python scripts/check_ci_database.py
 	$(MAKE) pdf
 	uv run --frozen pytest --create-db --maxfail=1 -q --junitxml=test-results/pytest.xml
+
+# Etapa local del gate multidb (TASK-API-0496): crea una base desechable
+# orm_bootstrap_*, ejecuta los cinco casos de test_multidb_isolation con el
+# guard intacto, elimina lo creado y deja record.json con la revision. En
+# Actions los cubre ci-verify; localmente la QA compartida los rehusa.
+.PHONY: ci-multidb
+ci-multidb:
+	uv run --frozen python scripts/run_multidb_isolation.py
 
 # Arranca PostgreSQL (idempotente) via el script del submodulo db
 # (ADR-028 — MariaDB retirado; start_db.sh ya no sirve a ningun entorno).
