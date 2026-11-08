@@ -758,19 +758,17 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     def __str__(self) -> str:
         return self.login
 
-    # --- Delegación al partner (el ``_inherits`` que Django no tiene) ---
-    @property
-    def name(self):
-        return self.partner.name
-
-    @property
-    def email(self):
-        """La referencia relaciona ``email`` al del partner (``:253``)."""
-        return self.partner.email or self.login
-
-    @property
-    def phone(self):
-        return self.partner.phone
+    # --- Campos heredados redeclarados (``odoo19c: res_users.py:250-255``)
+    # «overridden inherited fields to bypass access rights, in case you have
+    # access to the user but not its corresponding partner». Son campos
+    # propios de ``res.users``, no los que ``_add_inherited_fields`` genera:
+    # su ``related_sudo`` por defecto los lee elevados.
+    name = fields.Char(related='partner_id.name', inherited=True,
+                       readonly=False)
+    email = fields.Char(related='partner_id.email', inherited=True,
+                        readonly=False)
+    phone = fields.Char(related='partner_id.phone', inherited=True,
+                        readonly=False)
 
     # --- Contrato de auth (reimplementación manual, U-D puro) ---
     @property

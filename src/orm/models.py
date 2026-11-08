@@ -4210,10 +4210,13 @@ def _model_getitem(self, key):
             f'{type(self).__name__}[{key!r}]: sólo se accede por nombre de '
             'campo. El contenedor de filas es el QuerySet, no la instancia.')
     try:
-        self._meta.get_field(key)
+        field = self._meta.get_field(key)
     except FieldDoesNotExist:
         raise KeyError(key) from None
-    return getattr(self, key)
+    # ``get_field`` también responde al ``attname`` de una FK
+    # (``partner_id``), y ``getattr`` con ese nombre leería el id crudo. El
+    # getter del campo es el de su nombre, que devuelve el registro.
+    return getattr(self, getattr(field, 'name', None) or key)
 
 
 def _model_setitem(self, key, value):

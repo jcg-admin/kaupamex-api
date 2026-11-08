@@ -941,6 +941,17 @@ def _inherited_fields(model, child_name, parent_name):
     return (bool(inherited), rule, shape, spots)
 
 
+def _redeclared_inherited(model):
+    """``name``, ``email`` y ``phone`` de ``res.users``: la fuente los
+    redeclara como heredados que saltan los permisos del partner
+    (``odoo19c: odoo/addons/base/models/res_users.py:250-255``)."""
+    users = _registry_of(model, 'res.users')
+    return [(name, bool(field.inherited), bool(field.compute_sudo),
+             bool(field.readonly), field.related)
+            for name in INHERITS_REDECLARED['res.users']
+            for field in [users._fields[name]]]
+
+
 def _inherited_read_write(model):
     """Leer y escribir por el hijo un campo heredado de
     ``test_orm.any.parent``: el valor vive en el padre."""
@@ -1254,6 +1265,8 @@ def trace(Domain, model, model_name):
         for case in INHERITS_MODELS
     ]
     steps += [('inherited read write', lambda: _inherited_read_write(model))]
+    steps += [('res.users redeclared inherited',
+               lambda: _redeclared_inherited(model))]
     multi = _multi_records(discussions)
     builders = {'false': lambda D, m, r: [False],
                 '_priority_domain': _priority_domain,

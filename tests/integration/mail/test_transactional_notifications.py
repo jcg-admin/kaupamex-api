@@ -96,16 +96,15 @@ class TestNotifyOrderCreated:
 
     @override_settings(**LOCMEM_SETTINGS)
     def test_partner_sin_email_cae_al_login(self, db, user, order_stub):
-        # Antes: "no envía email si el user no tiene email", escribiendo
-        # ``user.email = ''``. Ya no se sostiene: ``ResUsers.email`` es una
-        # propiedad de sólo lectura que delega en el partner con fallback al
-        # login (``base/models/res_users.py:244``), y el login es obligatorio.
-        # Vaciar el email del partner no deja al usuario sin destino: lo
-        # manda al login. Ver H-API-253.
+        # ``ResUsers.email`` es el del partner, sin respaldo, como en la
+        # referencia (``res_users.py:253``). El respaldo al login es la regla
+        # de destino del envío (``notification_service._delivery_address``):
+        # vaciar el email del partner no deja al usuario sin destino.
+        # Ver H-API-253.
         user.partner.email = ''
         user.partner.save(update_fields=['email'])
         user.refresh_from_db()
-        assert user.email == user.login
+        assert not user.email
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, user, Decimal('580.00'))
         assert Notification.objects.filter(user=user).exists()

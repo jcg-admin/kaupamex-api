@@ -85,16 +85,17 @@ class TestPartnerDelegation:
         user.partner.save(update_fields=['phone'])
         assert user.phone == '5512345678'
 
-    def test_email_falls_back_to_login_without_partner_email(self, db):
-        """La referencia relaciona ``email`` al del partner (res_users.py:253);
-        aqui el login sirve de fallback cuando el partner no trae uno."""
+    def test_email_is_the_partner_email_without_fallback(self, db):
+        """La referencia relaciona ``email`` al del partner (res_users.py:253)
+        y no lo completa con el login: el respaldo al login es del envío de
+        correo (``mail/models/notification_service.py``), no del campo."""
         user = User.objects.create_user(
             login='fallback@kaupamex.mx',
             password='Pass1234!',
         )
         user.partner.email = ''
         user.partner.save(update_fields=['email'])
-        assert user.email == 'fallback@kaupamex.mx'
+        assert not user.email
 
     def test_get_short_name_returns_first_word(self, db):
         user = User.objects.create_user(

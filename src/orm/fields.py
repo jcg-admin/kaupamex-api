@@ -4060,6 +4060,18 @@ def _field_setup_related(self, model):
         if attribute not in self.__dict__ and prop.startswith('_related_'):
             setattr(self, attribute, getattr(field_seq[-1], prop, None))
 
+    #: ``:654-663`` — los casos especiales de un campo heredado: apunta a su
+    #: campo de origen, hereda su obligatoriedad y suma los módulos de la
+    #: delegación y del destino.
+    if self.inherited:
+        field = field_seq[-1]
+        self.inherited_field = field
+        if field.required:
+            self.required = True
+        delegate_field = model._fields[self.related.split('.')[0]]
+        self._modules = tuple({*self._modules, *delegate_field._modules,
+                               *field._modules})
+
     _retarget_related_relation(self, field_seq[-1])
 
 

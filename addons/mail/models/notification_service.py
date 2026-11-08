@@ -52,9 +52,9 @@ def notify_order_created(order, user, total_amount):
         ),
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         order_num = order.name
         total_str = str(total_amount)
         transaction.on_commit(
@@ -123,9 +123,9 @@ def notify_order_status_changed(order, new_status):
         body=f'El estado de tu orden #{order.name} cambio a: {label}.',
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         order_num = order.name
         shipping = getattr(order, 'shipment_guide', None)
         tracking_num = shipping.tracking_number if shipping else None
@@ -158,9 +158,9 @@ def notify_shipping_updated(
         or f'Hay una actualizacion sobre el envio de tu orden #{order.name}.',
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         order_num = order.name
         tracking = tracking_number
         description = event_description
@@ -196,9 +196,9 @@ def notify_return_processed(order, user, return_status, reason=None):
         body=f'Actualizacion sobre tu devolucion de la orden #{order.name}.',
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         order_num = order.name
         r_status = return_status
         r_reason = reason
@@ -263,9 +263,9 @@ def notify_refund_processed(order, user, amount_refunded):
         ),
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         order_num = referencia
         amount = str(amount_refunded)
         transaction.on_commit(
@@ -304,9 +304,9 @@ def notify_support_closed(ticket, user, closed_by_staff=False):
         body=body,
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         ticket_id = ticket.pk
         ticket_subj = ticket.subject
         by_staff = closed_by_staff
@@ -344,9 +344,9 @@ def notify_support_created(ticket, user):
         ),
     )
 
-    if user.email:
-        user_email = user.email
-        name = user.name or user.email
+    user_email = _delivery_address(user)
+    if user_email:
+        name = user.name or user_email
         ticket_id = ticket.pk
         ticket_subj = ticket.subject
         transaction.on_commit(
@@ -357,3 +357,15 @@ def notify_support_created(ticket, user):
                 ticket_subj,
             )
         )
+
+
+def _delivery_address(user):
+    """El destino del correo transaccional: el ``email`` del usuario o, sin
+    él, su ``login``.
+
+    ``res.users.email`` es el del partner, sin respaldo
+    (``odoo19c: odoo/addons/base/models/res_users.py:253``). El respaldo al
+    login es una regla del producto, donde el login es un correo y sirve de
+    destino (H-API-253): vive en quien envía, no en el campo.
+    """
+    return user.email or user.login
