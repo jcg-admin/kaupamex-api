@@ -723,6 +723,13 @@
         "orm-domains-to-sql-0485"
       ],
       "writtenAt": "2026-11-08T08:50:47Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-many2one-condition-to-sql-0485"
+      ],
+      "writtenAt": "2026-11-08T09:09:06Z"
     }
   ]
 }
