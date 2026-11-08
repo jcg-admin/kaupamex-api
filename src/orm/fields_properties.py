@@ -52,7 +52,8 @@ from orm.fields_nonstored import (
     annotate_related,
     apply_source_defaults,
 )
-from orm.utils import (COLLECTION_TYPES, as_record_list, display_name_of,
+from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS, as_record_list,
+                       display_name_of,
                        parse_field_expr, regex_alphanumeric)
 from tools.misc import OrderedSet, has_list_types, is_list_of
 from tools.sql import SQL
@@ -1395,3 +1396,112 @@ class PropertiesDefinition(models.JSONField):
                         lambda x: all_tags.count(x) > 1, all_tags))
                     raise ValueError(
                         f'Some tags are duplicated: {", ".join(duplicated)}.')
+
+
+def _properties_condition_to_sql(self, field_expr, operator, value, model,
+                                 alias, query):
+    """≙ ``Properties.condition_to_sql``.
+
+    Fuente: ``odoo19c: odoo/orm/fields_properties.py:678-771``.
+
+    Traduce una condición sobre ``campo.propiedad`` a SQL sobre el JSONB del
+    contenedor. ``in``/``not in`` comparan con ``@>``/``<@`` y tratan
+    ``True``/``False`` como presencia; los operadores ``like`` leen el valor
+    textual con ``->>``; un operador negativo admite además el contenedor
+    nulo. La desacentuación de ``ilike`` sólo aplica con la extensión
+    ``unaccent`` disponible (:data:`orm.registry.UNACCENT_ENABLED`).
+    """
+    fname, property_name = parse_field_expr(field_expr)
+    if not property_name:
+        raise ValueError(f"Missing property name for {self}")
+    raw_sql_field = model._field_to_sql(alias, fname, query)
+    sql_left = model._field_to_sql(alias, field_expr, query)
+
+    if operator in ('in', 'not in'):
+        assert isinstance(value, COLLECTION_TYPES)
+        if len(value) == 1 and any(v is True for v in value):
+            # Se invierte la condición: «verdadero» equivale a «no falso».
+            check_null_op_false = "!=" if operator == 'in' else "="
+            value = []
+            operator = 'in' if operator == 'not in' else 'not in'
+        elif False in value:
+            check_null_op_false = "=" if operator == 'in' else "!="
+            value = [v for v in value if v]
+        else:
+            value = list(value)
+            check_null_op_false = None
+
+        sqls = []
+        if check_null_op_false:
+            sqls.append(SQL(
+                "%s%s'%s'",
+                sql_left,
+                SQL_OPERATORS[check_null_op_false],
+                False,
+            ))
+            if check_null_op_false == '=':
+                # El valor nulo y la propiedad ausente también son falsos.
+                sqls.extend((
+                    SQL("%s IS NULL", raw_sql_field),
+                    SQL("NOT (%s ? %s)", raw_sql_field, property_name),
+                ))
+        # El lado izquierdo puede ser una lista o un valor suelto: aun con el
+        # operador '=' se comprueba la inclusión.
+        if len(value) == 1:
+            sql_operator = SQL_OPERATORS['=' if operator == 'in' else '!=']
+            sql_right = SQL("%s", json.dumps(value[0]))
+            sqls.append(SQL("%s%s%s", sql_left, sql_operator, sql_right))
+        if value:
+            sql_not = SQL('NOT ') if operator == 'not in' else SQL()
+            if len(value) > 1:
+                # izquierda <@ lista: un valor suelto contenido en la lista.
+                sql_operator = SQL(" <@ ")
+            else:
+                # izquierda @> valor: la lista contiene el valor.
+                sql_operator = SQL(" @> ")
+            sql_right = SQL("%s", json.dumps(value))
+            sqls.append(SQL(
+                "%s%s%s%s",
+                sql_not, sql_left, sql_operator, sql_right,
+            ))
+        assert sqls, "No SQL generated for property"
+        if len(sqls) == 1:
+            return sqls[0]
+        combine_sql = SQL(" OR ") if operator == 'in' else SQL(" AND ")
+        return SQL("(%s)", combine_sql.join(sqls))
+
+    def unaccent(sql):
+        return sql
+    if operator.endswith('like'):
+        if operator.endswith('ilike') and registry.UNACCENT_ENABLED:
+            unaccent = registry._unaccent
+        if '=' in operator:
+            value = str(value)
+        else:
+            value = f'%{value}%'
+
+    try:
+        sql_operator = SQL_OPERATORS[operator]
+    except KeyError:
+        raise ValueError(f"Invalid operator {operator} for Properties")
+
+    if isinstance(value, str):
+        # Valor convertido a texto por JSONB.
+        sql_left = SQL("(%s ->> %s)", raw_sql_field, property_name)
+        sql_right = SQL("%s", value)
+        sql = SQL(
+            "%s%s%s",
+            unaccent(sql_left), sql_operator, unaccent(sql_right),
+        )
+        if operator in _domains.Domain.NEGATIVE_OPERATORS:
+            sql = SQL("(%s OR %s IS NULL)", sql, sql_left)
+        return sql
+
+    sql_right = SQL("%s", json.dumps(value))
+    return SQL(
+        "%s%s%s",
+        unaccent(sql_left), sql_operator, unaccent(sql_right),
+    )
+
+
+Properties.condition_to_sql = _properties_condition_to_sql

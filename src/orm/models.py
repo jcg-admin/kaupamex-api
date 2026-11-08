@@ -758,7 +758,8 @@ class DefaultGetMixin:
         # Delegar el default de las propiedades en el propio campo.
         for field in cls._meta.get_fields():
             if hasattr(field, '_add_default_values'):
-                defaults[field.name] = field._add_default_values(defaults)
+                defaults[field.name] = field._add_default_values(
+                    defaults, model=cls)
 
         return defaults
 

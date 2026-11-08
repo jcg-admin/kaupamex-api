@@ -689,7 +689,7 @@ class TestOrmMessage(TestOrmModel):
     pendiente: ``name`` es aquí un ``Char`` llano y en la fuente es
     ``compute='_compute_name', store=True``; ``author``, ``body``, ``size``,
     ``double_size``, ``discussion_name``, ``author_partner``, ``label``,
-    ``has_important_sibling``, ``attributes`` y las dos restricciones entran
+    ``has_important_sibling`` y las dos restricciones entran
     con ``TestFields``.
     """
 
@@ -706,6 +706,11 @@ class TestOrmMessage(TestOrmModel):
     important = fields.Boolean(default=False)
     priority = fields.Integer(null=True)
     active = fields.Boolean(default=True)
+    attributes = fields.Properties(
+        string='Discussion Properties',
+        definition='discussion.attributes_definition',
+        null=True,
+    )
 
     @constrains('author', 'discussion')
     def _check_author(self):

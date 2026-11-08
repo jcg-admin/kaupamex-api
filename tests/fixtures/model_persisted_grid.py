@@ -102,6 +102,23 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Casos de ``Properties.condition_to_sql`` sobre ``attributes``.
+PROPERTY_CONDITIONS = (
+    ('attributes.tag', 'in', ['alpha']),
+    ('attributes.tag', 'in', ['alpha', 'beta']),
+    ('attributes.tag', 'not in', ['alpha']),
+    ('attributes.tag', 'in', [False]),
+    ('attributes.tag', 'not in', [False]),
+    ('attributes.flag', 'in', [True]),
+    ('attributes.flag', 'not in', [True]),
+    ('attributes.tag', 'ilike', 'ALP'),
+    ('attributes.tag', '=like', 'be%'),
+    ('attributes.tag', 'not like', 'alp'),
+    ('attributes.count', '>', 5),
+    ('attributes.count', '<=', 3),
+    ('attributes', 'in', ['alpha']),
+    ('attributes.tag', 'bogus', 'x'),
+)
 #: Prefijo de la discusión vacía de ``_RelationalMulti.condition_to_sql``.
 MULTI_PREFIX = 'grid-multi-'
 #: Casos de ``_RelationalMulti.condition_to_sql``: campo, operador, valor.
@@ -751,6 +768,44 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _seed_properties(discussions):
+    """La definición de ``attributes`` en ``d1`` y los valores de sus dos
+    mensajes; ``d2`` queda sin definición. Devuelve las prioridades."""
+    d1 = discussions.filtered(lambda r: r.name == f'{PREFIX}d1')
+    d1.write({'attributes_definition': [
+        {'name': 'tag', 'type': 'char', 'string': 'Tag'},
+        {'name': 'count', 'type': 'integer', 'string': 'Count'},
+        {'name': 'flag', 'type': 'boolean', 'string': 'Flag'},
+    ]})
+    first, second = sorted(d1.messages, key=_by_id)
+    first.write({'attributes': {'tag': 'alpha', 'count': 3, 'flag': True}})
+    second.write({'attributes': {'tag': 'beta', 'count': 7, 'flag': False}})
+    return sorted(message.priority for discussion in discussions
+                  for message in discussion.messages)
+
+
+def _property_selected(discussions, field_expr, operator, value):
+    """Los mensajes que ``Properties.condition_to_sql`` selecciona.
+
+    ``odoo19c: odoo/orm/fields_properties.py:678-771``: ``in``/``not in``
+    con un valor, varios, ``False`` y ``True``; los ``like``, que leen el
+    valor como texto con ``->>``; y la comparación de un valor JSON. Cada
+    mensaje se nombra por su ``priority``.
+    """
+    # Por registro: la lectura relacional multi-registro es TASK-API-0401.
+    ids = [message.id for discussion in discussions
+           for message in discussion.messages]
+    records = discussions[:1].messages.browse(ids)
+    model = records.browse(())
+    query = records._as_query(ordered=False)
+    sql = model._fields['attributes'].condition_to_sql(
+        field_expr, operator, value, model, query.table, query)
+    query.add_where(sql)
+    rows = model.env.execute_query(
+        query.select(model._field_to_sql(query.table, 'priority', query)))
+    return sorted(priority for priority, in rows)
+
+
 def _multi_records(discussions):
     """Las dos discusiones sembradas y una sin mensajes ni categorías."""
     Discussion = discussions.browse(())
@@ -1025,6 +1080,13 @@ def trace(Domain, model, model_name):
         (f'boolean condition_to_sql {operator} {value!r}',
          lambda case=(operator, value): _boolean_condition(model, *case))
         for operator, value in BOOLEAN_CONDITIONS
+    ]
+    steps += [('properties seed', lambda: _seed_properties(discussions))]
+    steps += [
+        (f'properties condition_to_sql {fexpr} {operator} {value!r}',
+         lambda case=(fexpr, operator, value): _property_selected(
+             discussions, *case))
+        for fexpr, operator, value in PROPERTY_CONDITIONS
     ]
     multi = _multi_records(discussions)
     builders = {'false': lambda D, m, r: [False],
