@@ -1,8 +1,8 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 95,
- "open_tasks": 70,
+ "population": 94,
+ "open_tasks": 69,
  "frontier": [],
  "blocked": [
   {
@@ -86,16 +86,15 @@
   "TASK-API-0486",
   "TASK-API-0499",
   "TASK-API-0500",
-  "TASK-API-0501",
-  "TASK-API-0502"
+  "TASK-API-0501"
  ],
  "obligations": {
-  "satisfied": 957,
-  "absent": 594,
+  "satisfied": 958,
+  "absent": 593,
   "divergent": 0,
   "not_verified": 961,
   "applicable": 2512,
-  "pending": 1555,
+  "pending": 1554,
   "source": {
    "path": "/home/user/kaupamex-api/scripts/workbench/orm-symbol-presence-census-20260910T175850/outputs/inventory_by_kind.tsv",
    "revisions": [
@@ -105,9 +104,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 38,
+  "task_units_settled": 39,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1516
+  "task_without_unit": 1514
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -229,7 +228,8 @@
   "orm-models-parent-store-compute-reference-0485",
   "orm-models-order-to-sql-reference-0485",
   "orm-many2one-empty-recordset-0502",
-  "orm-models-compute-field-value-0502"
+  "orm-models-compute-field-value-0502",
+  "fields-relational-one2many-setup-inverses-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

@@ -645,7 +645,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._update_inverse	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.convert_to_record_multi	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_nonrelated	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_inverses	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.get_comodel_domain	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._related_domain	property	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._description_domain	method	absent	structural=unresolved;write_path=-;evidence=-
@@ -697,7 +697,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many	class	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.__init__	method	not_verified	structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.setup_nonrelated	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.setup_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.setup_inverses	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_one2many_setup_inverses.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.update_db	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._additional_domain	method	not_verified	structural=signature;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many.get_comodel_domain	method	not_verified	structural=signature;write_path=-;evidence=-
@@ -711,7 +711,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	One2many._
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many	class	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.__init__	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_nonrelated	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.setup_inverses	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.update_db	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.update_db_foreign_keys	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2many.read	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
