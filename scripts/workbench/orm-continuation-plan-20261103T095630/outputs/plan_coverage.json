@@ -88,9 +88,9 @@
  ],
  "obligations": {
   "satisfied": 969,
-  "absent": 442,
+  "absent": 431,
   "divergent": 0,
-  "not_verified": 1101,
+  "not_verified": 1112,
   "applicable": 2512,
   "pending": 1543,
   "source": {
@@ -244,7 +244,8 @@
   "orm-numeric-digits-currency-0485",
   "orm-selection-modules-0485",
   "orm-relational-description-0485",
-  "orm-inherited-fields-0485"
+  "orm-inherited-fields-0485",
+  "base-res-users-inherited-redeclarations-0182"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
