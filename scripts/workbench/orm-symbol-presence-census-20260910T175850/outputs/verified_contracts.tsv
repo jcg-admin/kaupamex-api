@@ -988,3 +988,4 @@ src/orm/models.py	BaseModel._order_field_to_sql	method	tests/unit/orm/test_contr
 src/orm/fields_relational.py	Many2one.convert_to_record	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._compute_field_value	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	One2many.setup_inverses	method	tests/unit/orm/test_one2many_setup_inverses.py
+src/orm/fields_relational.py	One2many.copy	attribute	tests/integration/base/test_copy_follows_the_one2many_copy_flag.py
