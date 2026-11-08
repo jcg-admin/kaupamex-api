@@ -110,6 +110,7 @@ from django.db.models import Q
 
 from orm.fields_relational import One2many as DeclaredOne2many
 from orm.fields import (
+    SQL,
     NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
     condition_to_q,
     falsy_value,
@@ -390,10 +391,13 @@ class Domain:
     NEGATIVE_OPERATORS = types.MappingProxyType(NEGATIVE_CONDITION_OPERATORS)
 
     @staticmethod
-    def custom(*, to_q, predicate=None):
+    def custom(*, to_q=None, to_sql=None, predicate=None):
         """Un dominio a medida — ≙ ``Domain.custom`` (``:289``).
 
         :param to_q: invocable ``(model) -> Q`` que implementa ``_to_q``.
+        :param to_sql: invocable ``(model, alias, query) -> SQL`` que
+            implementa ``_to_sql`` — el único parámetro de la fuente; ``to_q``
+            es la pareja para el ``QuerySet`` de Django.
         :param predicate: invocable ``(record) -> bool``. **Tiene consumidor**:
             ``DomainCustom._as_predicate`` lo devuelve y ``filtered_domain``
             llega hasta ahí. Sin él el dominio a medida no se puede evaluar en
@@ -401,7 +405,7 @@ class Domain:
             un predicado. Esta línea decía *"su consumidor no existe aquí"*,
             que el propio ``:794`` ya contradecía en el mismo archivo.
         """
-        return DomainCustom(to_q, predicate)
+        return DomainCustom(to_q, predicate, to_sql)
 
     @staticmethod
     def AND(items):
@@ -554,6 +558,15 @@ class Domain:
         """
         raise NotImplementedError
 
+    def _to_sql(self, model, alias, query):
+        """El ``SQL`` que se inyecta en la consulta — ≙ ``:470-472``.
+
+        El dominio tiene que estar optimizado antes. Es la pareja de
+        :meth:`_to_q`: aquélla compila a un ``Q`` para el ``QuerySet`` de
+        Django, ésta a un ``SQL`` para una ``Query`` armada a mano.
+        """
+        raise NotImplementedError
+
 
 class DomainBool(Domain):
     """Constante ``True``/``False`` — ≙ ``:475``.
@@ -612,6 +625,10 @@ class DomainBool(Domain):
         """La constante, sin mirar el registro — ≙ ``:519``."""
         value = self.value
         return lambda record: value
+
+    def _to_sql(self, model, alias, query):
+        """``TRUE`` o ``FALSE`` — ≙ ``:522-523``."""
+        return SQL("TRUE") if self.value else SQL("FALSE")
 
 
 # singletons, accesibles por Domain.TRUE y Domain.FALSE
@@ -684,6 +701,15 @@ class DomainNot(Domain):
         """La negación del predicado del hijo — ≙ ``:567``."""
         predicate = self.child._as_predicate(model)
         return lambda record: not predicate(record)
+
+    def _to_sql(self, model, alias, query):
+        """La negación del hijo — ≙ ``:571-573``.
+
+        ``IS NOT TRUE`` y no ``NOT``: la condición nula del hijo cuenta como
+        no cumplida, así que su negación la incluye.
+        """
+        condition = self.child._to_sql(model, alias, query)
+        return SQL("(%s) IS NOT TRUE", condition)
 
 
 class DomainNary(Domain):
@@ -811,6 +837,16 @@ class DomainNary(Domain):
             predicate(record) for predicate in predicates
         )
 
+    #: El conector ``SQL`` de los hijos — ≙ ``OPERATOR_SQL`` (``:581``).
+    OPERATOR_SQL = SQL(" ??? ")
+
+    def _to_sql(self, model, alias, query):
+        """Los hijos unidos por su conector — ≙ ``:671-675``."""
+        return SQL("(%s)", self.OPERATOR_SQL.join(
+            c._to_sql(model, alias, query)
+            for c in self.children
+        ))
+
 
 class DomainAnd(DomainNary):
     """AND con varios hijos — ≙ ``:678``."""
@@ -829,6 +865,8 @@ class DomainAnd(DomainNary):
         if isinstance(other, DomainAnd):
             return DomainAnd(self.children + other.children)
         return super().__and__(other)
+
+    OPERATOR_SQL = SQL(" AND ")
 
 
 class DomainOr(DomainNary):
@@ -849,15 +887,18 @@ class DomainOr(DomainNary):
             return DomainOr(self.children + other.children)
         return super().__or__(other)
 
+    OPERATOR_SQL = SQL(" OR ")
+
 
 class DomainCustom(Domain):
     """Condición que genera su filtro directamente — ≙ ``:738``."""
 
-    __slots__ = ('_filtered', '_q')
+    __slots__ = ('_filtered', '_q', '_sql')
 
-    def __new__(cls, to_q, filtered=None):
+    def __new__(cls, to_q=None, filtered=None, sql=None):
         self = object.__new__(cls)
         object.__setattr__(self, '_q', to_q)
+        object.__setattr__(self, '_sql', sql)
         object.__setattr__(self, '_filtered', filtered)
         object.__setattr__(self, '_opt_level', OptimizationLevel.FULL)
         return self
@@ -866,16 +907,20 @@ class DomainCustom(Domain):
         return (
             isinstance(other, DomainCustom)
             and self._q == other._q
+            and self._sql == other._sql
             and self._filtered == other._filtered
         )
 
     def __hash__(self):
-        return hash(self._q)
+        return hash((self._q, self._sql))
 
     def __iter__(self):
         yield self
 
     def _to_q(self, model=None):
+        if self._q is None:
+            raise TypeError(
+                'este Domain.custom no declaró to_q=; sólo compila a SQL')
         return self._q(model)
 
     def _as_predicate(self, model=None):
@@ -893,6 +938,13 @@ class DomainCustom(Domain):
                 'evaluar en memoria (sólo compilar a Q)'
             )
         return self._filtered
+
+    def _to_sql(self, model, alias, query):
+        """El ``SQL`` del invocable ``to_sql`` — ≙ ``:783-784``."""
+        if self._sql is None:
+            raise TypeError(
+                'este Domain.custom no declaró to_sql=; sólo compila a Q')
+        return self._sql(model, alias, query)
 
 
 class DomainCondition(Domain):
@@ -1577,6 +1629,26 @@ class DomainCondition(Domain):
         # ``Q`` compilado de estas condiciones. Aquí sólo se acota a quién se
         # le llama la fachada.
         return condition_to_q(_django_path(field_expr), operator, value, field)
+
+    def _to_sql(self, model, alias, query):
+        """La condición como ``SQL`` — ≙ ``:1087-1097``.
+
+        Exige el dominio optimizado del todo y el permiso de lectura del
+        campo, y delega en ``Field.condition_to_sql``, igual que la fuente.
+        """
+        field_expr, operator = self.field_expr, self.operator
+        value = self.value
+        assert operator in STANDARD_CONDITION_OPERATORS, \
+            f"Invalid operator {operator!r} for SQL in domain term " \
+            f"{(field_expr, operator, value)!r}"
+        assert self._opt_level >= OptimizationLevel.FULL, \
+            f"Must fully optimize before generating the query " \
+            f"{(field_expr, operator, value)}"
+
+        field = self._field(model)
+        model._check_field_access(field, 'read')
+        return field.condition_to_sql(
+            field_expr, operator, value, model, alias, query)
 
 
 # ==========================================================================

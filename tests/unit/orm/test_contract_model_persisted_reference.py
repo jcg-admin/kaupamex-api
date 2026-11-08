@@ -18,6 +18,7 @@ import pytest
 from django.apps import apps
 
 from django.contrib.auth import get_user_model
+from orm.domains import Domain
 from orm.environments import sudo, user_scope
 from tests.fixtures import model_persisted_grid, reference_process
 
@@ -45,7 +46,7 @@ def _ours():
     actor = get_user_model().objects.create_user(
         login='grid-root', password=None, name='Grid Root')
     with user_scope(actor.pk), sudo():
-        return model_persisted_grid.trace(None, model, MODEL)
+        return model_persisted_grid.trace(Domain, model, MODEL)
 
 
 def test_the_trace_matches_the_reference(reference_trace):

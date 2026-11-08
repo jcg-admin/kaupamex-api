@@ -102,6 +102,19 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Dominios de ``Domain._to_sql``, construidos con la ``Domain`` de cada árbol.
+DOMAINS = (
+    ('condition', lambda D, m: D([('color', 'in', [5])])),
+    ('not', lambda D, m: D(['!', ('color', 'in', [5])])),
+    ('or', lambda D, m: D(['|', ('color', 'in', [5]),
+                           ('name', 'like', 'b-ze')])),
+    ('and', lambda D, m: D(['&', ('color', 'in', [0, 5]),
+                            ('name', 'not like', 'a-nu')])),
+    ('true', lambda D, m: D([])),
+    ('false', lambda D, m: D.FALSE),
+    ('custom', lambda D, m: D.custom(to_sql=_custom_color)),
+    ('not custom', lambda D, m: ~D.custom(to_sql=_custom_color)),
+)
 #: Casos de ``Boolean._condition_to_sql`` sobre ``active``.
 BOOLEAN_CONDITIONS = (
     ('in', [True]), ('in', [False]), ('not in', [True]),
@@ -700,6 +713,31 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _domain_selected(Domain, records, build, optimize=True):
+    """Las filas de ``records`` que ``Domain._to_sql`` selecciona.
+
+    ``odoo19c: odoo/orm/domains.py:470-1097``: cada clase de dominio compone
+    su ``SQL`` —``TRUE``/``FALSE``, ``(...) IS NOT TRUE``, ``AND``/``OR``, el
+    invocable de ``Domain.custom``— y la condición delega en
+    ``Field.condition_to_sql``. La fuente exige el dominio optimizado.
+    """
+    model = records.browse(())
+    query = records._as_query(ordered=False)
+    domain = build(Domain, model)
+    if optimize:
+        domain = domain.optimize_full(model)
+    query.add_where(domain._to_sql(model, query.table, query))
+    rows = model.env.execute_query(
+        query.select(model._field_to_sql(query.table, 'name', query)))
+    return sorted(name.removeprefix(CONDITION_PREFIX) for name, in rows)
+
+
+def _custom_color(model, alias, query):
+    """El ``to_sql`` de un ``Domain.custom``: ``color > 3``."""
+    return model._fields['color'].condition_to_sql(
+        'color', '>', 3, model, alias, query)
+
+
 def _boolean_condition(model, operator, value):
     """``Boolean._condition_to_sql`` sobre ``active``: código, parámetros y
     filas.
@@ -810,7 +848,7 @@ def _rows(names, rows):
 
 def trace(Domain, model, model_name):
     """Los pasos de la rejilla, cada uno como ``nombre resultado``."""
-    del Domain, model_name
+    del model_name
     names = _seed(model)
     steps = [
         ('search_fetch ordered', lambda: _records(model.search_fetch(
@@ -861,6 +899,13 @@ def trace(Domain, model, model_name):
         ('relational multi', lambda: _relational_multi(discussions)),
     ]
     steps += [('field sequence order', lambda: _sequence_order(model))]
+    steps += [
+        (f'domain _to_sql {name}',
+         lambda build=build: _domain_selected(Domain, conditioned, build))
+        for name, build in DOMAINS
+    ]
+    steps += [('domain _to_sql unoptimized', lambda: _domain_selected(
+        Domain, conditioned, DOMAINS[0][1], optimize=False))]
     steps += [
         (f'boolean condition_to_sql {operator} {value!r}',
          lambda case=(operator, value): _boolean_condition(model, *case))
