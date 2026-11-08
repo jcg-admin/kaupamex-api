@@ -102,6 +102,30 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Prefijo de las categorías que miden ``Field.condition_to_sql``.
+CONDITION_PREFIX = 'grid-condition-'
+#: Los casos de ``Field.condition_to_sql`` (``odoo19c: odoo/orm/fields.py:
+#: 1249-1366``) sobre ``color`` (``Integer`` nulable, valor *falsy* 0) y
+#: ``name`` (``Char`` obligatorio): igualdad con y sin ``False``, los cuatro
+#: ``like`` y sus negaciones, las desigualdades que aceptan la fila nula, el
+#: subselect de ``any!``, un ``in`` sin colección y un operador inválido.
+CONDITIONS = (
+    ('color', 'in', [5]), ('color', 'in', [0]), ('color', 'in', [False]),
+    ('color', 'in', [5, False]), ('color', 'in', []),
+    ('color', 'not in', [5]), ('color', 'not in', [0]),
+    ('color', 'not in', [False]), ('color', 'not in', [5, False]),
+    ('color', '<', 3), ('color', '<=', 0), ('color', '>', -1),
+    ('color', '>=', 1), ('color', '<', False), ('color', '>', 3),
+    ('name', 'like', 'b-ze'), ('name', 'ilike', 'B-ZE'),
+    ('name', 'not like', 'b-ze'), ('name', 'not ilike', 'B-ZE'),
+    ('name', '=like', 'grid-condition-c%'),
+    ('name', '=ilike', 'GRID-CONDITION-A%'),
+    ('name', 'not =like', 'grid-condition-c%'),
+    ('name', 'in', [False]), ('name', 'not in', [False]),
+    ('name', 'in', 'b-zero'), ('color', '~', 5),
+    ('id', 'any!', lambda records: records[:1]._as_query(ordered=False)),
+    ('id', 'not any!', lambda records: records[:1]._as_query(ordered=False)),
+)
 #: Id que ninguna de las dos bases de prueba alcanza.
 MISSING_ID = 987654321
 
@@ -668,6 +692,38 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _condition_records(model):
+    """Tres categorías con ``color`` nulo, cero y cinco, en orden de nombre.
+
+    El color se fija con ``UPDATE``: ``Integer`` convierte ``False`` en 0 al
+    escribir, así que el ORM no deja una columna nula en ninguno de los dos.
+    """
+    records = model.create([{'name': f'{CONDITION_PREFIX}{tag}'}
+                            for tag in ('a-null', 'b-zero', 'c-five')])
+    for record, color in zip(records, (None, 0, 5)):
+        _execute(model, f'UPDATE {model._table} SET color = %s WHERE id = %s',
+                 (color, record.id))
+    return records
+
+
+def _condition_selected(records, fname, operator, value):
+    """Las filas de ``records`` que ``Field.condition_to_sql`` selecciona.
+
+    La condición se añade a la consulta de los propios registros, así que el
+    resultado sólo puede nombrar categorías de la rejilla.
+    """
+    model = records.browse(())
+    query = records._as_query(ordered=False)
+    if callable(value):
+        value = value(records)
+    sql = model._fields[fname].condition_to_sql(
+        fname, operator, value, model, query.table, query)
+    query.add_where(sql)
+    rows = model.env.execute_query(
+        query.select(model._field_to_sql(query.table, 'name', query)))
+    return sorted(name.removeprefix(CONDITION_PREFIX) for name, in rows)
+
+
 def _by_id(record):
     return record.id
 
@@ -753,6 +809,16 @@ def trace(Domain, model, model_name):
         ('export_data', lambda: _exported(discussions)),
         ('export_data xid', lambda: _exported_xids(discussions)),
         ('relational multi', lambda: _relational_multi(discussions)),
+    ]
+    conditioned = _condition_records(model)
+    steps += [
+        (f'condition_to_sql {fname} {operator} '
+         f'{"<query>" if callable(value) else repr(value)}',
+         lambda case=(fname, operator, value): _condition_selected(
+             conditioned, *case))
+        for fname, operator, value in CONDITIONS
+    ]
+    steps += [
         ('recomputed constraint', lambda: _recomputed_constraint(model)),
         ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),

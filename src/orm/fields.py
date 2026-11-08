@@ -74,6 +74,7 @@ from exceptions import AccessError, MissingError
 from orm.commands import related_manager
 from orm.environments import (
     Environment,
+    Query,
     env as get_environment,
     get_current_company,
     get_transaction,
@@ -105,9 +106,9 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import (COLLECTION_TYPES, as_record_list, browse, expand_ids,
-                       model_field_registry, model_of, model_of_field,
-                       record_ids)
+from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS, as_record_list,
+                       browse, expand_ids, model_field_registry, model_of,
+                       model_of_field, record_ids)
 
 #: La clave del almacén de la instancia donde se anotan los campos escritos
 #: cuyo inverso todavía no se ha despachado. Vive en ``__dict__`` y no en una
@@ -5234,3 +5235,185 @@ def _recompute_native_recordset(field, records):
             # silent OK because the singleton computation below must succeed.
             pass
         field.compute_value(record)
+
+
+# === condition_to_sql — la condición de dominio como ``SQL`` ================
+#
+# ``odoo19c: odoo/orm/fields.py:1249-1377``. La familia ``condition_to_q``
+# (arriba) compone el mismo conjunto de filas como ``Q``, que es lo que
+# ``Domain._to_q`` consume. Éstos emiten el ``SQL`` de la fuente sobre la
+# columna que ``model._field_to_sql`` resuelve, para quien arma una
+# ``Query`` a mano — el mismo consumidor que ``Field.to_sql`` ya tiene.
+#
+# Una sola adaptación en el cuerpo, y es del controlador, no del ORM: la
+# fuente pasa una tupla a ``IN %s`` y psycopg2 la expande; psycopg 3 no adapta
+# tuplas (``select 1 in %s`` con ``(1, 2)`` es un error de sintaxis, medido).
+# ``campo = ANY(%s)`` y ``campo <> ALL(%s)`` con una lista son la misma
+# pregunta con la misma regla de nulos, que es la forma que
+# ``try_lock_for_update`` ya usa en ``orm/models.py``.
+
+
+def _field_condition_to_sql(self, field_expr, operator, value, model, alias,
+                            query):
+    """La condición ``(campo, operador, valor)`` como ``SQL`` — la fachada.
+
+    ≙ ``Field.condition_to_sql`` (``odoo19c: odoo/orm/fields.py:1249-1260``):
+    el cuerpo y, si el campo depende de la empresa, la condición de índice.
+    """
+    sql_expr = self._condition_to_sql(
+        field_expr, operator, value, model, alias, query)
+    if self.company_dependent:
+        sql_expr = self._condition_to_sql_company(
+            sql_expr, field_expr, operator, value, model, alias, query)
+    return sql_expr
+
+
+def _field_condition_to_sql_body(self, field_expr, operator, value, model,
+                                 alias, query):
+    """El cuerpo de la condición — ≙ ``Field._condition_to_sql``
+    (``odoo19c: odoo/orm/fields.py:1262-1366``), rama por rama.
+    """
+    sql_field = model._field_to_sql(alias, field_expr, query)
+
+    if field_expr == self.name:
+        def _value_to_column(v):
+            return self.convert_to_column(v, model, validate=False)
+    else:
+        # una propiedad se lee tal cual
+        def _value_to_column(v):
+            return v
+
+    # valor SQL, deprecado desde 19.0
+    if operator in SQL_OPERATORS and isinstance(value, SQL):
+        warnings.warn(
+            "Since 19.0, use Domain.custom(to_sql=lambda model, alias, "
+            "query: SQL(...))", DeprecationWarning)
+        return SQL("%s%s%s", sql_field, SQL_OPERATORS[operator], value)
+
+    # ``self not in registry.not_null_fields`` en la fuente; aquí el
+    # registro es un módulo y :func:`is_not_null` es el mismo criterio
+    can_be_null = not is_not_null(self)
+
+    # --- in / not in (igualdad) ----------------------------------------
+    if operator in ('in', 'not in'):
+        assert isinstance(value, COLLECTION_TYPES), \
+            f"condition_to_sql() 'in' operator expects a collection, " \
+            f"not a {value!r}"
+        params = tuple(_value_to_column(v) for v in value
+                       if v is not False and v is not None)
+        null_in_condition = len(params) < len(value)
+        # el valor que cuenta como nulo
+        if (null_value := self.falsy_value) is not None:
+            null_value = _value_to_column(null_value)
+            if null_value in params:
+                null_in_condition = True
+            elif null_in_condition:
+                params = (*params, null_value)
+
+        sql = None
+        if params:
+            # ``IN %s`` con tupla en la fuente; ver la cabecera de la sección
+            template = "%s = ANY(%s)" if operator == 'in' else "%s <> ALL(%s)"
+            sql = SQL(template, sql_field, list(params))
+
+        if (operator == 'in') == null_in_condition:
+            # campo in {val, False} => campo IN vals OR campo IS NULL
+            # campo not in {val}    => campo NOT IN vals OR campo IS NULL
+            if not can_be_null:
+                return sql or SQL("FALSE")
+            sql_null = SQL("%s IS NULL", sql_field)
+            return SQL("(%s OR %s)", sql, sql_null) if sql else sql_null
+
+        if operator == 'not in' and null_in_condition and not sql:
+            # con condición base, los nulos ya quedan fuera
+            return (SQL("%s IS NOT NULL", sql_field) if can_be_null
+                    else SQL("TRUE"))
+
+        assert sql, f"Missing sql query for {operator} {value!r}"
+        return sql
+
+    # --- like ------------------------------------------------------------
+    if operator.endswith('like'):
+        # toda comparación like se hace sobre texto
+        sql_left = sql_field if self.is_text else SQL("%s::text", sql_field)
+
+        need_wildcard = '=' not in operator
+        if need_wildcard:
+            sql_value = SQL("%s", f"%{value}%")
+        else:
+            sql_value = SQL("%s", str(value))
+        if operator.endswith('ilike') and orm_registry.UNACCENT_ENABLED:
+            # ≙ ``registry.unaccent``, la identidad sin la extensión
+            sql_left = orm_registry._unaccent(sql_left)
+            sql_value = orm_registry._unaccent(sql_value)
+
+        sql = SQL("%s%s%s", sql_left, SQL_OPERATORS[operator], sql_value)
+        if operator in _NEGATIVE_LIKE_OPERATORS and can_be_null:
+            sql = SQL("(%s OR %s IS NULL)", sql, sql_field)
+        return sql
+
+    # --- desigualdades -----------------------------------------------------
+    if operator in ('>', '<', '>=', '<='):
+        accept_null_value = False
+        if (null_value := self.falsy_value) is not None:
+            value = self.convert_to_cache(value, model) or null_value
+            accept_null_value = can_be_null and (
+                null_value < value if operator == '<' else
+                null_value > value if operator == '>' else
+                null_value <= value if operator == '<=' else
+                null_value >= value
+            )
+        sql_value = SQL("%s", _value_to_column(value))
+
+        sql = SQL("%s%s%s", sql_field, SQL_OPERATORS[operator], sql_value)
+        if accept_null_value:
+            sql = SQL("(%s OR %s IS NULL)", sql, sql_field)
+        return sql
+
+    # --- any! / not any! ---------------------------------------------------
+    # Los relacionales lo sobreescriben; aquí sólo el campo contra el
+    # subselect, p. ej. ``('id', 'any!', Query | SQL)``.
+    if operator in ('any!', 'not any!'):
+        if isinstance(value, Query):
+            subselect = value.subselect()
+        elif isinstance(value, SQL):
+            subselect = SQL("(%s)", value)
+        else:
+            raise TypeError(
+                f"condition_to_sql() operator 'any!' accepts SQL or Query, "
+                f"got {value}")
+        sql_operator = SQL_OPERATORS["in" if operator == "any!" else "not in"]
+        return SQL("%s%s%s", sql_field, sql_operator, subselect)
+
+    raise NotImplementedError(
+        f"Invalid operator {operator!r} for SQL in domain term "
+        f"{(field_expr, operator, value)!r}")
+
+
+def _field_condition_to_sql_company(self, sql_expr, field_expr, operator,
+                                    value, model, alias, query):
+    """Antepone ``columna IS NOT NULL`` para que el índice parcial sirva.
+
+    ≙ ``Field._condition_to_sql_company`` (``odoo19c: :1368-1377``), con las
+    cuatro condiciones de la fuente en su orden. Su razón y su población
+    activadora —cero en los dos árboles— las mide
+    :func:`_field_condition_to_q_company`, que es la misma decisión en ``Q``.
+    La columna se nombra por ``self.column``: aquí el nombre del campo y el de
+    la columna pueden diferir, como ya declara ``Field.to_sql``.
+    """
+    if (
+        self.company_dependent
+        and self.index == 'btree_not_null'
+        # la granularidad de agrupación temporal no la soporta
+        and not (self.type in ('datetime', 'date') and field_expr != self.name)
+        and model.env['ir.default']._evaluate_condition_with_fallback(
+            model._name, field_expr, operator, value) is False
+    ):
+        return SQL('(%s IS NOT NULL AND %s)',
+                   SQL.identifier(alias, self.column), sql_expr)
+    return sql_expr
+
+
+models.Field.condition_to_sql = _field_condition_to_sql
+models.Field._condition_to_sql = _field_condition_to_sql_body
+models.Field._condition_to_sql_company = _field_condition_to_sql_company

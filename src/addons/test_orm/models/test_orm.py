@@ -55,7 +55,7 @@ class TestOrmCategory(TestOrmModel):
     _parent_name = 'parent'
 
     name = fields.Char(required=True)
-    color = fields.Integer('Color Index')
+    color = fields.Integer('Color Index', null=True)
     # H-API-1122: la fuente no declara ``required``, así que el Many2one es
     # opcional; aquí ``required = not null``, de ahí ``null=True``.
     parent = fields.Many2one('test_orm.category', ondelete='cascade',

@@ -559,3 +559,27 @@ def display_name_of(record):
     """
     label = getattr(record, 'display_name', None)
     return label if label else str(record)
+
+
+#: Los operadores de dominio a su fragmento ``SQL`` — ≙ ``SQL_OPERATORS``
+#: (``odoo19c: odoo/orm/utils.py:49-66``), verbatim. Lo consume
+#: ``Field._condition_to_sql``; ``in`` y ``not in`` no llegan a la cadena
+#: emitida por la razón que ese método declara (psycopg 3 no adapta tuplas).
+SQL_OPERATORS = {
+    "=": SQL(" = "),
+    "!=": SQL(" != "),
+    "in": SQL(" IN "),
+    "not in": SQL(" NOT IN "),
+    "<": SQL(" < "),
+    ">": SQL(" > "),
+    "<=": SQL(" <= "),
+    ">=": SQL(" >= "),
+    "like": SQL(" LIKE "),
+    "ilike": SQL(" ILIKE "),
+    "=like": SQL(" LIKE "),
+    "=ilike": SQL(" ILIKE "),
+    "not like": SQL(" NOT LIKE "),
+    "not ilike": SQL(" NOT ILIKE "),
+    "not =like": SQL(" NOT LIKE "),
+    "not =ilike": SQL(" NOT ILIKE "),
+}
