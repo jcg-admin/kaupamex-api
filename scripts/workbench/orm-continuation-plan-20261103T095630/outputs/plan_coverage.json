@@ -88,9 +88,9 @@
  ],
  "obligations": {
   "satisfied": 969,
-  "absent": 454,
+  "absent": 448,
   "divergent": 0,
-  "not_verified": 1089,
+  "not_verified": 1095,
   "applicable": 2512,
   "pending": 1543,
   "source": {
@@ -102,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 60,
+  "task_units_settled": 61,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1482
+  "task_without_unit": 1481
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -241,7 +241,8 @@
   "orm-many2one-condition-to-sql-0485",
   "orm-relational-multi-condition-to-sql-0485",
   "orm-properties-condition-to-sql-0485",
-  "orm-numeric-digits-currency-0485"
+  "orm-numeric-digits-currency-0485",
+  "orm-selection-modules-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

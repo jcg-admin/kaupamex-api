@@ -1022,3 +1022,4 @@ src/orm/fields_numeric.py	Float._description_digits	method	tests/unit/orm/test_c
 src/orm/fields_numeric.py	Float._description_min_display_digits	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_numeric.py	Monetary.get_currency_field	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_numeric.py	Monetary._description_currency_field	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_selection.py	Selection._selection_modules	method	tests/unit/orm/test_selection_modules.py
