@@ -1031,3 +1031,4 @@ src/orm/fields_relational.py	_Relational._description_context	attribute	tests/un
 src/orm/fields_relational.py	_Relational._description_relation	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	_Relational._related_context	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	One2many._internal_description_domain_raw	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/model_classes.py	_add_inherited_fields	function	tests/unit/orm/test_inherited_fields.py
