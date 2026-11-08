@@ -1295,26 +1295,14 @@ class _TriggerRegistry:
                 # y basta con anotar las dos direcciones de cada par.
                 inverses.add(field, remote)
                 inverses.add(remote, field)
-            # ≙ ``One2many.setup_inverses`` (``odoo19c: odoo/orm/
-            # fields_relational.py:891-899``): el ``One2many`` declarado y su
-            # ``Many2one`` inverso se apuntan uno al otro. Aquí el declarado
-            # no está en ``_meta`` —es un descriptor—, así que no lo veía el
-            # recorrido de arriba.
+            # ≙ ``field.setup_inverses(self, result)`` de
+            # ``Registry.field_inverses`` (``odoo19c: odoo/orm/registry.py:
+            # 511``). El ``One2many`` declarado no está en ``_meta`` —es un
+            # descriptor—, así que no lo veía el recorrido de arriba.
             for field in model_field_registry(model).values():
-                inverse_name = getattr(field, 'inverse_name', None)
-                comodel_name = getattr(field, 'comodel_name', None)
-                if not (inverse_name and comodel_name
-                        and type(field).__name__ == 'One2many'):
-                    continue
-                comodel = MODELS_BY_NAME.get(comodel_name)
-                if comodel is None:
-                    continue
-                invf = model_field_registry(comodel).get(inverse_name)
-                if invf is None:
-                    continue
-                if getattr(invf, 'many_to_one', False):
-                    inverses.add(field, invf)
-                inverses.add(invf, field)
+                setup = getattr(field, 'setup_inverses', None)
+                if setup is not None and field.comodel_name in MODELS_BY_NAME:
+                    setup(MODELS_BY_NAME, inverses)
         return inverses
 
     # --- los disparadores, invirtiendo lo declarado ------------------------

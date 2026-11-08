@@ -635,6 +635,27 @@ class One2many:
             return
         getattr(target, last).set(list(value or ()))
 
+    def setup_inverses(self, registry, inverses):
+        """Anota en ``inverses`` este campo y su ``Many2one`` inverso. — ≙
+        ``One2many.setup_inverses`` (``odoo19c: odoo/orm/
+        fields_relational.py:891-899``)
+
+        ``registry`` es el mapa de ``_name`` a modelo
+        (:data:`orm.registry.MODELS_BY_NAME`), el papel que ``Registry``
+        cumple en la fuente con ``registry[self.comodel_name]``.
+        """
+        if self.inverse_name:
+            # link self to its inverse field and vice-versa
+            invf = registry[self.comodel_name]._fields[self.inverse_name]
+            # ``Many2oneReference`` se reconoce por su ``type``: importarlo
+            # aquí cierra un ciclo de importación con ``fields_reference``
+            if (getattr(invf, 'many_to_one', False)
+                    or getattr(invf, 'type', None) == 'many2one_reference'):
+                # setting one2many fields only invalidates many2one inverses;
+                # integer inverses (res_model/res_id pairs) are not supported
+                inverses.add(self, invf)
+            inverses.add(invf, self)
+
 
 #: El permiso del comodelo no se aplica al atravesar este campo — ≙
 #: ``_Relational.bypass_search_access`` (``odoo19c:
