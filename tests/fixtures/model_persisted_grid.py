@@ -102,6 +102,8 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Campos de ``test_orm.category`` que declaran los dos árboles.
+SEQUENCED = ('discussions', 'parent', 'color', 'name', 'parent_path')
 #: Prefijo de las categorías que miden ``Field.condition_to_sql``.
 CONDITION_PREFIX = 'grid-condition-'
 #: Los casos de ``Field.condition_to_sql`` (``odoo19c: odoo/orm/fields.py:
@@ -692,6 +694,23 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _sequence_order(model):
+    """Los campos declarados de la categoría, ordenados por ``_sequence``.
+
+    ``Field._sequence`` (``odoo19c: odoo/orm/fields.py:265,316``) es el orden
+    absoluto de declaración; ``_create`` lo usa para escribir los campos sin
+    columna en ese orden (``models.py:4938``). Se comparan el orden y que el
+    valor sea un entero distinto por campo.
+    """
+    fields = [model._fields[name] for name in SEQUENCED
+              if name in model._fields]
+    values = [field._sequence for field in fields]
+    ordered = sorted(fields, key=lambda field: field._sequence)
+    return ([field.name for field in ordered],
+            all(type(value) is int for value in values),
+            len(set(values)) == len(values))
+
+
 def _condition_records(model):
     """Tres categorías con ``color`` nulo, cero y cinco, en orden de nombre.
 
@@ -810,6 +829,7 @@ def trace(Domain, model, model_name):
         ('export_data xid', lambda: _exported_xids(discussions)),
         ('relational multi', lambda: _relational_multi(discussions)),
     ]
+    steps += [('field sequence order', lambda: _sequence_order(model))]
     conditioned = _condition_records(model)
     steps += [
         (f'condition_to_sql {fname} {operator} '

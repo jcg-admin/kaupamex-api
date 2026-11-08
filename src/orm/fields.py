@@ -5417,3 +5417,22 @@ def _field_condition_to_sql_company(self, sql_expr, field_expr, operator,
 models.Field.condition_to_sql = _field_condition_to_sql
 models.Field._condition_to_sql = _field_condition_to_sql_body
 models.Field._condition_to_sql_company = _field_condition_to_sql_company
+
+
+def _field_sequence(self):
+    """``Field._sequence`` — el orden absoluto de declaración del campo.
+
+    ≙ ``odoo19c: odoo/orm/fields.py:265`` (``_sequence: int``) y ``:316``
+    (``self._sequence = next(_global_seq)`` al construir el campo). Su
+    consumidor allá es ``_create``, que escribe los campos sin columna en ese
+    orden (``models.py:4938``).
+
+    El contador es ``models.Field.creation_counter``, el mismo que
+    :func:`global_seq` ya expone: Django lo incrementa en cada campo que
+    construye y ``_meta.get_fields()`` ordena por él. Un segundo contador
+    daría dos numeraciones para una sola pregunta.
+    """
+    return self.creation_counter
+
+
+models.Field._sequence = property(_field_sequence)
