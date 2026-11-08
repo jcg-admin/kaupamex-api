@@ -249,7 +249,8 @@
   "orm-inherits-delegation-all-fields-0485",
   "orm-census-installers-and-bindings-0485",
   "base-inherits-access-on-read-0182",
-  "orm-field-groups-fast-path-0485"
+  "orm-field-groups-fast-path-0485",
+  "base-inherits-access-on-write-0182"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
