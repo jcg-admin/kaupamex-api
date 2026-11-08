@@ -702,6 +702,13 @@
         "base-res-groups-disjoint-user-types-0182"
       ],
       "writtenAt": "2026-11-08T08:09:12Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-fields-sequence-0485"
+      ],
+      "writtenAt": "2026-11-08T08:31:32Z"
     }
   ]
 }
