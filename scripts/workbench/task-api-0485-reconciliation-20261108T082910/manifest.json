@@ -1,0 +1,13 @@
+{
+  "question": "¿TASK-API-0485 tiene una identidad canónica única, y qué relación hay entre su TASK, sus unidades, sus obligaciones y su aceptación?",
+  "instrument": ["scripts/workbench/task-api-0485-reconciliation-20261108T082910/reconcile.py"],
+  "metric": "filas con cita TASK-API-0485 en el store local y en el de origin, citas duplicadas, cita API más alta; unidades del plan con su aceptación y modelo; destino de cada obligación nombrada (clasificación o inventario).",
+  "blind_to": [
+    "stores de otras VMs que no estén publicados en ninguna rama de origin",
+    "la corrección de cada contrato: una unidad aceptada no cierra la TASK ni la iniciativa",
+    "el modelo que ejecutó realmente una unidad más allá de lo que registra continuation.jsonl"
+  ],
+  "reproducible": "python3 scripts/workbench/task-api-0485-reconciliation-20261108T082910/reconcile.py <store-local> <store-origin> <salida.json>",
+  "outputs": ["outputs/record.json"],
+  "destination": "TASK-API-0485; H-API-1171 en kaupamex-docs completar-raiz-orm"
+}

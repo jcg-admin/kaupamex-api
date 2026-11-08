@@ -1,0 +1,34 @@
+{
+ "task": "TASK-API-0485",
+ "store_local": {
+  "rows": [
+   [
+    "8",
+    "0390150a-c498-513f-9c46-273b863ccf3b",
+    11,
+    "task_ids ingest-board",
+    "in_progress",
+    "2026-11-04T17:26:35"
+   ]
+  ],
+  "duplicate_citations": 0,
+  "highest_api_citation": "TASK-API-0503"
+ },
+ "store_origin": {
+  "rows": [],
+  "duplicate_citations": 0,
+  "highest_api_citation": "TASK-API-0478"
+ },
+ "units": 77,
+ "units_accepted": 77,
+ "unit_models": {
+  "conversational-session": 77
+ },
+ "obligations_named_by_units": 319,
+ "obligation_destinations": {
+  "inventory:satisfied": 275,
+  "task_units_settled": 43,
+  "inventory:outside_census": 1
+ },
+ "classification_rows_for_task": 917
+}
