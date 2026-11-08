@@ -248,7 +248,8 @@
   "base-res-users-inherited-redeclarations-0182",
   "orm-inherits-delegation-all-fields-0485",
   "orm-census-installers-and-bindings-0485",
-  "base-inherits-access-on-read-0182"
+  "base-inherits-access-on-read-0182",
+  "orm-field-groups-fast-path-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
