@@ -995,3 +995,4 @@ src/orm/models.py	BaseModel._sql_error_to_message	method	tests/unit/orm/test_sql
 src/orm/models.py	BaseModel.export_data	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel._export_rows	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/models.py	BaseModel.__ensure_xml_id	method	tests/unit/orm/test_contract_model_persisted_reference.py
+addons/web/controllers/export.py	ExportFormat.base	method	tests/unit/web/test_export_delegates_to_export_data.py
