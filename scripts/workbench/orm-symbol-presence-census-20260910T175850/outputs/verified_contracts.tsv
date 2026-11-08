@@ -1000,3 +1000,4 @@ src/orm/fields.py	Field.condition_to_sql	method	tests/unit/orm/test_contract_mod
 src/orm/fields.py	Field._condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields.py	Field._condition_to_sql_company	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields.py	Field._sequence	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_misc.py	Boolean._condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
