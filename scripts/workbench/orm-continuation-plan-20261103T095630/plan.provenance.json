@@ -807,6 +807,13 @@
         "orm-field-groups-fast-path-0485"
       ],
       "writtenAt": "2026-11-08T21:21:22Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "base-inherits-access-on-write-0182"
+      ],
+      "writtenAt": "2026-11-08T21:38:23Z"
     }
   ]
 }
