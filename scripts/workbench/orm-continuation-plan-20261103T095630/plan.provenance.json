@@ -639,6 +639,13 @@
         "orm-many2one-empty-recordset-0502"
       ],
       "writtenAt": "2026-11-08T00:12:38Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-models-compute-field-value-0502"
+      ],
+      "writtenAt": "2026-11-08T00:28:30Z"
     }
   ]
 }

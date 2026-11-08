@@ -19,8 +19,8 @@ import itertools
 import fields
 import models
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from orm.models import BaseModel
-from api import autovacuum, depends, onchange
+from orm.models import BaseModel, get_current_user
+from api import autovacuum, constrains, depends, onchange
 from exceptions import AccessError, ValidationError
 
 
@@ -699,10 +699,36 @@ class TestOrmMessage(TestOrmModel):
     discussion = fields.Many2one('test_orm.discussion', ondelete='cascade',
                                  null=True, related_name='+',
                                  db_column='discussion')
-    name = fields.Char(string='Title', null=True)
+    author = fields.Many2one('res.users', null=True, related_name='+',
+                             db_column='author', default=get_current_user)
+    name = fields.Char(string='Title', null=True, compute='_compute_name',
+                       store=True)
     important = fields.Boolean(default=False)
     priority = fields.Integer(null=True)
     active = fields.Boolean(default=True)
+
+    @constrains('author', 'discussion')
+    def _check_author(self):
+        for message in self.with_context(active_test=False):
+            if (message.discussion and message.author
+                    not in message.discussion.sudo().participants):
+                raise ValidationError(self.env._(
+                    "Author must be among the discussion participants."))
+
+    @depends('author.name', 'discussion.name')
+    def _compute_name(self):
+        for message in self:
+            message.name = self.env.context.get(
+                'compute_name', "[%s] %s" % (message.discussion.name or '',
+                                             message.author.name or ''))
+
+    @constrains('name')
+    def _check_name(self):
+        # dummy constraint to check on computed field
+        for message in self:
+            if message.name.startswith("[X]"):
+                msg = "No way!"
+                raise ValidationError(msg)
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_message'

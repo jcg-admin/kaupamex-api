@@ -164,7 +164,7 @@ def _seed_discussions(model):
     # el autor por defecto de un mensaje es el usuario del entorno, y la
     # fuente exige que participe en la discusión (``_check_author``)
     user = env.user
-    participants = list(user.ids) if user else []
+    participants = [user.id] if user else []
     for label in ('d1', 'd2'):
         discussion = Discussion.create({
             'name': f'{PREFIX}{label}', 'categories': [(6, 0, categories.ids)],
@@ -414,7 +414,7 @@ def _unlinked_discussion(model):
     Message = env['test_orm.message'].browse(())
     # el autor del mensaje tiene que participar (``_check_author`` de la
     # fuente), como en ``_seed_discussions``
-    participants = list(env.user.ids) if env.user else []
+    participants = [env.user.id] if env.user else []
     discussion = Discussion.create({
         'name': f'{PREFIX}to-unlink', 'participants': [(6, 0, participants)]})
     Message.create([{'discussion': discussion.id, 'priority': 1}])
@@ -488,6 +488,39 @@ def _has_onchanges(model):
             categories._has_onchange(cfields['name'], display),
             categories._has_onchange(cfields['color'], display),
             categories._has_onchange(cfields['name'], [])]
+
+
+def _recomputed_constraint(model):
+    """``_compute_field_value`` (``odoo19c: odoo/orm/models.py``,
+    ``BaseModel._compute_field_value``) valida las restricciones de un campo
+    calculado almacenado después de calcularlo. Escenario de
+    ``test_15_constraint`` (``odoo/addons/test_orm/tests/test_fields.py:
+    798-820``): el ``name`` de un mensaje es ``'[<discusión>] <autor>'``;
+    renombrar la discusión a ``'X'`` lo recalcula a ``'[X] …'`` y
+    ``_check_name`` lo rechaza. Se devuelve la excepción y el nombre que el
+    mensaje conserva."""
+    env = model.browse(()).env
+    user = env.user
+    discussion = env['test_orm.discussion'].browse(()).create({
+        'name': f'{PREFIX}to-constrain',
+        'participants': [(6, 0, [user.id] if user else [])]})
+    message = env['test_orm.message'].browse(()).create(
+        {'discussion': discussion.id, 'priority': 7})
+    before = message.name.split(']')[0]
+    try:
+        discussion['name'] = 'X'
+        discussion.flush_model()
+        message.flush_model()
+        raised = None
+    except Exception as error:
+        # la traza compara la clase de la excepción, no la silencia
+        raised = type(error).__name__
+    # el recálculo rechazado sigue pendiente en el entorno; con el nombre
+    # válido de vuelta se resuelve y el volcado siguiente no lo arrastra
+    discussion['name'] = f'{PREFIX}to-constrain'
+    discussion.flush_model()
+    message.flush_model()
+    return before, raised, message.name.split(']')[0]
 
 
 def _empty_many2one(model):
@@ -673,6 +706,7 @@ def trace(Domain, model, model_name):
         ('update', lambda: _updated(model)),
         ('rec_name fallback', lambda: _rec_name_fallbacks(model)),
         ('empty many2one', lambda: _empty_many2one(model)),
+        ('recomputed constraint', lambda: _recomputed_constraint(model)),
         ('has onchange', lambda: _has_onchanges(model)),
         ('assigned inverse', lambda: _assigned_inverse(model)),
         ('search window', lambda: _names(model.search(

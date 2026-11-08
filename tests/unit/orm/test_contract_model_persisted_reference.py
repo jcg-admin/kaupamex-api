@@ -17,7 +17,8 @@ import pathlib
 import pytest
 from django.apps import apps
 
-from orm.environments import sudo
+from django.contrib.auth import get_user_model
+from orm.environments import sudo, user_scope
 from tests.fixtures import model_persisted_grid, reference_process
 
 pytestmark = [pytest.mark.reference, pytest.mark.django_db]
@@ -33,9 +34,17 @@ def reference_trace():
 
 
 def _ours():
+    """La referencia ejecuta la traza como ``SUPERUSER_ID`` en modo ``su``
+    (``reference_model_trace.py:67``), y su base trae ese usuario de los
+    datos de ``base``. Este árbol no siembra usuarios (decisión registrada en
+    ``res_groups_data.py``), así que la prueba crea su actor dentro de su
+    transacción: sin él ``env.user`` es ``None`` y el autor por defecto de un
+    mensaje queda vacío donde en la referencia no lo está."""
     model = next(model for model in apps.get_models()
                  if getattr(model, '_name', None) == MODEL)
-    with sudo():
+    actor = get_user_model().objects.create_user(
+        login='grid-root', password=None, name='Grid Root')
+    with user_scope(actor.pk), sudo():
         return model_persisted_grid.trace(None, model, MODEL)
 
 
