@@ -105,7 +105,7 @@ from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import Command, apply_one2many_commands, is_command_list
-from orm.environments import env as get_environment
+from orm.environments import Query, env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -116,8 +116,9 @@ from orm.fields_nonstored import (
 from exceptions import MissingError
 from orm.identifiers import NewId
 from orm.model_classes import is_transient
-from orm.registry import (IR_MODELS, field_inverses, model_by_key, model_by_name,
-                          name_of, sentinel_label)
+from orm.registry import (IR_MODELS, field_inverses, is_not_null,
+                          model_by_key, model_by_name, name_of,
+                          sentinel_label)
 from orm.utils import (display_name_of, model_field_registry, model_of,
                        record_ids)
 from tools.misc import SENTINEL, OrderedSet, unique
@@ -2050,3 +2051,115 @@ def _read_one2many(field, instance, comodel):
 #: fuente levanta ``ValueError``. ``_search_display_name`` descarta con ese
 #: ``ValueError`` el valor que no es del tipo del campo.
 models.ManyToManyField.convert_to_write = _reverse_one2many_convert_to_write
+
+
+# === Many2one.condition_to_sql — la condición relacional en SQL =============
+#
+# ``odoo19c: odoo/orm/fields_relational.py:480-537``. Lo cuelga de
+# ``models.ForeignKey``, la clase del ``Many2one`` de este árbol, igual que
+# ``Field.condition_to_sql`` cuelga de ``models.Field``. El ``Domain`` se
+# reconoce por su contrato (``optimize_full`` y ``iter_conditions``) y no por
+# ``isinstance``: ``orm.domains`` importa este módulo, y el import de vuelta
+# cerraría el ciclo.
+
+
+def _queryset_subselect(queryset):
+    """El ``(SELECT id ...)`` de un ``QuerySet`` como ``SQL``.
+
+    La fuente obtiene una ``Query`` de ``comodel._search`` y la convierte con
+    ``subselect()``; aquí ``_search`` devuelve el ``QuerySet`` de Django con
+    las mismas reglas aplicadas, y su compilador da el ``SQL`` y sus
+    parámetros.
+    """
+    code, params = queryset.values('pk').query.sql_with_params()
+    return SQL('(' + code + ')', *params)
+
+
+def _is_domain(value):
+    """¿``value`` es un ``Domain``? — por su contrato, ver la cabecera."""
+    return (hasattr(value, 'optimize_full')
+            and hasattr(value, 'iter_conditions'))
+
+
+def _many2one_condition_to_sql(self, field_expr, operator, value, model,
+                               alias, query):
+    """``Many2one.condition_to_sql`` — ≙ ``:480-537``, rama por rama.
+
+    ``any``/``not any`` contra un dominio del comodelo, una ``Query`` o un
+    ``SQL``; con ``any!`` —o con ``bypass_search_access``— sin reglas de
+    acceso y, si el dominio lo favorece, por ``LEFT JOIN``. El resto de
+    operadores va al cuerpo de ``Field``.
+    """
+    if (operator not in ('any', 'not any', 'any!', 'not any!')
+            or field_expr != self.name):
+        # el resto de operadores, según el tipo de la columna
+        return models.Field.condition_to_sql(
+            self, field_expr, operator, value, model, alias, query)
+
+    comodel = model.env[self.comodel_name].browse(())
+    sql_field = model._field_to_sql(alias, field_expr, query)
+    can_be_null = not is_not_null(self)
+    bypass_access = (operator in ('any!', 'not any!')
+                     or self.bypass_search_access)
+    positive = operator in ('any', 'any!')
+
+    # ¿LEFT JOIN?
+    left_join = bypass_access and _is_domain(value)
+    if left_join and not positive:
+        # con muchas condiciones positivas un NOT IN aprovecha mejor los
+        # índices; las excepciones son el filtro por 'id'
+        negative = value.NEGATIVE_OPERATORS
+        left_join = sum(
+            (-1 if cond.operator in negative else 1)
+            for cond in value.iter_conditions()
+        ) < 0 or any(
+            cond.field_expr == 'id' and cond.operator not in negative
+            for cond in value.iter_conditions()
+        )
+
+    if left_join:
+        comodel, coalias = self.join(model, alias, query)
+        # ``join`` da la clase (``related_model``); el dominio pide el
+        # recordset vacío, como el ``env[...]`` de la fuente
+        comodel = comodel.browse(())
+        if not positive:
+            value = (~value).optimize_full(comodel)
+        sql = value._to_sql(comodel, coalias, query)
+        if self.company_dependent:
+            sql = self._condition_to_sql_company(
+                sql, field_expr, operator, value, model, alias, query)
+        if can_be_null:
+            if positive:
+                sql = SQL("(%s IS NOT NULL AND %s)", sql_field, sql)
+            else:
+                sql = SQL("(%s IS NULL OR %s)", sql_field, sql)
+        return sql
+
+    if _is_domain(value):
+        value = comodel._search(value, active_test=False,
+                                bypass_access=bypass_access)
+    if isinstance(value, Query):
+        subselect = value.subselect()
+    elif isinstance(value, SQL):
+        subselect = SQL("(%s)", value)
+    elif isinstance(value, models.QuerySet):
+        subselect = _queryset_subselect(value)
+    else:
+        raise TypeError(
+            f"condition_to_sql() 'any' operator accepts Domain, SQL or "
+            f"Query, got {value}")
+    sql = SQL(
+        "%s%s%s",
+        sql_field,
+        SQL(" IN ") if positive else SQL(" NOT IN "),
+        subselect,
+    )
+    if can_be_null and not positive:
+        sql = SQL("(%s IS NULL OR %s)", sql_field, sql)
+    if self.company_dependent:
+        sql = self._condition_to_sql_company(
+            sql, field_expr, operator, value, model, alias, query)
+    return sql
+
+
+models.ForeignKey.condition_to_sql = _many2one_condition_to_sql

@@ -102,6 +102,28 @@ FIELDS = ['name', 'parent']
 #: ``null=True`` y guarda ``''`` donde la fuente guarda NULL, que es la
 #: nulabilidad de la columna y no ``copy``.
 COPIED = ('name', 'categories', 'messages', 'important_messages', 'emails')
+#: Prefijo de las categorías que miden ``Many2one.condition_to_sql``.
+PARENT_PREFIX = 'grid-parent-'
+
+
+def _root_domain(D, model, records):
+    """El dominio del comodelo que nombra a la raíz, ya optimizado."""
+    return D([('name', '=like', f'{PARENT_PREFIX}root')]).optimize_full(model)
+
+
+def _root_query(D, model, records):
+    """La ``Query`` de la raíz."""
+    return records.filtered(
+        lambda r: r.name == f'{PARENT_PREFIX}root')._as_query(ordered=False)
+
+
+#: Casos de ``Many2one.condition_to_sql`` sobre ``parent``.
+MANY2ONE_CONDITIONS = (
+    ('any', _root_domain), ('not any', _root_domain),
+    ('any!', _root_domain), ('not any!', _root_domain),
+    ('any', _root_query), ('not any', _root_query),
+    ('in', lambda D, m, r: [False]), ('any', lambda D, m, r: 7),
+)
 #: Dominios de ``Domain._to_sql``, construidos con la ``Domain`` de cada árbol.
 DOMAINS = (
     ('condition', lambda D, m: D([('color', 'in', [5])])),
@@ -713,6 +735,34 @@ def _updated(model):
             model.browse(()).search_count([('name', '=', 'M')]))
 
 
+def _parent_records(model):
+    """Una raíz, su hija y un huérfano, para ``Many2one.condition_to_sql``."""
+    root = model.create({'name': f'{PARENT_PREFIX}root'})
+    child = model.create({'name': f'{PARENT_PREFIX}child', 'parent': root.id})
+    orphan = model.create({'name': f'{PARENT_PREFIX}orphan'})
+    return root | child | orphan
+
+
+def _many2one_selected(Domain, records, operator, build):
+    """Las filas que ``Many2one.condition_to_sql`` selecciona sobre ``parent``.
+
+    ``odoo19c: odoo/orm/fields_relational.py:480-537``: ``any``/``not any``
+    con un dominio del comodelo, con ``any!`` —que salta el acceso y puede
+    ir por ``LEFT JOIN``— y con una ``Query``; el resto va al cuerpo de
+    ``Field``. El valor ``Domain`` llega optimizado sobre el comodelo, como
+    exige la rama del ``LEFT JOIN``.
+    """
+    model = records.browse(())
+    query = records._as_query(ordered=False)
+    value = build(Domain, model, records)
+    sql = model._fields['parent'].condition_to_sql(
+        'parent', operator, value, model, query.table, query)
+    query.add_where(sql)
+    rows = model.env.execute_query(
+        query.select(model._field_to_sql(query.table, 'name', query)))
+    return sorted(name.removeprefix(PARENT_PREFIX) for name, in rows)
+
+
 def _domain_selected(Domain, records, build, optimize=True):
     """Las filas de ``records`` que ``Domain._to_sql`` selecciona.
 
@@ -910,6 +960,13 @@ def trace(Domain, model, model_name):
         (f'boolean condition_to_sql {operator} {value!r}',
          lambda case=(operator, value): _boolean_condition(model, *case))
         for operator, value in BOOLEAN_CONDITIONS
+    ]
+    parented = _parent_records(model)
+    steps += [
+        (f'many2one condition_to_sql {operator} {build.__name__}',
+         lambda case=(operator, build): _many2one_selected(
+             Domain, parented, *case))
+        for operator, build in MANY2ONE_CONDITIONS
     ]
     conditioned = _condition_records(model)
     steps += [
