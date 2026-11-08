@@ -1679,6 +1679,15 @@ class FieldDescriptor(DeferredAttribute):
             # que usa ``from_db``: el valor entra en caché, limpio.
             # ``:1708-1712`` — la fila ausente es ``MissingError``, no el
             # ``DoesNotExist`` con que Django responde a la recarga.
+            # ``:1697-1713`` lee con ``_fetch_field`` → ``fetch``, que exige
+            # ``check_access('read')`` (``models.py:3775-3818``): un registro
+            # que las reglas prohíben no se lee, y en modo superusuario sí.
+            # La recarga de Django no lo comprueba, así que se comprueba
+            # antes. Sólo sobre un recordset de ``BaseModel``, que es quien
+            # lleva el contrato; una fila de Django no tiene ``env``.
+            if (not environment.su and hasattr(instance, 'check_access')
+                    and getattr(instance, '_ids', None) is not None):
+                instance.check_access('read')
             building = instance.__dict__.get('_orm_building')
             instance.__dict__['_orm_building'] = True
             try:

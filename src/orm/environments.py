@@ -183,7 +183,8 @@ def get_current_user():
     uid = _uid.get()
     if uid is None:
         return None
-    return apps.get_model('base', 'ResUsers').objects.filter(pk=uid).first()
+    return as_current_user(
+        apps.get_model('base', 'ResUsers').objects.filter(pk=uid).first())
 
 
 def set_current_uid(uid):
@@ -1086,7 +1087,8 @@ class Environment:
         model = registry.MODELS_BY_NAME.get('res.users')
         if model is None:
             return None
-        return model.objects.filter(pk=self._uid_override).first()
+        return as_current_user(
+            model.objects.filter(pk=self._uid_override).first())
 
     # --- empresa, idioma, zona --------------------------------------------
 
@@ -2096,3 +2098,23 @@ def get_current_cr():
 #: El entorno del ``with`` más interno abierto en este alcance, o ``None``.
 #: Lo fija :meth:`Environment.__enter__` y lo lee :func:`env`.
 _active_env: ContextVar = ContextVar('active_env', default=None)
+
+
+#: La marca de fila que lleva la mitad ``su=True`` de ``env.user``.
+CURRENT_USER_SU = '_orm_su'
+
+
+def as_current_user(user):
+    """La fila de ``env.user``, con la elevación que la fuente le da.
+
+    ``env.user`` es ``self(su=True)['res.users'].browse(self.uid)``
+    (``odoo19c: odoo/orm/environments.py:208-213``): leer sus campos no
+    pasa por las reglas, tampoco los que hereda del partner por
+    ``_inherits`` —``env.user.tz``, ``env.user.lang``—. Una fila de Django
+    no tiene ``env`` donde guardar el ``su``, así que lo lleva como marca de
+    instancia, y la delegación de ``orm.inherits`` la lee. Sólo esta fila:
+    otra lectura del mismo usuario por id no está elevada, como allá.
+    """
+    if user is not None:
+        user.__dict__[CURRENT_USER_SU] = True
+    return user

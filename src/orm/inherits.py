@@ -73,6 +73,7 @@ a una raíz propia como ``src/core``— es la tarea **#121**.
 from django.apps import apps
 from django.db import transaction
 
+from orm.environments import CURRENT_USER_SU, is_su
 from orm.fields_relational import bypass_search_access
 from orm.registry import MODELS_BY_NAME
 from orm.utils import model_field_registry
@@ -116,6 +117,28 @@ def _delegable_field_names(delegate_model, delegant_cls):
         and not name.startswith('_')
         and name not in ('id', 'pk')
     )
+
+
+def _check_delegate_read(delegate):
+    """Las reglas del padre antes de entregar un campo heredado.
+
+    La copia que publica ``_add_inherited_fields`` lleva
+    ``related_sudo=False`` (``odoo19c: odoo/orm/model_classes.py:497``), así
+    que allá su ``related`` lee el padre como el usuario y ``fetch`` exige
+    ``check_access('read')`` (``models.py:3775-3818``). Aquí la fila del padre
+    llega entera por la FK y sus campos no pasan por ``fetch``: la
+    comprobación se hace en la puerta. Un recordset de ``BaseModel`` la
+    resuelve él; una fila de Django, el ``AccessQuerySet`` de su manager.
+    En modo superusuario no se comprueba nada, como allá.
+    """
+    if is_su() or delegate.pk is None:
+        return
+    if hasattr(delegate, 'check_access'):
+        delegate.check_access('read')
+        return
+    rows = type(delegate)._default_manager.filter(pk=delegate.pk)
+    if hasattr(rows, 'check_access'):
+        rows.check_access('read')
 
 
 class DelegatedFieldNames:
@@ -192,6 +215,8 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
         if name in type(self)._inherits_fields:
             delegate = getattr(self, fk_name, None)
             if delegate is not None:
+                if not self.__dict__.get(CURRENT_USER_SU):
+                    _check_delegate_read(delegate)
                 return getattr(delegate, name)
             return None
         # Un nombre que no se delega vuelve a la búsqueda normal, que relanza

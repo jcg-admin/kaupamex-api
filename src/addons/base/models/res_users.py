@@ -95,7 +95,7 @@ from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
 from orm import registry
-from orm.environments import get_current_company, get_current_user, is_su
+from orm.environments import get_current_company, get_current_user, is_su, sudo
 from orm.utils import SUPERUSER_ID
 
 #: ≙ el ``_logger`` de módulo que la referencia declara en la cabecera de
@@ -2177,10 +2177,14 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         if request is None:
             return
         tz = request.COOKIES.get('tz')
-        if tz and tz in available_timezones() and (
-                not user.tz or not user.logs.exists()):
-            user.tz = tz
-            user.save()
+        # ``_login`` trabaja con ``user.with_user(user).sudo()``
+        # (``odoo19c: odoo/addons/base/models/res_users.py:769-774``): el
+        # huso heredado del partner se lee y escribe elevado.
+        with sudo():
+            if tz and tz in available_timezones() and (
+                    not user.tz or not user.logs.exists()):
+                user.tz = tz
+                user.save()
 
     @classmethod
     def authenticate(cls, credential, user_agent_env):

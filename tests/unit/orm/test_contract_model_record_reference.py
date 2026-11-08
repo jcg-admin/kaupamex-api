@@ -17,6 +17,8 @@ import pathlib
 import pytest
 from django.apps import apps
 
+from orm.environments import sudo
+
 from tests.fixtures import model_record_grid, reference_process
 
 pytestmark = [pytest.mark.reference, pytest.mark.django_db]
@@ -32,9 +34,15 @@ def reference_trace():
 
 
 def _ours():
+    """La referencia corre como ``admin`` (modo ``'user'``), que tiene la
+    ACL de ``ir.attachment``. Este árbol no siembra usuarios, y sin actor la
+    lectura de la base comprueba la ACL como ``fetch`` (TASK-API-0182) y
+    deniega: el paso del id inexistente lo medía. El equivalente del actor
+    con acceso es el bloque elevado."""
     model = next(model for model in apps.get_models()
                  if getattr(model, '_name', None) == MODEL)
-    return model_record_grid.trace(None, model, MODEL)
+    with sudo():
+        return model_record_grid.trace(None, model, MODEL)
 
 
 def test_the_trace_matches_the_reference(reference_trace):

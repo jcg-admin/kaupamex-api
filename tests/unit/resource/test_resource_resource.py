@@ -19,8 +19,19 @@ from addons.resource.models import (
     ResourceMixin,
     ResourceResource,
 )
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _elevated():
+    """Leer por ``res.users`` o ``website.page`` un campo heredado aplica
+    las reglas del padre como la fuente (TASK-API-0182); sin usuario en
+    contexto la ACL deniega. Este módulo mide otra semántica y corre
+    elevado, como las pruebas de la fuente, que usan ``SUPERUSER_ID``."""
+    with sudo():
+        yield
 
 
 @pytest.fixture

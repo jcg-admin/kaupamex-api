@@ -35,7 +35,8 @@ from tests.fixtures import reference_tree
 
 VARIABLES = ('CONTRACT_REFERENCE_PYTHON', 'CONTRACT_REFERENCE_DATABASE',
              'CONTRACT_REFERENCE_DATA_DIR')
-DRIVER = pathlib.Path(__file__).with_name('reference_model_trace.py')
+FIXTURES = pathlib.Path(__file__).parent
+DRIVER = FIXTURES / 'reference_model_trace.py'
 #: Una rejilla de un modelo tarda segundos; el tope sólo corta un bloqueo.
 TIMEOUT = 600
 
@@ -87,6 +88,27 @@ def trace(grid_path, model_name, mode, context=None):
                os.environ['CONTRACT_REFERENCE_DATABASE'],
                os.environ['CONTRACT_REFERENCE_DATA_DIR'], str(grid_path),
                model_name, mode, json.dumps(context or {})]
+    done = subprocess.run(command, capture_output=True, text=True,
+                          env=environment, timeout=TIMEOUT, check=False)
+    assert done.returncode == 0, done.stderr[-2000:]
+    return json.loads(done.stdout)
+
+
+def run_script(script):
+    """La salida JSON de un guion de referencia autocontenido.
+
+    El guion recibe la raíz del árbol, la base y el ``data_dir``, igual que
+    :data:`DRIVER`, y corre con el mismo aislamiento (``-I -B``) y las mismas
+    credenciales por entorno. Es la forma para un escenario que no cabe en
+    una rejilla de un solo modelo, como el de reglas de acceso.
+    """
+    environment = {'PATH': os.environ['PATH'],
+                   'PYTHONDONTWRITEBYTECODE': '1',
+                   **_database_environment()}
+    command = [os.environ['CONTRACT_REFERENCE_PYTHON'], '-I', '-B',
+               str(script), str(reference_tree.reference_root()),
+               os.environ['CONTRACT_REFERENCE_DATABASE'],
+               os.environ['CONTRACT_REFERENCE_DATA_DIR']]
     done = subprocess.run(command, capture_output=True, text=True,
                           env=environment, timeout=TIMEOUT, check=False)
     assert done.returncode == 0, done.stderr[-2000:]

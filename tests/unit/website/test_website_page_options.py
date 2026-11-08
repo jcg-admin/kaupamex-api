@@ -28,6 +28,18 @@ from addons.website.models.mixins import (
 )
 from addons.website.models.website import Website
 from addons.website.models.website_page import WebsitePage
+from orm.environments import sudo
+
+
+@pytest.fixture(autouse=True)
+def _elevated():
+    """Leer por ``res.users`` o ``website.page`` un campo heredado aplica
+    las reglas del padre como la fuente (TASK-API-0182); sin usuario en
+    contexto la ACL deniega. Este módulo mide otra semántica y corre
+    elevado, como las pruebas de la fuente, que usan ``SUPERUSER_ID``."""
+    with sudo():
+        yield
+
 
 #: Los cinco campos del par, en el orden en que la fuente los declara
 #: (``:165-166`` el pequeño, ``:174-176`` el grande). Es la misma lista que

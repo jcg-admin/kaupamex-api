@@ -455,11 +455,16 @@ class IrRule(TimeStampedModel):
         Quien la invalida son :meth:`save` y :meth:`delete` de esta clase, más
         el invalidador del grafo de grupos de ``res_users``.
         """
+        # ``:144-150`` — las reglas de los modelos padre de ``_inherits``,
+        # re-enraizadas bajo la FK delegante: un hijo cuyo padre está
+        # prohibido tampoco se lee. Sólo si la FK es columna (``store``).
+        global_domains = list(cls._parent_rule_domains(
+            model_name, mode=mode, group_ids=group_ids, user=user))
+
         eval_context = cls._eval_context(user=user)
         rules = cls._get_rules(model_name, mode=mode, group_ids=group_ids)
         user_groups = set(group_ids)
 
-        global_domains = []
         group_domains = []
         for rule in rules:
             rule_groups = set(rule.groups.values_list('pk', flat=True))
@@ -483,6 +488,37 @@ class IrRule(TimeStampedModel):
         for domain in global_domains:
             result &= domain
         return result
+
+    @classmethod
+    def _parent_rule_domains(cls, model_name, mode='read', group_ids=(),
+                             user=None):
+        """Los dominios de los padres ``_inherits`` de ``model_name`` —
+        ``odoo19c: odoo/addons/base/models/ir_rule.py:144-150``.
+
+        La fuente arma ``Domain(parent_field_name, 'any', domain)``. El
+        equivalente con un ``Q`` es ``<fk>__in`` sobre la subconsulta del
+        padre filtrada por su dominio, leída con el manager sin filtrar: un
+        ``Q`` puede llevar expresiones (``Exists``, ``OuterRef``) que no se
+        re-enraízan prefijando la clave. Un padre sin reglas no aporta nada,
+        como allá (``if domain := …``).
+        """
+        try:
+            model = apps.get_model(model_name)
+        except (LookupError, ValueError):
+            return
+        for parent_name, fk_name in (getattr(model, '_inherits', None)
+                                     or {}).items():
+            parent = registry.MODELS_BY_NAME.get(parent_name)
+            fk = next((field for field in model._meta.concrete_fields
+                       if fk_name in (field.name, field.attname)), None)
+            if parent is None or fk is None:
+                continue
+            domain = cls._compute_domain(
+                parent._meta.label, mode=mode, group_ids=group_ids,
+                user=user)
+            if domain:
+                yield models.Q(**{f'{fk.name}__in': parent._base_manager
+                                  .filter(domain).values('pk')})
 
     @classmethod
     def _get_failing(cls, queryset, mode='read', group_ids=(), user=None):
@@ -647,7 +683,8 @@ class IrRule(TimeStampedModel):
 
         if cls._may_see_the_detail(actor):
             failing_records = '\n'.join(
-                f'- {cls._describe_record(rec, description, model, company_related, actor)}'
+                '- ' + cls._describe_record(
+                    rec, description, model, company_related, actor)
                 for rec in display_records
             )
             blame = RULE_ERROR_BLAME % {
@@ -796,3 +833,4 @@ class RuleScopedManager(models.AccessManager):
             user=user,
         )
         return self.get_queryset().filter(domain)
+

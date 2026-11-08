@@ -5405,6 +5405,18 @@ def _forward_get(self, instance, cls=None):
         # leído sobre un recordset vacío, el valor nulo del campo: otra vez
         # el recordset vacío del comodelo, sin consultar la base
         return comodel._from_ids(env(), (), ())
+    if (ids and self.field.concrete
+            and all(isinstance(id_, int) for id_ in ids)
+            and self.field.attname not in instance.__dict__
+            and hasattr(instance, 'check_access') and not env().su
+            and not set(ids) <= set(self.field._get_cache(env()))):
+        # Fallo de caché de la clave —ni en el almacén de Django ni en la
+        # caché del campo— sobre registros persistidos, uno o varios. Allá
+        # se lee con ``fetch``, que exige ``check_access('read')`` sobre el
+        # recordset entero (``odoo19c: odoo/orm/models.py:3775-3818``); un
+        # acierto no comprueba. Un hijo cuyo padre prohíben las reglas no lee
+        # ni su propia clave.
+        instance.check_access('read')
     if ids is None or len(ids) <= 1 or not to_records:
         value = _DJANGO_FORWARD_GET(self, instance, cls)
         # ≙ ``Many2one.convert_to_record`` (``odoo19c: odoo/orm/

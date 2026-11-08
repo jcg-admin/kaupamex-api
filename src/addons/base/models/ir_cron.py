@@ -199,7 +199,7 @@ from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import LockError, UserError
-from orm.environments import context_scope, get_context, user_scope
+from orm.environments import context_scope, get_context, sudo, user_scope
 from tools.constants import GC_UNLINK_LIMIT
 
 _logger = logging.getLogger(__name__)
@@ -361,7 +361,12 @@ def _resolve_tz(user=None):
     """
     name = get_context().get('tz')
     if not name and user is not None:
-        name = getattr(user, 'tz', '') or ''
+        # ``Environment.tz`` lee ``self.user.tz`` y ``env.user`` es siempre
+        # el usuario en modo superusuario (``odoo19c: odoo/orm/
+        # environments.py:208-213``): el huso no pasa por las reglas del
+        # partner del que ``res.users`` lo hereda.
+        with sudo():
+            name = getattr(user, 'tz', '') or ''
     if name:
         try:
             return ZoneInfo(name)
