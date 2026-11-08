@@ -232,7 +232,8 @@
   "models-sql-error-to-message-generic-0485",
   "models-export-data-0485",
   "web-export-delegates-export-data-0503",
-  "orm-fields-condition-to-sql-0485"
+  "orm-fields-condition-to-sql-0485",
+  "base-res-groups-disjoint-user-types-0182"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
