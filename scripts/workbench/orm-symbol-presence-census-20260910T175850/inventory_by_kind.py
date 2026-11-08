@@ -21,7 +21,8 @@ PRINCIPAL sigue la regla de la adenda contractual (§26) y es excluyente:
 
 ``satisfied``
     Coincidencia estructural y de firma, ningun desacuerdo de cuerpo y
-    evidencia de COMPORTAMIENTO registrada en ``outputs/verified_contracts.tsv``
+    evidencia de COMPORTAMIENTO registrada en
+    ``outputs/verified_contracts.tsv``
     (un caso de prueba por simbolo). La coincidencia sola no basta.
 ``divergent``
     Diferencia de cuerpo DEMOSTRADA: un hallazgo del eje ``write_path`` del
@@ -32,7 +33,8 @@ PRINCIPAL sigue la regla de la adenda contractual (§26) y es excluyente:
     ``addons``), no solo en el archivo espejo.
 ``not_verified``
     Lo demas: firma distinta, disolucion en ``_field_*``, contraparte con otra
-    duena (``paired_by_name``), homonimo, o coincidencia sin evidencia. Son
+    duena (``paired_by_name``), atributo instalado por el espejo en otra clase
+    (``installed_elsewhere``), homonimo, o coincidencia sin evidencia. Son
     diferencias o semejanzas cuyas consecuencias faltan por medir.
 
 Los ejes (estructural, ``write_path``, evidencia) quedan como evidencia
@@ -293,11 +295,18 @@ def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None,
                 file_rows.append((record['kind'], qualified, category, reason))
             reference_attributes = class_attributes(reference_file)
             our_attributes = class_attributes(our_file) if exists else {}
+            # Lo que el propio espejo instala en otra clase (H-API-1177): una
+            # base abstracta de la referencia, como ``_Relational``, no existe
+            # en el puerto, que instala sus atributos en sus propias clases.
+            installed_here = installed_names(our_file) if exists else set()
             for (owner, name), value in sorted(reference_attributes.items()):
                 qualified = f'{owner}.{name}'
                 if (owner, name) in our_attributes:
-                    structural = ('match' if our_attributes[(owner, name)] == value
-                                  else 'value')
+                    structural = (
+                        'match' if our_attributes[(owner, name)] == value
+                        else 'value')
+                elif name in installed_here:
+                    structural = 'installed_elsewhere'
                 else:
                     structural = 'unresolved'
                 test = evidence.get((module, qualified, 'attribute'), '')
@@ -305,7 +314,8 @@ def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None,
                                      owner in known
                                      or f'{owner}.{name}' in known)
                 file_rows.append(('attribute', qualified, category,
-                                  f'structural={structural};write_path=-;evidence={test or "-"}'))
+                                  f'structural={structural};write_path=-;'
+                                  f'evidence={test or "-"}'))
             categories = {row[2] for row in file_rows}
             if not exists and categories <= {'absent'}:
                 file_category = 'absent'
@@ -317,7 +327,8 @@ def inventory(roots=_census.CENSUS_ROOTS, revision='-', known=None,
                 file_category = 'not_verified'
             rows.append((revision, module, '', 'file', file_category,
                          f'mirror={"yes" if exists else "no"}'))
-            rows.extend((revision, module, q, k, c, r) for k, q, c, r in file_rows)
+            rows.extend((revision, module, q, k, c, r)
+                        for k, q, c, r in file_rows)
     return rows
 
 

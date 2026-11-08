@@ -230,3 +230,31 @@ def test_an_attribute_installed_on_its_class_is_not_absent(
 
     assert category(set()) == 'absent'
     assert category({'Field.store'}) == 'not_verified'
+
+
+def test_an_attribute_installed_in_a_loop_over_port_classes_is_located(
+        tmp_path, monkeypatch):
+    """H-API-1177: ``_Relational`` es una base abstracta de la referencia
+    que el puerto no tiene; sus atributos se instalan en un bucle sobre las
+    clases de campo del puerto. El dueño que el censo ve es la variable del
+    bucle, nunca ``_Relational``, y la implementación localizada salía
+    ``absent``. Instalada en el propio espejo, es presencia en otra clase:
+    ``not_verified`` con ``installed_elsewhere``, nunca ``satisfied`` sin
+    coincidencia estructural."""
+    reference, ours = tmp_path / 'ref', tmp_path / 'ours'
+    reference.mkdir(parents=True), ours.mkdir(parents=True)
+    (reference / 'fields_relational.py').write_text(
+        'class _Relational:\n    context = {}\n    domain = []\n')
+    (ours / 'fields_relational.py').write_text(
+        'class A:\n    pass\n\n\nclass B:\n    pass\n\n\n'
+        'for _cls in (A, B):\n    _cls.context = property(lambda s: {})\n')
+    monkeypatch.setattr(inv._census, 'MIRRORED_ROOTS',
+                        (('x', ours, reference),))
+    rows = {r[2]: (r[4], r[5]) for r in inv.inventory(
+        ('x',), 'rev', known=set(),
+        evidence={('x/fields_relational.py', '_Relational.context',
+                   'attribute'): 'case'})}
+    category, reason = rows['_Relational.context']
+    assert category == 'not_verified'
+    assert 'structural=installed_elsewhere' in reason
+    assert rows['_Relational.domain'][0] == 'absent'
