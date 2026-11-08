@@ -856,6 +856,40 @@ def _selection_modules(model):
                    in field._selection_modules(base).items()))
 
 
+#: Campos relacionales presentes en las dos copias de ``test_orm``.
+#:
+#: ``participants`` apunta a ``res.users``, que en la fuente hereda
+#: ``parent_id`` de ``res.partner`` por ``_inherits``: su
+#: ``allow_hierachy_operators`` depende de que ``_fields`` incluya los campos
+#: delegados (``model_classes._add_inherited_fields``, ``odoo19c: odoo/orm/
+#: model_classes.py``), que es la unidad siguiente. Hasta entonces se compara
+#: sin esa clave.
+RELATIONAL_DESCRIPTIONS = (
+    ('test_orm.category', 'parent'),
+    ('test_orm.discussion', 'participants', ('allow_hierachy_operators',)),
+    ('test_orm.discussion', 'messages'),
+    ('test_orm.discussion', 'important_messages'),
+    ('test_orm.discussion', 'categories'),
+    ('test_orm.multi', 'tags'),
+    ('test_orm.model_child', 'parent_id'),
+    ('test_orm.model_child', 'parent_ids'),
+    ('test_orm.model_child_nocheck', 'parent_id'),
+)
+
+
+def _relational_description(model, model_name, field_name, skipped=()):
+    """Lo que ``get_description`` publica de un campo relacional
+    (``odoo19c: odoo/orm/fields_relational.py:127-171``, ``:901``,
+    ``:924-929``): el comodelo, el contexto, el dominio —con la rama de
+    ``check_company``—, si admite ``child_of``/``parent_of`` y el inverso."""
+    records = model.browse(()).env[model_name].browse(())
+    keys = [key for key in ('relation', 'domain', 'context',
+                            'allow_hierachy_operators', 'relation_field')
+            if key not in skipped]
+    return sorted(records._fields[field_name].get_description(
+        records.env, keys).items())
+
+
 def _multi_records(discussions):
     """Las dos discusiones sembradas y una sin mensajes ni categorías."""
     Discussion = discussions.browse(())
@@ -1146,6 +1180,11 @@ def trace(Domain, model, model_name):
              _mixed(model))),
         ('numeric rounding', lambda: _numeric_rounding(model)),
         ('selection modules', lambda: _selection_modules(model)),
+    ]
+    steps += [
+        (f'relational description {case[0]}.{case[1]}',
+         lambda case=case: _relational_description(model, *case))
+        for case in RELATIONAL_DESCRIPTIONS
     ]
     multi = _multi_records(discussions)
     builders = {'false': lambda D, m, r: [False],

@@ -67,6 +67,7 @@ from orm.models import (
     CheckCompanyMixin,
     _company_ids,
     _first_field_name,
+    to_q,
 )
 
 pytestmark = pytest.mark.django_db
@@ -124,7 +125,7 @@ class TestTheComodelPredicate:
         owned = CrmTeam.objects.create(name='De ACME', company_id=acme)
         got = set(
             CrmTeam.objects.filter(
-                CrmTeam._check_company_domain(None)
+                to_q(CrmTeam._check_company_domain(None), CrmTeam)
             ).values_list('pk', flat=True)
         )
         assert got == {shared.pk}
@@ -139,7 +140,7 @@ class TestTheComodelPredicate:
         theirs = CrmTeam.objects.create(name='De Globex', company_id=globex)
         got = set(
             CrmTeam.objects.filter(
-                CrmTeam._check_company_domain([acme])
+                to_q(CrmTeam._check_company_domain([acme]), CrmTeam)
             ).values_list('pk', flat=True)
         )
         assert got == {shared.pk, mine.pk}

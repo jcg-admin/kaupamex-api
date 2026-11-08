@@ -233,7 +233,8 @@ class AccountJournal(models.Model):
             return None
         domain = cls._check_company_domain(company)
         queryset = (
-            cls.objects.all() if domain is None else cls.objects.filter(domain)
+            cls.objects.all() if domain is None
+            else cls.objects.filter(models.to_q(domain, cls))
         )
         existing_codes = set(
             queryset.filter(code__startswith=journal_code_base).values_list(

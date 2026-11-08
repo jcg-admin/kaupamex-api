@@ -66,6 +66,7 @@ Divergencias declaradas
 
 from django.apps import apps
 
+from orm.domains import to_q
 from orm.environments import get_current_company
 from orm.model_classes import extend_model
 
@@ -92,7 +93,7 @@ def _compute_has_foreign_fiscal_position(country):
     )
     predicate = fiscal_position._check_company_domain(get_current_company())
     if predicate is not None:
-        queryset = queryset.filter(predicate)
+        queryset = queryset.filter(to_q(predicate, fiscal_position))
     return queryset.exists()
 
 

@@ -1381,18 +1381,19 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         usuario la pregunta correcta es por ``company_ids``: el usuario es
         válido si **alguna** de sus empresas permitidas está en el conjunto.
 
-        Sin empresas que exigir, la fuente devuelve ``Domain.TRUE``; el
-        equivalente es un ``Q()`` vacío, que Django trata como «sin filtro».
+        Sin empresas que exigir devuelve ``Domain.TRUE``, verbatim; un
+        ``str`` es el dominio simbólico que publica la descripción del campo.
+        Quien filtra un ``QuerySet`` lo compila con ``models.to_q``.
         """
         if not companies:
-            return Q()
+            return models.Domain.TRUE
         if isinstance(companies, str):
-            ids = [companies]
+            company_ids = companies
         elif hasattr(companies, 'values_list'):
-            ids = list(companies.values_list('pk', flat=True))
+            company_ids = list(companies.values_list('pk', flat=True))
         else:
-            ids = [getattr(c, 'pk', c) for c in companies]
-        return Q(company_ids__in=ids)
+            company_ids = [getattr(c, 'pk', c) for c in companies]
+        return models.Domain('company_ids', 'in', company_ids)
 
     # ------------------------------------------------------------------
     # El punto de enganche de la cuenta propia — ``odoo19c: res_users.py:

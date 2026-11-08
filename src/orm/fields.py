@@ -5436,3 +5436,13 @@ def _field_sequence(self):
 
 
 models.Field._sequence = property(_field_sequence)
+
+
+#: El protocolo de descripción en las dos formas relacionales que no heredan
+#: de ``models.Field``: el ``One2many`` declarado y la relación inversa de
+#: Django, que responden en ``_fields`` por un x2many de la fuente. Sin él,
+#: ``fields_get`` no podía describirlos (``odoo19c: :872-900``).
+for _relational_form in (One2many, ForeignObjectRel):
+    _relational_form.description_attrs = _DerivedFromPrefix(
+        '_description_', 'description_attrs')
+    _relational_form.get_description = _field_get_description

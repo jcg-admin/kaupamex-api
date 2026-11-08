@@ -203,7 +203,7 @@ def test_the_system_logins_cannot_be_deleted(db, login):
 
 def test_an_empty_company_set_filters_nothing(db):
     """≙ ``Domain.TRUE`` (``:170-171``) — sin empresas, no hay que exigir."""
-    assert ResUsers._check_company_domain(None).children == []
+    assert ResUsers._check_company_domain(None).is_true()
 
 
 def test_the_group_ids_include_the_implied_ones(db):

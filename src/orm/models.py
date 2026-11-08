@@ -112,7 +112,7 @@ from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
 from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
-                        split_every, unique)
+                        split_every, unique, unquote)
 from tools.query import Query
 from tools.sql import SQL
 from tools.i18n import format_list
@@ -1485,14 +1485,13 @@ class CheckCompanyMixin:
     proyecto— con el mismo valor por defecto. Un modelo lo enciende declarando
     ``_check_company_auto = True``, exactamente como la fuente.
 
-    **Qué NO se porta, y no es olvido.** ``_description_domain``
-    (``odoo19c: odoo/orm/fields_relational.py:131-157``) usa la misma marca
-    para acotar el *selector* del widget: construye una cadena de dominio que
-    consume ``fields_get`` y la interpreta el cliente web. Este stack no tiene
-    esa capa (DEC-FW-01: API DRF + UI propia, sin vistas XML), así que no hay
-    destinatario para esa cadena. El acotamiento del selector, donde importa,
-    se declara con ``limit_choices_to`` en el campo — que es el constructor de
-    Django para el mismo papel y ya se usa así en el árbol.
+    ``_description_domain`` (``odoo19c: odoo/orm/fields_relational.py:
+    130-158``) usa la misma marca para acotar el *selector*: con
+    ``check_company`` publica en ``fields_get`` el dominio de coherencia que
+    construye :meth:`_check_company_domain` sobre un valor simbólico
+    (``unquote``). Vive en ``orm/fields_relational.py``. La interfaz del
+    árbol puede pintar las vistas como la referencia, servidas por DRF, y esa
+    descripción es su insumo.
 
     ``check_company`` sobre un ``One2many`` (5 en la referencia) tampoco tiene
     sitio de declaración: aquí un One2many es el reverso de una FK
@@ -1515,12 +1514,12 @@ class CheckCompanyMixin:
         registro vale si es de alguna de esas empresas **o si no es de
         ninguna**, que es como se expresa «compartido entre todas».
 
-        Se devuelve un ``Q`` en vez de un ``Domain`` porque el consumidor es
-        un ``QuerySet``. ``ResUsers`` ya redefine este método con esa misma
-        firma (``src/addons/base/models/res_users.py:1369``), que es el
-        precedente de forma; allá lo redefine por el mismo motivo — para un
-        usuario la pregunta correcta es por sus empresas permitidas, no por
-        su empresa por defecto.
+        Devuelve el ``Domain`` de la fuente, verbatim, incluida la rama
+        ``unquote``: con ella ``Relational._description_domain`` publica el
+        dominio simbólico ``[company_id] + [False]`` que el cliente evalúa.
+        El campo se nombra por su ``attname`` (``company_id``), el nombre de
+        la fuente, aunque aquí el campo se declare ``company``. Quien filtra
+        un ``QuerySet`` lo compila con :func:`~orm.domains.to_q`.
 
         Un modelo sin campo de empresa no tiene con qué discriminar: devuelve
         ``None``, y quien llama lo lee como «este comodelo no participa».
@@ -1528,10 +1527,12 @@ class CheckCompanyMixin:
         name = _first_field_name(cls, COMPANY_FIELD_NAMES)
         if name is None:
             return None
-        ids = _company_ids(companies)
-        if not ids:
-            return Q(**{f'{name}__isnull': True})
-        return Q(**{f'{name}__in': ids}) | Q(**{f'{name}__isnull': True})
+        fname = cls._meta.get_field(name).attname
+        if not companies:
+            return Domain(fname, '=', False)
+        if isinstance(companies, unquote):
+            return Domain(fname, 'in', unquote(f'{companies} + [False]'))
+        return Domain(fname, 'in', _company_ids(companies) + [False])
 
     def _check_company(self, fnames=None):
         """Verifica la empresa de lo que apuntan los campos marcados.
@@ -1632,7 +1633,7 @@ class CheckCompanyMixin:
             if domain is None:
                 continue
             validos = set(comodel._base_manager.filter(
-                domain, pk__in=[c.pk for c in corecords],
+                to_q(domain, comodel), pk__in=[c.pk for c in corecords],
             ).values_list('pk', flat=True))
             if any(c.pk not in validos for c in corecords):
                 fuera.append((self, name, corecords))
@@ -1752,27 +1753,20 @@ def check_company_domain_parent_of(cls, companies):
     parametro se llama ``cls`` y no ``self`` porque en este arbol el consumidor
     (:meth:`CheckCompanyMixin._check_company`) lo invoca sobre la clase.
 
-    Devuelve un ``Q`` y no un ``Domain`` por la misma razon que su hermano de
-    clase: el consumidor es un ``QuerySet``.
-
-    La rama ``isinstance(companies, str)`` de la fuente —el dominio simbolico
-    ``('company_id', 'parent_of', companies)``— **no se porta**: aqui el
-    operador ``parent_of`` sobre un nombre de campo es la tarea **#235**, y
-    hasta que exista un ``Q`` no puede expresarlo. Un ``str`` levanta
-    ``TypeError`` en vez de devolver un predicado que no discrimina.
+    Devuelve el dominio de la fuente, verbatim, como su hermano de clase;
+    quien filtra un ``QuerySet`` lo compila con :func:`~orm.domains.to_q`.
+    La rama ``str`` es el dominio simbolico que publica
+    ``Relational._description_domain`` y no se evalua aqui.
     """
-    if isinstance(companies, str):
-        raise TypeError(
-            'check_company_domain_parent_of no acepta un dominio simbolico: '
-            'el operador parent_of sobre un nombre de campo es la tarea #235'
-        )
     name = _first_field_name(cls, COMPANY_FIELD_NAMES)
     if name is None:
         return None
-    ids = _ancestor_company_ids(companies)
-    if not ids:
-        return Q(**{f'{name}__isnull': True})
-    return Q(**{f'{name}__in': ids}) | Q(**{f'{name}__isnull': True})
+    fname = cls._meta.get_field(name).attname
+    if isinstance(companies, str):
+        return ['|', (fname, '=', False), (fname, 'parent_of', companies)]
+    if not _company_ids(companies):
+        return [(fname, '=', False)]
+    return [(fname, 'in', _ancestor_company_ids(companies) + [False])]
 
 
 def check_companies_domain_parent_of(cls, companies):
@@ -1790,18 +1784,14 @@ def check_companies_domain_parent_of(cls, companies):
     M2M no entra en el dominio. Se conserva: ``None`` significa «este modelo no
     participa», que es otra cosa.
     """
-    if isinstance(companies, str):
-        raise TypeError(
-            'check_companies_domain_parent_of no acepta un dominio simbolico: '
-            'el operador parent_of sobre un nombre de campo es la tarea #235'
-        )
     name = _first_field_name(cls, COMPANIES_FIELD_NAMES)
     if name is None:
         return None
-    ids = _ancestor_company_ids(companies)
-    if not ids:
-        return Q()
-    return Q(**{f'{name}__in': ids})
+    if isinstance(companies, str):
+        return [(name, 'parent_of', companies)]
+    if not _company_ids(companies):
+        return []
+    return [(name, 'in', _ancestor_company_ids(companies))]
 
 
 def _corecords(record, name):

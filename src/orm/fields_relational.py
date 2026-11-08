@@ -115,13 +115,13 @@ from orm.fields_nonstored import (
 )
 from exceptions import MissingError
 from orm.identifiers import NewId
-from orm.model_classes import is_transient
+from orm.model_classes import _logger, is_transient
 from orm.registry import (IR_MODELS, field_inverses, is_not_null,
                           model_by_key, model_by_name, name_of,
                           sentinel_label)
 from orm.utils import (COLLECTION_TYPES, display_name_of,
                        model_field_registry, model_of, record_ids)
-from tools.misc import SENTINEL, OrderedSet, unique
+from tools.misc import SENTINEL, OrderedSet, unique, unquote
 from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access',
@@ -2393,3 +2393,152 @@ for _m2m in (models.ManyToManyField, models.ManyToManyRel):
     _m2m.condition_to_sql = _multi_condition_to_sql
     _m2m._get_query_for_condition_value = _multi_get_query_for_condition_value
     _m2m._condition_to_sql_relational = _many2many_condition_to_sql_relational
+
+
+# ---------------------------------------------------------------------------
+# La descripción del campo relacional — ≙ ``odoo19c: odoo/orm/
+# fields_relational.py:111-171`` y ``:924-929``. ``fields_get`` la publica
+# con ``get_description``: el comodelo, el contexto, el dominio que acota el
+# selector —con la rama de ``check_company``— y si ``child_of``/``parent_of``
+# tienen sentido. La consume la interfaz, y la del árbol puede pintar las
+# vistas como lo hace la referencia a partir de esta misma descripción.
+# ---------------------------------------------------------------------------
+
+def _relational_related_domain(self):
+    """≙ ``_related_domain`` (``:111-123``): el dominio que hereda un campo
+    ``related``; uno en texto sólo vale en el modelo que lo declara."""
+    def validated(domain):
+        if isinstance(domain, str) and not self.inherited:
+            # una expresión en texto no es válida en el modelo de ``self``
+            return None
+        return domain
+
+    if callable(self.domain):
+        # se llamará con otro modelo que el de ``self``
+        return lambda recs: validated(
+            self.domain(recs.env[self.model_name]))
+    return validated(self.domain)
+
+
+def _context_of(field):
+    """≙ ``property(attrgetter('context'))`` (``:125``, ``:128``)."""
+    return field.context
+
+
+def _comodel_name_of(field):
+    """≙ ``property(attrgetter('comodel_name'))`` (``:127``)."""
+    return field.comodel_name
+
+
+def _relational_description_domain(self, env):
+    """≙ ``_description_domain`` (``:130-158``).
+
+    El dominio declarado y, con ``check_company``, el de coherencia de
+    empresa que construye ``_check_company_domain`` del comodelo sobre un
+    valor simbólico (``unquote``): el cliente lo evalúa con el registro que
+    edita.
+    """
+    domain = self._internal_description_domain_raw(env)
+    if self.check_company:
+        field_to_check = None
+        model = env[self.model_name].browse(())
+        if self.company_dependent:
+            cids = '[allowed_company_ids[0]]'
+        elif self.model_name == 'res.company':
+            # en ``res.company`` la empresa es el propio registro
+            cids = '[id]'
+        elif 'company_id' in model:
+            cids = '[company_id]'
+            field_to_check = 'company_id'
+        elif 'company_ids' in model:
+            cids = 'company_ids'
+            field_to_check = 'company_ids'
+        else:
+            _logger.warning(
+                "Couldn't generate a company-dependent domain for field "
+                "%s. The model doesn't have a 'company_id' or 'company_ids' "
+                "field, and isn't company-dependent either.",
+                self.model_name + '.' + self.name,
+            )
+            return domain
+        comodel = env[self.comodel_name]
+        company_domain = comodel._check_company_domain(
+            companies=unquote(cids))
+        if not field_to_check:
+            return f"{company_domain} + {domain or []}"
+        no_company_domain = comodel._check_company_domain(companies='')
+        return (f"({field_to_check} and {company_domain} or "
+                f"{no_company_domain}) + ({domain or []})")
+    return domain
+
+
+def _relational_description_allow_hierachy_operators(self, env):
+    """≙ ``_description_allow_hierachy_operators`` (``:160-163``) — «Return
+    if the child_of/parent_of makes sense on this field»."""
+    comodel = env[self.comodel_name]
+    # ``_parent_name`` vale ``'parent_id'`` en todo modelo de la fuente
+    # (``odoo19c: odoo/orm/models.py``); aquí lo declara ``BaseModel``, y un
+    # modelo de Django ajeno a esa base toma el mismo defecto.
+    return getattr(comodel, '_parent_name', 'parent_id') in comodel._fields
+
+
+def _relational_internal_description_domain_raw(self, env):
+    """≙ ``_internal_description_domain_raw`` (``:165-171``)."""
+    domain = self.domain
+    if callable(domain):
+        domain = domain(env[self.model_name])
+    if isinstance(domain, _DOMAIN_CLASS[0]):
+        domain = list(domain)
+    return domain or []
+
+
+def _one2many_internal_description_domain_raw(self, env):
+    """≙ ``One2many._internal_description_domain_raw`` (``:924-929``): el
+    dominio declarado más el del inverso polimórfico."""
+    domain = _relational_internal_description_domain_raw(self, env)
+    additional_domain = _domain(self._additional_domain(env))
+    if additional_domain.is_true():
+        return domain
+    return f"({domain}) + ({additional_domain})"
+
+
+#: ≙ los defectos de clase de ``_Relational`` (``:36-39``).
+for _relational_class in (models.ForeignKey, models.ManyToManyField):
+    for _attribute, _default in (('domain', []), ('context', {}),
+                                 ('check_company', False)):
+        if not hasattr(_relational_class, _attribute):
+            setattr(_relational_class, _attribute, _default)
+for _attribute, _default in (('check_company', False),
+                             ('company_dependent', False)):
+    if not hasattr(One2many, _attribute):
+        setattr(One2many, _attribute, _default)
+
+#: La relación inversa de Django (``ForeignObjectRel``) responde en
+#: ``_fields`` por el x2many que la fuente declara en este lado: su comodelo
+#: es el modelo que declara la FK o el M2M, y su modelo, el apuntado.
+for _attribute, _default in (('domain', []), ('context', {}),
+                             ('check_company', False),
+                             ('company_dependent', False)):
+    if not hasattr(models.ForeignObjectRel, _attribute):
+        setattr(models.ForeignObjectRel, _attribute, _default)
+if not hasattr(models.ForeignObjectRel, 'comodel_name'):
+    models.ForeignObjectRel.comodel_name = property(
+        lambda self: getattr(self.related_model, '_name', None))
+if not hasattr(models.ForeignObjectRel, 'model_name'):
+    models.ForeignObjectRel.model_name = property(
+        lambda self: getattr(self.model, '_name', None))
+
+for _relational_class in (models.ForeignKey, models.ManyToManyField,
+                          One2many, models.ForeignObjectRel):
+    _relational_class._related_domain = property(_relational_related_domain)
+    #: ≙ ``:125-128``.
+    _relational_class._related_context = property(_context_of)
+    _relational_class._description_relation = property(_comodel_name_of)
+    _relational_class._description_context = property(_context_of)
+    _relational_class._description_domain = _relational_description_domain
+    _relational_class._description_allow_hierachy_operators = (
+        _relational_description_allow_hierachy_operators)
+    _relational_class._internal_description_domain_raw = (
+        _relational_internal_description_domain_raw)
+One2many._internal_description_domain_raw = (
+    _one2many_internal_description_domain_raw)
