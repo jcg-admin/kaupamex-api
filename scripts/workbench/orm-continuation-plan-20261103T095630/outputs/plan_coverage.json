@@ -102,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 54,
+  "task_units_settled": 55,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1489
+  "task_without_unit": 1488
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -239,7 +239,8 @@
   "orm-boolean-condition-to-sql-0485",
   "orm-domains-to-sql-0485",
   "orm-many2one-condition-to-sql-0485",
-  "orm-relational-multi-condition-to-sql-0485"
+  "orm-relational-multi-condition-to-sql-0485",
+  "orm-properties-condition-to-sql-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

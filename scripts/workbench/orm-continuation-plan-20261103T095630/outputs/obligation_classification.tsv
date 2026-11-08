@@ -386,7 +386,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.expression_getter	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.filter_function	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.property_to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.condition_to_sql	method	not_verified	task_without_unit	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Properties.condition_to_sql	method	not_verified	task_units_settled	TASK-API-0485		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Property	class	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Property.__init__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_properties.py	Property.__iter__	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-

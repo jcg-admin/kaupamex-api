@@ -1015,3 +1015,4 @@ src/orm/fields_relational.py	_RelationalMulti._condition_to_sql_relational	metho
 src/orm/fields_relational.py	One2many._get_query_for_condition_value	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	One2many._condition_to_sql_relational	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	Many2many._condition_to_sql_relational	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_properties.py	Properties.condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
