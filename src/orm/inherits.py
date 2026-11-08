@@ -39,10 +39,14 @@ mecanismos-sobre-django``):
    propiedad o método) **gana**. El mecanismo es aditivo: no pisa las
    propiedades ya escritas a mano, sólo cubre lo que faltaba.
 
-**NO** se porta todavía: la creación automática del delegado al crear el
-delegante (Odoo la hace en ``create()``; aquí cada modelo ya resuelve su alta
-—p. ej. ``ResUsers._create_user``—, y unificarlo es un cambio de contrato que
-merece su propia decisión), ni la propagación de ``_inherits`` a través de
+La creación del delegado al crear el delegante **no vive aquí**: la hace
+``BaseModel.create`` (``orm/models.py``), que crea el padre con
+``parent_model.create`` o escribe el padre dado con ``parent.write`` como el
+usuario del entorno, igual que ``odoo19c: odoo/orm/models.py:4692-4707``. Lo
+verifica ``tests/unit/orm/test_contract_access_on_read_reference.py`` (los
+cinco escenarios ``create …``). Los modelos que no derivan de ``BaseModel``
+siguen resolviendo su alta a mano —p. ej. ``ResUsers._create_user``, tarea
+#96—. **NO** se porta todavía la propagación de ``_inherits`` a través de
 varios niveles.
 
 Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
