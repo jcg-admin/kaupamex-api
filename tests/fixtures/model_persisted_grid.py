@@ -963,6 +963,30 @@ def _inherited_read_write(model):
     return (read, parent.name, child.name)
 
 
+def _inherited_related_read_write(model):
+    """Leer y escribir por ``test_orm.related_inherits`` los campos que
+    hereda de ``test_orm.related`` y que no son columna: relacionados
+    ``Char``, ``Many2one``, ``Many2many`` y ``One2many``.
+
+    La fuente los publica en el hijo como campos heredados
+    (``odoo19c: odoo/orm/model_classes.py:480-508``) y los lee y escribe
+    por la ruta ``related``; no distingue los concretos de los demás.
+    """
+    env = model.browse(()).env
+    bar = env['test_orm.related_bar'].create({'name': 'grid-rel-bar'})
+    foo = env['test_orm.related_foo'].create({
+        'name': 'grid-rel-foo', 'bar_id': bar.id,
+        'bar_ids': [(6, 0, [bar.id])]})
+    base = env['test_orm.related'].create({'name': 'grid-rel-base',
+                                           'foo_id': foo.id})
+    child = env['test_orm.related_inherits'].create({'base_id': base.id})
+    read = (child.foo_name, child.foo_bar_name, child.foo_bar_id.name,
+            sorted(child.foo_bar_ids.mapped('name')),
+            sorted(child.foo_foo_ids.mapped('name')))
+    child.write({'foo_name': 'grid-rel-foo-2'})
+    return read, foo.name, child.foo_name
+
+
 def _multi_records(discussions):
     """Las dos discusiones sembradas y una sin mensajes ni categorías."""
     Discussion = discussions.browse(())
@@ -1265,6 +1289,8 @@ def trace(Domain, model, model_name):
         for case in INHERITS_MODELS
     ]
     steps += [('inherited read write', lambda: _inherited_read_write(model))]
+    steps += [('inherited related read write',
+               lambda: _inherited_related_read_write(model))]
     steps += [('res.users redeclared inherited',
                lambda: _redeclared_inherited(model))]
     multi = _multi_records(discussions)

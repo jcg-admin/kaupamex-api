@@ -70,38 +70,84 @@ El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudar
 a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 
+from django.apps import apps
 from django.db import transaction
 
 from orm.fields_relational import bypass_search_access
 from orm.registry import MODELS_BY_NAME
+from orm.utils import model_field_registry
 
 
 def _delegable_field_names(delegate_model, delegant_cls):
     """Campos del delegado que el delegante NO define por su cuenta.
 
-    La precedencia del delegante es lo que hace al mecanismo aditivo: si
-    ``ResUsers`` ya expone ``email`` como propiedad con su propio fallback
-    (``self.partner.email or self.login``), esa propiedad gana y el mecanismo
-    ni la ve.
+    ≙ la regla de ``_add_inherited_fields`` (``odoo19c: odoo/orm/
+    model_classes.py:480-508``): todo campo del padre que el hijo no
+    redefine responde en el hijo, sea columna o no. La lista sale del mismo
+    mapa que publica ``_fields`` (:func:`orm.utils.model_field_registry`),
+    así que incluye los relacionados, los calculados, los x2many y los
+    campos que el padre a su vez hereda; hasta este pase sólo se delegaban
+    los concretos, y leer por el hijo un relacionado del padre levantaba
+    ``AttributeError``.
 
-    *Métrica:* nombres de campo concretos del delegado, menos los nombres que
-    el delegante declara como campo, propiedad o atributo de clase.
+    La precedencia del delegante es lo que hace al mecanismo aditivo: lo que
+    el delegante declara como campo, propiedad o atributo de clase gana, y
+    también el ``attname`` de sus propios campos, que Django asigna en la
+    instancia al construirla (``company_id`` de una FK propia no se manda al
+    padre).
+
+    *Métrica:* nombres del mapa de campos del delegado, menos los que el
+    delegante declara.
     *Ciega a:* atributos que el delegante resuelva por su cuenta en un
     ``__getattr__`` propio — no aparecen en ``vars()`` ni en ``_meta``. Si un
     modelo combina ambos mecanismos, el orden lo decide Python, no esta
     función.
     """
-    own = {f.name for f in delegant_cls._meta.get_fields()}
+    own = set()
+    for field in delegant_cls._meta.get_fields():
+        own.add(field.name)
+        own.add(getattr(field, 'attname', None) or field.name)
     for klass in delegant_cls.__mro__:
         own |= set(vars(klass))
     return tuple(
-        f.name
-        for f in delegate_model._meta.get_fields()
-        if getattr(f, 'concrete', False)
-        and f.name not in own
-        and not f.name.startswith('_')
-        and f.name != 'id'
+        name
+        for name in model_field_registry(delegate_model)
+        if name not in own
+        and not name.startswith('_')
+        and name not in ('id', 'pk')
     )
+
+
+class DelegatedFieldNames:
+    """``_inherits_fields``: la lista de nombres delegados, resuelta tarde.
+
+    La lista sale del mapa de campos del padre, y ese mapa memoriza sus
+    campos sin columna la primera vez que se consulta
+    (:func:`orm.fields_nonstored.non_stored_fields`). ``apply_inherits``
+    corre dentro de ``ready()`` de cada app, antes de que las siguientes
+    contribuyan sus campos al padre: consultarlo ahí congelaba el mapa sin
+    ellos, y un campo sin columna añadido después —``city_id`` de
+    ``base_address_extended`` en ``res.partner``— quedaba fuera del reparto
+    entre columna y descriptor y el ``UPDATE`` lo rechazaba.
+
+    Por eso la lista se calcula en la primera lectura con el registro de apps
+    ya listo, y se memoriza por clase. Antes de eso no hay instancias que
+    delegar, y responde vacía sin tocar el mapa del padre.
+    """
+
+    def __init__(self, delegate_model):
+        self.delegate_model = delegate_model
+        self.resolved = {}
+
+    def __get__(self, instance, owner):
+        names = self.resolved.get(owner)
+        if names is not None:
+            return names
+        if not apps.ready:
+            return ()
+        names = _delegable_field_names(self.delegate_model, owner)
+        self.resolved[owner] = names
+        return names
 
 
 def apply_inherits(delegant_cls, delegate_model, fk_name):
@@ -119,8 +165,7 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     ``ready()`` corría: quien lo leyera vería la traducción, no el contrato.
     El estado interno vive en ``_inherits_fields``, que es de este mecanismo.
     """
-    delegated = _delegable_field_names(delegate_model, delegant_cls)
-    delegant_cls._inherits_fields = delegated
+    delegant_cls._inherits_fields = DelegatedFieldNames(delegate_model)
 
     # La delegación implica saltar el permiso del comodelo — ≙ ``odoo19c:
     # odoo/orm/fields_relational.py:257-259``, con su comentario de una línea:
@@ -144,7 +189,7 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     def __getattr__(self, name):
         # Sólo se invoca cuando la búsqueda normal falló: los campos y
         # propiedades propias del delegante nunca llegan aquí.
-        if name in delegated:
+        if name in type(self)._inherits_fields:
             delegate = getattr(self, fk_name, None)
             if delegate is not None:
                 return getattr(delegate, name)
@@ -157,7 +202,8 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
         return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
-        if name in delegated and not name.startswith('_'):
+        if (not name.startswith('_')
+                and name in type(self)._inherits_fields):
             delegate = self.__dict__.get(fk_name) or getattr(
                 self, fk_name, None
             )
@@ -189,7 +235,7 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     delegant_cls.__getattr__ = __getattr__
     delegant_cls.__setattr__ = __setattr__
     delegant_cls.save = save
-    return delegated
+    return delegant_cls._inherits_fields
 
 
 def ensure_inherits():
