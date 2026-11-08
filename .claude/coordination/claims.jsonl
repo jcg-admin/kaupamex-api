@@ -1357,3 +1357,6 @@
 {"id": "c-e44d84e6-2fb1-4a0b-9b7d-2865d067fff8", "op": "claim", "path": "tests/unit/orm/test_one2many_setup_inverses.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T01:05:52.803Z", "task": "TASK-API-0485"}
 {"id": "c-9ca45fb2-b4d7-4bae-a357-3e3134a6986e", "op": "claim", "path": "src/orm/fields_relational.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T01:05:52.803Z", "task": "TASK-API-0485"}
 {"id": "c-ed989e9e-c7ba-4f6d-aec9-649c5a3bd947", "op": "claim", "path": "src/orm/registry.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T01:05:52.803Z", "task": "TASK-API-0485"}
+{"id": "c-7f9416fd-b44e-4f35-bc37-87b903ac18fa", "op": "release", "path": "tests/unit/orm/test_one2many_setup_inverses.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T01:17:05.315Z", "task": "TASK-API-0485"}
+{"id": "c-9c016ea9-1252-42a7-b058-8743e5bb65bf", "op": "release", "path": "src/orm/fields_relational.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T01:17:05.315Z", "task": "TASK-API-0485"}
+{"id": "c-193fb8e7-fd8a-49f3-a765-152e9dc4a5f6", "op": "release", "path": "src/orm/registry.py", "owner": "VM-x2hokp", "branch": "claude/bold-fermat-x2hokp", "at": "2026-11-08T01:17:05.315Z", "task": "TASK-API-0485"}
