@@ -1,7 +1,7 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 95,
+ "population": 96,
  "open_tasks": 67,
  "frontier": [],
  "blocked": [
@@ -250,7 +250,8 @@
   "orm-census-installers-and-bindings-0485",
   "base-inherits-access-on-read-0182",
   "orm-field-groups-fast-path-0485",
-  "base-inherits-access-on-write-0182"
+  "base-inherits-access-on-write-0182",
+  "base-inherits-delegated-create-0182"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
