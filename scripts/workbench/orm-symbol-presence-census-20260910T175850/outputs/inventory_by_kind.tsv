@@ -402,7 +402,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_comode
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_groups	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_help	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._related_string	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._sequence	attribute	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._sequence	attribute	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._setup_done	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field._toplevel	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields.py	Field.aggregator	attribute	not_verified	structural=unresolved;write_path=-;evidence=-

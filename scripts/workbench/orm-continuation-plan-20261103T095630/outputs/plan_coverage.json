@@ -1,8 +1,8 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 94,
- "open_tasks": 66,
+ "population": 95,
+ "open_tasks": 67,
  "frontier": [],
  "blocked": [
   {
@@ -75,6 +75,7 @@
   "TASK-GEN-0634"
  ],
  "settled_task_open": [
+  "TASK-API-0182",
   "TASK-API-0190",
   "TASK-API-0382",
   "TASK-API-0399",
@@ -87,9 +88,9 @@
  ],
  "obligations": {
   "satisfied": 962,
-  "absent": 466,
+  "absent": 465,
   "divergent": 0,
-  "not_verified": 1084,
+  "not_verified": 1085,
   "applicable": 2512,
   "pending": 1550,
   "source": {
@@ -101,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 44,
+  "task_units_settled": 45,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1505
+  "task_without_unit": 1504
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -233,7 +234,8 @@
   "models-export-data-0485",
   "web-export-delegates-export-data-0503",
   "orm-fields-condition-to-sql-0485",
-  "base-res-groups-disjoint-user-types-0182"
+  "base-res-groups-disjoint-user-types-0182",
+  "orm-fields-sequence-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }

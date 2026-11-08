@@ -999,3 +999,4 @@ addons/web/controllers/export.py	ExportFormat.base	method	tests/unit/web/test_ex
 src/orm/fields.py	Field.condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields.py	Field._condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields.py	Field._condition_to_sql_company	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields.py	Field._sequence	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
