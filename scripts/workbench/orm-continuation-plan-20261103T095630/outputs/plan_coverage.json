@@ -88,9 +88,9 @@
  ],
  "obligations": {
   "satisfied": 969,
-  "absent": 431,
+  "absent": 401,
   "divergent": 0,
-  "not_verified": 1112,
+  "not_verified": 1142,
   "applicable": 2512,
   "pending": 1543,
   "source": {
@@ -246,7 +246,8 @@
   "orm-relational-description-0485",
   "orm-inherited-fields-0485",
   "base-res-users-inherited-redeclarations-0182",
-  "orm-inherits-delegation-all-fields-0485"
+  "orm-inherits-delegation-all-fields-0485",
+  "orm-census-installers-and-bindings-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
