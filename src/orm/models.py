@@ -5220,9 +5220,22 @@ def _forward_get(self, instance, cls=None):
     """
     ids = getattr(instance, '_ids', None) if instance is not None else None
     comodel = self.field.remote_field.model
-    if (ids is None or len(ids) <= 1 or not isinstance(comodel, type)
-            or not issubclass(comodel, BaseModel)):
-        return _DJANGO_FORWARD_GET(self, instance, cls)
+    to_records = isinstance(comodel, type) and issubclass(comodel, BaseModel)
+    if to_records and ids is not None and not ids:
+        # leído sobre un recordset vacío, el valor nulo del campo: otra vez
+        # el recordset vacío del comodelo, sin consultar la base
+        return comodel._from_ids(env(), (), ())
+    if ids is None or len(ids) <= 1 or not to_records:
+        value = _DJANGO_FORWARD_GET(self, instance, cls)
+        # ≙ ``Many2one.convert_to_record`` (``odoo19c: odoo/orm/
+        # fields_relational.py:354-358``): sin valor, el recordset vacío del
+        # comodelo, no ``None``. Sólo cuando quien lee es un registro
+        # ``BaseModel`` y el comodelo también: una fila de Django conserva el
+        # ``None`` de Django, que es el contrato de sus consumidores.
+        if (value is None and to_records
+                and isinstance(instance, BaseModel)):
+            return comodel._from_ids(env(), (), ())
+        return value
     environment = env()
     if not environment.su and hasattr(instance, '_has_field_access'):
         if not instance._has_field_access(self.field, 'read'):
