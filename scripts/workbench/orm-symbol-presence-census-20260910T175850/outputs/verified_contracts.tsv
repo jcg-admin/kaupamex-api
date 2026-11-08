@@ -1016,3 +1016,9 @@ src/orm/fields_relational.py	One2many._get_query_for_condition_value	method	test
 src/orm/fields_relational.py	One2many._condition_to_sql_relational	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	Many2many._condition_to_sql_relational	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_properties.py	Properties.condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Float.get_digits	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Float.get_min_display_digits	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Float._description_digits	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Float._description_min_display_digits	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Monetary.get_currency_field	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_numeric.py	Monetary._description_currency_field	method	tests/unit/orm/test_contract_model_persisted_reference.py
