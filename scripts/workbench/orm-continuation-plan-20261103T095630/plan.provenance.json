@@ -814,6 +814,13 @@
         "base-inherits-access-on-write-0182"
       ],
       "writtenAt": "2026-11-08T21:38:23Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "base-inherits-delegated-create-0182"
+      ],
+      "writtenAt": "2026-11-08T23:50:45Z"
     }
   ]
 }
