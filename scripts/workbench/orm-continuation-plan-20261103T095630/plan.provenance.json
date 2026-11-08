@@ -786,6 +786,13 @@
         "orm-inherits-delegation-all-fields-0485"
       ],
       "writtenAt": "2026-11-08T18:14:30Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-census-installers-and-bindings-0485"
+      ],
+      "writtenAt": "2026-11-08T18:41:49Z"
     }
   ]
 }
