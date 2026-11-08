@@ -1007,3 +1007,5 @@ src/orm/domains.py	DomainNot._to_sql	method	tests/unit/orm/test_contract_model_p
 src/orm/domains.py	DomainNary._to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/domains.py	DomainCustom._to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/domains.py	DomainCondition._to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_relational.py	Many2one.condition_to_sql	method	tests/unit/orm/test_contract_model_persisted_reference.py
+src/orm/fields_relational.py	Many2one.join	method	tests/unit/orm/test_contract_model_persisted_reference.py

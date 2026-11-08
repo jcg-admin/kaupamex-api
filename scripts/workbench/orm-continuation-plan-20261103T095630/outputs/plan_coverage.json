@@ -102,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 46,
+  "task_units_settled": 48,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1497
+  "task_without_unit": 1495
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -237,7 +237,8 @@
   "base-res-groups-disjoint-user-types-0182",
   "orm-fields-sequence-0485",
   "orm-boolean-condition-to-sql-0485",
-  "orm-domains-to-sql-0485"
+  "orm-domains-to-sql-0485",
+  "orm-many2one-condition-to-sql-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
