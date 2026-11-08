@@ -139,7 +139,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from exceptions import UserError
-from osv.expression import to_q
+# Una sola sentencia de ``orm.models``, que reexporta los cuatro: ``to_q`` es
+# el de ``osv.expression``, ``PREFETCH_MAX`` el de ``tools.constants`` y
+# ``split_every`` el de ``tools.misc`` (los mismos objetos).
+from orm.models import PREFETCH_MAX, BaseModel, split_every, to_q
 
 from addons.authz.permissions import HasCapability, RequireCapability
 from addons.base.models import IrExports, IrModelFields, ResCurrency
@@ -1009,7 +1012,8 @@ class ExportFormat:
             tree = _build_groups_tree(model, base_qs, field_names, groupby, ids, domain)
             response_data = self.from_group_data(field_defs, columns_headers, tree)
         else:
-            rows = _export_rows(base_qs.iterator(), field_names)
+            rows = _export_model_rows(model, ids, domain, field_names,
+                                      import_compat, base_qs)
             response_data = self.from_data(field_defs, columns_headers, rows)
 
         _logger.info(
@@ -1139,3 +1143,28 @@ class ExcelExport(ExportFormat, APIView):
     def get(self, request):
         """≙ ``ExcelExport.web_export_xlsx`` de la referencia."""
         return _export_response(self, request)
+
+
+def _export_model_rows(model, ids, domain, field_names, import_compat,
+                       base_queryset):
+    """Las filas de la exportación — ≙ el tramo sin ``groupby`` de
+    ``ExportFormat.base`` (``odoo19c: addons/web/controllers/export.py:
+    559-569`` y ``:613-618``).
+
+    Un modelo ``BaseModel`` exporta como en la fuente: los registros se
+    buscan con ``import_compat`` en el contexto y las filas salen de
+    ``export_data`` por lotes de ``PREFETCH_MAX``, que es también lo que da
+    la columna ``id`` como identificador externo. El punto 4 del docstring
+    del módulo —sin ``split_every``— queda así sólo para los modelos de
+    Django, que no tienen ``export_data`` y siguen por :func:`_export_rows`.
+    """
+    if not issubclass(model, BaseModel):
+        return _export_rows(base_queryset.iterator(), field_names)
+    Model = model.browse(()).with_context(import_compat=import_compat)
+    records = Model.browse(ids) if ids else Model.search(domain)
+    all_rows = []
+    for batch in split_every(PREFETCH_MAX, records.ids, Model.browse):
+        export_data = batch.export_data(field_names).get('datas', [])
+        all_rows.extend(export_data)
+        batch.invalidate_recordset()
+    return all_rows
