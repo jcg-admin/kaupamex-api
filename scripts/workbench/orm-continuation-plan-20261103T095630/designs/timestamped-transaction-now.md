@@ -126,3 +126,30 @@ escritura (`using` de `save`, `_state.db` o `router.db_for_write`). 7 casos:
 | sin reutilizar la lectura | `test_one_insert_takes_both_dates_from_one_clock_reading` |
 | alias = `_state.db` (era `None` en el INSERT) | `test_the_clock_is_read_on_the_row_database` |
 | la lectura no se limpia entre guardados | `test_a_later_save_reads_the_clock_again` (la primera versión, sobre `create`+`write`, no discriminaba: eran dos instancias distintas) |
+
+## Consumidores, revisados uno a uno
+
+**Corrección de una cifra propia.** El «49» de `latest`/`earliest`
+(H-API-1191) salió de un `git grep` con el punto sin escapar: `.latest(`
+también cazaba `_latest(`. Con `\.latest(\|\.earliest(`: **0** llamadas en
+producción; `get_latest_by` sólo en `TimeStampedModel.Meta`. Cambiar esa
+opción genera una migración por cada modelo heredero (la opción viaja en
+`AlterModelOptions`) sin un consumidor que lo pida: no se toca, y se anota.
+
+**Restas y comparaciones de fechas.** Dos:
+- `helpdesk/controllers/main.py:509` resta fechas de dos filas distintas
+  (respuesta y ticket): misma semántica que la referencia con `create_date`.
+- `purchase_stock/models/stock.py:678` filtra `updated_at >= written_after`.
+  La referencia fija `written_after = self.env.cr.now()`
+  (`stock/models/stock_orderpoint.py:343`): con fechas de transacción la línea
+  escrita en la misma transacción cumple la igualdad, que con fechas de reloj
+  podía fallar. Nadie fija hoy `written_after` aquí (`git grep "written_after="`
+  → 0): cuando se porte `action_replenish` tiene que usar `transaction_now`.
+
+**Ordenamientos por `created_at`.** 21 en producción; 2 ya desempatan por
+`id` (`mass_mailing/controllers/subscribers.py:67`,
+`mass_mailing/services.py:180`). Los 19 restantes no tienen orden determinista
+entre filas de una misma transacción. Corrección de este pase: desempatar por
+`id` en la misma dirección, que es el desempate que la referencia usa en sus
+`_order` (`'..., id desc'`). Alinear el criterio principal con el `_order` de
+cada modelo es otra pasada, por modelo.
