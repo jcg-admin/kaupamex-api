@@ -1,0 +1,7 @@
+RED — tests/unit/orm/test_new_with_django_comodel.py, antes de tocar src:
+
+FAILED test_new_takes_a_many2one_to_a_django_model
+       AttributeError: 'ResUsers' object has no attribute 'filtered'
+FAILED test_new_takes_an_empty_many2one_to_a_django_model
+       AttributeError: 'NoneType' object has no attribute 'filtered'
+2 failed
