@@ -184,3 +184,61 @@ regresión por impacto):
 Lo que este análisis no cierra: las 28 condiciones de la rejilla que ninguno de
 los dos compiladores acepta, que son entradas inválidas en los dos; y la
 conducta de `id < False` en la referencia está leída en su código, no ejecutada.
+
+## 8. Las seis condiciones que un solo compilador acepta, una por una
+
+Escenario común: modelo `test_orm.message` (`BaseModel`), campos `priority`
+(`Integer`, `null=True`) e `id`; filas sembradas en la transacción de la base
+de prueba (`orm_x2hokp_qa`) y descartadas; usuario **superusuario**
+(`Environment(None, SUPERUSER_ID, {})`), contexto vacío, sin reglas que
+apliquen (la elevación las salta). Fuente: `outputs/search-contract/grid-basemodel.json`.
+
+«Ejecutado» = medido en PostgreSQL 16.15 con el código de Kaupamex. «Leído» =
+deducido del código de odoo-tools `abe4040ec` **sin ejecutar Odoo** (no se
+importa ni se ejecuta, por regla del proyecto).
+
+| Dominio | SQL de Kaupamex (ejecutado) | Parámetros | PostgreSQL | Kaupamex | Referencia (leído) | Veredicto |
+|---|---|---|---|---|---|---|
+| `('priority', '<', '3')` | `"priority" < %s OR "priority" IS NULL` | `3` | ejecuta | filas con 1, 2 y `NULL` | `convert_to_cache('3')` = 3; `0 < 3` añade `IS NULL` (`fields.py:1337-1348`, `falsy_value = 0` en `fields_numeric.py:21`) | equivalente (leído) |
+| `('priority', '>=', '3')` | `"priority" >= %s` | `3` | ejecuta | fila con 3 | `0 >= 3` es falso: sin `IS NULL` | equivalente (leído) |
+| `('priority', '<', [])` | `"priority" < %s` | `0` | ejecuta | ninguna | `int([] or 0)` = 0; `0 < 0` falso | equivalente (leído) |
+| `('priority', '>=', [])` | `"priority" >= %s OR "priority" IS NULL` | `0` | ejecuta | todas | `0 >= 0` añade `IS NULL` | equivalente (leído) |
+| `('id', '<', False)` | `"id" < %s` | `False` | **rechaza**: `operator does not exist: bigint < boolean` | error | `Id` sin `falsy_value` (`fields.py:254`), `convert_to_column` devuelve el valor (`fields_misc.py:120`): emite `"id" < false` | equivalente (leído): los dos fallan |
+| `('id', '>=', False)` | `"id" >= %s` | `False` | **rechaza**, mismo error | error | idem | equivalente (leído) |
+
+En las seis, el compilador de Django daba otra cosa: `TypeError` de Python en
+las cuatro de `priority` y filas en las dos de `id`. **No se cambió la
+semántica para igualar a Django**: el camino SQL sigue al código de la
+referencia. Estado: equivalencia con la referencia **por lectura**; ninguna se
+ejecutó en Odoo 19 Community.
+
+## 9. Matriz contractual y estado (2026-11-09)
+
+### Capacidades SQL: antes de esta unidad y añadidas por ella
+
+| Pieza | Antes | Añadido aquí |
+|---|---|---|
+| `tools.query.Query` (`where_clause`, `subselect`, `select`, `is_empty`, `__len__`, `__iter__`, `add_join`, `make_alias`, `order`, `limit`, `offset`, `groupby`, `having`) | existía (porte previo) | nada |
+| `Domain._to_sql` y `condition_to_sql` de campos escalares, many2one, `One2many` declarado y many2many | existía | `ManyToOneRel` (one2many implícito de Django) recibe el compilador |
+| `_order_to_sql`, `_field_to_sql`, `_as_query`, `_fetch_query` | existían | `BaseModel` adopta `OrderMixin` (antes sólo vía `TimeStampedModel`) |
+| `ir.rule._compute_domain` | devolvía `Q` | devuelve `Domain` (`api@1ae6b4a2`) |
+| `_search` | `QuerySet` + reglas por `exclude` de ids materializados | `Query` de la referencia (`api@95ec4213`) |
+| comodelo de Django en una condición SQL | sin camino | `django_comodel_rows`, el bloque que ya usaba `orm.domains` |
+| `get_comodel_domain` | dos copias, una ciega al `domain` de un campo de Django | una definición (`api@2a62d58b`) |
+
+### Estado por símbolo
+
+«Implementado» = en el árbol; «verificado» = prueba de contrato con control de
+anulación; «integrado» = regresión amplia verde sobre su revisión;
+«aceptado» = suite completa y multidb sobre la revisión publicada.
+
+| Símbolo | Implementado | Verificado | Integrado | Aceptado |
+|---|---|---|---|---|
+| `IrRule._build_domain` / `_compute_domain` → `Domain` | sí (`1ae6b4a2`) | sí (`test_ir_rule_domain.py`, 2 controles) | sí: nivel 2 sobre `1ae6b4a2`, 8140 passed | pendiente |
+| `BaseModel._search` → `Query` | sí (`95ec4213`) | sí (`test_search_returns_query.py`, 18 casos, 6 controles) | **no** sobre `95ec4213` (16 fallos); en curso sobre `2a62d58b` | pendiente |
+| `search`, `search_count`, `search_fetch`, `fetch` | sí | por `test_search_returns_query.py` y las suites de `test_orm` | en curso sobre `2a62d58b` | pendiente |
+| consumidores relacionales (`ManyToOneRel`, comodelo de Django, `domain` de many2many, jerarquía) | sí (`2a62d58b`) | sí: los 16 casos de la regresión y la prueba negativa del comodelo de Django (control: cae sin `_filtered_access`) | en curso | pendiente |
+| `_read_group_select`, `_read_group_having` | sí | sí (3 controles) | sí (nivel 2) | pendiente |
+| `_read_group_empty_value`, `_postprocess_*` | sí | sí (3 controles) | sí (nivel 2, 2664 passed) | pendiente |
+| `_read_group_groupby` | no | — | — | — |
+| `_read_group` | no | — | — | — |
