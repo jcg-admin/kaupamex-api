@@ -2954,28 +2954,35 @@ models.Field._description_searchable = _field_description_searchable
 
 
 def _field_description_sortable(self, env):
-    """≙ ``Field._description_sortable`` (``:909``).
+    """≙ ``Field._description_sortable``
+    (``odoo19c: odoo/orm/fields.py:909-922``).
 
-    **Divergencia de mecanismo, no de contrato.** La fuente responde
-    construyendo la consulta y viendo si revienta: llama a
-    ``model._order_field_to_sql(...)`` dentro de un ``try`` y devuelve
-    ``False`` ante ``ValueError``/``AccessError``. Es su forma de preguntarle
-    al motor, porque allá el motor de consultas es suyo.
+    Como en la fuente: un campo almacenado con columna es ordenable; uno
+    heredado responde por el suyo; el resto lo es si ``_order_field_to_sql``
+    lo puede ordenar sin ``ValueError`` ni ``AccessError``. Así un ``related``
+    no almacenado es ordenable, porque su orden recorre el camino.
 
-    Aquí el motor es el de Django, y la misma pregunta se responde **sin
-    construir nada**: un campo es ordenable si tiene columna. ``concrete`` es
-    el atributo con que Django lo declara, y es exacto — un campo no concreto
-    no tiene por dónde ordenarse en SQL.
-
-    El atajo de la fuente y su herencia se conservan verbatim: el campo
-    heredado responde por el suyo para no recomputar.
+    Divergencia declarada: un modelo de Django que no es ``BaseModel`` no
+    tiene ``_as_query`` sobre el que construir el orden; para él se responde
+    por la columna (``concrete``), que es lo que su ``ORDER BY`` puede usar.
     """
-    if self.column_type and self.store:
+    if self.column_type and self.store:  # atajo
         return True
     inherited = self.inherited_field
     if inherited is not None and inherited._description_sortable(env):
+        # evita el cálculo para un campo heredado
         return True
-    return bool(getattr(self, 'concrete', False))
+
+    model = self.model
+    if not hasattr(model, '_as_query'):
+        return bool(getattr(self, 'concrete', False))
+    model = model._from_ids(env, (), ())
+    query = model._as_query(ordered=False)
+    try:
+        model._order_field_to_sql(model._table, self.name, SQL(), SQL(), query)
+        return True
+    except (ValueError, AccessError):
+        return False
 
 
 models.Field._description_sortable = _field_description_sortable

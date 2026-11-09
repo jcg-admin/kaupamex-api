@@ -22,3 +22,7 @@ Comando: `uv run pytest tests/unit/orm/test_description_sortable.py -q --reuse-d
 | Required integration gates | Suite completa y multidb en el corte de publicación. |
 | Previously valid evidence | Ninguna. |
 | Uncovered risks | Un `related` cuyo recorrido falle con otra excepción: la fuente tampoco la captura. |
+
+## Regresión de impacto (nivel 2)
+
+`-n 4`: 5297 passed, 65 skipped, EXIT=0.
