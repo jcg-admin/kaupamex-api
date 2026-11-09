@@ -6397,6 +6397,79 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
 
     # === agregación de read_group ======================================
 
+    @classmethod
+    def _read_group(cls, domain, groupby=(), aggregates=(), having=(),
+                    offset=0, limit=None, order=None):
+        """Agregados de ``aggregates`` agrupados por ``groupby`` sobre los
+        registros que cumplen ``domain``.
+
+        ≙ ``BaseModel._read_group``
+        (``odoo19c: odoo/orm/models.py:1861-1952``).
+        Devuelve tuplas con, en orden, los valores de agrupado y los de
+        agregado; un agrupado relacional es un recordset con su ``prefetch``.
+
+        :raise AccessError: si el usuario no puede leer lo pedido.
+
+        Adaptación declarada: es ``classmethod`` —la forma con que este
+        archivo porta los métodos de modelo, como :meth:`_search`— y toma el
+        recordset vacío del entorno activo.
+        """
+        self = cls._from_ids(env(), (), ())
+        self.browse().check_access('read')
+
+        query = self._search(domain)
+        if query.is_empty():
+            if not groupby:
+                # sin agrupado, PostgreSQL siempre devuelve una fila
+                return [tuple(
+                    self._read_group_empty_value(spec)
+                    for spec in itertools.chain(groupby, aggregates)
+                )]
+            return []
+
+        query.limit = limit
+        query.offset = offset
+
+        groupby_terms = {
+            spec: self._read_group_groupby(self._table, spec, query)
+            for spec in groupby
+        }
+        aggregates_terms = [
+            self._read_group_select(spec, query)
+            for spec in aggregates
+        ]
+        select_args = [*[groupby_terms[spec] for spec in groupby],
+                       *aggregates_terms]
+        if groupby_terms:
+            query.order = self._read_group_orderby(order, groupby_terms,
+                                                   query)
+            query.groupby = SQL(", ").join(groupby_terms.values())
+            query.having = self._read_group_having(list(having), query)
+
+        # row_values: [(a1, b1, c1), (a2, b2, c2), ...]
+        row_values = self.env.execute_query(query.select(*select_args))
+
+        if not row_values:
+            return row_values
+
+        # posproceso columna por columna
+        column_iterator = zip(*row_values)
+
+        # column_result: [(a1, a2, ...), (b1, b2, ...), (c1, c2, ...)]
+        column_result = []
+        for spec in groupby:
+            column = self._read_group_postprocess_groupby(
+                spec, next(column_iterator))
+            column_result.append(column)
+        for spec in aggregates:
+            column = self._read_group_postprocess_aggregate(
+                spec, next(column_iterator))
+            column_result.append(column)
+        assert next(column_iterator, None) is None
+
+        # [(a1, b1, c1), (a2, b2, c2), ...]
+        return list(zip(*column_result))
+
     def _read_group_select(self, aggregate_spec, query):
         """La expresión SQL del agregado ``aggregate_spec``.
 
