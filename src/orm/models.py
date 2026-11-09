@@ -5980,6 +5980,20 @@ class BaseModel(DefaultGetMixin, Model):
             for dep in registry.get_dependent_fields(field.base_field)
         )
 
+    def _apply_onchange_methods(self, field_name, result, excluded_methods=()):
+        """ Apply onchange method(s) for field ``field_name`` on ``self``.
+        Value assignments are applied on ``self``, while warning messages are
+        put in dictionary ``result``. — ≙ ``:6975-6994``
+
+        El despacho vive en :func:`apply_onchange_methods`, que comparte con
+        ``Base.onchange`` de ``web``: allí el registro es una instancia de
+        Django y sólo cambia cómo se pregunta por el campo y cómo se asigna.
+        """
+        apply_onchange_methods(
+            self, self._onchange_methods.get(field_name, ()), result,
+            excluded_methods, self._fields.__contains__, self.__setitem__,
+            self.env._)
+
     @property
     def _table_sql(self):
         """El ``SQL`` de la tabla del modelo, o de su consulta — ≙
@@ -8712,3 +8726,38 @@ def _many2many_lines(descriptor, instance, comodel, ids):
             'active_test', instance.env.context.get('active_test', True)):
         lines = lines.filtered(active)
     return lines
+
+
+def apply_onchange_methods(record, methods, result, excluded_methods,
+                           has_field, assign, translate):
+    """El despacho de ``_apply_onchange_methods`` — ≙ el cuerpo de
+    ``odoo19c: odoo/orm/models.py:6975-6994``.
+
+    La referencia lo escribe como método de ``BaseModel`` porque su único
+    registro es el del ORM. Aquí lo consumen dos clases de registro:
+    :meth:`BaseModel._apply_onchange_methods` y ``Base.onchange`` de
+    ``web``, cuyo registro es una instancia de Django. Lo que difiere entre
+    las dos es cómo se pregunta si existe un campo (``has_field``) y cómo se
+    asigna (``assign``); la selección, la invocación y la propagación son
+    una sola, aquí.
+
+    ``result['warnings']`` es un ``OrderedSet``, como en la referencia: un
+    aviso repetido cuenta una vez. Una excepción del método sube sin
+    capturarse.
+    """
+    for method in methods:
+        if method in excluded_methods:
+            continue
+        res = method(record)
+        if not res:
+            continue
+        if res.get('value'):
+            for key, val in res['value'].items():
+                if has_field(key) and key != 'id':
+                    assign(key, val)
+        if res.get('warning'):
+            result['warnings'].add((
+                res['warning'].get('title') or translate("Warning"),
+                res['warning'].get('message') or "",
+                res['warning'].get('type') or "",
+            ))

@@ -286,8 +286,8 @@ from addons.base.models.ir_model import Base as _BaseRoot
 from exceptions import UserError
 from orm.domains import AND as _domain_and
 from orm.domains import OR as _domain_or
-from orm import registry
-from tools import date_utils
+from orm import models as orm_models, registry
+from tools import date_utils, misc
 from tools.translate import _
 
 __all__ = ['lazymapping', 'AND', 'OR', 'Base', 'RecordSnapshot']
@@ -1938,7 +1938,8 @@ class Base(_BaseRoot):
 # ≙ lo que en la referencia resuelve el ORM: ``_onchange_methods`` (el mapa
 # campo → métodos que el setup del registro puebla), ``self.new()`` (el
 # registro virtual) y ``_apply_onchange_methods``
-# (``odoo19c: odoo/orm/models.py:6975-6994``).
+# (``odoo19c: odoo/orm/models.py:6975-6994``). Esta última ya es un solo
+# despacho en ``orm.models``; aquí queda su adaptación a Django.
 #
 # DIVERGENCIA DE SITIO, declarada: el hogar de esas tres piezas en la
 # referencia es ``odoo/orm/models.py``, o sea ``src/orm/models.py`` en la raíz
@@ -2032,27 +2033,22 @@ def _onchange_methods_for(model, field_name):
 
 
 def _apply_onchange_method(record, method, result):
-    """≙ referencia ``_apply_onchange_methods``
-    (``odoo19c: odoo/orm/models.py:6975-6994``), para **un** método.
+    """Aplica **un** método de ``@api.onchange`` sobre una instancia de Django.
 
-    Las asignaciones se aplican sobre el registro virtual; los avisos se
-    acumulan en ``result``. La referencia itera los métodos aquí dentro porque
-    su mapa ya está construido; aquí el bucle vive en :meth:`Base.onchange`,
-    que es quien decide el orden de las pasadas.
+    El despacho —invocación, regla de ``value`` y de ``warning``— es
+    ``orm.models.apply_onchange_methods``, el mismo que
+    ``BaseModel._apply_onchange_methods`` (``odoo19c: odoo/orm/models.py:
+    6975-6994``). Aquí sólo queda la adaptación: cómo se pregunta por un
+    campo (:func:`_model_field`) y cómo se asigna (:func:`_assign`), y el
+    contenedor de avisos de :meth:`Base.onchange`, que es una lista y se
+    reescribe en el orden del ``OrderedSet`` de la referencia.
     """
-    res = method(record)
-    if not res:
-        return
-    for key, value in (res.get('value') or {}).items():
-        if key != 'id' and _model_field(type(record), key) is not None:
-            _assign(record, key, value)
-    warning = res.get('warning')
-    if warning:
-        entry = (warning.get('title') or _('Aviso'),
-                 warning.get('message') or '',
-                 warning.get('type') or '')
-        if entry not in result['warnings']:
-            result['warnings'].append(entry)
+    warnings = misc.OrderedSet(result['warnings'])
+    orm_models.apply_onchange_methods(
+        record, (method,), {'warnings': warnings}, (),
+        lambda key: _model_field(type(record), key) is not None,
+        lambda key, value: _assign(record, key, value), _)
+    result['warnings'][:] = list(warnings)
 
 
 def _virtual_record(record, values):
