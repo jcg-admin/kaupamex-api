@@ -2223,6 +2223,20 @@ READ_GROUP_AGGREGATE = {
 }
 
 
+def _read_group_recordset(env, model, ids, prefetch_ids):
+    """Los registros ``ids`` de ``model`` — ≙ ``Model(self.env, ids,
+    prefetch_ids)`` de los posprocesos de ``_read_group``
+    (``odoo19c: odoo/orm/models.py``).
+
+    Adaptación declarada: ``env[name]`` devuelve aquí la clase. Un
+    ``BaseModel`` construye su terna con ``_from_ids``; un modelo de Django
+    usa :func:`~orm.utils.browse`, cuyo ``QuerySet`` no lleva ``prefetch``.
+    """
+    if hasattr(model, '_from_ids'):
+        return model._from_ids(env, tuple(ids), tuple(prefetch_ids))
+    return browse(model, tuple(ids))
+
+
 def raise_on_invalid_object_name(name):
     """La mitad que lanza de :func:`~orm.utils.check_object_name`.
 
@@ -6490,6 +6504,108 @@ class BaseModel(DefaultGetMixin, Model):
             stack.append(SQL("(%s AND %s)", stack.pop(), stack.pop()))
 
         return stack[0]
+
+    def _read_group_empty_value(self, spec):
+        """El valor vacío de un spec de agrupado o de agregado.
+
+        ≙ ``BaseModel._read_group_empty_value`` (``odoo19c:
+        odoo/orm/models.py``). Docstring de la fuente: *"Return the empty
+        value corresponding to the given groupby spec or aggregate spec."*
+        """
+        if spec == '__count':
+            return 0
+        # func es None, una granularidad o un agregado
+        fname, chain_fnames, func = parse_read_group_spec(spec)
+        if func in ('count', 'count_distinct'):
+            return 0
+        if func in ('array_agg', 'array_agg_distinct'):
+            return []
+        field = self._fields[fname]
+        if ((not func or func == 'recordset')
+                and (field.relational or fname == 'id')):
+            if chain_fnames and field.type == 'many2one':
+                groupby_seq = (f"{chain_fnames}:{func}" if func
+                               else chain_fnames)
+                model = self.env[field.comodel_name]
+                return _read_group_recordset(
+                    self.env, model, (), ())._read_group_empty_value(
+                        groupby_seq)
+            model = self.env[field.comodel_name if field.relational
+                             else self._name]
+            return _read_group_recordset(self.env, model, (), ())
+        return False
+
+    def _read_group_postprocess_groupby(self, groupby_spec, raw_values):
+        """Los valores de ``groupby_spec`` en el formato de ``_read_group``.
+
+        ≙ ``BaseModel._read_group_postprocess_groupby`` (``odoo19c:
+        odoo/orm/models.py``): un relacional da recordsets con el
+        ``prefetch`` correcto y un ``NULL`` da el valor vacío.
+        """
+        empty_value = self._read_group_empty_value(groupby_spec)
+
+        fname, chain_fnames, granularity = parse_read_group_spec(groupby_spec)
+        field = self._fields[fname]
+
+        if field.relational or fname == 'id':
+            if chain_fnames and field.relational:
+                groupby_seq = (f"{chain_fnames}:{granularity}" if granularity
+                               else chain_fnames)
+                model = self.env[field.comodel_name]
+                return _read_group_recordset(
+                    self.env, model, (), ())._read_group_postprocess_groupby(
+                        groupby_seq, raw_values)
+
+            Model = self.env[field.comodel_name if field.relational
+                             else self._name]
+            prefetch_ids = tuple(
+                raw_value for raw_value in raw_values if raw_value)
+
+            def recordset(value):
+                return (_read_group_recordset(
+                    self.env, Model, (value,), prefetch_ids)
+                    if value else empty_value)
+
+            return (recordset(value) for value in raw_values)
+
+        return ((value if value is not None else empty_value)
+                for value in raw_values)
+
+    def _read_group_postprocess_aggregate(self, aggregate_spec, raw_values):
+        """Los valores de ``aggregate_spec`` en el formato de ``_read_group``.
+
+        ≙ ``BaseModel._read_group_postprocess_aggregate`` (``odoo19c:
+        odoo/orm/models.py``): un agregado ``recordset`` da recordsets con el
+        ``prefetch`` correcto y un ``NULL`` da el valor vacío.
+        """
+        empty_value = self._read_group_empty_value(aggregate_spec)
+
+        if aggregate_spec == '__count':
+            return ((value if value is not None else empty_value)
+                    for value in raw_values)
+
+        fname, __, func = parse_read_group_spec(aggregate_spec)
+        if func == 'recordset':
+            field = self._fields[fname]
+            Model = self.env[field.comodel_name if field.relational
+                             else self._name]
+            prefetch_ids = tuple(unique(
+                id_
+                for array_values in raw_values if array_values
+                for id_ in array_values if id_
+            ))
+
+            def recordset(value):
+                if not value:
+                    return empty_value
+                ids = tuple(unique(id_ for id_ in value if id_))
+                return _read_group_recordset(
+                    self.env, Model, ids, prefetch_ids)
+
+            return (recordset(value) for value in raw_values)
+
+        return ((value if value is not None else empty_value)
+                for value in raw_values)
 
     # === búsqueda =======================================================
 
