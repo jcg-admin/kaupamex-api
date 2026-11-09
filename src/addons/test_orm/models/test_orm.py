@@ -692,7 +692,7 @@ class TestOrmMessage(TestOrmModel):
     ``bool`` de ``TestDomain``.
 
     pendiente: ``name`` es aquí un ``Char`` llano y en la fuente es
-    ``compute='_compute_name', store=True``; ``author``, ``body``, ``size``,
+    ``compute='_compute_name', store=True``; ``size``,
     ``double_size``, ``discussion_name``, ``author_partner``, ``label``,
     ``has_important_sibling`` y las dos restricciones entran
     con ``TestFields``.
@@ -704,6 +704,7 @@ class TestOrmMessage(TestOrmModel):
     discussion = fields.Many2one('test_orm.discussion', ondelete='cascade',
                                  null=True, related_name='+',
                                  db_column='discussion')
+    body = fields.Text(index='trigram', null=True)
     author = fields.Many2one('res.users', null=True, related_name='+',
                              db_column='author', default=get_current_user)
     name = fields.Char(string='Title', null=True, compute='_compute_name',

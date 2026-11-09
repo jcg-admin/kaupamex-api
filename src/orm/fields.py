@@ -107,6 +107,8 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
+from orm.fields_company_dependent import declared_index_name
+from django.contrib.postgres.indexes import GinIndex, OpClass
 from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS, as_record_list,
                        browse, expand_ids, model_field_registry, model_of,
                        model_of_field, record_ids)
@@ -2105,6 +2107,7 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
     _DJANGO_FIELD_CONTRIBUTE(
         self, cls, name, private_only=private_only or self.store is False)
     _install_field_descriptor(self, cls)
+    _add_declared_column_index(self, cls)
     phase = getattr(self, 'setup_nonrelated__', None)
     if phase is not None:
         #: ``setup_nonrelated`` (``odoo19c: odoo/orm/fields.py:1043``) es la
@@ -5518,3 +5521,43 @@ for _relational_form in (One2many, ForeignObjectRel):
     _relational_form.description_attrs = _DerivedFromPrefix(
         '_description_', 'description_attrs')
     _relational_form.get_description = _field_get_description
+
+
+def _add_declared_column_index(field, cls):
+    """El índice que ``index='btree_not_null'`` o ``index='trigram'`` pide
+    para un campo ordinario — ≙ ``Registry.check_indexes``
+    (``odoo19c: odoo/orm/registry.py:831-882``).
+
+    ``btree_not_null`` es un btree sobre la columna con ``WHERE "col" IS NOT
+    NULL``; ``trigram``, un ``gin`` con ``gin_trgm_ops``. Allá lo crea
+    ``check_indexes`` al iniciar el registro; aquí el esquema lo llevan las
+    migraciones de Django, así que el índice se declara en ``Meta`` y
+    ``ModelState.from_model`` lo lee de ``original_attrs['indexes']``.
+
+    ``True`` y ``'btree'`` llegan como ``db_index``
+    (:func:`_field_init_with_copy`), y el campo dependiente de empresa tiene
+    su propio índice parcial (``orm.fields_company_dependent``). Divergencia
+    declarada: el ``unaccent``
+    del trigram depende de la base (``has_unaccent``) y una migración no lo
+    conoce; el índice se crea sin él, y ``check_indexes`` lo da por vigente
+    porque su método de acceso es ``gin``.
+    """
+    index = getattr(field, '_args__', {}).get('index')
+    if index not in ('btree_not_null', 'trigram'):
+        return
+    meta = cls._meta
+    if (meta.abstract or not field.concrete or field.store is False
+            or getattr(field, 'company_dependent', False)):
+        return
+    name = declared_index_name(cls, field.name)
+    if index == 'trigram':
+        declared = GinIndex(
+            OpClass(models.F(field.name), name='gin_trgm_ops'), name=name)
+    else:
+        declared = models.Index(
+            fields=[field.name],
+            condition=models.Q(**{f'{field.name}__isnull': False}),
+            name=name)
+    meta.indexes = [*meta.indexes, declared]
+    # ``ModelState.from_model`` sólo copia los índices declarados en ``Meta``.
+    meta.original_attrs['indexes'] = meta.indexes

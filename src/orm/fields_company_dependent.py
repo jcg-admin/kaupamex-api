@@ -226,13 +226,26 @@ def _not_null_index(cls, name):
     resumen estable de la tabla y el campo.
     """
     not_null = models.Q(**{f'{name}__isnull': False})
+    return models.Index(
+        models.ExpressionWrapper(not_null, output_field=models.BooleanField()),
+        condition=not_null, name=declared_index_name(cls, name))
+
+
+def declared_index_name(cls, name):
+    """El nombre del índice de una columna — ≙ ``make_index_name``
+    (``odoo19c: odoo/tools/sql.py:779-781``), ``{tabla}__{campo}_index``.
+
+    Divergencia declarada: Django limita el nombre de un índice de ``Meta`` a
+    30 caracteres (``models.E034``); uno más largo se acota con un resumen
+    estable de la tabla y el campo. Lo comparten el índice parcial de un campo
+    dependiente de empresa y los índices ``btree_not_null`` y ``trigram`` de
+    un campo ordinario (``orm.fields``).
+    """
     base = f'{cls._meta.db_table}__{name}_index'
     if len(base) > 30:
         digest = names_digest(cls._meta.db_table, name, length=8)
         base = f'{base[:21]}_{digest}'
-    return models.Index(
-        models.ExpressionWrapper(not_null, output_field=models.BooleanField()),
-        condition=not_null, name=base)
+    return base
 
 
 class CompanyDependent(models.JSONField):
