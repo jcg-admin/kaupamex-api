@@ -153,3 +153,35 @@ entre filas de una misma transacción. Corrección de este pase: desempatar por
 `id` en la misma dirección, que es el desempate que la referencia usa en sus
 `_order` (`'..., id desc'`). Alinear el criterio principal con el `_order` de
 cada modelo es otra pasada, por modelo.
+
+## Derivación desde odoo-tools (3.2.14-C.1) — 2026-11-09T04:36:31
+
+**Referencia.** `/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0`,
+raíz Git `/home/user/odoo-tools`, revisión `abe4040ec1a45beee90fb694e4eae4453e46b389`,
+`odoo/release.py:15` `version_info = (19, 0, 0, FINAL, 0, '')`. Enterprise en
+`19.x/odoo19-enterprise-main/odoo19pro-main/odoo19pro-main` (OEEL-1, sólo lectura).
+
+### Contrato de las columnas de acceso
+
+| Caso | Referencia | Kaupamex |
+|---|---|---|
+| alta | `create_date`/`write_date` ← `cr.now()` (`odoo/orm/models.py:4801-4805`) | `TransactionDateTimeField.pre_save`, una lectura por guardado |
+| escritura | `write_date` ← `cr.now()` (`:4394-4396`); computados (`:4534-4536`) | `auto_now` con la misma lectura |
+| valor explícito | descartado salvo superusuario con el registro sin cargar (`:4387-4390`, `:4781-4784`) | `auto_now`/`auto_now_add` lo pisan; `sudo` no cambia el uid (no habilita) |
+| reloj | `SELECT now() AT TIME ZONE 'UTC'`, memorizado (`odoo/sql_db.py:271-278`) | `SELECT now()` en la conexión del alias de escritura |
+| reinicio | sólo `commit`/`rollback` (`sql_db.py:565,576`); no en savepoints | PostgreSQL `now()` = inicio de transacción; savepoint no lo cambia |
+| sin `_log_access` | sin columnas (`models.py:283`, por defecto `_auto`) | sólo los modelos que heredan `TimeStampedModel` |
+
+Ciega a: el modo autocommit de Django, donde cada `SELECT now()` es su propia
+transacción (ya declarado arriba).
+
+### Consumidores derivados uno a uno
+
+- `ir.logging`: `_order = 'id DESC'` (`odoo/addons/base/models/ir_logging.py:8`). Ya aplicado en `94930e21`.
+- Diario de notas de débito: `account.journal` sin `_log_access` → `_auto`; en el alta las dos fechas valen `cr.now()`. La prueba compara igualdad con la hora de la transacción (más estricta que la de reloj).
+- **`res.users.log._gc_user_logs` — divergencia previa encontrada al derivar.** La referencia borra `log1` sólo si existe `log2` del mismo `create_uid` con `create_date` **estrictamente** mayor: conserva todas las filas empatadas en la fecha máxima. El puerto conservaba una por usuario, desempatando por id. Corregido a `Exists(created_at__gt=OuterRef)`; RED en `red/gc-user-logs-ties.txt`; controles: sin correlación cae 1, con `__gte` caen 3.
+- **Desempate de las 22 consultas por `created_at`.** No se aplica en bloque: cada una está clasificada en `tests/unit/orm/test_created_at_orderings_tie_break.py::REGISTRY` con su fuente:
+  - `reference-id` — crm.lead `'priority desc, id desc'` (`crm/models/crm_lead.py:87`), helpdesk.ticket `'priority desc, id desc'` (odoo19e `helpdesk/models/helpdesk_ticket.py:27`), mail.message `'id desc'` (`mail/models/mail_message.py:74`), payment.transaction `'id desc'` (`payment/models/payment_transaction.py:27`), rating.rating `'write_date desc, id desc'` (`rating/models/rating.py:15`), sale.order `'date_order desc, id desc'` (`sale/models/sale_order.py:38`);
+  - `reference-untied` — `stock.quant._onchange_product_id` ordena `'create_date desc'` con `limit=1` sin desempate (`stock/models/stock_quant.py:985-987`): el puerto conserva esa forma literal;
+  - `consumer` — modelos sin contraparte 1:1 (voucher, guía de envío, historial de búsqueda, colas FIFO, carrito, factura L0, suscriptores).
+- Abierto, otra obligación: el orden **principal** de varias consultas difiere del `_order` de su referencia (crm, helpdesk `priority`; rating `write_date`; sale `date_order`). No se cambia aquí: altera contratos de interfaz del Consumer.

@@ -1,0 +1,4 @@
+    assert quedan == {tied_a, tied_b}
+E   assert {137} == {136, 137}
+FAILED tests/unit/base/test_login_procedure.py::test_the_gc_keeps_every_row_tied_at_the_newest_date
+1 failed, 2 passed, 26 deselected, 2 warnings in 6.48s
