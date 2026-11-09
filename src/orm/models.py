@@ -73,6 +73,8 @@ from django.db.models.signals import (class_prepared, m2m_changed, post_init,
 from django.dispatch import receiver
 from psycopg import errors as pg_errors
 import uuid
+import datetime
+import pytz
 from contextvars import ContextVar
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
@@ -109,7 +111,7 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
 from orm.fields_textual import Char
-from orm.fields_temporal import Date
+from orm.fields_temporal import Date, Datetime
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
@@ -121,6 +123,7 @@ from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS,
                        as_record_list, browse, check_object_name,
                        model_field_registry, parse_field_expr, record_ids)
 from service.db import Savepoint
+from tools import date_utils
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
 from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
@@ -7048,6 +7051,113 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                 line['__fold'] = fold.get(key, False)
 
         return list(result.values())
+
+    def _read_group_fill_temporal(self, data, groupby, annoted_aggregates,
+                                  fill_from=False, fill_to=False,
+                                  min_groups=False):
+        """Rellena los huecos de fecha/fecha-hora de un resultado agrupado.
+
+        ≙ ``BaseModel._read_group_fill_temporal`` (``odoo19c:
+        odoo/orm/models.py:2387-2552``). La fuente documenta el caso con
+        gráficas: agrupado por mes con datos en junio, septiembre y
+        diciembre, la gráfica junta diciembre con septiembre; con ceros
+        explícitos para los meses sin datos la serie queda contigua.
+
+        ``fill_from``/``fill_to`` (inclusivos, ``%Y-%m-%d`` o
+        ``%Y-%m-%d %H:%M:%S``) acotan el tramo que se rellena; los grupos
+        fuera de él no se retiran. Sin ellos, los límites son el primer y el
+        último grupo existentes (se supone ``data`` ordenada por el campo).
+        ``min_groups`` garantiza al menos esa cantidad de grupos contiguos
+        desde ``fill_from`` (o el grupo más bajo), sin acotarse por
+        ``fill_to``. Sin límites ni grupos no se devuelve ninguno.
+        """
+        # TODO de la fuente: retirar min_groups
+        first_group = groupby[0]
+        field_name = first_group.split(':')[0].split(".")[0]
+        field = self._fields[field_name]
+        if field.type not in ('date', 'datetime') and not (
+                field.type == 'properties' and ':' in first_group):
+            return data
+
+        granularity = (first_group.split(':')[1] if ':' in first_group
+                       else 'month')
+        days_offset = 0
+        if granularity == 'week':
+            # los grupos de semana dependen del idioma, así que los
+            # rellenados también, para que no se solapen.
+            first_week_day = int(get_lang(self.env).week_start) - 1
+            days_offset = first_week_day and 7 - first_week_day
+        interval = READ_GROUP_TIME_GRANULARITY[granularity]
+        tz = False
+        if (field.type == 'datetime'
+                and self.env.context.get('tz') in pytz.all_timezones_set):
+            tz = pytz.timezone(self.env.context['tz'])
+
+        # fechas no nulas existentes
+        existing = [d[first_group] for d in data if d[first_group]] or [None]
+        # supuesto: data está ordenada por el campo agrupado
+        existing_from, existing_to = existing[0], existing[-1]
+        if fill_from:
+            fill_from = (Datetime.to_datetime(fill_from)
+                         if isinstance(fill_from, datetime.datetime)
+                         else Date.to_date(fill_from))
+            fill_from = (date_utils.start_of(fill_from, granularity)
+                         - datetime.timedelta(days=days_offset))
+            if tz:
+                fill_from = tz.localize(fill_from)
+        elif existing_from:
+            fill_from = existing_from
+        if fill_to:
+            fill_to = (Datetime.to_datetime(fill_to)
+                       if isinstance(fill_to, datetime.datetime)
+                       else Date.to_date(fill_to))
+            fill_to = (date_utils.start_of(fill_to, granularity)
+                       - datetime.timedelta(days=days_offset))
+            if tz:
+                fill_to = tz.localize(fill_to)
+        elif existing_to:
+            fill_to = existing_to
+
+        if not fill_to and fill_from:
+            fill_to = fill_from
+        if not fill_from and fill_to:
+            fill_from = fill_to
+        if not fill_from and not fill_to:
+            return data
+
+        if min_groups > 0:
+            fill_to = max(fill_to, fill_from + (min_groups - 1) * interval)
+
+        if fill_to < fill_from:
+            return data
+
+        required_dates = date_utils.date_range(fill_from, fill_to, interval)
+
+        if existing[0] is None:
+            existing = list(required_dates)
+        else:
+            existing = sorted(set().union(existing, required_dates))
+
+        empty_item = {
+            name: self._read_group_empty_value(spec)
+            for name, spec in annoted_aggregates.items()
+        }
+        for group in groupby[1:]:
+            empty_item[group] = self._read_group_empty_value(group)
+
+        grouped_data = collections.defaultdict(list)
+        for d in data:
+            grouped_data[d[first_group]].append(d)
+
+        result = []
+        for dt in existing:
+            result.extend(grouped_data[dt]
+                          or [dict(empty_item, **{first_group: dt})])
+
+        if False in grouped_data:
+            result.extend(grouped_data[False])
+
+        return result
 
     # === búsqueda =======================================================
 

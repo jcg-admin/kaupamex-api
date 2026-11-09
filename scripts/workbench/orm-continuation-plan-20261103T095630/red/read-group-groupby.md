@@ -52,3 +52,18 @@ Comando: `uv run --frozen pytest tests/unit/orm/test_read_group_groupby.py -q --
 
 Pendiente: se ejecuta cuando el gate de nivel 3 de `6d4c1764` libere las
 bases `_gw*` que comparten las ejecuciones `-n 4`.
+
+## Nivel 2 — `318e06a1` (2026-11-09, boot `3428adc4`)
+
+Alcance derivado (`grep -rlE "_read_group|regex_order_part_read_group|property_to_sql|_base_date_property_to_sql" tests/`):
+`tests/unit/orm tests/unit/account tests/unit/tools tests/unit/web`.
+
+```
+uv run --frozen pytest -n 4 -q --reuse-db -p no:cacheprovider <alcance>
+4658 passed, 39 skipped, 882 warnings in 219.74s
+EXIT=0
+```
+
+Los 39 omitidos son pruebas de la referencia cuyo árbol no se carga en esta
+ejecución (el propio informe lo declara). El nivel 3 (suite entera y
+multidb) de la revisión que contiene esta unidad sigue pendiente.
