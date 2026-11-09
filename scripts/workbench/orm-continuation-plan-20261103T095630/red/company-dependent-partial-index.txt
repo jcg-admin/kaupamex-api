@@ -3,3 +3,17 @@ RED — tests/unit/orm/test_company_dependent_partial_index.py, antes de tocar s
 FAILED test_the_table_carries_the_partial_expression_index[res.partner-barcode]
 FAILED test_the_table_carries_the_partial_expression_index[account.analytic.plan-default_applicability]
 2 failed — ninguna de las dos tablas tiene índice sobre la columna.
+
+CORRECCIÓN del RED: el caso de account.analytic.plan fallaba por KeyError
+(MODELS_BY_NAME no tiene ese nombre), no por el índice. La prueba resuelve
+ahora el modelo por etiqueta de Django. La ausencia del índice en las dos
+tablas antes del cambio la midió una sonda aparte sobre pg_indexes:
+"res.partner barcode idx_in_db= 0" y "account.analytic.plan
+default_applicability idx_in_db= 0".
+
+GREEN tras la contribución del índice a Meta.indexes (y a
+original_attrs, que es lo que ModelState.from_model copia) y las migraciones
+base/0102 y analytic/0007: 2 passed; makemigrations --check sin cambios.
+
+Control de anulación (restaurado con cmp): sin la contribución,
+makemigrations --check propone "Remove index" en las dos tablas.
