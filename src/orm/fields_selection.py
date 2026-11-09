@@ -185,6 +185,20 @@ class SelectionField(models.CharField):
         return [(key, translations.get(key, label))
                 for key, label in selection]
 
+    def _get_attrs(self, model_class, name):
+        """≙ ``Selection._get_attrs`` (``:85-91``).
+
+        ``selection`` y ``selection_add`` se procesan después; un
+        ``group_expand=True`` toma el expansor por defecto del campo.
+        """
+        attrs = super()._get_attrs(model_class, name)
+        # 'selection' y 'selection_add' se procesan más adelante
+        attrs.pop('selection_add', None)
+        # el campo de selección tiene un group_expand por defecto opcional
+        if attrs.get('group_expand') is True:
+            attrs['group_expand'] = self._default_group_expand
+        return attrs
+
     def _default_group_expand(self, records, groups, domain):
         """≙ ``:212-214``: un grupo por opción, en el orden declarado."""
         return self.get_values(records.env)

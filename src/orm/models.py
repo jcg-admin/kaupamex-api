@@ -6946,6 +6946,109 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         return ((value if value is not None else empty_value)
                 for value in raw_values)
 
+    def _read_group_expand_full(self, groups, domain):
+        """Extiende el grupo a todos los registros del comodelo.
+
+        ≙ ``BaseModel._read_group_expand_full`` (``odoo19c:
+        odoo/orm/models.py:2310-2313``). Docstring de la fuente: *"Extend the
+        group to include all target records by default."*
+        """
+        return groups.search([])
+
+    def _read_group_fill_results(self, domain, groupby, annoted_aggregates,
+                                 read_group_result, read_group_order=None):
+        """Rellena los grupos vacíos con todos los valores posibles del campo.
+
+        ≙ ``BaseModel._read_group_fill_results`` (``odoo19c:
+        odoo/orm/models.py:2315-2385``). Docstring de la fuente: *"Helper
+        method for filling in empty groups for all possible values of the
+        field being grouped by"*.
+
+        Adaptaciones declaradas, sin cambio de conducta: ``env.registry`` es
+        aquí un módulo, así que el método se busca en ``type(self)``; los
+        registros del comodelo se construyen con
+        :func:`_read_group_recordset`; un ``QuerySet`` de Django no ofrece
+        ``sudo`` ni ``_fold_name``, y se omiten sólo cuando faltan.
+        """
+        field_name = groupby.split('.')[0].split(':')[0]
+        field = self._fields[field_name]
+        if not field or not field.group_expand:
+            return read_group_result
+
+        # field.group_expand es un invocable o el nombre de un método que
+        # devuelve los grupos a mostrar para este campo, como recordset o
+        # como lista de valores según su tipo. Sirve, p. ej., a las vistas
+        # kanban, que muestran columnas aunque no contengan registros.
+        group_expand = field.group_expand
+        if isinstance(group_expand, str):
+            group_expand = getattr(type(self), group_expand)
+        assert callable(group_expand)
+
+        # todos los grupos que hay que devolver
+        values = [line[groupby] for line in read_group_result
+                  if line[groupby]]
+
+        if field.relational:
+            # groups es un recordset; el orden lo da el modelo de groups
+            comodel = self.env[field.comodel_name]
+            group_ids = tuple(value.id for value in values)
+            groups = _read_group_recordset(
+                self.env, comodel, group_ids, group_ids)
+            values = group_expand(self, groups, domain)
+            if hasattr(values, 'sudo'):
+                values = values.sudo()
+            if read_group_order == groupby + ' desc':
+                # Como en la fuente, el resultado no se reasigna.
+                values.browse(reversed(values._ids))
+
+            def value2key(value):
+                return value and value.id
+
+        else:
+            # groups es una lista de valores
+            values = group_expand(self, values, domain)
+            if read_group_order == groupby + ' desc':
+                values.reverse()
+
+            def value2key(value):
+                return value
+
+        # Fusiona los resultados actuales (lista de dicts) con todos los
+        # grupos. El orden global es el de read_group_result, que se supone
+        # el mismo cuando el campo es many2one.
+        read_group_result_as_dict = {}
+        for line in read_group_result:
+            read_group_result_as_dict[value2key(line[groupby])] = line
+
+        empty_item = {
+            name: self._read_group_empty_value(spec)
+            for name, spec in annoted_aggregates.items()
+        }
+
+        result = {}
+        # el resultado sigue el orden de values
+        for value in values:
+            key = value2key(value)
+            if key in read_group_result_as_dict:
+                result[key] = read_group_result_as_dict.pop(key)
+            else:
+                result[key] = dict(empty_item, **{groupby: value})
+
+        for line in read_group_result_as_dict.values():
+            key = value2key(line[groupby])
+            result[key] = line
+
+        # información de plegado, si el comodelo la declara
+        fold_name = getattr(groups, '_fold_name', None) if field.relational \
+            else None
+        if fold_name and fold_name in groups._fields:
+            fold = {group.id: group[fold_name]
+                    for group in groups.browse(key for key in result if key)}
+            for key, line in result.items():
+                line['__fold'] = fold.get(key, False)
+
+        return list(result.values())
+
     # === búsqueda =======================================================
 
     @classmethod
