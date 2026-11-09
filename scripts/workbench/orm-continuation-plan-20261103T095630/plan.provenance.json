@@ -835,6 +835,13 @@
         "base-inherits-multiple-parents-0182"
       ],
       "writtenAt": "2026-11-09T00:56:33Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-field-groups-write-0485"
+      ],
+      "writtenAt": "2026-11-09T01:17:38Z"
     }
   ]
 }
