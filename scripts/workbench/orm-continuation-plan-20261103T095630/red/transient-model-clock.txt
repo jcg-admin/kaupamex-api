@@ -1,0 +1,5 @@
+E   assert datetime.datetime(2026, 11, 9, 4, 57, 10, 744960, tzinfo=datetime.timezone.utc) == datetime.datetime(2026, 11, 9, 4, 57, 10, 744513, tzinfo=datetime.timezone.utc)
+E   assert False
+FAILED tests/integration/test_orm/test_contract_models_transient_vacuum.py::TestTheTransactionClock::test_the_dates_of_a_new_row_are_the_transaction_time
+FAILED tests/integration/test_orm/test_contract_models_transient_vacuum.py::TestTheTransactionClock::test_a_wall_clock_ahead_does_not_age_a_fresh_row
+2 failed, 4 passed, 2 warnings in 5.45s

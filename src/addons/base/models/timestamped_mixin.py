@@ -53,8 +53,15 @@ guardado— y **no genera migración**: el mixin no declara ningún campo, igual
 que ``DefaultGetMixin``.
 """
 
-from django.db import connections, models, router
+from django.db import models
 
+from orm.fields_temporal import (
+    SAVE_NOW,
+    SAVE_USING,
+    TransactionClockSaveMixin,
+    TransactionDateTimeField,
+    transaction_now,
+)
 from orm.models import (
     ArchiveMixin,
     BaseUrlMixin,
@@ -64,72 +71,17 @@ from orm.models import (
     RecordLoaderMixin,
 )
 
-
-def transaction_now(using):
-    """La hora de la transacción en curso — ≙ ``Cursor.now()``.
-
-    ``odoo19c: odoo/sql_db.py:271-278``: *"Return the transaction's timestamp
-    NOW() AT TIME ZONE 'UTC'"*. La fuente la memoriza en el cursor; aquí la
-    memoria la da PostgreSQL, porque ``now()`` es constante dentro de una
-    transacción. No se memoriza por bloque ``atomic``: un
-    ``@transaction.atomic`` usado como decorador reutiliza el mismo objeto en
-    cada llamada y serviría la hora de una transacción anterior.
-    """
-    with connections[using or 'default'].cursor() as cursor:
-        cursor.execute('SELECT now()')
-        return cursor.fetchone()[0]
-
-
-#: La lectura de ``now()`` que comparten las fechas de un mismo guardado, y el
-#: alias que ``save`` recibió. Los limpia :meth:`TimeStampedModel.save`.
-SAVE_NOW = '_orm_save_now'
-SAVE_USING = '_orm_save_using'
-
-
-def _write_alias(instance):
-    """La base donde ``save`` escribe la fila.
-
-    Durante el INSERT ``_state.db`` aún es ``None``: Django lo fija después
-    de escribir. El destino es el ``using`` explícito de ``save`` o, sin él,
-    ``router.db_for_write`` — la misma regla que ``Model.save``.
-    """
-    return (instance.__dict__.get(SAVE_USING) or instance._state.db
-            or router.db_for_write(type(instance), instance=instance))
-
-
-class TransactionDateTimeField(models.DateTimeField):
-    """``auto_now``/``auto_now_add`` con la hora de la transacción.
-
-    ``create`` y ``write`` de la fuente fechan con ``cr.now()``
-    (``odoo19c: odoo/orm/models.py:4396,4803-4805``): todo lo escrito en una
-    transacción lleva la misma fecha y un ``write`` en la transacción del
-    ``create`` no mueve ``write_date``. ``DateTimeField`` de Django usa
-    ``timezone.now()`` en cada ``pre_save``, que difiere entre guardados.
-
-    Se deconstruye como ``DateTimeField``: la columna es la misma y las
-    migraciones de los modelos no cambian.
-    """
-
-    def pre_save(self, model_instance, add):
-        if self.auto_now or (self.auto_now_add and add):
-            value = model_instance.__dict__.get(SAVE_NOW)
-            if value is None:
-                # Una sola lectura por guardado: la fuente fija las dos
-                # fechas de un alta con el mismo ``cr.now()``
-                # (``models.py:4803-4805``). Fuera de ``atomic`` (autocommit)
-                # dos ``SELECT now()`` son dos transacciones y diferirían.
-                value = transaction_now(_write_alias(model_instance))
-                model_instance.__dict__[SAVE_NOW] = value
-            setattr(model_instance, self.attname, value)
-            return value
-        return super().pre_save(model_instance, add)
-
-    def deconstruct(self):
-        name, _path, args, kwargs = super().deconstruct()
-        return name, 'django.db.models.DateTimeField', args, kwargs
+#: El reloj vive en ``orm.fields_temporal``; se reexporta aquí porque los
+#: consumidores lo importaban de este módulo.
+__all__ = [
+    'SAVE_NOW', 'SAVE_USING', 'TimeStampedModel',
+    'TransactionClockSaveMixin', 'TransactionDateTimeField',
+    'transaction_now',
+]
 
 
 class TimeStampedModel(
+    TransactionClockSaveMixin,
     RecordLoaderMixin,
     DisplayNameMixin,
     OrderMixin,
@@ -166,20 +118,6 @@ class TimeStampedModel(
     #: (``orm/model_classes.py``), que sólo sustituye el manager que Django
     #: auto-creó: un modelo sin manager propio lo recibe, y uno que declara el
     #: suyo lo conserva. Ver :ref:`h-api-876`.
-
-    def save(self, *args, **kwargs):
-        """Delimita la lectura de reloj compartida por las dos fechas.
-
-        La memoria vive en la instancia sólo mientras dura este guardado: un
-        ``save`` posterior, en otra transacción, vuelve a leer ``now()``.
-        """
-        self.__dict__.pop(SAVE_NOW, None)
-        self.__dict__[SAVE_USING] = kwargs.get('using')
-        try:
-            return super().save(*args, **kwargs)
-        finally:
-            self.__dict__.pop(SAVE_NOW, None)
-            self.__dict__.pop(SAVE_USING, None)
 
     created_at = TransactionDateTimeField(
         auto_now_add=True,

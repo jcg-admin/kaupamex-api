@@ -15,9 +15,11 @@ import datetime
 
 import pytest
 from django.apps import apps
+from django.db import transaction
 from django.utils import timezone
 
 from addons.base.models.ir_profile import BaseEnableProfilingWizard
+from addons.base.models.timestamped_mixin import transaction_now
 from orm.models_transient import TransientModel
 
 pytestmark = pytest.mark.integration
@@ -61,3 +63,31 @@ class TestTheAgeCleanup:
         name, has_remaining = BaseEnableProfilingWizard._transient_vacuum()
         assert name == BaseEnableProfilingWizard._name
         assert has_remaining is False
+
+
+class TestTheTransactionClock:
+    """Las fechas y el corte salen de ``cr.now()``, no del reloj de pared.
+
+    ``odoo19c: odoo/orm/models.py:4801-4805`` fija las columnas de acceso
+    con ``cr.now()``, y ``models_transient.py:78`` corta con
+    ``self.env.cr.now()``.
+    """
+
+    def test_the_dates_of_a_new_row_are_the_transaction_time(self, db):
+        # El reloj es el de UNA transacción: fuera de un bloque atómico cada
+        # lectura sería la suya propia.
+        with transaction.atomic():
+            row = BaseEnableProfilingWizard.objects.create()
+            now = transaction_now(row._state.db)
+        assert row.created_at == now
+        assert row.updated_at == now
+
+    def test_a_wall_clock_ahead_does_not_age_a_fresh_row(
+            self, db, monkeypatch):
+        row = BaseEnableProfilingWizard.objects.create()
+        ahead = timezone.now() + datetime.timedelta(days=1)
+        monkeypatch.setattr(timezone, 'now', lambda: ahead)
+
+        BaseEnableProfilingWizard._transient_clean_rows_older_than(3600)
+
+        assert BaseEnableProfilingWizard.objects.filter(pk=row.pk).exists()

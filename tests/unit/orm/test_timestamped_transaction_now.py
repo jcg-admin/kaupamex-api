@@ -15,6 +15,7 @@ import pytest
 from django.db import connection, transaction
 
 from addons.base.models import timestamped_mixin
+from orm import fields_temporal
 from orm.environments import env as current_env
 from orm.environments import sudo
 
@@ -78,7 +79,7 @@ def test_one_insert_takes_both_dates_from_one_clock_reading(monkeypatch):
     def advancing(using):
         return base.replace(microsecond=next(readings))
 
-    monkeypatch.setattr(timestamped_mixin, 'transaction_now', advancing)
+    monkeypatch.setattr(fields_temporal, 'transaction_now', advancing)
     with sudo():
         record = current_env()['test_orm.related'].create({'name': 'a'})
         assert record.created_at == record.updated_at
@@ -95,7 +96,7 @@ def test_the_clock_is_read_on_the_row_database(monkeypatch):
         seen.append(using)
         return real(using)
 
-    monkeypatch.setattr(timestamped_mixin, 'transaction_now', spy)
+    monkeypatch.setattr(fields_temporal, 'transaction_now', spy)
     with sudo():
         current_env()['test_orm.related'].create({'name': 'a'})
     assert seen and set(seen) == {'default'}
@@ -111,7 +112,7 @@ def test_a_later_save_reads_the_clock_again(monkeypatch):
     def advancing(using):
         return base.replace(microsecond=next(readings))
 
-    monkeypatch.setattr(timestamped_mixin, 'transaction_now', advancing)
+    monkeypatch.setattr(fields_temporal, 'transaction_now', advancing)
     Model = current_env()['test_orm.related']
     with sudo():
         row = Model(name='a')

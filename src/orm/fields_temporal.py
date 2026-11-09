@@ -66,7 +66,7 @@ import logging
 from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo, available_timezones
 
-from django.db import models
+from django.db import connections, models, router
 from django.utils.dateparse import parse_datetime
 
 from orm.environments import get_context, get_current_tz
@@ -509,3 +509,97 @@ Datetime.context_timestamp = _datetime_context_timestamp
 Datetime.to_datetime = _datetime_to_datetime
 Datetime.from_string = _datetime_to_datetime
 Datetime.to_string = _datetime_to_string
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El reloj de la transacción — ≙ ``Cursor.now()`` (``odoo/sql_db.py:271-278``)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Es del ORM y no de un addon: lo consumen las columnas de acceso de
+# ``TimeStampedModel`` y de ``TransientModel``, y el barrido de los
+# transitorios (``models_transient.py:78``). Diseño:
+# ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/``
+# ``timestamped-transaction-now.md`` y ``transient-model-clock.md``.
+
+
+def transaction_now(using):
+    """La hora de la transacción en curso — ≙ ``Cursor.now()``.
+
+    ``odoo19c: odoo/sql_db.py:271-278``: *"Return the transaction's timestamp
+    NOW() AT TIME ZONE 'UTC'"*. La fuente la memoriza en el cursor; aquí la
+    memoria la da PostgreSQL, porque ``now()`` es constante dentro de una
+    transacción. No se memoriza por bloque ``atomic``: un
+    ``@transaction.atomic`` usado como decorador reutiliza el mismo objeto en
+    cada llamada y serviría la hora de una transacción anterior.
+    """
+    with connections[using or 'default'].cursor() as cursor:
+        cursor.execute('SELECT now()')
+        return cursor.fetchone()[0]
+
+
+#: La lectura de ``now()`` que comparten las fechas de un mismo guardado, y el
+#: alias que ``save`` recibió. Los limpia :meth:`TimeStampedModel.save`.
+SAVE_NOW = '_orm_save_now'
+SAVE_USING = '_orm_save_using'
+
+
+def _write_alias(instance):
+    """La base donde ``save`` escribe la fila.
+
+    Durante el INSERT ``_state.db`` aún es ``None``: Django lo fija después
+    de escribir. El destino es el ``using`` explícito de ``save`` o, sin él,
+    ``router.db_for_write`` — la misma regla que ``Model.save``.
+    """
+    return (instance.__dict__.get(SAVE_USING) or instance._state.db
+            or router.db_for_write(type(instance), instance=instance))
+
+
+class TransactionDateTimeField(models.DateTimeField):
+    """``auto_now``/``auto_now_add`` con la hora de la transacción.
+
+    ``create`` y ``write`` de la fuente fechan con ``cr.now()``
+    (``odoo19c: odoo/orm/models.py:4396,4803-4805``): todo lo escrito en una
+    transacción lleva la misma fecha y un ``write`` en la transacción del
+    ``create`` no mueve ``write_date``. ``DateTimeField`` de Django usa
+    ``timezone.now()`` en cada ``pre_save``, que difiere entre guardados.
+
+    Se deconstruye como ``DateTimeField``: la columna es la misma y las
+    migraciones de los modelos no cambian.
+    """
+
+    def pre_save(self, model_instance, add):
+        if self.auto_now or (self.auto_now_add and add):
+            value = model_instance.__dict__.get(SAVE_NOW)
+            if value is None:
+                # Una sola lectura por guardado: la fuente fija las dos
+                # fechas de un alta con el mismo ``cr.now()``
+                # (``models.py:4803-4805``). Fuera de ``atomic`` (autocommit)
+                # dos ``SELECT now()`` son dos transacciones y diferirían.
+                value = transaction_now(_write_alias(model_instance))
+                model_instance.__dict__[SAVE_NOW] = value
+            setattr(model_instance, self.attname, value)
+            return value
+        return super().pre_save(model_instance, add)
+
+    def deconstruct(self):
+        name, _path, args, kwargs = super().deconstruct()
+        return name, 'django.db.models.DateTimeField', args, kwargs
+
+
+class TransactionClockSaveMixin:
+    """Delimita la lectura de reloj que comparten las fechas de un guardado.
+
+    La memoria vive en la instancia sólo mientras dura ``save``: un guardado
+    posterior, en otra transacción, vuelve a leer ``now()``. Va antes de
+    ``models.Model`` en las bases del modelo que la use.
+    """
+
+    def save(self, *args, **kwargs):
+        self.__dict__.pop(SAVE_NOW, None)
+        self.__dict__[SAVE_USING] = kwargs.get('using')
+        try:
+            return super().save(*args, **kwargs)
+        finally:
+            self.__dict__.pop(SAVE_NOW, None)
+            self.__dict__.pop(SAVE_USING, None)
+

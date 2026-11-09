@@ -34,10 +34,14 @@ así que ``_transient_vacuum`` entra en su pasada sin cablear nada más.
 
 import datetime
 
-from django.db import models
-from django.utils import timezone
+from django.db import router
 
 from orm.decorators import autovacuum
+from orm.fields_temporal import (
+    TransactionClockSaveMixin,
+    TransactionDateTimeField,
+    transaction_now,
+)
 from orm.models import Model
 from tools import config
 from tools.constants import GC_UNLINK_LIMIT
@@ -47,7 +51,7 @@ from tools.func import lazy_classproperty
 MINIMUM_IDLE_SECONDS = 300
 
 
-class TransientModel(Model):
+class TransientModel(TransactionClockSaveMixin, Model):
     """
     Modelo transitorio (wizard/asistente) — ≙ ``TransientModel`` (``:10-33``).
 
@@ -57,11 +61,14 @@ class TransientModel(Model):
 
     La segunda mitad de ese docstring —*"A TransientModel has a simplified
     access rights management, all users can create new records, and may only
-    access the records they created"*— describe una ACL propia que aquí **no
-    está portada**: el control de acceso de este árbol pasa por
-    ``ir.model.access`` y las reglas de fila, y no tiene la excepción por
-    creador. No es omisión silenciosa: es el hueco que su consumidor abrirá
-    cuando un wizard necesite aislarse por usuario.
+    access the records they created"*— **no tiene implementación en la
+    referencia**: medido en ``odoo-tools@abe4040ec1``, ``ir_rule.py`` no
+    contiene ninguna regla sobre ``create_uid`` y ``ir_model.py`` sólo
+    consulta ``_transient`` al reflejar el modelo (``:434,488``). El acceso a
+    un transitorio pasa, allá y aquí, por ``ir.model.access`` y las reglas
+    de fila; no hay contrato de creador que portar. Diseño:
+    ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/``
+    ``transient-model-clock.md``.
     """
 
     class Meta:
@@ -71,9 +78,10 @@ class TransientModel(Model):
     #: odoo/orm/models.py:296``), que la fuente exige a todo transitorio
     #: (``odoo/orm/model_classes.py:217-220``): sin fecha de escritura no hay
     #: limpieza por antigüedad. Mismos nombres que ``TimeStampedModel``, la
-    #: convención del árbol para ``create_date``/``write_date``.
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    #: convención del árbol para ``create_date``/``write_date``. Su valor es
+    #: el reloj de la transacción, ``cr.now()`` (``models.py:4801-4805``).
+    created_at = TransactionDateTimeField(auto_now_add=True, null=True)
+    updated_at = TransactionDateTimeField(auto_now=True, null=True)
 
     #: ≙ ``:18-21``. ``_auto``: crea tabla; ``_register``: no se registra
     #: como modelo propio, sólo se hereda; ``_abstract``: no es abstracto.
@@ -154,7 +162,10 @@ class TransientModel(Model):
         tiene no se barre por antigüedad — su tope será el de conteo.
         """
         seconds = max(seconds, MINIMUM_IDLE_SECONDS)
-        cutoff = timezone.now() - datetime.timedelta(seconds=seconds)
+        # ``self.env.cr.now()`` (``:78``): el reloj de la transacción, no el
+        # de pared.
+        cutoff = (transaction_now(router.db_for_write(cls))
+                  - datetime.timedelta(seconds=seconds))
         names = {f.name for f in cls._meta.get_fields()}
         stamp = (
             'updated_at'
