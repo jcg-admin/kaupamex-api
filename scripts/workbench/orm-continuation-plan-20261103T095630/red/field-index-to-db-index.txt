@@ -1,0 +1,9 @@
+RED — tests/unit/orm/test_field_index_db_index.py, antes de tocar src:
+
+FAILED tests/unit/orm/test_field_index_db_index.py::test_the_migrated_table_carries_the_index[res.partner-ref]
+FAILED tests/unit/orm/test_field_index_db_index.py::test_the_migrated_table_carries_the_index[test_orm.category-parent_path]
+FAILED tests/unit/orm/test_field_index_db_index.py::test_a_btree_index_becomes_db_index[True]
+FAILED tests/unit/orm/test_field_index_db_index.py::test_a_btree_index_becomes_db_index[btree]
+4 failed, 4 passed, 2 warnings in 5.47s
+
+Los cuatro controles (None, False, btree_not_null, trigram) pasan antes y deben seguir pasando.
