@@ -37,6 +37,9 @@ El comentario de `fields.py` («`_extra_keys__` y `_modules` … divergencia
 de mecanismo declarada») es falso para `_modules`, que el propio
 `setup_related` porta. Se corrige con la tabla de arriba.
 
-## Abierto
+## Cerrado en el mismo pase
 
-- Búsqueda por un `One2many` declarado con `related=`.
+- Búsqueda por un `One2many` declarado con `related=`: sonda sobre
+  `test_orm.related.foo_foo_ids` (`foo_id.foo_ids`) con dos registros `a`, `b`
+  del mismo `foo`: leer da `[a, b]` y `search([('foo_foo_ids', 'in', [b])])`
+  da `[a, b]`, que es la semántica de la cadena. Sin divergencia observada.
