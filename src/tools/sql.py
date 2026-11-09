@@ -108,6 +108,7 @@ from zlib import crc32
 
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.utils import NotSupportedError
+from psycopg.types.json import JsonbLoader
 
 if TYPE_CHECKING:
     # ``odoo.fields.Field`` en la referencia; aquí el campo es el de Django.
@@ -1110,7 +1111,28 @@ def execute_sql(sql, using=None):
     distingue de un ``SELECT`` sin filas.
     """
     with connections[using or DEFAULT_DB_ALIAS].cursor() as cursor:
+        decode_jsonb(cursor)
         cursor.execute(sql.code, sql.params)
         if cursor.description is None:
             return []
         return cursor.fetchall()
+
+
+def decode_jsonb(cursor):
+    """Que ``cursor`` entregue ``jsonb`` como valores de Python.
+
+    La fuente corre sobre psycopg2, que decodifica ``jsonb`` en el cursor
+    (``odoo19c: odoo/sql_db.py``), y sus consumidores reciben ya ``dict``,
+    ``list`` o escalares — ``_read_group_postprocess_groupby`` y
+    ``get_property_definition`` no posprocesan nada. Django registra
+    ``TextLoader`` para ``jsonb`` en la conexión
+    (``django/db/backends/postgresql/psycopg_any.py``) porque su
+    ``JSONField.from_db_value`` decodifica después.
+
+    El cargador se registra en el ``AdaptersMap`` **del cursor** (el
+    ``cursor.cursor`` de psycopg que envuelve el de Django), que psycopg
+    copia de la conexión al crearlo: los ``QuerySet`` de Django, con sus
+    propios cursores, siguen recibiendo texto y no decodifican dos veces.
+    Medido en TASK-API-0504 (``designs/orm-raw-query-jsonb.md``).
+    """
+    cursor.cursor.adapters.register_loader('jsonb', JsonbLoader)

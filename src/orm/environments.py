@@ -103,7 +103,7 @@ from tools.func import reset_cached_properties
 from tools.misc import (SENTINEL, OrderedSet, StackMap, clean_context,
                         frozendict)
 from tools.query import Query
-from tools.sql import SQL, execute_sql
+from tools.sql import SQL, decode_jsonb, execute_sql
 from tools.translate import _translate_and_format
 
 _logger = logging.getLogger(__name__)
@@ -1565,6 +1565,7 @@ class Environment(abc.Mapping):
         """≙ ``Environment.execute_query_dict`` (``:537``) — filas como
         dicts."""
         with self.cr.cursor() as cursor:
+            decode_jsonb(cursor)
             cursor.execute(query.code, query.params)
             if cursor.description is None:
                 return []

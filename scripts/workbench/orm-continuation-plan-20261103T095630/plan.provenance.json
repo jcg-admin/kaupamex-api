@@ -954,6 +954,13 @@
         "tools-sql-reference-shape-0486"
       ],
       "writtenAt": "2026-11-09T19:07:47Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "orm-raw-query-jsonb-0504"
+      ],
+      "writtenAt": "2026-11-09T22:50:37Z"
     }
   ]
 }
