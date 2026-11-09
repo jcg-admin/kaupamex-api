@@ -863,7 +863,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.post_const
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.finalize_constraints	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.init_models	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.check_null_constraints	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=agree;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.check_indexes	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=agree;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.check_indexes	method	not_verified	task_units_settled	TASK-API-0485		structural=match;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.add_foreign_key	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.check_foreign_keys	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/registry.py	Registry.check_tables_exist	method	not_verified	task_without_unit	TASK-API-0485		structural=match;write_path=-;evidence=-
