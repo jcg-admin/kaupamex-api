@@ -919,6 +919,13 @@
         "orm-new-django-comodel-0485"
       ],
       "writtenAt": "2026-11-09T10:31:51Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-one2many-new-records-0485"
+      ],
+      "writtenAt": "2026-11-09T11:13:13Z"
     }
   ]
 }

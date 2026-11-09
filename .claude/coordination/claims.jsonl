@@ -1760,3 +1760,5 @@
 {"id": "c-e2b6cb2f-5acd-4ff5-9922-b5afe0e996b1", "op": "claim", "path": "tests/unit/orm/test_new_with_django_comodel.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T10:31:51.000Z", "task": "TASK-API-0485"}
 {"id": "c-ca295f68-010e-41e9-a019-615b4b8959af", "op": "release", "path": "src/orm/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T10:32:09.000Z", "task": "TASK-API-0485"}
 {"id": "c-546070f6-078d-43a0-9c9a-5c22808ab59f", "op": "release", "path": "tests/unit/orm/test_new_with_django_comodel.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T10:32:09.000Z", "task": "TASK-API-0485"}
+{"id": "c-90bf269c-8b89-455a-884d-25f9ff8335b5", "op": "claim", "path": "src/orm/fields_relational.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T11:13:13.000Z", "task": "TASK-API-0485"}
+{"id": "c-bb6331b9-ed94-4d31-bee4-b46118f91d0c", "op": "claim", "path": "tests/unit/orm/test_one2many_on_new_records.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T11:13:13.000Z", "task": "TASK-API-0485"}
