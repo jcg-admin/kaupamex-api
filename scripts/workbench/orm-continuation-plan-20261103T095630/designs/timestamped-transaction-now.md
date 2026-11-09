@@ -89,3 +89,28 @@ previstos:
 falló en la suite, pero cada uno puede empatar entre filas de una misma
 transacción. Se revisan contra el `_order` de su modelo en la referencia,
 uno por modelo, no en bloque.
+
+## Conciliación pedida por el ejecutor (2026-11-09, segunda pasada)
+
+**Estado de partida, medido.** Los dos fallos de la suite completa
+(`full-ts-20261109T014856`, EXIT=1: `test_timestamped` y
+`test_admin_lists_ir_logging`) se corrigieron en `94930e21`. La suite completa
+sobre `e064fa7b` (desciende de `94930e21`) dio 12228 passed, 0 failed, 5
+errores multidb ambientales; multidb aprobó sobre `f7cbd1fe` (incluye
+`94930e21`). Ninguna prueba viva al empezar.
+
+**Contrato de la referencia, ampliado.**
+
+| Eje | odoo19c | Aquí con `SELECT now()` |
+|---|---|---|
+| transacción | `cr.now()` memorizado (`sql_db.py:271-278`) | `now()` de PostgreSQL, constante en la transacción |
+| savepoint / `atomic` anidado | no reinicia `_now` (sólo `commit`/`rollback`, `:560-576`) | `now()` no cambia en un savepoint: igual |
+| tras `commit`/`rollback` | `_now = None`: fecha nueva | nueva transacción, `now()` nuevo: igual |
+| alta: `create_date` == `write_date` | los dos de un mismo `cr.now()` (`models.py:4803-4805`) | **riesgo**: dos `SELECT now()`; en autocommit (fuera de `atomic`) son dos transacciones y pueden diferir |
+| ordenamiento | los modelos que necesitan orden de alta ordenan por `id` (`ir_logging.py:8`) | 21 `order_by` + 49 `latest`/`earliest` por revisar |
+
+**Corrección del riesgo.** Una sola consulta por guardado: el primer campo
+consulta `now()` y el segundo reutiliza el valor dentro del mismo `save`. Se
+prueba simulando el autocommit (un `transaction_now` que devuelve valores
+crecientes), sin `django_db(transaction=True)`, que trunca toda la base QA
+compartida al terminar.
