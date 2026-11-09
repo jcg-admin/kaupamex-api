@@ -7102,7 +7102,12 @@ class BaseModel(DefaultGetMixin, Model):
 
             # set inverse fields on new records in the comodel
             if field.relational:
-                inv_recs = self[field.name].filtered(lambda r: not r.id)
+                corecords = self[field.name]
+                if not hasattr(corecords, 'filtered'):
+                    # Un comodelo de Django devuelve una fila, que ya existe,
+                    # o ``None``: no hay registro nuevo cuyo inverso ajustar.
+                    continue
+                inv_recs = corecords.filtered(lambda r: not r.id)
                 if not inv_recs:
                     continue
                 # we need to adapt the value of the inverse fields to
