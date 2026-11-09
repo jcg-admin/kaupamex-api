@@ -265,7 +265,8 @@
   "orm-parent-path-check-0485",
   "orm-field-index-btree-0485",
   "orm-company-dependent-index-0485",
-  "orm-new-django-comodel-0485"
+  "orm-new-django-comodel-0485",
+  "orm-one2many-new-records-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
