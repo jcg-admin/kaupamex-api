@@ -118,3 +118,17 @@ y suite completa y multidb sobre la revisión.
 funcional del `defaultdict`, GREEN, controles, regresión de impacto, suite
 completa sin fallos nuevos, multidb `pytest_exit 0`, árbol limpio y
 `verify=0` de `settle_item`. Las cinco pruebas de forma no bastan solas.
+
+## Matriz de impacto (medida antes de la regresión)
+
+| Eje | Contenido |
+|---|---|
+| Changed symbols | `tools.sql`: `__all__` (nuevo), `SQL.__slots__`, `SQL.__init__`, anotaciones de `SQL`, `SQL.resolve_expression` (retirado), `SQL_ORDER_BY_TYPE` (`defaultdict`), `sql_order_by_type` y `SQL_ORDER_BY_TYPE_UNKNOWN` (retirados). `orm.fields._field_column_order`. `stock_quant._read_group_select`. |
+| Changed behavior | `SQL` deja de ser expresión de Django; `output_field` pasa a ser un nombre ignorado, como en la referencia. Leer un tipo desconocido de `SQL_ORDER_BY_TYPE` lo añade al mapa. La composición, los parámetros y `to_flush` no cambian. |
+| Direct consumers | `stock_quant._read_group_select` (2 llamadas); `Field.column_order` (sin llamadores en `src/` ni `addons/`: sólo `tests/unit/orm/test_field_conversion.py`). |
+| Indirect consumers | Todo `SQL` del ORM (`tools.query`, `orm.models`, `orm.environments`, `orm.domains`): la composición no cambia, pero un `SQL` usado como expresión de Django en una ruta dinámica fallaría. Medido estáticamente: 0 usos de ese tipo. |
+| Required contract tests | `tests/unit/tools/test_sql_reference_shape.py` (5) y las tres funcionales nuevas de `test_sql.py`. |
+| Required regression tests | Directorios derivados con `grep -rlE "from tools.sql import|from tools import sql|tools\.sql|StockQuant|stock_quant|column_order|SQL_ORDER_BY_TYPE" tests/`: `tests/unit/{orm,tools,account,base,website,stock,product,account_test}`, `tests/integration/{test_orm,tools,sale,product}`. |
+| Required integration gates | Suite completa y multidb en el corte de publicación de la rama: el riesgo no cubierto (uso dinámico de `SQL` como expresión de Django) es transversal. |
+| Previously valid evidence | Suite completa sobre `1c6d35f9` (12285 passed, 0 failed); no se atribuye a esta unidad. |
+| Uncovered risks | Una ruta dinámica que entregue un `SQL` a `annotate`/`aggregate`/`filter`: la cubre sólo la suite completa. |
