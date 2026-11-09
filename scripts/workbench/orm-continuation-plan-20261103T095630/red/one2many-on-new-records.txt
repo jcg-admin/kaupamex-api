@@ -1,0 +1,7 @@
+RED — tests/unit/orm/test_one2many_on_new_records.py, antes de tocar src:
+
+FAILED test_a_new_owner_starts_without_lines
+       TypeError: Field 'id' expected a number but got <NewId ...>
+FAILED test_a_new_line_pointing_to_a_new_owner_joins_its_lines
+       AttributeError: 'One2many' object has no attribute '_update_inverse'
+2 failed
