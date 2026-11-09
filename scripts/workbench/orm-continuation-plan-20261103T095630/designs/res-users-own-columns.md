@@ -47,3 +47,22 @@ censo de consumidores antes de la prueba RED; C está prohibida. Queda abierta
 bajo TASK-API-0182 con esta condición de cierre: medir cuántos modelos tienen
 `AccessQuerySet` sin derivar de `BaseModel` y cuántas lecturas sin actor los
 alcanzan, y elegir entre A y B con esa cifra.
+
+## Condición de cierre, medida
+
+`apps.get_models()` con el registro cargado (`config.settings.testing`):
+**444** modelos, **437** con `AccessQuerySet` como queryset del manager por
+defecto, de ellos **389** sin derivar de `BaseModel`.
+
+*Métrica:* clase del queryset del `_default_manager` y herencia de
+`BaseModel`.
+*Ciega a:* modelos que comprueben la lectura por otra vía propia (vista,
+serializer); el conteo mide el ORM, no la API.
+
+Consecuencia: la lectura de columnas propias sin `check_access` no es un
+defecto de `res.users` sino de 389 modelos. Ni la opción A (migrar uno) ni
+una excepción por modelo lo cierran; la forma que lo cierra es la B o la
+migración progresiva de esos modelos a `BaseModel`, y elegir entre ellas es
+una decisión de arquitectura del ejecutor. Mientras tanto
+`users own login` sigue en `OPEN` del contrato, con esta cifra como su
+evidencia.
