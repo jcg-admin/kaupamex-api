@@ -27,3 +27,10 @@ Consumidor corregido en el mismo pase: `AccountInvoiceReport._read_group_select`
 afirmaba que `read_group` no existía; ahora nombra la causa real (método de
 `BaseModel`, modelo de Django que no lo hereda). Su prueba y el gate de
 reclamos de cero: `45 passed`.
+
+## Nivel 2 — `59a8b2e8` (contiene 6a, 6b, 6c y 6d)
+
+`tests/unit tests/integration/test_orm tests/integration/base`, `-n 4`:
+`10914 passed, 66 skipped, 4 xfailed in 490.23s`, `EXIT=0`
+(boot `3428adc4`). Incluye `tests/unit/scripts`, la lección de `05431171`.
+El nivel 3 sigue pendiente.

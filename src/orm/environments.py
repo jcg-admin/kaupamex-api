@@ -81,7 +81,7 @@ import functools
 import logging
 import warnings
 import weakref
-from collections import defaultdict
+from collections import abc, defaultdict
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import timezone
@@ -771,8 +771,12 @@ def _live_envs(transaction):
     return alive
 
 
-class Environment:
+class Environment(abc.Mapping):
     """≙ ``Environment`` (``odoo19c: odoo/orm/environments.py:40-549``).
+
+    Hereda de ``Mapping``, como la fuente (``:40``): ``get``, ``keys``,
+    ``items`` y ``values`` salen de ``__getitem__``, ``__iter__`` y
+    ``__len__``. La igualdad y el hash siguen siendo por identidad.
 
     El azúcar que la referencia usa en cada línea de cada addon::
 
@@ -789,18 +793,19 @@ class Environment:
     punto pero no es ``app_label.ModelName``. Las primitivas para construirlo
     sí estaban todas, y ninguna es de fuera del stack:
 
-    ============================  ==============================================
-    Pieza del ``Environment``     Primitiva de este árbol
-    ============================  ==============================================
-    ``env['nombre']``             ``orm.registry.MODELS_BY_NAME``
-    ``env.cr``                    ``django.db.connections[alias]``
-    ``env.uid`` / ``env.user``    el canal del dato de este módulo
-    ``env.su``                    el canal de elevación de DEC-AISL-04
-    ``env.context``               el canal del contexto
-    ``env.company`` / ``companies``  el canal de empresa
-    ``env.transaction``           :class:`Transaction`, de este módulo
-    ``env.lang`` / ``env.tz``     ``django.utils.translation`` + ``get_current_tz``
-    ============================  ==============================================
+    =================================  ===================================
+    Pieza del ``Environment``          Primitiva de este árbol
+    =================================  ===================================
+    ``env['nombre']``                  ``orm.registry.MODELS_BY_NAME``
+    ``env.cr``                         ``django.db.connections[alias]``
+    ``env.uid`` / ``env.user``         el canal del dato de este módulo
+    ``env.su``                         el canal de elevación de DEC-AISL-04
+    ``env.context``                    el canal del contexto
+    ``env.company`` / ``companies``    el canal de empresa
+    ``env.transaction``                :class:`Transaction`, de este módulo
+    ``env.lang`` / ``env.tz``          ``django.utils.translation`` +
+                                       ``get_current_tz``
+    =================================  ===================================
 
     **Es una vista, no un segundo almacén.** Cada lectura consulta el canal
     ambiental en ese momento; el objeto no copia valores al construirse. Por
@@ -835,10 +840,11 @@ class Environment:
         """El entorno se **agrupa por transacción**: dos construcciones con los
         mismos ejes devuelven el MISMO objeto.
 
-        ≙ ``Environment.__new__`` (``odoo19c: odoo/orm/environments.py:64-89``).
-        La firma es la de la fuente —``Environment(cr, uid, context, su)``— y
-        ``cr`` es aquí el **alias** de la conexión, que es lo que este stack usa
-        para nombrarla; ``None`` significa la de por defecto.
+        ≙ ``Environment.__new__``
+        (``odoo19c: odoo/orm/environments.py:64-89``). La firma es la de la
+        fuente —``Environment(cr, uid, context, su)``— y ``cr`` es aquí el
+        **alias** de la conexión, que es lo que este stack usa para nombrarla;
+        ``None`` significa la de por defecto.
 
         Tres divergencias de mecanismo, las tres medidas:
 
@@ -1204,8 +1210,8 @@ class Environment:
 
     @property
     def _field_dirty(self):
-        """≙ ``Environment._field_dirty`` (``:507-509``) — «Map fields to set of
-        dirty ids»."""
+        """≙ ``Environment._field_dirty`` (``:507-509``) — «Map fields to set
+        of dirty ids»."""
         return self.transaction.field_dirty
 
     @property
@@ -1245,7 +1251,8 @@ class Environment:
         """
         context = self.context
         lang = self.lang or 'en_US'
-        if context.get('edit_translations') or context.get('check_translations'):
+        if (context.get('edit_translations')
+                or context.get('check_translations')):
             lang = '_' + lang
         return lang
 
@@ -1306,7 +1313,7 @@ class Environment:
         try:
             with translation.override(to_language(lang)):
                 return _translate_and_format(source, args, kwargs)
-        except Exception:  # noqa: BLE001 — la fuente traga igual (``:346``)
+        except Exception:  # la fuente traga igual (``:346``)
             _logger.debug('translation went wrong for "%r", skipped', source,
                           exc_info=True)
         return source
@@ -1317,9 +1324,9 @@ class Environment:
         """≙ ``Environment.reset`` (``:59-62``) — «Reset the transaction, see
         :meth:`Transaction.reset`».
 
-        La fuente la marcó obsoleta en 19.0 y su cuerpo es la delegación más el
-        aviso; se porta con los dos, aviso incluido: retirarlo dejaría de avisar
-        justo a quien la sigue llamando.
+        La fuente la marcó obsoleta en 19.0 y su cuerpo es la delegación más
+        el aviso; se porta con los dos, aviso incluido: retirarlo dejaría de
+        avisar justo a quien la sigue llamando.
         """
         warnings.warn("Since 19.0, use directly `transaction.reset()`",
                       DeprecationWarning)
@@ -1333,8 +1340,8 @@ class Environment:
         ≙ ``Environment._recompute_all`` (``:368-378``). Docstring de la
         fuente, verbatim: *"Process all pending computations"*.
 
-        El ``for ... else`` es el de la fuente y no un adorno: el ``else`` de un
-        bucle corre cuando NO hubo ``break``, o sea cuando las
+        El ``for ... else`` es el de la fuente y no un adorno: el ``else`` de
+        un bucle corre cuando NO hubo ``break``, o sea cuando las
         ``MAX_FIXPOINT_ITERATIONS`` vueltas se agotaron sin llegar al punto
         fijo. Ahí el aviso es lo único que separa un cómputo que se realimenta
         de un cuelgue.
@@ -1348,14 +1355,16 @@ class Environment:
         una clase no trae el método ligado.
         """
         for _ in range(MAX_FIXPOINT_ITERATIONS):
-            fields_ = [field for field, ids in self.transaction.tocompute.items()
+            fields_ = [field
+                       for field, ids in self.transaction.tocompute.items()
                        if any(ids)]
             if not fields_:
                 break
             for field in fields_:
                 model = model_of_field(field, registry)
                 if model is None:
-                    raise KeyError(getattr(field, 'model_name', '') or repr(field))
+                    raise KeyError(getattr(field, 'model_name', '')
+                                   or repr(field))
                 model.objects.none()._recompute_field(field)
         else:
             _logger.warning("Too many iterations for recomputing fields!")
@@ -1374,9 +1383,10 @@ class Environment:
 
         El filtro ``if ids`` no está en la fuente y aquí hace falta: su
         ``_field_dirty`` es un ``defaultdict`` igual que el nuestro, pero allá
-        ``_flush`` **saca** las claves al volcar, mientras que cualquier lectura
-        de un campo por índice crea aquí una entrada vacía. Sin el filtro esas
-        entradas vacías darían diez vueltas y un aviso que no describe nada.
+        ``_flush`` **saca** las claves al volcar, mientras que cualquier
+        lectura de un campo por índice crea aquí una entrada vacía. Sin el
+        filtro esas entradas vacías darían diez vueltas y un aviso que no
+        describe nada.
         """
         for _ in range(MAX_FIXPOINT_ITERATIONS):
             self._recompute_all()
@@ -1386,7 +1396,8 @@ class Environment:
                     continue
                 model = model_of_field(field, registry)
                 if model is None:
-                    raise KeyError(getattr(field, 'model_name', '') or repr(field))
+                    raise KeyError(getattr(field, 'model_name', '')
+                                   or repr(field))
                 models_to_flush.add(model)
             if not models_to_flush:
                 break
@@ -1475,10 +1486,12 @@ class Environment:
 
     def fields_to_compute(self):
         """≙ ``Environment.fields_to_compute`` (``:435``)."""
-        return [field for field, ids in self.transaction.tocompute.items() if ids]
+        return [field for field, ids in self.transaction.tocompute.items()
+                if ids]
 
     def records_to_compute(self, field):
-        """≙ ``Environment.records_to_compute`` (``:439``) — los ids pendientes."""
+        """≙ ``Environment.records_to_compute`` (``:439``) — los ids
+        pendientes."""
         return self.transaction.tocompute.get(field) or OrderedSet()
 
     def is_to_compute(self, field, record_id):
@@ -1486,7 +1499,8 @@ class Environment:
         return record_id in (self.transaction.tocompute.get(field) or ())
 
     def not_to_compute(self, field, record_ids):
-        """≙ ``Environment.not_to_compute`` (``:448``) — los que NO lo están."""
+        """≙ ``Environment.not_to_compute`` (``:448``) — los que NO lo
+        están."""
         pending = self.transaction.tocompute.get(field) or ()
         return [i for i in record_ids if i not in pending]
 
@@ -1527,7 +1541,8 @@ class Environment:
                 # ambiental de env.companies cuando no hay contexto explícito.
                 # La lista declarada se normaliza como en la referencia.
                 values = self.context.get(name)
-                keys.append(tuple(get_current_companies() if values is None else values))
+                keys.append(tuple(get_current_companies() if values is None
+                                  else values))
             else:
                 keys.append(self.context.get(name))
         return tuple(keys)
@@ -1547,7 +1562,8 @@ class Environment:
         return execute_query(query, using=self.db_alias)
 
     def execute_query_dict(self, query):
-        """≙ ``Environment.execute_query_dict`` (``:537``) — filas como dicts."""
+        """≙ ``Environment.execute_query_dict`` (``:537``) — filas como
+        dicts."""
         with self.cr.cursor() as cursor:
             cursor.execute(query.code, query.params)
             if cursor.description is None:
@@ -1565,7 +1581,8 @@ class Environment:
         model = registry.MODELS_BY_NAME.get('ir.model.data')
         if model is None:
             if raise_if_not_found:
-                raise ValueError(f'ir.model.data no está en el registro: {xml_id!r}')
+                raise ValueError(
+                    f'ir.model.data no está en el registro: {xml_id!r}')
             return None
         return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
                          using=self.db_alias)
