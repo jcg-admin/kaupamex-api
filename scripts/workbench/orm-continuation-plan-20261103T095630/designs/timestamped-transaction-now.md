@@ -114,3 +114,15 @@ consulta `now()` y el segundo reutiliza el valor dentro del mismo `save`. Se
 prueba simulando el autocommit (un `transaction_now` que devuelve valores
 crecientes), sin `django_db(transaction=True)`, que trunca toda la base QA
 compartida al terminar.
+
+### Implementación y controles de la segunda pasada
+
+`TimeStampedModel.save` delimita una lectura de reloj (`SAVE_NOW`) que
+comparten las dos fechas del guardado, y `_write_alias` resuelve la base de
+escritura (`using` de `save`, `_state.db` o `router.db_for_write`). 7 casos:
+
+| Anulación | Cae |
+|---|---|
+| sin reutilizar la lectura | `test_one_insert_takes_both_dates_from_one_clock_reading` |
+| alias = `_state.db` (era `None` en el INSERT) | `test_the_clock_is_read_on_the_row_database` |
+| la lectura no se limpia entre guardados | `test_a_later_save_reads_the_clock_again` (la primera versión, sobre `create`+`write`, no discriminaba: eran dos instancias distintas) |
