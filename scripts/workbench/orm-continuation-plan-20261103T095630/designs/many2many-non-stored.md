@@ -56,3 +56,11 @@ dominio de la referencia.
 
 Siguiente paso: la medición 3 (consumidores de `all_implied_ids` como
 queryset) y la elección entre las dos formas del punto 1.
+
+## Medición 3
+
+`git grep -n "\.all_implied_ids\|\.all_implied_by_ids\|\.all_group_ids" --
+src addons ':!*tests*'`: **20** lecturas; **4** usan API de queryset sobre el
+valor (`values_list` ×3, `exclude` ×1). El campo nuevo tiene que devolver
+algo que admita esas cuatro, o se adaptan esos consumidores en el mismo
+pase.
