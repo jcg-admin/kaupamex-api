@@ -62,8 +62,11 @@ class NotificationListView(APIView):
         summary='Listar notificaciones del usuario',
         tags=['notifications'],
         parameters=[
-            OpenApiParameter('page',      int, description='Numero de pagina.'),
-            OpenApiParameter('page_size', int, description='Resultados por pagina (max 200).'),
+            OpenApiParameter(
+                'page', int, description='Numero de pagina.'),
+            OpenApiParameter(
+                'page_size', int,
+                description='Resultados por pagina (max 200).'),
         ],
         responses=NotificationSerializer(many=True),
     )
@@ -78,7 +81,7 @@ class NotificationListView(APIView):
         qs = (
             Notification.objects
             .filter(user=request.user)
-            .order_by('-created_at')[:_INBOX_CAP]
+            .order_by('-created_at', '-id')[:_INBOX_CAP]
         )
         paginator = _NotificationPagination()
         page = paginator.paginate_queryset(qs, request)

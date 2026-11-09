@@ -14,6 +14,7 @@ import time
 import pytest
 from django.db import connection, transaction
 
+from addons.base.models import timestamped_mixin
 from orm.environments import env as current_env
 from orm.environments import sudo
 
@@ -51,3 +52,71 @@ def test_the_date_is_the_transaction_timestamp():
         e = current_env()
         record = e['test_orm.related'].create({'name': 'a'})
         assert record.created_at == _transaction_now()
+
+
+def test_a_savepoint_keeps_the_transaction_date():
+    """``atomic`` anidado es un savepoint: la fuente no reinicia
+    ``cr._now`` en él (``sql_db.py:560-576``, sólo ``commit``/``rollback``)."""
+    with sudo(), transaction.atomic():
+        e = current_env()
+        outer = e['test_orm.related'].create({'name': 'a'})
+        time.sleep(0.01)
+        with transaction.atomic():
+            inner = e['test_orm.related'].create({'name': 'b'})
+        assert inner.created_at == outer.created_at
+
+
+def test_one_insert_takes_both_dates_from_one_clock_reading(monkeypatch):
+    """Fuera de ``atomic`` cada ``SELECT now()`` es su propia transacción
+    (autocommit) y dos lecturas pueden diferir. La fuente fija
+    ``create_date`` y ``write_date`` con el mismo ``cr.now()``
+    (``models.py:4803-4805``). Se simula el autocommit con un reloj que
+    avanza en cada lectura."""
+    readings = iter(range(1, 100))
+    base = _transaction_now()
+
+    def advancing(using):
+        return base.replace(microsecond=next(readings))
+
+    monkeypatch.setattr(timestamped_mixin, 'transaction_now', advancing)
+    with sudo():
+        record = current_env()['test_orm.related'].create({'name': 'a'})
+        assert record.created_at == record.updated_at
+
+
+def test_the_clock_is_read_on_the_row_database(monkeypatch):
+    """La consulta va a la base donde se escribe la fila. Durante el INSERT
+    ``_state.db`` aún es ``None`` (Django lo fija después); el destino es el
+    que ``save`` resuelve con ``router.db_for_write``."""
+    seen = []
+    real = timestamped_mixin.transaction_now
+
+    def spy(using):
+        seen.append(using)
+        return real(using)
+
+    monkeypatch.setattr(timestamped_mixin, 'transaction_now', spy)
+    with sudo():
+        current_env()['test_orm.related'].create({'name': 'a'})
+    assert seen and set(seen) == {'default'}
+
+
+def test_a_later_save_reads_the_clock_again(monkeypatch):
+    """La lectura compartida dura un guardado: un ``save`` posterior —en otra
+    transacción, simulada con el reloj que avanza— lee ``now()`` otra vez,
+    como ``cr.now()`` tras el ``commit`` (``sql_db.py:560-565``)."""
+    readings = iter(range(1, 100))
+    base = _transaction_now()
+
+    def advancing(using):
+        return base.replace(microsecond=next(readings))
+
+    monkeypatch.setattr(timestamped_mixin, 'transaction_now', advancing)
+    Model = current_env()['test_orm.related']
+    with sudo():
+        row = Model(name='a')
+        row.save()
+        created = row.updated_at
+        row.name = 'b'
+        row.save()
+        assert row.updated_at > created

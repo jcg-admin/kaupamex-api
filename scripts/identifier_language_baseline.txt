@@ -288,6 +288,7 @@ addons/delivery/management/commands/seed_rate_cards.py::base_eur
 addons/delivery/management/commands/seed_rate_cards.py::eur
 addons/delivery/management/commands/seed_rate_cards.py::per_kg_eur
 addons/digest/models/digest.py::filtros
+addons/helpdesk/controllers/main.py::valores_validos
 addons/helpdesk/management/commands/auto_close_support_tickets.py::cerrados
 addons/helpdesk/management/commands/auto_close_support_tickets.py::fallidos
 addons/helpdesk/models/support_ticket.py::cerrados

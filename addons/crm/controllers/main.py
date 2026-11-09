@@ -124,7 +124,7 @@ class AdminContactMessageListView(_AdminOnly, APIView):
         responses={200: ContactMessageAdminSerializer(many=True)},
     )
     def get(self, request):
-        qs = ContactMessage.objects.all().order_by('-created_at')
+        qs = ContactMessage.objects.all().order_by('-created_at', '-id')
         # H-CICLO76-09: paginate to avoid OOM on large contact message tables.
         # An unbounded queryset could load thousands of rows into memory on a
         # single request.  25 per page is consistent with other admin list

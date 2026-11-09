@@ -65,7 +65,7 @@ def _admin_orders():
         .exclude(state=SaleOrder.STATE_DRAFT)
         .select_related('partner', 'carrier', 'delivery_address')
         .prefetch_related('order_line__product', 'payments', 'shipment_guide')
-        .order_by('-created_at')
+        .order_by('-created_at', '-id')
     )
 
 

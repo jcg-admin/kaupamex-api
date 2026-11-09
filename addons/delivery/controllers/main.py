@@ -180,7 +180,11 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
     @extend_schema(summary='Listar guías de envío', tags=['logistics'],
                    responses={200: ShipmentGuideSerializer(many=True)})
     def get(self, request):
-        qs = ShipmentGuide.objects.filter(is_deleted=False).select_related('sale_order', 'courier').order_by('-created_at')
+        qs = (
+            ShipmentGuide.objects.filter(is_deleted=False)
+            .select_related('sale_order', 'courier')
+            .order_by('-created_at', '-id')
+        )
         if request.query_params.get('order_id'):
             qs = qs.filter(order_id=request.query_params['order_id'])
         # H-CICLO29-03: sin paginacion este endpoint podia retornar todas
@@ -193,7 +197,9 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
                    request=ShipmentGuideCreateSerializer,
                    responses={201: ShipmentGuideSerializer,
                               400: error_response('Datos inválidos'),
-                              409: error_response('Ya existe una guía activa para la orden')})
+                              409: error_response(
+                                  'Ya existe una guía activa para la orden'
+                              )})
     def post(self, request):
         ser = ShipmentGuideCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)

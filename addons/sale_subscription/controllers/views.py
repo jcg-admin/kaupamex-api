@@ -114,7 +114,7 @@ class CompanyViewSet(CapabilityRequiredMixin, ModelViewSet):
         company = self.get_object()
         qs = SubscriptionInvoice.objects.filter(
             company=company,
-        ).order_by('-created_at')
+        ).order_by('-created_at', '-id')
         return Response(SubscriptionInvoiceSerializer(qs, many=True).data)
 
     def get_serializer_class(self):

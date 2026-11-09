@@ -53,7 +53,7 @@ guardado— y **no genera migración**: el mixin no declara ningún campo, igual
 que ``DefaultGetMixin``.
 """
 
-from django.db import connections, models
+from django.db import connections, models, router
 
 from orm.models import (
     ArchiveMixin,
@@ -80,6 +80,23 @@ def transaction_now(using):
         return cursor.fetchone()[0]
 
 
+#: La lectura de ``now()`` que comparten las fechas de un mismo guardado, y el
+#: alias que ``save`` recibió. Los limpia :meth:`TimeStampedModel.save`.
+SAVE_NOW = '_orm_save_now'
+SAVE_USING = '_orm_save_using'
+
+
+def _write_alias(instance):
+    """La base donde ``save`` escribe la fila.
+
+    Durante el INSERT ``_state.db`` aún es ``None``: Django lo fija después
+    de escribir. El destino es el ``using`` explícito de ``save`` o, sin él,
+    ``router.db_for_write`` — la misma regla que ``Model.save``.
+    """
+    return (instance.__dict__.get(SAVE_USING) or instance._state.db
+            or router.db_for_write(type(instance), instance=instance))
+
+
 class TransactionDateTimeField(models.DateTimeField):
     """``auto_now``/``auto_now_add`` con la hora de la transacción.
 
@@ -95,7 +112,14 @@ class TransactionDateTimeField(models.DateTimeField):
 
     def pre_save(self, model_instance, add):
         if self.auto_now or (self.auto_now_add and add):
-            value = transaction_now(model_instance._state.db)
+            value = model_instance.__dict__.get(SAVE_NOW)
+            if value is None:
+                # Una sola lectura por guardado: la fuente fija las dos
+                # fechas de un alta con el mismo ``cr.now()``
+                # (``models.py:4803-4805``). Fuera de ``atomic`` (autocommit)
+                # dos ``SELECT now()`` son dos transacciones y diferirían.
+                value = transaction_now(_write_alias(model_instance))
+                model_instance.__dict__[SAVE_NOW] = value
             setattr(model_instance, self.attname, value)
             return value
         return super().pre_save(model_instance, add)
@@ -142,6 +166,20 @@ class TimeStampedModel(
     #: (``orm/model_classes.py``), que sólo sustituye el manager que Django
     #: auto-creó: un modelo sin manager propio lo recibe, y uno que declara el
     #: suyo lo conserva. Ver :ref:`h-api-876`.
+
+    def save(self, *args, **kwargs):
+        """Delimita la lectura de reloj compartida por las dos fechas.
+
+        La memoria vive en la instancia sólo mientras dura este guardado: un
+        ``save`` posterior, en otra transacción, vuelve a leer ``now()``.
+        """
+        self.__dict__.pop(SAVE_NOW, None)
+        self.__dict__[SAVE_USING] = kwargs.get('using')
+        try:
+            return super().save(*args, **kwargs)
+        finally:
+            self.__dict__.pop(SAVE_NOW, None)
+            self.__dict__.pop(SAVE_USING, None)
 
     created_at = TransactionDateTimeField(
         auto_now_add=True,

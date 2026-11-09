@@ -68,7 +68,7 @@ def _own_orders(user):
         # ``sale_management/admin_views.py::_admin_orders``.
         .prefetch_related('order_line__product', 'payments',
                           'shipment_guide')
-        .order_by('-created_at')
+        .order_by('-created_at', '-id')
     )
 
 

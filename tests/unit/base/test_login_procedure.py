@@ -28,8 +28,9 @@ Cada uno se probo anulando la guarda que dice medir, no leyendo el codigo:
    ``test_repeated_failures_put_the_source_on_cooldown``.
 2. **El acceso deja rastro.** Sin la llamada a ``_update_last_login`` cae
    ``test_a_successful_login_records_one_log_row``.
-3. **El barrido conserva la ultima.** Sin el ``exclude(pk=Subquery(...))``
-   —borrando todo— caen ``test_the_gc_keeps_the_newest_row_per_user`` y
+3. **El barrido conserva la ultima.** Sin el ``filter(Exists(...))``
+   —borrando todo— caen ``test_the_gc_keeps_the_newest_row_per_user``,
+   ``test_the_gc_keeps_every_row_tied_at_the_newest_date`` y
    ``test_the_gc_does_not_touch_another_users_rows``.
 4. **El correo se compara entero.** Con ``__icontains`` en vez de
    ``__iexact`` caen ``test_the_email_domain_is_exact_not_a_substring`` y
@@ -190,20 +191,49 @@ def test_update_last_login_creates_one_row(user):
     assert ResUsersLog.objects.filter(user=user).count() == 2
 
 
+def _stamp_logs(user, *offsets_in_seconds):
+    """Crea filas de acceso con ``created_at`` explícito.
+
+    Dentro de una transacción todas comparten ``cr.now()``; las fechas
+    distintas se fijan después del alta, como harían transacciones separadas.
+    """
+    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    rows = []
+    for offset in offsets_in_seconds:
+        user._update_last_login()
+        row = ResUsersLog.objects.filter(user=user).order_by('-id').first()
+        ResUsersLog.objects.filter(pk=row.pk).update(
+            created_at=base + datetime.timedelta(seconds=offset))
+        rows.append(row.pk)
+    return rows
+
+
 def test_the_gc_keeps_the_newest_row_per_user(user):
     """≙ ``_gc_user_logs`` (``:143-152``) — conserva la ultima de cada uno."""
-    for __ in range(3):
-        user._update_last_login()
-    ultima = (
-        ResUsersLog.objects.filter(user=user)
-        .order_by('-created_at', '-id')
-        .first()
-    )
+    __, __, newest = _stamp_logs(user, 0, 10, 20)
 
     ResUsersLog._gc_user_logs()
 
-    quedan = list(ResUsersLog.objects.filter(user=user))
-    assert quedan == [ultima]
+    quedan = list(ResUsersLog.objects.filter(user=user).values_list(
+        'pk', flat=True))
+    assert quedan == [newest]
+
+
+def test_the_gc_keeps_every_row_tied_at_the_newest_date(user):
+    """El predicado de la fuente es ``log1.create_date < log2.create_date``.
+
+    Una fila sólo se borra si existe otra del mismo usuario **estrictamente
+    posterior**: las empatadas en la fecha máxima sobreviven todas. Con las
+    fechas de transacción el empate es la norma, no el caso raro.
+    """
+    older, tied_a, tied_b = _stamp_logs(user, 0, 10, 10)
+
+    ResUsersLog._gc_user_logs()
+
+    quedan = set(ResUsersLog.objects.filter(user=user).values_list(
+        'pk', flat=True))
+    assert quedan == {tied_a, tied_b}
+    assert older not in quedan
 
 
 def test_the_gc_does_not_touch_another_users_rows(user):
@@ -213,9 +243,8 @@ def test_the_gc_does_not_touch_another_users_rows(user):
     una por usuario.
     """
     otro = _make_user('acceso-dos')
-    for __ in range(2):
-        user._update_last_login()
-        otro._update_last_login()
+    _stamp_logs(user, 0, 10)
+    _stamp_logs(otro, 0, 5)
 
     ResUsersLog._gc_user_logs()
 

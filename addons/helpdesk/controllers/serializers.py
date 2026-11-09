@@ -130,7 +130,7 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
     def get_replies(self, obj) -> list:
         request = self.context.get('request')
         is_staff = bool(request and request.user.is_authenticated and is_superadmin(request.user))
-        qs = obj.replies.all().order_by('created_at')
+        qs = obj.replies.all().order_by('created_at', 'id')
         if not is_staff:
             qs = qs.filter(is_internal_note=False)
         return SupportTicketReplySerializer(qs, many=True).data

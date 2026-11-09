@@ -70,7 +70,7 @@ def get_or_create_draft_order(user=None, cart_token=None):
     if user is not None and getattr(user, 'is_authenticated', False):
         draft = (
             SaleOrder.objects.filter(partner=user, state=SaleOrder.STATE_DRAFT)
-            .order_by('-created_at')
+            .order_by('-created_at', '-id')
             .first()
         )
         if draft is not None:

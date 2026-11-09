@@ -52,9 +52,6 @@ from addons.rating.controllers.serializers import (
 )
 
 
-
-
-
 # =============================================================================
 # Public — list + create per product
 # =============================================================================
@@ -117,9 +114,10 @@ class ProductReviewsView(APIView):
             approved = approved.filter(rating=rating_int)
 
         if sort_by == 'helpful':
-            approved = approved.order_by('-helpful_count', '-created_at')
+            approved = approved.order_by(
+                '-helpful_count', '-created_at', '-id')
         else:
-            approved = approved.order_by('-created_at')
+            approved = approved.order_by('-created_at', '-id')
 
         ratings_all = list(
             Review.objects.filter(product=product, status=Review.STATUS_APPROVED)
@@ -350,7 +348,7 @@ class ReviewAdminListView(_AdminOnly, APIView):
         qs = (
             Review.objects.filter(status=status_filter)
             .select_related('user', 'product', 'sale_order')
-            .order_by('created_at')  # FIFO
+            .order_by('created_at', 'id')  # FIFO
         )
         # H-CICLO90-01: paginar para evitar OOM en tiendas con cola de
         # moderacion grande. Patron identico a AdminQuestionsListView

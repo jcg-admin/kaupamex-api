@@ -158,7 +158,8 @@ def payment_status(request, order_number):
             status=status.HTTP_404_NOT_FOUND)
 
     payment = (
-        Payment.objects.filter(sale_order=order).order_by('-created_at').first()
+        Payment.objects.filter(sale_order=order)
+        .order_by('-created_at', '-id').first()
     )
     if payment is None:
         return Response(
@@ -193,5 +194,6 @@ def payment_history(request, order_number):
              'detail': 'La orden no existe.'},
             status=status.HTTP_404_NOT_FOUND)
 
-    payments = Payment.objects.filter(sale_order=order).order_by('-created_at')
+    payments = Payment.objects.filter(
+        sale_order=order).order_by('-created_at', '-id')
     return Response(PaymentSerializer(payments, many=True).data)

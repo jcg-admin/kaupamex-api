@@ -117,7 +117,7 @@ def _annotate_first_response(qs):
             author__role_assignments__role__code=SUPERADMIN_ROLE_CODE,
             is_internal_note=False,
         )
-        .order_by('created_at')
+        .order_by('created_at', 'id')
         .values('created_at')[:1]
     )
     return qs.annotate(first_response_at=Subquery(first_staff_reply_qs))
@@ -187,7 +187,8 @@ class SupportTicketListCreateView(APIView):
         # H-CICLO117-02: paginar el listado para evitar serializar todos
         # los tickets en memoria. Sin paginacion, compradores con muchos
         # tickets producian respuestas lentas y alto consumo de RAM.
-        qs = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
+        qs = SupportTicket.objects.filter(
+            user=request.user).order_by('-created_at', '-id')
         paginator = _BuyerTicketPagination()
         page = paginator.paginate_queryset(qs, request)
         if page is not None:
@@ -209,10 +210,10 @@ class SupportTicketListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        # H-18: la UI solo conoce order_number (el PK no se expone en la lista de
-        # ordenes). Se resuelve aqui al order_id del comprador, con el mismo
-        # aislamiento y clave de error escalar que el resto de la vista
-        # (RNF-SEC-003: mismo error si no existe o es ajena).
+        # H-18: la UI solo conoce order_number (el PK no se expone en la
+        # lista de ordenes). Se resuelve aqui al order_id del comprador, con
+        # el mismo aislamiento y clave de error escalar que el resto de la
+        # vista (RNF-SEC-003: mismo error si no existe o es ajena).
         order_number = (payload.pop('order_number', None) or '').strip()
         if order_number and not payload.get('order_id'):
             # La referencia pública de la venta vive en ``name``
@@ -249,7 +250,7 @@ class SupportTicketListCreateView(APIView):
             duplicate_qs = duplicate_qs.filter(order_id=payload['order_id'])
         else:
             duplicate_qs = duplicate_qs.filter(order_id__isnull=True)
-        existing = duplicate_qs.order_by('-created_at').first()
+        existing = duplicate_qs.order_by('-created_at', '-id').first()
         if existing is not None:
             return Response(
                 {
@@ -299,7 +300,7 @@ class SupportTicketDetailView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-03 ───────────────────────────────────────
+# ────────────────────────────── UC-SUPP-03 ───────────────────────────────────
 class SupportTicketReplyView(APIView):
     """POST /api/v1/support/tickets/{id}/replies/."""
 
@@ -350,7 +351,7 @@ class SupportTicketReplyView(APIView):
         )
 
 
-# ────────────────────────────── UC-SUPP-04 ───────────────────────────────────────
+# ────────────────────────────── UC-SUPP-04 ───────────────────────────────────
 class SupportTicketCloseView(APIView):
     """POST /api/v1/support/tickets/{id}/close/."""
 
@@ -466,7 +467,7 @@ class SupportTicketReopenView(APIView):
         })
 
 
-# ────────────────────────────── UC-SUPP-05 ─────────────────────────────────────────
+# ────────────────────────────── UC-SUPP-05 ───────────────────────────────────
 class AdminSupportTicketListView(APIView):
     """GET /api/v1/admin/support/tickets/ — admin queue."""
 
@@ -482,8 +483,16 @@ class AdminSupportTicketListView(APIView):
             OpenApiParameter('category', str, required=False),
             OpenApiParameter('created_from', str, required=False),
             OpenApiParameter('created_to', str, required=False),
-            OpenApiParameter('user_id', int, required=False, description='Filtrar por ID del comprador propietario del ticket'),
-            OpenApiParameter('q', str, required=False, description='Search by email/subject'),
+            OpenApiParameter(
+                'user_id', int, required=False,
+                description=(
+                    'Filtrar por ID del comprador propietario del ticket'
+                ),
+            ),
+            OpenApiParameter(
+                'q', str, required=False,
+                description='Search by email/subject',
+            ),
         ],
         responses={200: AdminSupportTicketListSerializer(many=True)},
     )
@@ -492,7 +501,7 @@ class AdminSupportTicketListView(APIView):
         qs, error = _apply_admin_filters(qs, request.query_params)
         if error is not None:
             return error
-        qs = qs.select_related('user').order_by('created_at')
+        qs = qs.select_related('user').order_by('created_at', 'id')
 
         # Metrics (global, not filtered)
         all_tickets = SupportTicket.objects.all()
@@ -563,8 +572,16 @@ class AdminSupportTicketExportCSVView(APIView):
             OpenApiParameter('category', str, required=False),
             OpenApiParameter('created_from', str, required=False),
             OpenApiParameter('created_to', str, required=False),
-            OpenApiParameter('user_id', int, required=False, description='Filtrar por ID del comprador propietario del ticket'),
-            OpenApiParameter('q', str, required=False, description='Search by email/subject'),
+            OpenApiParameter(
+                'user_id', int, required=False,
+                description=(
+                    'Filtrar por ID del comprador propietario del ticket'
+                ),
+            ),
+            OpenApiParameter(
+                'q', str, required=False,
+                description='Search by email/subject',
+            ),
         ],
     )
     def get(self, request):
@@ -573,7 +590,7 @@ class AdminSupportTicketExportCSVView(APIView):
         if error is not None:
             return error
         qs = _annotate_first_response(qs).select_related('user').order_by(
-            'created_at'
+            'created_at', 'id'
         )
 
         buf = io.StringIO()

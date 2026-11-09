@@ -63,7 +63,7 @@ class VoucherViewSet(ModelViewSet):
         'activate': 'vouchers.edit', 'deactivate': 'vouchers.edit',
     }
     serializer_class   = VoucherSerializer
-    queryset           = Voucher.objects.all().order_by('-created_at')
+    queryset = Voucher.objects.all().order_by('-created_at', '-id')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # H-CICLO106-01: agregar paginacion al listado de admin para evitar OOM
     # en tiendas con muchas campanas de cupones. page_size=50 cubre el caso
@@ -135,8 +135,10 @@ class VoucherViewSet(ModelViewSet):
     @extend_schema(
         summary='Desactivar voucher (UC-PRO-03)',
         description=(
-            'Desactivacion explicita via POST — contrato esperado por el UI. '
-            'Equivalente funcional al DELETE soft-delete, expuesto como accion '
+            'Desactivacion explicita via POST — contrato esperado por el '
+            'UI. '
+            'Equivalente funcional al DELETE soft-delete, expuesto como '
+            'accion '
             'nombrada para que el UI pueda mostrar confirmacion con '
             '`current_uses` antes de invocar.'
         ),
@@ -172,19 +174,28 @@ class VoucherViewSet(ModelViewSet):
     @extend_schema(
         summary='Reporte de uso de vouchers (UC-PRO-04)',
         description=(
-            'Lista vouchers con estadísticas de uso, agregados de órdenes y ROI. '
-            'Filtros: ?status=, ?is_active=, ?date_from=YYYY-MM-DD, ?date_to=YYYY-MM-DD. '
+            'Lista vouchers con estadísticas de uso, agregados de órdenes '
+            'y ROI. Filtros: ?status=, ?is_active=, ?date_from=YYYY-MM-DD, '
+            '?date_to=YYYY-MM-DD. '
             'Export: ?export=csv.'
         ),
         tags=['vouchers'],
         parameters=[
-            OpenApiParameter('status', str, required=False,
-                             description='ACTIVE|INACTIVE|EXPIRED|EXHAUSTED|NOT_YET_ACTIVE'),
+            OpenApiParameter(
+                'status', str, required=False,
+                description=(
+                    'ACTIVE|INACTIVE|EXPIRED|EXHAUSTED|NOT_YET_ACTIVE'
+                ),
+            ),
             OpenApiParameter('is_active', bool, required=False),
-            OpenApiParameter('date_from', str, required=False,
-                             description='Filtrar ordenes desde esta fecha (YYYY-MM-DD).'),
-            OpenApiParameter('date_to', str, required=False,
-                             description='Filtrar ordenes hasta esta fecha (YYYY-MM-DD).'),
+            OpenApiParameter(
+                'date_from', str, required=False,
+                description='Filtrar ordenes desde esta fecha (YYYY-MM-DD).',
+            ),
+            OpenApiParameter(
+                'date_to', str, required=False,
+                description='Filtrar ordenes hasta esta fecha (YYYY-MM-DD).',
+            ),
             OpenApiParameter('export', str, required=False,
                              description='csv para exportar en formato CSV.'),
         ],

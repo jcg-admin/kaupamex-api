@@ -2302,15 +2302,18 @@ class ResUsersLog(TimeStampedModel):
         historia se recorta en cada barrido.
 
         La fuente lo resuelve con un ``DELETE ... WHERE EXISTS`` correlacionado
-        sobre ``create_uid``/``create_date``. Aquí el mismo predicado se
-        expresa con el ORM —una subconsulta correlacionada por ``user``, con
-        ``id`` como desempate para las filas del mismo segundo— y el conteo
-        sale del propio ``delete()``, que es el ``cr.rowcount`` de la fuente.
+        sobre ``create_uid``/``create_date``: una fila se borra sólo si existe
+        otra del mismo usuario con fecha **estrictamente** mayor, así que las
+        empatadas en la fecha máxima se conservan todas. Aquí el mismo
+        predicado se expresa con ``Exists`` correlacionado por ``user``, sin
+        desempate por ``id``, y el conteo sale del propio ``delete()``, que es
+        el ``cr.rowcount`` de la fuente.
         """
-        mas_nueva = cls.objects.filter(user=models.OuterRef('user')).order_by(
-            '-created_at', '-id').values('id')[:1]
-        deleted, _ = cls.objects.exclude(
-            pk=models.Subquery(mas_nueva)).delete()
+        later = cls.objects.filter(
+            user=models.OuterRef('user'),
+            created_at__gt=models.OuterRef('created_at'),
+        )
+        deleted, _ = cls.objects.filter(models.Exists(later)).delete()
         _logger.info("GC'd %d user log entries", deleted)
 
 
