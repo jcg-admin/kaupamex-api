@@ -1944,6 +1944,14 @@ class FieldDescriptor(DeferredAttribute):
             return
 
         # ``:1838-1841`` — fila real. Ver la divergencia del docstring.
+        # La fuente escribe aquí con ``records.write``, que comprueba el
+        # acceso de escritura del campo (``models.py:4377-4382``); sin esta
+        # comprobación un campo con ``groups`` sólo se rechazaba por la
+        # lectura lateral de ``pre_save``, y con la operación equivocada.
+        if (getattr(field, 'groups', None)
+                and hasattr(instance, '_check_field_access')
+                and not environment.su):
+            instance._check_field_access(field, 'write')
         field.write(instance, field.convert_to_write(value, instance))
         instance.modified([field.name])
         self._mark_pending_inverse(instance)

@@ -1,4 +1,4 @@
-"""``groups`` en el campo al leer por atributo, en el ORM de ``odoo19c``.
+"""``groups`` en el campo al leer y al escribir, en el ORM de ``odoo19c``.
 
 Corre en el entorno aislado de referencia (``reference_process``). Siembra
 en modo ``su`` un grupo con ACL sobre ``test_orm.model.some_access`` y dos
@@ -45,6 +45,15 @@ def scenarios(make_env, ids):
             result.append((f'{actor} loaded {name}', lambda M=Model, n=name: (
                 M.search([('id', '=', ids['record'])]).read(['a'])
                 and M.browse(ids['record'])[n])))
+    for actor in ('plain', 'rich'):
+        Model = make_env(ids[actor])['test_orm.model.some_access']
+        for name in FIELDS:
+            result.append((f'{actor} write {name}', lambda M=Model, n=name: (
+                M.browse(ids['record']).write({n: 9})
+                and M.env.flush_all() or 'ok')))
+            result.append((f'{actor} assign {name}', lambda M=Model, n=name: (
+                setattr(M.browse(ids['record']), n, 9)
+                or M.env.flush_all() or 'ok')))
     Model = make_env(ids['plain'])['test_orm.model.some_access']
     result.append(('superuser browse d',
                    lambda: Model.sudo().browse(ids['record']).d))
@@ -64,12 +73,17 @@ def main(root, database, data_dir):
         for label, read in scenarios(
                 lambda uid: Environment(cursor, uid, {}), ids):
             root_env.invalidate_all()
+            savepoint = cursor.savepoint()
             try:
                 result[label] = repr(read())
             except Exception as error:
                 # Cualquier otro rechazo se registra por su tipo: la
                 # comparación lo distingue del valor y de AccessError.
                 result[label] = type(error).__name__
+            finally:
+                # Cada escenario parte del mismo estado: una escritura no
+                # se arrastra al siguiente.
+                savepoint.rollback()
         cursor.rollback()
     print(json.dumps(result))
 

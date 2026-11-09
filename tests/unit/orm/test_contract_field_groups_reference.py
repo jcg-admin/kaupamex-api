@@ -1,4 +1,4 @@
-"""``groups`` en el campo al leer por atributo, contra ``odoo19c``.
+"""``groups`` en el campo al leer y al escribir, contra ``odoo19c``.
 
 ``Field.__get__`` comprueba ``_has_field_access`` en cada lectura
 (``odoo19c: odoo/orm/fields.py:1647-1651``), antes de mirar la caché: un
@@ -13,10 +13,14 @@ columnas: es la ruta rápida del descriptor, la que devolvía el valor antes
 de comprobar ``groups``.
 
 *Métrica:* el valor o la excepción de cada lectura.
-*Ciega a:* la escritura de un campo con ``groups`` y los campos sin columna.
+Al escribir, la referencia rechaza igual por ``write`` que por asignación
+directa (``Field.__set__`` → ``write``, ``models.py:4377-4382``).
+
+*Ciega a:* los campos sin columna.
 """
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
 from exceptions import AccessError
 from orm.environments import env as current_env
@@ -70,9 +74,30 @@ def _scenarios(ids):
                            current_env()[MODEL].browse(ids['record'])[n]))
             result.append((actor, f'{actor} loaded {name}',
                            lambda n=name: loaded(n)))
+
+    def written(name):
+        current_env()[MODEL].browse(ids['record']).write({name: 9})
+        current_env().flush_all()
+        return 'ok'
+
+    def assigned(name):
+        setattr(current_env()[MODEL].browse(ids['record']), name, 9)
+        current_env().flush_all()
+        return 'ok'
+
+    for actor in ('plain', 'rich'):
+        for name in FIELDS:
+            result.append((actor, f'{actor} write {name}',
+                           lambda n=name: written(n)))
+            result.append((actor, f'{actor} assign {name}',
+                           lambda n=name: assigned(n)))
     result.append(('plain', 'superuser browse d', lambda: current_env()[
         MODEL].browse(ids['record']).sudo().d))
     return result
+
+
+class _Rollback(Exception):
+    """Deshace el escenario: cada uno parte del mismo estado."""
 
 
 def _ours():
@@ -85,7 +110,13 @@ def _ours():
         with user_scope(ids[actor]):
             current_env().invalidate_all()
             try:
-                result[label] = repr(read())
+                with transaction.atomic():
+                    result[label] = repr(read())
+                    raise _Rollback
+            except _Rollback:
+                # silent OK because la excepción sólo deshace el escenario:
+                # el resultado ya quedó registrado antes de levantarla.
+                pass
             except AccessError:
                 # ``AccessError`` es aquí el alias de ``PermissionDenied``
                 # (``src/exceptions.py``): se compara la clase, no el nombre.
@@ -117,3 +148,35 @@ def test_the_reference_denies_and_grants(reference_result):
     assert reference_result['plain loaded d'] == 'AccessError'
     assert reference_result['rich loaded d'] == '1'
     assert reference_result['plain browse i'] == '1'
+
+
+def test_a_grouped_write_is_denied_as_a_write():
+    """El tipo de excepción no distingue de dónde sale el rechazo: sin la
+    comprobación de ``write``, ``save`` de Django lee la columna en
+    ``pre_save`` y la comprobación de **lectura** rechaza igual. La fuente
+    rechaza en ``write`` (``models.py:4377-4382``) con la operación
+    ``write`` en el mensaje (``_check_field_access``, ``:3384``)."""
+    actor = get_user_model().objects.create_user(
+        login='groups-write-root', password=None, name='groups-write-root')
+    with user_scope(actor.pk), sudo():
+        ids = _seed()
+    with user_scope(ids['plain']):
+        with pytest.raises(AccessError) as error:
+            current_env()[MODEL].browse(ids['record']).write({'d': 9})
+    assert str(error.value).endswith('Operación: write')
+
+
+def test_a_grouped_assignment_is_denied_as_a_write():
+    """``record.d = 9`` entra en la fuente por ``Field.__set__`` →
+    ``records.write`` y rechaza como escritura; aquí la rama de fila real de
+    ``FieldDescriptor.__set__`` escribía sin comprobarlo y el rechazo llegaba
+    de una lectura lateral."""
+    actor = get_user_model().objects.create_user(
+        login='groups-assign-root', password=None, name='groups-assign-root')
+    with user_scope(actor.pk), sudo():
+        ids = _seed()
+    with user_scope(ids['plain']):
+        with pytest.raises(AccessError) as error:
+            setattr(current_env()[MODEL].browse(ids['record']), 'd', 9)
+            current_env().flush_all()
+    assert str(error.value).endswith('Operación: write')

@@ -29,3 +29,25 @@ asignación coinciden (66 en total con las lecturas).
 Anular el bucle de `write` y ver qué cae; si la asignación no cae, buscar su
 propia comprobación y anularla también. Se ejecutan cuando termine la suite
 completa en curso, que lee `src/orm/models.py`.
+
+## Controles medidos (2026-11-09)
+
+- Anular el bucle de `_check_field_access(…, 'write')` en `BaseModel.write`
+  **no** cambiaba ningún escenario: el rechazo llegaba igual desde `save` de
+  Django, cuyo `pre_save` lee la columna por `FieldDescriptor.__get__` y
+  dispara la comprobación de **lectura** («Operación: read»). El contrato
+  comparaba sólo el tipo de excepción y no lo distinguía. Se añadió
+  `test_a_grouped_write_is_denied_as_a_write` (operación en el mensaje): con
+  el bucle anulado cae exactamente ese caso.
+- La asignación directa `record.d = 9` se rechaza con «Operación: read»: la
+  rama de fila real de `FieldDescriptor.__set__` llama a `field.write` sin
+  comprobar el acceso de escritura, y el rechazo es efecto lateral de una
+  lectura. La referencia (`Field.__set__` → `records.write`) rechaza como
+  escritura. Corrección: comprobar `_check_field_access(field, 'write')` en
+  esa rama, fuera de `su`.
+- Corregido en `FieldDescriptor.__set__` (`src/orm/fields.py`, rama de fila
+  real): con `groups` en el campo y fuera de `su`, comprueba
+  `_check_field_access(field, 'write')` antes de `field.write`. Controles:
+  anular el bucle de `BaseModel.write` tumba sólo
+  `test_a_grouped_write_is_denied_as_a_write`; anular la comprobación de
+  `__set__` tumba sólo `test_a_grouped_assignment_is_denied_as_a_write`.
