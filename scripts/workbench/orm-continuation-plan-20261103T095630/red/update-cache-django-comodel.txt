@@ -5,3 +5,8 @@ FAILED test_new_takes_a_many2one_to_a_django_model
 FAILED test_new_takes_an_empty_many2one_to_a_django_model
        AttributeError: 'NoneType' object has no attribute 'filtered'
 2 failed
+
+GREEN tras saltar el ajuste de inversos cuando el valor no es un recordset:
+2 passed.
+
+Control de anulación (restaurado con cmp): sin la guarda caen los dos casos.
