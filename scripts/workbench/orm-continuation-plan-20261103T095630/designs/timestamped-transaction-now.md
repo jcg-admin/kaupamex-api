@@ -61,3 +61,11 @@ memoria: `now()` es constante dentro de la transacción. Los dos campos
 preguntan `SELECT now()` en su `pre_save` y comparten el valor dentro del
 mismo guardado (una consulta por `save`, no dos). El coste se mide con la
 duración de la suite completa.
+
+## Verde y control (medidos)
+
+`TransactionDateTimeField` en `timestamped_mixin.py` (`pre_save` con
+`transaction_now`, deconstruido como `DateTimeField`): 3 de 3 en verde, y
+`makemigrations --check --dry-run` → «No changes detected». Anular la rama de
+`pre_save` tumba exactamente los tres casos. La suite completa mide el
+efecto sobre consumidores que ordenan por `created_at`.
