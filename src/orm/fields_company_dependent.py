@@ -135,6 +135,7 @@ espejada no tiene. Se declara aquí por lo mismo que aquél lo declara.
 
 from django.apps import apps
 from django.db import models
+from django.db.backends.utils import names_digest
 from django.db.models.query_utils import DeferredAttribute
 
 from orm.environments import env as current_env, get_current_company
@@ -212,6 +213,28 @@ class _CompanyDependentAttribute(DeferredAttribute):
         }
 
 
+def _not_null_index(cls, name):
+    """El índice parcial de un campo dependiente de empresa — ≙ la rama
+    ``btree_not_null`` + ``company_dependent`` de ``Registry.check_indexes``
+    (``odoo19c: odoo/orm/registry.py:871-882``): btree sobre
+    ``("col" IS NOT NULL)`` con ``WHERE "col" IS NOT NULL``.
+
+    Lo crea la migración, porque ``check_indexes`` no corre sobre un esquema
+    migrado. Divergencia declarada de nombre: la referencia usa
+    ``{tabla}__{campo}_index`` (``odoo/tools/sql.py:779-781``) y Django lo
+    limita a 30 caracteres (``models.E034``); el nombre se acota con un
+    resumen estable de la tabla y el campo.
+    """
+    not_null = models.Q(**{f'{name}__isnull': False})
+    base = f'{cls._meta.db_table}__{name}_index'
+    if len(base) > 30:
+        digest = names_digest(cls._meta.db_table, name, length=8)
+        base = f'{base[:21]}_{digest}'
+    return models.Index(
+        models.ExpressionWrapper(not_null, output_field=models.BooleanField()),
+        condition=not_null, name=base)
+
+
 class CompanyDependent(models.JSONField):
     """Un campo cuyo valor depende de la empresa activa.
 
@@ -280,6 +303,12 @@ class CompanyDependent(models.JSONField):
         """
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, _CompanyDependentAttribute(self))
+        if self._args__.get('index', 'btree_not_null') == 'btree_not_null':
+            cls._meta.indexes = [*cls._meta.indexes,
+                                 _not_null_index(cls, self.name)]
+            # ``ModelState.from_model`` sólo copia los índices declarados en
+            # ``Meta``; sin esta clave la migración no los vería.
+            cls._meta.original_attrs['indexes'] = cls._meta.indexes
 
     def __init__(self, *args, base_type='char', comodel=None, **kwargs):
         if base_type not in COMPANY_DEPENDENT_FIELDS:
