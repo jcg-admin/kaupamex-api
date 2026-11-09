@@ -32,7 +32,7 @@ from django.test.utils import CaptureQueriesContext
 
 from addons.base.models.ir_model import IrModel, IrModelAccess
 from addons.base.models.ir_rule import IrRule
-from orm.domains import Domain
+from orm.domains import Domain, to_q
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
 from tests.factories.user_factory import UserFactory
@@ -57,7 +57,11 @@ OUT = pathlib.Path(__file__).resolve().parent.parent / 'outputs' / \
 
 
 def _django_ids(model, domain):
-    return set(model.objects.filter(domain._to_q(model))
+    # ``to_q`` optimiza a FULL antes de compilar, como hace ``_search``. La
+    # primera versión llamaba a ``Domain._to_q`` sin optimizar y comparaba
+    # así un árbol sin optimizar con otro optimizado: las 30 «distintas» de
+    # esa medición eran del instrumento, no de los compiladores.
+    return set(model.objects.filter(to_q(domain, model))
                .values_list('pk', flat=True))
 
 

@@ -7,12 +7,12 @@
   {
    "condition": "('priority', '>', 3)",
    "django": [
-    4742,
-    4743
+    4756,
+    4757
    ],
    "sql": [
-    4742,
-    4743
+    4756,
+    4757
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" > %s",
    "sql_params": [
@@ -23,12 +23,12 @@
   {
    "condition": "('priority', 'in', [1, 9])",
    "django": [
-    4741,
-    4743
+    4755,
+    4757
    ],
    "sql": [
-    4741,
-    4743
+    4755,
+    4757
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
    "sql_params": [
@@ -39,10 +39,10 @@
   {
    "condition": "('name', 'ilike', 'A')",
    "django": [
-    4741
+    4755
    ],
    "sql": [
-    4741
+    4755
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE unaccent(\"test_orm_message\".\"name\"::text) ILIKE unaccent(%s)",
    "sql_params": [
@@ -53,12 +53,12 @@
   {
    "condition": "('important', '=', False)",
    "django": [
-    4742,
-    4743
+    4756,
+    4757
    ],
    "sql": [
-    4742,
-    4743
+    4756,
+    4757
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
    "sql_params": [],
@@ -67,12 +67,12 @@
   {
    "condition": "('discussion.name', '=', 'd')",
    "django": [
-    4741,
-    4743
+    4755,
+    4757
    ],
    "sql": [
-    4741,
-    4743
+    4755,
+    4757
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" LEFT JOIN \"test_orm_discussion\" AS \"test_orm_message__discussion\" ON (\"test_orm_message\".\"discussion\" = \"test_orm_message__discussion\".\"id\") WHERE (\"test_orm_message\".\"discussion\" IS NOT NULL AND \"test_orm_message__discussion\".\"name\" = ANY(%s))",
    "sql_params": [
@@ -83,10 +83,10 @@
   {
    "condition": "('discussion', 'any', [('name', '=', 'e')])",
    "django": [
-    4742
+    4756
    ],
    "sql": [
-    4742
+    4756
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" LEFT JOIN \"test_orm_discussion\" AS \"test_orm_message__discussion\" ON (\"test_orm_message\".\"discussion\" = \"test_orm_message__discussion\".\"id\") WHERE (\"test_orm_message\".\"discussion\" IS NOT NULL AND \"test_orm_message__discussion\".\"name\" = ANY(%s))",
    "sql_params": [
@@ -97,12 +97,12 @@
   {
    "condition": "('discussion', 'not any', [('name', '=', 'e')])",
    "django": [
-    4741,
-    4743
+    4755,
+    4757
    ],
    "sql": [
-    4741,
-    4743
+    4755,
+    4757
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" IS NULL OR \"test_orm_message\".\"discussion\" NOT IN (SELECT \"test_orm_discussion\".\"id\" AS \"pk\" FROM \"test_orm_discussion\" WHERE \"test_orm_discussion\".\"name\" IN (%s)))",
    "sql_params": [
@@ -121,10 +121,10 @@
   {
    "condition": "('active', '=', False)",
    "django": [
-    4743
+    4757
    ],
    "sql": [
-    4743
+    4757
    ],
    "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"active\" IS NOT TRUE",
    "sql_params": [],
@@ -138,7 +138,7 @@
   },
   {
    "condition": "('discussion.messages.priority', '>', 4)",
-   "django_error": "ValueError: Campo inválido test_orm.TestOrmDiscussion.messages en la condición ('discussion.messages.priority', '>', 4)",
+   "django_error": "ValueError: Campo inválido test_orm.TestOrmDiscussion.messages en la condición ('messages.priority', '>', 4)",
    "sql_error": "ValueError: Campo inválido test_orm.TestOrmDiscussion.messages en la condición ('messages.priority', '>', 4)",
    "verdict": "neither"
   }

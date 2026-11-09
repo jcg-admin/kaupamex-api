@@ -1,18 +1,17 @@
 {
  "current": {
   "rows": 80,
-  "queries": 10,
+  "queries": 9,
   "sql": [
-   "SELECT \"res_users\".\"id\", \"res_users\".\"created_at\", \"res_users\".\"updated_at\", \"res_users\".\"partner_id\", \"res_users\".\"login\", \"res_users\".\"password\", \"res_users\".\"active\", \"res_users\".\"last_login\", \"res_users\".\"deactivated_reason\", \"res_users\".\"deactivated_at\", \"res_users\".\"company_id\" FROM \"res_users\" INNER JOIN \"res_partner\" ON (\"res_users\".\"partner_id\" = \"res_partner\".\"id\") WHERE \"res_users\".\"id\" = 4363 ORDER BY \"res_partner\".\"name\" ASC, \"res_users\".\"login\" ASC LIMIT 1",
-   "SELECT \"res_groups\".\"id\", \"res_groups\".\"created_at\", \"res_groups\".\"updated_at\", \"res_groups\".\"name\", \"res_groups\".\"comment\", \"res_groups\".\"sequence\", \"res_groups\".\"share\", \"res_groups\".\"api_key_duration\", \"res_groups\".\"privilege_id\", \"res_groups\".\"user_type\", \"res_groups\".\"lock_timeout\", \"res_groups\".\"lock_timeout_mfa\", \"res_groups\".\"lock_timeout_inactivity\", \"res_groups\".\"lock_timeout_inactivity_mfa\" FROM \"res_groups\" INNER JOIN \"res_groups_users_rel\" ON (\"res_groups\".\"id\" = \"res_groups_users_rel\".\"resgroups_id\") WHERE \"res_groups_users_rel\".\"resusers_id\" = 4363 ORDER BY \"res_groups\".\"privilege_id\" ASC, \"res_groups\".\"sequence\" ASC, \"res_groups\".\"name\" ASC, \"res_groups\".\"id\" ASC",
+   "SELECT \"res_users\".\"id\", \"res_users\".\"created_at\", \"res_users\".\"updated_at\", \"res_users\".\"partner_id\", \"res_users\".\"login\", \"res_users\".\"password\", \"res_users\".\"active\", \"res_users\".\"last_login\", \"res_users\".\"deactivated_reason\", \"res_users\".\"deactivated_at\", \"res_users\".\"company_id\" FROM \"res_users\" INNER JOIN \"res_partner\" ON (\"res_users\".\"partner_id\" = \"res_partner\".\"id\") WHERE \"res_users\".\"id\" = 4403 ORDER BY \"res_partner\".\"name\" ASC, \"res_users\".\"login\" ASC LIMIT 1",
+   "SELECT \"res_groups\".\"id\", \"res_groups\".\"created_at\", \"res_groups\".\"updated_at\", \"res_groups\".\"name\", \"res_groups\".\"comment\", \"res_groups\".\"sequence\", \"res_groups\".\"share\", \"res_groups\".\"api_key_duration\", \"res_groups\".\"privilege_id\", \"res_groups\".\"user_type\", \"res_groups\".\"lock_timeout\", \"res_groups\".\"lock_timeout_mfa\", \"res_groups\".\"lock_timeout_inactivity\", \"res_groups\".\"lock_timeout_inactivity_mfa\" FROM \"res_groups\" INNER JOIN \"res_groups_users_rel\" ON (\"res_groups\".\"id\" = \"res_groups_users_rel\".\"resgroups_id\") WHERE \"res_groups_users_rel\".\"resusers_id\" = 4403 ORDER BY \"res_groups\".\"privilege_id\" ASC, \"res_groups\".\"sequence\" ASC, \"res_groups\".\"name\" ASC, \"res_groups\".\"id\" ASC",
    "SELECT \"ir_model\".\"model\" AS \"model_id__model\" FROM \"ir_model_access\" LEFT OUTER JOIN \"res_groups\" ON (\"ir_model_access\".\"group_id\" = \"res_groups\".\"id\") INNER JOIN \"ir_model\" ON (\"ir_model_access\".\"model_id\" = \"ir_model\".\"id\") WHERE (\"ir_model_access\".\"active\" AND \"ir_model_access\".\"perm_read\" AND \"ir_model_access\".\"group_id\" IS NULL) ORDER BY \"ir_model\".\"model\" ASC, \"res_groups\".\"privilege_id\" ASC, \"res_groups\".\"sequence\" ASC, \"res_groups\".\"name\" ASC, \"res_groups\".\"id\" ASC, \"ir_model_access\".\"name\" ASC, \"ir_model_access\".\"id\" ASC",
    "SELECT DISTINCT \"ir_rule\".\"id\", \"ir_rule\".\"created_at\", \"ir_rule\".\"updated_at\", \"ir_rule\".\"name\", \"ir_rule\".\"active\", \"ir_rule\".\"model_name\", \"ir_rule\".\"domain_force\", \"ir_rule\".\"perm_read\", \"ir_rule\".\"perm_write\", \"ir_rule\".\"perm_create\", \"ir_rule\".\"perm_unlink\" FROM \"ir_rule\" LEFT OUTER JOIN \"rule_group_rel\" ON (\"ir_rule\".\"id\" = \"rule_group_rel\".\"irrule_id\") WHERE (\"ir_rule\".\"active\" AND \"ir_rule\".\"model_name\" = 'test_orm.TestOrmFoo' AND \"ir_rule\".\"perm_read\" AND \"rule_group_rel\".\"resgroups_id\" IS NULL) ORDER BY \"ir_rule\".\"id\" ASC",
-   "SELECT \"res_groups\".\"id\" AS \"pk\" FROM \"res_groups\" INNER JOIN \"rule_group_rel\" ON (\"res_groups\".\"id\" = \"rule_group_rel\".\"resgroups_id\") WHERE \"rule_group_rel\".\"irrule_id\" = 917 ORDER BY \"res_groups\".\"privilege_id\" ASC, \"res_groups\".\"sequence\" ASC, \"res_groups\".\"name\" ASC, \"res_groups\".\"id\" ASC",
+   "SELECT \"res_groups\".\"id\" AS \"pk\" FROM \"res_groups\" INNER JOIN \"rule_group_rel\" ON (\"res_groups\".\"id\" = \"rule_group_rel\".\"resgroups_id\") WHERE \"rule_group_rel\".\"irrule_id\" = 1097 ORDER BY \"res_groups\".\"privilege_id\" ASC, \"res_groups\".\"sequence\" ASC, \"res_groups\".\"name\" ASC, \"res_groups\".\"id\" ASC",
    "SELECT \"test_orm_foo\".\"id\", \"test_orm_foo\".\"created_at\", \"test_orm_foo\".\"updated_at\", \"test_orm_foo\".\"name\", \"test_orm_foo\".\"value1\", \"test_orm_foo\".\"value2\", \"test_orm_foo\".\"text\" FROM \"test_orm_foo\" WHERE (\"test_orm_foo\".\"value1\" < 4 OR \"test_orm_foo\".\"value1\" IS NULL)",
-   "SELECT \"res_users\".\"id\", \"res_users\".\"created_at\", \"res_users\".\"updated_at\", \"res_users\".\"partner_id\", \"res_users\".\"login\", \"res_users\".\"password\", \"res_users\".\"active\", \"res_users\".\"last_login\", \"res_users\".\"deactivated_reason\", \"res_users\".\"deactivated_at\", \"res_users\".\"company_id\" FROM \"res_users\" INNER JOIN \"res_partner\" ON (\"res_users\".\"partner_id\" = \"res_partner\".\"id\") WHERE \"res_users\".\"id\" = 4363 ORDER BY \"res_partner\".\"name\" ASC, \"res_users\".\"login\" ASC LIMIT 1",
-   "SELECT \"test_orm_foo\".\"id\" AS \"pk\" FROM \"test_orm_foo\" WHERE ((\"test_orm_foo\".\"value1\" < 4 OR \"test_orm_foo\".\"value1\" IS NULL) AND \"test_orm_foo\".\"value1\" >= 2)",
-   "SELECT 1 AS \"a\" FROM \"test_orm_foo\" WHERE ((\"test_orm_foo\".\"value1\" < 4 OR \"test_orm_foo\".\"value1\" IS NULL) AND NOT (\"test_orm_foo\".\"id\" IN (970, 971, 975, 976, 980, 981, 985, 986, 990, 991, 995, 996, 1000, 1001, 1005, 1006, 1010, 1011, 1015, 1016, 1020, 1021, 1025, 1026, 1030, 1031, 1035, 1036, 1040, 1041, 1045, 1046, 1050, 1051, 1055, 1056, 1060, 1061, 1065, 1066, 1070, 1071, 1075, 1076, 1080, 1081, 1085, 1086, 1090, 1091, 1095, 1096, 1100, 1101, 1105, 1106, 1110, 1111, 1115, 1116, 1120, 1121, 1125, 1126, 1130, 1131, 1135, 1136, 1140, 1141, 1145, 1146, 1150, 1151, 1155, 1156, 1160, 1161, 1165, 1166))) LIMIT 1",
-   "SELECT \"test_orm_foo\".\"id\" AS \"pk\" FROM \"test_orm_foo\" WHERE ((\"test_orm_foo\".\"value1\" < 4 OR \"test_orm_foo\".\"value1\" IS NULL) AND NOT (\"test_orm_foo\".\"id\" IN (SELECT U0.\"id\" AS \"pk\" FROM \"test_orm_foo\" U0 WHERE ((U0.\"value1\" < 4 OR U0.\"value1\" IS NULL) AND NOT (U0.\"id\" IN (970, 971, 975, 976, 980, 981, 985, 986, 990, 991, 995, 996, 1000, 1001, 1005, 1006, 1010, 1011, 1015, 1016, 1020, 1021, 1025, 1026, 1030, 1031, 1035, 1036, 1040, 1041, 1045, 1046, 1050, 1051, 1055, 1056, 1060, 1061, 1065, 1066, 1070, 1071, 1075, 1076, 1080, 1081, 1085, 1086, 1090, 1091, 1095, 1096, 1100, 1101, 1105, 1106, 1110, 1111, 1115, 1116, 1120, 1121, 1125, 1126, 1130, 1131, 1135, 1136, 1140, 1141, 1145, 1146, 1150, 1151, 1155, 1156, 1160, 1161, 1165, 1166))))))"
+   "SELECT \"res_users\".\"id\", \"res_users\".\"created_at\", \"res_users\".\"updated_at\", \"res_users\".\"partner_id\", \"res_users\".\"login\", \"res_users\".\"password\", \"res_users\".\"active\", \"res_users\".\"last_login\", \"res_users\".\"deactivated_reason\", \"res_users\".\"deactivated_at\", \"res_users\".\"company_id\" FROM \"res_users\" INNER JOIN \"res_partner\" ON (\"res_users\".\"partner_id\" = \"res_partner\".\"id\") WHERE \"res_users\".\"id\" = 4403 ORDER BY \"res_partner\".\"name\" ASC, \"res_users\".\"login\" ASC LIMIT 1",
+   "SELECT 1 AS \"a\" FROM \"test_orm_foo\" WHERE ((\"test_orm_foo\".\"value1\" < 4 OR \"test_orm_foo\".\"value1\" IS NULL) AND NOT (\"test_orm_foo\".\"id\" IN (SELECT U0.\"id\" AS \"pk\" FROM \"test_orm_foo\" U0 WHERE ((U0.\"value1\" < 4 OR U0.\"value1\" IS NULL) AND U0.\"value1\" >= 2)))) LIMIT 1",
+   "SELECT \"test_orm_foo\".\"id\" AS \"pk\" FROM \"test_orm_foo\" WHERE ((\"test_orm_foo\".\"value1\" < 4 OR \"test_orm_foo\".\"value1\" IS NULL) AND NOT (\"test_orm_foo\".\"id\" IN (SELECT V0.\"id\" AS \"pk\" FROM \"test_orm_foo\" V0 WHERE ((V0.\"value1\" < 4 OR V0.\"value1\" IS NULL) AND NOT (V0.\"id\" IN (SELECT U0.\"id\" AS \"pk\" FROM \"test_orm_foo\" U0 WHERE ((U0.\"value1\" < 4 OR U0.\"value1\" IS NULL) AND U0.\"value1\" >= 2)))))))"
   ]
  },
  "reference": {
@@ -26,24 +25,29 @@
  },
  "same_rows": true,
  "plan_current_last": [
-  "Seq Scan on test_orm_foo (actual time=0.068..0.088 rows=80 loops=1)",
-  "  Filter: (((value1 < 4) OR (value1 IS NULL)) AND (NOT (hashed SubPlan 1)))",
+  "Seq Scan on test_orm_foo (actual time=0.072..0.092 rows=80 loops=1)",
+  "  Filter: (((value1 < 4) OR (value1 IS NULL)) AND (NOT (hashed SubPlan 2)))",
   "  Rows Removed by Filter: 120",
-  "  Buffers: shared hit=4",
-  "  SubPlan 1",
-  "    ->  Seq Scan on test_orm_foo u0 (actual time=0.004..0.046 rows=80 loops=1)",
-  "          Filter: (((value1 < 4) OR (value1 IS NULL)) AND (id <> ALL ('{970,971,975,976,980,981,985,986,990,991,995,996,1000,1001,1005,1006,1010,1011,1015,1016,1020,1021,1025,1026,1030,1031,1035,1036,1040,1041,1045,1046,1050,1051,1055,1056,1060,1061,1065,1066,1070,1071,1075,1076,1080,1081,1085,1086,1090,1091,1095,1096,1100,1101,1105,1106,1110,1111,1115,1116,1120,1121,1125,1126,1130,1131,1135,1136,1140,1141,1145,1146,1150,1151,1155,1156,1160,1161,1165,1166}'::bigint[])))",
+  "  Buffers: shared hit=6",
+  "  SubPlan 2",
+  "    ->  Seq Scan on test_orm_foo v0 (actual time=0.031..0.053 rows=80 loops=1)",
+  "          Filter: (((value1 < 4) OR (value1 IS NULL)) AND (NOT (hashed SubPlan 1)))",
   "          Rows Removed by Filter: 120",
-  "          Buffers: shared hit=2",
-  "Planning Time: 0.103 ms",
-  "Execution Time: 0.103 ms"
+  "          Buffers: shared hit=4",
+  "          SubPlan 1",
+  "            ->  Seq Scan on test_orm_foo u0 (actual time=0.002..0.016 rows=80 loops=1)",
+  "                  Filter: (((value1 < 4) OR (value1 IS NULL)) AND (value1 >= 2))",
+  "                  Rows Removed by Filter: 120",
+  "                  Buffers: shared hit=2",
+  "Planning Time: 0.051 ms",
+  "Execution Time: 0.112 ms"
  ],
  "plan_reference": [
-  "Seq Scan on test_orm_foo (actual time=0.003..0.016 rows=80 loops=1)",
+  "Seq Scan on test_orm_foo (actual time=0.004..0.017 rows=80 loops=1)",
   "  Filter: (((value1 < 4) OR (value1 IS NULL)) AND (value1 >= 2))",
   "  Rows Removed by Filter: 120",
   "  Buffers: shared hit=2",
-  "Planning Time: 0.016 ms",
-  "Execution Time: 0.023 ms"
+  "Planning Time: 0.017 ms",
+  "Execution Time: 0.026 ms"
  ]
 }

@@ -44,7 +44,7 @@ Django 6.0.5, psycopg 3.3.4, Python 3.13.18 (`outputs/search-contract/django-inv
 
 | Capacidad Django | Satisface | Por qué |
 |---|---|---|
-| `QuerySet.filter(Q)` | el filtro de un dominio, **no** su semántica | `Domain._to_q` diverge de la referencia en 30 condiciones de borde (sección 4) |
+| `QuerySet.filter(Q)` | el filtro de un dominio | `to_q` optimiza a `FULL` antes de compilar y coincide con `_to_sql` en las 208 condiciones que los dos aceptan (sección 4) |
 | `sql.Query.sql_with_params()` | compilar a `SQL` | ya se usa en `_queryset_subselect` |
 | `ExtraWhere` / `QuerySet.extra(where=…)` | inyectar un `WHERE` crudo | sólo `WHERE`: no aporta uniones |
 | `Join` (`sql/datastructures.py:27-160`) | **no** | `table_name` se cita como identificador (`:127`) y la condición sale de `join_field`: `LEFT JOIN (subconsulta) AS alias ON <SQL>` —el `add_join` de la referencia— exige API privada |
@@ -71,26 +71,27 @@ sembradas en la base de prueba:
 
 | Escenario | Resultado | Archivo |
 |---|---|---|
-| Rejilla de `model_domain_grid` sobre campos `BaseModel` (char, boolean, integer, many2one, many2many) | 178 iguales · 30 distintas · 8 sólo Django · 4 sólo SQL · 22 ninguno | `grid-basemodel.json` |
+| Rejilla de `model_domain_grid` sobre campos `BaseModel` (char, boolean, integer, many2one, many2many) | 208 iguales · 0 distintas · 4 sólo SQL · 2 sólo Django · 28 ninguno | `grid-basemodel.json` |
 | Caminos, `any`/`not any`, `active` en `test_orm.message` | 10 de 10 iguales (la 11.ª es inválida en los dos) | `grid-test-orm-message.json` |
 | Regla `value1 >= 2` para un usuario normal | mismas filas | `rules-plain-user.json` |
 | `_search` con regla: SQL y plan | hoy **10 consultas**, ids prohibidos **materializados como literales** (120) y anti-unión `hashed SubPlan`; referencia **1 consulta**, un solo filtro; mismas filas | `rule-path-sql-and-plan.json` |
 
-**Las 30 distintas: el camino SQL es el fiel.** Cada una se resuelve con la
-regla de la referencia:
+**Corregido el mismo día.** La primera ejecución de la sonda dio 178 iguales y
+30 distintas, y este documento las atribuía al compilador de Django. Era un
+defecto de la sonda: llamaba a `Domain._to_q` **sin optimizar**, mientras que
+`_search` usa `to_q`, que optimiza a `FULL` antes de compilar
+(`src/orm/domains.py`, `to_q`; `api@24b9b12c`). Comparaba un árbol sin
+optimizar con otro optimizado. Lo destapó una prueba de contrato que pasaba con
+el código actual cuando el análisis decía que fallaría. Con la sonda corregida
+no queda ninguna distinta.
 
-- `in`/`not in` con valor falso escalar (`False`, `''`, `0`, `[]`):
-  `_optimize_in_set` (`domains.py:1304-1316`) da `FALSE`/`TRUE`. SQL devuelve
-  `[]`/todo; Django devuelve las filas con `NULL`.
-- `like`/`ilike`/`not like` con valor falso: `_optimize_like_str`
-  (`:1391-1401`) da `TRUE`/`FALSE`; `=like` falso da `('campo', '=', False)`.
-  SQL coincide; Django no.
-- `=like` con `True` o lista: la referencia lanza `TypeError` (`:1407-1408`);
-  SQL lo lanza, Django devuelve `[]` (5 de las 8 «sólo Django»).
-- `<`/`>=` con `'3'` o `[]`: SQL convierte u optimiza; Django lanza `TypeError`
-  de Python (las 4 «sólo SQL»).
-- `id < False`: SQL falla en PostgreSQL (`bigint < boolean`); Django devuelve
-  vacío. **Pendiente:** confirmar la conducta de la referencia para este caso.
+Las 6 restantes:
+
+- `<`/`>=` contra `'3'` o `[]` (4 sólo SQL): `_to_sql` convierte el valor con
+  el campo; el camino de Django lanza `TypeError` de Python al comparar.
+- `id < False` y `id >= False` (2 sólo Django): el SQL falla en PostgreSQL
+  (`bigint < boolean`); Django devuelve filas. **Pendiente:** confirmar la
+  conducta de la referencia para estos dos.
 
 *Métrica:* el conjunto de ids de cada compilador por condición.
 *Ciega a:* el orden de las filas; el coste en tablas grandes (el plan se midió
@@ -139,7 +140,8 @@ de `_compute_domain`: `ir_rule.py:516` (padres `_inherits`), `:537` y `:829`
 | Capacidades existentes | compilador, `ExtraWhere`, `Subquery` | **`tools.query.Query` ya es el de la referencia** y lo usan `_as_query`, `_fetch_query`, `lock_for_update`, `try_lock_for_update`, `_order_to_sql`, `_field_to_sql`, `_read_group_select/having`, `fields_relational`; `Domain._to_sql` está portado para todos los nodos | lo que hay |
 | Código nuevo | subclases de `Join`/compilador sobre API privada para uniones con subconsulta y alias propios | `_search` con los pasos de la referencia; `ir.rule` que devuelva `Domain`; consumidores a la API de `Query` | un adaptador `QuerySet` → `Query` para `_read_group` |
 | Seguridad | reglas por `Q` o por SQL crudo en `ExtraWhere`: dos caminos | reglas en el `WHERE` como la referencia, una sola consulta, sin ids materializados | hoy: ids prohibidos materializados en la consulta, 10 consultas |
-| Fidelidad | `to_q` conserva las 30 divergencias | coincide con la referencia en las 30 | conserva las 30 divergencias |
+| Fidelidad de filas | igual (`to_q` optimiza a `FULL`) | igual | igual |
+| Forma del contrato | `QuerySet` o `sql.Query` de Django: no es el `Query` que consumen `_read_group*`, `_order_to_sql`, `_fetch_query` | el `Query` de la referencia, sin ejecutar y componible como subconsulta | `QuerySet`; cada consumidor SQL lo envuelve en `id IN (SELECT …)` |
 | Impacto | todo el árbol de consultas | 7 sitios de `_search`, `ir.rule`, y lo que use `search` (suite completa) | mínimo |
 | Compatibilidad | atada a internos de Django 6.0 | API pública de psycopg y del `Query` portado | sí |
 | Mantenimiento | dos sistemas de alias | un sistema, el de la referencia | dos compiladores para lo mismo |
@@ -150,7 +152,14 @@ hay: B reutiliza piezas que ya existen y están probadas.
 
 ## 7. Decisión
 
-**B.** `BaseModel._search` devuelve el `Query` de la referencia, construido con
+**B**, por tres razones medidas —no por fidelidad de filas, que es igual en las
+tres—: (1) la forma del contrato: `_read_group` y `_read_group_groupby` añaden
+uniones sobre el `Query` de `_search` y Django no puede expresarlas por API
+pública; (2) la seguridad y el coste del camino de reglas: una consulta contra
+diez y sin ids materializados; (3) un solo sistema de alias y un solo
+compilador para el SQL de la referencia.
+
+`BaseModel._search` devuelve el `Query` de la referencia, construido con
 `Domain.optimize_full` + `_to_sql` y el `Domain` de `ir.rule` en el `WHERE`. Los
 consumidores pasan a la forma de la referencia (`len`, `is_empty`,
 `_fetch_query`, `subselect`). No se crea ninguna clase: el `Query` es el
@@ -169,4 +178,4 @@ regresión por impacto):
 
 Lo que este análisis no cierra: la conducta de la referencia para `id < False`
 (sección 4) y las condiciones de la rejilla que ninguno de los dos compiladores
-acepta (22), que son entradas inválidas en los dos.
+acepta (28), que son entradas inválidas en los dos.
