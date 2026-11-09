@@ -2177,6 +2177,17 @@ NO_ACCESS = '.'
 #: opcional tras los dos puntos.
 regex_read_group_spec = re.compile(r'(\w+)(\.([\w\.]+))?(?::(\w+))?$')
 
+#: Una parte del orden de ``_read_group`` — ≙ ``regex_order_part_read_group``
+#: (``odoo19c: odoo/orm/models.py:105-111``), verbatim: el término (campo,
+#: ruta y función opcionales), la dirección y los nulos.
+regex_order_part_read_group = re.compile(r"""
+    \s*
+    (?P<term>(?P<field>[a-z0-9_]+)(\.([\w\.]+))?(:(?P<func>[a-z_]+))?)
+    (\s+(?P<direction>desc|asc))?
+    (\s+(?P<nulls>nulls\ first|nulls\ last))?
+    \s*
+""", re.IGNORECASE | re.VERBOSE)
+
 
 def parse_read_group_spec(spec):
     """El triplete ``(campo, propiedad, agregado)`` de ``spec``.
@@ -6649,6 +6660,78 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             sql_expr = SQL("COALESCE(%s, FALSE)", sql_expr)
 
         return sql_expr
+
+    def _read_group_orderby(self, order, groupby_terms, query):
+        """El ``ORDER BY`` de un agrupado.
+
+        ≙ ``BaseModel._read_group_orderby`` (``odoo19c:
+        odoo/orm/models.py``). Docstring de la fuente: *"Return (<SQL
+        expression>, <SQL expression>) corresponding to the given order and
+        groupby terms. Note: this method may change groupby_terms"*.
+        """
+        if order:
+            traverse_many2one = True
+        else:
+            order = ','.join(groupby_terms)
+            traverse_many2one = False
+
+        if not order:
+            return SQL()
+
+        orderby_terms = []
+
+        for order_part in order.split(','):
+            order_match = regex_order_part_read_group.fullmatch(order_part)
+            if not order_match:
+                raise ValueError(f"Invalid order {order!r} for _read_group()")
+            term = order_match['term']
+            direction = (order_match['direction'] or 'ASC').upper()
+            nulls = (order_match['nulls'] or '').upper()
+
+            sql_direction = SQL(direction) \
+                if direction in ('ASC', 'DESC') else SQL()
+            sql_nulls = SQL(nulls) \
+                if nulls in ('NULLS FIRST', 'NULLS LAST') else SQL()
+
+            if term not in groupby_terms:
+                try:
+                    sql_expr = self._read_group_select(term, query)
+                except ValueError as e:
+                    raise ValueError(
+                        f"Order term {order_part!r} is not a valid aggregate "
+                        f"nor valid groupby") from e
+                orderby_terms.append(
+                    SQL("%s %s %s", sql_expr, sql_direction, sql_nulls))
+                continue
+
+            field = self._fields.get(term)
+            __, __, granularity = parse_read_group_spec(term)
+            if (
+                traverse_many2one and field and field.type == 'many2one'
+                and self.env[field.comodel_name]._order != 'id'
+            ):
+                if sql_order := self._order_to_sql(
+                        f'{term} {direction} {nulls}', query):
+                    orderby_terms.append(sql_order)
+                    if query._order_groupby:
+                        groupby_terms[term] = SQL(", ").join(
+                            [groupby_terms[term], *query._order_groupby])
+                        query._order_groupby.clear()
+
+            elif granularity == 'day_of_week':
+                # desplazamiento respecto del primer día de la semana del
+                # idioma: ((7 - first_week_day) + day_in_SQL) % 7
+                first_week_day = int(get_lang(self.env).week_start)
+                sql_expr = SQL("mod(7 - %s + %s::int, 7)", first_week_day,
+                               groupby_terms[term])
+                orderby_terms.append(
+                    SQL("%s %s %s", sql_expr, sql_direction, sql_nulls))
+            else:
+                sql_expr = groupby_terms[term]
+                orderby_terms.append(
+                    SQL("%s %s %s", sql_expr, sql_direction, sql_nulls))
+
+        return SQL(", ").join(orderby_terms)
 
     def _read_group_having(self, having_domain, query):
         """La expresión SQL del dominio ``HAVING``.
