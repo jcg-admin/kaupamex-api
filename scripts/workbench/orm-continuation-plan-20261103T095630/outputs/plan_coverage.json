@@ -253,7 +253,8 @@
   "base-inherits-access-on-write-0182",
   "base-inherits-delegated-create-0182",
   "orm-flush-convergence-auto-now-0485",
-  "base-inherits-multiple-parents-0182"
+  "base-inherits-multiple-parents-0182",
+  "orm-field-groups-write-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
