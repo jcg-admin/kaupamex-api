@@ -2434,14 +2434,18 @@ class FieldSqlMixin:
         assert (getattr(field, 'related', None)
                 and not getattr(field, 'store', True))
         *path_fnames, last_fname = field.related.split('.')
-        model = type(self)
+        model = self
         for path_fname in path_fnames:
             path_field = model._fields[path_fname]
             if not isinstance(path_field, ForeignKey):
                 raise ValueError(
                     f'Cannot convert {field} (related={field.related}) to SQL '
                     f'because {path_fname} is not a Many2one')
-            model, alias = path_field.join(model, alias, query)
+            comodel, alias = path_field.join(model, alias, query)
+            # ``join`` devuelve la CLASE del comodelo; como en la fuente, el
+            # recorrido sigue sobre un recordset (vacío) de ese modelo.
+            model = (comodel._from_ids(self.env, (), ())
+                     if hasattr(comodel, '_from_ids') else comodel())
 
         return model, model._fields[last_fname], alias
 
@@ -2456,6 +2460,16 @@ class FieldSqlMixin:
         """
         fname, property_name = parse_field_expr(field_expr)
         field = self._fields.get(fname)
+        if (field and getattr(field, 'related', None)
+                and not getattr(field, 'store', True)):
+            # Un ``related`` sin columna se resuelve recorriendo su camino,
+            # como en la fuente; por eso esta rama va antes del rechazo.
+            model, field, alias = self._traverse_related_sql(
+                alias, field, query)
+            related_expr = (field.name if not property_name
+                            else f"{field.name}.{property_name}")
+            return model._field_to_sql(alias, related_expr, query)
+
         if not field or not getattr(field, 'concrete', False):
             # El rechazo del campo sin columna vive AQUÍ y no en ``_fields``:
             # quien compone SQL es quien sabe qué puede convertir. Antes lo
@@ -2464,14 +2478,6 @@ class FieldSqlMixin:
             # sus consumidores — no sólo para éste (tarea #215).
             raise ValueError(
                 f"Invalid field {fname!r} on model {self._meta.label!r}")
-
-        if (getattr(field, 'related', None)
-                and not getattr(field, 'store', True)):
-            model, field, alias = self._traverse_related_sql(
-                alias, field, query)
-            related_expr = (field.name if not property_name
-                            else f"{field.name}.{property_name}")
-            return model._field_to_sql(alias, related_expr, query)
 
         self._check_field_access(field, 'read')
 

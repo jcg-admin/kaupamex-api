@@ -46,3 +46,7 @@ El control negativo (`depth`) sobrevive a los dos. Admisión de estilo: PASS.
 | Required integration gates | Suite completa y multidb en el corte: transversal. |
 | Previously valid evidence | Ninguna para esta revisión. |
 | Uncovered risks | Un consumidor que dependiera de que `_traverse_related_sql` devolviera la clase: un solo llamador (`_field_to_sql`). |
+
+## Regresión de impacto (nivel 2)
+
+`-n 4` sobre los 18 directorios: 9235 passed, 66 skipped, 4 xfailed, EXIT=0.
