@@ -94,6 +94,12 @@ def _all():
     return ResCompany.objects.filter(code__in=('uno', 'dos', 'tres'))
 
 
+def _visible(mode='read'):
+    """Las filas de ``_all()`` que el ``Domain`` de las reglas deja pasar."""
+    return _all().filter(
+        IrRule._compute_domain(MODEL, mode)._to_q(ResCompany))
+
+
 class TestFailingRules:
     """
     Qué reglas concretas fallan — la mitad de ``_get_failing`` que nombra.
@@ -318,26 +324,22 @@ class TestComputeDomainCacheInvalidation:
     """
 
     def test_creating_a_rule_takes_effect_immediately(self, companies):
-        assert _all().filter(IrRule._compute_domain(MODEL)).count() == 3
+        assert _visible().count() == 3
         _rule('sólo uno', "[('code', '=', 'uno')]")
-        assert _all().filter(IrRule._compute_domain(MODEL)).count() == 1
+        assert _visible().count() == 1
 
     def test_editing_a_rule_takes_effect_immediately(self, companies):
         rule = _rule('sólo uno', "[('code', '=', 'uno')]")
-        assert _all().filter(IrRule._compute_domain(MODEL)).count() == 1
+        assert _visible().count() == 1
         rule.domain_force = "[('code', '=', 'dos')]"
         rule.save()
-        assert set(
-            _all()
-            .filter(IrRule._compute_domain(MODEL))
-            .values_list('code', flat=True)
-        ) == {'dos'}
+        assert set(_visible().values_list('code', flat=True)) == {'dos'}
 
     def test_deleting_a_rule_takes_effect_immediately(self, companies):
         rule = _rule('sólo uno', "[('code', '=', 'uno')]")
-        assert _all().filter(IrRule._compute_domain(MODEL)).count() == 1
+        assert _visible().count() == 1
         rule.delete()
-        assert _all().filter(IrRule._compute_domain(MODEL)).count() == 3
+        assert _visible().count() == 3
 
     def test_the_key_separates_the_operations(self, companies):
         """Dos modos distintos no comparten entrada.
@@ -355,10 +357,10 @@ class TestComputeDomainCacheInvalidation:
             perm_unlink=False,
         )
         assert (
-            _all().filter(IrRule._compute_domain(MODEL, 'read')).count() == 1
+            _visible('read').count() == 1
         )
         assert (
-            _all().filter(IrRule._compute_domain(MODEL, 'write')).count() == 3
+            _visible('write').count() == 3
         )
 
 

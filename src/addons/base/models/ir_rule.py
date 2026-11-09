@@ -97,6 +97,7 @@ from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessError, ValidationError
 from orm import domains, registry
+from orm.domains import Domain
 from orm.models import AccessQuerySet
 from orm.environments import (
     get_current_companies,
@@ -412,18 +413,18 @@ class IrRule(TimeStampedModel):
         )
 
     def _build_domain(self, eval_context=None):
-        """Evalúa ``domain_force`` y lo traduce a un filtro ``Q``.
+        """Evalúa ``domain_force`` y devuelve su ``Domain``.
 
-        **Nuestro**: la fuente lo tiene en línea dentro de ``_compute_domain``
-        (``odoo19c: ir_rule.py:164``): ``Domain(safe_eval(rule.domain_force,
-        eval_context)) if rule.domain_force else Domain.TRUE``. Una regla sin
-        ``domain_force`` es verdadera —no restringe—; aquí ``Domain`` es
-        ``orm.domains.to_q``.
+        **Nuestro por separación**: la fuente lo tiene en línea dentro de
+        ``_compute_domain`` (``odoo19c: ir_rule.py:164``):
+        ``Domain(safe_eval(rule.domain_force, eval_context)) if
+        rule.domain_force else Domain.TRUE``. Una regla sin ``domain_force``
+        es verdadera —no restringe—. Quien filtra un ``QuerySet`` de Django
+        lo convierte en su sitio con ``Domain._to_q(model)``.
         """
         if not self.domain_force:
-            return models.Q()
-        domain = safe_eval(self.domain_force, eval_context or {})
-        return domains.to_q(domain)
+            return Domain.TRUE
+        return Domain(safe_eval(self.domain_force, eval_context or {}))
 
     @classmethod
     @ormcache(
@@ -478,16 +479,15 @@ class IrRule(TimeStampedModel):
             else:
                 global_domains.append(domain)
 
+        # combina los globales con los de grupo — ≙ ``:170-173``
         if group_domains:
-            combined = group_domains[0]
-            for domain in group_domains[1:]:
-                combined |= domain
-            global_domains.append(combined)
-
-        result = models.Q()
-        for domain in global_domains:
-            result &= domain
-        return result
+            global_domains.append(Domain.OR(group_domains))
+        result = Domain.AND(global_domains)
+        try:
+            model = apps.get_model(model_name)
+        except (LookupError, ValueError):
+            return result
+        return result.optimize(model)
 
     @classmethod
     def _parent_rule_domains(cls, model_name, mode='read', group_ids=(),
@@ -495,12 +495,9 @@ class IrRule(TimeStampedModel):
         """Los dominios de los padres ``_inherits`` de ``model_name`` —
         ``odoo19c: odoo/addons/base/models/ir_rule.py:144-150``.
 
-        La fuente arma ``Domain(parent_field_name, 'any', domain)``. El
-        equivalente con un ``Q`` es ``<fk>__in`` sobre la subconsulta del
-        padre filtrada por su dominio, leída con el manager sin filtrar: un
-        ``Q`` puede llevar expresiones (``Exists``, ``OuterRef``) que no se
-        re-enraízan prefijando la clave. Un padre sin reglas no aporta nada,
-        como allá (``if domain := …``).
+        Como la fuente: ``Domain(parent_field_name, 'any', domain)`` sobre la
+        FK delegante, que el compilador traduce a la subconsulta del padre.
+        Un padre sin reglas no aporta nada, como allá (``if domain := …``).
         """
         try:
             model = apps.get_model(model_name)
@@ -516,9 +513,8 @@ class IrRule(TimeStampedModel):
             domain = cls._compute_domain(
                 parent._meta.label, mode=mode, group_ids=group_ids,
                 user=user)
-            if domain:
-                yield models.Q(**{f'{fk.name}__in': parent._base_manager
-                                  .filter(domain).values('pk')})
+            if not domain.is_true():
+                yield Domain(fk.name, 'any', domain)
 
     @classmethod
     def _get_failing(cls, queryset, mode='read', group_ids=(), user=None):
@@ -537,8 +533,8 @@ class IrRule(TimeStampedModel):
         domain = cls._compute_domain(
             model_name, mode=mode, group_ids=group_ids, user=user
         )
-        allowed = queryset.filter(domain).values_list('pk', flat=True)
-        return queryset.exclude(pk__in=list(allowed))
+        allowed = queryset.filter(domain._to_q(queryset.model)).values('pk')
+        return queryset.exclude(pk__in=allowed)
 
     @classmethod
     def _failing_rules(cls, queryset, mode='read', group_ids=(), user=None):
@@ -573,11 +569,10 @@ class IrRule(TimeStampedModel):
             if set(r.groups.values_list('pk', flat=True)) & user_groups
         ]
         if group_rules:
-            combined = models.Q()
-            for rule in group_rules:
-                combined |= rule._build_domain(eval_context)
+            combined = Domain.OR(
+                rule._build_domain(eval_context) for rule in group_rules)
             passing = model._base_manager.filter(
-                combined, pk__in=pks
+                combined._to_q(model), pk__in=pks
             ).values_list('pk', flat=True)
             if len(set(passing)) == total:
                 # El OR de las de grupo devuelve todas: en bloque no fallan.
@@ -585,7 +580,7 @@ class IrRule(TimeStampedModel):
 
         def is_failing(rule):
             passing = model._base_manager.filter(
-                rule._build_domain(eval_context), pk__in=pks
+                rule._build_domain(eval_context)._to_q(model), pk__in=pks
             ).values_list('pk', flat=True)
             return len(set(passing)) < total
 
@@ -832,5 +827,5 @@ class RuleScopedManager(models.AccessManager):
             group_ids=tuple(group_ids),
             user=user,
         )
-        return self.get_queryset().filter(domain)
+        return self.get_queryset().filter(domain._to_q(self.model))
 

@@ -51,7 +51,7 @@ def _visible(group_ids=()):
     q = IrRule._compute_domain(MODEL, mode='read', group_ids=group_ids)
     return set(
         ResCompany.objects.filter(code__in=_CODES)
-        .filter(q)
+        .filter(q._to_q(ResCompany))
         .values_list('code', flat=True)
     )
 
@@ -114,14 +114,15 @@ class TestBuildDomain:
         rule = _rule('mc', "[('id', 'in', company_ids)]")
         with company_scope(alfa.pk):
             q = rule._build_domain(IrRule._eval_context())
-        assert set(ResCompany.objects.filter(q)) == {alfa}
+        assert set(ResCompany.objects.filter(q._to_q(ResCompany))) == {alfa}
 
     def test_leaf_verdadero_de_la_fuente(self, tres_companias):
         # ``[(1, '=', 1)]`` — el TRUE de ``base_security.xml``.
         rule = _rule('true', "[(1, '=', 1)]")
         q = rule._build_domain({})
         assert (
-            ResCompany.objects.filter(code__in=_CODES).filter(q).count() == 3
+            ResCompany.objects.filter(code__in=_CODES)
+            .filter(q._to_q(ResCompany)).count() == 3
         )
 
     def test_arbitrary_code_is_rejected_on_save(self):
