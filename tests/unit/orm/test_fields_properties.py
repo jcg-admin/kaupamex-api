@@ -28,8 +28,10 @@ from addons.fleet.models.fleet_vehicle_model import FleetVehicleModel
 from addons.fleet.models.fleet_vehicle_model_brand import (
     FleetVehicleModelBrand)
 from orm.domains import Domain, to_q
+from orm.environments import Environment
 from orm.fields_properties import (Properties, PropertiesDefinition, Property,
                                    check_property_field_value_name)
+from orm.utils import SUPERUSER_ID
 
 
 def _field():
@@ -218,7 +220,7 @@ class TestDefinitionValidation:
     def test_an_unknown_key_is_rejected(self, container):
         with pytest.raises(ValueError, match='not allowed'):
             self._validate([{'name': 'color', 'type': 'char',
-                             'inventada': 1}], container)
+                             'invented': 1}], container)
 
     def test_a_missing_required_key_is_rejected(self, container):
         with pytest.raises(ValueError, match='missing'):
@@ -253,7 +255,8 @@ class TestDefinitionValidation:
     def test_duplicated_options_are_rejected(self, container):
         with pytest.raises(ValueError, match='options are duplicated'):
             self._validate([{'name': 's', 'type': 'selection',
-                             'selection': [['a', 'A'], ['a', 'B']]}], container)
+                             'selection': [['a', 'A'], ['a', 'B']]}],
+                           container)
 
     def test_the_property_name_is_bounded(self):
         # Va interpolado en el SQL: sólo minúsculas, dígitos y guion bajo.
@@ -349,7 +352,8 @@ class TestComputeOnSave:
         esquema (``odoo19c: :393-396``), y el compute lo escribe. Una propiedad
         que el contenedor no define no significa nada, así que no se guarda.
         """
-        model = FleetVehicleModel.objects.create(name='Sin esquema', brand=brand)
+        model = FleetVehicleModel.objects.create(name='Sin esquema',
+                                                 brand=brand)
         row = FleetVehicle.objects.create(
             model=model, vehicle_properties={'color': 'azul'})
         row.refresh_from_db()
@@ -361,17 +365,26 @@ class TestComputeOnSave:
             name='Parcial', brand=brand,
             vehicle_properties_definition=[{'name': 'color', 'type': 'char'}])
         row = FleetVehicle.objects.create(
-            model=model, vehicle_properties={'color': 'azul', 'sobra': 1})
+            model=model, vehicle_properties={'color': 'azul', 'extra': 1})
         row.refresh_from_db()
         assert row.vehicle_properties == {'color': 'azul'}
 
 
+@pytest.mark.django_db
 class TestSearchByProperty:
-    """La ruta con punto compila, y con la contención que la fuente exige."""
+    """La ruta con punto compila, y con la contención que la fuente exige.
+
+    Con ``Properties.type == 'properties'`` (unidad 6e-1) la optimización de
+    fechas de propiedades (``odoo19c: odoo/orm/domains.py:1661-1688``) corre
+    sobre ``in``/``not in``/comparaciones y lee la definición en la base,
+    como en la fuente; por eso la clase usa la base de pruebas.
+    """
 
     def _where(self, domain):
-        query = str(FleetVehicle.objects.filter(
-            to_q(domain, FleetVehicle)).query)
+        # La definición se lee con la comprobación de lectura de la fuente.
+        with Environment(None, SUPERUSER_ID, {}):
+            query = str(FleetVehicle.objects.filter(
+                to_q(domain, FleetVehicle)).query)
         return query[query.find('WHERE'):query.find('ORDER')]
 
     def test_equality_also_checks_the_list_subset(self):
@@ -439,15 +452,15 @@ class TestFilterFunction:
         container = FleetVehicleModel.objects.create(
             name='Con relacional', brand=one,
             vehicle_properties_definition=[
-                {'name': 'marca', 'type': 'many2one', 'string': 'Marca',
+                {'name': 'brand', 'type': 'many2one', 'string': 'Marca',
                  'comodel': 'fleet.FleetVehicleModelBrand'},
                 {'name': 'color', 'type': 'char', 'string': 'Color'}])
         row_one = FleetVehicle.objects.create(
             model=container,
-            vehicle_properties={'marca': one.pk, 'color': 'azul'})
+            vehicle_properties={'brand': one.pk, 'color': 'azul'})
         row_other = FleetVehicle.objects.create(
             model=container,
-            vehicle_properties={'marca': other.pk, 'color': 'rojo'})
+            vehicle_properties={'brand': other.pk, 'color': 'rojo'})
         empty = FleetVehicle.objects.create(model=container)
         for row in (row_one, row_other, empty):
             row.refresh_from_db()
@@ -457,7 +470,7 @@ class TestFilterFunction:
     def test_any_discriminates_between_two_rows(self, scenario):
         """La rama que la fuente abre con ``operator == 'any'``."""
         predicate = _field().filter_function(
-            FleetVehicle, 'vehicle_properties.marca', 'any',
+            FleetVehicle, 'vehicle_properties.brand', 'any',
             [('name', '=', 'Marca uno')])
         assert predicate(scenario['row_one'])
         assert not predicate(scenario['row_other'])
@@ -465,7 +478,7 @@ class TestFilterFunction:
     def test_a_domain_value_takes_the_same_branch(self, scenario):
         """``isinstance(value, Domain)`` entra sin que el operador lo diga."""
         predicate = _field().filter_function(
-            FleetVehicle, 'vehicle_properties.marca', '=',
+            FleetVehicle, 'vehicle_properties.brand', '=',
             Domain('name', '=', 'Marca otra'))
         assert predicate(scenario['row_other'])
         assert not predicate(scenario['row_one'])
@@ -473,13 +486,14 @@ class TestFilterFunction:
     def test_the_matched_corecord_comes_back(self, scenario):
         """No devuelve un booleano: devuelve los corregistros que casan."""
         predicate = _field().filter_function(
-            FleetVehicle, 'vehicle_properties.marca', 'any',
+            FleetVehicle, 'vehicle_properties.brand', 'any',
             [('name', '=', 'Marca uno')])
         matched = predicate(scenario['row_one'])
         assert [r.pk for r in matched] == [scenario['one'].pk]
 
     def test_a_declared_property_without_value_matches_nothing(self, scenario):
-        """La fila sin valor: el contenedor la declara, así que hay corregistros.
+        """La fila sin valor: el contenedor la declara, así que hay
+        corregistros.
 
         Medido: ``expression_getter`` devuelve aquí un ``QuerySet`` **vacío**
         —``model.objects.none()``, porque la definición SÍ se encuentra— y no
@@ -488,7 +502,7 @@ class TestFilterFunction:
         neutralización, no la lectura.
         """
         predicate = _field().filter_function(
-            FleetVehicle, 'vehicle_properties.marca', 'any',
+            FleetVehicle, 'vehicle_properties.brand', 'any',
             [('name', '=', 'Marca uno')])
         assert not predicate(scenario['empty'])
 
@@ -546,8 +560,9 @@ class TestFilterFunctionMeasuredForm:
 
     Son control, no adorno: si alguno cambia, una de las tres adaptaciones de
     forma del docstring de ``filter_function`` deja de ser cierta y hay que
-    reescribirla — que es exactamente el defecto que ``check_stale_zero_claims``
-    persigue, sólo que en la prosa de una firma en vez de en un conteo.
+    reescribirla — que es exactamente el defecto que
+    ``check_stale_zero_claims`` persigue, sólo que en la prosa de una firma
+    en vez de en un conteo.
     """
 
     def test_a_relational_property_reads_as_a_queryset(self):
@@ -556,12 +571,12 @@ class TestFilterFunctionMeasuredForm:
         container = FleetVehicleModel.objects.create(
             name='Medida', brand=brand,
             vehicle_properties_definition=[
-                {'name': 'marca', 'type': 'many2one',
+                {'name': 'brand', 'type': 'many2one',
                  'comodel': 'fleet.FleetVehicleModelBrand'}])
         row = FleetVehicle.objects.create(
-            model=container, vehicle_properties={'marca': brand.pk})
+            model=container, vehicle_properties={'brand': brand.pk})
         row.refresh_from_db()
-        value = _field().expression_getter('vehicle_properties.marca')(row)
+        value = _field().expression_getter('vehicle_properties.brand')(row)
         assert isinstance(value, models.QuerySet)
         assert not isinstance(value, models.Model)
 
@@ -575,6 +590,6 @@ class TestFilterFunctionMeasuredForm:
         fuente con su recordset vacío es DESCONOCIDO (no se ejecuta Odoo).
         """
         probe = _field().expression_getter(
-            'vehicle_properties.marca')(FleetVehicle())
+            'vehicle_properties.brand')(FleetVehicle())
         assert probe is False
         assert not isinstance(probe, models.QuerySet)

@@ -129,17 +129,19 @@ class Properties(models.JSONField):
     declaraciones de ``fields.Properties``/``PropertiesDefinition`` pasa
     ``definition=``, que es la segunda mitad del mismo sucesor).
 
-    El discriminador de tipo es ``isinstance``, no un atributo ``type``
-    ====================================================================
+    El ``type`` es el de la fuente: ``'properties'``
+    ================================================
 
-    La fuente declara ``type = 'properties'`` y sus consumidores preguntan
-    ``field.type != 'properties'``. Aquí el discriminador es
-    ``isinstance(field, Properties)``, que es la forma que este árbol ya fijó
-    para el mismo problema en ``fields_textual.Html`` (H-API-700): un
-    ``models.Field`` de Django no lleva atributo ``type``, y añadírselo
-    duplicaría en una cadena lo que la clase ya dice. La clave de tipo que
-    ``ir.model.fields`` refleja se sigue derivando del nombre exportado
-    (``ir_model._type_key``), no de un atributo — sin cambio.
+    La fuente declara ``type = 'properties'`` (``:52``) y sus consumidores
+    preguntan ``field.type == 'properties'``. Este docstring defendía que
+    aquí el discriminador fuera sólo ``isinstance`` porque *"un
+    ``models.Field`` de Django no lleva atributo ``type``"*; dejó de ser
+    cierto cuando ``Field.type`` pasó a ser ``property(type_for)``, y sin el
+    atributo de clase ``type_for`` publicaba ``'json'`` (el tipo interno de
+    ``JSONField``). Con eso los once sitios portados que preguntan por
+    ``'properties'`` eran inalcanzables para estos campos. Se declara el
+    atributo, igual que ``SelectionField`` y ``Reference``; ``isinstance``
+    sigue valiendo donde ya se usa.
 
     La columna no cambia
     ====================
@@ -1502,3 +1504,12 @@ class PropertiesDefinition(models.JSONField):
                         lambda x: all_tags.count(x) > 1, all_tags))
                     raise ValueError(
                         f'Some tags are duplicated: {", ".join(duplicated)}.')
+
+
+#: ≙ ``type = 'properties'`` y ``type = 'properties_definition'``
+#: (``odoo19c: odoo/orm/fields_properties.py:52`` y ``:849``). Se asignan
+#: tras las clases, como los atributos que ``orm/fields.py`` instala sobre
+#: ``models.Field``: :func:`~orm.fields.type_for` prefiere el atributo de
+#: clase al tipo interno de Django (``JSONField`` → ``'json'``).
+Properties.type = 'properties'
+PropertiesDefinition.type = 'properties_definition'
