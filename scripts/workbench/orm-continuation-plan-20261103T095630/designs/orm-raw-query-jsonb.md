@@ -82,3 +82,45 @@ Anulación: retirar el registro en `execute_sql` hace caer 1; en
   el de `execute_query_dict`, exactamente 1.
 - Pendiente antes de aceptar: regresión amplia de consumidores (cambio
   transversal del camino crudo).
+
+## Recuperación de PostgreSQL (2026-11-09 22:48Z)
+
+`Connection refused` en `127.0.0.1:5432`: la consulta no se ejecutó. Causa
+comprobada: **reclamo del contenedor** — `boot_id` pasó de `3428adc4` a
+`e81170bb` (arranque 22:43:30Z), y el log del cluster dice *"last known up
+at 2026-11-09 22:25:50 UTC … not properly shut down"*. La instancia
+autorizada es la única del nodo: `pg_lsclusters` → `16 main 5432
+/var/lib/postgresql/16/main`. Se recuperó con el procedimiento del
+`CLAUDE.md` del repositorio (`sudo pg_ctlcluster 16 main start`), que retiró
+el pid obsoleto y ejecutó la recuperación automática; sin bases nuevas, sin
+cambiar puerto. Las tres bases residuales siguen intactas.
+
+## Matriz medida por ruta (`outputs/jsonb-paths-2d2eb633.md`, sonda `probes/jsonb_paths.py`)
+
+- psycopg directo **en este proceso** y cursor de Django: `jsonb` → `str`
+  en los ocho casos, `json` → `dict`. El cursor directo también, porque el
+  `TextLoader` de Django se registra en el contexto global de psycopg al
+  importar el backend: no hay cursor «limpio» en el proceso.
+- `execute_query` del ORM (con `2d2eb633`): objeto → `dict`, arreglo →
+  `list`, cadena → `str` sin comillas, número → `int`, booleano → `bool`,
+  `null` JSON → `None`, `NULL` SQL → `None`, `->` → valor decodificado,
+  `->>` → texto.
+- `JSONField` por `QuerySet`, `Json` y `Properties` por el recordset: `dict`
+  (sin decodificación doble). `get_property_definition` → `dict`.
+
+`null` JSON y `NULL` SQL dan los dos `None`, que es también lo que entrega
+psycopg2 en la fuente: la conversión no borra una distinción que la
+referencia conserve.
+
+## Contrato de la referencia (`odoo-tools@abe4040ec1`, Odoo 19 Community)
+
+- `odoo/sql_db.py` no registra cargador JSON alguno (0 coincidencias de
+  `json`): queda el de psycopg2, que decodifica `json` y `jsonb` por
+  defecto.
+- `odoo/orm/fields_properties.py:143-144`, `:295-296`, `:896-897`, `:919`:
+  los consumidores de propiedades decodifican **sólo si** el valor es `str`
+  — la misma forma que los de Kaupamex. Por eso la decodificación en el
+  cursor no los rompe: es el estado para el que la fuente está escrita.
+- `odoo/orm/models.py:2248-2275`: `_read_group_postprocess_groupby` no
+  decodifica; el grupo vacío de una propiedad es `_read_group_empty_value`
+  → `False` (no es relacional).

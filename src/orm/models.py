@@ -74,6 +74,7 @@ from django.dispatch import receiver
 from psycopg import errors as pg_errors
 import uuid
 import datetime
+import json
 import pytz
 import babel
 import babel.dates
@@ -2728,7 +2729,15 @@ class RecordLoaderMixin(FieldSqlMixin):
             field=SQL.identifier(column),
             name=property_name,
         ))
-        return result[0]['definition'] if result else {}
+        if not result:
+            return {}
+        definition = result[0]['definition']
+        # Django carga ``jsonb`` como texto (lo decodifica ``from_db_value``
+        # de su ``JSONField``); en una consulta cruda llega la cadena. La
+        # fuente recibe ya el ``dict`` del cursor.
+        if isinstance(definition, str):
+            definition = json.loads(definition)
+        return definition
 
     def _clean_properties(self):
         """≙ ``_clean_properties`` (``odoo19c: odoo/orm/models.py:5054-5068``).
@@ -6857,8 +6866,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
           ``_read_group_groupby`` con que seguir bajando: se rehúsa con
           ``NotImplementedError``. En un many2many, sus filas entran como
           subconsulta con sus reglas (``django_comodel_rows``).
-        - la rama ``properties`` espera a ``_read_group_groupby_properties``
-          (unidad 6 del plan de ``read_group``).
         """
         fname, seq_fnames, granularity = parse_read_group_spec(groupby_spec)
         if fname not in self._fields:
@@ -6868,10 +6875,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         field = self._fields[fname]
 
         if field.type == 'properties':
-            if not hasattr(self, '_read_group_groupby_properties'):
-                raise NotImplementedError(
-                    "Grouping by a property waits for "
-                    "_read_group_groupby_properties (read_group unit 6)")
             sql_expr = self._read_group_groupby_properties(
                 alias, field, seq_fnames, query)
 
@@ -7442,10 +7445,7 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         and by properly formatting the date/datetime values."*
 
         La rama ``properties`` delega en
-        ``_read_group_format_result_properties``, que entra con el agrupado
-        por propiedades (unidad 6e de ``read_group``); hasta entonces rehúsa
-        nombrándolo, igual que la rama ``properties`` de
-        :meth:`_read_group_groupby`.
+        :meth:`_read_group_format_result_properties`.
         """
         for group in lazy_groupby:
             field_name = group.split(':')[0].split('.')[0]
@@ -7461,11 +7461,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                            else DEFAULT_SERVER_DATE_FORMAT)
                     interval = READ_GROUP_TIME_GRANULARITY[granularity]
             elif field.type == "properties":
-                if not hasattr(self, '_read_group_format_result_properties'):
-                    raise NotImplementedError(
-                        "grouping by a property needs "
-                        "_read_group_format_result_properties "
-                        "(read_group unit 6e)")
                 self._read_group_format_result_properties(rows_dict, group)
                 continue
 
@@ -7539,6 +7534,277 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                 row['__domain'] &= Domain(additional_domain)
         for row in rows_dict:
             row['__domain'] = list(row['__domain'])
+
+    def _read_group_format_result_properties(self, rows_dict, group):
+        """Ajusta el resultado final de un agrupado por propiedad.
+
+        ≙ ``BaseModel._read_group_format_result_properties`` (``odoo19c:
+        odoo/orm/models.py:2638-2744``). La fuente: sustituye los ids de las
+        propiedades relacionales por una tupla con su nombre, los valores
+        crudos de etiquetas y selección por una lista con sus etiquetas, y
+        adapta el dominio del grupo vacío — no basta ``(selection, =,
+        False)``, porque en la base puede haber opciones que ya se
+        retiraron del padre.
+        """
+        if '.' not in group:
+            raise ValueError(
+                'You must choose the property you want to group by.')
+        fullname, __, func = group.partition(':')
+
+        definition = self.get_property_definition(fullname)
+        property_type = definition.get('type')
+
+        if property_type == 'selection':
+            options = definition.get('selection') or []
+            options = tuple(option[0] for option in options)
+            for row in rows_dict:
+                if not row[fullname]:
+                    # no basta ('selection', '=', False): en la base puede
+                    # haber opciones que ya no existen
+                    additional_domain = (Domain(fullname, '=', False)
+                                         | Domain(fullname, 'not in', options))
+                else:
+                    additional_domain = Domain(fullname, '=', row[fullname])
+
+                row['__domain'] &= additional_domain
+
+        elif property_type == 'many2one':
+            comodel = definition.get('comodel')
+            prefetch_ids = tuple(row[fullname] for row in rows_dict
+                                 if row[fullname])
+            all_groups = tuple(row[fullname] for row in rows_dict
+                               if row[fullname])
+            for row in rows_dict:
+                if not row[fullname]:
+                    # no basta ('many2one', '=', False): en la base puede
+                    # haber registros que ya no existen
+                    additional_domain = (Domain(fullname, '=', False)
+                                         | Domain(fullname, 'not in',
+                                                  all_groups))
+                else:
+                    additional_domain = Domain(fullname, '=', row[fullname])
+                    record = self.env[comodel].browse(
+                        row[fullname]).with_prefetch(prefetch_ids)
+                    row[fullname] = (row[fullname], record.display_name)
+
+                row['__domain'] &= additional_domain
+
+        elif property_type == 'many2many':
+            comodel = definition.get('comodel')
+            prefetch_ids = tuple(row[fullname] for row in rows_dict
+                                 if row[fullname])
+            all_groups = tuple(row[fullname] for row in rows_dict
+                               if row[fullname])
+            for row in rows_dict:
+                if not row[fullname]:
+                    if all_groups:
+                        additional_domain = (
+                            Domain(fullname, '=', False)
+                            | Domain.AND([(fullname, 'not in', group)]
+                                         for group in all_groups))
+                    else:
+                        additional_domain = Domain.TRUE
+                else:
+                    additional_domain = Domain(fullname, 'in', row[fullname])
+                    record = self.env[comodel].browse(
+                        row[fullname]).with_prefetch(prefetch_ids)
+                    row[fullname] = (row[fullname], record.display_name)
+
+                row['__domain'] &= additional_domain
+
+        elif property_type == 'tags':
+            tags = definition.get('tags') or []
+            tags = {tag[0]: tag for tag in tags}
+            for row in rows_dict:
+                if not row[fullname]:
+                    if tags:
+                        additional_domain = (
+                            Domain(fullname, '=', False)
+                            | Domain.AND([(fullname, 'not in', tag)]
+                                         for tag in tags))
+                    else:
+                        additional_domain = Domain.TRUE
+                else:
+                    additional_domain = Domain(fullname, 'in', row[fullname])
+                    # el valor crudo de la etiqueta pasa a valor, etiqueta y
+                    # color
+                    row[fullname] = tags.get(row[fullname])
+
+                row['__domain'] &= additional_domain
+
+        elif property_type in ('date', 'datetime'):
+            for row in rows_dict:
+                if not row[group]:
+                    row[group] = False
+                    row['__domain'] &= Domain(fullname, '=', False)
+                    row['__range'] = {}
+                    continue
+
+                # Date / Datetime no son JSON: se guardan como texto
+                db_format = ('%Y-%m-%d' if property_type == 'date'
+                             else '%Y-%m-%d %H:%M:%S')
+
+                if func == 'week':
+                    # el valor es el primer día de la semana (según idioma)
+                    start = row[group].strftime(db_format)
+                    end = (row[group] + datetime.timedelta(days=7)
+                           ).strftime(db_format)
+                else:
+                    start = (date_utils.start_of(row[group], func)
+                             ).strftime(db_format)
+                    end = (date_utils.end_of(row[group], func)
+                           + datetime.timedelta(minutes=1)
+                           ).strftime(db_format)
+
+                row['__domain'] &= (Domain(fullname, '>=', start)
+                                    & Domain(fullname, '<', end))
+                row['__range'] = {group: {'from': start, 'to': end}}
+                row[group] = babel.dates.format_date(
+                    row[group],
+                    format=READ_GROUP_DISPLAY_FORMAT[func],
+                    locale=get_lang(self.env).code,
+                )
+        else:
+            for row in rows_dict:
+                row['__domain'] &= Domain(fullname, '=', row[fullname])
+
+    def _read_group_groupby_properties(self, alias, field, property_name,
+                                       query):
+        """La expresión SQL de agrupado de una propiedad.
+
+        ≙ ``BaseModel._read_group_groupby_properties`` (``odoo19c:
+        odoo/orm/models.py:2935-3041``).
+
+        Adaptaciones declaradas: los mensajes se traducen con
+        ``self.env._`` (la forma de este archivo) en vez de ``_``; el
+        comodelo se resuelve con ``self.env.get``, que existe desde que
+        ``Environment`` es un ``Mapping``, y es la clase del modelo. Su
+        abstracción se lee en ``_meta.abstract``: aquí todo modelo concreto
+        hereda ``_abstract = True`` de :class:`BaseModel` (divergencia
+        declarada en su docstring, tarea #329), así que ``_abstract`` no
+        separa un modelo concreto de uno abstracto como en la fuente.
+        """
+        fname = field.name
+        definition = self.get_property_definition(f"{fname}.{property_name}")
+        property_type = definition.get('type')
+        sql_property = self._field_to_sql(
+            alias, f'{fname}.{property_name}', query)
+
+        # JOIN sobre el arreglo JSON
+        if property_type in ('tags', 'many2many'):
+            property_alias = query.make_alias(
+                alias, f'{fname}_{property_name}')
+            sql_property = SQL(
+                """ CASE
+                        WHEN jsonb_typeof(%(property)s) = 'array'
+                        THEN %(property)s
+                        ELSE '[]'::jsonb
+                     END """,
+                property=sql_property,
+            )
+            if property_type == 'tags':
+                # se ignoran las etiquetas inválidas
+                tags = [tag[0] for tag in definition.get('tags') or []]
+                # `->>0`: de "cadena JSON" a cadena
+                condition = SQL(
+                    "%s->>0 = ANY(%s::text[])",
+                    SQL.identifier(property_alias), tags,
+                )
+            else:
+                comodel = self.env.get(definition.get('comodel'))
+                if (comodel is None or getattr(comodel, '_transient', False)
+                        or comodel._meta.abstract):
+                    raise UserError(self.env._(
+                        "You cannot use “%(property_name)s” because the "
+                        "linked “%(model_name)s” model doesn't exist or is "
+                        "invalid",
+                        property_name=definition.get('string', property_name),
+                        model_name=definition.get('comodel'),
+                    ))
+
+                # que el many2many exista
+                condition = SQL(
+                    "%s::int IN (SELECT id FROM %s)",
+                    SQL.identifier(property_alias),
+                    SQL.identifier(comodel._table),
+                )
+
+            query.add_join(
+                "LEFT JOIN",
+                property_alias,
+                SQL("jsonb_array_elements(%s)", sql_property),
+                condition,
+            )
+
+            return SQL.identifier(property_alias)
+
+        elif property_type == 'selection':
+            options = [option[0]
+                       for option in definition.get('selection') or ()]
+
+            # que la opción exista
+            property_alias = query.make_alias(
+                alias, f'{fname}_{property_name}')
+            query.add_join(
+                "LEFT JOIN",
+                property_alias,
+                SQL("(SELECT unnest(%s::text[]) %s)", options,
+                    SQL.identifier(property_alias)),
+                SQL("%s->>0 = %s", sql_property,
+                    SQL.identifier(property_alias)),
+            )
+
+            return SQL.identifier(property_alias)
+
+        elif property_type == 'many2one':
+            comodel = self.env.get(definition.get('comodel'))
+            if (comodel is None or getattr(comodel, '_transient', False)
+                    or comodel._meta.abstract):
+                raise UserError(self.env._(
+                    "You cannot use “%(property_name)s” because the linked "
+                    "“%(model_name)s” model doesn't exist or is invalid",
+                    property_name=definition.get('string', property_name),
+                    model_name=definition.get('comodel'),
+                ))
+
+            return SQL(
+                """ CASE
+                        WHEN jsonb_typeof(%(property)s) = 'number'
+                         AND (%(property)s)::int IN (SELECT id FROM %(table)s)
+                        THEN %(property)s
+                        ELSE NULL
+                     END """,
+                property=sql_property,
+                table=SQL.identifier(comodel._table),
+            )
+
+        elif property_type == 'date':
+            return SQL(
+                """ CASE
+                        WHEN jsonb_typeof(%(property)s) = 'string'
+                        THEN (%(property)s->>0)::DATE
+                        ELSE NULL
+                     END """,
+                property=sql_property,
+            )
+
+        elif property_type == 'datetime':
+            return SQL(
+                """ CASE
+                        WHEN jsonb_typeof(%(property)s) = 'string'
+                        THEN to_timestamp(%(property)s->>0,
+                                          'YYYY-MM-DD HH24:MI:SS')
+                        ELSE NULL
+                     END """,
+                property=sql_property,
+            )
+
+        elif property_type == 'html':
+            raise UserError(
+                self.env._('Grouping by HTML properties is not supported.'))
+
+        # sin la clave en el dict, False en vez de None
+        return SQL("COALESCE(%s, 'false')", sql_property)
 
     @api.readonly
     @api.deprecated(

@@ -47,3 +47,24 @@ hace el cursor de la fuente, midiendo antes a sus consumidores: los
 traducidas. No se parchea `read_group` ni `get_property_definition` por
 separado: el hueco es del cursor. Hasta entonces la rama `properties`
 conserva su `NotImplementedError` con nombre.
+
+## Integración sobre `2d2eb633` (TASK-API-0504) — GREEN y anulación
+
+Con la decodificación de `jsonb` en el cursor del ORM, el borrador aplicado
+tal cual pasa 3 de 6; los otros 3 fallaban por la **expectativa de la
+prueba**, que pedía `None` para el grupo vacío. La fuente da
+`_read_group_empty_value` → `False` para un campo no relacional
+(`odoo19c: odoo/orm/models.py:2256` y el valor vacío de
+`_read_group_empty_value`), y el posproceso convierte el `NULL` en ese
+valor: se corrigió la prueba, no el código. `6 passed`.
+
+Para que los controles discriminen se sembró un tercer mensaje con una
+categoría borrada y una etiqueta no declarada (escrita en la columna: la
+escritura del ORM limpia las etiquetas inválidas). Controles (bytecode
+retirado, `cmp` idéntico):
+
+- sin la condición de etiqueta válida (`->>0 = ANY(tags)` → `TRUE`): cae
+  exactamente 1 (aparece el grupo `zzz`);
+- sin la existencia del many2one (`::int IN (SELECT id …)` → `'x' IS NOT
+  NULL`): caen exactamente los 2 de many2one (aparece el id borrado; el
+  formateo levanta `DoesNotExist`).
