@@ -6623,39 +6623,77 @@ class BaseModel(DefaultGetMixin, Model):
     @classmethod
     def _search(cls, domain, offset=0, limit=None, order=None, *,
                 active_test=True, bypass_access=False):
-        """El ``QuerySet`` de las filas que cumplen ``domain`` — ≙ ``:5324``.
+        """El ``Query`` de los registros que cumplen ``domain`` — ≙
+        ``_search`` (``odoo19c: odoo/orm/models.py:5324-5394``).
 
-        Mismos pasos que la fuente: ACL de lectura, filtro de archivados
-        salvo que el dominio nombre el campo ``active`` o el contexto lo
-        apague, el dominio (vía :func:`~orm.domains.to_q`), las reglas de
-        fila, el orden y la ventana.
+        Docstring de la fuente: *"No default order is applied when the method
+        is invoked without parameter order. [...] by default the returned
+        query object is not actually executed, and it can be injected as a
+        value in a domain in order to generate sub-queries."*
 
-        **Divergencias de mecanismo:** la fuente devuelve un ``Query`` y aquí
-        se devuelve el ``QuerySet`` de Django, que es su equivalente perezoso.
-        Las reglas de fila se aplican con
-        :meth:`AccessQuerySet._filtered_access` (una exclusión por clave) en
-        vez de añadirse al ``WHERE``. Sin ``order`` no se impone ninguno, como
-        en la fuente.
+        Los pasos y su orden son los de la fuente: ACL de lectura salvo
+        elevación o ``bypass_access``; filtro de archivados salvo que el
+        dominio nombre el campo o el contexto lo apague; dominio optimizado a
+        ``FULL`` en el ``WHERE``; el dominio de ``ir.rule`` optimizado con el
+        recordset en ``sudo()`` y ``active_test=False``; orden, límite y
+        desplazamiento. La consulta no se ejecuta.
+
+        Adaptaciones declaradas: es ``classmethod`` —la forma con que este
+        archivo porta los métodos de modelo— y toma el recordset vacío con
+        ``_from_ids``; ``ir.rule._compute_domain`` recibe los grupos y el
+        usuario explícitos, como en :meth:`AccessQuerySet._check_access`.
+        Decisión y evidencia: ``designs/search-contract-analysis.md`` del
+        Workbench de ``completar-raiz-orm``.
         """
-        check = not (is_su() or bypass_access)
-        records = AccessQuerySet(model=cls)
-        if check:
-            records.none().check_access('read')
+        self = cls._from_ids(env(), (), ())
+        check_access = not (self.env.su or bypass_access)
+        if check_access:
+            self.browse().check_access('read')
+
         domain = Domain(domain)
-        active = cls._active_field_name()
-        if (active and active_test
-                and get_context().get('active_test', True)
-                and not any(getattr(leaf, 'field_expr', None) == active
+        # los archivados, salvo que se pidan explícitamente
+        active_name = cls._active_field_name()
+        if (active_name
+                and active_test
+                and self.env.context.get('active_test', True)
+                and not any(leaf.field_expr == active_name
                             for leaf in domain.iter_conditions())):
-            domain &= Domain(active, '=', True)
-        records = records.filter(to_q(domain, cls))
-        if check:
-            records = records._filtered_access('read')
+            domain &= Domain(active_name, '=', True)
+
+        # la consulta
+        domain = domain.optimize_full(self)
+        if domain.is_false():
+            return self.browse()._as_query()
+        query = Query(self.env, self._table, self._table_sql)
+        if not domain.is_true():
+            query.add_where(domain._to_sql(self, self._table, query))
+
+        # el dominio de acceso por fila
+        if check_access:
+            self_sudo = self.sudo().with_context(active_test=False)
+            actor = self.env.user
+            group_ids = tuple(actor._get_group_ids()) if actor else ()
+            sec_domain = apps.get_model('base', 'IrRule')._compute_domain(
+                cls._meta.label, 'read', group_ids=group_ids, user=actor)
+            sec_domain = sec_domain.optimize_full(self_sudo)
+            if sec_domain.is_false():
+                return self.browse()._as_query()
+            if not sec_domain.is_true():
+                query.add_where(
+                    sec_domain._to_sql(self_sudo, self._table, query))
+
+        # orden y ventana
         if order:
-            records = records.order_by(*order_to_django(cls, order))
-        if offset or limit:
-            records = records[offset:(offset + limit) if limit else None]
-        return records
+            query.order = self._order_to_sql(order, query)
+
+        # en RPC no existe None y se usa False para «sin límite»; True se
+        # conserva por compatibilidad (vale 1)
+        if limit is not None and limit is not False:
+            query.limit = limit
+        if offset is not None:
+            query.offset = offset
+
+        return query
 
     @api.private
     def unlink(self):
@@ -6702,10 +6740,8 @@ class BaseModel(DefaultGetMixin, Model):
         Devuelve el recordset de ``BaseModel`` en el orden pedido, o en el
         ``_order`` del modelo si no se pide ninguno, como ``search_fetch``.
         """
-        records = cls._search(domain, offset=offset, limit=limit,
-                              order=order or cls._order)
-        ids = tuple(records.values_list('pk', flat=True))
-        return cls._from_ids(env(), ids, ids)
+        return cls.search_fetch(domain, [], offset=offset, limit=limit,
+                                order=order)
 
     @classmethod
     def _rec_name_fallback(cls):
@@ -6724,7 +6760,8 @@ class BaseModel(DefaultGetMixin, Model):
     def search_count(cls, domain, limit=None):
         """Cuántos registros cumplen ``domain`` — ≙ ``search_count``
         (``:1347``)."""
-        return cls._search(domain, limit=limit).count()
+        query = cls._search(domain, limit=limit)
+        return len(query)
 
     @classmethod
     def search_fetch(cls, domain, field_names=None, offset=0, limit=None,
@@ -6735,23 +6772,24 @@ class BaseModel(DefaultGetMixin, Model):
 
         :raise AccessError: si el usuario no puede leer lo pedido.
 
-        **Divergencia de mecanismo**, la misma de :meth:`fetch`: ``_search``
-        devuelve aquí un ``QuerySet`` y no un ``Query``. Se piden los ids que
-        cumplen dominio, reglas, orden y ventana, y la consulta de lectura se
-        arma con :meth:`_as_query` sobre ellos, que conserva su orden: dos
-        consultas en lugar de una, con el mismo resultado.
+        Como la fuente: el ``Query`` de :meth:`_search` (dominio, reglas,
+        orden y ventana) se lee con :meth:`_fetch_query` en una sola consulta,
+        y uno vacío no se ejecuta.
         """
-        records = cls._search(domain, offset=offset, limit=limit,
-                              order=order or cls._order)
-        ids = tuple(records.values_list('pk', flat=True))
-        found = cls._from_ids(env(), ids, ids)
-        if not ids:
-            # sin filas no se consulta; sólo se comprueba el acceso al campo
-            if not is_su():
+        # primero, una consulta que satisface dominio y reglas de acceso
+        query = cls._search(domain, offset=offset, limit=limit,
+                            order=order or cls._order)
+        found = cls._from_ids(env(), (), ())
+
+        if query.is_empty():
+            # optimización: la consulta no se ejecuta
+            if not is_su():  # se comprueba el acceso a los campos
                 found._determine_fields_to_fetch(field_names)
             return found
+
         fields_to_fetch = found._determine_fields_to_fetch(field_names)
-        return found._fetch_query(found._as_query(), fields_to_fetch)
+
+        return found._fetch_query(query, fields_to_fetch)
 
     @classmethod
     def search_read(cls, domain=None, fields=None, offset=0, limit=None,
@@ -8191,12 +8229,8 @@ class BaseModel(DefaultGetMixin, Model):
 
         :raise AccessError: si el usuario no puede leer lo pedido.
 
-        **Divergencia de mecanismo.** La fuente obtiene la consulta con
-        ``self._search(...)``, que allá devuelve una ``Query``; aquí
-        ``_search`` devuelve un ``QuerySet`` de Django. Se piden primero los
-        ids que las reglas de acceso dejan ver y la consulta se arma con
-        :meth:`_as_query` sobre ellos: dos consultas en lugar de una, con el
-        mismo resultado.
+        Como la fuente, la consulta que satisface las reglas de acceso sale
+        de :meth:`_search` y se lee con :meth:`_fetch_query`.
         """
         # se descartan los registros nuevos
         self = self._origin
@@ -8208,10 +8242,8 @@ class BaseModel(DefaultGetMixin, Model):
 
         # primero, la consulta que satisface las reglas de acceso
         if any(field.column_type for field in fields_to_fetch):
-            visible = self._search([('id', 'in', self.ids)],
-                                   active_test=False).values_list(
-                                       'pk', flat=True)
-            query = self.browse(tuple(visible))._as_query(ordered=False)
+            query = self._search([('id', 'in', self.ids)],
+                                 active_test=False)
         else:
             try:
                 self.check_access('read')

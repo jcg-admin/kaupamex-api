@@ -2097,10 +2097,10 @@ models.ManyToManyField.convert_to_write = _reverse_one2many_convert_to_write
 def _queryset_subselect(queryset):
     """El ``(SELECT id ...)`` de un ``QuerySet`` como ``SQL``.
 
-    La fuente obtiene una ``Query`` de ``comodel._search`` y la convierte con
-    ``subselect()``; aquí ``_search`` devuelve el ``QuerySet`` de Django con
-    las mismas reglas aplicadas, y su compilador da el ``SQL`` y sus
-    parámetros.
+    Adaptación para un valor de dominio que llega como ``QuerySet`` desde
+    código de Django: la fuente sólo recibe ``Query`` (``subselect()``) y
+    ``_search`` ya lo devuelve; aquí el compilador de Django da el ``SQL`` y
+    sus parámetros.
     """
     code, params = queryset.values('pk').query.sql_with_params()
     return SQL('(' + code + ')', *params)
@@ -2207,9 +2207,8 @@ models.ForeignKey.condition_to_sql = _many2one_condition_to_sql
 #
 # La clase ``Domain`` la instala ``orm.domains`` al importarse
 # (:func:`install_domain_class`): este módulo no la puede importar sin cerrar
-# el ciclo que :meth:`One2many.get_comodel_domain` ya mide. Y como ``_search``
-# devuelve aquí un ``QuerySet``, la ``Query`` del comodelo se arma con
-# ``id IN (subselect)``: el mismo conjunto de filas.
+# el ciclo que :meth:`One2many.get_comodel_domain` ya mide. ``_search``
+# devuelve el ``Query`` de la referencia, que entra aquí sin envolver.
 
 #: La clase ``Domain`` de ``orm.domains``, instalada al importarse aquél.
 _DOMAIN_CLASS = []
@@ -2229,14 +2228,6 @@ def _multi_comodel_name(field):
     """El comodelo de un x2many en cualquiera de sus tres formas."""
     name = getattr(field, 'comodel_name', None)
     return name or field.related_model._name
-
-
-def _queryset_query(comodel, queryset):
-    """La ``Query`` del comodelo cuyo resultado es ``queryset``."""
-    query = Query(comodel.env, comodel._table, comodel._table_sql)
-    query.add_where(SQL("%s IN %s", SQL.identifier(query.table, 'id'),
-                        _queryset_subselect(queryset)))
-    return query
 
 
 def _multi_comodel_domain(field, model):
@@ -2278,8 +2269,7 @@ def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
                                           query),
                 )
             #  in (False) => not any (TRUE); not in (False) => any (TRUE)
-            value = _queryset_query(
-                comodel, comodel._search([], active_test=False))
+            value = comodel._search([], active_test=False)
             exists = not exists
         else:
             value = comodel.browse(list(value))._as_query(ordered=False)
@@ -2304,8 +2294,7 @@ def _multi_get_query_for_condition_value(self, model, comodel, operator,
                                           or {}))
         bypass_access = (getattr(self, 'bypass_search_access', False)
                          or operator in ('any!', 'not any!'))
-        return _queryset_query(
-            comodel, comodel._search(domain, bypass_access=bypass_access))
+        return comodel._search(domain, bypass_access=bypass_access)
     if isinstance(value, Query):
         # el domain del campo, añadido a la consulta
         domain = field_domain.optimize_full(comodel)

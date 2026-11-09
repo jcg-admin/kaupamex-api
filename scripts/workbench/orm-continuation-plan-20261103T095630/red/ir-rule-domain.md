@@ -37,3 +37,7 @@ con la tabla (sección 4 del análisis).
 | Required integration gates | Suite completa y multidb en el corte de publicación: mecanismo transversal de seguridad. |
 | Previously valid evidence | Ninguna. |
 | Uncovered risks | Una regla sembrada cuyo `domain_force` dependía de la conversión sin modelo de `to_q`; la regresión de arriba la mediría. |
+
+## Regresión de impacto (nivel 2)
+
+Sobre `1ae6b4a2`, `-n 4`, los directorios de la matriz: 8140 passed, 66 skipped, 4 xfailed, 0 failed. Los 5 errores son los conocidos de `test_multidb_isolation` sobre la base compartida (su gate es `make ci-multidb`).

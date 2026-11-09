@@ -90,8 +90,13 @@ Las 6 restantes:
 - `<`/`>=` contra `'3'` o `[]` (4 sólo SQL): `_to_sql` convierte el valor con
   el campo; el camino de Django lanza `TypeError` de Python al comparar.
 - `id < False` y `id >= False` (2 sólo Django): el SQL falla en PostgreSQL
-  (`bigint < boolean`); Django devuelve filas. **Pendiente:** confirmar la
-  conducta de la referencia para estos dos.
+  (`bigint < boolean`); Django devuelve filas. **La referencia también falla**,
+  leído en su código (no ejecutado): el compilador de comparaciones
+  (`odoo/orm/fields.py:1335-1350`) sólo sustituye el valor cuando el campo
+  declara `falsy_value`; `Id` no lo declara (hereda `None`, `fields.py:254`) y
+  su `convert_to_column` devuelve el valor tal cual (`fields_misc.py:120`), así
+  que emite `"id" < false`. El camino SQL coincide con la referencia; el de
+  Django no.
 
 *Métrica:* el conjunto de ids de cada compilador por condición.
 *Ciega a:* el orden de las filas; el coste en tablas grandes (el plan se midió
@@ -176,6 +181,6 @@ regresión por impacto):
    valores que lleguen como `QuerySet` desde fuera).
 3. `_read_group_groupby` y `_read_group` (unidades 2 y 5).
 
-Lo que este análisis no cierra: la conducta de la referencia para `id < False`
-(sección 4) y las condiciones de la rejilla que ninguno de los dos compiladores
-acepta (28), que son entradas inválidas en los dos.
+Lo que este análisis no cierra: las 28 condiciones de la rejilla que ninguno de
+los dos compiladores acepta, que son entradas inválidas en los dos; y la
+conducta de `id < False` en la referencia está leída en su código, no ejecutada.
