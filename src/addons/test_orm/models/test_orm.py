@@ -1276,3 +1276,43 @@ class TestOrmRelatedInheritsTwo(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related_inherits_two'
+
+
+class TestOrmUser(TestOrmModel):
+    """≙ ``test_orm.user`` (``odoo19c: odoo/addons/test_orm/models/
+    test_orm.py:1770-1783``) — destino de ``test_sudo_commands``."""
+
+    _name = 'test_orm.user'
+    _description = 'test_orm.user'
+    _allow_sudo_commands = False
+
+    name = fields.Char(null=True)
+    group_ids = fields.Many2many(
+        'test_orm.group', 'test_orm_group_test_orm_user_rel',
+        'test_orm_user_id', 'test_orm_group_id')
+    group_count = fields.Integer(null=True, compute='_compute_group_count',
+                                 store=True)
+
+    @depends('group_ids')
+    def _compute_group_count(self):
+        for user in self:
+            user.group_count = len(user.group_ids)
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_user'
+
+
+class TestOrmGroup(TestOrmModel):
+    """≙ ``test_orm.group`` (``:1786-1791``)."""
+
+    _name = 'test_orm.group'
+    _description = 'test_orm.group'
+    _allow_sudo_commands = False
+
+    name = fields.Char(null=True)
+    user_ids = fields.Many2many(
+        'test_orm.user', 'test_orm_group_test_orm_user_rel',
+        'test_orm_group_id', 'test_orm_user_id')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_group'

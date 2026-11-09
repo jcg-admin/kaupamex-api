@@ -16,6 +16,7 @@ from django.db import models as _django_models
 from django.db.models.fields import related_descriptors as _related_descriptors
 
 from exceptions import MissingError
+from orm.environments import Environment, env, get_current_uid, get_transaction
 
 
 class Command(enum.IntEnum):
@@ -159,6 +160,37 @@ def related_manager(record, name):
     return _DJANGO_X2MANY_GET(getattr(type(record), name), record)
 
 
+def _record_env(record):
+    """El entorno del registro — ``model.env`` de la referencia.
+
+    Un recordset lleva el suyo; una fila de Django sin ``BaseModel`` actúa en
+    el ambiental, que es el único que tiene.
+    """
+    environment = getattr(record, 'env', None)
+    return environment if isinstance(environment, Environment) else env()
+
+
+def _check_sudo_commands(environment, comodel):
+    """El entorno en que corren los comandos sobre ``comodel`` — ≙
+    ``_RelationalMulti._check_sudo_commands`` (``odoo19c:
+    odoo/orm/fields_relational.py:772-777``).
+
+    Un comodelo con ``_allow_sudo_commands = False`` no admite comandos bajo
+    ``sudo()`` ni con otro usuario: corren sin elevación y con el usuario por
+    defecto de la transacción (``transaction.default_env.uid``).
+
+    Divergencia declarada: este árbol fija el usuario de la petición en el
+    canal ambiental (``set_current_uid``) y no construye un ``default_env``;
+    sin él, el usuario por defecto es el del canal ambiental.
+    """
+    if getattr(comodel, '_allow_sudo_commands', True):
+        return environment
+    default_env = get_transaction().default_env
+    default_uid = (default_env.uid if default_env is not None
+                   else get_current_uid())
+    return environment(user=default_uid, su=False)
+
+
 def apply_many2many_commands(record, field, value):
     """Aplica el valor x2many de la fuente sobre el manager de un
     ``Many2many``.
@@ -180,17 +212,28 @@ def apply_many2many_commands(record, field, value):
             manager.set(value)
         return
     comodel = field.related_model
+    with _check_sudo_commands(_record_env(record), comodel):
+        _apply_many2many_triples(manager, comodel, value)
+
+
+def _apply_many2many_triples(manager, comodel, value):
+    """Los triples de ``Many2many.write_real`` (``:1460-1495``), dentro del
+    entorno que :func:`_check_sudo_commands` decide."""
     for code, target, payload in value:
         if code == Command.CREATE:
             created = (comodel.create(payload) if hasattr(comodel, 'create')
                        else comodel.objects.create(**payload))
             manager.add(_row_id(created))
         elif code == Command.UPDATE:
-            row = comodel._base_manager.get(pk=target)
-            row.write(payload)
+            for line in _line_rows(comodel, [target]):
+                _write_line(line, payload)
         elif code == Command.DELETE:
             manager.remove(target)
-            comodel._base_manager.filter(pk=target).delete()
+            if hasattr(comodel, 'browse'):
+                # ``comodel.browse(to_delete).unlink()`` (``:1491``).
+                comodel.browse([target]).unlink()
+            else:
+                comodel._base_manager.filter(pk=target).delete()
         elif code == Command.UNLINK:
             manager.remove(target)
         elif code == Command.LINK:
@@ -223,6 +266,15 @@ def _write_line(line, values):
 
 
 def apply_one2many_commands(record, rel, value, create=False):
+    """Aplica los comandos de un One2many en el entorno que
+    :func:`_check_sudo_commands` decide para el comodelo — ≙ la cabecera de
+    ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
+    975-977``)."""
+    with _check_sudo_commands(_record_env(record), rel.related_model):
+        _apply_one2many_triples(record, rel, value, create)
+
+
+def _apply_one2many_triples(record, rel, value, create=False):
     """Aplica los comandos de un One2many sobre su inverso — ≙
     ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
     969-1045``), rama almacenada, para un solo registro.
