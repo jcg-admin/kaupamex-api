@@ -4018,7 +4018,10 @@ class OrderMixin:
     :class:`DisplayNameMixin` y :class:`FieldSqlMixin` ya declaran: allá cuelga
     de ``BaseModel``, así que todo modelo lo tiene; aquí ``models.Model`` es el
     de Django y no es nuestro para colgarle nada. Lo adopta
-    ``TimeStampedModel``, que es la base común del proyecto.
+    ``TimeStampedModel``, que es la base común del proyecto, y también
+    :class:`BaseModel`: su ``_search`` ordena con :meth:`_order_to_sql`, y un
+    modelo que hereda de ``BaseModel`` sin ``TimeStampedModel``
+    (``ir.attachment``) se quedaba sin él.
     """
 
     def _check_qorder(self, word):
@@ -5818,7 +5821,7 @@ def _copy_data_blacklist(records, default):
     return blacklist
 
 
-class BaseModel(DefaultGetMixin, Model):
+class BaseModel(DefaultGetMixin, OrderMixin, Model):
     """El recordset — ≙ ``BaseModel`` (``odoo19c:
     odoo/orm/models.py:334-7004``).
 

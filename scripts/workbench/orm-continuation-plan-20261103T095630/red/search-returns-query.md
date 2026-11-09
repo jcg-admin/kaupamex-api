@@ -48,3 +48,36 @@ lleguen desde código de Django.
 | Required integration gates | Suite completa y multidb sobre la revisión. |
 | Previously valid evidence | Ninguna: cambia el camino de toda búsqueda. |
 | Uncovered risks | `id < False` falla ahora en PostgreSQL, como en la referencia leída (sección 4 del análisis); un llamador que dependiera de que devolviera filas lo verá en la suite. |
+
+## Regresión amplia sobre `95ec4213`: 16 fallos reales, y su corrección
+
+`-n 4` sobre `tests/unit/orm tests/integration/test_orm tests/unit/base
+tests/integration/base`: **16 failed, 5596 passed**, EXIT=1 (no publicado).
+Cuatro causas, todas de consumidores que el camino de Django resolvía por su
+cuenta:
+
+| Causa | Casos | Corrección |
+|---|---|---|
+| el uno-a-muchos implícito de Django (`ManyToOneRel`) no tenía compilador SQL | 10 | `ManyToOneRel` recibe las piezas del `One2many` declarado e `inverse_name` = su FK |
+| many2one a un comodelo de Django (`res.partner`): sin `browse`/`_search` | 4 | `django_comodel_rows`: el mismo bloque que usaba `orm.domains` (filas del comodelo con `_filtered_access('read')` salvo `!`), compartido por los dos caminos; entra por la rama `QuerySet` |
+| el dominio declarado de un many2many de Django no llegaba a la subconsulta | (en los 10) | una sola definición de `get_comodel_domain` (`_multi_comodel_domain`), que lee `domain` como la referencia; `orm.domains._comodel_domain` delega en ella |
+| `child_of`/`parent_of` recibía el recordset (como en la referencia) y usaba el manager de la clase | 1 | el optimizador toma la clase del recordset |
+| `ir.attachment` hereda de `BaseModel` sin `OrderMixin` | 1 | `BaseModel` adopta `OrderMixin`: `_order_to_sql` es método de `BaseModel` en la referencia; 50 de 50 modelos con MRO resuelto, sin migraciones |
+
+*Lo que la sonda del análisis no veía:* su rejilla no tenía one2many
+implícitos, comodelos de Django ni many2many con `domain`. Las 208 condiciones
+equivalentes no son cobertura exhaustiva.
+
+## Seguridad: pruebas negativas y sus controles
+
+Añadidas a `test_search_returns_query.py` (18 passed): un `OR` no escapa la
+regla; regla `FALSE` → consulta vacía; global con `AND` y de grupo sólo la del
+grupo del usuario; la regla del comodelo acota la subconsulta many2one
+(`BaseModel` y de Django); un `Query` de un usuario restringido sigue
+restringido como valor de dominio; el superusuario ve todo; los valores viajan
+como parámetros (un valor hostil no aparece en el código SQL).
+
+- Sin la regla en el `WHERE` de `_search` → caen 6 (todas las que dependen de
+  ella).
+- Sin `_filtered_access` en `django_comodel_rows` → con las suites previas no
+  caía **ninguna**; la prueba nueva del comodelo de Django es la que cae.

@@ -110,6 +110,8 @@ from django.db.models import Q
 
 from orm.fields_relational import (
     One2many as DeclaredOne2many,
+    _multi_comodel_domain as multi_comodel_domain,
+    django_comodel_rows,
     install_domain_class,
 )
 from orm.fields import (
@@ -1500,21 +1502,13 @@ class DomainCondition(Domain):
         multi = _is_x2many(field)
         if multi:
             subdomain &= _comodel_domain(field, model)
-        rows = comodel.objects.filter(subdomain._to_q(comodel))
         # ``any`` aplica las reglas de fila del comodelo y ``any!`` las salta
         # — ≙ ``_get_query_for_condition_value`` (``odoo19c: odoo/orm/
-        # fields_relational.py:820-836``): ``comodel._search(domain,
-        # bypass_access=...)`` con ``bypass_access`` sólo para el operador con
-        # ``!``. ``_optimize_any_with_rights`` ya convirtió ``any`` en
-        # ``any!`` bajo elevación o con ``bypass_search_access``.
-        #
-        # Sólo con un usuario actual: en la fuente siempre lo hay (el código
-        # de sistema corre como super-usuario). Aquí el código fuera de todo
-        # entorno no tiene uid, y filtrar sin usuario denegaría todas las
-        # filas — conducta que nadie pidió y que antes no existía.
-        if (not operator.endswith('!') and get_current_uid() is not None
-                and hasattr(rows, '_filtered_access')):
-            rows = rows._filtered_access('read')
+        # fields_relational.py:820-836``); ``_optimize_any_with_rights`` ya
+        # convirtió ``any`` en ``any!`` bajo elevación o con
+        # ``bypass_search_access``.
+        rows = django_comodel_rows(comodel, subdomain,
+                                   bypass_access=operator.endswith('!'))
         rows = rows.values('pk')
         q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
         if multi:
@@ -2743,6 +2737,11 @@ def _operator_hierarchy(condition, model):
     if value is False:
         return _FALSE_DOMAIN
 
+    # ``_search`` optimiza con el recordset vacío, como la fuente
+    # (``optimize_full(self)``); aquí se recorre con el manager de la clase,
+    # que Django no expone en una instancia.
+    if model is not None and not isinstance(model, type):
+        model = type(model)
     field = condition._field(model)
     if field is None:
         condition._raise(
@@ -3167,12 +3166,7 @@ def _comodel_domain(field, model):
     attribute."* Un ``domain`` invocable recibe el modelo; uno de texto es
     sólo del cliente y no filtra.
     """
-    domain = getattr(field, 'domain', None)
-    if callable(domain):
-        domain = domain(model)
-    if not domain or isinstance(domain, str):
-        return Domain.TRUE
-    return Domain(domain)
+    return multi_comodel_domain(field, model)
 
 
 def _owners_q(model, q):

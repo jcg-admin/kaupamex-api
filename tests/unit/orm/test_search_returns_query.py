@@ -15,6 +15,7 @@ from django.test.utils import CaptureQueriesContext
 
 from addons.base.models.ir_model import IrModel, IrModelAccess
 from addons.base.models.ir_rule import IrRule
+from addons.base.models.res_groups import ResGroups
 from exceptions import AccessError
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
@@ -138,3 +139,107 @@ def test_an_ordered_comparison_converts_its_value(env, foos):
     found = env['test_orm.foo'].search([('id', 'in', foos.ids),
                                         ('value1', '>=', '3')])
     assert found.ids == [foos[2].id]
+
+
+# === Seguridad: nada que antes estuviera prohibido queda visible ==========
+
+
+def _rule(label, domain, groups=()):
+    rule = IrRule.objects.create(name=f'rule {domain}', model_name=label,
+                                 domain_force=domain)
+    if groups:
+        rule.groups.set(groups)
+    return rule
+
+
+def test_an_or_in_the_domain_does_not_escape_the_rule(env, foos):
+    _rule(_grant(env, 'test_orm.foo'), "[('value1', '>=', 2)]")
+    with Environment(None, UserFactory().pk, {}) as plain:
+        Foo = _model(plain, 'test_orm.foo')
+        found = set(Foo._search(['|', ('value1', '=', 1),
+                                 ('value1', '=', 3)]))
+        assert found & set(foos.ids) == {foos[2].id}
+
+
+def test_a_false_rule_gives_an_empty_query(env, foos):
+    _rule(_grant(env, 'test_orm.foo'), "[(0, '=', 1)]")
+    with Environment(None, UserFactory().pk, {}) as plain:
+        query = _model(plain, 'test_orm.foo')._search([])
+        assert query.is_empty() or not set(query) & set(foos.ids)
+
+
+def test_global_and_group_rules_combine_like_the_reference(env, foos):
+    """La global con ``AND``; de las de grupo sólo cuenta la del grupo del
+    usuario (``odoo19c: ir_rule.py:158-173``)."""
+    label = _grant(env, 'test_orm.foo')
+    mine = ResGroups.objects.create(name='mine')
+    other = ResGroups.objects.create(name='other')
+    _rule(label, "[('value1', '>=', 2)]")
+    _rule(label, "[('value1', '=', 2)]", groups=[mine])
+    _rule(label, "[('value1', '=', 3)]", groups=[other])
+    user = UserFactory()
+    user.group_ids.add(mine)
+    with Environment(None, user.pk, {}) as plain:
+        assert mine.pk in set(plain.user._get_group_ids())
+        found = set(_model(plain, 'test_orm.foo')._search([]))
+        assert found & set(foos.ids) == {foos[1].id}
+
+
+def test_the_comodel_rule_restricts_the_many2one_subquery(env):
+    hidden = env['test_orm.discussion'].create({'name': 'hidden'})
+    shown = env['test_orm.discussion'].create({'name': 'shown'})
+    for discussion in (hidden, shown):
+        env['test_orm.message'].create({'discussion': discussion.id,
+                                        'name': 'm'})
+    _grant(env, 'test_orm.message')
+    _rule(_grant(env, 'test_orm.discussion'), "[('name', '!=', 'hidden')]")
+    with Environment(None, UserFactory().pk, {}) as plain:
+        Message = _model(plain, 'test_orm.message')
+        found = Message.search([('discussion.name', 'in',
+                                 ['hidden', 'shown'])])
+        assert {m.discussion.id for m in found} <= {shown.id}
+
+
+def test_a_restricted_query_stays_restricted_as_a_domain_value(env, foos):
+    _rule(_grant(env, 'test_orm.foo'), "[('value1', '>=', 2)]")
+    with Environment(None, UserFactory().pk, {}) as plain:
+        query = _model(plain, 'test_orm.foo')._search([])
+    found = env['test_orm.foo'].search([('id', 'in', query)])
+    assert set(found.ids) & set(foos.ids) == {foos[1].id, foos[2].id}
+
+
+def test_the_superuser_sees_every_record(env, foos):
+    _rule(_grant(env, 'test_orm.foo'), "[(0, '=', 1)]")
+    assert set(_model(env, 'test_orm.foo')._search([])) >= set(foos.ids)
+
+
+def test_values_travel_as_parameters(env, foos):
+    hostile = "a'); DROP TABLE test_orm_foo; --"
+    query = _model(env, 'test_orm.foo')._search([('name', '=', hostile)])
+    select = query.select()
+    flat = [item for param in select.params
+            for item in (param if isinstance(param, (list, tuple))
+                         else [param])]
+    assert hostile not in select.code
+    assert hostile in flat
+    assert not set(query) & set(foos.ids)
+
+
+def test_a_django_comodel_rule_restricts_the_subquery(env):
+    """``res.partner`` es un modelo de Django: su regla entra por
+    ``fields_relational.django_comodel_rows`` y tiene que seguir acotando la
+    subconsulta del many2one."""
+    Partner = env['res.partner']
+    hidden = Partner.objects.create(name='hidden-partner')
+    shown = Partner.objects.create(name='shown-partner')
+    for partner in (hidden, shown):
+        env['test_orm.multi'].create({'partner': partner.id})
+    _grant(env, 'test_orm.multi')
+    _rule(_grant(env, 'res.partner'), "[('name', '!=', 'hidden-partner')]")
+    with Environment(None, UserFactory().pk, {}) as plain:
+        Multi = _model(plain, 'test_orm.multi')
+        found = set(Multi._search([('partner.name', 'in',
+                                    ['hidden-partner', 'shown-partner'])]))
+    owners = {m.partner.id: m.id for m in env['test_orm.multi'].search(
+        [('partner', 'in', [hidden.id, shown.id])])}
+    assert found == {owners[shown.id]}

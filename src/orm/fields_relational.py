@@ -105,7 +105,7 @@ from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import Command, apply_one2many_commands, is_command_list
-from orm.environments import Query, env as get_environment
+from orm.environments import Query, env as get_environment, get_current_uid
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -2112,6 +2112,26 @@ def _is_domain(value):
             and hasattr(value, 'iter_conditions'))
 
 
+def django_comodel_rows(comodel, domain, bypass_access):
+    """Las filas de un comodelo de Django que cumplen ``domain``, con sus
+    reglas de acceso salvo ``bypass_access``.
+
+    Adaptación declarada del ``comodel._search(domain, bypass_access=...)``
+    de la fuente (``odoo19c: odoo/orm/fields_relational.py:820-836``): un
+    modelo de Django no es ``BaseModel`` y no tiene ``_search``. Las reglas se
+    aplican con ``_filtered_access('read')`` y sólo con un usuario actual: en
+    la fuente siempre lo hay (el código de sistema corre como superusuario);
+    aquí el código fuera de todo entorno no tiene uid, y filtrar sin usuario
+    denegaría todas las filas. Es el mismo bloque que usaba ``orm.domains``
+    antes de que ``_search`` devolviera ``Query``, y lo usan los dos caminos.
+    """
+    rows = comodel.objects.filter(domain._to_q(comodel))
+    if (not bypass_access and get_current_uid() is not None
+            and hasattr(rows, '_filtered_access')):
+        rows = rows._filtered_access('read')
+    return rows
+
+
 def _many2one_condition_to_sql(self, field_expr, operator, value, model,
                                alias, query):
     """``Many2one.condition_to_sql`` — ≙ ``:480-537``, rama por rama.
@@ -2127,15 +2147,23 @@ def _many2one_condition_to_sql(self, field_expr, operator, value, model,
         return models.Field.condition_to_sql(
             self, field_expr, operator, value, model, alias, query)
 
-    comodel = model.env[self.comodel_name].browse(())
     sql_field = model._field_to_sql(alias, field_expr, query)
     can_be_null = not is_not_null(self)
     bypass_access = (operator in ('any!', 'not any!')
                      or self.bypass_search_access)
     positive = operator in ('any', 'any!')
 
-    # ¿LEFT JOIN?
-    left_join = bypass_access and _is_domain(value)
+    comodel = model.env[self.comodel_name]
+    if not hasattr(comodel, '_from_ids'):
+        # comodelo de Django: sus filas con sus reglas, por la rama
+        # ``QuerySet``; el ``LEFT JOIN`` de la fuente exige un ``BaseModel``
+        if _is_domain(value):
+            value = django_comodel_rows(comodel, value, bypass_access)
+        left_join = False
+    else:
+        comodel = comodel.browse(())
+        # ¿LEFT JOIN?
+        left_join = bypass_access and _is_domain(value)
     if left_join and not positive:
         # con muchas condiciones positivas un NOT IN aprovecha mejor los
         # índices; las excepciones son el filtro por 'id'
@@ -2231,9 +2259,24 @@ def _multi_comodel_name(field):
 
 
 def _multi_comodel_domain(field, model):
-    """El ``domain`` del campo como ``Domain`` —``get_comodel_domain``—."""
+    """El ``domain`` del campo como ``Domain`` — ≙ ``Field.get_comodel_domain``
+    (``odoo19c: odoo/orm/fields_relational.py:99-109``).
+
+    Docstring de la fuente, verbatim: *"Return a domain from the domain
+    attribute."* Un campo de este árbol lo declara como método; un campo de
+    Django (``ManyToManyField``) sólo lleva el atributo ``domain``, y se lee
+    igual: invocable con el modelo, y uno de texto es sólo del cliente y no
+    filtra. Es la única definición: ``orm.domains`` la usa también.
+    """
     getter = getattr(field, 'get_comodel_domain', None)
-    return _domain(getter(model) if getter else [])
+    if getter is not None:
+        return _domain(getter(model))
+    domain = getattr(field, 'domain', None)
+    if callable(domain):
+        domain = domain(model)
+    if not domain or isinstance(domain, str):
+        return _domain([])
+    return _domain(domain)
 
 
 def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
@@ -2409,6 +2452,18 @@ One2many.condition_to_sql = _multi_condition_to_sql
 One2many._get_query_for_condition_value = (
     _one2many_get_query_for_condition_value)
 One2many._condition_to_sql_relational = _one2many_condition_to_sql_relational
+# El uno-a-muchos implícito de Django (``ManyToOneRel``) es el ``One2many``
+# de este árbol cuando la FK se declara del otro lado: compila con las mismas
+# piezas, y su ``inverse_name`` es esa FK. ``_search`` lo necesita desde que
+# devuelve el ``Query`` de la referencia (``designs/search-returns-query.md``);
+# antes el camino de Django resolvía la relación por su cuenta.
+models.ManyToOneRel.inverse_name = property(lambda self: self.field.name)
+models.ManyToOneRel.condition_to_sql = _reverse_one2many_only(
+    _multi_condition_to_sql)
+models.ManyToOneRel._get_query_for_condition_value = _reverse_one2many_only(
+    _one2many_get_query_for_condition_value)
+models.ManyToOneRel._condition_to_sql_relational = _reverse_one2many_only(
+    _one2many_condition_to_sql_relational)
 for _m2m in (models.ManyToManyField, models.ManyToManyRel):
     _m2m.condition_to_sql = _multi_condition_to_sql
     _m2m._get_query_for_condition_value = _multi_get_query_for_condition_value
