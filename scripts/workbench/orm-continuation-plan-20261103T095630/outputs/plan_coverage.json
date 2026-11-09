@@ -255,7 +255,8 @@
   "orm-flush-convergence-auto-now-0485",
   "base-inherits-multiple-parents-0182",
   "orm-field-groups-write-0485",
-  "base-timestamped-transaction-now-0485"
+  "base-timestamped-transaction-now-0485",
+  "base-created-at-ties-and-log-sweep-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
