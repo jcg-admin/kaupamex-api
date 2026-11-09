@@ -208,12 +208,13 @@ Divergencias declaradas — de mecanismo, no de alcance
    (formato + fecha), es la tarea **#462**.
 3. **El agrupado de ``_cron_check_vies_iap`` va por el ORM de Django.** La
    fuente usa ``self._read_group(groupby=['vat'],
-   aggregates=['id:recordset'])``;
-   medido, este árbol no declara ese agregador
-   (``grep -rc "def _read_group(" --include=*.py src/orm/`` da **0**; sus
-   piezas ``_read_group_select`` y ``_read_group_having`` sí existen). El
-   equivalente es un ``filter(vat__in=…)`` por VAT, que produce la misma
-   partición: los partners de cada VAT reciben su estado.
+   aggregates=['id:recordset'])``. El agregador ya existe como método de
+   ``BaseModel`` (``orm/models.py``), pero ``res.partner`` es aquí un modelo
+   de Django que no hereda de ``BaseModel``
+   (``grep -c "BaseModel" src/addons/base/models/res_partner.py`` da **0**),
+   así que no lo alcanza. El equivalente es un ``filter(vat__in=…)`` por VAT,
+   que produce la misma partición: los partners de cada VAT reciben su
+   estado.
 4. **El endpoint de VIES es un servicio de Odoo S.A.** ``vies.api.odoo.com`` /
    ``vies.test.odoo.com`` se portan **verbatim** porque son el valor por
    defecto del parámetro ``iap_vies.endpoint``, no una constante del código:
