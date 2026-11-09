@@ -898,6 +898,13 @@
         "orm-parent-path-check-0485"
       ],
       "writtenAt": "2026-11-09T08:33:29Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-field-index-btree-0485"
+      ],
+      "writtenAt": "2026-11-09T09:14:47Z"
     }
   ]
 }
