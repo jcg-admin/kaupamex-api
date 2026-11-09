@@ -6,7 +6,8 @@ Las fechas de ``TimeStampedModel`` son la hora de la transacción
 transacción comparten ``created_at``. Qué hace cada consulta con ese empate
 no se decide en bloque: se deriva, consulta por consulta, de su fuente.
 
-Tres clases, y cada consulta encontrada tiene que estar en una:
+La clase de cada consulta, y su fuente, viven en el catálogo del Workbench
+(``contracts/created-at-orderings.tsv``). Tres clases:
 
 ``reference-id``
     El modelo de la referencia desempata su ``_order`` por ``id`` en el
@@ -33,67 +34,22 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 DATE = {'created_at', '-created_at'}
 TIE = {'id', '-id', 'pk', '-pk'}
 
-REF_C = 'odoo19c@abe4040ec1'
-REF_E = 'odoo19e@abe4040ec1'
+#: El catálogo vive en el Workbench de la iniciativa, con la revisión de
+#: referencia de la que se derivó cada clase: es la autoridad única. Esta
+#: prueba sólo verifica que el código de Kaupamex lo cumple.
+CATALOG = (ROOT / 'scripts/workbench/orm-continuation-plan-20261103T095630'
+           / 'contracts/created-at-orderings.tsv')
+CLASSES = {'reference-id', 'reference-untied', 'consumer'}
 
-# Clave: ``ruta::función``. Valor: (clase, fuente que la decide).
-REGISTRY = {
-    'addons/crm/controllers/main.py::AdminContactMessageListView.get':
-        ('reference-id', f"{REF_C}: crm/models/crm_lead.py:87 "
-                         "'priority desc, id desc'"),
-    'addons/delivery/controllers/main.py::ShipmentGuideListCreateView.get':
-        ('consumer', 'guía de envío propia; stock.picking no es 1:1'),
-    'addons/helpdesk/controllers/main.py::_annotate_first_response':
-        ('consumer', 'primera respuesta: cronología propia del Consumer'),
-    'addons/helpdesk/controllers/main.py::SupportTicketListCreateView.get':
-        ('reference-id', f"{REF_E}: helpdesk/models/helpdesk_ticket.py:27 "
-                         "'priority desc, id desc'"),
-    'addons/helpdesk/controllers/main.py::SupportTicketListCreateView.post':
-        ('reference-id', f"{REF_E}: helpdesk/models/helpdesk_ticket.py:27"),
-    'addons/helpdesk/controllers/main.py::AdminSupportTicketListView.get':
-        ('consumer', 'cola FIFO de soporte, contrato propio'),
-    'addons/helpdesk/controllers/main.py::'
-    'AdminSupportTicketExportCSVView.get':
-        ('consumer', 'exportación FIFO de soporte, contrato propio'),
-    'addons/helpdesk/controllers/serializers.py::'
-    'SupportTicketDetailSerializer.get_replies':
-        ('consumer', 'hilo cronológico ascendente; el chatter de la '
-                     "referencia es mail.message 'id desc'"),
-    'addons/loyalty/controllers/admin_main.py::VoucherViewSet':
-        ('consumer', f'voucher sin contraparte 1:1 en {REF_C}: loyalty'),
-    'addons/mail/controllers/main.py::NotificationListView.get':
-        ('reference-id', f"{REF_C}: mail/models/mail_message.py:74 'id desc'"),
-    'addons/mass_mailing/controllers/subscribers.py::'
-    'AdminSubscriberExportCSVView.get':
-        ('consumer', 'exportación de suscriptores, contrato propio'),
-    'addons/mass_mailing/services.py::list_subscriptions':
-        ('consumer', 'listado de suscripciones, contrato propio'),
-    'addons/payment/controllers/portal.py::payment_status':
-        ('reference-id', f"{REF_C}: payment/models/payment_transaction.py:27 "
-                         "'id desc'"),
-    'addons/payment/controllers/portal.py::payment_history':
-        ('reference-id', f"{REF_C}: payment/models/payment_transaction.py:27"),
-    'addons/rating/controllers/main.py::ProductReviewsView.get':
-        ('reference-id', f"{REF_C}: rating/models/rating.py:15 "
-                         "'write_date desc, id desc'"),
-    'addons/rating/controllers/main.py::ReviewAdminListView.get':
-        ('consumer', 'cola FIFO de moderación, contrato propio'),
-    'addons/sale/controllers/main.py::_own_orders':
-        ('reference-id', f"{REF_C}: sale/models/sale_order.py:38 "
-                         "'date_order desc, id desc'"),
-    'addons/sale/services.py::get_or_create_draft_order':
-        ('consumer', 'carrito en borrador, contrato propio'),
-    'addons/sale_management/controllers/admin_views.py::_admin_orders':
-        ('reference-id', f"{REF_C}: sale/models/sale_order.py:38"),
-    'addons/sale_subscription/controllers/views.py::CompanyViewSet.invoices':
-        ('consumer', 'factura de suscripción L0, contrato propio'),
-    'addons/stock/models/stock_quant.py::StockQuant._onchange_product_id':
-        ('reference-untied', f"{REF_C}: stock/models/stock_quant.py:985-987 "
-                             "order='create_date desc', limit=1"),
-    'addons/website/controllers/search_history.py::'
-    'SearchHistoryViewSet.get_queryset':
-        ('consumer', 'historial de búsqueda propio; website.track no es 1:1'),
-}
+
+def _catalog():
+    rows = {}
+    for line in CATALOG.read_text(encoding='utf-8').splitlines():
+        if not line or line.startswith('#') or line.startswith('call\t'):
+            continue
+        call, cls, source = line.split('\t')
+        rows[call] = (cls, source)
+    return rows
 
 
 def _orderings():
@@ -136,17 +92,25 @@ def test_the_scan_sees_the_orderings():
     assert len(list(_orderings())) >= 20
 
 
-def test_every_ordering_is_classified_against_its_source():
+def test_the_catalog_is_well_formed():
+    rows = _catalog()
+    assert rows
+    assert {cls for cls, __ in rows.values()} <= CLASSES
+    assert all(source for __, source in rows.values())
+
+
+def test_every_ordering_is_classified_in_the_catalog():
     unclassified = sorted(
-        {where for where, __ in _orderings()} - set(REGISTRY))
+        {where for where, __ in _orderings()} - set(_catalog()))
     assert unclassified == []
 
 
-def test_the_registry_has_no_stale_entries():
-    assert sorted(set(REGISTRY) - {w for w, __ in _orderings()}) == []
+def test_the_catalog_has_no_stale_entries():
+    assert sorted(set(_catalog()) - {w for w, __ in _orderings()}) == []
 
 
 def test_every_ordering_follows_its_class():
+    catalog = _catalog()
     wrong = [(where, keys) for where, keys in _orderings()
-             if not _conforms(REGISTRY[where][0], keys)]
+             if not _conforms(catalog[where][0], keys)]
     assert wrong == []
