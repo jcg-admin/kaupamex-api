@@ -2118,3 +2118,36 @@ def as_current_user(user):
     if user is not None:
         user.__dict__[CURRENT_USER_SU] = True
     return user
+
+
+def implicit_access_error(error, model):
+    """El ``AccessError`` alcanzado a través de otro modelo, nombrándolo.
+
+    ≙ el relanzamiento de ``Field._compute_related``
+    (``odoo19c: odoo/orm/fields.py:696-712``) al recorrer los eslabones
+    intermedios de un ``related``, y el de ``BaseModel.write``
+    (``odoo/orm/models.py:4500-4510``) al escribir por el inverso de un campo
+    ``inherited``: el mensaje original más el párrafo *«Implicitly accessed
+    through '<descripción>' (<modelo>).»*. La descripción sale de
+    ``ir.model._get``, que allá corre en modo superusuario; si el modelo aún
+    no tiene fila se usa el ``_description`` que la reflexión escribiría en
+    ella (``ir_model.py:429``), y en último término el nombre técnico.
+
+    Vive aquí porque lo consumen ``orm.fields`` y ``orm.inherits``, y este
+    módulo ya tiene las tres piezas que necesita: ``AccessError``, el
+    registro de modelos y ``sudo``.
+    """
+    model_name = getattr(model, '_name', None) or model._meta.label_lower
+    ir_model = registry.MODELS_BY_NAME.get('ir.model')
+    with sudo():
+        row = ir_model._get(model_name) if ir_model is not None else None
+    description = (row.name if row is not None
+                   else getattr(model, '_description', None) or model_name)
+    previous = str(error.args[0]) if error.args else ''
+    return AccessError(env()._(
+        "%(previous_message)s\n\nImplicitly accessed through "
+        "'%(document_kind)s' (%(document_model)s).",
+        previous_message=previous,
+        document_kind=description,
+        document_model=model_name,
+    ))

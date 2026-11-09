@@ -78,6 +78,7 @@ from orm.environments import (
     env as get_environment,
     get_current_company,
     get_transaction,
+    implicit_access_error,
     sudo as elevate_privileges,
 )
 from tools.constants import PREFETCH_MAX
@@ -3895,13 +3896,20 @@ def _field_compute_related(self, records):
     """
     records = as_record_list(records)
     values = list(records)
-    for name in self.related.split('.')[:-1]:
-        # Allá un eslabón vacío es el recordset vacío, y leer un campo sobre
-        # él devuelve vacío otra vez (``:692``). Aquí el vacío de una FK es
-        # ``None``, que no admite ``[name]``: se propaga tal cual hasta el
-        # final de la cadena, que es quien le pone su valor nulo.
-        values = [None if element is None else _first_record(element[name])
-                  for element in values]
+    try:
+        for name in self.related.split('.')[:-1]:
+            # Allá un eslabón vacío es el recordset vacío, y leer un campo
+            # sobre él devuelve vacío otra vez (``:692``). Aquí el vacío de
+            # una FK es ``None``, que no admite ``[name]``: se propaga tal
+            # cual hasta el final de la cadena, que es quien le pone su valor
+            # nulo.
+            values = [None if element is None
+                      else _first_record(element[name])
+                      for element in values]
+    except AccessError as error:
+        # ``:696-712``: sólo el recorrido de los eslabones intermedios nombra
+        # el modelo por el que se accedió; la lectura final queda fuera.
+        raise implicit_access_error(error, type(records[0])) from error
     for record, value in zip(records, values):
         record[self.name] = self._process_related(
             _end_of_chain(value, self.related_field), get_environment())

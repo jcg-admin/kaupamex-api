@@ -1,0 +1,23 @@
+{
+  "contract": "related-traversal-implicit-access",
+  "reference_identity": "Odoo 19 Community (odoo/release.py:15)",
+  "reference_revision": "odoo-tools@abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "source_locations": [
+    "odoo/orm/fields.py:675-718",
+    "odoo/addons/test_orm/models/test_orm.py:448-449"
+  ],
+  "execution_environment": null,
+  "input_scenario": "regla que oculta test_orm.related_foo 'secret-foo'; fila visible de test_orm.related con foo_id -> secret-foo; foo_id.bar_id -> bar",
+  "execution_status": "static-inference",
+  "evidence": "el try/except AccessError de _compute_related cubre sólo self.related.split('.')[:-1]; coherente con observations/inherited-implicit-access-message.json (child forbidden inherited vs child forbidden own key); la descripción es el _description de test_orm.related, 'Test ORM Related' (test_orm.py:449), que ir.model refleja como name (ir_model.py:429). Corregido: la primera versión de esta inferencia supuso el nombre técnico.",
+  "observed": {
+    "foo_name": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "foo_bar_name": {
+      "exception": "AccessError",
+      "implicit_paragraph": "Implicitly accessed through 'Test ORM Related' (test_orm.related)."
+    }
+  }
+}

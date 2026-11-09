@@ -50,3 +50,27 @@ contra la observación del Workbench; no amplía el ejecutor heredado `reference
 - Antes, 4 escenarios difieren (RED). Después, los 5 casos pasan.
 - Control de lectura: caen los escenarios de lectura. Control de escritura: cae `write without parent access inherited`.
 - Respaldo de la descripción: `_description`, que es lo que `ir.model` refleja (`ir_model.py:429`), cuando el modelo no tiene fila.
+
+## Extensión al related no heredado (2026-11-09T05:45:16)
+
+**Contrato (lectura del código ejecutable, `odoo/orm/fields.py:696-712`).** `_compute_related` envuelve en
+`try/except AccessError` sólo el recorrido de los eslabones intermedios (`self.related.split('.')[:-1]`);
+la lectura final (`value[self.related_field.name]`) queda fuera. La observación ejecutada lo respalda en el caso
+heredado: hay párrafo cuando falla un eslabón intermedio (`child forbidden inherited`) y no lo hay en una lectura
+directa (`child forbidden own key`).
+
+**Inferencia estática (no ejecutada), registrada en `reference/observations/related-traversal-access.json`:**
+con `test_orm.related_foo` oculto por regla y una fila visible de `test_orm.related` que apunta a él,
+- `foo_name` (`foo_id.name`, un salto): `AccessError` sin párrafo, porque falla la lectura final;
+- `foo_bar_name` (`foo_id.bar_id.name`): `AccessError` con `Implicitly accessed through 'Test ORM Related'
+  (test_orm.related).`, porque falla `foo['bar_id']`, que es un eslabón intermedio. La descripción es el
+  `_description` de la referencia (`odoo/addons/test_orm/models/test_orm.py:449`); la primera versión de
+  esta inferencia supuso el nombre técnico, y la sonda de Kaupamex delató el error.
+
+**Kaupamex antes (medido con sonda):** los dos levantan `AccessError` sin párrafo.
+
+**Decisión.** `_field_compute_related` envuelve el bucle de eslabones intermedios con `implicit_access_error`,
+el ayudante de `inherits.py`, que pasa a público.
+
+**Pendiente de evidencia dinámica:** confirmar la inferencia en el proceso aislado de la referencia cuando el
+Provider cualifique la ejecución de escenarios del Consumer (ver `reference/executor-inventory.md`).

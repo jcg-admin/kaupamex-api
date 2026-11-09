@@ -78,11 +78,14 @@ from django.apps import apps
 from django.db import transaction
 
 from exceptions import AccessError
-from orm.environments import CURRENT_USER_SU, is_su, sudo
+from orm.environments import (
+    CURRENT_USER_SU,
+    implicit_access_error,
+    is_su,
+)
 from orm.fields_relational import bypass_search_access
 from orm.registry import MODELS_BY_NAME
 from orm.utils import model_field_registry
-from tools.translate import _
 
 
 def _delegable_field_names(delegate_model, delegant_cls):
@@ -123,36 +126,6 @@ def _delegable_field_names(delegate_model, delegant_cls):
         and not name.startswith('_')
         and name not in ('id', 'pk')
     )
-
-
-def _implicit_access_error(error, delegant):
-    """El ``AccessError`` de un campo heredado, con el modelo por el que se
-    accedió.
-
-    ≙ ``Field._compute_related`` (``odoo19c: odoo/orm/fields.py:696-712``) al
-    leer, y ``BaseModel.write`` (``odoo/orm/models.py:4500-4510``) al escribir
-    por el inverso de un campo ``inherited``: el mensaje original más el
-    párrafo *«Implicitly accessed through '<descripción>' (<modelo>).»*. La
-    descripción sale de ``ir.model._get``, que allá corre en modo
-    superusuario; si el modelo aún no tiene fila se usa el ``_description``
-    que la reflexión escribiría en ella (``ir_model.py:429``), y en último
-    término el nombre técnico.
-    """
-    model_name = (getattr(delegant, '_name', None)
-                  or delegant._meta.label_lower)
-    ir_model = MODELS_BY_NAME.get('ir.model')
-    with sudo():
-        row = ir_model._get(model_name) if ir_model is not None else None
-    description = (row.name if row is not None
-                   else getattr(delegant, '_description', None) or model_name)
-    previous = str(error.args[0]) if error.args else ''
-    return AccessError(str(_(
-        "%(previous_message)s\n\nImplicitly accessed through "
-        "'%(document_kind)s' (%(document_model)s).",
-        previous_message=previous,
-        document_kind=description,
-        document_model=model_name,
-    )))
 
 
 def _check_delegate_access(delegate, operation='read'):
@@ -292,7 +265,7 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
                         _check_delegate_access(delegate, 'read')
                     return getattr(delegate, name)
             except AccessError as error:
-                raise _implicit_access_error(error, type(self)) from error
+                raise implicit_access_error(error, type(self)) from error
             return None
         # Un nombre que no se delega vuelve a la búsqueda normal, que relanza
         # el error ORIGINAL: Python llama a ``__getattr__`` también cuando un
@@ -311,7 +284,7 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
                     try:
                         _check_delegate_access(delegate, 'write')
                     except AccessError as error:
-                        raise _implicit_access_error(
+                        raise implicit_access_error(
                             error, type(self)) from error
                 setattr(delegate, name, value)
                 self.__dict__.setdefault('_inherits_dirty', set()).add(fk)
