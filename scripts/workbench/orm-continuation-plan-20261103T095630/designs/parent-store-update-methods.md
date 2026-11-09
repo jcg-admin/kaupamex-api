@@ -52,3 +52,28 @@ Pendiente, declarado: las funciones por fila (`_reparented`,
 `_parent_store_update` de módulo) todavía no delegan en los métodos; sus
 consumidores (`BaseModel.write`, `ir.ui.menu`) siguen sobre ellas. La
 delegación es el paso siguiente de esta unidad, con su propia regresión.
+
+## Reconciliación de las rutas (consumidores ejecutables)
+
+Referencia: `write` → `_write` → `_write_multi` (`odoo19c: models.py:4520-4608`)
+llama `_parent_store_update_prepare(vals_list)` **antes** de escribir y
+`parent_records._parent_store_update()` **después**. En Kaupamex el
+`write` del recordset escribe fila a fila con `RecordLoaderMixin.write`,
+que consultaba `_reparented` antes de guardar y `_parent_store_update`
+(función) después.
+
+Decisión: el propietario canónico son los métodos de `BaseModel`. Las dos
+funciones de módulo delegan en ellos cuando el registro es un `BaseModel`
+(el único que `_maintains_parent_store` admite): `_reparented` devuelve si
+`_parent_store_update_prepare([{padre: nuevo}])` no es vacío, y
+`_parent_store_update` llama al método. El cuerpo por fila de la función
+queda sólo para `ir.ui.menu`, que es un modelo de Django sin recordset
+(`TimeStampedModel`) y mantiene su `parent_path` en `save()`: no hay
+método al que delegar, y esa es la justificación de que convivan.
+
+Pruebas: `write` con cambio de padre pasa por el método (espía: una llamada
+con el id del registro) y reescribe al descendiente; `write` que repite el
+padre no lo llama. Anulación: sin la delegación de la función cae
+exactamente el primero; con `_reparented` siempre verdadero cae exactamente
+el segundo. Regresión de los 36 archivos de prueba que nombran
+`parent_path`, `child_of` o `_parent_store`: en curso.

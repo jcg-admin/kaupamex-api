@@ -60,3 +60,32 @@ def test_moving_under_a_descendant_is_rejected(env, tree):
     type(child).objects.filter(pk=child.id).update(parent=leaf.id)
     with pytest.raises(UserError, match='Recursion'):
         child._parent_store_update()
+
+
+def test_write_goes_through_the_methods(env, tree, monkeypatch):
+    root_a, root_b, child, leaf = tree
+    calls = []
+    model = type(child)
+    original = model._parent_store_update
+
+    def spy(self):
+        calls.append(tuple(self.ids))
+        return original(self)
+
+    monkeypatch.setattr(model, '_parent_store_update', spy)
+    child.write({'parent': root_b.id})
+    assert calls == [(child.id,)]
+    paths = dict(model.objects.filter(
+        pk__in=[child.id, leaf.id]).values_list('id', 'parent_path'))
+    assert paths[leaf.id] == f'{root_b.id}/{child.id}/{leaf.id}/'
+
+
+def test_write_without_a_parent_change_does_not_rewrite(env, tree,
+                                                        monkeypatch):
+    root_a, _root_b, child, _leaf = tree
+    calls = []
+    model = type(child)
+    monkeypatch.setattr(model, '_parent_store_update',
+                        lambda self: calls.append(self.ids))
+    child.write({'parent': root_a.id, 'name': 'renamed'})
+    assert calls == []

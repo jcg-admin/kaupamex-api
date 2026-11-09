@@ -1234,20 +1234,23 @@ def _reparented(record, values):
     name = parent_name_of(cls)
     if name not in values:
         return False
-    new = values[name]
-    new = getattr(new, 'pk', new) or None
-    current = cls._base_manager.filter(pk=record.pk).values_list(
-        _parent_column(cls), flat=True).first()
-    return current != new
+    # Sólo un ``BaseModel`` llega aquí: la decisión es la de su método.
+    new = getattr(values[name], 'pk', values[name]) or False
+    return bool(record._parent_store_update_prepare([{name: new}]))
 
 
 def _parent_store_update(record):
     """≙ ``_parent_store_update`` (``:5020-5054``) para una fila.
 
-    Reescribe el prefijo de ``parent_path`` de la fila y de todos sus
-    descendientes, con el mismo ``UPDATE`` de la fuente, tras rechazar una
-    recursión: *"Recursion Detected."*
+    Un ``BaseModel`` delega en :meth:`BaseModel._parent_store_update`, el
+    porte del método de la fuente. El cuerpo por fila de abajo queda para un
+    modelo de Django sin recordset que mantiene su ``parent_path`` en
+    ``save()`` (``ir.ui.menu``): reescribe el prefijo de la fila y de sus
+    descendientes con el mismo ``UPDATE``, tras rechazar una recursión.
     """
+    if isinstance(record, BaseModel):
+        record._parent_store_update()
+        return
     cls = type(record)
     table = cls._meta.db_table
     parent_id = cls._base_manager.filter(pk=record.pk).values_list(

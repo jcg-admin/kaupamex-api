@@ -257,3 +257,27 @@ skipped, 4 xfailed, 5 errors` — los 5 de `test_multidb_isolation` con la
 misma causa que en todas las suites anteriores (*Isolation fixture requires
 an explicitly owned disposable default*) — y `make ci-multidb` con
 `pytest_exit 0`, `5 passed` en 2059 s, base desechable retirada.
+
+### Conciliación de las unidades iniciadas (2026-11-09, `ed3ec61f`)
+
+Citas durables acuñadas con `bin/task_ids ingest-board` (store del
+proveedor, capa `api`). Ninguna se cierra aquí: «aceptado» exige el nivel 3
+de una revisión que contenga la unidad, y el de `ed3ec61f` está en curso.
+
+| TASK | Unidad / símbolos | Commit | Referencia | Diseño | RED | GREEN | Anulación | Regresión | Gate integral | Settlement en el ledger | Integración | Aceptación | Pendiente | Siguiente |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| TASK-API-0505 | investigación de `BaseModel._search` | `95ec4213`, `2a62d58b`, `6d4c1764` | `odoo19c: models.py` `_search`, `Domain._to_sql`, `Query`, `ir.rule` | este archivo §1-8 | 16 fallos del nivel 2 en `95ec4213` | 18 casos `test_search_returns_query.py` | 6 controles | nivel 2 | **sí**: nivel 3 de `6d4c1764` (suite + multidb verdes salvo los 5 ambientales) | no (manual, fuera del plan) | sí | pendiente de publicación-aceptación | las 6 condiciones de un solo compilador sólo por lectura (§8) | ninguna de implementación; queda la ejecución en Odoo, no disponible aquí |
+| TASK-API-0506 | 6a `_read_group_expand_full`, `_read_group_fill_results`, `Selection(group_expand=True)` | `23c243b9` | `:2310-2385`, `fields_selection.py:85-91` | `read-group-fill-results.md` | 8/8 | 8 | 5/8 y 1/8 | nivel 2 `59a8b2e8` (10914 passed) | `9b7cabfc`: verde salvo ambientales | no | sí | pendiente | `__fold` sobre comodelo de Django declarado, sin caso | — |
+| TASK-API-0507 | 6c `READ_GROUP_DISPLAY_FORMAT`, `_read_group_format_result` | `feb4a7a9` | `:315-333`, `:2554-2638` | `read-group-format-result.md` | 9/9 | 9 | 2 y 1 | ídem | `9b7cabfc` | no | sí | pendiente | la rama `properties` pasó a 6e | — |
+| TASK-API-0508 | 6d `regex_field_agg`, `read_group` | `59a8b2e8` | `:112`, `:2746-2878` | `read-group-public.md` | `regex_field_agg`: caso propio que pasa al declararlo; `read_group`: 7/8 | 8 | 1 y 1 (`read_group`); `regex_field_agg` sin el grupo `nombre:func(campo)`: caen exactamente 2 (su caso y el agregado con nombre de `read_group`) | ídem | `9b7cabfc` | no | sí | pendiente | — | gate `ed3ec61f` |
+| TASK-API-0509 | 6e `_read_group_groupby_properties`, `_read_group_format_result_properties` | `d9e3555c` (+ `9b7cabfc` tipo, `453c66b8` Mapping) | `:2638-2744`, `:2935-3041` | `read-group-properties.md` | 6/6 (`NotImplementedError`) | 6 | 1 y 2 | focalizada | **en curso**: `ed3ec61f` | no | no (sin nivel 3) | no | `many2many`/`datetime` de propiedad sin caso | gate `ed3ec61f` |
+| TASK-API-0504 | 6e-2 `jsonb` en `execute_sql` y `execute_query_dict` | `2d2eb633`, `ed3ec61f` (expectativa de consumidor) | `odoo/sql_db.py` (psycopg2 por defecto), `fields_properties.py:143,295,896,919` | `orm-raw-query-jsonb.md` | 2/5 | 5 | 1 y 1 | matriz por ruta `outputs/jsonb-paths-2d2eb633.md` | `2d2eb633`: 1 fallo de consumidor (corregido en `ed3ec61f`) + 5 ambientales; multidb de `2d2eb633` en curso; **`ed3ec61f` en curso** | no (selección por `local_plan supply`/`task_continuation next`; ejecución manual) | no | no | — | gate `ed3ec61f` |
+
+`json null` y `NULL` SQL dan los dos `None` en el camino del ORM, igual que
+psycopg2 en la fuente; ningún consumidor medido los distingue.
+
+Por qué los estados del store no se propagan: el `settlement` del ledger
+(`outputs/continuation.jsonl`) sólo lo escribe `task_continuation run-one`,
+que aquí no puede despachar (sin Podman ni modelo local); el store de tareas
+se actualiza desde el tablero de la sesión, no desde el ledger. Ninguna
+operación canónica ata hoy el veredicto de un gate al estado de la TASK.
