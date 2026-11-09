@@ -519,6 +519,19 @@ class One2many:
             # columna no tiene SQL que emitir.
             raise ValueError(
                 f'Cannot convert {inverse} to SQL because it is not stored')
+        if (isinstance(instance.pk, NewId) and hasattr(instance, '_ids')
+                and hasattr(comodel, '_from_ids')):
+            # Un registro de ``new()`` sólo vive en caché: sus líneas son las
+            # de la clave que escriben ``_write_new_one2many`` y
+            # ``_update_inverse``, la misma que lee el descriptor inverso.
+            # Sin valor todavía, el vacío se pone con ``_update_cache``, que
+            # drena los parches de ``_update_inverse``.
+            rel = inverse.remote_field
+            cache = get_environment().transaction.field_data[rel]
+            if instance.pk not in cache:
+                rel._update_cache(instance, ())
+            ids = cache.get(instance.pk, ())
+            return comodel._from_ids(instance.env, ids, ids)
         if _reads_as_recordset(instance, comodel):
             return _read_one2many(self, instance, comodel)
         accessor = inverse.remote_field.get_accessor_name()
@@ -659,6 +672,17 @@ class One2many:
                 # integer inverses (res_model/res_id pairs) are not supported
                 inverses.add(self, invf)
             inverses.add(invf, self)
+
+    def _update_inverse(self, records, value):
+        """Suma el id nuevo ``value`` a las líneas de los dueños nuevos
+        ``records`` — ≙ ``_RelationalMulti._update_inverse`` (``odoo19c:
+        odoo/orm/fields_relational.py:564-573``), que
+        ``BaseModel._update_cache`` llama para los registros nuevos del
+        comodelo. La caché es la de la relación inversa, la misma que lee
+        :meth:`__get__` para un dueño de ``new()``.
+        """
+        _comodel, inverse = self._inverse_field()
+        _relational_multi_update_inverse(inverse.remote_field, records, value)
 
 
 #: El permiso del comodelo no se aplica al atravesar este campo — ≙
