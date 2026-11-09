@@ -51,3 +51,13 @@ filas comparten fecha. Cualquier prueba o código que ordene por `created_at`
 y espere el orden de alta (`get_latest_by = 'created_at'`) quedará con
 empates. La referencia tiene el mismo comportamiento y ordena por `id`
 cuando necesita el orden de alta.
+
+## Decisión de mecanismo
+
+No se memoriza por bloque `atomic`: un `@transaction.atomic` usado como
+decorador reutiliza el mismo objeto `Atomic` en cada llamada, y la clave
+serviría la fecha de una transacción anterior. PostgreSQL ya resuelve la
+memoria: `now()` es constante dentro de la transacción. Los dos campos
+preguntan `SELECT now()` en su `pre_save` y comparten el valor dentro del
+mismo guardado (una consulta por `save`, no dos). El coste se mide con la
+duración de la suite completa.
