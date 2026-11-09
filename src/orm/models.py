@@ -103,10 +103,12 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
 from orm.fields_textual import Char
+from orm.fields_temporal import Date
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import (COLLECTION_TYPES, FieldRegistryDescriptor, OriginIds,
+from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS,
+                       FieldRegistryDescriptor, OriginIds,
                        as_record_list, browse, check_object_name,
                        model_field_registry, parse_field_expr, record_ids)
 from service.db import Savepoint
@@ -2196,6 +2198,29 @@ def parse_read_group_spec(spec):
 
     groups = res_match.groups()
     return groups[0], groups[2], groups[3]
+
+
+#: Funciones de agregación SQL válidas — ≙ ``READ_GROUP_AGGREGATE``
+#: (``odoo19c: odoo/orm/models.py:300-313``). Cada entrada recibe la tabla y
+#: la expresión del campo; los agregados ``recordset`` se convierten después
+#: en recordsets.
+READ_GROUP_AGGREGATE = {
+    'sum': lambda table, expr: SQL('SUM(%s)', expr),
+    'avg': lambda table, expr: SQL('AVG(%s)', expr),
+    'max': lambda table, expr: SQL('MAX(%s)', expr),
+    'min': lambda table, expr: SQL('MIN(%s)', expr),
+    'bool_and': lambda table, expr: SQL('BOOL_AND(%s)', expr),
+    'bool_or': lambda table, expr: SQL('BOOL_OR(%s)', expr),
+    'array_agg': lambda table, expr: SQL(
+        'ARRAY_AGG(%s ORDER BY %s)', expr, SQL.identifier(table, 'id')),
+    'array_agg_distinct': lambda table, expr: SQL(
+        'ARRAY_AGG(DISTINCT %s ORDER BY %s)', expr, expr),
+    # los agregados 'recordset' se post-procesan para volverse recordsets
+    'recordset': lambda table, expr: SQL(
+        'ARRAY_AGG(%s ORDER BY %s)', expr, SQL.identifier(table, 'id')),
+    'count': lambda table, expr: SQL('COUNT(%s)', expr),
+    'count_distinct': lambda table, expr: SQL('COUNT(DISTINCT %s)', expr),
+}
 
 
 def raise_on_invalid_object_name(name):
@@ -6332,6 +6357,139 @@ class BaseModel(DefaultGetMixin, Model):
         record._ids = ids
         record._prefetch_ids = prefetch_ids
         return record
+
+    # === agregación de read_group ======================================
+
+    def _read_group_select(self, aggregate_spec, query):
+        """La expresión SQL del agregado ``aggregate_spec``.
+
+        ≙ ``BaseModel._read_group_select``
+        (``odoo19c: odoo/orm/models.py:1953-2013``). Docstring de la fuente:
+        *"Return <SQL expression> corresponding to the given aggregation. The
+        method also checks whether the fields used in the aggregate are
+        accessible for reading."*
+
+        Adaptación declarada: ``res.currency.rate`` es aquí un modelo de
+        Django y ``env[...]`` devuelve su clase; ``_field_to_sql`` se llama
+        sobre una instancia, que resuelve ``currency_id``/``company_id`` por
+        su columna. El contrato del SQL no cambia.
+        """
+        if aggregate_spec == '__count':
+            return SQL("COUNT(*)")
+
+        fname, property_name, func = parse_read_group_spec(aggregate_spec)
+
+        if property_name:
+            raise ValueError(
+                f"Invalid {aggregate_spec!r}, this dot notation is not "
+                f"supported")
+
+        if fname not in self._fields:
+            raise ValueError(
+                f"Invalid field {fname!r} on model {self._name!r} for "
+                f"{aggregate_spec!r}.")
+        if not func:
+            raise ValueError(f"Aggregate method is mandatory for {fname!r}")
+
+        field = self._fields[fname]
+        if func == 'sum_currency':
+            if field.type != 'monetary':
+                raise ValueError(
+                    f'Aggregator "sum_currency" only works on currency field '
+                    f'for {fname!r}')
+
+            CurrencyRate = self.env['res.currency.rate']()
+            rate_subquery_table = SQL(
+                """(SELECT DISTINCT ON (%(currency_field_sql)s)
+                        %(currency_field_sql)s, %(rate_field_sql)s
+                    FROM "res_currency_rate"
+                    WHERE %(company_field_sql)s IS NULL
+                        OR %(company_field_sql)s = %(company_id)s
+                    ORDER BY
+                        %(currency_field_sql)s,
+                        %(company_field_sql)s,
+                        CASE WHEN %(name_field_sql)s <= %(today)s
+                            THEN %(name_field_sql)s END DESC,
+                        CASE WHEN %(name_field_sql)s > %(today)s
+                            THEN %(name_field_sql)s END ASC)
+                """,
+                currency_field_sql=CurrencyRate._field_to_sql(
+                    CurrencyRate._table, 'currency_id'),
+                rate_field_sql=CurrencyRate._field_to_sql(
+                    CurrencyRate._table, 'rate'),
+                company_field_sql=CurrencyRate._field_to_sql(
+                    CurrencyRate._table, 'company_id'),
+                company_id=self.env.company.root_id.id,
+                name_field_sql=CurrencyRate._field_to_sql(
+                    CurrencyRate._table, 'name'),
+                today=Date.context_today(self),
+            )
+            currency_field_name = field.get_currency_field(self)
+            alias_rate = query.make_alias(
+                self._table, f'{currency_field_name}__rates')
+            currency_field_sql = self._field_to_sql(
+                self._table, currency_field_name, query)
+            condition = SQL(
+                "%s = %s", currency_field_sql,
+                SQL.identifier(alias_rate, "currency_id"))
+            query.add_join(
+                'LEFT JOIN', alias_rate, rate_subquery_table, condition)
+
+            return SQL(
+                "SUM(%s / COALESCE(%s, 1.0))",
+                self._field_to_sql(self._table, fname, query),
+                SQL.identifier(alias_rate, "rate"),
+            )
+
+        if func not in READ_GROUP_AGGREGATE:
+            raise ValueError(
+                f"Invalid aggregate method {func!r} for {aggregate_spec!r}.")
+
+        if func == 'recordset' and not (field.relational or fname == 'id'):
+            raise ValueError(
+                f"Aggregate method {func!r} can be only used on relational "
+                f"field (or id) (for {aggregate_spec!r}).")
+
+        sql_field = self._field_to_sql(self._table, fname, query)
+        return READ_GROUP_AGGREGATE[func](self._table, sql_field)
+
+    def _read_group_having(self, having_domain, query):
+        """La expresión SQL del dominio ``HAVING``.
+
+        ≙ ``BaseModel._read_group_having``
+        (``odoo19c: odoo/orm/models.py:2121-2148``). Notación prefija como un
+        dominio; los términos sueltos se unen con ``AND``.
+        """
+        if not having_domain:
+            return SQL()
+
+        stack = []
+        SUPPORTED = ('in', 'not in', '<', '>', '<=', '>=', '=', '!=')
+        for item in reversed(having_domain):
+            if item == '!':
+                stack.append(SQL("(NOT %s)", stack.pop()))
+            elif item == '&':
+                stack.append(SQL("(%s AND %s)", stack.pop(), stack.pop()))
+            elif item == '|':
+                stack.append(SQL("(%s OR %s)", stack.pop(), stack.pop()))
+            elif isinstance(item, (list, tuple)) and len(item) == 3:
+                left, operator, right = item
+                if operator not in SUPPORTED:
+                    raise ValueError(
+                        f"Invalid having clause {item!r}: supported "
+                        f"comparators are {SUPPORTED}")
+                sql_left = self._read_group_select(left, query)
+                stack.append(SQL(
+                    "%s%s%s", sql_left, SQL_OPERATORS[operator], right))
+            else:
+                raise ValueError(
+                    f"Invalid having clause {item!r}: it should be a "
+                    f"domain-like clause")
+
+        while len(stack) > 1:
+            stack.append(SQL("(%s AND %s)", stack.pop(), stack.pop()))
+
+        return stack[0]
 
     # === búsqueda =======================================================
 
