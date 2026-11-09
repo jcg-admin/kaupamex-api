@@ -51,8 +51,12 @@ asentadas: cuenta TASK, no unidades, y 0182/0485 siguen abiertas.
 | antes de `94930e21` | suite completa | 12226 passed, 2 failed (corregidos en `94930e21`, verificados focalmente), 5 conocidos |
 | `f7cbd1fe` (incluye `94930e21`) | multidb | `pytest_exit 0` |
 
-La suite completa no se volvió a ejecutar tras los dos arreglos de
-`94930e21`; sólo sus pruebas focales (27 passed).
+| `e064fa7b` (incluye `94930e21`) | suite completa | 12228 passed, 0 failed, 5 errores multidb conocidos |
+
+Cierra el hueco de `94930e21`: sus dos arreglos verificados por la suite
+completa. Los 3 skipped de más frente a la ejecución anterior son los
+contratos de referencia nuevos, que la suite salta sin las variables
+`CONTRACT_REFERENCE_*`.
 
 ## F. Git
 
