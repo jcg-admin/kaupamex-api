@@ -69,3 +69,23 @@ duración de la suite completa.
 `makemigrations --check --dry-run` → «No changes detected». Anular la rama de
 `pre_save` tumba exactamente los tres casos. La suite completa mide el
 efecto sobre consumidores que ordenan por `created_at`.
+
+## Efecto medido sobre los consumidores (suite completa)
+
+12226 passed, 2 failed (más los 5 errores multidb conocidos), los dos
+previstos:
+
+- `test_account_journal_debit_sequence::test_timestamped` comparaba con
+  `timezone.now()` tomado a media prueba; ahora compara con
+  `transaction_now()`, que es el contrato.
+- `admin/logs` ordenaba por `-created_at`; la referencia ordena `ir.logging`
+  por `id DESC` (`base/models/ir_logging.py:8`) y el `Meta.ordering` local ya
+  era `['-id']`. Corregido el controlador.
+
+## Sucesor abierto (TASK-API-0485)
+
+`git grep -n "order_by(['\"]-\?created_at['\"]" -- src addons ':!*tests*'`:
+21 usos en 15 archivos; `get_latest_by|.latest(|.earliest(`: 49. Ninguno
+falló en la suite, pero cada uno puede empatar entre filas de una misma
+transacción. Se revisan contra el `_order` de su modelo en la referencia,
+uno por modelo, no en bloque.

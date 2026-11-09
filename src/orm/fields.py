@@ -3969,9 +3969,18 @@ models.Field._inverse_related = _field_inverse_related
 # ``field_setup_dependents``) para asegurar que cada eslabón esté listo antes
 # de recorrerlo. Aquí quien liga los campos es Django, al construir la clase:
 # cuando este código corre, la cadena ya está resuelta. Por eso el recorrido es
-# directo y no hay fase de espera que replicar. Los ``_extra_keys__`` y
-# ``_modules`` de ``:650-663`` son del cargador de módulos de la fuente, que
-# este árbol no tiene: su desenlace es divergencia de mecanismo declarada.
+# directo y no hay fase de espera que replicar.
+#
+# **Rama por rama (medido 2026-11-09,
+# ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/field-setup-related.md``).**
+# ``_modules`` (``:661-664``) **sí** se porta: lo asigna ``setup_related``
+# para el campo heredado. ``_extra_keys__`` (``:651-653``) no tiene sujeto:
+# las únicas claves extra de este árbol son argumentos de Django
+# (``related_name``, ``on_delete``…), que ``_valid_field_parameter`` no
+# admitiría, y copiarlas a un related rompería los accesores inversos.
+# ``field_setup_dependents.add`` (``:629``) no tiene receptor: su único
+# consumidor re-monta los dependientes de un campo reconstruido
+# (``registry.py:479``), y aquí los campos de Django no se reconstruyen.
 
 
 def walk_related_chain(field, model):

@@ -53,7 +53,7 @@ guardado— y **no genera migración**: el mixin no declara ningún campo, igual
 que ``DefaultGetMixin``.
 """
 
-from django.db import models
+from django.db import connections, models
 
 from orm.models import (
     ArchiveMixin,
@@ -63,6 +63,46 @@ from orm.models import (
     OrderMixin,
     RecordLoaderMixin,
 )
+
+
+def transaction_now(using):
+    """La hora de la transacción en curso — ≙ ``Cursor.now()``.
+
+    ``odoo19c: odoo/sql_db.py:271-278``: *"Return the transaction's timestamp
+    NOW() AT TIME ZONE 'UTC'"*. La fuente la memoriza en el cursor; aquí la
+    memoria la da PostgreSQL, porque ``now()`` es constante dentro de una
+    transacción. No se memoriza por bloque ``atomic``: un
+    ``@transaction.atomic`` usado como decorador reutiliza el mismo objeto en
+    cada llamada y serviría la hora de una transacción anterior.
+    """
+    with connections[using or 'default'].cursor() as cursor:
+        cursor.execute('SELECT now()')
+        return cursor.fetchone()[0]
+
+
+class TransactionDateTimeField(models.DateTimeField):
+    """``auto_now``/``auto_now_add`` con la hora de la transacción.
+
+    ``create`` y ``write`` de la fuente fechan con ``cr.now()``
+    (``odoo19c: odoo/orm/models.py:4396,4803-4805``): todo lo escrito en una
+    transacción lleva la misma fecha y un ``write`` en la transacción del
+    ``create`` no mueve ``write_date``. ``DateTimeField`` de Django usa
+    ``timezone.now()`` en cada ``pre_save``, que difiere entre guardados.
+
+    Se deconstruye como ``DateTimeField``: la columna es la misma y las
+    migraciones de los modelos no cambian.
+    """
+
+    def pre_save(self, model_instance, add):
+        if self.auto_now or (self.auto_now_add and add):
+            value = transaction_now(model_instance._state.db)
+            setattr(model_instance, self.attname, value)
+            return value
+        return super().pre_save(model_instance, add)
+
+    def deconstruct(self):
+        name, _path, args, kwargs = super().deconstruct()
+        return name, 'django.db.models.DateTimeField', args, kwargs
 
 
 class TimeStampedModel(
@@ -103,10 +143,10 @@ class TimeStampedModel(
     #: auto-creó: un modelo sin manager propio lo recibe, y uno que declara el
     #: suyo lo conserva. Ver :ref:`h-api-876`.
 
-    created_at = models.DateTimeField(
+    created_at = TransactionDateTimeField(
         auto_now_add=True,
     )
-    updated_at = models.DateTimeField(
+    updated_at = TransactionDateTimeField(
         auto_now=True,
     )
 

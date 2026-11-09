@@ -128,7 +128,9 @@ class AdminLogsView(APIView):
         return page, page_size
 
     def _queryset(self, request):
-        qs = IrLogging.objects.all().order_by('-created_at')
+        # ≙ ``_order = 'id DESC'`` (``odoo19c: base/models/ir_logging.py:8``):
+        # las filas de una misma transacción comparten ``created_at``.
+        qs = IrLogging.objects.all().order_by('-id')
         correlation_id = request.query_params.get('correlation_id')
         if correlation_id:
             qs = qs.filter(correlation_id=correlation_id)

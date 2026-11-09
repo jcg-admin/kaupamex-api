@@ -11,13 +11,13 @@ alcance de este porte — ver ``apps.py``) para que la migración cree su tabla.
 """
 
 import pytest
-from django.utils import timezone
 
 from addons.account.models import AccountJournal
 from addons.account_debit_note.models.account_journal import (
     JournalDebitSequence,
 )
 from addons.base.models import ResCompany
+from addons.base.models.timestamped_mixin import transaction_now
 
 pytestmark = pytest.mark.django_db
 
@@ -126,7 +126,9 @@ class TestRelatedModel:
 
     def test_timestamped(self, company):
         journal = _journal(company)
-        before = timezone.now()
         row = JournalDebitSequence.objects.create(journal=journal)
-        assert row.created_at >= before
-        assert row.updated_at >= before
+        # Las dos fechas son la hora de la transacción, como ``cr.now()``
+        # (``odoo19c: odoo/orm/models.py:4803-4805``), no la del reloj.
+        now = transaction_now(row._state.db)
+        assert row.created_at == now
+        assert row.updated_at == now
