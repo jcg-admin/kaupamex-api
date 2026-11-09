@@ -84,3 +84,19 @@ campo heredado con `inherited=True` y `related='<fk>.<nombre>'`, con el
    por clase y sólo marca cada FK (`delegate`, salto de permiso); los hooks
    resuelven la FK por nombre y `save` persiste cada padre tocado.
 2. `_delegated_origin` y `_inherits_fk_for` leen el mismo registro.
+
+## Verde y controles de anulación (medidos)
+
+7 de 7 en `tests/unit/orm/test_inherits_multiple_parents.py` (el séptimo
+caso, la expansión de dependencias por `_inherits_fk_for`, se añadió al
+encontrar el tercer recorrido de primer padre).
+
+| Anulación | Casos que caen |
+|---|---|
+| sin la guarda de idempotencia en `apply_inherits` | lectura, instalación doble |
+| el mapa nombre→FK con el primer padre (`setdefault`) | lectura, escritura, instalación doble |
+| `_inherits_fk_for` devuelve el primero | dependencia |
+| `_delegated_origin` sin leer el registro | los dos de `create` |
+
+Restaurado con `cmp`. Un fallo inicial fue de la prueba, no del código: un
+`Char` vacío se lee `False` en este ORM, como en la referencia.
