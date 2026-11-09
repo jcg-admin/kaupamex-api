@@ -1,0 +1,13 @@
+RED — tests/unit/orm/test_parent_path_check.py, antes de tocar src:
+
+FAILED test_child_of_on_menus_follows_the_materialized_path
+       FieldError: Cannot resolve keyword 'parent_path' into field
+FAILED test_reparenting_rewrites_the_path_of_the_subtree
+       FieldError: Cannot resolve keyword 'parent_path' into field
+FAILED test_the_menu_model_passes_the_parent_path_check
+       AttributeError: 'IrUiMenu' has no attribute '_check_parent_path'
+FAILED test_the_check_names_a_missing_parent_path
+       AttributeError: 'ParentPathProbe0' has no attribute '_check_parent_path'
+FAILED test_the_check_asks_for_an_index
+       AttributeError: 'ParentPathProbe1' has no attribute '_check_parent_path'
+5 failed
