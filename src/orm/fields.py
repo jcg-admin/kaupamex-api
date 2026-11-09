@@ -1913,8 +1913,15 @@ class FieldDescriptor(DeferredAttribute):
         record_id = instance.pk
         cache_id = _field_cache_record_id(field, instance)
         if isinstance(cache_id, NewId):
-            field._update_cache((cache_id,), field.convert_to_cache(
-                value, instance, validate=False))
+            cache_value = field.convert_to_cache(value, instance,
+                                                 validate=False)
+            # ``Many2one.write`` (``:400-424``): el registro sale de las
+            # líneas de su corregistro anterior y entra en las del nuevo.
+            if isinstance(field, models.ForeignKey):
+                field._remove_inverses((cache_id,), cache_value)
+            field._update_cache((cache_id,), cache_value)
+            if isinstance(field, models.ForeignKey):
+                field._update_inverses((cache_id,), cache_value)
 
         if environment.is_protected(field, record_id):
             # ``:1819-1822`` — fila en cómputo: sin lógica de negocio y sin

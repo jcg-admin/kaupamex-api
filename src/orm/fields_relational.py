@@ -2566,3 +2566,52 @@ for _relational_class in (models.ForeignKey, models.ManyToManyField,
         _relational_internal_description_domain_raw)
 One2many._internal_description_domain_raw = (
     _one2many_internal_description_domain_raw)
+
+
+def _many2one_remove_inverses(self, records, value):
+    """Saca ``records`` de las líneas en caché de su corregistro actual — ≙
+    ``Many2one._remove_inverses`` (``odoo19c: odoo/orm/fields_relational.py:
+    426-447``).
+
+    Las líneas viven en la caché de la relación inversa, la que leen el
+    One2many declarado y el descriptor inverso para un dueño de ``new()``.
+    Divergencia declarada: los One2many declarados sobre este Many2one
+    comparten esa clave, así que el ``domain`` de cada uno no separa sus
+    líneas como en la fuente.
+    """
+    if not field_inverses[self]:
+        return
+    environment = get_environment()
+    field_cache = self._get_cache(environment)
+    lines = environment.transaction.field_data[self.remote_field]
+    ids = set(record_ids(records))
+    for record_id in ids:
+        coid = field_cache.get(record_id)
+        if coid is None:
+            continue
+        ids0 = lines.get(coid)
+        if ids0 is not None:
+            lines[coid] = tuple(id_ for id_ in ids0 if id_ not in ids)
+
+
+def _many2one_update_inverses(self, records, value):
+    """Añade ``records`` a las líneas en caché del corregistro ``value`` — ≙
+    ``Many2one._update_inverses`` (``:449-463``): si hay líneas en caché, o si
+    el corregistro es nuevo y no hay de dónde leerlas.
+    """
+    if value is None or not field_inverses[self]:
+        return
+    comodel = self.related_model
+    if not hasattr(comodel, '_from_ids'):
+        return
+    environment = get_environment()
+    rel = self.remote_field
+    ids0 = environment.transaction.field_data[rel].get(value)
+    if ids0 is not None or not value:
+        corecord = comodel._from_ids(environment, (value,), (value,))
+        rel._update_cache(corecord, tuple(unique(
+            (ids0 or ()) + tuple(record_ids(records)))))
+
+
+models.ForeignKey._remove_inverses = _many2one_remove_inverses
+models.ForeignKey._update_inverses = _many2one_update_inverses
