@@ -49,8 +49,8 @@ Los 45 simbolos estan en forma; uno solo no corre.
      - Estado
    * - ``AccountInvoiceReport``
      - 33 atributos (6 de clase de modelo + 27 campos) + 5 metodos
-     - portado; ``_read_group_select`` BLOQUEADO por ``read_group`` — el
-       override no tiene despachador base al que engancharse.
+     - portado; ``_read_group_select`` BLOQUEADO por ``BaseModel`` — ahí
+       vive ``read_group`` y este modelo de Django no lo hereda.
    * - ``ReportAccountReportInvoice``
      - 3 de la fuente (``_name``, ``_description``, 1 metodo) -> 2 aqui
        (``REPORT_NAME`` colapsa los dos primeros + 1 metodo)
@@ -79,10 +79,13 @@ divisas viven en ``addons/account/models/res_currency.py`` y
 ``_where`` son hoy el porte verbatim de la fuente.
 
 **Lo que sigue sin correr, y su dueno cambio.** ``_read_group_select`` esta
-BLOQUEADO por ``read_group`` — la fuente
-llama ``super()._read_group_select(...)`` para todo agregado que no sea
-``price_average``. Medido: **0 declaraciones** de ``read_group`` en
-``src/orm``. Lo que NO lo bloquea es ``_field_to_sql`` -- ese si existe
+BLOQUEADO por ``BaseModel`` — la fuente llama
+``super()._read_group_select(...)`` para todo
+agregado que no sea ``price_average``. ``read_group`` y
+``_read_group_select`` existen desde las unidades 2 y 6d de ``read_group``,
+pero en ``BaseModel``, y este modelo es un ``models.Model`` de Django que no
+lo hereda: su ``super()`` no tiene a quien llamar. Lo que NO lo bloquea es
+``_field_to_sql`` -- ese si existe
 (``src/orm/models.py:1388``, misma firma que la fuente), asi que la cita a
 la tarea #291 que este docstring hacia era falsa. Sucesor correcto: tarea
 **#473**.
@@ -539,21 +542,21 @@ class AccountInvoiceReport(models.Model):
     def _read_group_select(self, aggregate_spec, query):
         """≙ ``_read_group_select`` (``odoo19c: :149-156``).
 
-        BLOQUEADO por ``read_group`` — el bloqueo cambió de dueño.
-        ``_field_to_sql`` **sí**
-        existe aquí (``src/orm/models.py:1388``, misma firma que la fuente),
-        así que la cita anterior a la tarea #291 era falsa. Lo que falta es el
-        método al que este override se engancha: ``read_group`` no existe en
-        ``src/orm`` — medido, 0 declaraciones. Sin el despachador base, la
-        rama ``super()._read_group_select(...)`` de la fuente no tiene a
-        quién llamar y el override no tiene quién lo invoque.
+        BLOQUEADO por ``BaseModel`` — el bloqueo cambió de dueño otra
+        vez. ``_field_to_sql`` **sí** existe aquí (``src/orm/models.py:1388``,
+        misma firma que la fuente), así que la cita anterior a la tarea #291
+        era falsa. ``read_group`` y ``_read_group_select`` existen también,
+        pero son métodos de ``BaseModel``, y ``account.invoice.report`` es un
+        ``models.Model`` de Django que no lo hereda: la rama
+        ``super()._read_group_select(...)`` de la fuente no tiene a quién
+        llamar y el override no tiene quién lo invoque.
 
         Sucesor: tarea **#473** (completar la superficie ``read_group``).
         """
         raise NotImplementedError(
-            'AccountInvoiceReport._read_group_select esta BLOQUEADO por '
-            '``read_group`` — el override necesita ese despachador base, y '
-            'src/orm no lo declara (medido: 0 def read_group). _field_to_sql '
+            'AccountInvoiceReport._read_group_select esta BLOQUEADO: '
+            '``read_group`` y su despachador existen en BaseModel, y este '
+            'modelo de Django no lo hereda. _field_to_sql '
             'si existe (src/orm/models.py:1388). Sucesor: tarea #473.'
         )
 

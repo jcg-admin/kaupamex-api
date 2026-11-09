@@ -6,8 +6,8 @@ Cubre ``addons/account/report/account_invoice_report.py`` (tareas #398 y
 **Actualizado con el porte de #511.** El docstring decia que la cadena de
 bloqueo eran ``ResCurrency._get_simple_currency_table`` y ``_field_to_sql``:
 las dos piezas existen hoy, asi que la afirmacion es falsa. El unico metodo
-que sigue bloqueado es ``_read_group_select``, y por el ``read_group`` base
-que ``src/orm`` no declara (tarea #473).
+que sigue bloqueado es ``_read_group_select``: ``read_group`` existe en
+``BaseModel`` y este modelo de Django no lo hereda (tarea #473).
 
 La forma del SQL que los cuatro productores emiten se mide en
 ``test_account_invoice_report_sql.py``; aqui se cubre la forma del modelo
@@ -192,7 +192,8 @@ class TestBlockedQueryMethods:
             instance._read_group_select('price_average:avg', query=None)
         mensaje = str(excinfo.value)
         # El bloqueo cambió de dueño: _field_to_sql SÍ existe
-        # (src/orm/models.py:1388); lo que falta es el read_group base.
+        # (src/orm/models.py:1388), y read_group existe en BaseModel, que
+        # este modelo de Django no hereda.
         assert 'read_group' in mensaje
         assert '_field_to_sql si existe' in mensaje
 

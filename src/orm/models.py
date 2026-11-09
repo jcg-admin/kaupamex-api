@@ -2178,6 +2178,11 @@ def _delegated_origin(model, name):
 NO_ACCESS = '.'
 
 
+#: ≙ ``regex_field_agg`` (``odoo19c: odoo/orm/models.py:112``), verbatim.
+#: Parte una especificación de campo de ``read_group``: ``campo``,
+#: ``campo:func`` o ``nombre:func(campo)``.
+regex_field_agg = re.compile(r'(\w+)(?::(\w+)(?:\((\w+)\))?)?')
+
 #: ≙ ``regex_read_group_spec`` (``odoo19c: odoo/orm/models.py:113``), verbatim.
 #: Parte una especificación de agrupamiento en sus tres piezas: el campo, el
 #: nombre de propiedad opcional tras el punto, y el agregado o granularidad
@@ -7288,6 +7293,156 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                 row['__domain'] &= Domain(additional_domain)
         for row in rows_dict:
             row['__domain'] = list(row['__domain'])
+
+    @api.readonly
+    @api.deprecated(
+        "Since 19.0, read_group is deprecated. Please use _read_group in "
+        "the backend code or formatted_read_group for a complete formatted "
+        "result")
+    def read_group(self, domain, fields, groupby, offset=0, limit=None,
+                   orderby=False, lazy=True):
+        """Obsoleto — la lista de registros agrupada por ``groupby``.
+
+        ≙ ``BaseModel.read_group`` (``odoo19c: odoo/orm/models.py:2746-2878``).
+        La fuente lo declara obsoleto desde 19.0: el código del servidor usa
+        :meth:`_read_group` y quien necesita el resultado formateado,
+        ``formatted_read_group``.
+
+        :param list domain: dominio de búsqueda; ``[]`` para todos.
+        :param list fields: ``campo`` (agregado por defecto), ``campo:agg`` o
+            ``nombre:agg(campo)``.
+        :param list groupby: especificaciones de agrupado; una fecha sin
+            granularidad agrupa por mes.
+        :param int offset: grupos que se saltan.
+        :param int limit: máximo de grupos.
+        :param str orderby: el orden, sobre grupos y agregados.
+        :param bool lazy: con ``True`` agrupa sólo por el primer ``groupby``
+            y deja el resto en ``__context``; con ``False``, por todos.
+        :return: una lista de dicts con los valores de grupo, los agregados,
+            ``<campo>_count`` o ``__count``, ``__domain``, ``__context`` y,
+            para fechas, ``__range``.
+        :raise AccessError: si el usuario no puede leer el modelo.
+        """
+        groupby = [groupby] if isinstance(groupby, str) else groupby
+        lazy_groupby = groupby[:1] if lazy else groupby
+
+        # Capa de compatibilidad con _read_group, que la fuente prevé retirar
+        # en la segunda parte de su refactor:
+        # - 'month' por defecto en el groupby de fechas
+        # - fields como especificación de agregados de _read_group
+        # - el orden compatible con la especificación de _read_group
+        groupby = [groupby] if isinstance(groupby, str) else groupby
+        lazy_groupby = groupby[:1] if lazy else groupby
+
+        # clave: nombre en el resultado; valor: el groupby explícito
+        annotated_groupby = {}
+        for group_spec in lazy_groupby:
+            field_name, property_name, granularity = parse_read_group_spec(
+                group_spec)
+            if field_name not in self._fields:
+                raise ValueError(
+                    f"Invalid field {field_name!r} on model {self._name!r}")
+            field = self._fields[field_name]
+            if property_name and field.type != 'properties':
+                raise ValueError(
+                    f"Property name {property_name!r} has to be used on a "
+                    "property field.")
+            if field.type in ('date', 'datetime'):
+                annotated_groupby[group_spec] = (
+                    f"{field_name}:{granularity or 'month'}")
+            else:
+                annotated_groupby[group_spec] = group_spec
+
+        # clave: nombre en el resultado; valor: el agregado explícito
+        annotated_aggregates = {
+            f"{lazy_groupby[0].split(':')[0]}_count"
+            if lazy and len(lazy_groupby) == 1 else '__count': '__count',
+        }
+        for field_spec in fields:
+            if field_spec == '__count':
+                continue
+            match = regex_field_agg.match(field_spec)
+            if not match:
+                raise ValueError(
+                    f"Invalid field specification {field_spec!r}.")
+            name, func, fname = match.groups()
+
+            if fname:  # la forma "field_min:min(field)"
+                annotated_aggregates[name] = f"{fname}:{func}"
+                continue
+            if func:  # la forma "field:min"
+                annotated_aggregates[name] = f"{name}:{func}"
+                continue
+
+            if name not in self._fields:
+                raise ValueError(
+                    f"Invalid field {name!r} on model {self._name!r}")
+            field = self._fields[name]
+            if (field.base_field.store and field.base_field.column_type
+                    and field.aggregator
+                    and field_spec not in annotated_groupby):
+                annotated_aggregates[name] = f"{name}:{field.aggregator}"
+
+        if orderby:
+            new_terms = []
+            for order_term in orderby.split(','):
+                order_term = order_term.strip()
+                for key_name, annotated in itertools.chain(
+                        reversed(annotated_groupby.items()),
+                        annotated_aggregates.items()):
+                    key_name = key_name.split(':')[0]
+                    if (order_term.startswith(f'{key_name} ')
+                            or key_name == order_term):
+                        order_term = order_term.replace(key_name, annotated)
+                        break
+                new_terms.append(order_term)
+            orderby = ','.join(new_terms)
+        else:
+            orderby = ','.join(annotated_groupby.values())
+
+        domain = Domain(domain)
+        rows = self._read_group(
+            domain, annotated_groupby.values(), annotated_aggregates.values(),
+            offset=offset, limit=limit, order=orderby)
+        rows_dict = [
+            dict(zip(itertools.chain(annotated_groupby, annotated_aggregates),
+                     row))
+            for row in rows
+        ]
+
+        fill_temporal = self.env.context.get('fill_temporal')
+        if (lazy_groupby and (rows_dict and fill_temporal)
+                or isinstance(fill_temporal, dict)):
+            # fill_temporal = {} equivale a fill_temporal = True. Con un
+            # dict y sin datos puede quererse mostrar columnas vacías, así
+            # que se aplica igual.
+            if not isinstance(fill_temporal, dict):
+                fill_temporal = {}
+            # TODO de la fuente: no debería ser posible con un límite
+            rows_dict = self._read_group_fill_temporal(
+                rows_dict, lazy_groupby,
+                annotated_aggregates, **fill_temporal,
+            )
+
+        if lazy_groupby and lazy:
+            # read_group sólo rellena resultados en modo lazy (el defecto).
+            # Para tener los grupos vacíos en modo eager habría que
+            # reimplementar _read_group_fill_results por completo.
+            # TODO de la fuente: no debería ser posible con un límite, o el
+            # límite debería tenerse en cuenta.
+            rows_dict = self._read_group_fill_results(
+                domain, lazy_groupby[0],
+                annotated_aggregates, rows_dict, read_group_order=orderby,
+            )
+
+        for row in rows_dict:
+            row['__domain'] = domain
+            if len(lazy_groupby) < len(groupby):
+                row['__context'] = {'group_by': groupby[len(lazy_groupby):]}
+
+        self._read_group_format_result(rows_dict, lazy_groupby)
+
+        return rows_dict
 
     # === búsqueda =======================================================
 
