@@ -78,3 +78,28 @@ gates / Previously valid evidence / Uncovered risks
 `settle_item.py` exige sólo el `verify` de la unidad; ningún mecanismo de
 Thyrox obliga a la suite completa por unidad. No hay cambio de Provider que
 canalizar a VM-A por este punto.
+
+## Worktree de gate: el clon se reconoce por su nombre y sus hermanos
+
+Medido sobre `983f06bc` (2026-11-09): la suite de nivel 3 dio
+`2 failed, 12288 passed, 5 errors`. Los 5 errores son los de
+`test_multidb_isolation` que se repiten en todas las ejecuciones `-n 4`
+anteriores (los cubre `make ci-multidb`, que salió `EXIT=0`). Los 2 fallos son
+de `tests/unit/scripts/test_check_workbench.py` y vienen del sitio del
+worktree, no del código:
+
+- `thyrox: src/workbench/paths.py::workbench_dir` elige la clave por clon con
+  `repo_of`, que recorta el prefijo `kaupamex-` derivado **por mayoría de los
+  clones hermanos**. Un worktree en el scratchpad no tiene hermanos: su clave
+  sale `THYROX_WORKBENCH_KAUPAMEX_API` (o `..._API_GATE_983F06BC` si el
+  directorio no se llama `kaupamex-api`) y el `.env` no la declara.
+- Sin `thyrox` como hermano, `check_workbench.thyrox_root()` rehúsa con exit 2.
+
+Control: en el mismo worktree, `THYROX_ROOT=/home/user/thyrox
+THYROX_CLONE_PREFIX=kaupamex-` da `20 passed`; sin el prefijo, los mismos 2
+fallos.
+
+Forma del worktree de gate desde ahora:
+`git worktree add --detach $S/gate-<rev>/kaupamex-api <rev>`, con `src/.env` y
+`.env` copiados, y el nivel 3 lanzado con `THYROX_ROOT=/home/user/thyrox
+THYROX_CLONE_PREFIX=kaupamex-`.
