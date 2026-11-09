@@ -1,0 +1,5 @@
+RED — tests/unit/orm/test_company_dependent_partial_index.py, antes de tocar src:
+
+FAILED test_the_table_carries_the_partial_expression_index[res.partner-barcode]
+FAILED test_the_table_carries_the_partial_expression_index[account.analytic.plan-default_applicability]
+2 failed — ninguna de las dos tablas tiene índice sobre la columna.
