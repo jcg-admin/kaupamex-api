@@ -52,3 +52,12 @@ intermedia. Hace falta construir antes el M2M sin columna —descriptor,
 caché, `search` cableado al traductor—, que es una unidad del ORM con su
 propio contrato. Queda bajo TASK-API-0485; los dos escenarios van en
 `OPEN` del espejo con esta referencia.
+
+## Control de anulación (medido tras la puerta multidb de `f7cbd1fe`)
+
+`all_implied_ids` devolviendo sólo el propio grupo tumba exactamente
+`A all_implied` y `after cutting B-C`. `user all_group_ids` no cae: el
+usuario calcula su propia clausura (`res_users.py:1549`) en vez de leer
+`group_ids.all_implied_ids` como la referencia (`res_users.py:449`). Dos
+caminos para el mismo cálculo: se unifican en la unidad del M2M sin columna.
+Restaurado con `cmp`.
