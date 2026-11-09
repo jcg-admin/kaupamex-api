@@ -38,3 +38,17 @@ Referencia: `odoo-tools@abe4040ec1a45beee90fb694e4eae4453e46b389`, Odoo 19 Commu
 3. **`Many2one.write`:** `_remove_inverses`/`_update_inverses` sobre la
    caché de los corregistros nuevos (los reales se leen de la base aquí, así
    que no tienen caché que ajustar: divergencia de mecanismo declarada).
+
+## Paso 3, concreto
+
+- La asignación de un registro nuevo pasa por `FieldDescriptor.__set__`
+  (`src/orm/fields.py:1912-1915`), que escribe la caché del `NewId` **antes**
+  de `field.write`; ahí se pierde el corregistro anterior. El ajuste va
+  alrededor de esa escritura: `_remove_inverses` antes, `_update_inverses`
+  después, para un `ForeignKey`.
+- La caché de las líneas es `field_data[self.remote_field]`, la misma de los
+  pasos 1 y 2.
+- **Divergencia declarada:** los One2many declarados sobre el mismo Many2one
+  comparten esa clave, así que el `domain` de cada uno
+  (`invf.get_comodel_domain`, `:453`) no se aplica a las líneas de un dueño
+  nuevo. La referencia guarda una caché por campo.

@@ -1,0 +1,8 @@
+RED — tests/unit/orm/test_many2one_write_inverses.py, antes de tocar src
+(con H-API-1202 ya aplicado):
+
+FAILED test_assigning_a_new_owner_adds_the_line
+       assert () == (<NewId ...>,)
+FAILED test_moving_the_line_removes_it_from_the_previous_owner
+       assert (<NewId ...>,) == ()
+2 failed — la asignación del Many2one no toca la caché del One2many.
