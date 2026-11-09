@@ -210,7 +210,8 @@ Divergencias declaradas — de mecanismo, no de alcance
    fuente usa ``self._read_group(groupby=['vat'],
    aggregates=['id:recordset'])``;
    medido, este árbol no declara ese agregador
-   (``grep -rc "def _read_group" --include=*.py src/orm/`` da **0**). El
+   (``grep -rc "def _read_group(" --include=*.py src/orm/`` da **0**; sus
+   piezas ``_read_group_select`` y ``_read_group_having`` sí existen). El
    equivalente es un ``filter(vat__in=…)`` por VAT, que produce la misma
    partición: los partners de cada VAT reciben su estado.
 4. **El endpoint de VIES es un servicio de Odoo S.A.** ``vies.api.odoo.com`` /
