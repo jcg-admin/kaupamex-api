@@ -1773,3 +1773,6 @@
 {"id": "c-ec120d50-d3b1-467a-83c0-8daab20d8559", "op": "claim", "path": "src/orm/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:15.000Z", "task": "TASK-API-0485"}
 {"id": "c-8a73d8c6-5b1e-4239-8672-596ad8130cdc", "op": "claim", "path": "addons/web/models/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:15.000Z", "task": "TASK-API-0485"}
 {"id": "c-316dda3a-9c52-4d58-afa1-8a274f38ac3c", "op": "claim", "path": "tests/unit/orm/test_apply_onchange_methods.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:15.000Z", "task": "TASK-API-0485"}
+{"id": "c-3f9f2d2d-c865-4c07-bf4e-6a7bbaca6abc", "op": "release", "path": "src/orm/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:47.000Z", "task": "TASK-API-0485"}
+{"id": "c-68c2b8b4-bf69-434d-8bf7-2f909df33381", "op": "release", "path": "addons/web/models/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:47.000Z", "task": "TASK-API-0485"}
+{"id": "c-72b518af-8039-46b6-8cb1-4a2866255853", "op": "release", "path": "tests/unit/orm/test_apply_onchange_methods.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:47.000Z", "task": "TASK-API-0485"}
