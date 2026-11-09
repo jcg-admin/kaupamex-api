@@ -102,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 78,
+  "task_units_settled": 83,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1464
+  "task_without_unit": 1459
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -269,7 +269,8 @@
   "orm-one2many-new-records-0485",
   "orm-many2one-write-inverses-0485",
   "orm-apply-onchange-methods-0485",
-  "orm-one2many-domain-new-records-0485"
+  "orm-one2many-domain-new-records-0485",
+  "tools-sql-reference-shape-0486"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
