@@ -947,6 +947,13 @@
         "orm-one2many-domain-new-records-0485"
       ],
       "writtenAt": "2026-11-09T18:13:35Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "tools-sql-reference-shape-0486"
+      ],
+      "writtenAt": "2026-11-09T19:07:47Z"
     }
   ]
 }
