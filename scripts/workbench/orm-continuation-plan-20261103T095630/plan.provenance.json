@@ -905,6 +905,13 @@
         "orm-field-index-btree-0485"
       ],
       "writtenAt": "2026-11-09T09:14:47Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-company-dependent-index-0485"
+      ],
+      "writtenAt": "2026-11-09T09:53:31Z"
     }
   ]
 }
