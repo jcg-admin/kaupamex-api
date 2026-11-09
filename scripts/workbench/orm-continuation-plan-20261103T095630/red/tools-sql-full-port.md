@@ -53,3 +53,21 @@ cuya sentencia contenedora cambió, se corrigieron en el tramo de la unidad.
 ## Regresión de impacto (nivel 2)
 
 Directorios de la matriz: `-n 4` → 7631 passed, 39 skipped, 4 xfailed, EXIT=0.
+
+## Nivel 3 — suite completa sobre `983f06bc` (worktree inmutable)
+
+12288 passed, 2 failed, 66 skipped, 4 xfailed, 5 errors.
+
+- Los 5 errores son los conocidos de `test_multidb_isolation` sobre la base
+  compartida; su gate es multidb.
+- Los 2 fallos (`tests/unit/scripts/test_check_workbench.py::TestRequiredKeys::
+  test_it_reads_the_five_from_the_schema` y `::TestBenchRoot::
+  test_the_root_comes_from_the_declared_constant`) son del **worktree**, no del
+  porte: `scripts/check_workbench.py` resuelve el banco con
+  `THYROX_WORKBENCH_API`, declarado en el `.env` de la raíz del clon, que no
+  está versionado y no se copió al worktree. Las dos pasan en el checkout de
+  trabajo (2 passed); ni `check_workbench.py` ni esas pruebas cambian en esta
+  unidad.
+
+Corrección del procedimiento: un worktree de gate lleva copia de `.env` de la
+raíz y de `src/.env`.
