@@ -8492,6 +8492,95 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             self.filtered(lambda record: record.id)._validate_fields(fnames)
 
     @_on_empty_recordset
+    def _parent_store_update_prepare(self, vals_list):
+        """Los registros de ``self`` que deben reescribir su ``parent_path``.
+
+        ≙ ``BaseModel._parent_store_update_prepare`` (``odoo19c:
+        odoo/orm/models.py:4985-5018``). Docstring de la fuente: *"Return the
+        records in self that must update their parent_path field. This must
+        be called before updating the parent field."*
+
+        Adaptación declarada: ``id = ANY(%s)`` con una lista en vez de
+        ``"id" IN %s`` con una tupla — psycopg 3 adapta una lista a un
+        arreglo y no expande una tupla (la misma de
+        :func:`_parent_store_create`).
+        """
+        if not self._parent_store:
+            return self.browse()
+
+        # cada padre nuevo con los ids que lo reciben
+        parent_to_ids = collections.defaultdict(list)
+        for id_, vals in zip(self._ids, vals_list):
+            if self._parent_name in vals:
+                parent_to_ids[vals[self._parent_name]].append(id_)
+
+        if not parent_to_ids:
+            return self.browse()
+
+        self.flush_recordset([self._parent_name])
+
+        # los registros cuyo padre cambia de verdad
+        sql_parent = SQL.identifier(_parent_column(type(self)))
+        conditions = []
+        for parent_id, ids in parent_to_ids.items():
+            if parent_id:
+                condition = SQL('(%s != %s OR %s IS NULL)', sql_parent,
+                                parent_id, sql_parent)
+            else:
+                condition = SQL('%s IS NOT NULL', sql_parent)
+            conditions.append(SQL('("id" = ANY(%s) AND %s)', list(ids),
+                                  condition))
+
+        rows = self.env.execute_query(SQL(
+            "SELECT id FROM %s WHERE %s ORDER BY id",
+            SQL.identifier(self._table),
+            SQL(" OR ").join(conditions),
+        ))
+        return self.browse(row[0] for row in rows)
+
+    def _parent_store_update(self):
+        """Reescribe el ``parent_path`` de ``self`` y de sus descendientes.
+
+        ≙ ``BaseModel._parent_store_update`` (``odoo19c:
+        odoo/orm/models.py:5020-5054``): por cada padre, el prefijo nuevo es
+        su ``parent_path``; un padre que ya cuelga de alguno de los registros
+        es una recursión. Adaptación declarada: ``= ANY(%s)`` como en
+        :meth:`_parent_store_update_prepare`.
+        """
+        for parent, records in self.grouped(self._parent_name).items():
+            # el prefijo nuevo de parent_path
+            prefix = parent.parent_path or ""
+
+            # recursión
+            if prefix:
+                parent_ids = {int(label) for label in prefix.split('/')[:-1]}
+                if not parent_ids.isdisjoint(records._ids):
+                    raise UserError(self.env._("Recursion Detected."))
+
+            # parent_path de los registros y sus descendientes
+            updated = dict(self.env.execute_query(SQL(
+                """ UPDATE %(table)s child
+                    SET parent_path = concat(%(prefix)s,
+                        substr(child.parent_path,
+                               length(node.parent_path)
+                               - length(node.id || '/') + 1))
+                    FROM %(table)s node
+                    WHERE node.id = ANY(%(ids)s)
+                    AND child.parent_path LIKE concat(node.parent_path,
+                                                      %(wildcard)s)
+                    RETURNING child.id, child.parent_path """,
+                table=SQL.identifier(self._table),
+                prefix=prefix,
+                ids=list(records.ids),
+                wildcard='%',
+            )))
+            # el caché de los nodos reescritos, y lo que hay que recalcular
+            field = self._fields['parent_path']
+            for id_, path in updated.items():
+                field._update_cache(self.browse(id_), path)
+            records = self.browse(updated)
+            records.modified(['parent_path'])
+
     def _parent_store_compute(self):
         """ Compute parent_path field from scratch. — ≙
         ``_parent_store_compute`` (``odoo19c: odoo/orm/models.py:3071-3105``)
