@@ -24,6 +24,9 @@ Lo que la referencia fija, medido:
 *Ciega a:* ``groups`` en el campo, que exige los modelos de prueba con
 ``groups=`` y es otra unidad; y a la escritura.
 """
+import json
+import pathlib
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -34,6 +37,16 @@ from orm.environments import env as current_env
 from orm.environments import get_current_user, sudo, user_scope
 from orm.registry import MODELS_BY_NAME
 from tests.fixtures import reference_process
+
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+#: Observación de referencia con su procedencia, en el Workbench de la
+#: iniciativa: es la autoridad del párrafo de acceso implícito. Esta prueba
+#: no importa ni ejecuta la referencia para obtenerlo.
+IMPLICIT_OBSERVATION = (
+    ROOT / 'scripts/workbench/orm-continuation-plan-20261103T095630'
+    / 'reference/observations/inherited-implicit-access-message.json')
+#: Clave reservada del resultado propio: el párrafo por escenario.
+IMPLICIT = '__implicit__'
 
 pytestmark = [pytest.mark.reference, pytest.mark.django_db]
 
@@ -197,6 +210,13 @@ def _written(records, values):
     return 'ok'
 
 
+def implicit_paragraph(error):
+    """El último párrafo del mensaje si nombra el acceso implícito."""
+    message = str(error.args[0]) if error.args else ''
+    last = message.split('\n\n')[-1]
+    return last if last.startswith('Implicitly accessed through') else None
+
+
 class _Rollback(Exception):
     """Deshace el escenario: cada uno parte del mismo estado."""
 
@@ -206,7 +226,7 @@ def _ours():
         login='access-root', password=None, name='access-root')
     with user_scope(actor.pk), sudo():
         ids = _seed()
-    result = {}
+    result, implicit = {}, {}
     with user_scope(ids['user']):
         env = current_env()
         for label, read in _scenarios(env, ids):
@@ -219,14 +239,17 @@ def _ours():
                 # silent OK because la excepción sólo deshace el escenario:
                 # el resultado ya quedó registrado antes de levantarla.
                 pass
-            except AccessError:
+            except AccessError as error:
                 # ``AccessError`` es aquí el alias de ``PermissionDenied``
                 # (``src/exceptions.py``): se compara la clase, no el nombre.
                 result[label] = 'AccessError'
+                implicit[label] = implicit_paragraph(error)
             except Exception as error:
                 # Cualquier otro rechazo se registra por su tipo: la
                 # comparación lo distingue del valor y de AccessError.
                 result[label] = type(error).__name__
+                implicit[label] = implicit_paragraph(error)
+    result[IMPLICIT] = implicit
     return result
 
 
@@ -239,12 +262,43 @@ def reference_result():
 
 def test_the_reads_match_the_reference(reference_result):
     ours = _ours()
+    ours.pop(IMPLICIT)
     assert list(ours) == list(reference_result)
     differences = {label: (reference_result[label], ours[label])
                    for label in ours
                    if label not in OPEN
                    and ours[label] != reference_result[label]}
     assert differences == {}
+
+
+def _observed_paragraphs():
+    observation = json.loads(IMPLICIT_OBSERVATION.read_text())
+    return {label: entry['implicit_paragraph']
+            for label, entry in observation['observed'].items()
+            if 'exception' in entry}
+
+
+def test_the_implicit_access_paragraph_matches_the_reference():
+    """≙ ``_compute_related`` (``odoo19c: odoo/orm/fields.py:696-712``) y
+    ``write`` (``odoo/orm/models.py:4500-4510``): un ``AccessError`` que
+    llega a través de un campo heredado nombra el modelo por el que se
+    accedió. Se compara el párrafo, escenario por escenario, contra la
+    observación registrada en el Workbench."""
+    ours = _ours()[IMPLICIT]
+    theirs = _observed_paragraphs()
+    assert sorted(set(ours) - set(OPEN)) == sorted(set(theirs) - set(OPEN))
+    differences = {label: (theirs[label], ours[label]) for label in ours
+                   if label not in OPEN and ours[label] != theirs[label]}
+    assert differences == {}
+
+
+def test_the_observation_names_the_implicit_access():
+    """Control: si la observación no trajera el párrafo, la comparación de
+    arriba pasaría con ``None`` en los dos lados."""
+    implicit = _observed_paragraphs()
+    assert implicit['users inherited street'] == (
+        "Implicitly accessed through 'User' (res.users).")
+    assert implicit['child forbidden own key'] is None
 
 
 def test_the_open_differences_are_still_open(reference_result):

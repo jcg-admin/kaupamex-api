@@ -1,0 +1,102 @@
+{
+  "contract": "inherited-implicit-access-message",
+  "reference_identity": "Odoo 19 Community (odoo/release.py:15 version_info=(19, 0, 0, FINAL, 0, \"\"))",
+  "reference_revision": "odoo-tools@abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "source_locations": [
+    "odoo/orm/fields.py:696-712",
+    "odoo/orm/models.py:4500-4510",
+    "odoo/addons/test_access_rights/tests/test_feedback.py:388-395"
+  ],
+  "execution_environment": "reference_process.run_script: interpreter CONTRACT_REFERENCE_PYTHON -I -B, database orm_refproc_test_orm",
+  "input_scenario": "tests/fixtures/reference_access_on_read.py seed and scenarios (copied into the driver)",
+  "driver": "scripts/workbench/orm-continuation-plan-20261103T095630/reference/provenance/probe_implicit_access_message.py",
+  "execution_status": "executed",
+  "executed_at": "2026-11-09T04:49:38",
+  "observed": {
+    "direct allowed": {
+      "value": "'visible'"
+    },
+    "direct forbidden": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "direct forbidden as superuser": {
+      "value": "'secret'"
+    },
+    "mixed records": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "child allowed inherited": {
+      "value": "'visible'"
+    },
+    "child forbidden inherited": {
+      "exception": "AccessError",
+      "implicit_paragraph": "Implicitly accessed through 'test_orm.related_inherits' (test_orm.related_inherits)."
+    },
+    "child forbidden inherited related": {
+      "exception": "AccessError",
+      "implicit_paragraph": "Implicitly accessed through 'test_orm.related_inherits' (test_orm.related_inherits)."
+    },
+    "child forbidden own key": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "child forbidden through key": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "child search count": {
+      "value": "1"
+    },
+    "users redeclared name": {
+      "value": "'secret-partner'"
+    },
+    "users redeclared email": {
+      "value": "'other@x.test'"
+    },
+    "users inherited street": {
+      "exception": "AccessError",
+      "implicit_paragraph": "Implicitly accessed through 'User' (res.users)."
+    },
+    "users own login": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "current user inherited street": {
+      "value": "'other street'"
+    },
+    "write allowed child inherited": {
+      "value": "'ok'"
+    },
+    "write forbidden child inherited": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "write without parent access inherited": {
+      "exception": "AccessError",
+      "implicit_paragraph": "Implicitly accessed through 'test_orm.related_inherits' (test_orm.related_inherits)."
+    },
+    "write without parent access own key": {
+      "value": "'ok'"
+    },
+    "create child inherited": {
+      "value": "'born'"
+    },
+    "create without parent create access": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "create with parent key without parent write": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    },
+    "create with parent key only": {
+      "value": "'visible'"
+    },
+    "create with forbidden parent key": {
+      "exception": "AccessError",
+      "implicit_paragraph": null
+    }
+  }
+}

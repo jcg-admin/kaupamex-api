@@ -1,0 +1,13 @@
+tests/unit/orm/test_contract_access_on_read_reference.py::test_the_implicit_access_paragraph_matches_the_reference FAILED [ 50%]
+E   assert {'child forbi...its).', None)} == {}
+E     Left contains 4 more items:
+E     {'child forbidden inherited': ('Implicitly accessed through '
+E                                    "'test_orm.related_inherits' "
+E                                    '(test_orm.related_inherits).',
+E                                    None),
+E      'child forbidden inherited related': ('Implicitly accessed through '
+E                                            "'test_orm.related_inherits' "...
+E     
+E     ...Full output truncated (26 lines hidden), use '-vv' to show
+FAILED tests/unit/orm/test_contract_access_on_read_reference.py::test_the_implicit_access_paragraph_matches_the_reference
+============ 1 failed, 1 passed, 3 deselected, 2 warnings in 6.43s =============
