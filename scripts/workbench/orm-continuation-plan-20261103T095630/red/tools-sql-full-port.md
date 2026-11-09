@@ -71,3 +71,16 @@ Directorios de la matriz: `-n 4` → 7631 passed, 39 skipped, 4 xfailed, EXIT=0.
 
 Corrección del procedimiento: un worktree de gate lleva copia de `.env` de la
 raíz y de `src/.env`.
+
+**Corregido el 2026-11-09.** Copiar el `.env` no bastó: con la copia los dos
+casos seguían fallando. La clave por clon depende del prefijo `kaupamex-`, que
+se deriva de los clones hermanos, y `thyrox` tiene que ser alcanzable. Con
+`THYROX_ROOT=/home/user/thyrox THYROX_CLONE_PREFIX=kaupamex-` sobre el mismo
+`983f06bc`: 20 passed. Detalle en
+`designs/verification-and-publication-operations.md`, sección «Worktree de
+gate».
+
+## Puerta multidb y asentamiento
+
+`make ci-multidb` sobre `983f06bc`: `pytest_exit 0`, EXIT=0. Asentada como
+`tools-sql-reference-shape-0486` (`api@1f1e76c8`, verify=0, 103 passed).
