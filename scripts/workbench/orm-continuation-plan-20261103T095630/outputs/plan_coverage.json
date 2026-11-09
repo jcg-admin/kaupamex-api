@@ -259,7 +259,8 @@
   "base-created-at-ties-and-log-sweep-0485",
   "base-inherits-implicit-access-message-0182",
   "orm-transient-transaction-clock-0485",
-  "base-group-closures-searchable-0485"
+  "base-group-closures-searchable-0485",
+  "orm-related-implicit-access-message-0182"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
