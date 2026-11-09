@@ -6106,6 +6106,38 @@ class BaseModel(DefaultGetMixin, Model):
         super().save(*args, **kwargs)
         if self._ids != (self.pk,):
             self._install_singleton_triple()
+        self._discard_persisted_dirty(kwargs.get('update_fields'))
+
+    def _discard_persisted_dirty(self, update_fields):
+        """Las columnas que este ``save`` acaba de escribir quedan limpias.
+
+        ≙ el ``pop`` de ``_flush`` (``odoo19c: odoo/orm/models.py:6386-6400``):
+        lo que se escribe en la base deja de estar sucio. Aquí escribe
+        ``Model.save`` de Django, y su ``pre_save`` de un campo ``auto_now``
+        asigna la fecha con ``setattr`` *dentro* del mismo guardado; esa
+        asignación pasa por ``FieldDescriptor.__set__`` y marca sucio el campo
+        que ya iba en el ``UPDATE``. Sin esta limpieza ``flush_all`` no
+        convergía tras ninguna escritura (*"Too many iterations for flushing
+        fields!"*) y la fecha en caché dejaba de ser la persistida.
+
+        Sólo se limpia el id cuyo valor en caché es el que la fila llevaba al
+        guardar: un valor sucio que no se escribió sigue pendiente.
+        """
+        dirty = get_transaction().field_dirty
+        if not dirty or self.pk is None:
+            return
+        names = None if update_fields is None else set(update_fields)
+        environment = env()
+        for field in self._meta.concrete_fields:
+            if names is not None and not {field.name, field.attname} & names:
+                continue
+            ids = dirty.get(field)
+            if not ids or self.pk not in ids:
+                continue
+            cached = field._get_cache(environment)
+            if (self.pk in cached
+                    and cached[self.pk] == self.__dict__.get(field.attname)):
+                ids.discard(self.pk)
 
     @classmethod
     def _from_ids(cls, env, ids, prefetch_ids):
