@@ -531,7 +531,14 @@ class One2many:
             if instance.pk not in cache:
                 rel._update_cache(instance, ())
             ids = cache.get(instance.pk, ())
-            return comodel._from_ids(instance.env, ids, ids)
+            lines = comodel._from_ids(instance.env, ids, ids)
+            # La caché es la de la relación inversa, compartida por todos los
+            # One2many sobre el mismo Many2one; la referencia guarda una por
+            # campo filtrada con ``get_comodel_domain`` al insertar
+            # (``_update_inverses``, ``:449-463``). Aquí el dominio se aplica
+            # al leer, como hace ``_read_one2many`` para un dueño real.
+            domain = self.get_comodel_domain(instance)
+            return lines.filtered_domain(domain) if domain else lines
         if _reads_as_recordset(instance, comodel):
             return _read_one2many(self, instance, comodel)
         accessor = inverse.remote_field.get_accessor_name()
