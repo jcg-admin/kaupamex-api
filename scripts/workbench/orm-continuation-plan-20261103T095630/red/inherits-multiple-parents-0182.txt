@@ -1,0 +1,40 @@
+.F.FFF                                                                   [100%]
+=================================== FAILURES ===================================
+________________ test_reads_go_to_the_parent_that_owns_the_name ________________
+tests/unit/orm/test_inherits_multiple_parents.py:58: in test_reads_go_to_the_parent_that_owns_the_name
+    assert row.foo_id.pk == foo.id
+src/orm/inherits.py:236: in __getattr__
+    return object.__getattribute__(self, name)
+E   AttributeError: 'TestOrmRelatedInheritsTwo' object has no attribute 'foo_id'
+___________________ test_create_without_parents_creates_both ___________________
+tests/unit/orm/test_inherits_multiple_parents.py:81: in test_create_without_parents_creates_both
+    assert (A.foo_id.pk, B.name, B.active) == (foo.id, 'born', True)
+E   AssertionError: assert (338, False, True) == (338, 'born', True)
+E     At index 1 diff: False != 'born'
+E     Use -v to get more diff
+_____________ test_create_with_one_parent_given_creates_the_other ______________
+tests/unit/orm/test_inherits_multiple_parents.py:92: in test_create_with_one_parent_given_creates_the_other
+    assert row.bar_parent_id.name == 'born'
+E   AssertionError: assert False == 'born'
+E    +  where False = test_orm.related_bar(62,).name
+E    +    where test_orm.related_bar(62,) = test_orm.related_inherits_two(4,).bar_parent_id
+_______________ test_installing_twice_keeps_one_wrapper_per_hook _______________
+tests/unit/orm/test_inherits_multiple_parents.py:102: in test_installing_twice_keeps_one_wrapper_per_hook
+    assert (model.__getattr__, model.__setattr__, model.save) == hooks
+E   assert (<function ap...7f1996721620>) == (<function ap...7f199851d260>)
+E     At index 0 diff: <function apply_inherits.<locals>.__getattr__ at 0x7f19967214e0> != <function apply_inherits.<locals>.__getattr__ at 0x7f1998cbd800>
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+tests/unit/orm/test_inherits_multiple_parents.py::test_the_registry_publishes_the_last_parent_for_a_shared_name
+tests/unit/orm/test_inherits_multiple_parents.py::test_writes_go_to_the_parent_that_owns_the_name
+
+tests/unit/orm/test_inherits_multiple_parents.py::test_the_registry_publishes_the_last_parent_for_a_shared_name
+tests/unit/orm/test_inherits_multiple_parents.py::test_writes_go_to_the_parent_that_owns_the_name
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_inherits_multiple_parents.py::test_reads_go_to_the_parent_that_owns_the_name
+FAILED tests/unit/orm/test_inherits_multiple_parents.py::test_create_without_parents_creates_both
+FAILED tests/unit/orm/test_inherits_multiple_parents.py::test_create_with_one_parent_given_creates_the_other
+FAILED tests/unit/orm/test_inherits_multiple_parents.py::test_installing_twice_keeps_one_wrapper_per_hook
+4 failed, 2 passed, 4 warnings in 6.06s

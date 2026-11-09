@@ -56,3 +56,31 @@ bar_parent_id = fields.Many2one('test_orm.related_bar', required=True, ondelete=
 2. Prueba RED con los casos de la tabla.
 3. Corregir `apply_inherits` y `DelegatedFieldNames` para varios padres.
 4. Controles de anulación, suite derivada, settlement.
+
+## RED medido (salida en `red/inherits-multiple-parents-0182.txt`)
+
+4 de 6 casos fallan sobre `deddd135` + modelo `0037`:
+
+- lectura de `foo_id` (sólo del padre A): `AttributeError` — la segunda
+  llamada a `apply_inherits` sustituyó `__getattr__` y `_inherits_fields`.
+- `create` sin padres o con uno dado: `name` cae en A y no en B —
+  `_delegated_origin` (`src/orm/models.py`) recorre `_inherits` y devuelve el
+  **primer** padre que tiene el nombre.
+- dos `ensure_inherits` cambian los cuatro hooks — no es idempotente, y
+  `save` se envuelve una vez más en cada llamada.
+
+Ya coinciden: el registro (`_add_inherited_fields` publica el último padre)
+y la escritura de `name` (de casualidad: el último `__setattr__` era el de B).
+
+## Corrección
+
+La autoridad de «qué padre responde a cada nombre» ya existe:
+`model_classes._add_inherited_fields` publica en `model_field_registry` cada
+campo heredado con `inherited=True` y `related='<fk>.<nombre>'`, con el
+último padre ganando. Los recorridos propios se sustituyen por esa lectura:
+
+1. `orm.inherits`: `_inherits_fields` pasa a ser un mapa `nombre → FK`
+   derivado del registro; `apply_inherits` instala los hooks una sola vez
+   por clase y sólo marca cada FK (`delegate`, salto de permiso); los hooks
+   resuelven la FK por nombre y `save` persiste cada padre tocado.
+2. `_delegated_origin` y `_inherits_fk_for` leen el mismo registro.
