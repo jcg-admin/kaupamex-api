@@ -102,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 72,
+  "task_units_settled": 73,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1470
+  "task_without_unit": 1469
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -262,7 +262,8 @@
   "base-group-closures-searchable-0485",
   "orm-related-implicit-access-message-0182",
   "orm-x2many-sudo-commands-0485",
-  "orm-parent-path-check-0485"
+  "orm-parent-path-check-0485",
+  "orm-field-index-btree-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
