@@ -96,7 +96,13 @@ from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.model_classes import LOG_ACCESS_COLUMNS, extend_model, parent_name_of
-from orm.fields_relational import One2many as DeclaredOne2many
+from orm.fields_relational import (
+    One2many as DeclaredOne2many,
+    _multi_comodel_domain as multi_comodel_domain,
+    _m2m_relation as m2m_relation,
+    _queryset_subselect as queryset_subselect,
+    django_comodel_rows,
+)
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         FieldDescriptor, StoredMany2oneIdDescriptor,
                         _field_cache_record_id,
@@ -108,6 +114,9 @@ from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
 from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS,
+                       READ_GROUP_ALL_TIME_GRANULARITY,
+                       READ_GROUP_NUMBER_GRANULARITY,
+                       READ_GROUP_TIME_GRANULARITY,
                        FieldRegistryDescriptor, OriginIds,
                        as_record_list, browse, check_object_name,
                        model_field_registry, parse_field_expr, record_ids)
@@ -115,7 +124,7 @@ from service.db import Savepoint
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
 from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
-                        split_every, unique, unquote)
+                        split_every, unique, unquote, get_lang)
 from tools.query import Query
 from tools.sql import SQL
 from tools.i18n import format_list
@@ -6469,6 +6478,177 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
 
         sql_field = self._field_to_sql(self._table, fname, query)
         return READ_GROUP_AGGREGATE[func](self._table, sql_field)
+
+    def _read_group_groupby(self, alias, groupby_spec, query):
+        """La expresión SQL de un elemento de agrupado.
+
+        ≙ ``BaseModel._read_group_groupby`` (``odoo19c:
+        odoo/orm/models.py:2015-2119``). Docstring de la fuente: *"Return
+        <SQL expression> corresponding to the given groupby element. The
+        method also checks whether the fields used in the groupby are
+        accessible for reading."*
+
+        Adaptaciones declaradas (``designs/read-group-groupby.md``):
+
+        - ``_search`` es aquí ``classmethod`` y no lee el contexto del
+          recordset: ``with_context(active_test=False)`` y ``field.context``
+          llegan como su parámetro ``active_test``, que dice lo mismo.
+        - un comodelo de Django en una cadena many2one no tiene
+          ``_read_group_groupby`` con que seguir bajando: se rehúsa con
+          ``NotImplementedError``. En un many2many, sus filas entran como
+          subconsulta con sus reglas (``django_comodel_rows``).
+        - la rama ``properties`` espera a ``_read_group_groupby_properties``
+          (unidad 6 del plan de ``read_group``).
+        """
+        fname, seq_fnames, granularity = parse_read_group_spec(groupby_spec)
+        if fname not in self._fields:
+            raise ValueError(
+                f"Invalid field {fname!r} on model {self._name!r}")
+
+        field = self._fields[fname]
+
+        if field.type == 'properties':
+            if not hasattr(self, '_read_group_groupby_properties'):
+                raise NotImplementedError(
+                    "Grouping by a property waits for "
+                    "_read_group_groupby_properties (read_group unit 6)")
+            sql_expr = self._read_group_groupby_properties(
+                alias, field, seq_fnames, query)
+
+        elif seq_fnames:
+            if field.type != 'many2one':
+                raise ValueError(
+                    f"Only many2one path is accepted for the "
+                    f"{groupby_spec!r} groupby spec")
+
+            comodel = self.env[field.comodel_name]
+            if not hasattr(comodel, '_from_ids'):
+                raise NotImplementedError(
+                    f"Grouping through {field.comodel_name!r}, a Django "
+                    f"model without _read_group_groupby")
+            comodel = comodel._from_ids(self.env, (), ())
+            coquery = comodel._search([], active_test=False)
+            if self.env.su or not coquery.where_clause:
+                coalias = query.make_alias(alias, fname)
+            else:
+                coalias = query.make_alias(alias, f"{fname}__{self.env.uid}")
+            condition = SQL(
+                "%s = %s",
+                self._field_to_sql(alias, fname, query),
+                SQL.identifier(coalias, 'id'),
+            )
+            if coquery.where_clause:
+                subselect_arg = SQL('%s.*', SQL.identifier(comodel._table))
+                query.add_join('LEFT JOIN', coalias,
+                               coquery.subselect(subselect_arg), condition)
+            else:
+                query.add_join('LEFT JOIN', coalias, comodel._table,
+                               condition)
+            return comodel._read_group_groupby(
+                coalias,
+                f"{seq_fnames}:{granularity}" if granularity
+                else seq_fnames,
+                query)
+
+        elif granularity and field.type not in ('datetime', 'date',
+                                                'properties'):
+            raise ValueError(
+                f"Granularity set on a no-datetime field or property: "
+                f"{groupby_spec!r}")
+
+        elif field.type == 'many2many':
+            if getattr(field, 'related', None) and not field.store:
+                _model, field, alias = self._traverse_related_sql(
+                    alias, field, query)
+
+            if not getattr(field, 'store', True):
+                raise ValueError(
+                    f"Group by non-stored many2many field: {groupby_spec!r}")
+            # caso especial del many2many: una consulta del comodelo que se
+            # inyecta como condición adicional del LEFT JOIN
+            codomain = field.get_comodel_domain(self) \
+                if hasattr(field, 'get_comodel_domain') \
+                else multi_comodel_domain(field, self)
+            context = getattr(field, 'context', None) or {}
+            bypass = getattr(field, 'bypass_search_access', False)
+            comodel = self.env[field.comodel_name]
+            if hasattr(comodel, '_from_ids'):
+                coquery = comodel._search(
+                    codomain, active_test=context.get('active_test', True),
+                    bypass_access=bypass)
+                cofilter = coquery.subselect() \
+                    if coquery.where_clause else None
+            else:
+                cofilter = queryset_subselect(django_comodel_rows(
+                    comodel, Domain(codomain), bypass_access=bypass))
+            # LEFT JOIN {field.relation} AS rel_alias ON
+            #     alias.id = rel_alias.{field.column1}
+            #     AND rel_alias.{field.column2} IN ({coquery})
+            # tabla y columnas de la relación, en sus dos formas (campo y
+            # relación inversa de Django)
+            relation, column1, column2 = m2m_relation(field)
+            rel_alias = query.make_alias(alias, field.name)
+            condition = SQL(
+                "%s = %s",
+                SQL.identifier(alias, 'id'),
+                SQL.identifier(rel_alias, column1),
+            )
+            if cofilter is not None:
+                condition = SQL(
+                    "%s AND %s IN %s",
+                    condition,
+                    SQL.identifier(rel_alias, column2),
+                    cofilter,
+                )
+            query.add_join("LEFT JOIN", rel_alias, relation, condition)
+            return SQL.identifier(rel_alias, column2)
+
+        else:
+            sql_expr = self._field_to_sql(alias, fname, query)
+
+        if field.type in ('datetime', 'date') or (
+                field.type == 'properties' and granularity):
+            if not granularity:
+                raise ValueError(
+                    f"Granularity not set on a date(time) field: "
+                    f"{groupby_spec!r}")
+            if granularity not in READ_GROUP_ALL_TIME_GRANULARITY:
+                raise ValueError(
+                    f"Granularity specification isn't correct: "
+                    f"{granularity!r}")
+
+            if granularity in READ_GROUP_NUMBER_GRANULARITY:
+                sql_expr = field.property_to_sql(
+                    sql_expr, granularity, self, alias, query)
+            elif field.type == 'datetime':
+                # sólo se fija la zona
+                sql_expr = field.property_to_sql(
+                    sql_expr, 'tz', self, alias, query)
+
+            if granularity == 'week':
+                # first_week_day: 0=Monday, 1=Tuesday, ...
+                first_week_day = int(get_lang(self.env).week_start) - 1
+                days_offset = first_week_day and 7 - first_week_day
+                interval = f"-{days_offset} DAY"
+                sql_expr = SQL(
+                    "(date_trunc('week', %s::timestamp - INTERVAL %s) "
+                    "+ INTERVAL %s)",
+                    sql_expr, interval, interval,
+                )
+            elif granularity in READ_GROUP_TIME_GRANULARITY:
+                sql_expr = SQL("date_trunc(%s, %s::timestamp)",
+                               granularity, sql_expr)
+
+            # una parte numérica da un número (double) y no se convierte
+            if (field.type == 'date'
+                    and granularity not in READ_GROUP_NUMBER_GRANULARITY):
+                # date_trunc devuelve timestamp: se vuelve a date
+                sql_expr = SQL("%s::date", sql_expr)
+
+        elif field.type == 'boolean':
+            sql_expr = SQL("COALESCE(%s, FALSE)", sql_expr)
+
+        return sql_expr
 
     def _read_group_having(self, having_domain, query):
         """La expresión SQL del dominio ``HAVING``.

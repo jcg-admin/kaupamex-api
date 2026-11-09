@@ -159,14 +159,17 @@ def _base_date_property_to_sql(
 ):
     """``property_to_sql`` — ≙ ``:80-95``. La expresión SQL de la granularidad.
 
-    La fuente lee la zona de ``model.env.context``; aquí el contexto es de
-    proceso (``orm.environments.get_context``). ``model``, ``alias`` y
-    ``query``
-    se conservan en la firma —el llamador de la fuente los pasa
+    Como la fuente, la zona sale de ``model.env.context``: un recordset con
+    ``with_context(tz=...)`` agrupa en su zona aunque su entorno no sea el
+    activo. Sin recordset (``model`` ausente o sin ``env``) se usa el contexto
+    de proceso (``orm.environments.get_context``). ``alias`` y ``query`` se
+    conservan en la firma —el llamador de la fuente los pasa
     posicionalmente— y quedan sin uso.
     """
     sql_expr = field_sql
-    if self.type == 'datetime' and (tz_name := get_context().get('tz')):
+    model_env = getattr(model, 'env', None)
+    context = model_env.context if model_env is not None else get_context()
+    if self.type == 'datetime' and (tz_name := context.get('tz')):
         # sólo se usa la zona que viene del contexto
         if tz_name in available_timezones():
             sql_expr = SQL(
