@@ -35,9 +35,8 @@ controller.
                              ``action``: un campo con el nombre de la
                              referencia pero con contenido estructuralmente
                              distinto engaña más de lo que documenta
-``parent_path``              no se porta — sostiene ``_parent_store``, la
-                             optimización de búsqueda jerárquica del ORM de
-                             Odoo, que Django no tiene
+``parent_path``              idéntico; lo materializa ``save()`` y sostiene
+                             ``child_of`` (``ir_ui_menu.py:28``)
 ``web_icon_data`` (Binary)   no se porta — el SPA resuelve el icono por nombre;
                              la referencia lo embebe en base64 en el payload
 —                            ``key`` — cumple el papel del ``xmlid`` de Odoo:
@@ -64,7 +63,7 @@ la del ítem. Así lo siembra ``seed_menu``.
 from django.core.cache import cache
 from django.db import models
 
-from orm.models import AccessManager
+from orm.models import AccessManager, _parent_store_update
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
@@ -376,8 +375,30 @@ class IrUiMenu(TimeStampedModel):
         return self.complete_name
 
     def save(self, *args, **kwargs):
-        # ``create``/``write`` de la referencia llaman ``registry.clear_cache()``.
+        """Guarda, mantiene ``parent_path`` y vacía la caché del menú.
+
+        El camino lo mantiene el ORM en la referencia (``_parent_store_create``
+        y ``_parent_store_update``, ``odoo19c: odoo/orm/models.py:4961-5054``):
+        al crear, el prefijo del padre más el propio id; al cambiar de padre,
+        el mismo ``UPDATE`` del subárbol, que aquí ya porta
+        :func:`orm.models._parent_store_update`. Una fila sin camino todavía
+        (la migración lo rellena) se calcula sola, porque el ``LIKE`` del
+        subárbol con un prefijo vacío alcanzaría la tabla entera.
+        """
+        stored = (type(self)._base_manager.filter(pk=self.pk)
+                  .values_list('parent_id', 'parent_path').first()
+                  if self.pk is not None else None)
         super().save(*args, **kwargs)
+        if stored and stored[1] and stored[0] != self.parent_id:
+            _parent_store_update(self)
+        else:
+            prefix = self.parent.parent_path if self.parent_id else ''
+            path = f'{prefix}{self.pk}/'
+            if path != self.parent_path:
+                self.parent_path = path
+                super().save(update_fields=['parent_path'])
+        # ``create``/``write`` de la referencia llaman
+        # ``registry.clear_cache()``.
         _bump_menu_epoch()
 
     def delete(self, *args, **kwargs):
@@ -410,3 +431,10 @@ class IrUiMenu(TimeStampedModel):
     def is_section(self):
         """Un nodo sin ``route`` es contenedor: no se muestra por sí solo."""
         return not self.route
+
+    parent_path = models.CharField(
+        max_length=255, blank=True, default='', db_index=True,
+        verbose_name='Ruta de ancestros',
+        help_text=("Odoo parent_path (index=True). Ruta materializada "
+                   "'1/4/9/'."),
+    )

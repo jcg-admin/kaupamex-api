@@ -65,7 +65,8 @@ from django.db.models import *          # noqa: F401,F403  (re-export ORM comple
 from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
-from django.db.models.base import ModelState
+# ``checks`` viene del mismo módulo que lo usa en ``Model.check``.
+from django.db.models.base import ModelState, checks
 from django.db.models.fields import related_descriptors as _related_descriptors
 from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
@@ -3830,6 +3831,40 @@ class RecordLoaderMixin(FieldSqlMixin):
         IrModelData._update_xmlids(imd_data_list, update, using=using)
 
         return [data['record'] for data in data_list]
+
+    @classmethod
+    def _check_parent_path(cls):
+        """≙ ``BaseModel._check_parent_path`` (``odoo19c: odoo/orm/models.py:
+        3255-3260``), con sus dos mensajes verbatim.
+
+        La referencia los registra en el log desde ``_auto_init``; aquí son
+        ``checks.Error`` de Django, que es donde este árbol valida un modelo
+        al cargar. Divergencia declarada: bloquean ``manage.py check``,
+        porque un ``_parent_store`` sin columna rompe ``child_of``.
+        """
+        name = getattr(cls, '_name', None) or cls._meta.label_lower
+        try:
+            field = cls._meta.get_field('parent_path')
+        except FieldDoesNotExist:
+            return [checks.Error(
+                "add a field parent_path on model %r: `parent_path = "
+                "fields.Char(index=True)`." % name, obj=cls,
+                id='orm.E101')]
+        if not (getattr(field, 'index', None) or field.db_index):
+            return [checks.Error(
+                "parent_path field on model %r should be indexed! Add "
+                "index=True to the field definition." % name, obj=cls,
+                id='orm.E102')]
+        return []
+
+    @classmethod
+    def check(cls, **kwargs):
+        """El ``check`` de Django más ``_check_parent_path`` para un modelo
+        con ``_parent_store`` — el punto de ``_auto_init`` (``:3214``)."""
+        errors = super().check(**kwargs)
+        if getattr(cls, '_parent_store', False):
+            errors += cls._check_parent_path()
+        return errors
 
 
 def search_display_name(model_cls, operator, value):
