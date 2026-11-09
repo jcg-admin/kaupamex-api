@@ -1,0 +1,35 @@
+## Django 6.0.5 en /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django
+expressions.py:1224:class RawSQL(Expression):
+expressions.py:1769:class Subquery(BaseExpression, Combinable):
+expressions.py:1840:class Exists(Subquery):
+expressions.py:979:class OuterRef(F):
+expressions.py:1050:class Func(SQLiteNumericMixin, Expression):
+where.py:21:class WhereNode(tree.Node):
+where.py:324:class NothingNode:
+where.py:334:class ExtraWhere:
+query.py:38:from django.utils.deprecation import RemovedInDjango70Warning
+query.py:1386:    def raw(self, raw_query, params=(), translations=None, using=None):
+query.py:1402:            # RemovedInDjango70Warning: When the deprecation ends, deindent as:
+query.py:1405:                action="ignore", category=RemovedInDjango70Warning
+query.py:1552:    def _filter_or_exclude(self, negate, args, kwargs):
+query.py:1563:    def _filter_or_exclude_inplace(self, negate, args, kwargs):
+query.py:1693:    def annotate(self, *args, **kwargs):
+query.py:1701:    def alias(self, *args, **kwargs):
+query.py:1788:    def extra(
+compiler.py:36:    def as_sql(self, compiler, connection):
+compiler.py:80:    def pre_sql_setup(self, with_col_aliases=False):
+compiler.py:96:    def get_group_by(self, select, order_by):
+compiler.py:573:    def compile(self, node):
+compiler.py:756:    def as_sql(self, with_limits=True, with_col_aliases=False):
+compiler.py:1140:    def get_from_clause(self):
+compiler.py:1594:    def execute_sql(
+compiler.py:1792:    def as_sql(self):
+compiler.py:1914:    def execute_sql(self, returning_fields=None):
+compiler.py:1997:    def as_sql(self):
+compiler.py:2026:    def as_sql(self):
+compiler.py:2104:    def execute_sql(self, result_type):
+sql/query.py:357:    def sql_with_params(self):
+sql/query.py:700:    def combine(self, rhs, connector):
+sql/query.py:2185:    def set_limits(self, low=None, high=None):
+sql/query.py:2322:    def add_ordering(self, *ordering):
+sql/query.py:2426:    def add_extra(self, select, select_params, where, params, tables, order_by):

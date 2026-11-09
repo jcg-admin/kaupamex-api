@@ -1,0 +1,3149 @@
+{
+ "summary": {
+  "equal": 178,
+  "differ": 30,
+  "only_django": 8,
+  "neither": 22,
+  "only_sql": 4
+ },
+ "rows": [
+  {
+   "condition": "('name', '=', 'a')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" = ANY(%s)",
+   "sql_params": [
+    "['a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=', '')",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=', False)",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=', True)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" = ANY(%s)",
+   "sql_params": [
+    "['True']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=', ['a', 'a', False])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['a', '']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=', [])",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=', ['b', 'a'])",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" = ANY(%s)",
+   "sql_params": [
+    "['b', 'a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', 'a')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" <> ALL(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', '')",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" <> ALL(%s)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', False)",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" <> ALL(%s)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', True)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" <> ALL(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['True']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', ['a', 'a', False])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" <> ALL(%s)",
+   "sql_params": [
+    "['a', '']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', [])",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" <> ALL(%s)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '!=', ['b', 'a'])",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" <> ALL(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['b', 'a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'in', 'a')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" = ANY(%s)",
+   "sql_params": [
+    "['a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'in', '')",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'in', False)",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'in', True)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" = ANY(%s)",
+   "sql_params": [
+    "['True']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'in', ['a', 'a', False])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['a', '']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'in', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'in', ['b', 'a'])",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" = ANY(%s)",
+   "sql_params": [
+    "['b', 'a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not in', 'a')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" <> ALL(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not in', '')",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not in', False)",
+   "django": [
+    4737,
+    4739
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not in', True)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" <> ALL(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['True']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not in', ['a', 'a', False])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\" <> ALL(%s)",
+   "sql_params": [
+    "['a', '']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not in', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not in', ['b', 'a'])",
+   "django": [
+    4738,
+    4740
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" <> ALL(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['b', 'a']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'like', 'a')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\"::text LIKE %s",
+   "sql_params": [
+    "'%a%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'like', '')",
+   "django": [
+    4737,
+    4738,
+    4739
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'like', False)",
+   "django": [],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'like', True)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\"::text LIKE %s",
+   "sql_params": [
+    "'%True%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'like', ['a', 'a', False])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\"::text LIKE %s",
+   "sql_params": [
+    "\"%['a', 'a', False]%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'like', [])",
+   "django": [],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'like', ['b', 'a'])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\"::text LIKE %s",
+   "sql_params": [
+    "\"%['b', 'a']%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'ilike', 'a')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE unaccent(\"test_orm_message\".\"name\"::text) ILIKE unaccent(%s)",
+   "sql_params": [
+    "'%a%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'ilike', '')",
+   "django": [
+    4737,
+    4738,
+    4739
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'ilike', False)",
+   "django": [],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'ilike', True)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE unaccent(\"test_orm_message\".\"name\"::text) ILIKE unaccent(%s)",
+   "sql_params": [
+    "'%True%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'ilike', ['a', 'a', False])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE unaccent(\"test_orm_message\".\"name\"::text) ILIKE unaccent(%s)",
+   "sql_params": [
+    "\"%['a', 'a', False]%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'ilike', [])",
+   "django": [],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'ilike', ['b', 'a'])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE unaccent(\"test_orm_message\".\"name\"::text) ILIKE unaccent(%s)",
+   "sql_params": [
+    "\"%['b', 'a']%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not like', 'a')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\"::text NOT LIKE %s OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "'%a%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not like', '')",
+   "django": [
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not like', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not like', True)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\"::text NOT LIKE %s OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "'%True%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not like', ['a', 'a', False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\"::text NOT LIKE %s OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "\"%['a', 'a', False]%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not like', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not like', ['b', 'a'])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\"::text NOT LIKE %s OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "\"%['b', 'a']%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not ilike', 'a')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (unaccent(\"test_orm_message\".\"name\"::text) NOT ILIKE unaccent(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "'%a%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not ilike', '')",
+   "django": [
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not ilike', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not ilike', True)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (unaccent(\"test_orm_message\".\"name\"::text) NOT ILIKE unaccent(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "'%True%'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not ilike', ['a', 'a', False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (unaccent(\"test_orm_message\".\"name\"::text) NOT ILIKE unaccent(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "\"%['a', 'a', False]%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', 'not ilike', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', 'not ilike', ['b', 'a'])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (unaccent(\"test_orm_message\".\"name\"::text) NOT ILIKE unaccent(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "\"%['b', 'a']%\""
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=like', 'a')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"name\"::text LIKE %s",
+   "sql_params": [
+    "'a'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=like', '')",
+   "django": [
+    4738
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', '=like', False)",
+   "django": [],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', '=like', True)",
+   "django": [],
+   "sql_error": "TypeError: El patrón a buscar debe ser una cadena en la condición ('name', '=like', True)",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('name', '=like', ['a', 'a', False])",
+   "django": [],
+   "sql_error": "TypeError: El patrón a buscar debe ser una cadena en la condición ('name', '=like', ['a', 'a', False])",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('name', '=like', [])",
+   "django": [],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', '=like', ['b', 'a'])",
+   "django": [],
+   "sql_error": "TypeError: El patrón a buscar debe ser una cadena en la condición ('name', '=like', ['b', 'a'])",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('name', '=ilike', 'a')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE unaccent(\"test_orm_message\".\"name\"::text) ILIKE unaccent(%s)",
+   "sql_params": [
+    "'a'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('name', '=ilike', '')",
+   "django": [
+    4738
+   ],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', '=ilike', False)",
+   "django": [],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', '=ilike', True)",
+   "django": [],
+   "sql_error": "TypeError: El patrón a buscar debe ser una cadena en la condición ('name', '=ilike', True)",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('name', '=ilike', ['a', 'a', False])",
+   "django": [],
+   "sql_error": "TypeError: El patrón a buscar debe ser una cadena en la condición ('name', '=ilike', ['a', 'a', False])",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('name', '=ilike', [])",
+   "django": [],
+   "sql": [
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"name\" = ANY(%s) OR \"test_orm_message\".\"name\" IS NULL)",
+   "sql_params": [
+    "['']"
+   ],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('name', '=ilike', ['b', 'a'])",
+   "django": [],
+   "sql_error": "TypeError: El patrón a buscar debe ser una cadena en la condición ('name', '=ilike', ['b', 'a'])",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('important', '=', True)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', False)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', 'True')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', 'False')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', ['False'])",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', [])",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', [True, False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', 1)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', 0)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '=', [None])",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', True)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', False)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', 'True')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', 'False')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', ['False'])",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', [])",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', [True, False])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', 1)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', 0)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', '!=', [None])",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', True)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', False)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('important', 'in', 'True')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', 'False')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', ['False'])",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', [True, False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', 1)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'in', 0)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('important', 'in', [None])",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', True)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', False)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('important', 'not in', 'True')",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', 'False')",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', ['False'])",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', [True, False])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', 1)",
+   "django": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS NOT TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('important', 'not in', 0)",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('important', 'not in', [None])",
+   "django": [
+    4737
+   ],
+   "sql": [
+    4737
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"important\" IS TRUE",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '=', 1)",
+   "django": [
+    4737,
+    4740
+   ],
+   "sql": [
+    4737,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '=', [1, 1, 2])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '=', [])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" = ANY(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '=', False)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" = ANY(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '=', '3')",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
+   "sql_params": [
+    "[3]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '=', [False])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" = ANY(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '!=', 1)",
+   "django": [
+    4738,
+    4739
+   ],
+   "sql": [
+    4738,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" <> ALL(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '!=', [1, 1, 2])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" <> ALL(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '!=', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" <> ALL(%s)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '!=', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" <> ALL(%s)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '!=', '3')",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" <> ALL(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[3]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '!=', [False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" <> ALL(%s)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'in', 1)",
+   "django": [
+    4737,
+    4740
+   ],
+   "sql": [
+    4737,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'in', [1, 1, 2])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'in', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'in', False)",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'in', '3')",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" = ANY(%s)",
+   "sql_params": [
+    "[3]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'in', [False])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" = ANY(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'not in', 1)",
+   "django": [
+    4738,
+    4739
+   ],
+   "sql": [
+    4738,
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" <> ALL(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'not in', [1, 1, 2])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" <> ALL(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'not in', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'not in', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'not in', '3')",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" <> ALL(%s) OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "[3]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', 'not in', [False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" <> ALL(%s)",
+   "sql_params": [
+    "[0]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '<', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" < %s OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "1"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '<', [1, 1, 2])",
+   "django_error": "TypeError: '<' not supported between instances of 'int' and 'list'",
+   "sql_error": "TypeError: int() argument must be a string, a bytes-like object or a real number, not 'list'",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('priority', '<', [])",
+   "django_error": "TypeError: '<' not supported between instances of 'int' and 'list'",
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" < %s",
+   "sql_params": [
+    "0"
+   ],
+   "verdict": "only_sql"
+  },
+  {
+   "condition": "('priority', '<', False)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" < %s",
+   "sql_params": [
+    "0"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '<', '3')",
+   "django_error": "TypeError: '<' not supported between instances of 'int' and 'str'",
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" < %s OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "3"
+   ],
+   "verdict": "only_sql"
+  },
+  {
+   "condition": "('priority', '<', [False])",
+   "django_error": "TypeError: '<' not supported between instances of 'int' and 'list'",
+   "sql_error": "TypeError: int() argument must be a string, a bytes-like object or a real number, not 'list'",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('priority', '>=', 1)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" >= %s",
+   "sql_params": [
+    "1"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '>=', [1, 1, 2])",
+   "django_error": "TypeError: '>=' not supported between instances of 'int' and 'list'",
+   "sql_error": "TypeError: int() argument must be a string, a bytes-like object or a real number, not 'list'",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('priority', '>=', [])",
+   "django_error": "TypeError: '>=' not supported between instances of 'int' and 'list'",
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" >= %s OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "0"
+   ],
+   "verdict": "only_sql"
+  },
+  {
+   "condition": "('priority', '>=', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"priority\" >= %s OR \"test_orm_message\".\"priority\" IS NULL)",
+   "sql_params": [
+    "0"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('priority', '>=', '3')",
+   "django_error": "TypeError: '>=' not supported between instances of 'int' and 'str'",
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"priority\" >= %s",
+   "sql_params": [
+    "3"
+   ],
+   "verdict": "only_sql"
+  },
+  {
+   "condition": "('priority', '>=', [False])",
+   "django_error": "TypeError: '>=' not supported between instances of 'int' and 'list'",
+   "sql_error": "TypeError: int() argument must be a string, a bytes-like object or a real number, not 'list'",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('discussion', '=', False)",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" IS NULL",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '=', [])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" IS NULL",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '=', [1, 2])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" = ANY(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '=', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" = ANY(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '=', [1, 1, False])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" = ANY(%s) OR \"test_orm_message\".\"discussion\" IS NULL)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '!=', False)",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" IS NOT NULL",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '!=', [])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" IS NOT NULL",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '!=', [1, 2])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" <> ALL(%s) OR \"test_orm_message\".\"discussion\" IS NULL)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '!=', 1)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" <> ALL(%s) OR \"test_orm_message\".\"discussion\" IS NULL)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', '!=', [1, 1, False])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" <> ALL(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'in', False)",
+   "django": [
+    4739
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('discussion', 'in', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'in', [1, 2])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" = ANY(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'in', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" = ANY(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'in', [1, 1, False])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" = ANY(%s) OR \"test_orm_message\".\"discussion\" IS NULL)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'not in', False)",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('discussion', 'not in', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'not in', [1, 2])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" <> ALL(%s) OR \"test_orm_message\".\"discussion\" IS NULL)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'not in', 1)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" <> ALL(%s) OR \"test_orm_message\".\"discussion\" IS NULL)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'not in', [1, 1, False])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"discussion\" <> ALL(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'any', False)",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'any', [])",
+   "django": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" LEFT JOIN \"test_orm_discussion\" AS \"test_orm_message__discussion\" ON (\"test_orm_message\".\"discussion\" = \"test_orm_message__discussion\".\"id\") WHERE (\"test_orm_message\".\"discussion\" IS NOT NULL AND TRUE)",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'any', [1, 2])",
+   "django_error": "ValueError: Domain() item inválido: 2",
+   "sql_error": "ValueError: Domain() item inválido: 2",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('discussion', 'any', 1)",
+   "django_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "sql_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('discussion', 'any', [1, 1, False])",
+   "django_error": "ValueError: Domain() item inválido: False",
+   "sql_error": "ValueError: Domain() item inválido: False",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('discussion', 'not any', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'not any', [])",
+   "django": [
+    4739
+   ],
+   "sql": [
+    4739
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE (\"test_orm_message\".\"discussion\" IS NULL OR \"test_orm_message\".\"discussion\" NOT IN (SELECT \"test_orm_discussion\".\"id\" AS \"pk\" FROM \"test_orm_discussion\"))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('discussion', 'not any', [1, 2])",
+   "django_error": "ValueError: Domain() item inválido: 2",
+   "sql_error": "ValueError: Domain() item inválido: 2",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('discussion', 'not any', 1)",
+   "django_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "sql_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('discussion', 'not any', [1, 1, False])",
+   "django_error": "ValueError: Domain() item inválido: False",
+   "sql_error": "ValueError: Domain() item inválido: False",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('id', '=', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" = ANY(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '=', [1, 1, 2])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" = ANY(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '=', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '=', False)",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '=', '3')",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" = ANY(%s)",
+   "sql_params": [
+    "['3']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '=', [False])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '!=', 1)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" <> ALL(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '!=', [1, 1, 2])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" <> ALL(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '!=', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '!=', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '!=', '3')",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" <> ALL(%s)",
+   "sql_params": [
+    "['3']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '!=', [False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'in', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" = ANY(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'in', [1, 1, 2])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" = ANY(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'in', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'in', False)",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'in', '3')",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" = ANY(%s)",
+   "sql_params": [
+    "['3']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'in', [False])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'not in', 1)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" <> ALL(%s)",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'not in', [1, 1, 2])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" <> ALL(%s)",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'not in', [])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'not in', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'not in', '3')",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" <> ALL(%s)",
+   "sql_params": [
+    "['3']"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', 'not in', [False])",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '<', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" < %s",
+   "sql_params": [
+    "1"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '<', [1, 1, 2])",
+   "django_error": "TypeError: Field 'id' expected a number but got [1, 1, 2].",
+   "sql_error": "ProgrammingError: operator does not exist: bigint < smallint[]\nLINE 1: ... \"test_orm_message\" WHERE \"test_orm_message\".\"id\" < '{1,1,2}...\n                                        ",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('id', '<', [])",
+   "django_error": "TypeError: Field 'id' expected a number but got [].",
+   "sql_error": "DataError: invalid input syntax for type bigint: \"{}\"\nLINE 1: ...FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" < '{}'\n                                             ",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('id', '<', False)",
+   "django": [],
+   "sql_error": "ProgrammingError: operator does not exist: bigint < boolean\nLINE 1: ...ROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" < false\n                                              ",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('id', '<', '3')",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" < %s",
+   "sql_params": [
+    "'3'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '<', [False])",
+   "django_error": "TypeError: Field 'id' expected a number but got [False].",
+   "sql_error": "ProgrammingError: operator does not exist: bigint < boolean[]\nLINE 1: ... \"test_orm_message\" WHERE \"test_orm_message\".\"id\" < '{f}'::b...\n                                         ",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('id', '>=', 1)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" >= %s",
+   "sql_params": [
+    "1"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '>=', [1, 1, 2])",
+   "django_error": "TypeError: Field 'id' expected a number but got [1, 1, 2].",
+   "sql_error": "ProgrammingError: operator does not exist: bigint >= smallint[]\nLINE 1: ... \"test_orm_message\" WHERE \"test_orm_message\".\"id\" >= '{1,1,2...\n                                       ",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('id', '>=', [])",
+   "django_error": "TypeError: Field 'id' expected a number but got [].",
+   "sql_error": "DataError: invalid input syntax for type bigint: \"{}\"\nLINE 1: ...ROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" >= '{}'\n                                             ",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('id', '>=', False)",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_error": "ProgrammingError: operator does not exist: bigint >= boolean\nLINE 1: ...OM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" >= false\n                                             ",
+   "verdict": "only_django"
+  },
+  {
+   "condition": "('id', '>=', '3')",
+   "django": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql": [
+    4737,
+    4738,
+    4739,
+    4740
+   ],
+   "sql_code": "SELECT \"test_orm_message\".\"id\" FROM \"test_orm_message\" WHERE \"test_orm_message\".\"id\" >= %s",
+   "sql_params": [
+    "'3'"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('id', '>=', [False])",
+   "django_error": "TypeError: Field 'id' expected a number but got [False].",
+   "sql_error": "ProgrammingError: operator does not exist: bigint >= boolean[]\nLINE 1: ... \"test_orm_message\" WHERE \"test_orm_message\".\"id\" >= '{f}'::...\n                                        ",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('categories', '=', False)",
+   "django": [
+    3044
+   ],
+   "sql": [
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\")))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '=', [])",
+   "django": [
+    3044
+   ],
+   "sql": [
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\")))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '=', [1, 2])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '=', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '=', [1, 1, False])",
+   "django": [
+    3044
+   ],
+   "sql": [
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE (NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\"))) OR EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s))))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '!=', False)",
+   "django": [
+    3043
+   ],
+   "sql": [
+    3043
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\")))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '!=', [])",
+   "django": [
+    3043
+   ],
+   "sql": [
+    3043
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\")))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '!=', [1, 2])",
+   "django": [
+    3043,
+    3044
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '!=', 1)",
+   "django": [
+    3043,
+    3044
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', '!=', [1, 1, False])",
+   "django": [
+    3043
+   ],
+   "sql": [
+    3043
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE (EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\"))) AND NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s))))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'in', False)",
+   "django": [
+    3044
+   ],
+   "sql": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('categories', 'in', [])",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'in', [1, 2])",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'in', 1)",
+   "django": [],
+   "sql": [],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'in', [1, 1, False])",
+   "django": [
+    3044
+   ],
+   "sql": [
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE (NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\"))) OR EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s))))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'not in', False)",
+   "django": [
+    3043
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\"",
+   "sql_params": [],
+   "verdict": "differ"
+  },
+  {
+   "condition": "('categories', 'not in', [])",
+   "django": [
+    3043,
+    3044
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'not in', [1, 2])",
+   "django": [
+    3043,
+    3044
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1, 2]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'not in', 1)",
+   "django": [
+    3043,
+    3044
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s)))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'not in', [1, 1, False])",
+   "django": [
+    3043
+   ],
+   "sql": [
+    3043
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE (EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\"))) AND NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT unnest(%s))))",
+   "sql_params": [
+    "[1]"
+   ],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'any', False)",
+   "django": [],
+   "sql": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'any', [])",
+   "django": [
+    3043
+   ],
+   "sql": [
+    3043
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\")))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'any', [1, 2])",
+   "django_error": "ValueError: Domain() item inválido: 2",
+   "sql_error": "ValueError: Domain() item inválido: 2",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('categories', 'any', 1)",
+   "django_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "sql_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('categories', 'any', [1, 1, False])",
+   "django_error": "ValueError: Domain() item inválido: False",
+   "sql_error": "ValueError: Domain() item inválido: False",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('categories', 'not any', False)",
+   "django": [
+    3043,
+    3044
+   ],
+   "sql": [
+    3043,
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\"",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'not any', [])",
+   "django": [
+    3044
+   ],
+   "sql": [
+    3044
+   ],
+   "sql_code": "SELECT \"test_orm_discussion\".\"id\" FROM \"test_orm_discussion\" WHERE NOT EXISTS (SELECT 1 FROM \"test_orm_discussion_category\" AS \"test_orm_discussion__categories\" WHERE \"test_orm_discussion__categories\".\"discussion\" = \"test_orm_discussion\".\"id\" AND \"test_orm_discussion__categories\".\"category\" IN (SELECT \"test_orm_category\".\"id\" FROM \"test_orm_category\" WHERE \"test_orm_category\".\"id\" IN (SELECT \"test_orm_category\".\"id\" AS \"pk\" FROM \"test_orm_category\")))",
+   "sql_params": [],
+   "verdict": "equal"
+  },
+  {
+   "condition": "('categories', 'not any', [1, 2])",
+   "django_error": "ValueError: Domain() item inválido: 2",
+   "sql_error": "ValueError: Domain() item inválido: 2",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('categories', 'not any', 1)",
+   "django_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "sql_error": "TypeError: Domain() tipo inválido de dominio: 1",
+   "verdict": "neither"
+  },
+  {
+   "condition": "('categories', 'not any', [1, 1, False])",
+   "django_error": "ValueError: Domain() item inválido: False",
+   "sql_error": "ValueError: Domain() item inválido: False",
+   "verdict": "neither"
+  }
+ ]
+}

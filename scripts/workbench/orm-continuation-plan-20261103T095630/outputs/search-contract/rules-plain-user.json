@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "equal": 1
+ },
+ "rows": [
+  {
+   "case": "rule value1>=2",
+   "current_search": [
+    966,
+    967
+   ],
+   "sql_rule": [
+    966,
+    967
+   ],
+   "sql_code": "SELECT \"test_orm_foo\".\"id\" FROM \"test_orm_foo\" WHERE \"test_orm_foo\".\"value1\" >= %s",
+   "sql_params": [
+    "2"
+   ],
+   "verdict": "equal"
+  }
+ ]
+}
