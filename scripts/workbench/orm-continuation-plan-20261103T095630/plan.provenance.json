@@ -891,6 +891,13 @@
         "orm-x2many-sudo-commands-0485"
       ],
       "writtenAt": "2026-11-09T07:52:40Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-parent-path-check-0485"
+      ],
+      "writtenAt": "2026-11-09T08:33:29Z"
     }
   ]
 }
