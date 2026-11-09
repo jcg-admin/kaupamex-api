@@ -6,3 +6,11 @@ FAILED test_assigning_a_new_owner_adds_the_line
 FAILED test_moving_the_line_removes_it_from_the_previous_owner
        assert (<NewId ...>,) == ()
 2 failed — la asignación del Many2one no toca la caché del One2many.
+
+GREEN tras _remove_inverses/_update_inverses en ForeignKey, llamados por
+FieldDescriptor.__set__ alrededor de la escritura de caché del NewId:
+2 passed (y los 2 de test_one2many_on_new_records siguen verdes).
+
+Controles de anulación (restaurado con cmp):
+- sin _remove_inverses: 1 failed — el de mover la línea.
+- sin _update_inverses: 2 failed — los dos esperan la línea en el dueño nuevo.
