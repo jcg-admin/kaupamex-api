@@ -7,3 +7,13 @@ FAILED tests/unit/orm/test_field_index_db_index.py::test_a_btree_index_becomes_d
 4 failed, 4 passed, 2 warnings in 5.47s
 
 Los cuatro controles (None, False, btree_not_null, trigram) pasan antes y deben seguir pasando.
+
+GREEN tras traducir index True/'btree' a db_index en la costura de
+Field.__init__ y generar base/0101 y test_orm/0039: 8 passed;
+makemigrations --check sin cambios.
+
+Control de anulación (restaurado con cmp): sin la traducción caen los dos
+casos de construcción (True, 'btree') y makemigrations --check vuelve a
+proponer "Alter field" en res.partner.ref y test_orm.category.parent_path.
+Los dos casos de tabla siguen pasando: miden la base ya migrada, no la
+costura.
