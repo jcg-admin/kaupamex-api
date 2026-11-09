@@ -940,6 +940,13 @@
         "orm-apply-onchange-methods-0485"
       ],
       "writtenAt": "2026-11-09T17:20:15Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-one2many-domain-new-records-0485"
+      ],
+      "writtenAt": "2026-11-09T18:13:35Z"
     }
   ]
 }
