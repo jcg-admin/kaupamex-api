@@ -124,3 +124,14 @@ referencia conserve.
 - `odoo/orm/models.py:2248-2275`: `_read_group_postprocess_groupby` no
   decodifica; el grupo vacío de una propiedad es `_read_group_empty_value`
   → `False` (no es relacional).
+
+## Nivel 3 sobre `2d2eb633`
+
+Suite: `1 failed, 12456 passed, 66 skipped, 4 xfailed, 5 errors` (boot
+`e81170bb`). Los 5 errores, `test_multidb_isolation`, con la causa de
+siempre (*Isolation fixture requires an explicitly owned disposable
+default*). El fallo es un consumidor de este cambio:
+`test_field_to_sql.py::test_the_json_arrow_returns_the_property` afirmaba
+`'"azul"'` para `vehicle_properties -> 'color'`, que es lo que daba el
+cursor de Django. La fuente, sobre psycopg2, entrega `'azul'`; el operador
+`->` se conserva. Se corrigió la expectativa (no el código). `39 passed`.

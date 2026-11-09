@@ -472,7 +472,8 @@ class TestAgainstTheRealSchema:
                 )
             )
         )
-        # `->` devuelve **jsonb**, así que una cadena vuelve con sus
-        # comillas. Es lo que la fuente emite —usa `->`, no `->>`— y por
-        # eso la aserción las lleva: quitarlas sería portar otro operador.
-        assert rows == [('"azul"',)]
+        # `->` devuelve **jsonb**: es el operador de la fuente (no `->>`).
+        # Desde TASK-API-0504 el cursor del ORM decodifica `jsonb` como el
+        # de psycopg2 en la fuente, así que la cadena llega sin comillas;
+        # con `->>` también, pero por otro camino (texto de PostgreSQL).
+        assert rows == [('azul',)]
