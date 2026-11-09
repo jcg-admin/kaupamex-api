@@ -38,3 +38,21 @@ intermedia: se calcula al leer (`compute`) y se busca por su método
 Los dos escenarios `OPEN` del contrato de grupos pasan a coincidir y se
 retiran de `OPEN`; los `_search_*` toman la firma `(operator, value)` →
 dominio de la referencia.
+
+## Mediciones 1 y 2 (2026-11-09)
+
+1. `ManyToManyField('base.ResGroups').contribute_to_class(Host, 'probe_ids',
+   private_only=True)` sobre un modelo de sonda **sí registra** el modelo
+   intermedio `test_orm.ProbeHost_probe_ids` y deja el campo en
+   `_meta.many_to_many`: la vía de los escalares no basta, y el campo crearía
+   tabla y migración. El M2M sin columna necesita su propio campo (sin
+   `through` automático) o un descriptor que publique un campo en el registro
+   sin pasar por `contribute_to_class` de Django.
+2. `orm.domains` ya despacha `field.search` por `determine_domain`
+   (`domains.py:1113-1175, 1237`): si el campo está en
+   `model_field_registry` con `search`, la búsqueda tiene ruta. El
+   `ValueError` actual sale de `__get_field` (`domains.py:1102`), que no
+   encuentra el nombre.
+
+Siguiente paso: la medición 3 (consumidores de `all_implied_ids` como
+queryset) y la elección entre las dos formas del punto 1.
