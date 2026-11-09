@@ -93,3 +93,35 @@ BaseModel en los 389 modelos). La única arista BaseModel → bandera False es
   (`res.partner.user_ids`) queda bloqueada por la ACL de los modelos Django.
 - Controles de anulación: sin herencia del entorno cae el caso permitido; sin
   la guarda caen CREATE/UPDATE/DELETE sobre `test_orm.group`.
+
+## Implementación y verificación
+
+- `src/orm/commands.py`: `_record_env`, `_check_sudo_commands`, y los dos
+  intérpretes corren sus triples dentro de `with <entorno>`. El `DELETE` de
+  Many2many pasa por `comodel.browse(ids).unlink()` (`:1491`) cuando el
+  comodelo es BaseModel; antes borraba por el manager de Django sin ACL.
+- `src/addons/test_orm/models/test_orm.py` + migración `0038_user_group`:
+  `test_orm.user`/`test_orm.group` de la referencia.
+- RED, GREEN y controles: `red/sudo-commands.txt`.
+- `Transaction.default_env` persiste entre pruebas (el corte de savepoint no
+  lo limpia): la prueba arranca cada caso con una transacción nueva, como
+  `test_environments_pooling_and_flush.py`.
+
+## Lo que esta unidad no cierra
+
+- La sección 1 de `test_sudo_commands` (`res.partner.user_ids` → `res.users`)
+  y los treinta modelos con bandera False: son modelos de Django sin ACL en
+  `create`/`write`; la guarda corre pero no tiene efecto observable hasta que
+  adopten `BaseModel` (decisión abierta de las columnas propias de
+  `res.users`).
+- El usuario por defecto en producción: la petición fija el canal
+  (`ir_http.py:446`) sin construir `default_env`; dentro de un `create` que
+  ya entró en el entorno del registro, un `with_user` no se distingue del
+  usuario de la petición. Condición de cierre: que la capa de petición
+  establezca `Transaction.default_env` con el usuario autenticado.
+- `write_new` (registros nuevos, `:1084`, `:1603`): sus equivalentes aquí
+  (`fields_relational.py:1715-1740`, `models.py:5340-5365`) sólo tocan la
+  caché (`new`, `_update_cache`), que no consulta la ACL; la guarda no cambia
+  nada observable ahí y no se cablea. `_set_computed`
+  (`fields_relational.py:474-500`) escribe por la clase del comodelo y queda
+  con el mismo límite que los modelos de Django.

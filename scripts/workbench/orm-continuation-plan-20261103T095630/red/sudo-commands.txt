@@ -1,0 +1,21 @@
+RED — tests/unit/orm/test_sudo_commands.py, antes de tocar src/orm/commands.py
+(con test_orm.user/test_orm.group ya portados, migración 0038):
+
+FAILED test_create_on_a_comodel_without_sudo_commands_is_refused[with_user]  DID NOT RAISE
+FAILED test_create_on_a_comodel_without_sudo_commands_is_refused[sudo]       DID NOT RAISE
+FAILED test_delete_on_a_comodel_without_sudo_commands_is_refused[with_user]  DID NOT RAISE
+FAILED test_delete_on_a_comodel_without_sudo_commands_is_refused[sudo]       DID NOT RAISE
+FAILED test_allowed_sudo_commands_run_with_the_record_env  AccessError crear related_bar
+5 failed, 3 passed
+
+Los dos casos de UPDATE pasaban por la razón equivocada: el comando corría con
+el usuario ambiental (sin ACL de escritura), no con la guarda.
+
+GREEN tras la guarda y la herencia del entorno: 8 passed.
+
+Controles de anulación (restaurado con cmp):
+- sin guarda (_check_sudo_commands devuelve el entorno del registro):
+  6 failed — CREATE, UPDATE y DELETE en las dos variantes; los dos controles pasan.
+- sin herencia del entorno (_record_env devuelve el ambiental):
+  1 failed — el control del comodelo que admite comandos bajo sudo.
+- DELETE por _base_manager en vez de unlink: 2 failed — los dos DELETE.
