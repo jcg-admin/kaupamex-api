@@ -5,3 +5,18 @@ FAILED test_a_new_owner_starts_without_lines
 FAILED test_a_new_line_pointing_to_a_new_owner_joins_its_lines
        AttributeError: 'One2many' object has no attribute '_update_inverse'
 2 failed
+
+CORRECCIÓN de la prueba: comparaba ``ids``, que en la referencia descarta los
+ids nuevos sin origen (OriginIds, odoo/orm/utils.py:129-141); el primer caso
+pasaba sólo por eso y el segundo nunca podía pasar. Ahora compara ``_ids``.
+Las dos causas del RED (TypeError al leer, AttributeError en
+_update_inverse) eran las del defecto y no dependían de esa comparación.
+
+GREEN tras leer la caché de la relación inversa para un dueño de new()
+(poniendo el vacío con _update_cache, que drena los parches) y dar al
+One2many declarado su _update_inverse: 2 passed.
+
+Controles de anulación (restaurado con cmp):
+- sin la rama de lectura: 2 failed.
+- sin _update_inverse: 1 failed — el de la línea nueva.
+- sin drenar los parches en la primera lectura: 1 failed — el mismo.
