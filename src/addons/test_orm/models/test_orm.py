@@ -1251,3 +1251,28 @@ class TestOrmModelSomeAccess(TestOrmModel):
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_model_some_access'
 
+
+class TestOrmRelatedInheritsTwo(TestOrmModel):
+    """Modelo de prueba propio: ``_inherits`` con dos padres.
+
+    Ningún modelo de ``odoo19c`` declara dos padres (recorrido AST, 0), pero
+    el atributo lo admite (``odoo/orm/models.py:407-425``) y con un nombre
+    repetido gana el último padre. ``name`` está en los dos; ``foo_id`` sólo
+    en ``test_orm.related`` y ``active`` sólo en ``test_orm.related_bar``.
+    """
+
+    _name = 'test_orm.related_inherits_two'
+    _description = 'test_orm.related_inherits_two'
+    _inherits = {'test_orm.related': 'base_id',
+                 'test_orm.related_bar': 'bar_parent_id'}
+
+    base_id = fields.Many2one('test_orm.related', null=False, required=True,
+                              ondelete='cascade', related_name='+',
+                              db_column='base_id')
+    bar_parent_id = fields.Many2one('test_orm.related_bar', null=False,
+                                    required=True, ondelete='cascade',
+                                    related_name='+',
+                                    db_column='bar_parent_id')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_related_inherits_two'

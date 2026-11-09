@@ -4396,13 +4396,20 @@ models.Field.resolve_depends = _field_resolve_depends
 
 def _inherits_fk_for(model, fname, registry_module):
     """La FK de ``_inherits`` por la que ``model`` hereda ``fname``, o
-    ``None``."""
+    ``None``.
+
+    Con varios padres gana el **último** que tenga el nombre, la regla de
+    ``_add_inherited_fields`` (``odoo19c: odoo/orm/model_classes.py:486-490``
+    y ``models.py:422-425``). Antes devolvía el primero, y una dependencia
+    sobre un nombre compartido se expandía por el padre equivocado.
+    """
+    found = None
     for parent_name, fk_name in (getattr(model, '_inherits', None)
                                  or {}).items():
         parent = registry_module.MODELS_BY_NAME.get(parent_name)
         if parent is not None and fname in model_field_registry(parent):
-            return fk_name
-    return None
+            found = fk_name
+    return found
 
 
 def get_depends(self, model):

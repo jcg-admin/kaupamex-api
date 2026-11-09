@@ -2120,29 +2120,36 @@ def _delegated_origin(model, name):
 
     NO tiene contraparte con este nombre: allá el campo heredado lo declara
     él mismo (``field.inherited`` y ``field.related_field``), porque el ORM
-    construye un campo espejo en el hijo. Aquí ``_inherits`` cuelga los
-    campos del padre por ``property`` (``orm/inherits.py``), así que la
-    pregunta se responde mirando el mapa de delegación.
+    construye un campo espejo en el hijo. Aquí ese campo espejo lo publica
+    :func:`orm.model_classes._add_inherited_fields` en el mapa de campos, con
+    ``related='<fk>.<nombre>'``, y la respuesta se lee de ahí: es la misma
+    autoridad que decide, con varios padres, que gana el último
+    (``odoo19c: odoo/orm/models.py:422-425``). Antes esta función recorría
+    ``_inherits`` por su cuenta y devolvía el **primer** padre que tuviera el
+    nombre, así que ``create`` mandaba un nombre compartido al padre
+    equivocado.
 
     La fuente además exige ``_has_field_access(field, 'write')`` antes de
     delegar. Aquí ese check vive en ``FieldSqlMixin``, que no todo modelo
     adopta todavía (tarea **#96**); cuando el modelo lo tenga, se aplica.
     """
-    for parent_name, fk_name in getattr(model, '_inherits', {}).items():
-        try:
-            fk_field = model._meta.get_field(fk_name)
-        except FieldDoesNotExist:
+    field = model_field_registry(model).get(name)
+    if field is None or not getattr(field, 'inherited', False):
+        return None
+    reference = (getattr(field, 'related', None) or '').split('.')[0]
+    for fk_field in model._meta.concrete_fields:
+        if reference not in (fk_field.name, fk_field.attname):
             continue
-        parent_model = fk_field.related_model
+        parent_model = getattr(fk_field, 'related_model', None)
         if parent_model is None:
-            continue
+            return None
         try:
             parent_model._meta.get_field(name)
         except FieldDoesNotExist:
-            continue
+            return None
         if hasattr(model, '_has_field_access'):
             if not model()._has_field_access(fk_field, 'write'):
-                continue
+                return None
         return parent_model, name
     return None
 

@@ -151,9 +151,18 @@ def _check_delegate_access(delegate, operation='read'):
 
 
 class DelegatedFieldNames:
-    """``_inherits_fields``: la lista de nombres delegados, resuelta tarde.
+    """``_inherits_fields``: el mapa ``nombre → FK`` de la delegación,
+    resuelto tarde.
 
-    La lista sale del mapa de campos del padre, y ese mapa memoriza sus
+    Cada nombre delegado apunta a la FK del padre que lo responde. Con varios
+    padres se recorren en el orden en que se registraron —el de ``_inherits``,
+    que es el que :func:`ensure_inherits` sigue—, y un padre posterior pisa a
+    uno anterior en el mismo nombre: *"the inherited field will correspond to
+    the last one (in the inherits list order)"* (``odoo19c: odoo/orm/
+    models.py:422-425``), la misma regla que ``_add_inherited_fields``
+    aplica al mapa de campos (``model_classes.py:486-490``).
+
+    La lista de cada padre sale de su mapa de campos, y ese mapa memoriza sus
     campos sin columna la primera vez que se consulta
     (:func:`orm.fields_nonstored.non_stored_fields`). ``apply_inherits``
     corre dentro de ``ready()`` de cada app, antes de que las siguientes
@@ -162,22 +171,31 @@ class DelegatedFieldNames:
     ``base_address_extended`` en ``res.partner``— quedaba fuera del reparto
     entre columna y descriptor y el ``UPDATE`` lo rechazaba.
 
-    Por eso la lista se calcula en la primera lectura con el registro de apps
+    Por eso el mapa se calcula en la primera lectura con el registro de apps
     ya listo, y se memoriza por clase. Antes de eso no hay instancias que
-    delegar, y responde vacía sin tocar el mapa del padre.
+    delegar, y responde vacío sin tocar el mapa del padre.
     """
 
-    def __init__(self, delegate_model):
-        self.delegate_model = delegate_model
+    def __init__(self):
+        self.parents = {}
         self.resolved = {}
+
+    def add_parent(self, delegate_model, fk_name):
+        """Registra un padre; reinstalar el mismo no cambia su orden."""
+        if self.parents.get(fk_name) is not delegate_model:
+            self.parents[fk_name] = delegate_model
+            self.resolved.clear()
 
     def __get__(self, instance, owner):
         names = self.resolved.get(owner)
         if names is not None:
             return names
         if not apps.ready:
-            return ()
-        names = _delegable_field_names(self.delegate_model, owner)
+            return {}
+        names = {}
+        for fk_name, delegate_model in self.parents.items():
+            for name in _delegable_field_names(delegate_model, owner):
+                names[name] = fk_name
         self.resolved[owner] = names
         return names
 
@@ -185,8 +203,14 @@ class DelegatedFieldNames:
 def apply_inherits(delegant_cls, delegate_model, fk_name):
     """Instala la delegación ``_inherits`` de ``delegant_cls`` al delegado.
 
-    Equivale a ``_inherits = {'<delegado>': '<fk_name>'}`` de la referencia.
-    Idempotente: reinstalarla no duplica nada.
+    Equivale a una entrada ``'<delegado>': '<fk_name>'`` del ``_inherits`` de
+    la referencia; se llama una vez por padre. **Idempotente:** los cuatro
+    ganchos —``_inherits_fields``, ``__getattr__``, ``__setattr__`` y
+    ``save``— se instalan sólo la primera vez por clase; las llamadas
+    siguientes registran el padre en el mapa y marcan su FK. Antes cada
+    llamada los sustituía con el cierre de su propio padre, así que con dos
+    padres el segundo anulaba al primero y cada ``ensure_inherits`` envolvía
+    ``save`` una vez más.
 
     **El mecanismo CONSUME ``_inherits``; no lo escribe** (tarea #385). Hasta
     hoy esta función lo sobreescribía con la etiqueta de Django —
@@ -197,8 +221,6 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     ``ready()`` corría: quien lo leyera vería la traducción, no el contrato.
     El estado interno vive en ``_inherits_fields``, que es de este mecanismo.
     """
-    delegant_cls._inherits_fields = DelegatedFieldNames(delegate_model)
-
     # La delegación implica saltar el permiso del comodelo — ≙ ``odoo19c:
     # odoo/orm/fields_relational.py:257-259``, con su comentario de una línea:
     # *"self.delegate implies self.bypass_search_access"*.
@@ -218,11 +240,20 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     # permiso— y el atributo no tenía dónde leerse.
     fk_field.delegate = True
 
+    descriptor = delegant_cls.__dict__.get('_inherits_fields')
+    if isinstance(descriptor, DelegatedFieldNames):
+        descriptor.add_parent(delegate_model, fk_name)
+        return delegant_cls._inherits_fields
+    descriptor = DelegatedFieldNames()
+    descriptor.add_parent(delegate_model, fk_name)
+    delegant_cls._inherits_fields = descriptor
+
     def __getattr__(self, name):
         # Sólo se invoca cuando la búsqueda normal falló: los campos y
         # propiedades propias del delegante nunca llegan aquí.
-        if name in type(self)._inherits_fields:
-            delegate = getattr(self, fk_name, None)
+        fk = type(self)._inherits_fields.get(name)
+        if fk is not None:
+            delegate = getattr(self, fk, None)
             if delegate is not None:
                 if not self.__dict__.get(CURRENT_USER_SU):
                     _check_delegate_access(delegate, 'read')
@@ -236,41 +267,47 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
         return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
-        if (not name.startswith('_')
-                and name in type(self)._inherits_fields):
-            delegate = self.__dict__.get(fk_name) or getattr(
-                self, fk_name, None
-            )
+        fk = (None if name.startswith('_')
+              else type(self)._inherits_fields.get(name))
+        if fk is not None:
+            delegate = self.__dict__.get(fk) or getattr(self, fk, None)
             if delegate is not None:
                 if not self.__dict__.get(CURRENT_USER_SU):
                     _check_delegate_access(delegate, 'write')
                 setattr(delegate, name, value)
-                self.__dict__.setdefault('_inherits_dirty', set()).add(fk_name)
+                self.__dict__.setdefault('_inherits_dirty', set()).add(fk)
                 return
         object.__setattr__(self, name, value)
 
     original_save = delegant_cls.save
 
     def save(self, *args, **kwargs):
-        """Persiste el delegado ANTES que el delegante.
+        """Persiste los padres tocados ANTES que el delegante.
 
-        El orden importa: el delegante guarda una FK al delegado, así que un
-        delegado sin ``pk`` rompería la integridad. Ambos en la misma
-        transacción — un delegado guardado con un delegante que falla es
+        El orden importa: el delegante guarda una FK a cada padre, así que un
+        padre sin ``pk`` rompería la integridad. Todos en la misma
+        transacción — un padre guardado con un delegante que falla es
         justamente la inconsistencia que la referencia evita.
         """
         dirty = self.__dict__.pop('_inherits_dirty', None)
         if not dirty:
             return original_save(self, *args, **kwargs)
         with transaction.atomic():
-            delegate = getattr(self, fk_name, None)
-            if delegate is not None:
-                delegate.save()
+            for fk in type(self)._inherits_fields_order(dirty):
+                delegate = getattr(self, fk, None)
+                if delegate is not None:
+                    delegate.save()
             return original_save(self, *args, **kwargs)
+
+    def _inherits_fields_order(cls, dirty):
+        """Las FK tocadas, en el orden de registro de sus padres."""
+        return [fk for fk in cls.__dict__['_inherits_fields'].parents
+                if fk in dirty]
 
     delegant_cls.__getattr__ = __getattr__
     delegant_cls.__setattr__ = __setattr__
     delegant_cls.save = save
+    delegant_cls._inherits_fields_order = classmethod(_inherits_fields_order)
     return delegant_cls._inherits_fields
 
 

@@ -18,8 +18,10 @@ el modelo ``test_orm.related_inherits_two`` es propio: padre A
 """
 import pytest
 
+from orm import registry as registry_module
 from orm.environments import env as current_env
 from orm.environments import sudo
+from orm.fields import _inherits_fk_for
 from orm.inherits import ensure_inherits
 from orm.registry import MODELS_BY_NAME
 from orm.utils import model_field_registry
@@ -79,7 +81,8 @@ def test_create_without_parents_creates_both(parents):
         A = row.base_id
         B = row.bar_parent_id
         assert (A.foo_id.pk, B.name, B.active) == (foo.id, 'born', True)
-        assert A.name is None
+        # ``name`` fue al padre B; el ``Char`` vacío de A se lee ``False``.
+        assert A.name is False
 
 
 def test_create_with_one_parent_given_creates_the_other(parents):
@@ -104,3 +107,13 @@ def test_installing_twice_keeps_one_wrapper_per_hook(parents):
         child = e[CHILD].create({'base_id': a.id, 'bar_parent_id': b.id})
         row = model._base_manager.get(pk=child.id)
         assert (row.name, row.foo_id.pk) == ('b-name', foo.id)
+
+
+def test_a_dependency_on_a_shared_name_goes_through_the_last_parent():
+    """``resolve_depends`` expande un nombre heredado por su FK
+    (``_inherits_fk_for``): tiene que ser la del padre que lo publica."""
+    model = MODELS_BY_NAME[CHILD]
+    assert _inherits_fk_for(model, 'name', registry_module) == 'bar_parent_id'
+    assert _inherits_fk_for(model, 'foo_id', registry_module) == 'base_id'
+    assert _inherits_fk_for(model, 'active', registry_module) == (
+        'bar_parent_id')
