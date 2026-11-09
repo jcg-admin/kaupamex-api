@@ -1152,6 +1152,10 @@ def _field_init_with_copy(self, *args, **kwargs):
     """
     declared = dict(zip(_DJANGO_FIELD_POSITIONAL, args))
     declared.update(kwargs)
+    # ``index`` en ``True``/``'btree'`` pide un btree sobre la columna
+    # (``odoo19c: odoo/orm/registry.py:831-880``); aquí lo crea la migración.
+    if declared.get('index') in (True, 'btree') and 'db_index' not in declared:
+        kwargs['db_index'] = True
     for key in tuple(kwargs):
         if key not in _DJANGO_FIELD_KWARGS:
             del kwargs[key]
