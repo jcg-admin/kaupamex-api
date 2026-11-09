@@ -926,6 +926,13 @@
         "orm-one2many-new-records-0485"
       ],
       "writtenAt": "2026-11-09T11:13:13Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-many2one-write-inverses-0485"
+      ],
+      "writtenAt": "2026-11-09T11:52:24Z"
     }
   ]
 }
