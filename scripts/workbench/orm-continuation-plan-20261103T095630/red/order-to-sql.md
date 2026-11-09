@@ -43,3 +43,7 @@ Admisión de estilo: PASS.
 | Required integration gates | Suite completa y multidb en el corte de publicación. |
 | Previously valid evidence | Ninguna para esta revisión. |
 | Uncovered risks | Una subclase que ya definiera un atributo `_order_to_sql`: grep → 0. |
+
+## Regresión de impacto (nivel 2)
+
+`-n 4`: 5566 passed, 65 skipped, 4 xfailed, EXIT=0.

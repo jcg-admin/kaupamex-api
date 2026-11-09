@@ -3991,6 +3991,113 @@ class OrderMixin:
                 'de campo separados por coma, cada uno seguido opcionalmente '
                 'de asc o desc.' % word)
 
+    def _order_to_sql(self, order, query, alias=None, reverse=False):
+        """ Return an :class:`SQL` object that represents the given ORDER BY
+        clause, without the ORDER BY keyword.  The method also checks whether
+        the fields in the order are accessible for reading.
+        — ≙ ``odoo19c: odoo/orm/models.py:5224-5260``
+        """
+        order = order or self._order
+        if not order:
+            return SQL()
+        self._check_qorder(order)
+
+        alias = alias or self._table
+
+        terms = []
+        for order_part in order.split(','):
+            order_match = regex_order.match(order_part)
+            assert order_match is not None, "No match found"
+            field_name = order_match['field']
+
+            direction = (order_match['direction'] or '').upper()
+            nulls = (order_match['nulls'] or '').upper()
+            if reverse:
+                direction = 'ASC' if direction == 'DESC' else 'DESC'
+                if nulls:
+                    nulls = ('NULLS LAST' if nulls == 'NULLS FIRST'
+                             else 'NULLS FIRST')
+
+            sql_direction = (SQL(direction) if direction in ('ASC', 'DESC')
+                             else SQL())
+            sql_nulls = (SQL(nulls) if nulls in ('NULLS FIRST', 'NULLS LAST')
+                         else SQL())
+
+            if property_name := order_match['property']:
+                # field_name es una expresión
+                field_name = f"{field_name}.{property_name}"
+            term = self._order_field_to_sql(
+                alias, field_name, sql_direction, sql_nulls, query)
+            if term:
+                terms.append(term)
+
+        return SQL(", ").join(terms)
+
+    def _order_field_to_sql(self, alias, field_name, direction, nulls, query):
+        """ Return an :class:`SQL` object that represents the ordering by
+        the given field.  The method also checks whether the field is
+        accessible for reading. — ≙ ``odoo19c: odoo/orm/models.py:5262-5322``
+
+        :param direction: one of ``SQL("ASC")``, ``SQL("DESC")``, ``SQL()``
+        :param nulls: one of ``SQL("NULLS FIRST")``, ``SQL("NULLS LAST")``,
+            ``SQL()``
+        """
+        # field_name es una expresión
+        fname, property_name = parse_field_expr(field_name)
+        field = self._fields.get(fname)
+        if not field:
+            raise ValueError(
+                f"Invalid field {fname!r} on model {self._name!r}")
+
+        if field.type == 'many2one':
+            seen = self.env.context.get('__m2o_order_seen', ())
+            if field in seen:
+                return SQL()
+            self = self.with_context(
+                __m2o_order_seen=frozenset((field, *seen)))
+
+            # el orden aplicable al many2one; ``x_id.id`` no recorre el
+            # comodelo de ``x_id``
+            # ``env[nombre]`` es aquí la clase; el orden se delega en el
+            # recordset vacío del comodelo en el mismo entorno.
+            comodel = self.env[field.comodel_name]._from_ids(self.env, (), ())
+            if property_name == 'id':
+                coorder = 'id'
+                sql_field = self._field_to_sql(alias, fname, query)
+            else:
+                coorder = comodel._order
+                sql_field = self._field_to_sql(alias, field_name, query)
+
+            if coorder == 'id':
+                query._order_groupby.append(sql_field)
+                return SQL("%s %s %s", sql_field, direction, nulls)
+
+            # en vez del valor crudo, el orden del comodelo sobre los valores
+            terms = []
+            if nulls.code == 'NULLS FIRST':
+                terms.append(SQL("%s IS NOT NULL", sql_field))
+            elif nulls.code == 'NULLS LAST':
+                terms.append(SQL("%s IS NULL", sql_field))
+
+            # LEFT JOIN de la tabla del comodelo, para incluir también NULL
+            _comodel, coalias = field.join(self, alias, query)
+
+            # se delega el orden en el comodelo
+            reverse = direction.code == 'DESC'
+            term = comodel._order_to_sql(
+                coorder, query, alias=coalias, reverse=reverse)
+            if term:
+                terms.append(term)
+            return SQL(", ").join(terms)
+
+        sql_field = self._field_to_sql(alias, field_name, query)
+        if field.type == 'boolean':
+            sql_field = SQL("COALESCE(%s, FALSE)", sql_field)
+
+        query._order_groupby.append(sql_field)
+
+        return SQL("%s %s %s", sql_field, direction, nulls)
+
 
 class DisplayNameMixin:
     """``display_name`` y su bloque — la etiqueta de un registro, universal.
