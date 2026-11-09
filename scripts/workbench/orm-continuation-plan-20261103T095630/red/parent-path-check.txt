@@ -11,3 +11,14 @@ FAILED test_the_check_names_a_missing_parent_path
 FAILED test_the_check_asks_for_an_index
        AttributeError: 'ParentPathProbe1' has no attribute '_check_parent_path'
 5 failed
+
+GREEN tras portar parent_path en ir.ui.menu (migración base 0100 con relleno
+por niveles) y _check_parent_path en RecordLoaderMixin: 5 passed.
+
+Controles de anulación (restaurado con cmp):
+- sin el llamador en check(): 1 failed — test_the_check_names_a_missing_parent_path.
+- sin exigir índice: 1 failed — test_the_check_asks_for_an_index.
+- sin _parent_store_update en save(): 1 failed — test_reparenting_rewrites_the_path_of_the_subtree.
+El control "sin la columna" del diseño no se ejecuta: retirar el campo exige
+otra migración; lo sustituye el RED, donde la columna ausente tumbaba los dos
+casos de child_of y reparentar.
