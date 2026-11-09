@@ -4,8 +4,9 @@ La pieza central es la clase :class:`SQL` (``odoo19c: odoo/tools/sql.py:46``),
 portada COMPLETA en la tarea #549 (H-API-698): hasta entonces ``SQL`` era un
 alias de ``django.db.models.expressions.RawSQL`` — no componible, sin
 ``SQL.identifier``, sin ``SQL.join`` ni interpolación por nombre. El alias
-quedó retirado; la única traza que se conserva de él es la adaptación
-``output_field`` (ver la clase).
+quedó retirado, y con la tarea TASK-API-0486 también su última traza (el
+``output_field`` de ``SQL``): quien necesita una expresión de Django usa
+``RawSQL`` directamente (``addons/stock/models/stock_quant.py``).
 
 Cobertura del resto del módulo fuente — medida por AST el 2026-08-18 sobre
 ``odoo19c: odoo/tools/sql.py`` (781 líneas): 2 clases, 37 funciones de módulo
@@ -94,18 +95,36 @@ saberlo. Ver H-API-306.
 ``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
 el filtro por tabla que nuestra firma ya exponía.
 """
+from __future__ import annotations
+
 import enum
 import json
 import logging
 import re
 import warnings
+from collections import defaultdict
+from typing import TYPE_CHECKING
 from zlib import crc32
 
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.utils import NotSupportedError
-from django.db.models.expressions import RawSQL
+
+if TYPE_CHECKING:
+    # ``odoo.fields.Field`` en la referencia; aquí el campo es el de Django.
+    from django.db.models import Field
 
 from .misc import named_to_positional_printf
+
+__all__ = [
+    "SQL",
+    "create_index",
+    "drop_view_if_exists",
+    "escape_psql",
+    "index_exists",
+    "make_identifier",
+    "make_index_name",
+    "reverse_order",
+]
 
 # ≙ ``IDENT_RE`` (``odoo19c: odoo/tools/sql.py:35``) — el filtro de
 # ``SQL.identifier``: minúsculas, dígitos, ``_``, ``$`` y ``-``.
@@ -134,13 +153,9 @@ _CONFDELTYPES = {
 #: El orden prescrito de columnas dentro de una tabla, por tipo. Los valores
 #: se eligieron para minimizar el relleno de alineación de cada fila: primero
 #: lo alineado a 4 bytes, luego lo de 1 byte, luego lo de 8. Un tipo que no
-#: esté en el mapa va al final (16), que es lo que hace el ``defaultdict`` de
-#: la fuente y aquí el ``.get(clave, 16)`` de :func:`sql_order_by_type`.
-#:
-#: Es un `dict` llano y no un ``defaultdict`` a propósito: un ``defaultdict``
-#: consultado con una clave desconocida la **inserta**, así que una lectura
-#: silenciosa lo hace crecer. El default se aplica al leer, no al guardar.
-SQL_ORDER_BY_TYPE = {
+#: esté en el mapa va al final (16); como en la referencia, leerlo lo añade
+#: al mapa.
+SQL_ORDER_BY_TYPE = defaultdict(lambda: 16, {
     'int4': 1,          # 4 bytes alineado a 4 bytes
     'varchar': 2,       # variable alineado a 4 bytes
     'date': 3,          # 4 bytes alineado a 4 bytes
@@ -150,21 +165,7 @@ SQL_ORDER_BY_TYPE = {
     'bool': 7,          # 1 byte alineado a 1 byte
     'timestamp': 8,     # 8 bytes alineado a 8 bytes
     'float8': 9,        # 8 bytes alineado a 8 bytes
-}
-
-#: El valor que la fuente da a un tipo desconocido — el ``lambda: 16`` de su
-#: ``defaultdict``. Se nombra para que el consumidor no lo teclee.
-SQL_ORDER_BY_TYPE_UNKNOWN = 16
-
-
-def sql_order_by_type(udt_name):
-    """El orden prescrito del tipo dado, o el de un tipo desconocido.
-
-    ≙ la lectura ``SQL_ORDER_BY_TYPE[udt]`` de la fuente, que su
-    ``defaultdict`` resuelve a 16. Aquí es una función porque el mapa es un
-    ``dict`` llano: el default se aplica al leer y no muta el mapa.
-    """
-    return SQL_ORDER_BY_TYPE.get(udt_name, SQL_ORDER_BY_TYPE_UNKNOWN)
+})
 
 
 class SQL:
@@ -206,29 +207,23 @@ class SQL:
     - En la referencia ``cr.execute(sql)`` acepta el objeto porque su cursor
       lo desenvuelve; el cursor de Django/psycopg 3 no — aquí se ejecuta con
       ``cursor.execute(sql.code, sql.params)``.
-    - ``output_field`` (keyword-only) + :meth:`resolve_expression`: conservan
-      el uso del alias ``RawSQL`` retirado — un ``SQL('NULL',
-      output_field=DecimalField())`` sigue siendo utilizable como expresión
-      del ORM en ``annotate()``/``aggregate()`` (consumidor vivo:
-      ``addons/stock/models/stock_quant.py:831,834``). Como ``to_flush``, el
-      nombre ``output_field`` queda reservado y no puede usarse como
-      parámetro por nombre de la plantilla.
     """
-    __slots__ = ('__code', '__params', '__to_flush', '__output_field')
+    __slots__ = ('__code', '__params', '__to_flush')
+
+    __code: str
+    __params: tuple
+    __to_flush: tuple[Field, ...]
 
     # pylint: disable=keyword-arg-before-vararg
-    def __init__(self, code="", /, *args, to_flush=None, output_field=None,
-                 **kwargs):
-        # ≙ ``__init__`` (``odoo19c: odoo/tools/sql.py:89-135``); la rama de
-        # ``output_field`` es la adaptación declarada arriba.
+    def __init__(self, code="", /, *args, to_flush=None, **kwargs):
+        # ≙ ``__init__`` (``odoo19c: odoo/tools/sql.py:89-135``).
         if isinstance(code, SQL):
-            if args or kwargs or to_flush or output_field:
+            if args or kwargs or to_flush:
                 raise TypeError(
                     "SQL() unexpected arguments when code has type SQL")
             self.__code = code.__code
             self.__params = code.__params
             self.__to_flush = code.__to_flush
-            self.__output_field = code.__output_field
             return
 
         # valida la forma del código y de los parámetros
@@ -248,7 +243,6 @@ class SQL:
                 self.__to_flush = tuple(to_flush)
             else:
                 self.__to_flush = (to_flush,)
-            self.__output_field = output_field
             return
 
         code_list = []
@@ -271,7 +265,6 @@ class SQL:
         self.__code = code.replace('%%', '%%%%') % tuple(code_list)
         self.__params = tuple(params_list)
         self.__to_flush = tuple(to_flush_list)
-        self.__output_field = output_field
 
     @property
     def code(self):
@@ -351,19 +344,6 @@ class SQL:
         assert subname.isidentifier() or IDENT_RE.match(subname), \
             f"{subname!r} invalid for SQL.identifier()"
         return cls(f'"{name}"."{subname}"', to_flush=to_flush)
-
-    def resolve_expression(self, *args, **kwargs):
-        """Adaptación Django — NO existe en la referencia.
-
-        Hace al fragmento utilizable como expresión del ORM
-        (``annotate()``/``aggregate()``): delega en un ``RawSQL`` con el
-        ``output_field`` recibido en el constructor. Es la superficie que el
-        alias retirado (``SQL = RawSQL``) daba gratis y que
-        ``stock_quant._read_group_select`` consume.
-        """
-        raw = RawSQL(self.__code, self.__params,
-                     output_field=self.__output_field)
-        return raw.resolve_expression(*args, **kwargs)
 
 
 def make_identifier(identifier: str) -> str:

@@ -4,11 +4,10 @@ Fiel a ``odoo19c: odoo/tools/sql.py:46-201`` (clase ``SQL``) y a
 ``odoo19c: odoo/tools/misc.py:1959-1977`` (``named_to_positional_printf``).
 
 Lógica pura: ningún caso toca la base — la composición, los parámetros, los
-identificadores y el anidamiento se verifican sobre ``code``/``params``. La
-retrocompatibilidad con el alias retirado (``SQL = RawSQL``) se fija en la
-sección de ``output_field``/``resolve_expression``: es el contrato que
-``addons/stock/models/stock_quant.py:831,834`` consume sin editarse
-(H-API-698).
+identificadores y el anidamiento se verifican sobre ``code``/``params``.
+La adaptación ``output_field``/``resolve_expression`` se retiró con
+TASK-API-0486: ``SQL`` es la clase de la referencia y la expresión de Django
+la construye su consumidor con ``RawSQL``.
 """
 
 import warnings
@@ -17,20 +16,11 @@ import pytest
 from django.db import models
 from django.db.models.expressions import RawSQL
 
+from addons.stock.models.stock_quant import StockQuant
 from tools.misc import named_to_positional_printf
-from tools.sql import IDENT_RE, SQL
+from tools.sql import IDENT_RE, SQL, SQL_ORDER_BY_TYPE
 
 pytestmark = pytest.mark.unit
-
-
-class _QueryStub:
-    """Sustituto mínimo del ``Query`` de Django para ``resolve_expression``.
-
-    ``RawSQL.resolve_expression`` sólo consulta ``query.model``; con ``None``
-    cae al camino genérico de ``Expression`` sin tocar la base.
-    """
-
-    model = None
 
 
 # -- construcción básica (``odoo19c: odoo/tools/sql.py:89-135``) --------------
@@ -211,35 +201,36 @@ def test_named_to_positional_printf_escapes_double_percent():
     )
 
 
-# -- retrocompatibilidad con el alias RawSQL retirado (H-API-698) -------------
+# -- ``SQL_ORDER_BY_TYPE`` (``odoo19c: odoo/tools/sql.py:261-272``) ----------
 
 
-def test_output_field_keyword_matches_the_stock_quant_call():
-    """La llamada exacta de ``stock_quant.py:831`` construye sin error."""
+def test_an_unknown_column_type_orders_last_and_joins_the_map():
+    """El ``defaultdict(lambda: 16, ...)`` de la referencia: un tipo que no
+    está en la tabla ordena con 16, y leerlo lo añade al mapa."""
+    assert 'kaupamex_unknown_type' not in SQL_ORDER_BY_TYPE
+    assert SQL_ORDER_BY_TYPE['kaupamex_unknown_type'] == 16
+    assert 'kaupamex_unknown_type' in SQL_ORDER_BY_TYPE
+    del SQL_ORDER_BY_TYPE['kaupamex_unknown_type']
+
+
+# -- el consumidor Django de una expresión SQL cruda --------------------------
+
+
+def test_output_field_is_an_ordinary_unused_name_as_in_the_reference():
+    """``output_field`` no es parámetro de ``SQL``: llega a ``**kwargs`` y,
+    como cualquier nombre que la plantilla no usa,
+    ``named_to_positional_printf`` lo ignora
+    (``odoo19c: odoo/tools/misc.py``). ``SQL`` no es una expresión de
+    Django."""
     sql = SQL('NULL', output_field=models.DecimalField())
-    assert sql.code == 'NULL'
-    assert sql.params == []
+    assert (sql.code, sql.params) == ('NULL', [])
+    assert not hasattr(sql, 'resolve_expression')
 
 
-def test_resolve_expression_delegates_to_rawsql_with_the_output_field():
-    sql = SQL(
-        'SUM(quantity) - SUM(reserved_quantity)',
-        output_field=models.DecimalField(max_digits=16, decimal_places=2),
-    )
-    resolved = sql.resolve_expression(
-        query=_QueryStub(),
-        allow_joins=True,
-        reuse=None,
-        summarize=False,
-        for_save=False,
-    )
-    assert isinstance(resolved, RawSQL)
-    assert resolved.sql == 'SUM(quantity) - SUM(reserved_quantity)'
-    assert resolved.params == ()
-    assert isinstance(resolved.output_field, models.DecimalField)
-
-
-def test_the_copy_constructor_preserves_the_output_field():
-    original = SQL('NULL', output_field=models.DecimalField())
-    resolved = SQL(original).resolve_expression(query=_QueryStub())
-    assert isinstance(resolved.output_field, models.DecimalField)
+def test_stock_quant_builds_its_django_expression_with_rawsql():
+    """``_read_group_select`` mezcla ``Sum`` de Django con SQL crudo; la
+    expresión cruda es ``RawSQL`` con su ``output_field``."""
+    expression = StockQuant._read_group_select('available_quantity:sum')
+    assert isinstance(expression, RawSQL)
+    assert expression.sql == 'SUM(quantity) - SUM(reserved_quantity)'
+    assert isinstance(expression.output_field, models.DecimalField)

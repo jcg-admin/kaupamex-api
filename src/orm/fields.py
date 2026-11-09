@@ -90,7 +90,7 @@ from orm.registry import (IR_MODELS, UNACCENT_ENABLED,   # noqa: F401
                           field_computed as registry_field_computed,
                          field_depends_context, is_not_null)
 from tools.sql import (SQL, convert_column, create_column, drop_not_null,
-                       pg_varchar, set_not_null, sql_order_by_type)
+                       pg_varchar, set_not_null, SQL_ORDER_BY_TYPE)
 
 from orm.model_classes import ensure_field_setup
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -2587,7 +2587,7 @@ def type_for(field):
 # la caché de campo por transacción   CONSTRUYE   ``orm.environments``
 #                                                 :class:`Transaction`
 # el orden de columna por tipo        CONSTRUYE   ``tools.sql``
-#                                                 ``sql_order_by_type``
+#                                                 ``SQL_ORDER_BY_TYPE``
 # la descripción del campo al cliente CONSTRUYE   los ``_description_*`` sobre
 #                                                 lo que ya se deriva
 # el campo relacionado (``related=``) CONSTRUYE   recorrido por ``getattr``
@@ -3090,7 +3090,7 @@ models.Field.is_editable = _field_is_editable
 #   ``psycopg.types.json.Jsonb`` es el ``PsycopgJson`` de la fuente traído a
 #   psycopg 3 —allá es ``from psycopg2.extras import Json as PsycopgJson``—, y
 #   la tabla de orden de columna, que ``tools/sql.py`` ya porta como
-#   :func:`~tools.sql.sql_order_by_type`.
+#   :data:`~tools.sql.SQL_ORDER_BY_TYPE`.
 # - **el stack tiene con qué construirlo**: el contrato en sí, sobre el
 #   almacén que ``Transaction.field_data`` ya provee.
 #
@@ -3718,9 +3718,9 @@ def _field_column_order(self):
     Ordena las columnas al crear la tabla para minimizar el relleno de
     alineación de la fila: PostgreSQL alinea cada valor a su frontera natural,
     así que un ``bool`` entre dos ``int8`` desperdicia siete bytes por fila.
-    La tabla vive en ``odoo19c: odoo/tools/sql.py:261`` y aquí la porta
-    :func:`~tools.sql.sql_order_by_type`, que resuelve el tipo desconocido al
-    mismo 16 de la fuente en vez de reventar con ``KeyError``.
+    La tabla vive en ``odoo19c: odoo/tools/sql.py:261`` y aquí es el mismo
+    ``defaultdict`` (:data:`tools.sql.SQL_ORDER_BY_TYPE`): un tipo
+    desconocido ordena con 16, como en la fuente.
 
     **Sitio:** la fuente lo declara abriendo su sección «Update database
     schema»; aquí va junto a ``column_type``, que es de quien depende y que en
@@ -3729,7 +3729,7 @@ def _field_column_order(self):
     """
     if self.column_type is None:
         return 0
-    return sql_order_by_type(self.column_type[0])
+    return SQL_ORDER_BY_TYPE[self.column_type[0]]
 
 
 models.Field.column_order = _field_column_order

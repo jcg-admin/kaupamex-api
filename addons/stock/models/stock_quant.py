@@ -344,7 +344,7 @@ from django.utils import timezone
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
 from osv import expression
-from tools.sql import SQL
+from django.db.models.expressions import RawSQL
 from tools.translate import _
 
 #: ≙ ``PackageLevel`` — el nodo del A* de
@@ -853,13 +853,15 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         ``available_quantity:sum`` es la resta de dos sumas, y
         ``inventory_quantity_auto_apply:sum`` es la suma de ``quantity``.
         """
-        if aggregate_spec == 'inventory_quantity:sum' and inventory_report_mode:
+        if (aggregate_spec == 'inventory_quantity:sum'
+                and inventory_report_mode):
             # ≙ ``return SQL("NULL")`` (``odoo19c: :330``).
-            return SQL('NULL', output_field=models.DecimalField())
+            return RawSQL('NULL', (), output_field=models.DecimalField())
         if aggregate_spec == 'available_quantity:sum':
-            # ≙ ``SQL("%s - %s", sql_quantity, sql_reserved_quantity)`` (``:335``).
-            return SQL('SUM(quantity) - SUM(reserved_quantity)',
-                       output_field=models.DecimalField())
+            # ≙ ``SQL("%s - %s", sql_quantity, sql_reserved_quantity)``
+            # (``:335``).
+            return RawSQL('SUM(quantity) - SUM(reserved_quantity)', (),
+                          output_field=models.DecimalField())
         if aggregate_spec == 'inventory_quantity_auto_apply:sum':
             return cls._read_group_select('quantity:sum', queryset)
         campo, _sep, funcion = aggregate_spec.partition(':')

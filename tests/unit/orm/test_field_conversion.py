@@ -15,7 +15,7 @@ El stack lo trae hecho       el adaptador de ``jsonb``
                              (``psycopg.types.json.Jsonb``), que es el
                              ``PsycopgJson`` de la fuente traido a psycopg 3;
                              y la tabla de orden de columna, ya portada en
-                             ``tools/sql.py`` como ``sql_order_by_type``.
+                             ``tools/sql.py`` como ``SQL_ORDER_BY_TYPE``.
 El stack tiene con que       el contrato en si. Django no separa «formato de
 construirlo                  cache», «formato de registro» y «formato de
                              lectura»: su ``Field`` declara ``to_python`` y
