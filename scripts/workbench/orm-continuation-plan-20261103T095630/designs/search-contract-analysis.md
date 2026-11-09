@@ -240,5 +240,20 @@ anulación; «integrado» = regresión amplia verde sobre su revisión;
 | consumidores relacionales (`ManyToOneRel`, comodelo de Django, `domain` de many2many, jerarquía) | sí (`2a62d58b`) | sí: los 16 casos de la regresión y la prueba negativa del comodelo de Django (control: cae sin `_filtered_access`) | en curso | pendiente |
 | `_read_group_select`, `_read_group_having` | sí | sí (3 controles) | sí (nivel 2) | pendiente |
 | `_read_group_empty_value`, `_postprocess_*` | sí | sí (3 controles) | sí (nivel 2, 2664 passed) | pendiente |
-| `_read_group_groupby` | no | — | — | — |
-| `_read_group` | no | — | — | — |
+| `_read_group_groupby` (+ `property_to_sql` con zona del registro) | sí (`bd3e1bde`) | sí (14 casos) | sí: nivel 2 sobre `318e06a1` (4658 passed) y `23c243b9` | pendiente |
+| `_read_group_orderby`, `regex_order_part_read_group` | sí (`b1c07387`) | sí (8 casos) | ídem | pendiente |
+| `_read_group` | sí (`318e06a1`) | sí (7 casos) | sí, con el rojo de `base_vat` corregido en `05431171` | pendiente |
+| `_read_group_expand_full`, `_read_group_fill_results`, `Selection(group_expand=True)` | sí (`23c243b9`) | sí (8 casos, controles 5/8 y 1/8) | sí: nivel 2 sobre `59a8b2e8` (10914 passed) | pendiente |
+| `_read_group_fill_temporal` | sí (`2b78cd90`) | sí (9 casos, controles 6/9 y 1/9) | ídem | pendiente |
+| `READ_GROUP_DISPLAY_FORMAT`, `_read_group_format_result` | sí (`feb4a7a9`) | sí (9 casos, controles 2 y 1) | ídem | pendiente |
+| `regex_field_agg`, `read_group` | sí (`59a8b2e8`) | sí (8 casos, controles 1 y 1) | ídem | pendiente |
+| `_read_grouping_sets` | sí (`d31f8f48`) | sí (6 casos, controles 1 y 1) | en curso: gate de `9b7cabfc` | pendiente |
+| `Environment` como `Mapping` | sí (`453c66b8`) | sí (4 casos, control 3/4) | en curso: gate de `9b7cabfc` | pendiente |
+| `Properties.type` / `PropertiesDefinition.type` (H-API-1207) | sí (`9b7cabfc`) | sí (3 casos, control 2/3) | en curso: gate de `9b7cabfc` | pendiente |
+| `_read_group_groupby_properties`, `_read_group_format_result_properties` | borrador sin integrar | 1 de 6 en el borrador | — | bloqueado por H-API-1208 (TASK-API-0504) |
+
+Nivel 3 completo sobre `6d4c1764` (2026-11-09): suite `12375 passed, 66
+skipped, 4 xfailed, 5 errors` — los 5 de `test_multidb_isolation` con la
+misma causa que en todas las suites anteriores (*Isolation fixture requires
+an explicitly owned disposable default*) — y `make ci-multidb` con
+`pytest_exit 0`, `5 passed` en 2059 s, base desechable retirada.
