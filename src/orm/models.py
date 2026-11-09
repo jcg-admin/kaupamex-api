@@ -6500,6 +6500,252 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         # [(a1, b1, c1), (a2, b2, c2), ...]
         return list(zip(*column_result))
 
+    @classmethod
+    def _read_grouping_sets(cls, domain, grouping_sets, aggregates=(),
+                            order=None):
+        """Varios agregados con agrupados distintos en una sola consulta.
+
+        ≙ ``BaseModel._read_grouping_sets`` (``odoo19c:
+        odoo/orm/models.py:1598-1859``). Usa ``GROUPING SETS`` de SQL como
+        alternativa a llamar :meth:`_read_group` varias veces; con many2many
+        puede necesitar más de una consulta, por las filas duplicadas.
+
+        :param domain: dominio que filtra los registros antes de agrupar.
+        :param grouping_sets: lista de especificaciones ``groupby``, cada una
+            equivalente al ``groupby`` de :meth:`_read_group`; p. ej.
+            ``[['partner_id'], ['partner_id', 'state']]``.
+        :param aggregates: especificaciones ``'campo:agg'``.
+        :param order: orden de los grupos, como en :meth:`search`.
+        :return: una lista por conjunto, en el orden de ``grouping_sets``,
+            de tuplas con los valores agrupados seguidos de los agregados.
+        :raise AccessError: si el usuario no puede leer lo pedido.
+
+        Adaptación declarada: ``classmethod`` sobre el recordset vacío del
+        entorno activo, como :meth:`_read_group`.
+        """
+        self = cls._from_ids(env(), (), ())
+        if not grouping_sets:
+            raise ValueError("The 'grouping_sets' parameter cannot be empty.")
+
+        query = self._search(domain)
+        result = [[] for __ in grouping_sets]
+        if query.is_empty():
+            return result
+
+        # grouping_sets: [(a, b), (a), ()]
+        # all_groupby_specs: (a, b)
+        all_groupby_specs = tuple(unique(
+            spec for groupby in grouping_sets for spec in groupby))
+
+        # --- many2many ---
+        many2many_groupby_specs = []
+        if len(grouping_sets) > 1:  # sólo aplica con varios agrupados
+
+            def might_duplicate_rows(model, spec):
+                fname, property_name, __ = parse_read_group_spec(spec)
+                field = model._fields[fname]
+                if field.type == 'properties':
+                    definition = self.get_property_definition(
+                        f"{fname}.{property_name}")
+                    property_type = definition.get('type')
+                    return property_type in ('tags', 'many2many')
+
+                if property_name:
+                    assert field.type == 'many2one'
+                    return might_duplicate_rows(
+                        self.env[field.comodel_name], property_name)
+
+                return field.type == 'many2many'
+
+            for spec in all_groupby_specs:
+                if might_duplicate_rows(self, spec):
+                    many2many_groupby_specs.append(spec)
+
+        if (
+            many2many_groupby_specs and
+            # con agregados sensibles a la duplicación (sum, avg) se aíslan
+            # los agrupados many2many
+            any(
+                not aggregate.endswith(
+                    (':max', ':min', ':bool_and', ':bool_or',
+                     ':array_agg_distinct', ':recordset', ':count_distinct'),
+                )
+                for aggregate in aggregates if aggregate != '__count'
+            )
+        ):
+            # Descomposición recursiva: para no corromper los agregados de
+            # otros conjuntos, se busca cada combinación de campos many2many
+            # y se hace una subllamada con los conjuntos que la comparten.
+
+            # ['A', 'B', 'C'] => [('A', 'B', 'C'), ('A', 'B'), ('A', 'C'),
+            #                     ('B', 'C'), ('A',), ('B',), ('C',), ()]
+            m2m_combinaisons = (
+                groupby for i in range(len(many2many_groupby_specs), -1, -1)
+                for groupby in itertools.combinations(
+                    many2many_groupby_specs, i)
+            )
+
+            grouping_sets_to_process = dict(enumerate(grouping_sets))
+            batched_calls = []  # [([groupby, ...], [index_result, ...])]
+
+            for m2m_comb in m2m_combinaisons:
+                if not grouping_sets_to_process:
+                    break
+                sub_grouping_sets = []
+                sub_result_indexes = []
+                for i, groupby in list(grouping_sets_to_process.items()):
+                    if all(m2m in groupby for m2m in m2m_comb):
+                        sub_grouping_sets.append(groupby)
+                        sub_result_indexes.append(i)
+                        grouping_sets_to_process.pop(i)
+
+                if sub_grouping_sets:
+                    batched_calls.append(
+                        (sub_result_indexes, sub_grouping_sets))
+
+            assert not grouping_sets_to_process
+            # descompuesto: llamadas recursivas y ensamblado del resultado
+            if len(batched_calls) > 1:
+                for indexes, sub_grouping_sets in batched_calls:
+
+                    sub_order_parts = []
+                    all_sub_groupby = {spec for groupby in sub_grouping_sets
+                                       for spec in groupby}
+                    for order_part in (order or '').split(','):
+                        order_part = order_part.strip()
+                        if not any(
+                            order_part.startswith(spec)
+                            for spec in all_groupby_specs
+                            if spec not in all_sub_groupby
+                        ):
+                            sub_order_parts.append(order_part)
+
+                    sub_results = self._read_grouping_sets(
+                        domain, sub_grouping_sets, aggregates=aggregates,
+                        order=",".join(sub_order_parts),
+                    )
+                    for index, subresult in zip(indexes, sub_results):
+                        result[index] = subresult
+                return result
+
+        elif many2many_groupby_specs and '__count' in aggregates:
+            # '__count' con many2many: cuenta distinta de 'id', sin otra
+            # llamada (el caso más común)
+            aggregates = tuple(
+                aggregate if aggregate != '__count' else 'id:count_distinct'
+                for aggregate in aggregates
+            )
+            if order:
+                order = order.replace('__count', 'id:count_distinct')
+
+        # --- la consulta SQL ---
+        groupby_terms = {
+            spec: self._read_group_groupby(self._table, spec, query)
+            for spec in all_groupby_specs
+        }
+        aggregates_terms = [
+            self._read_group_select(spec, query) for spec in aggregates
+        ]
+        if groupby_terms:
+            # grouping_select_sql: GROUPING(a, b)
+            grouping_select_sql = SQL(
+                "GROUPING(%s)",
+                SQL(", ").join(unique(groupby_terms.values())))
+        else:
+            # GROUPING() no es SQL válido: se usa el literal 0
+            grouping_select_sql = SQL("0")
+
+        select_args = [grouping_select_sql, *groupby_terms.values(),
+                       *aggregates_terms]
+
+        # _read_group_orderby puede cambiar groupby_terms: va antes
+        query.order = self._read_group_orderby(order, groupby_terms, query)
+        # GROUPING SET ((a, b), (a), ())
+        grouping_sets_sql = [
+            SQL("(%s)", SQL(", ").join(
+                groupby_terms[groupby_spec] for groupby_spec in grouping_set))
+            for grouping_set in grouping_sets
+        ]
+        query.groupby = SQL("GROUPING SETS (%s)",
+                            SQL(", ").join(unique(grouping_sets_sql)))
+
+        # row_values: [(GROUPING(...), a1, b1, agregados...), ...]
+        row_values = self.env.execute_query(query.select(*select_args))
+
+        if not row_values:  # atajo
+            return result
+
+        # --- posproceso del resultado ---
+        # El entero que devuelve GROUPING() es la clave que asigna cada fila
+        # al conjunto que la produjo.
+        aggregates_indexes = tuple(range(
+            len(all_groupby_specs),
+            len(all_groupby_specs) + len(aggregates)))
+
+        # {GROUPING(...): (append_method, extractor_method)}
+        mask_grouping_mapping = {}
+
+        # El bit de cada término único de GROUP BY. Se recorren invertidos
+        # porque PostgreSQL calcula la máscara de derecha a izquierda (el
+        # bit menos significativo primero).
+        mask_sql_mapping = {
+            sql_groupby: 1 << i
+            for i, sql_groupby in enumerate(
+                unique(reversed(groupby_terms.values())))
+        }
+
+        # para los agrupados "duplicados"
+        mask_grouping_result_indexes = collections.defaultdict(list)
+        for result_index, groupby in enumerate(grouping_sets):
+            # GROUPING SET ((a, b), (a), ())
+            # GROUPING(a, b): a y b = 0, sólo a = 1, sólo b = 2, ninguno = 3
+            sql_terms = {groupby_terms[groupby_spec]
+                         for groupby_spec in groupby}
+            groupby_mask = sum(
+                mask for sql_term, mask in mask_sql_mapping.items()
+                # cada bit vale 0 si la expresión está en el conjunto que
+                # produjo la fila, y 1 si no
+                if sql_term not in sql_terms
+            )
+
+            mask_grouping_result_indexes[groupby_mask].append(result_index)
+            if groupby_mask not in mask_grouping_mapping:
+                mask_grouping_mapping[groupby_mask] = (
+                    result[result_index].append,
+                    itemgetter_tuple(list(itertools.chain(
+                        (all_groupby_specs.index(groupby_spec)
+                         for groupby_spec in groupby),
+                        aggregates_indexes,
+                    ))),
+                )
+
+        aggregates_start_index = len(all_groupby_specs) + 1
+        # filas a columnas, para posprocesar columna por columna
+        columns = list(zip(*row_values))
+        # la primera columna es la máscara
+        dispatch_info = map(mask_grouping_mapping.__getitem__, columns[0])
+        columns = [
+            *map(self._read_group_postprocess_groupby, all_groupby_specs,
+                 columns[1:aggregates_start_index]),
+            *map(self._read_group_postprocess_aggregate, aggregates,
+                 columns[aggregates_start_index:]),
+        ]
+
+        for (append_method, extractor), *row in zip(
+                dispatch_info, *columns, strict=True):
+            append_method(extractor(row))
+
+        # los agrupados sobre las mismas columnas comparten resultado
+        for duplicate_groups_indexes in mask_grouping_result_indexes.values():
+            if len(duplicate_groups_indexes) < 2:
+                continue
+            # el primero es la fuente de los demás
+            source_result_group = result[duplicate_groups_indexes[0]]
+            for duplicate_group_index in duplicate_groups_indexes[1:]:
+                result[duplicate_group_index] = source_result_group[:]
+
+        return result
+
     def _read_group_select(self, aggregate_spec, query):
         """La expresión SQL del agregado ``aggregate_spec``.
 
