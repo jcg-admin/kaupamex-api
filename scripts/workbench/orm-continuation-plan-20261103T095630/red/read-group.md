@@ -44,3 +44,24 @@ EXIT=0
 Los 39 omitidos son pruebas de la referencia cuyo árbol no se carga en esta
 ejecución (el propio informe lo declara). El nivel 3 (suite entera y
 multidb) de la revisión que contiene esta unidad sigue pendiente.
+
+## Nivel 2 ampliado — `23c243b9` (2026-11-09): un rojo que el derivado no vio
+
+`tests/unit tests/integration/test_orm tests/integration/base`, `-n 4`:
+`1 failed, 10886 passed, 66 skipped, 4 xfailed in 373.78s`, `EXIT=1`.
+
+El rojo, `test_check_stale_zero_claims.py::test_the_frozen_debt_does_not_block`,
+es de **esta** unidad: el docstring de `addons/base_vat/models/res_partner.py`
+afirmaba con `grep -rc "def _read_group(" --include=*.py src/orm/` que el
+agregador no existía, y portarlo hizo que el comando dé 1. El alcance
+derivado del nivel 2 en `318e06a1` buscaba consumidores del símbolo en
+`tests/` y no podía ver un reclamo en prosa de otro árbol; el gate de
+reclamos de cero vive en `tests/unit/scripts`.
+
+Corregido en `05431171` (el reclamo nombra ahora la razón real: `res.partner`
+es un modelo de Django que no hereda `BaseModel`). Tras el arreglo:
+`test_check_stale_zero_claims.py` → `24 passed`; el gate → `0 reclamo(s)
+caducado(s)` sobre 29 citas.
+
+Lección de procedimiento: un símbolo **nuevo** en `src/orm` incluye en su
+alcance derivado `tests/unit/scripts/test_check_stale_zero_claims.py`.

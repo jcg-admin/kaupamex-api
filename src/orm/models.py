@@ -75,6 +75,8 @@ from psycopg import errors as pg_errors
 import uuid
 import datetime
 import pytz
+import babel
+import babel.dates
 from contextvars import ContextVar
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
@@ -127,7 +129,9 @@ from tools import date_utils
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
 from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
-                        split_every, unique, unquote, get_lang)
+                        split_every, unique, unquote, get_lang,
+                        DEFAULT_SERVER_DATE_FORMAT,
+                        DEFAULT_SERVER_DATETIME_FORMAT)
 from tools.query import Query
 from tools.sql import SQL
 from tools.i18n import format_list
@@ -2243,6 +2247,24 @@ READ_GROUP_AGGREGATE = {
         'ARRAY_AGG(%s ORDER BY %s)', expr, SQL.identifier(table, 'id')),
     'count': lambda table, expr: SQL('COUNT(%s)', expr),
     'count_distinct': lambda table, expr: SQL('COUNT(DISTINCT %s)', expr),
+}
+
+READ_GROUP_DISPLAY_FORMAT = {
+    # Cuidado con los formatos de semana/año:
+    #  - yyyy (minúscula) se usa siempre, *salvo* en los de semana+año
+    #  - YYYY (mayúscula) se usa siempre en el formato semana+año
+    #         p. ej. 2006-01-01 es W52 2005 en algunas locales (de_DE),
+    #                           y W1 2006 en otras
+    #
+    # Mezclar los dos, p. ej. 'MMM YYYY', daría resultados erróneos, como
+    # 2006-01-01 formateado como "January 2005" en algunas locales.
+    # Ver: http://babel.pocoo.org/en/latest/dates.html#date-fields
+    'hour': 'HH:00 dd MMM',
+    'day': 'dd MMM yyyy',  # yyyy = año normal
+    'week': "'W'w YYYY",  # w YYYY = año-semana ISO
+    'month': 'MMMM yyyy',
+    'quarter': 'QQQ yyyy',
+    'year': 'yyyy',
 }
 
 
@@ -7158,6 +7180,114 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             result.extend(grouped_data[False])
 
         return result
+
+    def _read_group_format_result(self, rows_dict, lazy_groupby):
+        """Formatea las filas agrupadas: dominio, rango y etiqueta.
+
+        ≙ ``BaseModel._read_group_format_result`` (``odoo19c:
+        odoo/orm/models.py:2554-2638``). Docstring de la fuente: *"Helper
+        method to format the data contained in the dictionary data by adding
+        the domain corresponding to its values, the groupbys in the context
+        and by properly formatting the date/datetime values."*
+
+        La rama ``properties`` delega en
+        ``_read_group_format_result_properties``, que entra con el agrupado
+        por propiedades (unidad 6e de ``read_group``); hasta entonces rehúsa
+        nombrándolo, igual que la rama ``properties`` de
+        :meth:`_read_group_groupby`.
+        """
+        for group in lazy_groupby:
+            field_name = group.split(':')[0].split('.')[0]
+            field = self._fields[field_name]
+
+            if field.type in ('date', 'datetime'):
+                granularity = (group.split(':')[1] if ':' in group
+                               else 'month')
+                if granularity in READ_GROUP_TIME_GRANULARITY:
+                    locale = get_lang(self.env).code
+                    fmt = (DEFAULT_SERVER_DATETIME_FORMAT
+                           if field.type == 'datetime'
+                           else DEFAULT_SERVER_DATE_FORMAT)
+                    interval = READ_GROUP_TIME_GRANULARITY[granularity]
+            elif field.type == "properties":
+                if not hasattr(self, '_read_group_format_result_properties'):
+                    raise NotImplementedError(
+                        "grouping by a property needs "
+                        "_read_group_format_result_properties "
+                        "(read_group unit 6e)")
+                self._read_group_format_result_properties(rows_dict, group)
+                continue
+
+            for row in rows_dict:
+                value = row[group]
+
+                if isinstance(value, BaseModel):
+                    row[group] = ((value.id, value.sudo().display_name)
+                                  if value else False)
+                    value = value.id
+
+                if not value and field.type == 'many2many':
+                    additional_domain = [(field_name, 'not any', [])]
+                else:
+                    additional_domain = [(field_name, '=', value)]
+
+                if field.type in ('date', 'datetime'):
+                    if value and isinstance(
+                            value, (datetime.date, datetime.datetime)):
+                        range_start = value
+                        range_end = value + interval
+                        if field.type == 'datetime':
+                            tzinfo = None
+                            if (self.env.context.get('tz')
+                                    in pytz.all_timezones_set):
+                                tzinfo = pytz.timezone(self.env.context['tz'])
+                                range_start = tzinfo.localize(
+                                    range_start).astimezone(pytz.utc)
+                                # un posible cambio de hora entre inicio y fin
+                                range_end = tzinfo.localize(
+                                    range_end).astimezone(pytz.utc)
+
+                            label = babel.dates.format_datetime(
+                                range_start,
+                                format=READ_GROUP_DISPLAY_FORMAT[granularity],
+                                tzinfo=tzinfo, locale=locale,
+                            )
+                        else:
+                            label = babel.dates.format_date(
+                                value,
+                                format=READ_GROUP_DISPLAY_FORMAT[granularity],
+                                locale=locale,
+                            )
+                        # caso especial de semana: babel está roto *y*
+                        # ubuntu revirtió un cambio, así que es inconsistente
+                        if granularity == 'week':
+                            year, week = date_utils.weeknumber(
+                                babel.Locale.parse(locale),
+                                value,  # fecha sin conversión a UTC
+                            )
+                            label = f"W{week} {year:04}"
+
+                        range_start = range_start.strftime(fmt)
+                        range_end = range_end.strftime(fmt)
+                        row[group] = label  # TODO de la fuente: dato crudo
+                        row.setdefault('__range', {})[group] = {
+                            'from': range_start, 'to': range_end}
+                        additional_domain = [
+                            '&',
+                            (field_name, '>=', range_start),
+                            (field_name, '<', range_end),
+                        ]
+                    elif (value is not None
+                          and granularity in READ_GROUP_NUMBER_GRANULARITY):
+                        additional_domain = [
+                            (f"{field_name}.{granularity}", '=', value)]
+                    elif not value:
+                        # el grupo de registros sin fecha lleva __range False
+                        row.setdefault('__range', {})[group] = False
+
+                row['__domain'] &= Domain(additional_domain)
+        for row in rows_dict:
+            row['__domain'] = list(row['__domain'])
 
     # === búsqueda =======================================================
 

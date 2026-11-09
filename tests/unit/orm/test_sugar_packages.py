@@ -56,6 +56,7 @@ PORTABLE_NOW = {
         'LOG_ACCESS_COLUMNS',
         'MAGIC_COLUMNS',
         'READ_GROUP_NUMBER_GRANULARITY',
+        'READ_GROUP_DISPLAY_FORMAT',
         'fix_import_export_id_paths',
         'regex_order',
         'is_model_class',
@@ -93,7 +94,9 @@ BLOCKED_BY_ITS_SYMBOL = {
     # asi que la fachada lo liga por el mismo bloque.
     # ``BaseModel`` salio de aqui en TASK-API-0397, que lo porto como base
     # abstracta de Django y lo ligo en la fachada en el mismo pase.
-    'models': ('READ_GROUP_DISPLAY_FORMAT', 'MetaModel'),
+    # ``READ_GROUP_DISPLAY_FORMAT`` salio de aqui con la unidad 6c de
+    # ``read_group``, que porto ``_read_group_format_result``, su consumidor.
+    'models': ('MetaModel',),
 }
 
 PACKAGES = {'api': api, 'fields': fields, 'models': models}
@@ -119,6 +122,7 @@ DECLARANTE = {
     'fix_import_export_id_paths': 'orm.models',
     'regex_order': 'orm.models',
     'READ_GROUP_NUMBER_GRANULARITY': 'orm.utils',
+    'READ_GROUP_DISPLAY_FORMAT': 'orm.models',
     'READ_GROUP_TIME_GRANULARITY': 'orm.utils',
     'check_object_name': 'orm.utils',
     'check_pg_name': 'orm.utils',

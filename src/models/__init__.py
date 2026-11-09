@@ -4,8 +4,8 @@ Paquete (no módulo suelto), igual que ``odoo/models/`` es un paquete. Su
 comentario de cabecera declara para qué existe, y lo repite palabra por palabra
 en las otras dos fachadas del árbol (``odoo/api/``, ``odoo/fields/``)::
 
-    # Exports features of the ORM to developers.
-    # This is a `__init__.py` file to avoid merge conflicts on `odoo/models.py`.
+  # Exports features of the ORM to developers.
+  # This is a `__init__.py` file to avoid merge conflicts on `odoo/models.py`.
 
 Y ``odoo/orm/__init__.py`` declara lo contrario para sí mismo —*"developers
 should not import directly from here"*—: no re-exporta nada. Por eso la
@@ -59,22 +59,24 @@ usos reales del lado de Django. Las 17 menciones de ``models.Constraint`` que
 un grep de texto encuentra están todas en prosa que describe la referencia — la
 distinción la hace el AST, no el grep.
 
-Los dos que faltan, con su veredicto
-====================================
+El que falta, con su veredicto
+==============================
 
-**Bloqueo medido**: ``orm/`` todavía no los declara, y ligar un nombre
-inexistente rompe el import del paquete. Cada uno entra con el pase que porta su
+**Bloqueo medido**: ``orm/`` todavía no lo declara, y ligar un nombre
+inexistente rompe el import del paquete. Entra con el pase que porta su
 símbolo, que es el mismo pase y no un barrido posterior:
 
 - ``MetaModel`` — la metaclase de la fuente
   (``odoo19c: odoo/orm/models.py``). Es #209.
-- ``READ_GROUP_DISPLAY_FORMAT`` — la familia de ``read_group``.
 
-``BaseModel`` salió de esta lista en **TASK-API-0397**, que lo portó como base
+``READ_GROUP_DISPLAY_FORMAT`` salió de esta lista con la unidad 6c de
+``read_group``, que portó su consumidor ``_read_group_format_result``.
+``BaseModel`` salió en **TASK-API-0397**, que lo portó como base
 abstracta de Django y lo ligó abajo en el mismo pase. Su salida la forzó un
 control, no la memoria de nadie:
-``test_sugar_packages.py::test_src_orm_does_not_declare_it_yet`` se puso rojo el
-mismo pase en que la clase aterrizó — que es exactamente para lo que existe.
+``test_sugar_packages.py::test_src_orm_does_not_declare_it_yet`` se puso
+rojo el mismo pase en que la clase aterrizó — que es exactamente para lo
+que existe.
 
 Esta lista decía **ocho** y su cifra llevaba tres nombres de más. Medido al
 portar ``READ_GROUP_TIME_GRANULARITY``: ``AbstractModel``,
@@ -103,6 +105,7 @@ from orm.models import *
 from orm.models import (
     LOG_ACCESS_COLUMNS,
     MAGIC_COLUMNS,
+    READ_GROUP_DISPLAY_FORMAT,
     AbstractModel,
     BaseModel,
     CopyMixin,
