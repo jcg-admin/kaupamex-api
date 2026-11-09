@@ -102,9 +102,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 74,
+  "task_units_settled": 76,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1468
+  "task_without_unit": 1466
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -266,7 +266,8 @@
   "orm-field-index-btree-0485",
   "orm-company-dependent-index-0485",
   "orm-new-django-comodel-0485",
-  "orm-one2many-new-records-0485"
+  "orm-one2many-new-records-0485",
+  "orm-many2one-write-inverses-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
