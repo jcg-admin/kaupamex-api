@@ -29,3 +29,26 @@ Cuatro grupos propios: A implica B, B implica C; D aislado. Un usuario en A.
 | `after cutting B-C` | la clausura y la pertenencia se recalculan al quitar la arista |
 
 Los valores se comparan por nombre de grupo, ordenados.
+
+## Medido (2026-11-09)
+
+5 de 7 escenarios coinciden: las dos clausuras, el grupo aislado, la
+pertenencia efectiva del usuario y su recálculo al cortar la arista B-C.
+
+Los dos de búsqueda levantan `ValueError: Campo inválido
+base.ResGroups.all_implied_ids`: `all_implied_ids`, `all_implied_by_ids`
+(`res_groups.py:877…`) y `all_group_ids` (`res_users.py:1549`) son
+`@property`, no campos; el traductor de dominios no los conoce. Los
+`_search_all_*` existen pero con otra firma (`group_ids, negate` → queryset)
+y nadie los cablea; sólo los llama `test_res_groups_port.py`.
+
+## Por qué no se cierra en este pase
+
+La forma fiel es la de la referencia: `Many2many` calculado, sin columna,
+con `search=` (`res_groups.py:71-78`, `res_users.py:258`). El `Many2many` de
+este árbol no admite `store=False` (`orm/fields_relational.py`, docstring de
+`Many2many`): un `ManyToManyField` de Django siempre tiene tabla
+intermedia. Hace falta construir antes el M2M sin columna —descriptor,
+caché, `search` cableado al traductor—, que es una unidad del ORM con su
+propio contrato. Queda bajo TASK-API-0485; los dos escenarios van en
+`OPEN` del espejo con esta referencia.
