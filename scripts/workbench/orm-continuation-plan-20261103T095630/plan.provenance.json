@@ -884,6 +884,13 @@
         "orm-related-implicit-access-message-0182"
       ],
       "writtenAt": "2026-11-09T07:01:08Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-x2many-sudo-commands-0485"
+      ],
+      "writtenAt": "2026-11-09T07:52:40Z"
     }
   ]
 }
