@@ -4905,9 +4905,10 @@ def _flush(self):
     """Escribe a la base lo que el calculo dejo sucio en el cache.
 
     ≙ ``BaseModel._flush`` (``odoo19c: odoo/orm/models.py:6386-6400``). La
-    fuente saca del cache los campos sucios con sus ids y compone el
-    ``UPDATE``; aqui el ``UPDATE`` lo pone Django con
-    ``save(update_fields=...)``, que escribe **solo** esas columnas.
+    fuente saca del cache los campos sucios con sus ids, arma un
+    ``vals_list`` por lotes y lo entrega a ``_write_multi``; aqui igual, y
+    el enunciado de ``_write_multi`` es ``save(update_fields=...)``
+    (TASK-API-0510).
 
     El cache lo puebla ``orm.fields._cache_computed_values``, que corre al
     final de cada ``compute_value``: sin el, ``field_dirty`` estaria siempre
@@ -4941,34 +4942,77 @@ def _flush(self):
 
     #: Solo las filas ya persistidas: un id que no es entero es una fila
     #: virtual, que se recalcula al leerla y no tiene columna que escribir.
-    wanted_ids = OrderedSet(record_id for ids in dirty_field_ids.values()
-                            for record_id in ids if isinstance(record_id, int))
-    rows = {
-        row.pk: row
-        for row in model._base_manager.filter(pk__in=list(wanted_ids))
-    }
+    #: Orden de la fuente (``:6402-6412``): los ids con el mismo conjunto de
+    #: campos sucios quedan juntos, por su máscara de bits.
+    dirty_ids = sorted(
+        OrderedSet(record_id for ids in dirty_field_ids.values()
+                   for record_id in ids if isinstance(record_id, int)),
+        key=lambda record_id: sum(
+            1 << field_index
+            for field_index, ids in enumerate(dirty_field_ids.values())
+            if record_id in ids
+        ),
+    )
 
-    for record_id in wanted_ids:
+    # lotes de la fuente, para acotar la memoria
+    BATCH_SIZE = 1000
+    cache = {field: field._get_cache(env()) for field in dirty_field_ids}
+    for some_ids in split_every(BATCH_SIZE, dirty_ids):
+        ids = []
+        vals_list = []
+        for record_id in some_ids:
+            vals = {
+                field.name: cache[field][record_id]
+                for field, field_ids in dirty_field_ids.items()
+                if record_id in field_ids and record_id in cache[field]
+            }
+            if vals:
+                ids.append(record_id)
+                vals_list.append(vals)
+        if issubclass(model, BaseModel):
+            model.browse(ids)._write_multi(vals_list)
+        else:
+            # un modelo de Django sin recordset no tiene ``_write_multi``: su
+            # escritura es la misma, sin la capa de ``parent_path``
+            _write_rows(model, ids, vals_list)
+
+
+def _write_rows(model, ids, vals_list):
+    """Escribe ``vals_list`` sobre las filas físicas ``ids`` de ``model``.
+
+    Es la escritura de :meth:`BaseModel._write_multi` y la de :func:`_flush`
+    para un modelo de Django sin recordset: una sola implementación. Las filas
+    se piden al ``_base_manager`` —el gestor físico, no el público con filtro
+    de visibilidad— en una consulta por lote, y una fila que ya no existe no
+    se recrea. Cada fila se guarda con ``save(update_fields=...)``: es la
+    divergencia de enunciado declarada en ``designs/write-multi-flush.md``.
+    """
+    fields_of = model_field_registry(model)
+    writable = model._meta._non_pk_concrete_field_names
+    log_access = (getattr(model, '_log_access', True)
+                  and 'updated_at' in writable)
+    rows = {row.pk: row
+            for row in model._base_manager.filter(pk__in=list(ids))}
+    for record_id, vals in zip(ids, vals_list):
         row = rows.get(record_id)
         if row is None:
-            # silent OK because la fila se borro entre el calculo y el volcado:
-            # su id salio del cache sucio arriba, asi que no queda pendiente, y
-            # escribir sobre una fila inexistente es el error, no el silencio.
+            # silent OK because la fila se borró antes de escribirla: la
+            # fuente emite un UPDATE que no casa ninguna fila, sin error.
             continue
         names = []
-        for field, ids in dirty_field_ids.items():
-            if record_id not in ids:
-                continue
-            cached = field._get_cache(env())
-            if record_id not in cached:
-                continue
+        for fname, value in vals.items():
+            field = fields_of[fname]
             if getattr(field, 'many_to_many', False):
-                _flush_m2m(row, field, cached[record_id])
+                _flush_m2m(row, field, value)
                 continue
             attname = getattr(field, 'attname', field.name)
-            setattr(row, attname, cached[record_id])
+            setattr(row, attname, value)
             names.append(attname)
         if names:
+            # ≙ ``log_vals | vals``: la fecha la pone ``auto_now`` en
+            # ``pre_save``, pero sólo se guarda lo nombrado.
+            if log_access and 'updated_at' not in names:
+                names.append('updated_at')
             row.save(update_fields=names)
 
 
@@ -8495,6 +8539,45 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             self.filtered(lambda record: record.id)._validate_fields(fnames)
 
     @_on_empty_recordset
+    def _write(self, vals):
+        """Escritura de bajo nivel: los mismos ``vals`` en cada registro.
+
+        ≙ ``BaseModel._write`` (``odoo19c: odoo/orm/models.py:4520-4522``).
+        """
+        self._write_multi([vals] * len(self))
+
+    def _write_multi(self, vals_list):
+        """Escritura de bajo nivel: un diccionario de valores por registro.
+
+        ≙ ``BaseModel._write_multi`` (``odoo19c:
+        odoo/orm/models.py:4524-4608``): prepara el ``parent_path``, fecha la
+        fila con ``_log_access``, escribe, y reescribe el subárbol al final.
+        Su único llamador en la fuente es :func:`_flush`.
+
+        Divergencia de enunciado declarada (``designs/write-multi-flush.md``):
+        la escritura es ``save(update_fields=...)`` por fila, no un
+        ``UPDATE … FROM (VALUES …)`` por lotes. En este árbol ``save()`` y sus
+        señales alojan los cómputos y las automatizaciones que la fuente aloja
+        en el grafo de ``@api.depends`` y en el parche de
+        ``_compute_field_value``; un ``UPDATE`` crudo los saltaría. Las ramas
+        ``translate`` y ``company_dependent`` de la expresión SQL no tienen
+        contraparte en ese enunciado: ``translate=True`` aún no traduce y
+        ``company_dependent`` escribe por su descriptor.
+        """
+        assert len(self) == len(vals_list)
+
+        if not self:
+            return
+
+        # registros que deben reescribir su parent_path
+        parent_records = self._parent_store_update_prepare(vals_list)
+
+        _write_rows(type(self), self._ids, vals_list)
+
+        # parent_path de los registros y sus descendientes
+        if parent_records:
+            parent_records._parent_store_update()
+
     def _parent_store_update_prepare(self, vals_list):
         """Los registros de ``self`` que deben reescribir su ``parent_path``.
 

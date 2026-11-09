@@ -113,3 +113,68 @@ preparación del `parent_path` tumba 4; 8 no depende de ninguna y sigue.
 Derivada: archivos de `tests/` que nombran `flush_model`, `flush_recordset`,
 `_flush`, `compute=` con `store=True`, o los 8 modelos; más el gate
 integral antes de aceptar.
+
+## RED, GREEN y anulación (2026-11-09)
+
+- RED sobre `a922d9c9`: `7 failed, 1 passed`. Pasa sólo el control 8
+  (`post_save` recibe el volcado), que no depende del cambio. El 7 cae por
+  la razón prevista: el volcado escribe `size1` y `updated_at` sigue en
+  2001.
+- Sujeto de los casos 6-8: `test_orm.model_child_m2o.size1`
+  (`@depends('parent_id.name')`). La primera versión usaba
+  `model_parent_m2o.cost` (`@depends('child_ids.cost')`) y la sonda mostró
+  que **ese recómputo no llega a la base**: tras `child.write({'cost': 7})`
+  y `flush_model()` el padre sigue en 2. No es del volcado ni del árbol de
+  disparo (el árbol y el inverso son correctos; `_modified_triggers` cede
+  el padre si se le llama). Causa medida: `write` protege los calculados
+  que escribe y `FieldDescriptor.__set__` entra en la rama protegida
+  (`src/orm/fields.py:1928-1933`) sin anunciar `modified()`; la fuente
+  llama `self.modified(vals)` tras escribir (`odoo19c:
+  odoo/orm/models.py:4484`). Sucesor: **TASK-API-0511**.
+- Segundo defecto, destapado por la misma sonda: **leer** `child.parent_id`
+  marca `parent.cost` y `child.size1`/`size2` en `tocompute` sin cambio
+  alguno (vacío antes de la lectura, tres marcas después). Esa marca
+  espuria es la que hacía pasar las primeras sondas. Causa sin medir;
+  sucesor: **TASK-API-0512**. Sonda conservada fuera del árbol
+  (`scratchpad/probe-write-computed-modified.py`).
+- GREEN: `8 passed`; con `test_parent_store_methods.py`, `14 passed`.
+- Anulación, cada una restaurada y verificada con `cmp`:
+  (a) `_flush` llama `BaseModel._write_multi` sin pasar por el método →
+  cae exactamente el 6; (b) sin la fecha de `_log_access` → caen
+  exactamente el 5 y el 7; (c) sin `_parent_store_update_prepare` → cae
+  exactamente el 4.
+- Lo que este cambio no toca: `write()` (`models.py`, rama de
+  `self.save(update_fields=...)`) escribe directo y no por caché + volcado
+  como la fuente (`field.write` y después `_flush`). Las dos rutas usan el
+  mismo enunciado (`save(update_fields)`) y la misma fecha (`updated_at`),
+  así que no divergen en conducta; llevar `write` a caché + volcado es otra
+  unidad.
+
+## Regresión de impacto: `_flush` no es sólo de `BaseModel`
+
+Primera regresión derivada (23 directorios): `18 failed, 9373 passed`.
+Todas con la misma causa: `AttributeError: type object '<M>' has no
+attribute 'browse'` sobre `ResPartner`, `AccountAccount`,
+`AccountMoveLine` y tres modelos de prueba. `_flush` es un método de motor
+colgado de **todo** `django.db.models.Model` y `QuerySet`
+(`src/orm/models.py`, el bucle de `_engine_method`), y esos modelos no
+tienen recordset. El diseño de arriba suponía que sólo un `BaseModel`
+volcaba: premisa falsa, medida por la regresión.
+
+Corrección, sin dos escritores:
+
+- `_write_rows(model, ids, vals_list)` es la única escritura física: pide
+  las filas al `_base_manager` (el gestor físico; el contrato de
+  `tests/unit/orm/test_flush_manager_contract.py` exige una sola consulta
+  `pk__in` por lote y no tocar el gestor público), no recrea una fila que
+  ya no existe, fecha con `_log_access` y guarda con `save(update_fields)`.
+- `BaseModel._write_multi` añade la capa de recordset de la fuente
+  (aserción, `_parent_store_update_prepare` / `_parent_store_update`) y
+  delega en `_write_rows`.
+- `_flush` llama `model.browse(ids)._write_multi(vals_list)` si el modelo
+  es `BaseModel`; si es un modelo de Django sin recordset, `_write_rows`
+  directo: no tiene `parent_path` que preparar por esta vía.
+
+Tras corregir: los seis archivos que cayeron más los de la unidad,
+`140 passed`. Anulación repetida sobre la estructura nueva, mismo
+resultado exacto que antes (a → 6; b → 5 y 7; c → 4).
