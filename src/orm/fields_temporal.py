@@ -602,4 +602,3 @@ class TransactionClockSaveMixin:
         finally:
             self.__dict__.pop(SAVE_NOW, None)
             self.__dict__.pop(SAVE_USING, None)
-
