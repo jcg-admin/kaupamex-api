@@ -630,7 +630,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Reference.c
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Reference.convert_to_display_name	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_reference_classes.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference	class	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_reference_classes.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference.convert_to_cache	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_reference_classes.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference._update_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference._update_inverses	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference._record_ids_per_res_model	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference._description_model_field	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_reference_classes.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Many2oneReference._related_model_field	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_contract_fields_reference_classes.py
@@ -642,7 +642,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_reference.py	Reference.t
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational	class	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.__get__	method	not_verified	structural=owner_absent;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._update_inverse	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational._update_inverse	method	not_verified	structural=paired_by_name:One2many._update_inverse;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.convert_to_record_multi	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_nonrelated	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relational.setup_inverses	method	not_verified	structural=owner_absent;write_path=-;evidence=-
@@ -659,7 +659,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.s
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db_column	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.update_db_foreign_key	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverse	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverse	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_column	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_cache	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_record	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -669,13 +669,13 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.c
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_export	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.convert_to_display_name	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.write	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._remove_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverses	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._remove_inverses	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one._update_inverses	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	Many2one.join	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti	class	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_inverse	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_inverse	method	not_verified	structural=owner_absent;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._update_cache	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.convert_to_cache	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.convert_to_record	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -690,7 +690,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_Relationa
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_batch	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_real	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.write_new	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._check_sudo_commands	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._check_sudo_commands	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti.condition_to_sql	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._get_query_for_condition_value	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/fields_relational.py	_RelationalMulti._condition_to_sql_relational	method	not_verified	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -963,9 +963,9 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.name_search
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._add_missing_default_values	method	not_verified	structural=paired_by_name:DefaultGetMixin._add_missing_default_values;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_grouping_sets	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group	method	absent	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_select	method	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_select	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_groupby	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_having	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_having	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_orderby	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_empty_value	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._read_group_postprocess_groupby	method	absent	structural=unresolved;write_path=-;evidence=-
@@ -986,7 +986,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._init_colum
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._table_has_rows	method	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._auto_init	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.init	method	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_parent_path	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_parent_path	method	not_verified	structural=paired_by_name:RecordLoaderMixin._check_parent_path;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._add_sql_constraints	method	absent	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._sql_error_to_message	method	not_verified	structural=paired_by_name:RecordLoaderMixin._sql_error_to_message;write_path=-;evidence=tests/unit/orm/test_sql_error_to_message.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._sql_error_to_message_generic	method	not_verified	structural=paired_by_name:RecordLoaderMixin._sql_error_to_message_generic;write_path=-;evidence=tests/unit/orm/test_sql_error_to_message.py
@@ -1037,8 +1037,8 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._load_recor
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._load_records_create	method	not_verified	structural=paired_by_name:RecordLoaderMixin._load_records_create;write_path=agree;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._load_records	method	not_verified	structural=paired_by_name:RecordLoaderMixin._load_records;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._check_qorder	method	not_verified	structural=paired_by_name:OrderMixin._check_qorder;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._order_to_sql	method	absent	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._order_field_to_sql	method	absent	structural=unresolved;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._order_to_sql	method	not_verified	structural=paired_by_name:OrderMixin._order_to_sql;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._order_field_to_sql	method	not_verified	structural=paired_by_name:OrderMixin._order_field_to_sql;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._search	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._as_query	method	satisfied	structural=match;write_path=-;evidence=tests/integration/test_orm/test_fetch.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.copy_data	method	satisfied	structural=match;write_path=agree;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
@@ -1122,7 +1122,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._recompute_
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._recompute_recordset	method	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._recompute_field	method	not_verified	structural=homonym;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._has_onchange	method	satisfied	structural=match;write_path=-;evidence=tests/unit/orm/test_contract_model_persisted_reference.py
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._apply_onchange_methods	method	absent	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._apply_onchange_methods	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel.onchange	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	BaseModel._get_placeholder_filename	method	not_verified	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/orm/models.py	RecordCache	class	not_verified	structural=match;write_path=-;evidence=-
@@ -2266,7 +2266,7 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.stac
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/speedscope.py	Speedscope.process	method	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_contract_speedscope_reference.py
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py		file	not_verified	mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL	class	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_sql.py::test_nested_sql_objects_merge_code_and_params
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__init__	method	not_verified	structural=signature;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__init__	method	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.code	property	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_sql.py::test_plain_code_without_parameters
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.params	property	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_sql.py::test_positional_parameters_stay_as_placeholders
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.to_flush	property	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_sql.py::test_to_flush_collects_the_metadata_of_all_parts
@@ -2315,10 +2315,10 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	value_to_translated_tr
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	pattern_to_translated_trigram_pattern	function	satisfied	structural=match;write_path=-;evidence=tests/integration/tools/test_sql_ddl_port.py::TestPureHelpers::test_pattern_pattern
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	make_identifier	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_query.py::TestAliasFitsPostgres::test_a_short_alias_is_left_alone
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	make_index_name	function	satisfied	structural=match;write_path=-;evidence=tests/unit/tools/test_sql_schema_helpers.py::TestMakeIndexName::test_it_follows_the_convention
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__code	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__params	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__slots__	attribute	not_verified	structural=value;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__to_flush	attribute	not_verified	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__code	attribute	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__params	attribute	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__slots__	attribute	not_verified	structural=match;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	SQL.__to_flush	attribute	not_verified	structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	TableKind.Foreign	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/tools/test_sql_ddl_port.py::TestTableKind::test_the_members_carry_the_relkind_letter
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	TableKind.Materialized	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/tools/test_sql_ddl_port.py::TestTableKind::test_the_members_carry_the_relkind_letter
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/sql.py	TableKind.Other	attribute	satisfied	structural=match;write_path=-;evidence=tests/integration/tools/test_sql_ddl_port.py::TestTableKind::test_the_members_carry_the_relkind_letter

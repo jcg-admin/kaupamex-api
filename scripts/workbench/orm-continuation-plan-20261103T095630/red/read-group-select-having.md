@@ -39,3 +39,7 @@ Comando: `uv run --frozen pytest tests/unit/orm/test_read_group_select_having.py
 | Required integration gates | Suite completa y multidb en el corte de publicación (ORM espejado). |
 | Previously valid evidence | Ninguna. |
 | Uncovered risks | El desbloqueo de `account.invoice.report._read_group_select` depende de `read_group` (unidad 5), no de esta unidad. |
+
+## Regresión de impacto (nivel 2)
+
+Sobre `a5ce8acd`, `-n 4`: `tests/unit/orm tests/unit/account tests/unit/stock tests/unit/tools/test_sql.py` → 3551 passed, 39 skipped, EXIT=0.
