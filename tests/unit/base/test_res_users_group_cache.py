@@ -245,7 +245,11 @@ def test_a_raw_write_to_the_join_table_is_invisible_to_the_invalidator(db):
             [group.pk, user.pk],
         )
 
-    # El ORM lo ve; el caché no — y ésa es la afirmación del caso.
+    # El ORM lo ve en cuanto se invalida su caché de campos —una escritura
+    # SQL cruda no pasa por ``modified``, igual que en la referencia, y
+    # ``all_group_ids`` es un campo calculado—; el memo de ``_get_group_ids``
+    # no, y ésa es la afirmación del caso.
+    ResUsers._invalidate_cache(ResUsers, ['all_group_ids'], (user.pk,))
     assert list(user.all_group_ids.values_list('pk', flat=True)) == [group.pk]
     assert user._get_group_ids() == []
 

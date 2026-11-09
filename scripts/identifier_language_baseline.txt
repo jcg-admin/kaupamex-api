@@ -1621,6 +1621,7 @@ tests/integration/base/test_res_groups_port.py::copia
 tests/integration/base/test_res_groups_port.py::dentro
 tests/integration/base/test_res_groups_port.py::dos
 tests/integration/base/test_res_groups_port.py::fuera
+tests/integration/base/test_res_groups_port.py::group_con_ajuste
 tests/integration/base/test_res_groups_port.py::hijo
 tests/integration/base/test_res_groups_port.py::nombres
 tests/integration/base/test_res_groups_port.py::padre

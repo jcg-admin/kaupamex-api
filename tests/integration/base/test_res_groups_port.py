@@ -174,27 +174,35 @@ class TestTheClosureSearches:
 
     def test_all_implied_ids_descends_to_the_child(self, cadena):
         padre, hijo = cadena
-        found = ResGroups._search_all_implied_ids([padre.pk])
+        found = matching_by_search_method(
+            ResGroups, '_search_all_implied_ids', 'in', [padre.pk])
         assert padre in found and hijo in found
 
     def test_all_implied_by_ids_climbs_to_the_parent(self, cadena):
         padre, hijo = cadena
-        found = ResGroups._search_all_implied_by_ids([hijo.pk])
+        found = matching_by_search_method(
+            ResGroups, '_search_all_implied_by_ids', 'in', [hijo.pk])
         assert padre in found and hijo in found
 
     def test_the_two_directions_are_not_the_same_set(self, cadena):
         padre, hijo = cadena
-        baja = set(ResGroups._search_all_implied_ids([hijo.pk]).values_list('pk', flat=True))
-        sube = set(ResGroups._search_all_implied_by_ids([hijo.pk]).values_list('pk', flat=True))
+        baja = set(matching_by_search_method(
+            ResGroups, '_search_all_implied_ids', 'in', [hijo.pk],
+        ).values_list('pk', flat=True))
+        sube = set(matching_by_search_method(
+            ResGroups, '_search_all_implied_by_ids', 'in', [hijo.pk],
+        ).values_list('pk', flat=True))
         assert baja != sube, (
             'si los dos dieran lo mismo, uno de los dos estaría llamando al '
             'accesor equivocado del grafo')
         assert padre.pk in sube and padre.pk not in baja
 
-    def test_negate_returns_the_complement(self, cadena):
+    def test_not_in_returns_the_complement(self, cadena):
         padre, hijo = cadena
-        dentro = ResGroups._search_all_implied_by_ids([hijo.pk])
-        fuera = ResGroups._search_all_implied_by_ids([hijo.pk], negate=True)
+        dentro = matching_by_search_method(
+            ResGroups, '_search_all_implied_by_ids', 'in', [hijo.pk])
+        fuera = matching_by_search_method(
+            ResGroups, '_search_all_implied_by_ids', 'not in', [hijo.pk])
         assert not set(dentro.values_list('pk', flat=True)) & set(
             fuera.values_list('pk', flat=True))
 
@@ -208,6 +216,12 @@ class TestTheClosureSearches:
         assert hijo in found
         assert padre in found, (
             'el usuario pertenece al padre por implicación, no directamente')
+
+    def test_other_operators_are_not_implemented(self, cadena):
+        """≙ ``res_groups.py:254-255``: sólo ``in``/``not in``."""
+        __, hijo = cadena
+        assert ResGroups._search_all_implied_ids('=', hijo.pk) \
+            is NotImplemented
 
 
 class TestUserTypeGroups:

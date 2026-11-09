@@ -107,7 +107,7 @@ from collections import deque
 import api
 import fields
 import models
-from orm.domains import NEGATIVE_CONDITION_OPERATORS, Domain
+from orm.domains import NEGATIVE_CONDITION_OPERATORS, Domain, to_q
 from orm.environments import get_context
 from django.apps import apps
 from django.core.exceptions import ValidationError
@@ -559,36 +559,36 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
             pk__in=alcanzados + definitions.get_superset_ids(alcanzados))
 
     @classmethod
-    def _search_all_implied_ids(cls, group_ids, negate=False):
-        """Los grupos cuya clausura de implicación toca alguno de ``group_ids``.
+    def _search_all_implied_ids(cls, operator, value):
+        """El dominio de la búsqueda sobre la clausura de implicación.
 
-        ≙ ``_search_all_implied_ids`` (``odoo19c: res_groups.py:245-251``), que
-        se apoya en ``get_subset_ids`` del grafo — el mismo mecanismo que la
-        tarea #204 portó.
-
-        La fuente devuelve ``NotImplemented`` para todo operador que no sea
-        ``in``/``not in``; aquí eso es el parámetro ``negate``, que son los dos
-        únicos casos que admitía.
+        ≙ ``_search_all_implied_ids`` (``odoo19c: res_groups.py:252-258``):
+        sólo ``in``/``not in``; cualquier otro operador devuelve
+        ``NotImplemented`` y el despachador prueba sus respaldos.
         """
+        if operator not in ('in', 'not in'):
+            return NotImplemented
         definitions = cls._get_group_definitions()
-        ids = [*group_ids, *definitions.get_subset_ids(group_ids)]
-        if negate:
-            return cls.objects.exclude(pk__in=ids)
-        return cls.objects.filter(pk__in=ids)
+        ids = [*value, *definitions.get_subset_ids(value)]
+        return [('id', operator, ids)]
 
     @classmethod
-    def _search_all_implied_by_ids(cls, group_ids, negate=False):
-        """Los grupos alcanzados por la clausura inversa de ``group_ids``.
+    def _search_all_implied_by_ids(cls, operator, value):
+        """El dominio de la búsqueda sobre la clausura inversa.
 
-        ≙ ``_search_all_implied_by_ids`` (``odoo19c: res_groups.py:260-266``).
-        El espejo del anterior: ahí ``get_subset_ids``, aquí
-        ``get_superset_ids``.
+        ≙ ``_search_all_implied_by_ids`` (``odoo19c: res_groups.py:267-280``):
+        ``any``/``not any`` con un ``Domain`` se traducen antes a
+        ``in``/``not in`` buscando ese dominio.
         """
+        if operator in ('any', 'not any') and isinstance(value, Domain):
+            value = list(cls.objects.filter(
+                to_q(value, cls)).values_list('pk', flat=True))
+            operator = 'in' if operator == 'any' else 'not in'
+        elif operator not in ('in', 'not in'):
+            return NotImplemented
         definitions = cls._get_group_definitions()
-        ids = [*group_ids, *definitions.get_superset_ids(group_ids)]
-        if negate:
-            return cls.objects.exclude(pk__in=ids)
-        return cls.objects.filter(pk__in=ids)
+        ids = [*value, *definitions.get_superset_ids(value)]
+        return [('id', operator, ids)]
 
     # === El árbol que el formulario de ajustes dibuja ======================
 
@@ -873,24 +873,27 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
             for group in groups
         })
 
-    @property
-    def all_implied_ids(self):
+    @api.depends('implied_ids.all_implied_ids')
+    def _compute_all_implied_ids(self):
         """El grupo con todos sus implicados, directos e indirectos.
 
-        Reflexiva: incluye al propio grupo, como el ``g.ids + …`` de la fuente.
-
-        ≙ ``_compute_all_implied_ids`` (``odoo19c: base/models/res_groups.py``).
+        Reflexiva: incluye al propio grupo, como el ``g.ids + …`` de la fuente
+        (``odoo19c: res_groups.py:246-250``). Divergencia de mecanismo: la
+        fuente lee el grafo memorizado de ``_get_group_definitions``; aquí se
+        recorre ``implied_ids`` en vivo, que da la misma clausura sin depender
+        de que la memoria se haya invalidado tras cambiar una arista.
         """
-        return type(self).objects.filter(
+        self.all_implied_ids = type(self).objects.filter(
             pk__in=self._closure([self], lambda g: g.implied_ids.all()))
 
-    @property
-    def all_implied_by_ids(self):
+    @api.depends('implied_by_ids.all_implied_by_ids')
+    def _compute_all_implied_by_ids(self):
         """Todos los grupos que implican a éste, directa o indirectamente.
 
-        ≙ ``_compute_all_implied_by_ids`` (``odoo19c: base/models/res_groups.py``).
+        ≙ ``_compute_all_implied_by_ids`` (``odoo19c: res_groups.py:261-265``),
+        con la misma divergencia de mecanismo que el anterior.
         """
-        return type(self).objects.filter(
+        self.all_implied_by_ids = type(self).objects.filter(
             pk__in=self._closure([self], lambda g: g.implied_by_ids.all()))
 
     @property
@@ -997,3 +1000,16 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
     #: competir por el nombre (H-API-1161).
     model_access = fields.One2many(
         'ir.model.access', 'group_id', copy=True)
+
+    #: ≙ ``all_implied_ids``/``all_implied_by_ids`` (``odoo19c:
+    #: res_groups.py:71-77``): ``Many2many`` calculados sin columna y
+    #: buscables. Sin ``store`` la costura los contribuye sin tabla
+    #: intermedia (``orm/fields.py``, ``_field_contribute_to_class``).
+    all_implied_ids = fields.Many2many(
+        'base.ResGroups', 'Transitively Implied Groups', store=False,
+        compute='_compute_all_implied_ids', compute_sudo=True,
+        search='_search_all_implied_ids', recursive=True)
+    all_implied_by_ids = fields.Many2many(
+        'base.ResGroups', 'Transitively Implying Groups', store=False,
+        compute='_compute_all_implied_by_ids', compute_sudo=True,
+        search='_search_all_implied_by_ids', recursive=True)

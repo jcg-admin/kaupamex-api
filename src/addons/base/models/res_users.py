@@ -1545,32 +1545,26 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     # import en esta dirección cerraría el ciclo. Mismo criterio —y mismo
     # mecanismo— que ``_partner_model()`` de arriba.
 
-    @property
-    def all_group_ids(self):
-        """≙ ``all_group_ids`` (``:258-259``) — los grupos del usuario, cerrados
-        transitivamente.
+    @api.depends('group_ids.all_implied_ids')
+    def _compute_all_group_ids(self):
+        """≙ ``_compute_all_group_ids`` (``odoo19c: res_users.py:446-449``):
+        ``user.all_group_ids = user.group_ids.all_implied_ids``.
 
-        La fuente lo declara como ``Many2many`` calculado, y su cómputo es una
-        línea: ``user.all_group_ids = user.group_ids.all_implied_ids``
-        (``_compute_all_group_ids``, ``:447-449``). Aquí es una ``property``
-        sobre la misma clausura ya portada — mismo resultado, sin motor de
-        cómputo almacenado.
+        Es **reflexiva**: incluye los grupos propios del usuario. Lo garantiza
+        ``ResGroups._closure``, cuyo BFS marca cada semilla como visitada antes
+        de expandirla.
 
-        Es **reflexiva**: incluye los grupos propios del usuario, no sólo los
-        implicados. Lo garantiza ``ResGroups._closure``, cuyo BFS marca cada
-        semilla como visitada antes de expandirla.
-
-        ``ResGroups`` se resuelve por el registro de apps y no por import, por
-        la misma razón que el bloque de arriba: ``res_groups.py`` importa
-        ``ResUsers`` para declarar su M2M, así que un import en esta dirección
-        cerraría el ciclo. Mismo mecanismo que ``_partner_model()``.
+        ``ResGroups`` se resuelve por el registro de apps y no por import:
+        ``res_groups.py`` importa ``ResUsers`` para declarar su M2M, así que un
+        import en esta dirección cerraría el ciclo. Mismo mecanismo que
+        ``_partner_model()``.
 
         Su primer consumidor es ``ResUsersApikeys._check_expiration_date``, que
         lee ``api_key_duration`` de estos grupos.
         """
         groups = apps.get_model('base', 'ResGroups')
         seeds = list(self.group_ids.all())
-        return groups.objects.filter(
+        self.all_group_ids = groups.objects.filter(
             pk__in=groups._closure(seeds, lambda g: g.implied_ids.all()))
 
     def has_groups(self, group_spec: str) -> bool:
@@ -2255,6 +2249,19 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
                 'type': 'password',
             }
             user._check_credentials(credential, {'interactive': False})
+
+    #: ≙ ``all_group_ids`` (``odoo19c: res_users.py:258-259``): los grupos
+    #: del usuario más sus implicados, calculado sin columna y buscable.
+    all_group_ids = fields.Many2many(
+        'base.ResGroups', 'Groups and implied groups', store=False,
+        compute='_compute_all_group_ids', compute_sudo=True,
+        search='_search_all_group_ids')
+
+    @classmethod
+    def _search_all_group_ids(cls, operator, value):
+        """≙ ``_search_all_group_ids`` (``odoo19c: res_users.py:451-452``): la
+        búsqueda recorre ``group_ids`` hasta la clausura de cada grupo."""
+        return [('group_ids.all_implied_ids', operator, value)]
 
 
 class ResUsersLog(TimeStampedModel):
@@ -3260,8 +3267,14 @@ def _invalidate_on_groups_changed(sender, instance, action, reverse, pk_set,
         return
     if action == 'post_clear':
         _invalidate_group_ids()
+        ResUsers._invalidate_cache(ResUsers, ['all_group_ids'])
         return
-    _invalidate_group_ids([instance.pk] if reverse else list(pk_set or ()))
+    user_pks = [instance.pk] if reverse else list(pk_set or ())
+    _invalidate_group_ids(user_pks)
+    # ``all_group_ids`` es un campo calculado (``@api.depends('group_ids.…')``)
+    # y el manager M2M no pasa por ``write``, que es quien dispara
+    # ``modified`` en la fuente: se invalida aquí, para los mismos usuarios.
+    ResUsers._invalidate_cache(ResUsers, ['all_group_ids'], tuple(user_pks))
 
 
 @receiver(m2m_changed, sender='base.ResGroups_implied_ids',
@@ -3288,6 +3301,11 @@ def _invalidate_on_implication_changed(sender, action, **kwargs):
     if action in ('post_add', 'post_remove', 'post_clear'):
         _invalidate_group_ids()
         registry.clear_cache('groups')
+        # Las tres clausuras calculadas dependen de esta arista.
+        ResUsers._invalidate_cache(ResUsers, ['all_group_ids'])
+        groups = apps.get_model('base', 'ResGroups')
+        groups._invalidate_cache(
+            groups, ['all_implied_ids', 'all_implied_by_ids'])
 
 
 @receiver(post_delete, sender='base.ResGroups',

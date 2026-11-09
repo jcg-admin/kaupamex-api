@@ -100,3 +100,12 @@ encontrar el tercer recorrido de primer padre).
 
 Restaurado con `cmp`. Un fallo inicial fue de la prueba, no del código: un
 `Char` vacío se lee `False` en este ORM, como en la referencia.
+
+## Varios niveles (3.2.14-C.2, medido)
+
+`_add_inherited_fields` (`odoo19c: odoo/orm/model_classes.py`) recorre `model_cls.pool[parent]._fields`,
+que ya contiene lo que el padre a su vez hereda: la propagación es transitiva por construcción.
+`_delegable_field_names` lee el mismo mapa (`model_field_registry`), así que la regla coincide.
+En `odoo-tools@abe4040ec1` (addons de Community y `odoo/addons`) no se encontró ningún modelo cuyo padre
+de `_inherits` tenga a su vez `_inherits`, y en Kaupamex no hay ninguno (recorrido de `apps.get_models()`).
+Sin consumidor real, la cláusula se mantiene como estructural; no se crea un modelo de prueba sólo para ella.

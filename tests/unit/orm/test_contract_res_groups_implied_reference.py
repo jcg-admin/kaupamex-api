@@ -30,15 +30,7 @@ NAMES = ('impl-A', 'impl-B', 'impl-C', 'impl-D')
 
 #: Diferencias abiertas, con su motivo y su sucesor. Cada una debe seguir
 #: siendo diferencia: cuando se cierre, la prueba exige retirarla de aquí.
-OPEN = {
-    # ``all_implied_ids`` y ``all_group_ids`` son ``@property`` aquí, no
-    # campos: el traductor de dominios no los conoce. La forma fiel es un
-    # ``Many2many`` calculado sin columna con ``search=``, que este árbol aún
-    # no admite. Sucesor: TASK-API-0485 (diseño en
-    # ``designs/res-groups-implied-contract.md``).
-    'search groups implying C': "['impl-A', 'impl-B', 'impl-C']",
-    'search users in C': '1',
-}
+OPEN = {}
 
 
 def _seed():
