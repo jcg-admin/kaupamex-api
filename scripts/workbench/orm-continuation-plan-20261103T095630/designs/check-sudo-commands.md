@@ -44,10 +44,52 @@ Referencia: `odoo-tools@abe4040ec1a45beee90fb694e4eae4453e46b389`, Odoo 19 Commu
   AMBIENTAL (`orm.environments.env()`), no el del registro.
 - `Transaction.default_env` está portado (`environments.py:904`).
 
-## Medición pendiente (precede al diseño de la solución)
+## Medición (sonda ejecutada, no inferencia)
 
-Con qué entorno corren hoy los comandos cuando el registro está en
-`sudo()`/`with_user` y el ambiente no: si heredan el ambiental, el defecto
-actual tiene dos mitades (no se propaga el entorno del registro, y no se
-aplica la restricción). Se mide con una sonda que no toca la base compartida
-mientras corre la suite.
+Sonda temporal sobre `kaupamex_core_qa`, usuario sin ACL alguna:
+
+| Caso | Kaupamex hoy | Referencia |
+|---|---|---|
+| `foo.sudo().write({'bar_ids': [Command.create(..)]})` (`test_orm.related_foo` → `related_bar`, bandera True) | `AccessError` crear `related_bar` | permitido: el comodelo hereda el entorno `sudo` del registro |
+| lo mismo dentro de `with sudo():` ambiental | permitido | permitido |
+| `res.users.group_ids` → `res.groups` (bandera False) sin `sudo` | permitido | `AccessError` |
+
+Dos defectos, no uno:
+
+1. **Los comandos no heredan el entorno del registro.** `apply_many2many_commands`
+   y `apply_one2many_commands` operan sobre la clase del comodelo, que resuelve
+   el entorno ambiental. Un registro BaseModel en `sudo()`/`with_user` no
+   transmite su entorno.
+2. **`_allow_sudo_commands` no tiene consumidor.**
+
+Los treinta modelos con la bandera en False son modelos de Django sin
+`BaseModel` (medido sobre `MODELS_BY_NAME`), y sus `create`/`write` no pasan
+por la ACL: `ResGroups` no tiene `create` y el intérprete cae en
+`objects.create`. En ellos el efecto de la referencia no es observable hasta
+que adopten la ACL (decisión abierta de las columnas propias de `res.users`,
+BaseModel en los 389 modelos). La única arista BaseModel → bandera False es
+`test_orm.discussion.participants` → `res.users`, con el mismo límite.
+
+## Diseño
+
+- En los dos intérpretes de comandos, el comodelo se resuelve contra el
+  entorno del registro: `record.env` si el registro es BaseModel, el
+  ambiental si no. Los comandos corren dentro de `with <entorno>:`, que es
+  como este árbol hace que la clase lea los canales.
+- `_check_sudo_commands(comodel_env, comodel)`: si la bandera es False y el
+  entorno está en `su` o su uid difiere del usuario por defecto, el entorno
+  pasa a `su=False` con el usuario por defecto.
+- Usuario por defecto: `Transaction.default_env.uid`; sin `default_env`
+  (lo normal aquí, porque el entorno ambiental no fija uno), el uid del canal
+  ambiental. **Divergencia declarada**: sin `default_env`, un `user_scope`
+  ambiental que cambie de usuario no se detecta; sí un `with_user` de
+  registro (su uid difiere del ambiental) y todo `sudo`.
+- Hogar: el método del campo en la referencia (`_RelationalMulti`). Aquí los
+  intérpretes reciben el campo de Django; la función vive en
+  `orm/commands.py` junto a ellos, con su cita.
+- Observabilidad: se portan `test_orm.user` y `test_orm.group`
+  (`test_orm.py:1770-1792`, bandera False en los dos) con su migración, y la
+  prueba reproduce la sección 2 de `test_sudo_commands`; la sección 1
+  (`res.partner.user_ids`) queda bloqueada por la ACL de los modelos Django.
+- Controles de anulación: sin herencia del entorno cae el caso permitido; sin
+  la guarda caen CREATE/UPDATE/DELETE sobre `test_orm.group`.
