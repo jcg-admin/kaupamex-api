@@ -1770,3 +1770,6 @@
 {"id": "c-10fd0c2e-a998-4d9b-965d-18469ab96338", "op": "release", "path": "src/orm/fields.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T11:52:42.000Z", "task": "TASK-API-0485"}
 {"id": "c-781d7c2c-621b-432c-8155-8ba4caf26771", "op": "release", "path": "src/orm/fields_relational.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T11:52:42.000Z", "task": "TASK-API-0485"}
 {"id": "c-a58ff821-3411-439d-a07a-411db6874b01", "op": "release", "path": "tests/unit/orm/test_many2one_write_inverses.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T11:52:42.000Z", "task": "TASK-API-0485"}
+{"id": "c-ec120d50-d3b1-467a-83c0-8daab20d8559", "op": "claim", "path": "src/orm/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:15.000Z", "task": "TASK-API-0485"}
+{"id": "c-8a73d8c6-5b1e-4239-8672-596ad8130cdc", "op": "claim", "path": "addons/web/models/models.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:15.000Z", "task": "TASK-API-0485"}
+{"id": "c-316dda3a-9c52-4d58-afa1-8a274f38ac3c", "op": "claim", "path": "tests/unit/orm/test_apply_onchange_methods.py", "owner": "VM-x2hokp", "branch": "feature/vm-x2hokp-orm-root", "at": "2026-11-09T17:20:15.000Z", "task": "TASK-API-0485"}

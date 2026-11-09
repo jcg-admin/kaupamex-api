@@ -933,6 +933,13 @@
         "orm-many2one-write-inverses-0485"
       ],
       "writtenAt": "2026-11-09T11:52:24Z"
+    },
+    {
+      "planner": "claude-opus-5-5",
+      "items": [
+        "orm-apply-onchange-methods-0485"
+      ],
+      "writtenAt": "2026-11-09T17:20:15Z"
     }
   ]
 }
