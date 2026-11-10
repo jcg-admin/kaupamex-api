@@ -448,3 +448,35 @@ Condición de cierre: `env.user` del superusuario existe como registro (la
 fila de `base.user_root` o su equivalente declarado) y la lectura de un
 Many2one vacío por la ruta del dominio no levanta. Hasta entonces la clave
 `data` de los manifiestos de `hr` y `hr_skills` sigue sin activar.
+
+#### L4e — medición de la referencia y del árbol (2026-11-10)
+
+- Fuente: `odoo19c: odoo/addons/base/data/res_users_data.xml:5-11` crea
+  `base.user_root` (uid 1) con `partner_id ref="base.partner_root"` y
+  `company_id ref="main_company"`; `res_partner_data.xml:15-20` crea
+  `base.partner_root` («System», inactivo). La fuente instala con
+  `env.user` = ese registro.
+- Aquí: `SUPERUSER_ID = 1` (`orm/utils.py:42`), `res_users` vacío en la base
+  de pruebas, `get_current_user()` devuelve `None` sin fila con ese id
+  (`orm/environments.py:174-187`), y no hay `base.main_company`,
+  `base.partner_root` ni `base.user_root` (0 filas de `ir_model_data`). La
+  empresa no se siembra a propósito (DEC-3 de `tenants-sin-clases-en-codigo`).
+- `ResUsers.partner` es obligatorio y `ResUsers.company` admite nulo
+  (`res_users.py:698-733`): un `user_root` sin empresa es posible.
+
+Forma derivada: TRAE `base.partner_root` y `base.user_root` por los datos de
+`base` con su XML-ID, sin `company_id` (divergencia declarada: no hay
+`main_company`), inactivos, y con el id `SUPERUSER_ID`.
+
+**Riesgo que la medición no cierra:** en una base ya poblada la fila con id 1
+puede ser un usuario humano. Este árbol ya trata ese id como superusuario
+(`SUPERUSER_ID = 1`), así que el riesgo existe hoy, pero sembrar
+`base.user_root` sobre él lo volvería explícito. Desde esta VM no se puede
+medir qué hay en las bases desplegadas. Condición de cierre: la ocupación del
+id 1 en las bases desplegadas, medida, o una decisión registrada sobre el id
+del superusuario.
+
+Segunda mitad, independiente de la primera: `res.users.employee_id` (hr)
+devuelve `None`; la fuente devuelve un recordset vacío. La ruta del dominio
+`user.employee_id.parent_id.id` necesita que la lectura sobre lo vacío dé
+`False`.
