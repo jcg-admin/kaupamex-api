@@ -90,6 +90,49 @@ G1 antes que G2 porque deja el cambio de contrato en un solo commit
 pequeño y reversible; G1 es neutro por construcción y su verde no prueba
 nada por sí solo, por eso su control es G2.
 
+## G1 — el acceso a la clase tiene su forma en la fuente
+
+Quien necesita la **clase** en la fuente no usa `env[name]`: usa
+`self.pool[name]` o `env.registry[name]`. `Registry` es un
+`Mapping[str, type[BaseModel]]` (`odoo19c: odoo/orm/registry.py:84`, con
+`__len__`, `__iter__` y `__getitem__` en `:309-320`). Aquí `env.registry`
+devuelve el **módulo** `orm.registry` (`src/orm/environments.py:1172`), que
+no es indexable: medido, `env.registry['test_orm.shared.compute']` da
+`TypeError: 'module' object is not subscriptable`.
+
+Sitios que dependen de la clase en `src`/`addons`, por archivo (sondeo
+`env_flow_census.py`, sin duplicados): `src/orm/models.py` 34,
+`src/orm/fields_relational.py` 10, `src/modules/loading.py` 3.
+
+Decisión: **REUSE**. La búsqueda encontró la autoridad que ya posee la
+responsabilidad: `class Registry(Mapping)` (`src/orm/registry.py:1771`), con
+`__len__`/`__iter__`/`__getitem__` (`:2981-2991`) y su suite
+`tests/unit/orm/test_registry_class.py`. Medido:
+`Registry('default')['test_orm.shared.compute']` devuelve la clase, y
+`set(Registry('default')) == set(MODELS_BY_NAME)` (205 nombres). Lo que
+falta es que `env.registry` devuelva **esa instancia** (≙ `env.registry`,
+`odoo19c: odoo/orm/environments.py:172`) y no el módulo.
+
+Consumidores actuales de `env.registry.<x>` que hay que mantener: `clear_cache`
+(7) y `field_triggers` sólo existen en el módulo; `db_name`, `unaccent`,
+`_init_modules`, `ready`, `has_trigram`, `_setup_models__` sólo en la
+instancia (hoy darían `AttributeError` por `env.registry`, que devuelve el
+módulo); `field_depends`, `field_depends_context`, `field_inverses`,
+`field_computed`, `not_null_fields`, `models` en los dos. El cambio de
+`Environment.registry` exige antes que `clear_cache` y `field_triggers`
+respondan en la instancia (≙ `Registry.clear_cache` y
+`Registry.field_triggers` de la fuente), delegando en las funciones del
+módulo, que siguen siendo el eje de proceso.
+
+Después, cada uno de los 47 sitios pasa de `env[name]` a
+`env.registry[name]` o a `type(records)`, como la fuente, y el
+comportamiento no cambia mientras `env[name]` siga siendo la clase. G2 cambia
+`__getitem__` sobre un árbol que ya no depende de ella.
+
+Pruebas de G1: `env.registry[name] is` la clase registrada; `in`, `len` e
+iteración sobre los nombres; `KeyError` ante un nombre desconocido (≙
+`:317-320`).
+
 ## Pendiente
 
 - Medir el flujo entre funciones (clases devueltas por funciones auxiliares

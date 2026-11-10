@@ -66,6 +66,31 @@ cada ejecución nueva tampoco las toca.
 4. Si el techo cae por debajo de `N` + suelo, el gate se difiere; los
    procesos vivos terminan.
 
+## Veredicto recuperado de `ci-multidb` sobre `8f69391c`
+
+- Worktree `gate-8f69391c` (revisión `8f69391c980ae45b0596888d453171462c2e6b48`),
+  PID 32021/32045/32049, base desechable `orm_bootstrap_384fa3b20c8e`.
+- `check_ci_database` exit 0; `pytest` exit 0: **5 passed** en 2078.84 s
+  (`pytest_seconds` 2104); `EXIT=0` del guion.
+- `dropped: true`; `dropped_companies: []`; `companies_before` y
+  `companies_left` iguales: las cuatro `company_*_db` residuales previas,
+  intactas.
+- El incidente de disco (~09:13-09:18Z) cayó dentro de la ejecución: el log
+  de PostgreSQL no registra ningún error de espacio (`grep -i "no space\|
+  could not write\|could not extend\|PANIC"` sobre
+  `/var/log/postgresql/postgresql-16-main.log`: sólo `FATAL role "root" does
+  not exist` de sondeos), las cinco pruebas asentaron y la limpieza terminó.
+  Se acepta el resultado.
+- Evidencia copiada fuera del worktree antes de retirarlo:
+  `$S/evidence-ci-multidb-8f69391c/` (`record.json` sha256 `a525b2f32c651e19…`,
+  `junit_isolation.xml`, logs, muestreo de almacenamiento).
+
+Muestreo de almacenamiento cada 15 s desde las 09:32Z hasta el final (33
+muestras): `pg_wal` constante en **177 MiB** (el pico de WAL no creció en la
+parte muestreada), `base` con pico de **1240 MiB** (+~90 MiB sobre el
+reposo), mínimo libre **1161 MiB**. Tras retirar el worktree: 1517 MiB
+libres.
+
 ## Lo que esta regla no cierra
 
 El pico de WAL por encima de 300 MiB no está medido. Se mide durante el
