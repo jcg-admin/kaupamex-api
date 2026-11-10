@@ -10,6 +10,7 @@ import pytest
 from django.db import connection
 
 from orm.environments import Environment
+from orm.table_objects import Index
 from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.django_db
@@ -52,3 +53,113 @@ def test_a_declared_column_keeps_its_not_null(env):
     env['test_orm.category']._check_removed_columns()
     assert _nullable('name') == 'NO'
     assert _nullable('id') == 'NO'
+
+
+# --- s2: _add_sql_constraints y Constraint.apply_to_database --------------
+
+CONSTRAINT = 'test_orm_category_positive_color'
+
+
+def _constraint():
+    """``(oid, definición normalizada, comentario)`` o ``None``."""
+    with connection.cursor() as cr:
+        cr.execute(
+            'SELECT c.oid, pg_get_constraintdef(c.oid), d.description '
+            'FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid '
+            'LEFT JOIN pg_description d ON d.objoid = c.oid '
+            'WHERE t.relname = %s AND c.conname = %s', [TABLE, CONSTRAINT])
+        return cr.fetchone()
+
+
+def _execute(statement):
+    with connection.cursor() as cr:
+        cr.execute(statement)
+
+
+def test_a_migrated_equivalent_constraint_is_not_recreated(env):
+    """Creada por la migración, sin comentario: equivalente por su forma
+    normalizada. No se recrea; sólo recibe el comentario de la fuente."""
+    oid, definition, comment = _constraint()
+    assert comment is None
+    env['test_orm.category']._add_sql_constraints()
+    after = _constraint()
+    assert after[0] == oid
+    assert after[1] == definition
+    assert after[2] == 'CHECK(color >= 0)'
+
+
+def test_a_second_run_changes_nothing(env):
+    env['test_orm.category']._add_sql_constraints()
+    first = _constraint()
+    env['test_orm.category']._add_sql_constraints()
+    assert _constraint() == first
+
+
+def test_an_absent_constraint_is_restored(env):
+    """El estado de migraciones dice que existe: se repone."""
+    _execute(f'ALTER TABLE {TABLE} DROP CONSTRAINT {CONSTRAINT}')
+    assert _constraint() is None
+    env['test_orm.category']._add_sql_constraints()
+    oid, definition, comment = _constraint()
+    assert definition == 'CHECK ((color >= 0))'
+    assert comment == 'CHECK(color >= 0)'
+
+
+def test_a_different_constraint_is_reported_not_recreated(env, caplog):
+    """La definición nueva llega por migración; aquí se informa."""
+    _execute(f'ALTER TABLE {TABLE} DROP CONSTRAINT {CONSTRAINT}')
+    _execute(f'ALTER TABLE {TABLE} ADD CONSTRAINT {CONSTRAINT} '
+             'CHECK (color >= 5)')
+    oid = _constraint()[0]
+    env['test_orm.category']._add_sql_constraints()
+    assert _constraint()[0] == oid
+    assert _constraint()[1] == 'CHECK ((color >= 5))'
+    assert CONSTRAINT in caplog.text
+
+
+# --- s2: Index.apply_to_database ------------------------------------------
+
+def _index():
+    with connection.cursor() as cr:
+        cr.execute(
+            'SELECT c.oid, d.description FROM pg_class c '
+            'LEFT JOIN pg_description d ON d.objoid = c.oid '
+            "WHERE c.relname = %s AND c.relkind = 'i'",
+            [f'{TABLE}_name_probe_idx'])
+        return cr.fetchone()
+
+
+@pytest.fixture
+def name_index(env):
+    """Un índice declarado como en la fuente (``models.Index('(name)')``)."""
+    model = type(env['test_orm.category'])
+    obj = Index('(name)')
+    obj.__set_name__(model, '_name_probe_idx')
+    return model, obj
+
+
+def test_an_absent_index_is_created_with_its_comment(name_index):
+    model, obj = name_index
+    assert _index() is None
+    obj.apply_to_database(model)
+    assert _index()[1] == obj.get_definition(None)
+
+
+def test_a_second_index_run_changes_nothing(name_index):
+    model, obj = name_index
+    obj.apply_to_database(model)
+    first = _index()
+    obj.apply_to_database(model)
+    assert _index() == first
+
+
+def test_an_index_without_comment_is_kept(name_index, caplog):
+    """≙ ``:159``: «if we have an index without a comment (this is used by
+    support to tweak indexes)». Se conserva en silencio: no es una
+    diferencia que informar."""
+    model, obj = name_index
+    _execute(f'CREATE INDEX {TABLE}_name_probe_idx ON {TABLE} (name, id)')
+    oid = _index()[0]
+    obj.apply_to_database(model)
+    assert _index() == (oid, None)
+    assert 'name_probe_idx' not in caplog.text

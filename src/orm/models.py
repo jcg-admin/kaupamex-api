@@ -4151,6 +4151,21 @@ class RecordLoaderMixin(FieldSqlMixin):
                     drop_not_null(cr, table, attname)
 
     @classmethod
+    def _add_sql_constraints(cls, using=None):
+        """≙ ``BaseModel._add_sql_constraints`` (``odoo19c: odoo/orm/
+        models.py:3262-3268``): «Modify this model's database table objects
+        so they match the one in _table_objects».
+
+        Cada objeto aplica su propio contrato (``orm/table_objects.py``), por
+        la base ``using``. La migración sigue siendo la autoridad: un objeto
+        de definición distinta se informa y no se recrea (``designs/schema-
+        and-translation-symbols-decision.md``, «Autoridad del esquema»).
+        """
+        alias = using or get_current_cr() or DEFAULT_DB_ALIAS
+        for obj in (getattr(cls, '_table_objects', None) or {}).values():
+            obj.apply_to_database(cls, using=alias)
+
+    @classmethod
     def check(cls, **kwargs):
         """El ``check`` de Django más ``_check_parent_path`` para un modelo
         con ``_parent_store`` — el punto de ``_auto_init`` (``:3214``)."""

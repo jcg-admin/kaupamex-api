@@ -14,9 +14,15 @@ Qué trae Django y qué no
 ========================
 
 Django **sí** trae el motor de esquema: ``Meta.constraints`` y ``Meta.indexes``
-se materializan con ``makemigrations``. Por eso ``apply_to_database`` diverge de
-mecanismo — emite por el editor de esquema en vez de componer el DDL a mano
-como ``sql.add_constraint``/``sql.add_index`` en la fuente.
+se materializan con ``makemigrations``, y la migración es la autoridad del
+esquema. ``apply_to_database`` porta el contrato de la fuente —comparar la
+definición, crear lo que falta con ``sql.add_constraint``/``sql.add_index``
+por ``Registry.post_constraint``— como conciliación tras ``migrate``: repone
+un objeto ausente (el estado de migraciones dice que existe), adopta uno
+equivalente creado por la migración dejándole el comentario con su definición,
+e informa —no recrea— uno distinto, cuya forma nueva llega por migración.
+Contrato: ``designs/schema-and-translation-symbols-decision.md``, «Autoridad
+del esquema».
 
 Django **no** trae tres cosas, y son las que este archivo construye:
 
@@ -24,12 +30,13 @@ Django **no** trae tres cosas, y son las que este archivo construye:
    atributo, exige su guion bajo inicial y rechaza el nombre mangleado. Medido
    en ``scripts/workbench/table-object-naming-20260830T201048``: el protocolo
    **sí** se dispara en el cuerpo de un modelo de Django.
-2. **El nombre completo acotado.** ``{tabla}_{nombre}`` por ``make_identifier``,
-   que recorta a los 63 caracteres de PostgreSQL con un ``crc32`` detrás.
+2. **El nombre completo acotado.** ``{tabla}_{nombre}`` por
+   ``make_identifier``, que recorta a los 63 caracteres de PostgreSQL con un
+   ``crc32`` detrás.
 3. **El mensaje de violación invocable.** ``get_error_message`` admite un
    invocable que recibe ``(env, diagnostics)`` y compone el texto con el
-   diagnóstico real de la excepción. El ``violation_error_message`` de Django es
-   una cadena fija.
+   diagnóstico real de la excepción. El ``violation_error_message`` de Django
+   es una cadena fija.
 
 Lo que este archivo reemplaza
 =============================
@@ -47,20 +54,32 @@ La fuente distingue en ``__set_name__`` la **clase de definición** de la de
 registro con ``getattr(owner, 'pool', None) is None``. Aquí no hay clases de
 registro —no existe el ``Registry`` de la fuente— y además ``_meta`` **aún no
 existe** cuando corre el protocolo (medido en la misma sonda), así que el
-registro va a ``_table_object_definitions``, una lista de clase, igual que allá.
+registro va a ``_table_object_definitions``, una lista de clase, igual que
+allá.
 
 El puente ``to_django`` es propio: convierte el objeto de tabla al constructo
 nativo para que ``Meta.constraints``/``Meta.indexes`` lo materialicen. Es el
 hogar que ``atributos-de-clase-de-modelo.md`` ya había fijado, ahora
 construido en vez de aliasado.
 """
-from django.db import connection
+from django.db import DEFAULT_DB_ALIAS, DatabaseError, connections
 from django.db.models import BaseConstraint
 from django.db.models import CheckConstraint  # noqa: F401  (re-exportado)
 from django.db.models import Index as DjangoIndex
 from django.db.models import UniqueConstraint  # noqa: F401  (re-exportado)
+import logging
 
-from tools.sql import make_identifier
+from django.db import transaction
+
+# Por módulo, no por nombre: ``orm.environments`` acaba importando este
+# archivo, y el atributo se resuelve al llamar (mismo patrón que
+# ``orm.registry``).
+import orm.environments
+import orm.registry
+from tools.sql import (SQL, add_constraint, add_index, constraint_definition,
+                       index_definition, make_identifier)
+
+_logger = logging.getLogger(__name__)
 
 
 class RawConstraint(BaseConstraint):
@@ -165,7 +184,8 @@ class RawIndex(DjangoIndex):
 
     def deconstruct(self):
         path = f'{self.__class__.__module__}.{self.__class__.__qualname__}'
-        return path, (self.definition,), {'name': self.name, 'unique': self.unique}
+        return path, (self.definition,), {'name': self.name,
+                                          'unique': self.unique}
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: name={self.name!r}>'
@@ -175,7 +195,8 @@ class TableObject:
     """≙ ``TableObject`` (``odoo19c: odoo/orm/table_objects.py:26-76``).
 
     Docstring de la fuente, verbatim: *"Declares a SQL object related to the
-    model. The identifier of the SQL object will be ``{model._table}_{name}``"*.
+    model. The identifier of the SQL object will be
+    ``{model._table}_{name}``"*.
     """
 
     name: str
@@ -215,7 +236,8 @@ class TableObject:
     def full_name(self, model) -> str:
         """≙ ``full_name`` (``odoo19c: :55-58``) — ``{tabla}_{nombre}``."""
         assert self.name, (
-            f"El objeto de tabla no está nombrado ({self.get_definition(None)})")
+            "El objeto de tabla no está nombrado "
+            f"({self.get_definition(None)})")
         return make_identifier(f'{_table_of(model)}_{self.name}')
 
     def get_error_message(self, model, diagnostics=None) -> str:
@@ -247,7 +269,49 @@ class TableObject:
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return f"({self.name!r}={self.get_definition(None)!r}, {self.message!r})"
+        return (f"({self.name!r}={self.get_definition(None)!r}, "
+                f"{self.message!r})")
+
+
+class _Probe(Exception):
+    """Lleva fuera del punto de guardado la definición sondeada."""
+
+
+def _pg_constraint_definition(cr, table, conname):
+    """La forma que PostgreSQL reconstruye (``pg_get_constraintdef``)."""
+    cr.execute(
+        'SELECT pg_get_constraintdef(c.oid) FROM pg_constraint c '
+        'JOIN pg_class t ON t.oid = c.conrelid '
+        'WHERE t.relname = %s AND c.conname = %s '
+        'AND t.relnamespace = current_schema::regnamespace', [table, conname])
+    row = cr.fetchone()
+    return row[0] if row else None
+
+
+def _normalized_constraint(alias, table, definition):
+    """La forma normalizada de ``definition``, sin dejar rastro, o ``None``.
+
+    PostgreSQL normaliza la definición (``CHECK(color >= 0)`` vuelve como
+    ``CHECK ((color >= 0))``), así que el texto declarado no se compara con la
+    restricción que dejó la migración. Se crea con ``NOT VALID`` —no recorre
+    la tabla— y con un nombre temporal dentro de un punto de guardado que se
+    deshace. ``NOT VALID`` sólo lo admiten ``CHECK`` y ``FOREIGN KEY``: para
+    otro tipo la sonda falla y se devuelve ``None`` (no equivale).
+    """
+    probe = 'orm_constraint_probe'
+    try:
+        with transaction.atomic(using=alias):
+            with connections[alias].cursor() as cr:
+                cr.execute('ALTER TABLE {} ADD CONSTRAINT {} {} NOT VALID'
+                           .format(SQL.identifier(table).code,
+                                   SQL.identifier(probe).code, definition))
+                value = _pg_constraint_definition(cr, table, probe)
+            raise _Probe(value)
+    except _Probe as result:
+        normalized = result.args[0]
+        return normalized.removesuffix(' NOT VALID') if normalized else None
+    except DatabaseError:
+        return None
 
 
 def _table_of(model) -> str:
@@ -291,19 +355,49 @@ class Constraint(TableObject):
     def get_definition(self, registry):
         return self._definition
 
-    def apply_to_database(self, model):
-        """Materializa la restricción por el editor de esquema de Django.
+    def apply_to_database(self, model, using=None):
+        """≙ ``Constraint.apply_to_database`` (``odoo19c: odoo/orm/
+        table_objects.py:109-122``), sobre la base ``using``.
 
-        **Divergencia de mecanismo declarada.** La fuente compone el DDL con
-        ``sql.constraint_definition``/``sql.add_constraint`` y lo aplaza con
-        ``pool.post_constraint``. Aquí el editor de esquema de Django hace las
-        dos cosas: sabe si la restricción ya existe y emite el ``ALTER TABLE``.
+        Igual que la fuente: si la definición registrada coincide con la
+        declarada no hace nada, y si falta la añade con ``sql.add_constraint``
+        por ``post_constraint``. Distinto, por la autoridad de la migración
+        (ver el docstring del módulo): una restricción sin comentario —la que
+        crea la migración— se compara por su forma normalizada y, si equivale,
+        sólo recibe el comentario; una de definición distinta se informa y no
+        se recrea.
         """
-        with connection.schema_editor() as editor:
-            editor.add_constraint(type(model), self.to_django(model))
+        alias = (using or orm.environments.get_current_cr()
+                 or DEFAULT_DB_ALIAS)
+        table = _table_of(model)
+        conname = self.full_name(model)
+        definition = self.get_definition(None)
+        with connections[alias].cursor() as cr:
+            current_definition = constraint_definition(cr, table, conname)
+            if current_definition == definition:
+                return
+            if current_definition is None:
+                orm.registry.Registry(alias).post_constraint(
+                    cr, lambda cr: add_constraint(cr, table, conname,
+                                                  definition), conname)
+                return
+            existing = _pg_constraint_definition(cr, table, conname)
+            if (existing == current_definition
+                    and _normalized_constraint(alias, table, definition)
+                    == existing):
+                # creada por la migración: equivale, le falta el comentario
+                cr.execute('COMMENT ON CONSTRAINT {} ON {} IS %s'.format(
+                    SQL.identifier(conname).code, SQL.identifier(table).code),
+                    [definition])
+                return
+            _logger.warning(
+                "Constraint %s on %s is %r in the database and %r in the "
+                "model; its migration governs, it is not recreated",
+                conname, table, existing, definition)
 
     def to_django(self, model):
-        """El constructo nativo: una ``RawConstraint`` con su nombre completo."""
+        """El constructo nativo: una ``RawConstraint`` con su nombre
+        completo."""
         return RawConstraint(
             self._definition,
             name=self.full_name(model),
@@ -364,8 +458,8 @@ class Index(TableObject):
         """Índice en SQL.
 
         Docstring de la fuente, verbatim: *"The name of the SQL object will be
-        ``{model._table}_{key}``. The definition is the SQL that will be used to
-        create the constraint"*.
+        ``{model._table}_{key}``. The definition is the SQL that will be used
+        to create the constraint"*.
 
         Ejemplos de definición que la fuente cita:
 
@@ -387,17 +481,40 @@ class Index(TableObject):
             return ''
         return f"{'UNIQUE ' if self.unique else ''}INDEX {definition}"
 
-    def apply_to_database(self, model):
-        """Materializa el índice por el editor de esquema de Django.
+    def apply_to_database(self, model, using=None):
+        """≙ ``Index.apply_to_database`` (``odoo19c: odoo/orm/
+        table_objects.py:154-185``), sobre la base ``using``.
 
-        **Divergencia de mecanismo declarada**, misma que en ``Constraint``.
-        Un índice con definición vacía no se crea — la fuente lo dice verbatim:
-        *"Don't create index with an empty definition"*.
+        Igual que la fuente: se conserva si su comentario coincide con la
+        definición **o** si existe sin comentario (*"this is used by support
+        to tweak indexes"*); con definición vacía no se crea; si falta, se
+        crea con ``sql.add_index`` por ``post_constraint``. Distinto, por la
+        autoridad de la migración: uno con comentario distinto se informa y no
+        se recrea.
         """
-        if not self.get_definition(None):
-            return
-        with connection.schema_editor() as editor:
-            editor.add_index(type(model), self.to_django(model))
+        alias = (using or orm.environments.get_current_cr()
+                 or DEFAULT_DB_ALIAS)
+        table = _table_of(model)
+        conname = self.full_name(model)
+        definition = self.get_definition(None)
+        with connections[alias].cursor() as cr:
+            db_definition, db_comment = index_definition(cr, conname)
+            if db_comment == definition or (not db_comment and db_definition):
+                return
+            if db_definition:
+                _logger.warning(
+                    "Index %s on %s is %r in the database and %r in the "
+                    "model; its migration governs, it is not recreated",
+                    conname, table, db_comment, definition)
+                return
+            clause = self._raw_definition()
+            if not clause:
+                # "Don't create index with an empty definition"
+                return
+            orm.registry.Registry(alias).post_constraint(
+                cr, lambda cr: add_index(
+                    cr, conname, table, clause, unique=self.unique,
+                    comment=definition), conname)
 
     def to_django(self, model):
         """El constructo nativo: un ``RawIndex`` con su nombre completo."""
@@ -426,8 +543,8 @@ class UniqueIndex(Index):
     def __init__(self, definition, message=''):
         """Índice único en SQL.
 
-        Docstring de la fuente, verbatim: *"You can also specify a message to be
-        used when constraint is violated"*.
+        Docstring de la fuente, verbatim: *"You can also specify a message to
+        be used when constraint is violated"*.
         """
         super().__init__(definition)
         if message:
