@@ -53,3 +53,13 @@ que `__set__` calla:
 
 Anulación prevista: retirar el anuncio posterior tumba 1; anunciar todos
 los campos (no sólo `silenced`) tumba 2; 3 y 4 no dependen del cambio.
+
+## RED, GREEN y anulación (2026-11-09)
+
+- RED sobre `1b6fde6c`: `1 failed, 3 passed` — cae el caso 1 (el padre
+  queda en `cost = 2`); 2, 3 y 4 ya pasaban, como controles.
+- GREEN: `4 passed`; con `test_write_multi.py`, `12 passed`.
+- Anulación, restaurada y verificada con `cmp`: (a) sin el
+  `self.modified(silenced)` posterior → cae exactamente el 1; (b)
+  anunciando todos los campos escritos en vez de sólo `silenced` → cae
+  exactamente el 2 (el campo ordinario llega dos veces a `_modified`).

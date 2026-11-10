@@ -2946,6 +2946,18 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # una vez (``BaseModel.write``); la comprobación de la
                 # asignación suelta (``StoredMany2oneIdDescriptor``) se
                 # suspende mientras dure este reparto.
+                # ``:4459`` y ``:4484`` — los campos de ``protected`` entran en
+                # la rama protegida de ``FieldDescriptor.__set__``, que escribe
+                # sin anunciar; se anuncian aquí, y sólo ellos: los demás ya se
+                # anuncian en ``__set__`` y la fuente no los cuenta dos veces.
+                fields_written = model_field_registry(type(self))
+                silenced = [fname for fname in values
+                            if fields_written.get(fname) in protected]
+                silenced_relations = [
+                    fname for fname in silenced
+                    if getattr(fields_written[fname], 'relational', False)]
+                if silenced_relations:
+                    self.modified(silenced_relations, before=True)
                 self.__dict__[WRITING_VALUES] = True
                 try:
                     for fname, value in values.items():
@@ -2975,6 +2987,8 @@ class RecordLoaderMixin(FieldSqlMixin):
                         and 'updated_at' not in update_fields):
                     update_fields.append('updated_at')
                 self.save(update_fields=update_fields)
+                if silenced:
+                    self.modified(silenced)
             if reparented:
                 _parent_store_update(self)
             if relational:
