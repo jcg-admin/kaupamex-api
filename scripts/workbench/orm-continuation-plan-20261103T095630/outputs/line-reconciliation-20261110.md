@@ -75,3 +75,59 @@ registrada.
 *Ciega a:* que la prueba registrada cubra todas las ramas del símbolo —por
 eso las dos filas de Properties llevan control de anulación y las demás no—,
 y a la integración y la aceptación, que el plan reserva al ejecutor (I-011).
+
+## Asentamiento retrospectivo (2026-11-10T22:35:18)
+
+Directiva del ejecutor del mismo día, §1: asentar sin inventar ejecuciones.
+
+**Mecanismo.** La vía canónica es `probes/settle_item.py`, la vía
+`preexisting` de `thyrox: src/session/task_continuation.py`. No reescribe
+historia: ejecuta **ahora** el `verify` del ítem sobre un árbol limpio y anota
+`attempt` y `accepted` con el commit real, `model: conversational-session` y
+`source: preexisting`. El ítem tiene que estar en `plan.jsonl`; los que
+faltaban entraron por `local_plan incorporate` (lee el store de Thyrox en
+`mode=ro`; escribe sólo `plan.jsonl` y `plan.provenance.json` de este
+Workbench), con las filas en `outputs/retro-settlement-rows-20261110.jsonl` y
+`candidates: ["conversational-session"]` para no atribuirlas a un modelo
+worker.
+
+| Ítem | TASK | Obligaciones | `verify` en `ec302e0a` |
+|---|---|---|---|
+| `orm-search-returns-query-0485` | TASK-API-0485 | `BaseModel._search` | 18 passed |
+| `orm-read-group-core-0485` | TASK-API-0485 | `BaseModel._read_group` | 7 passed |
+| `orm-read-group-postprocess-0485` | TASK-API-0485 | `_read_group_empty_value` | 16 passed |
+| `orm-read-group-fill-results-0485` | TASK-API-0485 | `_read_group_expand_full`, `_read_group_fill_results` | 8 passed |
+| `orm-read-group-format-result-0485` | TASK-API-0485 | `_read_group_format_result` | 9 passed |
+| `orm-read-group-public-0485` | TASK-API-0485 | `read_group` | 8 passed |
+| `orm-read-group-properties-0485` | TASK-API-0485 | `_read_group_groupby_properties`, `_read_group_format_result_properties` | 6 passed |
+| `orm-write-multi-0485` | TASK-API-0485 | `_write`, `_write_multi` | 8 passed |
+| `orm-raw-query-jsonb-0504` (ya estaba en el plan) | TASK-API-0504 | la del plan | 5 passed |
+
+Un primer lanzamiento coincidió con la recuperación de PostgreSQL tras el
+reclamo del contenedor (arranque 22:27:48Z); se detuvo antes de escribir
+ninguna fila —`continuation.jsonl` sin cambios, comprobado— y se relanzó con
+`pg_isready` en verde, para que un fallo del entorno no quedara como
+`attempt` fallido de la unidad.
+
+**Idempotencia.** `settle_item.py` no comprueba si el ítem ya está
+aceptado: relanzarlo añadiría otro `attempt`. La conciliación la hace
+idempotente filtrando antes por estado: sólo se asienta un ítem sin fila
+`accepted` en `continuation.jsonl`.
+
+**Asentamiento no es aceptación.** `plan_coverage.json` sigue declarando
+`acceptance: requires executor authority (I-011)`.
+
+## Lo que queda `settlement_pending`, y por qué
+
+| Línea | Motivo |
+|---|---|
+| 8 `_flush` | firma `homonym`: el inventario no la da por satisfecha; sin obligación verificable no se asienta |
+| 9 `modified`/`_modified`, 10 Many2one sin recómputo | firma `homonym`; además el diseño no está persistido como archivo propio |
+| 11 `_get_placeholder_filename` | firma `homonym` (TASK-API-0513) |
+| 12 `_table_objects`/`_add_sql_constraints` | `_add_sql_constraints` ausente: unidad s2 en curso |
+| 13 `_auto_init`/`_check_removed_columns` | s1 implementado sin llamador productivo; s3 y s4 en curso |
+| 14 almacenados nuevos | operación de migración (`ComputeStoredFields`), sin símbolo de referencia propio que asentar |
+| 15 TASK-GEN-0060 | `Field.translate` `installed_elsewhere`; evidencia por símbolo pendiente |
+| 16 `_RelationalMulti` | sin prueba registrada como evidencia del símbolo |
+| 17 `Environment.user`/`company`/`companies` | e8 |
+| 18 Unidad L | sus obligaciones viven en addons (fuera de las raíces del inventario); depende de e8 para las tres reglas omitidas |

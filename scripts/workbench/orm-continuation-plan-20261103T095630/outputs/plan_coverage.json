@@ -1,8 +1,8 @@
 {
  "verdict": "C",
  "acceptance": "requires executor authority (I-011)",
- "population": 96,
- "open_tasks": 67,
+ "population": 101,
+ "open_tasks": 71,
  "frontier": [],
  "blocked": [
   {
@@ -60,6 +60,9 @@
   "TASK-API-0490",
   "TASK-API-0492",
   "TASK-API-0493",
+  "TASK-API-0510",
+  "TASK-API-0511",
+  "TASK-API-0512",
   "TASK-DOCS-0111",
   "TASK-DOCS-0539",
   "TASK-GEN-0058",
@@ -84,13 +87,14 @@
   "TASK-API-0418",
   "TASK-API-0479",
   "TASK-API-0485",
-  "TASK-API-0486"
+  "TASK-API-0486",
+  "TASK-API-0504"
  ],
  "obligations": {
   "satisfied": 969,
-  "absent": 401,
+  "absent": 392,
   "divergent": 0,
-  "not_verified": 1142,
+  "not_verified": 1151,
   "applicable": 2512,
   "pending": 1543,
   "source": {
@@ -102,9 +106,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 83,
+  "task_units_settled": 94,
   "task_with_blocked_unit": 1,
-  "task_without_unit": 1459
+  "task_without_unit": 1448
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -270,7 +274,16 @@
   "orm-many2one-write-inverses-0485",
   "orm-apply-onchange-methods-0485",
   "orm-one2many-domain-new-records-0485",
-  "tools-sql-reference-shape-0486"
+  "tools-sql-reference-shape-0486",
+  "orm-raw-query-jsonb-0504",
+  "orm-search-returns-query-0485",
+  "orm-read-group-core-0485",
+  "orm-read-group-postprocess-0485",
+  "orm-read-group-fill-results-0485",
+  "orm-read-group-format-result-0485",
+  "orm-read-group-public-0485",
+  "orm-read-group-properties-0485",
+  "orm-write-multi-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
