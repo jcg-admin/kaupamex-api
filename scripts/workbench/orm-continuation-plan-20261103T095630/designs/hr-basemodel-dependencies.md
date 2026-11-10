@@ -134,6 +134,37 @@ superusuario; la aceptación queda pendiente** de esa capa (H-API-1216).
 que un usuario ordinario alcance; el cambio de conducta queda en la API de
 recordset.
 
+## Unidad S — capa de seguridad de HR (diseño, H-API-1216)
+
+Contrato de la referencia (odoo-tools `abe4040ec1`):
+
+- `hr/security/hr_security.xml`: el privilegio `res_groups_privilege_employees`
+  (`:4`), los grupos `group_hr_user` (`:10`) y `group_hr_manager` (`:18`), y
+  las reglas de registro desde `:28` (multiempresa de empleado,
+  departamento, puesto, tipos…).
+- `hr/security/ir.model.access.csv`: 26 filas.
+- 17 addons `hr*` con su propio `security/ir.model.access.csv`; para el
+  grupo A, `hr_skills/security/ir.model.access.csv` (20 filas) y
+  `hr_skills_security.xml` (reglas de `hr.resume.line` e informes).
+
+Mecanismo del árbol (REUSE, sin uno nuevo): el de `base` y `sale`. Por addon,
+un módulo `security/` con dos entradas sobre un solo cuerpo —`seed()` sobre los
+modelos vivos, registrada en `tests/conftest.py`, y `seed_<addon>_*(apps,
+alias)` sobre los históricos para la migración de datos— y la lista de filas
+**derivada** del CSV con la regla de `derive_base_acl.py` (una fila entra si
+su `model_id:id` es el de un modelo cargado; permisos verbatim). Precedentes:
+`src/addons/base/security/ir_model_access.py`,
+`src/addons/base/data/res_groups_data.py`, `addons/sale/security/ir_rules.py`.
+
+Orden: (1) grupos y privilegio de `hr`; (2) ACL de `hr` y de `hr_skills`
+derivadas; (3) reglas de `hr_skills_security.xml` sobre `hr.resume.line`;
+(4) el resto de addons `hr*` por el mismo camino.
+
+Pruebas: usuario de `base.group_user` lee `hr.skill.type` y no escribe;
+usuario de `hr.group_hr_user` hace CRUD; un usuario sin grupo queda
+denegado; la fila global sin permisos no concede nada. Control: retirar la
+fila de `base.group_user` hace caer exactamente la prueba de lectura.
+
 ## Pendiente
 
 - Corregir la cita en el hallazgo de docs (`#365` → `TASK-API-0397`): es
