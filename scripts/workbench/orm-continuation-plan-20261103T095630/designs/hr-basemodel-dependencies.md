@@ -98,6 +98,42 @@ Gate completo en el worktree cualificado (`exp-hr-a`, base `8f69391c`,
 6 xfailed, 0 failed, 5 errors** en 547 s; los 5 errores son los de
 `test_multidb_isolation.py` que exigen la base desechable de `ci-multidb`.
 
+## Seguridad del grupo A (verificación posterior al commit)
+
+La referencia declara para los cinco modelos diez filas de ACL
+(`odoo19c: addons/hr_skills/security/ir.model.access.csv`): CRUD completo
+para `hr.group_hr_user` y, para `base.group_user`, lectura (más alta en
+`hr.skill`, y CRUD en `hr.resume.line`). Las reglas de
+`hr_skills_security.xml` tocan `hr.resume.line` (tres) y los informes;
+ninguna toca `hr.skill`, `hr.skill.level` ni `hr.skill.type`.
+
+Medido en la base QA (`orm_x2hokp_qa`): `ir.model.access` tiene **89** filas
+y **ninguna** de un modelo `hr.*`; `ir.model.data` no tiene `hr.group_hr_user`
+ni `hr.group_hr_manager` (sí `base.group_user`). Sólo `base` siembra su ACL
+(`src/addons/base/security/ir_model_access.py`, cuyo docstring fija que cada
+addon siembra la suya); los addons de HR nunca lo hicieron.
+
+Consecuencia, separada por clase de prueba:
+
+| Quién | Antes del grupo A | Después |
+|---|---|---|
+| superusuario (`env.su`) | sin control (modelo de Django) | sin control: `check_access` se salta con `su`, como la fuente |
+| usuario ordinario por la API de recordset | sin control (modelo de Django) | **denegado** en los cinco: no hay fila que conceda |
+| usuario ordinario sobre `hr.employee.skill`/`hr.job.skill`/`hr.applicant.skill` | ya denegado antes de este cambio (ya eran `BaseModel`) | igual |
+
+El grupo A no introduce una elevación: el fixture de traducciones escribe
+sus datos como superusuario, que es el entorno de la referencia para datos
+de prueba (`TransactionCase.env`, `odoo/tests/common.py:1192`), y la
+aserción que mide (el orden por idioma) se lee fuera de esa elevación. Lo que
+sí destapa es que la capa de seguridad de HR (grupos de
+`hr/security/hr_security.xml`, ACL de cada addon `hr*`, sus reglas) no está
+portada. Por eso el grupo A queda **implementado y verificado para el
+superusuario; la aceptación queda pendiente** de esa capa (H-API-1216).
+
+`addons/hr_skills` no expone vistas ni rutas: hoy no hay consumidor HTTP
+que un usuario ordinario alcance; el cambio de conducta queda en la API de
+recordset.
+
 ## Pendiente
 
 - Corregir la cita en el hallazgo de docs (`#365` → `TASK-API-0397`): es
