@@ -8,8 +8,10 @@ revisión «los tres símbolos se portan con su contrato» (s1-s4).
 """
 import pytest
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from orm.environments import Environment
+from orm.registry import Registry
 from orm.table_objects import Index
 from orm.utils import SUPERUSER_ID
 
@@ -78,7 +80,11 @@ def _execute(statement):
 
 def test_a_migrated_equivalent_constraint_is_not_recreated(env):
     """Creada por la migración, sin comentario: equivalente por su forma
-    normalizada. No se recrea; sólo recibe el comentario de la fuente."""
+    normalizada. No se recrea; sólo recibe el comentario de la fuente.
+
+    El estado se fija aquí: la instalación de la sesión ya concilia la base
+    de pruebas, así que la restricción llega con su comentario."""
+    _execute(f'COMMENT ON CONSTRAINT {CONSTRAINT} ON {TABLE} IS NULL')
     oid, definition, comment = _constraint()
     assert comment is None
     env['test_orm.category']._add_sql_constraints()
@@ -163,3 +169,51 @@ def test_an_index_without_comment_is_kept(name_index, caplog):
     obj.apply_to_database(model)
     assert _index() == (oid, None)
     assert 'name_probe_idx' not in caplog.text
+
+
+# --- s3: _auto_init -------------------------------------------------------
+
+def test_on_a_synchronised_schema_it_emits_no_schema_ddl(env):
+    """Con el esquema que dejó la migración, la conciliación no cambia la
+    forma de nada: ningún ``CREATE``/``ALTER``/``DROP``."""
+    model = type(env['test_orm.category'])
+    model._add_sql_constraints()   # adopta el comentario de la migración
+    with CaptureQueriesContext(connection) as queries:
+        model._auto_init()
+    ddl = [q['sql'] for q in queries.captured_queries
+           if q['sql'].lstrip().upper().startswith(('CREATE', 'ALTER',
+                                                    'DROP'))]
+    assert ddl == []
+
+
+def test_it_relaxes_an_orphan_column(env):
+    _orphan_column()
+    type(env['test_orm.category'])._auto_init()
+    assert _nullable('orphan_flag') == 'YES'
+
+
+def test_a_missing_declared_column_names_its_migration(env):
+    """La columna declarada nace de una migración; si falta, se nombra en
+    vez de crearla fuera del estado de migraciones."""
+    _execute(f'ALTER TABLE {TABLE} DROP COLUMN color')
+    with pytest.raises(ValueError, match='color'):
+        type(env['test_orm.category'])._auto_init()
+
+
+def test_a_missing_table_names_its_migration(env):
+    _execute(f'ALTER TABLE {TABLE} RENAME TO {TABLE}_moved')
+    with pytest.raises(ValueError, match=f'Table {TABLE} '):
+        type(env['test_orm.category'])._auto_init()
+
+
+# --- s4: el ciclo de instalación llama a _auto_init -----------------------
+
+def test_init_models_runs_the_reconciliation(env):
+    """≙ ``Registry.init_models`` (``odoo19c: odoo/orm/registry.py:750-752``):
+    cada modelo pasa por ``_auto_init`` antes del reflejo."""
+    _orphan_column()
+    registry = Registry(connection.alias)
+    with connection.cursor() as cr:
+        registry.init_models(cr, ['test_orm.category'],
+                             {'module': 'test_orm'}, install=False)
+    assert _nullable('orphan_flag') == 'YES'

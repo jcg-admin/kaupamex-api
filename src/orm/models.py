@@ -135,7 +135,7 @@ from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
                         DEFAULT_SERVER_DATE_FORMAT,
                         DEFAULT_SERVER_DATETIME_FORMAT)
 from tools.query import Query
-from tools.sql import SQL, drop_not_null
+from tools.sql import SQL, drop_not_null, table_columns, table_exists
 from tools.i18n import format_list
 from loglevels import exception_to_unicode
 
@@ -4149,6 +4149,54 @@ class RecordLoaderMixin(FieldSqlMixin):
                         or cls._meta.label)
                 if attnotnull:
                     drop_not_null(cr, table, attname)
+
+    @classmethod
+    def _auto_init(cls, using=None):
+        """≙ ``BaseModel._auto_init`` (``odoo19c: odoo/orm/models.py:
+        3170-3248``), como conciliación tras ``migrate``.
+
+        La fuente crea la tabla, pone al día cada columna, marca los
+        calculados nuevos, aplica ``_add_sql_constraints`` y calcula
+        ``parent_path``. Aquí la migración es la autoridad del esquema
+        (``designs/schema-and-translation-symbols-decision.md``, «Autoridad
+        del esquema»), así que el reparto es:
+
+        - tabla o columna declarada ausente: se **nombra** con ``ValueError``
+          —falta su migración— en vez de crearla fuera de su estado;
+        - columna que el modelo ya no declara: ``_check_removed_columns``,
+          como la fuente (está fuera del estado de migraciones);
+        - objetos de tabla: ``_add_sql_constraints``, con su contrato;
+        - calculados nuevos y ``parent_path``: los calcula la migración que
+          añade la columna (``ComputeStoredFields``, TASK-API-0516).
+
+        ``_auto`` es ``Meta.managed``; un modelo abstracto o proxy no tiene
+        tabla propia.
+        """
+        name = getattr(cls, '_name', None) or cls._meta.label_lower
+        raise_on_invalid_object_name(name)
+        meta = cls._meta
+        if meta.abstract or meta.proxy or not meta.managed:
+            return
+        alias = using or get_current_cr() or DEFAULT_DB_ALIAS
+        table = meta.db_table
+        with connections[alias].cursor() as cr:
+            if not table_exists(cr, table):
+                raise ValueError(
+                    f"Table {table} of model {name} does not exist in "
+                    f"database {alias}: its migration is missing")
+            cls._check_removed_columns(using=alias)
+            columns = table_columns(cr, table)
+        missing = [
+            field.column for field in model_field_registry(cls).values()
+            if getattr(field, 'concrete', False)
+            and getattr(field, 'column', None)
+            and field.column not in columns
+        ]
+        if missing:
+            raise ValueError(
+                f"Columns {', '.join(missing)} of table {table} ({name}) do "
+                f"not exist in database {alias}: their migration is missing")
+        cls._add_sql_constraints(using=alias)
 
     @classmethod
     def _add_sql_constraints(cls, using=None):

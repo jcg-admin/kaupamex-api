@@ -2334,12 +2334,15 @@ class Registry(Mapping):
         ``context`` admite ``module`` —el modulo que se instala o actualiza— y
         ``update_custom_fields``.
 
-        **``_auto_init`` e ``init`` no tienen receptor aqui**, y es la misma
-        divergencia que declara :meth:`check_tables_exist`: el DDL lo emiten
-        las migraciones de Django. Lo que este metodo conserva es todo lo
-        demas, que si lo tiene: la cola diferida, el reflejo del registro, el
-        descarte del memo de tablas y las tres verificaciones de schema, en el
-        orden de la fuente.
+        ``_auto_init`` se llama sobre cada modelo antes del reflejo, como en
+        la fuente (``:750-752``), por el alias de este registro. Aqui es la
+        conciliacion tras ``migrate``: la migracion sigue siendo la autoridad
+        del esquema (``designs/schema-and-translation-symbols-decision.md``,
+        «Autoridad del esquema»). ``init`` —el gancho que la fuente llama
+        despues— aun no: dos modelos lo sobreescriben con efectos (siembra de
+        parametros, una vista SQL) y su cableado se mide aparte (s5). Lo demas
+        sigue en el orden de la fuente: la cola diferida, el reflejo, el
+        descarte del memo de tablas y las tres verificaciones de schema.
 
         Los tres atributos temporales —``_post_init_queue``, ``_foreign_keys``
         e ``_is_install``— se crean al entrar y se borran en el ``finally``,
@@ -2357,9 +2360,16 @@ class Registry(Mapping):
 
         try:
             self._post_init_queue = deque()
-            # (tabla1, columna1) -> (tabla2, columna2, ondelete, modelo, modulo)
+            # (tabla1, columna1) ->
+            #     (tabla2, columna2, ondelete, modelo, modulo)
             self._foreign_keys = {}
             self._is_install = install
+
+            using = self._alias()
+            for name in model_names:
+                model = self.models.get(name)
+                if model is not None and hasattr(model, '_auto_init'):
+                    model._auto_init(using=using)
 
             self._reflect_all(model_names, context)
 
