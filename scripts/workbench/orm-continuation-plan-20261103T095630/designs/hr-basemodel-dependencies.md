@@ -165,6 +165,37 @@ cuelga de `base.module_category_human_resources`, que es dato de **`base`**
 porta el archivo completo con su dueño, `base`, por el mismo camino que
 `res_groups_data.py` (siembra viva más migración de datos).
 
+**Paso 0 — evaluación (2026-11-10).**
+
+1. *¿Unidad atómica?* Sí: `base/__manifest__.py` lo lista en `data` y el
+   instalador lo carga entero con `convert_file` (`odoo/modules/loading.py`,
+   `load_data`). Sus 27 registros no dependen de otros archivos salvo de
+   ellos mismos (`parent_id` dentro del archivo).
+2. *Dependencias.* El modelo `ir.module.category` (portado, `src/addons/base/
+   models/ir_module.py`) con `name`, `sequence`, `parent_id`, `description`,
+   `visible`, `exclusive`. Ningún modelo adicional.
+3. *Cargador canónico.* `tools/convert.py` (`XmlImport`,
+   `convert_xml_import`, `convert_file`) y `modules/loading.load_data` están
+   portados; el ciclo de instalación que los llama no lo está
+   (`Registry.new` rechaza las solicitudes de instalación, TASK-API-0382).
+   Medido con una prueba temporal: `convert_xml_import('base', <XML de la
+   referencia>)` crea las 27 categorías con su XML-ID (`ir.model.data` pasa
+   de 1 a 28 filas de categoría) y `module_category_human_resources` queda
+   con nombre «Human Resources» y secuencia 45.
+4. *Representables sin dependencias nuevas.* Sí, las 27.
+5. *Qué comprobar.* Las 27 filas con su XML-ID, los `parent_id`, los campos
+   verbatim y que una segunda carga no duplique.
+6. *Idempotencia e identidad.* La da el propio `XmlImport` por
+   `(module, name)` de `ir.model.data` y `noupdate`; no se reimplementa.
+7. *Abierto.* El ciclo de instalación que consume `data` del manifiesto
+   (TASK-API-0382); hasta entonces el archivo se carga desde una migración de
+   datos con `convert_xml_import` y desde el catálogo de siembra de
+   `tests/conftest.py`, como el resto de datos de `base`.
+
+Decisión: TRAE. El archivo de la referencia (LGPL-3, atribución en su
+cabecera) se vendoriza en `src/addons/base/data/ir_module_category_data.xml`
+y se carga con `convert_xml_import`; no se reescribe como lista de Python.
+
 Orden: (0) las 27 categorías de `base`; (1) grupos y privilegio de `hr`; (2) ACL de `hr` y de `hr_skills`
 derivadas; (3) reglas de `hr_skills_security.xml` sobre `hr.resume.line`;
 (4) el resto de addons `hr*` por el mismo camino.
