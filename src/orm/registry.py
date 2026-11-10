@@ -2403,21 +2403,28 @@ class Registry(Mapping):
             _logger.info("Skipping reflection: ir.model is not in the registry yet")
             return
 
+        # La base de este registro, no la por defecto: la fuente refleja con
+        # el cursor de su propia base (``init_models(cr, …)``), y una base de
+        # empresa necesita sus propios ``model_<x>`` (L4f).
+        using = self._alias()
         app_labels = {model._meta.app_label for model in model_classes}
-        ir_model._reflect_models(app_labels, module=context.get('module'))
+        ir_model._reflect_models(app_labels, module=context.get('module'),
+                                 using=using)
 
         wanted = {model._meta.label for model in model_classes}
-        for row in ir_model.objects.filter(model__in=[m._name for m in model_classes]):
-            if row.django_model is not None and row.django_model._meta.label in wanted:
+        for row in ir_model.objects.using(using).filter(
+                model__in=[m._name for m in model_classes]):
+            if (row.django_model is not None
+                    and row.django_model._meta.label in wanted):
                 ir_model._reflect_fields(row)
                 ir_model._reflect_inherits(row)
 
         selection = self.models.get('ir.model.fields.selection')
         if selection is not None:
-            selection._reflect_selections(model_classes)
+            selection._reflect_selections(model_classes, using=using)
         constraint = self.models.get('ir.model.constraint')
         if constraint is not None:
-            constraint._reflect_constraints(model_classes)
+            constraint._reflect_constraints(model_classes, using=using)
 
     # -- El eje de senalizacion entre procesos --------------------------------
     #

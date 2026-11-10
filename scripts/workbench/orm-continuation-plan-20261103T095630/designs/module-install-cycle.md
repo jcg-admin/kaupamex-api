@@ -587,3 +587,27 @@ Secuencia derivada:
 
 Condición de cierre: las tres reglas de e8d cargan y filtran por el país de
 las empresas activas, y el gate completo y ci-multidb siguen verdes.
+
+#### L4f — la reflexión no respeta el alias de la base (medido, 2026-11-10T21:43:40)
+
+ci-multidb sobre `8ab54be4` (`--create-db`, base nueva): 1 passed, 4
+errors; los cuatro, en el setup de las bases de empresa, con
+`ValueError: Identificador externo no encontrado: hr.model_hr_employee`
+al cargar `hr_security.xml:47`. Evidencia:
+`$S/gate-8ab54be4/kaupamex-api/test-results/multidb/pytest_isolation.log`.
+
+Causa medida en el código: `load_modules(using)` llama a
+`registry.init_models` antes de `load_data`, como la fuente
+(`odoo/modules/loading.py:186-260`), pero `Registry._reflect_all`
+(`orm/registry.py:2380-2420`) no propaga la base. `_reflect_models`,
+`_update_model_xmlids`, `_reflect_fields` y `_reflect_inherits`
+consultan y escriben en el gestor por defecto, y `_reflect_selections` y
+`_reflect_constraints` aceptan `using` pero no lo reciben. En la fuente la
+reflexión usa el cursor de la propia base (`init_models(cr, …)`), así que no
+hay base equivocada posible.
+
+El defecto es anterior a L4c: hasta ahora ningún dato de manifiesto citaba un
+`model_<x>` en una base de empresa. Corrección: `_reflect_all` pasa
+`self._alias()` y las cuatro funciones lo usan en cada consulta y
+escritura. Control: el mismo ci-multidb, más una prueba que refleja sobre un
+alias distinto de `default`.

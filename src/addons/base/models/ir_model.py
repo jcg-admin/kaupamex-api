@@ -793,7 +793,8 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         }
 
     @classmethod
-    def _reflect_models(cls, app_labels=None, module=None):
+    def _reflect_models(cls, app_labels=None, module=None,
+                        using=DEFAULT_DB_ALIAS):
         """Refleja el registro de Django en filas — inverso de
         ``_reflect_model``.
 
@@ -836,8 +837,8 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         if not expected:
             return 0, 0
         columns = list(next(iter(expected.values())))
-        stored = {row.model: row
-                  for row in cls.objects.filter(model__in=expected)}
+        stored = {row.model: row for row in
+                  cls.objects.using(using).filter(model__in=expected)}
         pending = [
             (label, params) for label, params in expected.items()
             if label not in stored
@@ -845,17 +846,17 @@ class IrModel(models.OriginMixin, TimeStampedModel):
                    for column in columns)
         ]
         if pending:
-            cls.objects.bulk_create(
+            cls.objects.using(using).bulk_create(
                 [cls(model=label, **params) for label, params in pending],
                 update_conflicts=True, unique_fields=['model'],
                 update_fields=[*columns, 'updated_at'])
             registry.clear_cache('stable')
-        cls._update_model_xmlids(module, classes)
+        cls._update_model_xmlids(module, classes, using=using)
         created = sum(label not in stored for label, _ in pending)
         return created, len(pending) - created
 
     @classmethod
-    def _update_model_xmlids(cls, module, classes):
+    def _update_model_xmlids(cls, module, classes, using=DEFAULT_DB_ALIAS):
         """El XML-ID de cada modelo del módulo — ≙ el tramo «update their
         XML id» de ``_reflect_models`` (``odoo19c: :462-475``).
 
@@ -875,12 +876,12 @@ class IrModel(models.OriginMixin, TimeStampedModel):
                  and '_name' in vars(model)}
         if not owned:
             return
-        rows = cls.objects.filter(model__in=owned)
+        rows = cls.objects.using(using).filter(model__in=owned)
         IrModelData._update_xmlids([
             {'xml_id': '%s.model_%s' % (
                 module, owned[row.model]._name.replace('.', '_')),
              'record': row}
-            for row in rows])
+            for row in rows], using=using)
 
 
 class IrModelFields(models.OriginMixin, TimeStampedModel):
@@ -1715,11 +1716,12 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         la guarda lo prohibiría. Aquí ``bulk_create`` y ``update`` son los dos
         escritores de Django que no llaman al enganche.
         """
+        alias = model_row._state.db
         model = model_row.django_model
         if model is None:
             return 0, 0
         created = updated = 0
-        existing = dict(cls.objects.filter(model=model_row.model)
+        existing = dict(cls.objects.using(alias).filter(model=model_row.model)
                         .values_list('name', 'id'))
         nuevas = []
         for field in model._meta.get_fields():
@@ -1737,10 +1739,10 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
                 nuevas.append(cls(**values))
                 created += 1
             else:
-                cls.objects.filter(pk=row_id).update(**values)
+                cls.objects.using(alias).filter(pk=row_id).update(**values)
                 updated += 1
         if nuevas:
-            cls.objects.bulk_create(nuevas)
+            cls.objects.using(alias).bulk_create(nuevas)
         registry.clear_cache('stable')
         return created, updated
 
@@ -1808,10 +1810,11 @@ class IrModelInherit(models.Model):
         receptores sin ``sender`` de ``base_automation``, uno de los cuales
         consulta la fila previa—, trabajo que el reflejo de la fuente no paga.
         """
+        alias = model_row._state.db
         model = model_row.django_model
         if model is None:
             return 0
-        known = set(cls.objects.filter(model_id=model_row)
+        known = set(cls.objects.using(alias).filter(model_id=model_row)
                     .values_list('parent_id', flat=True))
         new_edges = []
         for base in model.__mro__[1:]:
@@ -1819,13 +1822,13 @@ class IrModelInherit(models.Model):
             if meta is None or base is models.Model:
                 continue
             label = f'{meta.app_label}.{meta.object_name}'
-            parent = IrModel.objects.filter(model=label).first()
+            parent = IrModel.objects.using(alias).filter(model=label).first()
             if parent is None or parent.pk in known:
                 continue
             known.add(parent.pk)
             new_edges.append(cls(model_id=model_row, parent_id=parent))
         if new_edges:
-            cls.objects.bulk_create(new_edges)
+            cls.objects.using(alias).bulk_create(new_edges)
         return len(new_edges)
 
 
