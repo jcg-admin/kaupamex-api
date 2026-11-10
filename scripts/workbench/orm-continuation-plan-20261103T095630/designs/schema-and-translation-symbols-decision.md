@@ -183,3 +183,64 @@ mismo comentario que `sql.add_constraint`/`sql.add_index`, para que
 migración y conciliación lleguen al mismo estado. Una base ya migrada sin el
 comentario se recrea **una vez** con la misma definición y desde ahí es
 estable; se declara aquí y se mide.
+
+## Autoridad del esquema — contrato (2026-11-10T22:36:12)
+
+Directiva del ejecutor del mismo día, §5: definir la autoridad antes de
+conectar `_auto_init` al ciclo.
+
+**Los dos flujos, sin presuponerlos iguales.**
+
+| Paso | Odoo 19 (`odoo/modules/loading.py`, `registry.py:751`) | Kaupamex |
+|---|---|---|
+| instalar un módulo | `load_module_graph`: `registry.load` → `init_models` → `load_data` | `kaupamex-bin`/`migrate` aplica las migraciones; `post_migrate` → `load_modules` → `init_models` → `load_data` (L3) |
+| crear tabla y columnas | `_auto_init` (`create_model_table`, `Field.update_db`) | las operaciones de la migración (`CreateModel`, `AddField`, `AlterField`) |
+| restricciones e índices | `_add_sql_constraints` → `apply_to_database` → `post_constraint` | `Meta.constraints`/`Meta.indexes` (puente de TASK-API-0514) → `AddConstraint`/`AddIndex` |
+| calculados almacenados nuevos | `_auto_init` marca y `env.add_to_compute` | `ComputeStoredFields` dentro de la migración (TASK-API-0516) |
+| estado declarado del esquema | ninguno aparte de la base | `django_migrations` + el estado que reconstruye `makemigrations` |
+
+**La autoridad es la migración.** Es lo único que Django reconstruye como
+estado (`makemigrations` lo compara con los modelos) y lo único que el
+guardián `test_migrations_in_sync.py` mantiene igual al código. Todo cambio
+de forma del esquema —tabla, columna, tipo, restricción, índice— nace como
+operación de migración.
+
+**Qué puede hacer la conciliación** (`_auto_init` y familia), y por qué no
+es una segunda autoridad: sólo actúa sobre lo que el estado de migraciones
+**no modela** o sobre una base que **se apartó** de ese estado, y en ambos casos
+lleva la base hacia el estado de migraciones, nunca a otro.
+
+| Situación | Fuente | Aquí | Por qué no compite con `migrate` |
+|---|---|---|---|
+| tabla de un modelo `_auto` ausente | la crea | **error nombrado**: falta su migración | crearla fuera de `migrate` dejaría a `django_migrations` sin la tabla que existe |
+| columna que el modelo ya no declara, con `NOT NULL` | `drop_not_null` (s1) | igual | ninguna migración la modela: `RemoveField` la habría borrado; es una columna fuera del estado |
+| columna declarada con forma distinta | `update_db` la altera | **se informa**, no se altera | alterarla divergiría del estado; el guardián exige la migración |
+| objeto de tabla ausente en la base | lo crea | lo crea con la definición declarada | el estado de migraciones dice que existe (lo creó `AddConstraint`): reponerlo devuelve la base a ese estado |
+| objeto presente y equivalente | nada | nada; si le falta el comentario con su definición, se le añade (metadato, sin DDL de forma) | no cambia la forma |
+| objeto presente con definición distinta | lo borra y lo recrea | **se informa**, no se recrea | la definición nueva llega por `AlterConstraint`/`RemoveConstraint`+`AddConstraint`; recrearlo aquí dejaría la base distinta de lo que el estado de migraciones registra |
+
+**Equivalencia: no se lee del comentario solo.** Se comparan, en este orden:
+1) el comentario con la definición declarada (la forma de la fuente, que
+`sql.add_constraint` deja); 2) si no hay comentario —objeto creado por
+migración—, la forma normalizada: para un `CHECK`, `pg_get_constraintdef`
+del objeto existente contra el de la definición declarada, obtenido creándola
+`NOT VALID` con un nombre temporal dentro de un punto de guardado que se
+deshace (sin recorrer la tabla ni bloquearla más que el `ALTER`); para
+`UNIQUE`/`EXCLUDE`/`FOREIGN KEY`, el tipo (`contype`) y las columnas
+(`conkey`) contra los de la definición, y si no se puede decidir, se informa.
+Un índice sigue la regla de la fuente (`:159`): se conserva si su comentario
+coincide **o** si existe sin comentario.
+
+**Medido antes de implementar:** en la base de pruebas, de los objetos
+declarados en `_table_objects` de todo el árbol llega **uno**
+(`test_orm_category_positive_color`, `CHECK`, sin comentario, con
+`pg_get_constraintdef` distinto del texto declarado sólo por normalización).
+Los demás `≙ models.Constraint(...)` de los addons están portados a mano como
+`Meta.constraints` y no entran en `_table_objects`: es porte de cada addon,
+fuera de la raíz, y queda anotado como frontera. El impacto de una recreación
+es, por tanto, nulo en esta revisión: la regla de arriba no recrea nada.
+
+**Pruebas exigidas** (`tests/unit/orm/test_schema_auto_init.py`): objeto
+ausente; existente y equivalente sin comentario (migración); existente con el
+comentario de la conciliación; definición distinta; reejecución sin cambios;
+alias de base distinto del por defecto (en la base desechable de ci-multidb).
