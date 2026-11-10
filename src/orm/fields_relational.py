@@ -100,14 +100,15 @@ import itertools
 
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
+from django.db import DEFAULT_DB_ALIAS, models
 from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import (Command, apply_many2many_commands,
                           apply_one2many_commands, command_triples,
                           comodel_records, is_command_list)
-from orm.environments import Query, env as get_environment, get_current_uid
+from orm.environments import (Query, env as get_environment, get_current_cr,
+                              get_current_uid)
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -120,7 +121,7 @@ from orm.identifiers import NewId
 from orm.model_classes import _logger, is_transient
 from orm.registry import (IR_MODELS, field_inverses, is_not_null,
                           model_by_key, model_by_name, name_of,
-                          sentinel_label)
+                          Registry, sentinel_label)
 from orm.utils import (COLLECTION_TYPES, display_name_of,
                        model_field_registry, model_of, record_ids)
 from tools.misc import SENTINEL, OrderedSet, unique, unquote
@@ -2132,6 +2133,74 @@ def _many2one_convert_to_column(self, value, record, values=None,
 
 
 models.ForeignKey.convert_to_column = _many2one_convert_to_column
+
+
+def _foreign_key_registry(model):
+    """El registro de la base cuyo ciclo de carga declara la FK.
+
+    La fuente lo lee de ``model.pool``; aquí el modelo es una clase de Django
+    sin entorno, así que sale del alias activo, el mismo que ``init_models``
+    usa para su registro.
+    """
+    return Registry(get_current_cr() or DEFAULT_DB_ALIAS)
+
+
+def _many2one_update_db_foreign_key(self, model, column):
+    """≙ ``Many2one.update_db_foreign_key`` (``odoo19c: odoo/orm/
+    fields_relational.py:306-320``).
+
+    No escribe en la base: declara la FK esperada en
+    ``Registry._foreign_keys`` con el ``ondelete`` del campo (``'set null'``
+    si no declara ninguno), y ``check_foreign_keys`` la comprobará al final de
+    ``init_models``. Sale sin declarar nada en los mismos casos que la fuente:
+    un campo dependiente de empresa, una tabla que no es ordinaria en
+    cualquiera de los dos lados, un comodelo no administrado (``_auto``) o
+    ``ir_actions``.
+    """
+    if getattr(self, 'company_dependent', False):
+        return
+    comodel = self.related_model
+    registry = _foreign_key_registry(model)
+    if (not registry.is_an_ordinary_table(model)
+            or not registry.is_an_ordinary_table(comodel)):
+        return
+    if not comodel._meta.managed or comodel._meta.db_table == 'ir_actions':
+        return
+    registry.add_foreign_key(
+        model._meta.db_table, column, comodel._meta.db_table, 'id',
+        getattr(self, 'ondelete', None) or 'set null', model,
+        model._meta.app_label)
+
+
+models.ForeignKey.update_db_foreign_key = _many2one_update_db_foreign_key
+
+
+def _many2many_update_db_foreign_keys(self, model):
+    """≙ ``Many2many.update_db_foreign_keys`` (``odoo19c: odoo/orm/
+    fields_relational.py:1356-1367``): «Add the foreign keys corresponding to
+    the field's relation table».
+
+    ``column1`` apunta a la tabla del modelo con ``cascade`` y sin pisar una
+    declaración previa (``force=False``); ``column2``, a la del comodelo con
+    el ``ondelete`` del campo. Cada lado sólo si su tabla es ordinaria.
+    """
+    comodel = self.related_model
+    registry = _foreign_key_registry(model)
+    relation = self.relation or self.m2m_db_table()
+    column1 = self.column1 or self.m2m_column_name()
+    column2 = self.column2 or self.m2m_reverse_name()
+    if registry.is_an_ordinary_table(model):
+        registry.add_foreign_key(
+            relation, column1, model._meta.db_table, 'id', 'cascade',
+            model, model._meta.app_label, force=False)
+    if registry.is_an_ordinary_table(comodel):
+        registry.add_foreign_key(
+            relation, column2, comodel._meta.db_table, 'id',
+            getattr(self, 'ondelete', None) or 'cascade', model,
+            model._meta.app_label)
+
+
+Many2manyField.update_db_foreign_keys = _many2many_update_db_foreign_keys
 
 _DJANGO_FOREIGN_KEY_GET_DB_PREP_SAVE = models.ForeignKey.get_db_prep_save
 

@@ -99,3 +99,24 @@ Los otros 5 ausentes de `src/orm/fields_relational.py` son `_Relational`
 y sus atributos (`check_company`, `context`, `domain`, `relational`): es
 la jerarquía de clases de campos, ligada a la frontera de `BaseString`/
 `Id`/`BaseDate`, y **no** entra en esta unidad.
+
+## Resultado del primer tramo (2026-11-10T23:53:52)
+
+Implementados los dos productores, **sin conectar**:
+
+- `models.ForeignKey.update_db_foreign_key` y
+  `Many2manyField.update_db_foreign_keys` (`src/orm/fields_relational.py`),
+  por la misma vía de instalación que el resto de métodos de la fuente sobre
+  `ForeignKey`. El registro se resuelve por el alias activo
+  (`get_current_cr()`), igual que `_auto_init`.
+- Pruebas `tests/unit/orm/test_foreign_key_producers.py`: 5 casos (puntos
+  1–3 del plan de pruebas). Rojo inicial por `AttributeError`; verde 5/5.
+- Anulación: sin la guarda de comodelo no administrado cae exactamente
+  `test_many2one_declares_nothing_towards_an_unmanaged_comodel`; sin
+  `force=False` cae exactamente
+  `test_many2many_column1_does_not_override_a_previous_declaration`.
+
+**Sin conectar a propósito:** llamar a los productores desde `_auto_init`
+con el `check_foreign_keys` actual reescribiría las 1089 FK de Django
+(opción B). La conexión, con los puntos 4 y 5 del plan, espera la decisión
+entre A y C.
