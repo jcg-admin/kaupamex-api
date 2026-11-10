@@ -57,3 +57,20 @@ cálculo es una **operación de migración**, no `_auto_init`:
 
 Anulación prevista: con la operación vaciada caen 1 y 3; el guardián cae al
 retirar una migración de rescate.
+
+## Primer tramo: la operación (2026-11-10)
+
+- RED: `ModuleNotFoundError: orm.migration_operations`.
+- GREEN inicial `3 passed` **y la anulación también `3 passed`**: el control
+  no discriminaba. Causa medida: la prueba leía la columna por el ORM, que
+  devuelve el valor de la caché de la transacción aunque la base tenga
+  `NULL` (sonda: SQL `(None, None)`, ORM `4`). Corregida a lectura por SQL,
+  la operación resultó **no escribir**: el cómputo coincidía con la caché,
+  nada quedaba sucio y el volcado no emitía nada. En una migración real la
+  columna es nueva y la caché está vacía; la operación ahora retira de la
+  caché esos campos antes de marcarlos (`_invalidate_cache`), que es el
+  estado que la fuente supone.
+- Tras la corrección: GREEN `3 passed`; con la operación vaciada caen
+  exactamente el 1 y el 2; el 3 (tabla vacía) sobrevive, como debe.
+- Pendiente en esta TASK: las 5 migraciones de rescate (`account`, `base`,
+  `crm`, `sale`, `test_orm`) y el guardián de `AddField`.
