@@ -93,10 +93,11 @@ from django.dispatch import receiver
 from django.apps import apps
 
 from orm.method_chain import chain_method, wrap_method
+from orm.table_objects import Constraint as TableConstraint
 from orm.registry import (FIELD_REGISTRY_HOOKS, MODELS_BY_NAME,
                           clear_field_depends, clear_marked_methods,
                           field_depends, resolve_model_key)
-from tools.misc import discardattr, merge_sequences
+from tools.misc import ReadonlyDict, discardattr, merge_sequences
 
 _logger = logging.getLogger(__name__)
 
@@ -115,14 +116,16 @@ __all__ = [
 
 
 def is_model_class(cls) -> bool:
-    """``True`` si ``cls`` es una clase de modelo (subclase de ``models.Model``).
-    Equivale a ``odoo.orm.model_classes.is_model_class`` — sobre ``ModelBase``."""
+    """``True`` si ``cls`` es una clase de modelo (subclase de
+    ``models.Model``). Equivale a ``odoo.orm.model_classes.is_model_class``
+    — sobre ``ModelBase``."""
     return isinstance(cls, ModelBase) and issubclass(cls, Model)
 
 
 def is_model_definition(cls) -> bool:
-    """``True`` si ``cls`` es una definición concreta (no abstracta). Equivale a
-    ``odoo.orm.model_classes.is_model_definition`` — sobre ``Model._meta``."""
+    """``True`` si ``cls`` es una definición concreta (no abstracta).
+    Equivale a ``odoo.orm.model_classes.is_model_definition`` — sobre
+    ``Model._meta``."""
     return is_model_class(cls) and not cls._meta.abstract
 
 
@@ -297,10 +300,11 @@ def adopt_access_manager(model_cls):
     :returns: ``True`` si se lo puso; ``False`` si ya lo tenía, es de terceros
         o es abstracto — para que el llamador pueda medir en vez de suponer.
 
-    .. note:: ``orm.models`` se resuelve con ``importlib``, no con un ``import``
-       al top, y es la **excepción #4** de ``no-lazy-imports.md`` aplicada a su
-       causa hermana. Aquel módulo importa ``orm.environments``, que toca el
-       registro de apps; importarlo desde aquí al cargar da
+    .. note:: ``orm.models`` se resuelve con ``importlib``, no con un
+       ``import`` al top, y es la **excepción #4** de
+       ``no-lazy-imports.md`` aplicada a su causa hermana. Aquel módulo
+       importa ``orm.environments``, que toca el registro de apps;
+       importarlo desde aquí al cargar da
        ``AppRegistryNotReady``, medido. La resolución sancionada es una
        **llamada**, no un statement ``import``: el gate AST da exit 0 y el
        arranque se preserva.
@@ -421,11 +425,12 @@ def adopt_display_name(model_cls):
 
     ≙ que ``display_name``, ``_compute_display_name``,
     ``_search_display_name``, ``name_create`` y ``name_search`` cuelguen de
-    ``BaseModel`` (``odoo19c: odoo/orm/models.py:473,1421-1543``): allá **todo**
-    modelo los tiene sin declarar nada.
+    ``BaseModel`` (``odoo19c: odoo/orm/models.py:473,1421-1543``): allá
+    **todo** modelo los tiene sin declarar nada.
 
-    Aquí los lleva :class:`orm.models.DisplayNameMixin`, que ``TimeStampedModel``
-    adopta — **284 de los 374 modelos concretos nuestros** lo heredan (medido).
+    Aquí los lleva :class:`orm.models.DisplayNameMixin`, que
+    ``TimeStampedModel`` adopta — **284 de los 374 modelos concretos
+    nuestros** lo heredan (medido).
     Esta función cubre a los **90** que no: los que declaran su propia base,
     como toda la familia ``account``.
 
@@ -698,15 +703,13 @@ def _check_inherits(model_cls):
     exista y sea una relación a uno, que delegue, que sea obligatorio y que su
     política de borrado sea de las dos admitidas.
 
-    ================== ============================== =========================
-    La fuente exige    Cómo se lee allá                Cómo se lee aquí
-    ================== ============================== =========================
-    relación a uno     ``field.type != 'many2one'``    ``isinstance(…, ForeignKey)``
-    delegación         ``field.delegate``              ídem — lo pone ``apply_inherits``
-    obligatorio        ``field.required``              ``not field.null``
-    borrado admitido   ``ondelete in (cascade,         ``remote_field.on_delete in
-                       restrict)``                     INHERITS_DELETE_POLICIES``
-    ================== ============================== =========================
+    - **relación a uno** — allá ``field.type != 'many2one'``; aquí
+      ``isinstance(…, ForeignKey)``.
+    - **delegación** — allá ``field.delegate``; aquí ídem, lo pone
+      ``apply_inherits``.
+    - **obligatorio** — allá ``field.required``; aquí ``not field.null``.
+    - **borrado admitido** — allá ``ondelete in (cascade, restrict)``; aquí
+      ``remote_field.on_delete in INHERITS_DELETE_POLICIES``.
 
     **La clave de ``_inherits`` nombra el campo de ESTE árbol.** La fuente
     escribe ``{'res.partner': 'partner_id'}``; aquí la FK no lleva el sufijo
@@ -732,8 +735,8 @@ def _check_inherits(model_cls):
                 and policy in INHERITS_DELETE_POLICIES):
             raise TypeError(
                 f"Field definition for _inherits reference {field_name!r} in "
-                f"{model_cls._name!r} must be marked as 'delegate', 'required' "
-                f"with ondelete='cascade' or 'restrict'"
+                f"{model_cls._name!r} must be marked as 'delegate', "
+                f"'required' with ondelete='cascade' or 'restrict'"
             )
 
 
@@ -837,7 +840,8 @@ def add_meta_index(model, index):
 
     Es lo que ``extend_model(campos=…)`` no alcanza: ``add_to_class`` instala
     la columna y no toca ``_meta.indexes``. La referencia sí lo alcanza, porque
-    allá el índice es un atributo del propio campo (``index='btree_not_null'``),
+    allá el índice es un atributo del propio campo
+    (``index='btree_not_null'``),
     y aquí es una entrada del ``Meta`` del model — que pertenece a otro addon.
 
     **Las DOS escrituras son necesarias, y la segunda no es opcional.**
@@ -848,11 +852,12 @@ def add_meta_index(model, index):
     ``indexes`` no lo tiene, así que el autodetector leería una lista vacía y
     **propondría borrar el índice en cada `makemigrations`** — un rojo perpetuo
     que además no cuesta nada evitar. Declararlo en ``original_attrs`` es
-    exactamente lo que habría hecho escribir ``indexes = [...]`` en el ``Meta``.
+    exactamente lo que habría hecho escribir ``indexes = [...]`` en el
+    ``Meta``.
 
-    Idempotente por nombre: ``ready()`` puede correr más de una vez en tests que
-    recargan el registro de apps, y un índice repetido saldría dos veces en la
-    migración propuesta.
+    Idempotente por nombre: ``ready()`` puede correr más de una vez en tests
+    que recargan el registro de apps, y un índice repetido saldría dos veces
+    en la migración propuesta.
 
     Devuelve ``True`` si lo añadió — para que el llamador pueda medir.
     """
@@ -1663,3 +1668,50 @@ def _inherited_field(model_cls, name, fk_name, field):
 
 
 FIELD_REGISTRY_HOOKS.append(_add_inherited_fields)
+
+
+def add_meta_constraint(model, constraint):
+    """Cuelga una restricción del ``Meta`` de un model — hermano de
+    :func:`add_meta_index`, con sus mismas dos escrituras y por la misma
+    razón: ``ModelState.from_model`` sólo lee ``_meta.constraints`` si
+    ``constraints`` figura en ``_meta.original_attrs``
+    (``django/db/migrations/state.py:849-851``).
+
+    Idempotente por nombre. Devuelve ``True`` si la añadió.
+    """
+    if any(c.name == constraint.name for c in model._meta.constraints):
+        return False
+    model._meta.constraints = list(model._meta.constraints) + [constraint]
+    model._meta.original_attrs['constraints'] = model._meta.constraints
+    return True
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.table_objects')
+def determine_table_objects(sender, **kwargs):
+    """Los objetos de tabla del model, por su nombre completo.
+
+    ≙ el paso 7 de ``_setup`` (``odoo19c: odoo/orm/model_classes.py:455-461``):
+    ``_table_objects`` reúne los ``Constraint``/``Index`` declarados en toda
+    la cadena de clases, por ``full_name``. Aquí además cada uno se lleva a
+    ``Meta.constraints``/``Meta.indexes`` con ``to_django()``: es la vía por
+    la que llegan a ``makemigrations``, al mensaje del error y al reflejo de
+    ``ir.model.constraint``, que leen ``Meta``. Es el contrato de
+    ``_add_sql_constraints`` con la autoridad de esquema de este árbol —las
+    migraciones— y por eso ``apply_to_database`` no se llama aquí: sería una
+    segunda autoridad (TASK-API-0514).
+    """
+    meta = sender._meta
+    if meta.abstract or meta.proxy:
+        return
+    declared = [obj for klass in reversed(sender.__mro__)
+                for obj in klass.__dict__.get('_table_object_definitions', ())]
+    if not declared:
+        return
+    table_objects = {}
+    for obj in declared:
+        table_objects[obj.full_name(sender)] = obj
+        if isinstance(obj, TableConstraint):
+            add_meta_constraint(sender, obj.to_django(sender))
+        else:
+            add_meta_index(sender, obj.to_django(sender))
+    sender._table_objects = ReadonlyDict(table_objects)
