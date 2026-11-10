@@ -200,6 +200,41 @@ instalarlo con `setattr` desde `_relational_multi_write_batch`. Medido:
 instalaciones por `setattr` sobre un dueño mapeado; queda registrado aquí y
 no se cuenta como progreso ni como retroceso.
 
+## Representación explícita de `_RelationalMulti` (diseño, 2026-11-10)
+
+**Por qué hoy se instala con `setattr`.** Los dueños efectivos del contrato
+son, en parte, clases de Django (`models.ManyToManyField`, `ManyToOneRel`,
+`ManyToManyRel`) cuyas jerarquías no son nuestras: no se puede insertar una
+base en su MRO sin reemplazar la clase de Django. Por eso cada método
+compartido es una función de módulo `_relational_multi_<método>` asignada a
+cada dueño. Funciona, pero el contrato no existe como **símbolo**: el
+inventario marca `_RelationalMulti` (clase) y `write_batch` como `absent`
+aunque la conducta esté verificada.
+
+**Decisión.** `class _RelationalMulti` se declara en `fields_relational.py`
+con los métodos compartidos bajo sus nombres de la fuente (`write`,
+`write_batch`, `create`, `convert_to_record_multi`, `_update_inverse`,
+`_update_cache`, `convert_to_cache`, `convert_to_display_name`,
+`write_sequence = 20`), cuerpos movidos de las funciones de módulo sin
+cambiarlos. `One2many` —nuestra— hereda de ella. A los dueños de Django se
+les instalan sus métodos con un único instalador que los lee del
+`__dict__` de la clase (sin una segunda lista de nombres); lo específico de
+tipo (`write_real`/`write_new` de `Many2many`) sigue en su dueño. No cambia la
+conducta: los mismos objetos función acaban en los mismos dueños.
+
+**Inventario.** `inventory_by_kind.py` gana una columna por fila que
+distingue símbolo de la referencia, símbolo **declarado** (AST), símbolo
+**instalado en tiempo de ejecución** (el atributo existe en la clase dueña
+tras `django.setup()`, y de qué función procede) y verificación por conducta
+(prueba que lo ejercita). Ningún símbolo pasa a `satisfied` sólo por estar
+instalado; `absent` deja de usarse para uno instalado y verificado.
+
+**Pruebas.** `ManyToManyField.write_batch is
+_RelationalMulti.__dict__['write_batch']` (y para cada método compartido y
+cada dueño de Django); `issubclass(One2many, _RelationalMulti)`; las suites
+existentes de escritura relacional sin cambios. Control: retirar un nombre de
+la clase hace caer la prueba de su instalación en cada dueño.
+
 ## Pendiente
 
 - `test_copy_batch` (`test_onchange.py:1013-1024`): necesita

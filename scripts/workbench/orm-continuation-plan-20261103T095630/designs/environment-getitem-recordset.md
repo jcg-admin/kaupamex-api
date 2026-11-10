@@ -199,6 +199,58 @@ miembros siguientes— y el docstring del módulo se reescribe en 79 columnas
 (su tabla describía todavía un puerto sin `Registry`). Las 93 pruebas de las
 cuatro suites afectadas siguen en verde tras el cambio.
 
+## G2 — medición exploratoria (2026-11-10)
+
+`Environment.__getitem__` devolviendo `model._from_ids(self, (), ())` para un
+modelo con recordset (los modelos de Django siguen devolviendo la clase),
+sobre `tests/unit/orm`, `tests/integration/test_orm`, `tests/unit/hr_skills`,
+`tests/unit/hr_recruitment_skills`, `tests/unit/base` y
+`tests/integration/base`: **8 failed, 5854 passed**. Clasificación, sitio por
+sitio:
+
+| Prueba | Causa | Forma de la fuente |
+|---|---|---|
+| `test_parent_store.py` (2), `test_compute_onchange.py::…queryset` | `env[name].objects`: el gestor de Django no se alcanza desde una instancia | `type(env[name]).objects` (el gestor es de la clase) |
+| `test_timestamped_transaction_now.py::…clock_again` | `env[name]()` instancia la clase | `type(env[name])()` |
+| `test_environment_mapping.py::test_get_returns_the_model_or_the_default` | `env.get(name) is clase` | la fuente devuelve un recordset: se compara `type(...)` |
+| `test_fields_registry_declared_one2many.py` | `vars(Discussion)` sobre un recordset lee el `__dict__` de la instancia | `vars(type(Discussion))` |
+| `test_domain.py::test_optimize_level_by_level` | `monkeypatch.setattr(env[name], …)` parchea la instancia | parchear `type(env[name])` |
+| `test_search.py::test_the_context_lifts_the_filter` | `context_scope(active_test=False)` es el contexto ambiente; el recordset obedece al contexto de **su** entorno | `env[name].with_context(active_test=False)` (≙ la prueba de la fuente) |
+
+Ninguno es un defecto del contrato: son pruebas que asumían la clase o el
+contexto ambiente. Comprobado aparte que `recordset._fields` y `clase._fields`
+contienen lo mismo (`set(cls._fields) - set(rec._fields)` vacío). G2 se
+implementa con esas ocho adaptaciones y se verifica con el gate completo,
+porque los addons no entraron en esta medición.
+
+## G2 — implementación
+
+`Environment.__getitem__` devuelve `model._from_ids(self, (), ())` para un
+modelo con recordset; un modelo de Django sin `BaseModel` sigue devolviendo
+su clase. Las ocho pruebas de la medición se llevan a la forma de la fuente
+(tabla de arriba).
+
+Pruebas nuevas, `tests/unit/orm/test_environment_getitem.py`: `env[name]`
+es un recordset vacío del modelo con ese entorno; sobre él encadenan
+`create`, `browse`, `search`, `new`, `with_context`, `sudo` y `with_user`
+sin salir del entorno; un modelo de Django sigue devolviendo su clase. (En la
+fuente `uid == SUPERUSER_ID` eleva `su`, `environments.py:66-67`: la prueba
+mide `sudo()` y no `sudo(False)`.)
+
+Control de anulación (`if False and hasattr(model, '_from_ids')`): caen
+exactamente 4 — las dos de recordset de la suite nueva,
+`test_get_returns_the_model_or_the_default` y
+`test_the_context_lifts_the_filter` —; sobrevive la del modelo de Django,
+que no depende de G2.
+
+Gate completo (árbol principal, base `3b610d63` más G2): **12 596 passed,
+66 skipped, 6 xfailed, 0 failed, 5 errors** en 775 s; los 5 errores son los
+de `test_multidb_isolation.py`.
+
+Queda **G3**: con `env[name]` como recordset, el descriptor
+`_on_empty_recordset` (11 métodos) y los `browse(())` defensivos del árbol
+son redundantes; se retiran en su propia unidad, con su control.
+
 ## Pendiente
 
 - Medir el flujo entre funciones (clases devueltas por funciones auxiliares
