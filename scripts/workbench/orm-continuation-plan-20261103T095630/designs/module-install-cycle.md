@@ -480,3 +480,23 @@ Segunda mitad, independiente de la primera: `res.users.employee_id` (hr)
 devuelve `None`; la fuente devuelve un recordset vacío. La ruta del dominio
 `user.employee_id.parent_id.id` necesita que la lectura sobre lo vacío dé
 `False`.
+
+#### L4e — replanteo por directiva del ejecutor (2026-11-10)
+
+Directiva: una divergencia que existía porque faltaba la raíz ORM no se
+conserva; se implementa como la referencia, clasificando cada pieza en TRAE
+(el stack instala el símbolo) o CONSTRUYE (las primitivas están). Población
+de la referencia: las cuatro raíces de `odoo18c`, `odoo18e`, `odoo19c` y
+`odoo19e`; medido, la segunda raíz de `odoo19c` es
+`19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons` (24 manifiestos), no la
+ruta sin el tercer `odoo-19.0`, que no existe.
+
+Consecuencia para la segunda mitad de L4e: `user.employee_id` es un
+recordset vacío en la fuente porque `hr.employee` es un modelo del ORM. Aquí
+la semántica de recordset existe sólo para las clases que derivan de
+`BaseModel` (`orm/models.py`, `_create_result`), y el resto recibe un
+`QuerySet`; su adopción es TASK-API-0397. La forma fiel no es una guarda en
+el contexto de evaluación sino adoptar `BaseModel` en `hr.employee`
+(CONSTRUYE sobre la raíz existente), medir sus consumidores y llevar
+`res.users.employee_id` a devolver el recordset. Primera mitad (el registro
+del superusuario) sin cambio: sigue abierta la ocupación del id 1.
