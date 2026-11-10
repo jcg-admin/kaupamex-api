@@ -1045,3 +1045,8 @@ src/orm/models.py	BaseModel._write	method	tests/unit/orm/test_write_multi.py
 src/orm/models.py	BaseModel._write_multi	method	tests/unit/orm/test_write_multi.py
 src/orm/models.py	BaseModel._get_placeholder_filename	method	tests/unit/orm/test_placeholder_filename.py
 src/orm/models.py	BaseModel._table_objects	attribute	tests/unit/orm/test_table_objects_reach_meta.py
+src/orm/models.py	BaseModel._check_removed_columns	method	tests/unit/orm/test_schema_auto_init.py
+src/orm/models.py	BaseModel._auto_init	method	tests/unit/orm/test_schema_auto_init.py
+src/orm/models.py	BaseModel._add_sql_constraints	method	tests/unit/orm/test_schema_auto_init.py
+src/orm/table_objects.py	Constraint.apply_to_database	method	tests/unit/orm/test_schema_auto_init.py
+src/orm/table_objects.py	Index.apply_to_database	method	tests/unit/orm/test_schema_auto_init.py
