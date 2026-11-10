@@ -611,3 +611,23 @@ El defecto es anterior a L4c: hasta ahora ningún dato de manifiesto citaba un
 `self._alias()` y las cuatro funciones lo usan en cada consulta y
 escritura. Control: el mismo ci-multidb, más una prueba que refleja sobre un
 alias distinto de `default`.
+
+#### L4f — resultado (2026-11-10T22:15:01)
+
+| Revisión | Propagación del alias | ci-multidb (`--create-db`) |
+|---|---|---|
+| `8ab54be4` | ausente (control RED) | 1 passed, 4 errors — `hr.model_hr_employee` no existe en las bases de empresa |
+| `b7abe492` | presente | **5 passed**, `EXIT=0`, 1662 s |
+
+Auditoría estática de `ir_model.py` sobre `b7abe492`: las once consultas de
+la reflexión (`_reflect_models`, `_update_model_xmlids`, `_reflect_fields`,
+`_reflect_inherits`, `_update_selection`, `_get_records`) van por el
+alias, y `_reflect_model` de constraints abre `connections[using]`; 0
+accesos por el gestor por defecto. La anulación es la propia revisión
+`8ab54be4`, que difiere de `b7abe492` sólo en esa propagación.
+
+*Métrica:* los cinco casos de `test_multidb_isolation.py` sobre una base
+creada por `migrate` y sus bases de empresa.
+*Ciega a:* una fila escrita por la reflexión en la base equivocada que no
+rompa ninguna carga posterior; el caso no compara el contenido de
+`ir_model_data` entre bases.
