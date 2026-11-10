@@ -53,3 +53,20 @@ def test_the_flush_catalogue_restores_it():
     ResUsers.objects.filter(pk=SUPERUSER_ID)._raw_delete(DEFAULT_DB_ALIAS)
     seed()
     assert IrModelData.ref('base.user_root').pk == SUPERUSER_ID
+
+
+def test_an_existing_superuser_row_is_left_as_it_is():
+    """Si la fila ``SUPERUSER_ID`` ya existe, la siembra no la reescribe ni
+    crea otra: sólo le da los dos XML-ID (este árbol ya la trata como
+    superusuario). No presupone que el id esté libre."""
+    root = ResUsers.objects.get(pk=SUPERUSER_ID)
+    ResUsers.objects.filter(pk=SUPERUSER_ID).update(
+        login='existing-superuser', active=True)
+    IrModelData.objects.filter(
+        module='base', name__in=('user_root', 'partner_root')).delete()
+    before = ResUsers.objects.count()
+    seed()
+    root.refresh_from_db()
+    assert (root.login, root.active) == ('existing-superuser', True)
+    assert ResUsers.objects.count() == before
+    assert IrModelData.ref('base.user_root') == root
