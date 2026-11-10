@@ -244,7 +244,7 @@ de `hr_employee.py`), y `user` es hoy una `property` de sólo lectura sobre
 `resource.user` (23 consumidores medidos con
 `grep -rn "employee\.user\b|resource__user|…" addons src`).
 
-Forma: el campo se declara como columna (`user`, attname `user_id`, FK a
+Forma: el campo se declara como columna (`user_id`, columna `user_id`, FK a
 `res.users`, `on_delete=PROTECT` ≙ `ondelete='restrict'`, índice parcial
 `IS NOT NULL` ≙ `btree_not_null`) con el mismo mecanismo de sincronía del
 mixin, en los dos sentidos que da `readonly=False` en la fuente: al guardar,
@@ -252,7 +252,16 @@ un valor asignado al empleado se escribe en su recurso y, si no se asignó, el
 empleado toma el del recurso. La migración añade la columna y la rellena desde
 `resource.user_id` en las filas existentes (`RunPython`, mismo papel que
 `ComputeStoredFields` para un calculado). La `property` desaparece y los
-consumidores leen el campo, que conserva el nombre.
+consumidores leen el campo.
+
+Corrección al implementar: la primera versión declaró `user` (attname
+`user_id`) y el gate de ADR-029 (`scripts/check_fk_naming.py`) la rechazó: una
+FK nueva lleva la forma C, el símbolo fiel `user_id` con `db_column='user_id'`
+(attname `user_id_id`), como `hr_employee_public.employee_id`. Los consumidores
+de la `property` pasan a `employee.user_id` (siete lecturas en `hr`, `hr_fleet`
+y `mail_activity_plan_template`); los filtros por `resource__user` se
+conservan porque `save()` iguala las dos columnas. `_user_uniq` sigue
+pendiente: es un objeto de tabla y va con la unidad de `_table_objects`.
 
 Pruebas: la columna existe y su valor sigue al recurso al crear; asignar el
 usuario en el empleado lo escribe en el recurso; la migración rellena una fila
