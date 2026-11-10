@@ -103,6 +103,7 @@ from orm.domains import Domain, to_q
 from orm.model_classes import LOG_ACCESS_COLUMNS, extend_model, parent_name_of
 from orm.fields_relational import (
     One2many as DeclaredOne2many,
+    write_new_one2many,
     _multi_comodel_domain as multi_comodel_domain,
     _m2m_relation as m2m_relation,
     _queryset_subselect as queryset_subselect,
@@ -5918,7 +5919,7 @@ def _x2many_descriptor_get(self, instance, cls=None):
             and not isinstance(self,
                                _related_descriptors.ManyToManyDescriptor)):
         # Un registro de ``new()`` no tiene filas que apunten a él: su One2many
-        # vive sólo en el caché de la transacción (``_write_new_one2many``).
+        # vive sólo en el caché de la transacción (``write_new_one2many``).
         ids = env().transaction.field_data[self.rel].get(instance.pk, ())
         return comodel._from_ids(env(), ids, ids)
     if not isinstance(self, _related_descriptors.ManyToManyDescriptor):
@@ -5961,7 +5962,7 @@ def _x2many_descriptor_set(self, instance, value):
             and issubclass(comodel, BaseModel)):
         return _DJANGO_X2MANY_SET(self, instance, value)
     if isinstance(instance.pk, NewId):
-        _write_new_one2many(self.rel, instance, value)
+        write_new_one2many(self.rel, instance, value)
         return None
     if not is_command_list(value):
         ids = getattr(value, '_ids', None)
@@ -5973,45 +5974,6 @@ def _x2many_descriptor_set(self, instance, value):
             value = [Command.set(list(ids))]
     apply_one2many_commands(instance, self.rel, value)
     return None
-
-
-def _write_new_one2many(rel, owner, value):
-    """El One2many de un registro de ``new()`` — ≙ ``One2many.write_new``
-    (``odoo19c: odoo/orm/fields_relational.py:1121``).
-
-    Nada se escribe en la base: el conjunto de líneas queda en el caché de la
-    transacción, indexado por el ``NewId`` del dueño, y cada ``CREATE`` es una
-    línea de ``new()`` cuyo inverso apunta al dueño, como en la fuente.
-    """
-    comodel = rel.related_model
-    inverse = rel.field.name
-    cache = env().transaction.field_data[rel]
-    ids = list(cache.get(owner.pk, ()))
-    if not is_command_list(value):
-        ids = getattr(value, '_ids', None)
-        if ids is None:
-            ids = [getattr(item, 'pk', item) for item in (value or ())]
-        cache[owner.pk] = tuple(ids)
-        return
-    for command in value:
-        operation = command[0]
-        if operation == Command.CREATE:
-            line = comodel.new(dict(command[2] or {}), ref=command[1] or None)
-            line._update_cache({inverse: owner}, validate=False)
-            ids.append(line.id)
-        elif operation == Command.UPDATE:
-            comodel.browse(command[1])._update_cache(command[2],
-                                                     validate=False)
-        elif operation in (Command.DELETE, Command.UNLINK):
-            ids = [id_ for id_ in ids if id_ != command[1]]
-        elif operation == Command.LINK:
-            if command[1] not in ids:
-                ids.append(command[1])
-        elif operation == Command.CLEAR:
-            ids = []
-        elif operation == Command.SET:
-            ids = list(command[2])
-    cache[owner.pk] = tuple(ids)
 
 
 _related_descriptors.ReverseManyToOneDescriptor.__set__ = (

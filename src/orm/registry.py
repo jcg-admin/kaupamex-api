@@ -811,13 +811,14 @@ class _DerivedCollector:
     def _build(self):
         table = {}
         for model in apps.get_models():
-            for field in model._meta.get_fields():
+            for field in _collector_fields(model):
                 declared = self._declared_by_the_field(field, model)
                 if declared is None:
                     declared = getattr(field, self.marker, None)
                     if declared is None:
                         compute = getattr(field, 'compute', None)
-                        method = getattr(model, compute, None) if compute else None
+                        method = (getattr(model, compute, None)
+                                  if compute else None)
                         declared = getattr(method, self.marker, None)
                 if declared:
                     table[field] = self._resolve(declared, model)
@@ -1150,7 +1151,7 @@ class _ComputedGrouper:
         for model in apps.get_models() if models is None else models:
             model_name = getattr(model, '_name', None) or model.__name__
             groups = defaultdict(list)
-            for field in model._meta.get_fields():
+            for field in _collector_fields(model):
                 compute = getattr(field, 'compute', None)
                 if compute:
                     table[field] = group = groups[compute]
@@ -1333,7 +1334,7 @@ class _TriggerRegistry:
             # Un modelo abstracto de Django no está en ``get_models()``, así
             # que el ``if Model._abstract: continue`` de la fuente no tiene
             # nada que saltarse aquí.
-            for field in model._meta.get_fields():
+            for field in _collector_fields(model):
                 resolve = getattr(field, 'resolve_depends', None)
                 if resolve is None:
                     continue
@@ -3069,3 +3070,36 @@ def _call_hooks(registry, name):
         if (isinstance(model, type) and hasattr(model, name)
                 and hasattr(model, 'browse')):
             getattr(model.browse(), name)()
+
+
+def _collector_fields(model):
+    """Los campos propios de ``model`` — ≙ ``model._fields`` de la fuente,
+    que registra todo campo en su representación ORM, tenga o no columna.
+
+    Lo recorren tres colectores derivados de este módulo
+    (``field_depends``, ``field_computed`` y los disparadores); el cuarto
+    recorrido, ``_build_inverses``, ya anota los ``One2many`` declarados con
+    ``setup_inverses``. Se arma con las dos fuentes que el árbol ya tiene, sin
+    una tercera:
+
+    - ``model._meta.get_fields()``: el contrato de Django, con las columnas,
+      los ``ManyToManyField`` y las relaciones inversas;
+    - :func:`~orm.utils.model_field_registry` (el cuerpo de ``_fields``):
+      añade lo que ``_meta`` no ve, los campos declarados sin columna. Medido
+      sobre todos los modelos: ``_meta`` está contenido entero en el registro,
+      y lo propio que el registro añade son ``fields.One2many`` declarados.
+
+    Del registro se toma sólo lo que el modelo **posee**
+    (``field.model is model``): el registro de un hijo por ``_inherits``
+    expone los objetos de campo del padre, que se recorren bajo el padre;
+    tomarlos aquí agruparía el cómputo del padre bajo el hijo. La identidad
+    del objeto descarta el doble nombre de un ``Many2one`` (``partner`` y
+    ``partner_id``).
+    """
+    fields = list(model._meta.get_fields())
+    seen = {id(field) for field in fields}
+    for field in model_field_registry(model).values():
+        if id(field) not in seen and getattr(field, 'model', None) is model:
+            seen.add(id(field))
+            fields.append(field)
+    return fields

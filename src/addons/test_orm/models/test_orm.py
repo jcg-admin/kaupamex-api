@@ -1317,3 +1317,60 @@ class TestOrmGroup(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_group'
+
+
+class TestOrmComputeInverse(TestOrmModel):
+    """≙ ``test_orm.compute.inverse`` (``odoo19c: odoo/addons/test_orm/
+    models/test_orm.py:543-584``): un ``Char`` calculado, almacenado y con
+    ``inverse`` (``bar``) junto a uno normal (``baz``), una restricción que
+    nombra a los dos, y un ``One2many`` calculado con ``inverse``. Cada
+    método anota su paso en ``context['log']`` para que las pruebas vean el
+    orden de compute, inverse y restricción.
+    """
+
+    _name = 'test_orm.compute.inverse'
+    _description = 'Model with a computed inversed field'
+
+    foo = fields.Char(null=True)
+    bar = fields.Char(compute='_compute_bar', inverse='_inverse_bar',
+                      store=True, null=True)
+    baz = fields.Char(null=True)
+    child_ids = fields.One2many(
+        'test_orm.compute.inverse', 'parent_id',
+        compute='_compute_child_ids', inverse='_inverse_child_ids',
+        store=True)
+    parent_id = fields.Many2one('test_orm.compute.inverse', null=True,
+                                related_name='+', db_column='parent_id')
+
+    @depends('foo')
+    def _compute_bar(self):
+        self.env.context.get('log', []).append('compute')
+        for record in self:
+            record.bar = record.foo
+
+    def _inverse_bar(self):
+        self.env.context.get('log', []).append('inverse')
+        for record in self:
+            record.foo = record.bar
+
+    @constrains('bar', 'baz')
+    def _check_constraint(self):
+        if self.env.context.get('log_constraint'):
+            self.env.context.get('log', []).append('constraint')
+
+    @depends('foo')
+    def _compute_child_ids(self):
+        for rec in self:
+            if rec.foo == 'has one child':
+                rec.child_ids = [
+                    fields.Command.clear(),
+                    fields.Command.create({'foo': 'child'}),
+                ]
+
+    def _inverse_child_ids(self):
+        for rec in self:
+            if any(child.foo == 'child' for child in self.child_ids):
+                rec.foo = 'has one child'
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_compute_inverse'

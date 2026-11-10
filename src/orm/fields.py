@@ -4477,7 +4477,10 @@ def _field_resolve_depends(self, registry_module):
             current = _comodel_of(field, registry_module)
 
 
+#: ``One2many`` también: en la fuente resuelve sus dependencias como todo
+#: campo (ver el protocolo de caché, más abajo, por qué se instala aquí).
 models.Field.resolve_depends = _field_resolve_depends
+One2many.resolve_depends = _field_resolve_depends
 
 
 def _inherits_fk_for(model, fname, registry_module):
@@ -5281,12 +5284,20 @@ def _value_left_by_compute(row, field):
     return getattr(row, attname, None)
 
 
-for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
-                      _get_all_cache_ids, _cache_missing_ids,
-                      _filter_not_equal, _filter_not_equal_ids,
-                      _insert_cache,
-                      _update_cache, recompute, compute_value):
-    setattr(models.Field, _cache_method.__name__, _cache_method)
+#: El protocolo de caché y cómputo de ``Field`` (``odoo19c: odoo/orm/
+#: fields.py:1525-1930``). Se instala en ``models.Field`` porque la clase de
+#: campo es la de Django, y en el ``One2many`` declarado, que en la fuente
+#: hereda de ``Field`` (``fields_relational.py:843``) y aquí no es un
+#: ``models.Field``: un único protocolo para los dos, desde un solo sitio.
+#: ``fields_relational`` no puede importar este módulo (este lo importa a
+#: él), así que la instalación no puede vivir en la clase.
+for _field_class in (models.Field, One2many):
+    for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
+                          _get_all_cache_ids, _cache_missing_ids,
+                          _filter_not_equal, _filter_not_equal_ids,
+                          _insert_cache,
+                          _update_cache, recompute, compute_value):
+        setattr(_field_class, _cache_method.__name__, _cache_method)
 
 
 def _in_record_environment(method):
@@ -5608,3 +5619,4 @@ def _add_declared_column_index(field, cls):
     meta.indexes = [*meta.indexes, declared]
     # ``ModelState.from_model`` sólo copia los índices declarados en ``Meta``.
     meta.original_attrs['indexes'] = meta.indexes
+

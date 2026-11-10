@@ -234,12 +234,16 @@ class One2many:
 
     #: ≙ ``type = 'one2many'`` (``odoo19c: :866``).
     type = 'one2many'
+    #: ≙ ``Field.column_type`` (``fields.py:286``), ``None`` en un
+    #: ``One2many``: su columna es la FK del hijo.
+    column_type = None
 
     def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
                  string=None, domain=None, context=None,
                  bypass_search_access=False, related=None, related_sudo=True,
                  compute=None, inverse=None, store=None, readonly=None,
-                 compute_sudo=None, help=None, **_ignored):
+                 compute_sudo=None, help=None, recursive=False,
+                 precompute=False, **_ignored):
         #: Se acepta con nombre para que **no** caiga en ``**_ignored``, que es
         #: como se tragaba antes: la declaración se escribía igual que la de la
         #: fuente (``fields.One2many(related='employee_id.subordinate_ids')``),
@@ -254,6 +258,13 @@ class One2many:
         #: cadena es el manager del reverso, que no necesita comodelo ni
         #: inverso declarados — es lo que la referencia declara, sin ellos.
         self.related = related
+        #: ≙ ``Field.recursive`` (``odoo19c: odoo/orm/fields.py:284``): un
+        #: cómputo cuyas dependencias pasan por el propio campo. Se declara o
+        #: lo detecta ``resolve_depends``, que lo pone en ``True`` con aviso.
+        self.recursive = bool(recursive)
+        #: ≙ ``Field.precompute`` (``fields.py:287``): calcular antes del
+        #: ``INSERT``. ``resolve_depends`` lo lee y lo apaga con aviso.
+        self.precompute = bool(precompute)
         #: ≙ ``compute``/``inverse`` del campo (``odoo19c:
         #: odoo/orm/fields.py``): un One2many calculado no se lee por su
         #: inverso sino por su método, y su escritura la propaga ``inverse``.
@@ -375,12 +386,14 @@ class One2many:
                ImportError: cannot import name 'Many2many' from partially
                initialized module 'orm.fields_relational'
 
-        2. **Registro de apps.** Aun rompiendo el ciclo por orden, ``fields.py``
-           arrastra ``fields_reference`` -> ``contenttypes`` -> ``ContentType``,
+        2. **Registro de apps.** Aun rompiendo el ciclo por orden,
+           ``fields.py`` arrastra ``fields_reference`` -> ``contenttypes``
+           -> ``ContentType``,
            y este archivo se carga desde ``inherits.py`` **durante**
            ``apps.populate``::
 
-               django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
+               django.core.exceptions.AppRegistryNotReady: Apps aren't
+               loaded yet.
 
         La referencia no tiene ninguno de los dos: su ``odoo/orm/domains.py``
         importa ``.identifiers`` y ``.utils``, y **no** el modulo de campos
@@ -418,9 +431,15 @@ class One2many:
         self.name = name
 
     def contribute_to_class(self, cls, name, **_kwargs):
-        """Camino de ``ModelBase`` y de ``add_to_class`` — sin tocar ``_meta``."""
+        """Camino de ``ModelBase`` y de ``add_to_class`` — sin tocar ``_meta``.
+
+        ``self.model`` es la clase que lo declara, como en ``Many2many``: es
+        lo que :func:`~orm.utils.model_of_field` lee para resolver sus
+        ``@api.depends``.
+        """
         self.name = name
         self.model_name = cls._meta.label
+        self.model = cls
         setattr(cls, name, self)
 
     # -- protocolo de descriptor -------------------------------------------
@@ -451,35 +470,147 @@ class One2many:
     def _computed_key(self):
         return f'_computed_one2many_{self.name}'
 
+    @staticmethod
+    def _is_stored_row(instance):
+        """¿Fila real del ``BaseModel``? Un registro de ``new()`` no tiene
+        base donde escribir y sigue el camino de la caché."""
+        return (hasattr(instance, '_ids') and instance.pk is not None
+                and not isinstance(instance.pk, NewId))
+
+    def _read_stored(self, instance):
+        """El valor almacenado: las filas del comodelo cuyo inverso apunta a
+        ``instance`` — la definición de la fuente (``:843``)."""
+        comodel, _inverse = self._inverse_field()
+        return _read_one2many(self, instance, comodel)
+
+    # -- escritura: ≙ ``_RelationalMulti.write``/``write_batch`` y
+    # ``One2many.write_real``/``write_new`` (``fields_relational.py:737-
+    # 775``, ``:969-1121``) ------------------------------------------------
+
+    def write(self, records, value):
+        """≙ ``_RelationalMulti.write`` (``:737-740``): descarta el recálculo
+        pendiente de ``self`` sobre ``records`` y escribe por lote."""
+        records = _as_records(records)
+        get_environment().remove_to_compute(
+            self, [record.pk for record in records])
+        self.write_batch([(records, value)])
+
+    def write_batch(self, records_commands_list, create=False):
+        """≙ ``_RelationalMulti.write_batch`` (``:742-764``): normaliza cada
+        valor a una lista de comandos y despacha a ``write_real`` si todos
+        los registros son reales, o a ``write_new`` si todos son nuevos."""
+        if not records_commands_list:
+            return
+        normalized = []
+        for records, value in records_commands_list:
+            if isinstance(value, tuple):
+                value = [Command.set(value)]
+            elif (hasattr(value, '_ids')
+                  and getattr(value, '_name', None) == getattr(
+                      self._comodel(), '_name', None)):
+                value = [Command.set(value._ids)]
+            elif value is False or value is None:
+                value = [Command.clear()]
+            elif (isinstance(value, list) and value
+                  and not isinstance(value[0], (tuple, list))):
+                value = [Command.set(tuple(
+                    getattr(item, 'pk', item) for item in value))]
+            if not isinstance(value, list):
+                raise ValueError(f'Wrong value for {self}: {value}')
+            normalized.append((_as_records(records), value))
+        record_ids = {record.pk for records, _commands in normalized
+                      for record in records}
+        if all(not isinstance(rid, NewId) for rid in record_ids):
+            self.write_real(normalized, create)
+        else:
+            assert all(isinstance(rid, NewId) for rid in record_ids), (
+                f'{normalized} contains a mix of real and new records. '
+                f'It is not supported.')
+            self.write_new(normalized)
+
+    def write_real(self, records_commands_list, create=False):
+        """≙ ``One2many.write_real`` (``:969-1076``): los comandos en la base,
+        sobre el ``Many2one`` inverso, con las colas de crear, borrar y
+        enlazar de :func:`~orm.commands.apply_one2many_commands`."""
+        _comodel, inverse = self._inverse_field()
+        for records, commands in records_commands_list:
+            for record in records:
+                apply_one2many_commands(
+                    record, inverse.remote_field, commands, create=create)
+
+    def write_new(self, records_commands_list):
+        """≙ ``One2many.write_new`` (``:1078-1121``): nada va a la base; el
+        conjunto queda en la caché de la transacción por el ``NewId`` del
+        dueño."""
+        _comodel, inverse = self._inverse_field()
+        rel = inverse.remote_field
+        env = get_environment()
+        for records, commands in records_commands_list:
+            for record in records:
+                write_new_one2many(rel, record, commands)
+                if self.compute:
+                    # La fuente guarda el valor en la caché del CAMPO
+                    # (``:1078-1121``). Aquí ``write_new_one2many`` lo deja
+                    # en la de la relación inversa, compartida por todos los
+                    # ``One2many`` sobre el mismo ``Many2one``; el calculado
+                    # lee la suya (:meth:`_get_computed`), así que se copia.
+                    lines = env.transaction.field_data[rel].get(
+                        record.pk, ())
+                    self._get_cache(env)[record.pk] = tuple(lines)
+
     def _comodel(self):
         return model_by_key(self.comodel_name) or apps.get_model(
             self.comodel_name)
 
     def _get_computed(self, instance):
-        """El valor de un One2many calculado: el del almacén de la fila, o el
-        que deja su método — ≙ ``Field.__get__`` → ``compute_value`` de un
-        campo no almacenado."""
-        key = self._computed_key()
-        if key not in instance.__dict__:
-            instance.__dict__['_computing_one2many'] = True
-            try:
-                getattr(instance, self.compute)()
-            finally:
-                instance.__dict__.pop('_computing_one2many', None)
-        value = instance.__dict__.get(key)
-        if value is None:
-            value = self._comodel()._from_ids(get_environment(), (), ())
-        return value
+        """El valor de un One2many calculado — ≙ ``Field.__get__``
+        (``odoo19c: odoo/orm/fields.py:1652-1700``).
 
-    def _set_computed(self, instance, value):
-        """Escribir un One2many calculado — ≙ ``write`` sobre un campo con
-        ``inverse``: los comandos se aplican al valor actual, que queda en el
-        almacén de la fila, y ``inverse`` lo propaga."""
+        - ``store=True`` sobre una fila real: si está pendiente se recalcula
+          (``:1664-1666``) —el cómputo escribe en la base, ver
+          :meth:`_set_computed`— y el valor se lee de la base, como un
+          ``One2many`` sin cómputo.
+        - sin almacenar: el valor vive en la caché de la transacción, por id
+          (``field_data``, la misma de todo campo); si falta, se calcula con
+          ``compute_value`` (``:1736-1763``). Como vive ahí, ``modified`` lo
+          invalida con ``_invalidate_cache`` y la lectura siguiente vuelve a
+          calcular.
+
+        Una fila sin id (fila de Django sin guardar) no tiene clave en la
+        caché: su valor queda en la propia fila.
+        """
+        env = get_environment()
+        if self.store and self._is_stored_row(instance):
+            if env.is_to_compute(self, instance.pk):
+                self.recompute(instance)
+            return self._read_stored(instance)
         comodel = self._comodel()
-        if instance.__dict__.get('_computing_one2many'):
-            instance.__dict__[self._computed_key()] = value
-            return
-        current = list(self._get_computed(instance).ids)
+        if instance.pk is None:
+            if self._computed_key() not in instance.__dict__:
+                self._invoke_compute(instance)
+            ids = instance.__dict__.get(self._computed_key(), ())
+            return comodel._from_ids(env, ids, ids)
+        cache = self._get_cache(env)
+        if instance.pk not in cache:
+            self.compute_value(instance)
+        ids = cache.get(instance.pk, ())
+        return comodel._from_ids(env, ids, ids)
+
+    def _invoke_compute(self, instance):
+        """El cómputo de una fila sin id, protegido como ``compute_value``."""
+        instance.__dict__['_computing_one2many'] = True
+        try:
+            getattr(instance, self.compute)()
+        finally:
+            instance.__dict__.pop('_computing_one2many', None)
+
+    def _resolve_commands(self, current, value):
+        """Los ids que quedan tras aplicar ``value`` sobre ``current`` —
+        ≙ ``_RelationalMulti.convert_to_cache`` (``fields_relational.py:
+        605-675``): comandos sobre el valor actual, o un recordset/lista
+        de filas como el valor entero."""
+        comodel = self._comodel()
+        current = list(current)
         if is_command_list(value):
             for code, target, payload in value:
                 if code == Command.CREATE:
@@ -499,9 +630,41 @@ class One2many:
         else:
             current = list(getattr(value, '_ids', None)
                            or [getattr(i, 'pk', i) for i in (value or ())])
-        ids = tuple(dict.fromkeys(current))
-        instance.__dict__[self._computed_key()] = comodel._from_ids(
-            get_environment(), ids, ids)
+        return tuple(dict.fromkeys(current))
+
+    def _set_computed(self, instance, value):
+        """Escribir un One2many calculado — ≙ ``Field.__set__``
+        (``odoo19c: odoo/orm/fields.py:1807-1843``).
+
+        Un registro en cómputo (protegido) recibe el valor sin lógica de
+        negocio; fuera del cómputo se escribe y después corre su
+        ``inverse``. Con ``store=True`` sobre una fila real la escritura va a
+        ``One2many.write_real`` (``fields_relational.py:969``): los comandos
+        se aplican en la base sobre el ``Many2one`` inverso. Sin almacenar,
+        el valor resuelto queda en la caché de la transacción.
+        """
+        env = get_environment()
+        if self.store and self._is_stored_row(instance):
+            self.write(instance, value)
+            protected = env.is_protected(self, instance.pk)
+            if not protected and self.inverse:
+                getattr(instance, self.inverse)()
+            return
+        if instance.pk is None:
+            if instance.__dict__.get('_computing_one2many'):
+                instance.__dict__[self._computed_key()] = (
+                    self._resolve_commands((), value))
+                return
+            current = self._get_computed(instance).ids
+            instance.__dict__[self._computed_key()] = self._resolve_commands(
+                current, value)
+        else:
+            protected = env.is_protected(self, instance.pk)
+            current = () if protected else self._get_computed(instance).ids
+            self._get_cache(env)[instance.pk] = self._resolve_commands(
+                current, value)
+            if protected:
+                return
         if self.inverse:
             getattr(instance, self.inverse)()
 
@@ -522,7 +685,7 @@ class One2many:
         if (isinstance(instance.pk, NewId) and hasattr(instance, '_ids')
                 and hasattr(comodel, '_from_ids')):
             # Un registro de ``new()`` sólo vive en caché: sus líneas son las
-            # de la clave que escriben ``_write_new_one2many`` y
+            # de la clave que escriben ``write_new_one2many`` y
             # ``_update_inverse``, la misma que lee el descriptor inverso.
             # Sin valor todavía, el vacío se pone con ``_update_cache``, que
             # drena los parches de ``_update_inverse``.
@@ -579,7 +742,8 @@ class One2many:
         La fuente lo decide por el ``ondelete`` del inverso, no por la
         nulabilidad de la columna::
 
-            if getattr(comodel._fields[inverse], 'ondelete', False) == 'cascade':
+            if getattr(comodel._fields[inverse], 'ondelete',
+                       False) == 'cascade':
                 to_delete.extend(lines._ids)
             else:
                 lines[inverse] = False
@@ -589,10 +753,12 @@ class One2many:
         ``on_delete=CASCADE`` las dos politicas discrepan, y el porte impone la
         de la fuente.
         """
-        return getattr(inverse.remote_field, 'on_delete', None) is models.CASCADE
+        return (getattr(inverse.remote_field, 'on_delete', None)
+                is models.CASCADE)
 
     def __set__(self, instance, value):
-        """Asignar el conjunto — ≙ el tramo ``CLEAR``/``SET`` de ``write_real``.
+        """Asignar el conjunto — ≙ el tramo ``CLEAR``/``SET`` de
+        ``write_real``.
 
         La fuente los trata juntos (``command[0] in (Command.CLEAR,
         Command.SET)``, ``:1027``): el conjunto queda **exactamente** en las
@@ -2669,3 +2835,54 @@ def _many2one_update_inverses(self, records, value):
 
 models.ForeignKey._remove_inverses = _many2one_remove_inverses
 models.ForeignKey._update_inverses = _many2one_update_inverses
+
+
+def _as_records(records):
+    """Un recordset o una lista de filas tal cual; una fila de Django suelta,
+    como lista de una fila. Un registro de ``BaseModel`` ya es iterable."""
+    if hasattr(records, '_ids') or isinstance(records, (list, tuple)):
+        return records
+    return [records]
+
+
+def write_new_one2many(rel, owner, value):
+    """El One2many de un registro de ``new()`` — ≙ ``One2many.write_new``
+    (``odoo19c: odoo/orm/fields_relational.py:1078-1121``), para un dueño.
+
+    Vivía en ``orm/models.py``; su hogar es este módulo, donde la fuente
+    declara ``One2many.write_new``. Lo consumen :meth:`One2many.write_new` y
+    el descriptor del reverso de Django (``orm/models.py``).
+
+    Nada se escribe en la base: el conjunto de líneas queda en el caché de la
+    transacción, indexado por el ``NewId`` del dueño, y cada ``CREATE`` es una
+    línea de ``new()`` cuyo inverso apunta al dueño, como en la fuente.
+    """
+    comodel = rel.related_model
+    inverse = rel.field.name
+    cache = get_environment().transaction.field_data[rel]
+    ids = list(cache.get(owner.pk, ()))
+    if not is_command_list(value):
+        ids = getattr(value, '_ids', None)
+        if ids is None:
+            ids = [getattr(item, 'pk', item) for item in (value or ())]
+        cache[owner.pk] = tuple(ids)
+        return
+    for command in value:
+        operation = command[0]
+        if operation == Command.CREATE:
+            line = comodel.new(dict(command[2] or {}), ref=command[1] or None)
+            line._update_cache({inverse: owner}, validate=False)
+            ids.append(line.id)
+        elif operation == Command.UPDATE:
+            comodel.browse(command[1])._update_cache(command[2],
+                                                     validate=False)
+        elif operation in (Command.DELETE, Command.UNLINK):
+            ids = [id_ for id_ in ids if id_ != command[1]]
+        elif operation == Command.LINK:
+            if command[1] not in ids:
+                ids.append(command[1])
+        elif operation == Command.CLEAR:
+            ids = []
+        elif operation == Command.SET:
+            ids = list(command[2])
+    cache[owner.pk] = tuple(ids)
