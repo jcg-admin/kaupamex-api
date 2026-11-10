@@ -9,5 +9,4 @@ is_text::Html::Html(hereda BaseString)
 is_text::TextField::BaseString
 precompute::Properties::Properties
 write_sequence::DecimalField::Monetary
-write_sequence::ManyToManyField::Many2many(hereda _RelationalMulti)
 write_sequence::Properties::Properties

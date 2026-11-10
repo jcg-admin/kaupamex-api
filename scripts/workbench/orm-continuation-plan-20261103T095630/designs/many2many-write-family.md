@@ -167,6 +167,25 @@ causa de los 2 fallos del gate del worktree anterior.
   las dos reescrituras semánticas que la admisión pide (E731: el `lambda`
   `browse` pasa a `def`; `get_origin` pasa de expresión condicional a `if`).
 
+## El gate de atributos de clase
+
+`write_sequence = 20` en `ManyToManyField` salda la fila congelada
+`write_sequence::ManyToManyField::Many2many(hereda _RelationalMulti)` de
+`scripts/field_class_attributes_baseline.txt`, que se retira. Al hacerlo,
+`check_field_class_attributes.py` publicaba un incumplidor nuevo: comparaba
+`ManyToManyField` también contra `_Relational` (`REFERENCE_CLASS_TO_DJANGO`
+lo mapea a los dos), que hereda el 0 de `Field`. El gate gana
+`more_specific_owner`: una clase de Django se mide contra la clase más
+específica de la fuente que la mapea, no contra su ancestro. Pares medidos:
+297 → 254 (los 43 que salen son `_Relational` sobre `ForeignKey` y
+`ManyToManyField`, medidos ya bajo `Many2one` y `Many2many`). Control:
+devolver `write_sequence` a 0 hace caer exactamente
+`write_sequence ManyToManyField … Many2many hereda _RelationalMulti=20`.
+La admisión de estilo pidió además retirar el `key = lambda row: row  # noqa:
+E731` del gate (la identidad: `sorted(..., key=key)` es `sorted(...)`) y
+partir líneas desplazadas; la salida del gate es idéntica antes y después
+(`diff` vacío) y su suite `test_field_class_attributes.py` da 15 passed.
+
 ## Pendiente
 
 - `test_copy_batch` (`test_onchange.py:1013-1024`): necesita

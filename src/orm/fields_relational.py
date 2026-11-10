@@ -104,7 +104,8 @@ from django.db import models
 from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
-from orm.commands import Command, apply_one2many_commands, is_command_list
+from orm.commands import (Command, apply_many2many_commands,
+                          apply_one2many_commands, is_command_list)
 from orm.environments import Query, env as get_environment, get_current_uid
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
@@ -483,50 +484,12 @@ class One2many:
         comodel, _inverse = self._inverse_field()
         return _read_one2many(self, instance, comodel)
 
-    # -- escritura: ≙ ``_RelationalMulti.write``/``write_batch`` y
-    # ``One2many.write_real``/``write_new`` (``fields_relational.py:737-
-    # 775``, ``:969-1121``) ------------------------------------------------
+    # -- escritura: ≙ ``One2many.write_real``/``write_new``
+    # (``fields_relational.py:969-1121``) ----------------------------------
 
-    def write(self, records, value):
-        """≙ ``_RelationalMulti.write`` (``:737-740``): descarta el recálculo
-        pendiente de ``self`` sobre ``records`` y escribe por lote."""
-        records = _as_records(records)
-        get_environment().remove_to_compute(
-            self, [record.pk for record in records])
-        self.write_batch([(records, value)])
-
-    def write_batch(self, records_commands_list, create=False):
-        """≙ ``_RelationalMulti.write_batch`` (``:742-764``): normaliza cada
-        valor a una lista de comandos y despacha a ``write_real`` si todos
-        los registros son reales, o a ``write_new`` si todos son nuevos."""
-        if not records_commands_list:
-            return
-        normalized = []
-        for records, value in records_commands_list:
-            if isinstance(value, tuple):
-                value = [Command.set(value)]
-            elif (hasattr(value, '_ids')
-                  and getattr(value, '_name', None) == getattr(
-                      self._comodel(), '_name', None)):
-                value = [Command.set(value._ids)]
-            elif value is False or value is None:
-                value = [Command.clear()]
-            elif (isinstance(value, list) and value
-                  and not isinstance(value[0], (tuple, list))):
-                value = [Command.set(tuple(
-                    getattr(item, 'pk', item) for item in value))]
-            if not isinstance(value, list):
-                raise ValueError(f'Wrong value for {self}: {value}')
-            normalized.append((_as_records(records), value))
-        record_ids = {record.pk for records, _commands in normalized
-                      for record in records}
-        if all(not isinstance(rid, NewId) for rid in record_ids):
-            self.write_real(normalized, create)
-        else:
-            assert all(isinstance(rid, NewId) for rid in record_ids), (
-                f'{normalized} contains a mix of real and new records. '
-                f'It is not supported.')
-            self.write_new(normalized)
+    # ``write``, ``write_batch``, ``create`` y ``convert_to_record_multi``
+    # son de ``_RelationalMulti``: viven como ``_relational_multi_*`` al
+    # final del módulo y se instalan aquí y en ``ManyToManyField``.
 
     def write_real(self, records_commands_list, create=False):
         """≙ ``One2many.write_real`` (``:969-1076``): los comandos en la base,
@@ -1857,6 +1820,11 @@ models.ForeignKey.convert_to_cache = _many2one_convert_to_cache
 models.ForeignKey.convert_to_display_name = _many2one_convert_to_display_name
 models.ForeignKey._update_inverse = _many2one_update_inverse
 models.ManyToManyField._update_inverse = _relational_multi_update_inverse
+#: El inverso de un ``Many2many`` es otro ``Many2many`` en la fuente
+#: (``_RelationalMulti._update_inverse``, ``:564-574``); aquí, la relación
+#: inversa de Django. ``BaseModel._update_cache`` lo llama al crear un
+#: registro de ``new()`` cuyo ``Many2many`` crea líneas nuevas.
+models.ManyToManyRel._update_inverse = _relational_multi_update_inverse
 
 
 def _reverse_one2many_get_cache(self, env):
@@ -1885,15 +1853,22 @@ def _reverse_one2many_update_inverse_accessor(self):
 
 
 models.ManyToOneRel._get_cache = property(_reverse_one2many_cache_accessor)
-models.ManyToOneRel._update_inverse = property(_reverse_one2many_update_inverse_accessor)
+models.ManyToOneRel._update_inverse = property(
+    _reverse_one2many_update_inverse_accessor)
+#: La relación inversa de un ``Many2many`` también tiene caché propia, por
+#: la misma razón: en un registro de ``new()`` su conjunto sólo existe ahí.
+models.ManyToManyRel._get_cache = _reverse_one2many_get_cache
+models.ManyToManyRel._update_cache = _relational_multi_update_cache
 
 
-def _reverse_one2many_convert_to_cache(self, value, record, validate=True):
+def _relational_multi_convert_to_cache(self, value, record, validate=True):
     """``_RelationalMulti.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/
     fields_relational.py:589-641``. Formato: tupla de ids.
 
     Divergencia de forma: el comodelo es ``self.related_model`` (la clase) y
-    el nombre del campo en el dueño es el accesor del inverso de Django.
+    el nombre del campo en el dueño es el accesor del inverso de Django en la
+    relación inversa (el ``One2many`` de la fuente) y ``self.name`` en el
+    ``Many2many`` directo (:func:`_relational_multi_owner_name`).
     """
     # cache format: tuple(ids)
     if getattr(value, '_ids', None) is not None:
@@ -1910,12 +1885,14 @@ def _reverse_one2many_convert_to_cache(self, value, record, validate=True):
         comodel = self.related_model
         # if record is new, the field's value is new records
         if record and not record.id:
-            browse = lambda it: comodel.browse((it and NewId(it),))
+            def browse(it):
+                return comodel.browse((it and NewId(it),))
         else:
             browse = comodel.browse
         # determine the value ids: in case of a real record or a new record
         # with origin, take its current value
-        ids = OrderedSet(record[self.get_accessor_name()]._ids if record._origin else ())
+        ids = OrderedSet(record[_relational_multi_owner_name(self)]._ids
+                         if record._origin else ())
         # modify ids with the commands
         for command in value:
             if isinstance(command, (tuple, list)):
@@ -1949,15 +1926,26 @@ def _reverse_one2many_convert_to_cache(self, value, record, validate=True):
     raise ValueError("Wrong value for %s: %s" % (self, value))
 
 
+def _relational_multi_owner_name(field):
+    """El nombre del x2many en su dueño: el accesor de una relación inversa
+    de Django, o el nombre del campo directo."""
+    if isinstance(field, models.ForeignObjectRel):
+        return field.get_accessor_name()
+    return field.name
+
+
 def _reverse_one2many_convert_to_write(self, value, record):
     """``_RelationalMulti.convert_to_write`` — ≙ ``:671-711``."""
     if isinstance(value, tuple):
         # a tuple of ids, this is the cache format
         value = self.related_model.browse(value)
 
-    if getattr(value, '_ids', None) is not None and model_of(value) is self.related_model:
+    if (getattr(value, '_ids', None) is not None
+            and model_of(value) is self.related_model):
         def get_origin(val):
-            return val._origin if getattr(val, '_ids', None) is not None else val
+            if getattr(val, '_ids', None) is not None:
+                return val._origin
+            return val
 
         # make result with new and existing records
         inv_names = {field.name for field in field_inverses[self]}
@@ -1977,7 +1965,8 @@ def _reverse_one2many_convert_to_write(self, value, record):
                     values = record._convert_to_write({
                         name: record[name]
                         for name in record._cache
-                        if name not in inv_names and get_origin(record[name]) != origin[name]
+                        if name not in inv_names
+                        and get_origin(record[name]) != origin[name]
                     })
                     if values:
                         result.append(Command.update(origin.id, values))
@@ -2002,9 +1991,27 @@ def _reverse_one2many_only(function):
 
 
 models.ManyToOneRel.write_sequence = 0
-models.ManyToOneRel.convert_to_cache = _reverse_one2many_only(_reverse_one2many_convert_to_cache)
-models.ManyToOneRel.convert_to_write = _reverse_one2many_only(_reverse_one2many_convert_to_write)
-models.ManyToOneRel._update_cache = _reverse_one2many_only(_relational_multi_update_cache)
+models.ManyToOneRel.convert_to_cache = _reverse_one2many_only(
+    _relational_multi_convert_to_cache)
+
+
+def _many2many_convert_to_cache(self, value, record, validate=True):
+    """``convert_to_cache`` del ``Many2many``: el de ``_RelationalMulti``
+    (``:589-641``) cuando el comodelo es un ``BaseModel``; con un comodelo de
+    Django, el genérico de ``models.Field``, que es lo que esas filas leen y
+    escriben (su valor es un ``QuerySet``, no una tupla de ids). Se resuelve
+    en tiempo de llamada, como en :func:`_relational_multi_update_cache`."""
+    if hasattr(self.related_model, '_from_ids'):
+        return _relational_multi_convert_to_cache(self, value, record,
+                                                  validate)
+    return models.Field.convert_to_cache(self, value, record, validate)
+
+
+models.ManyToManyField.convert_to_cache = _many2many_convert_to_cache
+models.ManyToOneRel.convert_to_write = _reverse_one2many_only(
+    _reverse_one2many_convert_to_write)
+models.ManyToOneRel._update_cache = _reverse_one2many_only(
+    _relational_multi_update_cache)
 models.ManyToManyField._update_cache = _relational_multi_update_cache
 models.ManyToManyField.convert_to_display_name = (
     _relational_multi_convert_to_display_name)
@@ -2020,7 +2027,8 @@ models.ManyToManyField.convert_to_display_name = (
 class PrefetchMany2one(collections.abc.Reversible):
     """Los valores de un ``Many2one`` sobre el conjunto de prelectura.
 
-    ≙ ``PrefetchMany2one`` (``odoo19c: odoo/orm/fields_relational.py:1734-1754``).
+    ≙ ``PrefetchMany2one``
+    (``odoo19c: odoo/orm/fields_relational.py:1734-1754``).
     Docstring de la fuente: *"Iterable for the values of a many2one field on
     the prefetch set of a given record."*
 
@@ -2068,7 +2076,8 @@ class PrefetchMany2one(collections.abc.Reversible):
 class PrefetchX2many(collections.abc.Reversible):
     """Los valores de un campo x2many sobre el conjunto de prelectura.
 
-    ≙ ``PrefetchX2many`` (``odoo19c: odoo/orm/fields_relational.py:1757-1779``).
+    ≙ ``PrefetchX2many``
+    (``odoo19c: odoo/orm/fields_relational.py:1757-1779``).
     Docstring de la fuente: *"Iterable for the values of an x2many field on the
     prefetch set of a given record."*
 
@@ -2106,8 +2115,10 @@ class PrefetchX2many(collections.abc.Reversible):
         )
 
 
-def _many2one_convert_to_column(self, value, record, values=None, validate=True):
-    """``Many2one.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_relational.py:326-327``.
+def _many2one_convert_to_column(self, value, record, values=None,
+                                validate=True):
+    """``Many2one.convert_to_column`` — ≙
+    ``odoo19c: odoo/orm/fields_relational.py:326-327``.
 
     ``value or None``: el cero y la cadena vacía de una clave foránea son la
     ausencia de relación, no una fila con ese identificador. La base los
@@ -2130,7 +2141,8 @@ def _many2one_get_db_prep_save(self, value, connection):
     destino. Sin este paso, ``create({'company_id': False})`` llegaba al
     ``AutoField`` del destino como ``0`` y la columna guardaba una relación a
     una fila que no existe (``ForeignKeyViolation`` en PostgreSQL), donde la
-    fuente escribe ``NULL`` (``odoo19c: odoo/orm/fields_relational.py:326-327``).
+    fuente escribe ``NULL``
+    (``odoo19c: odoo/orm/fields_relational.py:326-327``).
     """
     if not hasattr(value, 'as_sql'):
         value = self.convert_to_column(value, None, validate=False)
@@ -2886,3 +2898,203 @@ def write_new_one2many(rel, owner, value):
         elif operation == Command.SET:
             ids = list(command[2])
     cache[owner.pk] = tuple(ids)
+
+
+# --- ``_RelationalMulti``: el contrato compartido de los x2many --------------
+#
+# ≙ ``class _RelationalMulti`` (``odoo19c: odoo/orm/fields_relational.py:
+# 556-840``). Sus dueños aquí son el ``One2many`` declarado y el
+# ``models.ManyToManyField`` de Django, que no comparten clase propia, así
+# que cada método se escribe una vez como ``_relational_multi_<nombre>`` y se
+# instala en los dos — la forma que el módulo ya da a ``_update_inverse``,
+# ``_update_cache`` y ``convert_to_display_name``. Lo específico de tipo
+# (``write_real``/``write_new``) vive en su dueño.
+
+def _relational_multi_comodel(field):
+    """El comodelo del campo: ``related_model`` de Django, o el resuelto por
+    nombre del ``One2many`` declarado."""
+    comodel = getattr(field, 'related_model', None)
+    if isinstance(comodel, type):
+        return comodel
+    return field._comodel()
+
+
+def _relational_multi_write(self, records, value):
+    """≙ ``_RelationalMulti.write`` (``:737-740``): descarta el recálculo
+    pendiente de ``self`` sobre ``records`` y escribe por lote.
+
+    DIVERGENCIA declarada: un ``Many2many`` hacia un comodelo de Django (sin
+    recordset propio) guarda en caché el ``QuerySet`` del comodelo, que es la
+    forma en que este árbol representa ese valor; conserva la escritura
+    genérica de ``models.Field`` (``fields.py:1501-1518``), resuelta en tiempo
+    de llamada.
+    """
+    if not hasattr(_relational_multi_comodel(self), '_from_ids'):
+        return models.Field.write(self, records, value)
+    records = _as_records(records)
+    get_environment().remove_to_compute(
+        self, [record.pk for record in records])
+    self.write_batch([(records, value)])
+
+
+def _relational_multi_write_batch(self, records_commands_list, create=False):
+    """≙ ``_RelationalMulti.write_batch`` (``:742-764``): normaliza cada valor
+    a una lista de comandos y despacha a ``write_real`` si todos los
+    registros son reales, o a ``write_new`` si todos son nuevos."""
+    if not records_commands_list:
+        return
+    comodel_name = getattr(_relational_multi_comodel(self), '_name', None)
+    normalized = []
+    for records, value in records_commands_list:
+        if isinstance(value, tuple):
+            value = [Command.set(value)]
+        elif (hasattr(value, '_ids')
+              and getattr(value, '_name', None) == comodel_name):
+            value = [Command.set(value._ids)]
+        elif (isinstance(value, models.QuerySet)
+              and value.model._meta.concrete_model
+              is _relational_multi_comodel(self)._meta.concrete_model):
+            # El conjunto de filas de un comodelo de Django es su
+            # ``QuerySet``: es el recordset de la rama anterior.
+            value = [Command.set(tuple(value.values_list('pk', flat=True)))]
+        elif value is False or value is None:
+            value = [Command.clear()]
+        elif (isinstance(value, list) and value
+              and not isinstance(value[0], (tuple, list))):
+            value = [Command.set(tuple(
+                getattr(item, 'pk', item) for item in value))]
+        if not isinstance(value, list):
+            raise ValueError(f'Wrong value for {self}: {value}')
+        normalized.append((_as_records(records), value))
+    record_ids = {record.pk for records, _commands in normalized
+                  for record in records}
+    if all(not isinstance(rid, NewId) for rid in record_ids):
+        self.write_real(normalized, create)
+    else:
+        assert all(isinstance(rid, NewId) for rid in record_ids), (
+            f'{normalized} contains a mix of real and new records. '
+            f'It is not supported.')
+        self.write_new(normalized)
+
+
+def _relational_multi_create(self, record_values):
+    """≙ ``_RelationalMulti.create`` (``:728-735``): *"Write the value of
+    ``self`` on the given records, which have just been created."* — por
+    lote y con ``create=True``, no par a par como ``Field.create``."""
+    self.write_batch(record_values, True)
+
+
+def _relational_multi_convert_to_record_multi(self, values, records):
+    """≙ ``_RelationalMulti.convert_to_record_multi`` (``:655-666``): la
+    unión, sin repetir, de los ids de ``values`` como recordset del
+    comodelo."""
+    comodel = _relational_multi_comodel(self)
+    ids = tuple(unique(id_ for value in values for id_ in value))
+    return comodel._from_ids(get_environment(), ids, ids)
+
+
+def _many2many_write_real(self, records_commands_list, create=False):
+    """≙ ``Many2many.write_real`` (``:1413-1594``).
+
+    La fuente calcula la relación nueva y escribe la caché del campo siempre;
+    la tabla intermedia sólo con ``store=True`` (``:1428``, ``:1517``,
+    ``:1554``). Almacenado: los comandos sobre la tabla, por registro, con
+    :func:`~orm.commands.apply_many2many_commands` —que ya aplica los siete
+    comandos dentro de ``_check_sudo_commands``—, y la lectura sale de la
+    tabla. Sin almacenar: sólo la caché, con el mismo cálculo de la relación
+    que :func:`_many2many_write_new`, sin ``NewId``.
+    """
+    if not getattr(self, 'store', True):
+        _many2many_write_relation(self, records_commands_list, new=None)
+        return
+    for records, commands in records_commands_list:
+        for record in records:
+            apply_many2many_commands(record, self, commands)
+
+
+def _many2many_write_new(self, records_commands_list):
+    """≙ ``Many2many.write_new`` (``:1596-1700``): nada va a la base. Los ids
+    de un registro nuevo son registros nuevos (``NewId``) y los ``CREATE``
+    son líneas de ``new()``."""
+    _many2many_write_relation(self, records_commands_list,
+                              new=lambda id_: id_ and NewId(id_))
+
+
+def _many2many_write_relation(self, records_commands_list, new):
+    """El cálculo de la relación vieja y la nueva que comparten
+    ``write_new`` y la rama sin almacenar de ``write_real`` (``:1438-1500``,
+    ``:1596-1640``), y la escritura de la caché de ``self`` y de sus inversos
+    para los pares que cambian. ``new`` envuelve los ids de los comandos
+    (``NewId`` en un registro nuevo); ``None`` los deja como están."""
+    if not records_commands_list:
+        return
+    wrap = new or (lambda id_: id_)
+    env = get_environment()
+    comodel = _relational_multi_comodel(self)
+    old_relation = {}
+    owners = {}
+    for records, _commands in records_commands_list:
+        for record in records:
+            owners[record.pk] = record
+            old_relation[record.pk] = OrderedSet(
+                getattr(record, self.name)._ids)
+    new_relation = {x: OrderedSet(ys) for x, ys in old_relation.items()}
+    for records, commands in records_commands_list:
+        for command in commands:
+            if not isinstance(command, (list, tuple)) or not command:
+                continue
+            code = command[0]
+            if code == Command.CREATE:
+                line = (comodel.new(command[2], ref=command[1]) if new
+                        else comodel.create(command[2]))
+                for line_ids in new_relation.values():
+                    line_ids.add(line.id)
+            elif code == Command.UPDATE:
+                line = comodel.browse([wrap(command[1])])
+                (line.update if new else line.write)(command[2])
+            elif code in (Command.DELETE, Command.UNLINK):
+                for line_ids in new_relation.values():
+                    line_ids.discard(wrap(command[1]))
+                if code == Command.DELETE and not new:
+                    comodel.browse([command[1]]).unlink()
+            elif code == Command.LINK:
+                for line_ids in new_relation.values():
+                    line_ids.add(wrap(command[1]))
+            elif code in (Command.CLEAR, Command.SET):
+                line_ids = command[2] if code == Command.SET else ()
+                for record in records:
+                    new_relation[record.pk] = OrderedSet(
+                        wrap(line_id) for line_id in line_ids)
+    if new_relation == old_relation:
+        return
+    for x, record in owners.items():
+        self._update_cache(record, tuple(new_relation[x]))
+    for invf in field_inverses[self]:
+        if not hasattr(invf, '_get_cache'):
+            continue
+        inv_cache = invf._get_cache(env)
+        for x in owners:
+            for y in new_relation[x] - old_relation[x]:
+                if y in inv_cache:
+                    invf._update_cache(comodel.browse([y]), tuple(
+                        unique(itertools.chain(inv_cache[y], (x,)))))
+            for y in old_relation[x] - new_relation[x]:
+                if y in inv_cache:
+                    invf._update_cache(comodel.browse([y]), tuple(
+                        id_ for id_ in inv_cache[y] if id_ != x))
+
+
+for _relational_multi_owner in (One2many, models.ManyToManyField):
+    for _relational_multi_name, _relational_multi_body in (
+            ('write', _relational_multi_write),
+            ('write_batch', _relational_multi_write_batch),
+            ('create', _relational_multi_create),
+            ('convert_to_record_multi',
+             _relational_multi_convert_to_record_multi)):
+        setattr(_relational_multi_owner, _relational_multi_name,
+                _relational_multi_body)
+    #: ≙ ``write_sequence = 20`` (``:558``): los x2many se escriben al final
+    #: de un ``write``, porque al borrar líneas vuelcan otros campos.
+    _relational_multi_owner.write_sequence = 20
+models.ManyToManyField.write_real = _many2many_write_real
+models.ManyToManyField.write_new = _many2many_write_new

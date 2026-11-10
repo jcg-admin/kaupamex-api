@@ -3071,8 +3071,6 @@ class RecordLoaderMixin(FieldSqlMixin):
                         and 'updated_at' not in update_fields):
                     update_fields.append('updated_at')
                 self.save(update_fields=update_fields)
-                if silenced:
-                    self.modified(silenced)
             if reparented:
                 _parent_store_update(self)
             if relational:
@@ -3080,6 +3078,15 @@ class RecordLoaderMixin(FieldSqlMixin):
             for rel, commands in one2many:
                 # ≙ ``One2many.write_real``: la fila ya existe.
                 apply_one2many_commands(self, rel, commands)
+            # ``:4486`` — ``self.modified(vals)``, una vez y DESPUÉS de todas
+            # las escrituras (x2many incluidos). Cada escritura de campo
+            # descarta su propio recálculo pendiente (``Field.write``,
+            # ``fields.py:1501-1518``); este anuncio vuelve a marcar lo que
+            # depende de lo escrito y no está protegido: escribir ``foo`` y
+            # un calculado de sólo lectura ``bar`` que depende de él deja
+            # ``bar`` recalculado, no con el valor escrito. Los protegidos
+            # (``silenced``) se anuncian aquí también.
+            self.modified([fname for fname in written if fname in declared])
             # ``:4493`` — el inverso se despacha DENTRO del alcance de
             # protección, una vez por grupo.
             for fields in determine_inverses.values():
@@ -5859,9 +5866,34 @@ def _many2many_descriptor_set(self, instance, value):
     una fila ya guardada que sabe escribirse, se entrega a ``write``, que
     interpreta los comandos y comprueba la empresa. El lado inverso y la fila
     sin guardar conservan la conducta de Django.
+
+    Las otras dos ramas de ``Field.__set__`` (``:1820-1832``), para un
+    ``BaseModel``: la fila en cómputo (protegida) y la de ``new()`` escriben
+    con ``field.write``, sin lógica de negocio.
     """
+    field = self.field
+    if not self.reverse and isinstance(instance, BaseModel):
+        environment = env()
+        if instance.pk is not None and environment.is_protected(
+                field, instance.pk):
+            # fila en cómputo: ``self.write`` sin lógica de negocio
+            # (``:1820-1823``) — ``Many2many.write_real``.
+            field.write(instance, value)
+            return
+        if isinstance(instance.pk, NewId):
+            # fila de ``new()``: sin lógica de negocio (``:1825-1832``) —
+            # ``write_batch`` despacha a ``Many2many.write_new``.
+            with environment.protecting([field], instance):
+                instance.modified([field.name], before=True)
+                field.write(instance, value)
+                instance.modified([field.name])
+            return
     if not self.reverse and hasattr(instance, 'write') and _saved(instance):
-        instance.write({self.field.name: value})
+        if hasattr(value, '_ids'):
+            # ≙ ``convert_to_write`` (``fields_relational.py:671-710``): un
+            # recordset del comodelo se escribe como ``Command.set``.
+            value = [Command.set(list(value._ids))]
+        instance.write({field.name: value})
         return
     _DJANGO_MANY2MANY_SET(self, instance, value)
 
@@ -5891,6 +5923,17 @@ def _x2many_descriptor_get(self, instance, cls=None):
     if isinstance(self, _related_descriptors.ManyToManyDescriptor):
         comodel = (self.field.model if self.reverse
                    else self.field.related_model)
+        field = self.field
+        if (not self.reverse and isinstance(instance, BaseModel)
+                and getattr(field, 'compute', None)
+                and getattr(field, 'store', False)
+                and instance.pk is not None
+                and not isinstance(instance.pk, NewId)
+                and env().is_to_compute(field, instance.pk)):
+            # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1664-1666``):
+            # un campo almacenado pendiente se recalcula antes de leerse. El
+            # cómputo escribe la tabla intermedia (``Many2many.write_real``).
+            field.recompute(instance)
     else:
         comodel = self.rel.related_model
     if (isinstance(instance, BaseModel)
@@ -5921,6 +5964,15 @@ def _x2many_descriptor_get(self, instance, cls=None):
         # Un registro de ``new()`` no tiene filas que apunten a él: su One2many
         # vive sólo en el caché de la transacción (``write_new_one2many``).
         ids = env().transaction.field_data[self.rel].get(instance.pk, ())
+        return comodel._from_ids(env(), ids, ids)
+    if isinstance(instance.pk, NewId):
+        # Ídem para el ``Many2many``: su valor vive en la caché del campo,
+        # que es donde lo dejan ``new(vals)`` (``_update_cache``) y
+        # ``Many2many.write_new`` (``odoo19c: odoo/orm/fields_relational.py:
+        # 1596-1700``). Leerlo con el gestor de Django consultaba la tabla
+        # intermedia con el ``NewId`` como clave.
+        field = self.rel if self.reverse else self.field
+        ids = env().transaction.field_data[field].get(instance.pk, ())
         return comodel._from_ids(env(), ids, ids)
     if not isinstance(self, _related_descriptors.ManyToManyDescriptor):
         # El inverso puede estar pendiente de cálculo (un Many2one

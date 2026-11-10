@@ -1978,7 +1978,11 @@ class FieldDescriptor(DeferredAttribute):
                 and not environment.su):
             instance._check_field_access(field, 'write')
         field.write(instance, field.convert_to_write(value, instance))
-        instance.modified([field.name])
+        if not instance.__dict__.get(WRITING_VALUES):
+            # Dentro de ``write`` el anuncio es uno y al final
+            # (``self.modified(vals)``, ``models.py:4484``): ``field.write``
+            # no anuncia en la fuente.
+            instance.modified([field.name])
         self._mark_pending_inverse(instance)
 
 

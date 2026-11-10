@@ -1374,3 +1374,99 @@ class TestOrmComputeInverse(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_compute_inverse'
+
+
+class TestOrmComputeOnchange(TestOrmModel):
+    """≙ ``test_orm.compute.onchange`` (``odoo19c: odoo/addons/test_orm/
+    models/test_orm.py:880-937``): cómputos almacenados de sólo lectura
+    (``bar``) y editables (``baz``), uno sin dependencias (``quux``), y dos
+    x2many calculados, almacenados y editables: ``line_ids`` (``One2many``) y
+    ``tag_ids`` (``Many2many``)."""
+
+    _name = 'test_orm.compute.onchange'
+    _description = "Compute method as an onchange"
+
+    active = fields.Boolean(null=True)
+    foo = fields.Char(null=True)
+    bar = fields.Char(compute='_compute_bar', store=True, null=True)
+    baz = fields.Char(compute='_compute_baz', store=True, readonly=False,
+                      null=True)
+    quux = fields.Char(compute='_compute_quux')
+    count = fields.Integer(default=0, null=True)
+    line_ids = fields.One2many(
+        'test_orm.compute.onchange.line', 'record_id',
+        compute='_compute_line_ids', store=True, readonly=False,
+    )
+    #: La tabla intermedia lleva el nombre por defecto de la fuente
+    #: (``<modelo>_<comodelo>_rel``), declarado porque el de Django es otro.
+    tag_ids = fields.Many2many(
+        'test_orm.multi.tag',
+        'test_orm_compute_onchange_test_orm_multi_tag_rel',
+        'test_orm_compute_onchange_id', 'test_orm_multi_tag_id',
+        compute='_compute_tag_ids', store=True, readonly=False,
+    )
+
+    @onchange('foo')
+    def _onchange_foo(self):
+        self.count += 1
+
+    @depends('foo')
+    def _compute_bar(self):
+        for record in self:
+            record.bar = (record.foo or "") + "r"
+
+    @depends('active', 'foo')
+    def _compute_baz(self):
+        for record in self:
+            if record.active:
+                record.baz = (record.foo or "") + "z"
+
+    # special case: this field has no dependency
+    def _compute_quux(self):
+        self.quux = "quux"
+
+    @depends('foo')
+    def _compute_line_ids(self):
+        for record in self:
+            if not record.foo:
+                continue
+            if any(line.foo == record.foo for line in record.line_ids):
+                continue
+            # add a line with the same value as 'foo'
+            record.line_ids = [fields.Command.create({'foo': record.foo})]
+
+    @depends('foo')
+    def _compute_tag_ids(self):
+        Tag = self.env['test_orm.multi.tag']
+        for record in self:
+            if record.foo:
+                record.tag_ids = Tag.search([('name', '=', record.foo)])
+
+    def copy_data(self, default=None):
+        vals_list = super().copy_data(default=default)
+        return [dict(vals, foo=self.env._("%s (copy)", record.foo))
+                for record, vals in zip(self, vals_list)]
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_compute_onchange'
+
+
+class TestOrmComputeOnchangeLine(TestOrmModel):
+    """≙ ``test_orm.compute.onchange.line`` (``:940-950``)."""
+
+    _name = 'test_orm.compute.onchange.line'
+    _description = "Line-like model for test_orm.compute.onchange"
+
+    record_id = fields.Many2one('test_orm.compute.onchange',
+                                ondelete='cascade', null=True,
+                                related_name='+', db_column='record_id')
+    foo = fields.Char(null=True)
+    bar = fields.Char(compute='_compute_bar')
+
+    @depends('foo')
+    def _compute_bar(self):
+        for line in self:
+            line.bar = (line.foo or "") + "r"
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_compute_onchange_line'

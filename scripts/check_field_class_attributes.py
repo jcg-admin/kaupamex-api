@@ -369,6 +369,27 @@ def main():
 
     excluded_here = []
 
+    # QUINTA CEGUERA: una clase de Django puede servir a una clase de la
+    # fuente y a su ANCESTRO. ``ManyToManyField`` responde a ``_Relational``
+    # y a ``Many2many``; la clase que la describe es la más específica, y
+    # compararla también contra el ancestro publicaba como defecto el valor
+    # que hereda bien (``write_sequence`` 20 de ``_RelationalMulti`` contra
+    # el 0 que ``_Relational`` hereda de ``Field``).
+    def ancestors(reference_name):
+        seen, pending = set(), list(parents.get(reference_name, ()))
+        while pending:
+            current = pending.pop()
+            if current not in seen:
+                seen.add(current)
+                pending.extend(parents.get(current, ()))
+        return seen
+
+    def more_specific_owner(reference_name, django_class):
+        return any(
+            other != reference_name and django_class in classes
+            and reference_name in ancestors(other)
+            for other, classes in reachable.items())
+
     offenders, measured, collisions = [], 0, []
     for attribute in sorted(installed & set(overrides)):
         if attribute not in base:
@@ -384,7 +405,8 @@ def main():
                 if previous is not None and previous[1] != literal:
                     collisions.append(
                         f'{attribute}  {django_class.__name__}  '
-                        f'{previous[0]}={previous[1]} vs {reference_name}={literal}')
+                        f'{previous[0]}={previous[1]} '
+                        f'vs {reference_name}={literal}')
                 by_django[django_class] = (reference_name, literal)
 
         for django_class, (reference_name, literal) in by_django.items():
@@ -426,6 +448,8 @@ def main():
             for django_class in django_classes:
                 if django_class in by_django:
                     continue                   # otra clase de la fuente manda
+                if more_specific_owner(reference_name, django_class):
+                    continue                   # la manda su descendiente
                 if answered_by_descriptor(django_class, attribute):
                     excluded_here.append(
                         f'{attribute} en {django_class.__name__}')
@@ -437,7 +461,6 @@ def main():
                         f'{attribute}::{django_class.__name__}::'
                         f'{reference_name}(hereda {expected[0]})')
 
-    key = lambda row: row  # noqa: E731
     frozen = set()
     if BASELINE.is_file():
         frozen = {line.strip() for line in BASELINE.read_text().splitlines()
@@ -445,23 +468,27 @@ def main():
 
     if args.write_baseline:
         BASELINE.write_text(
-            '# Atributos de clase de campo que responden distinto de lo que la\n'
+            '# Atributos de clase de campo que responden distinto de lo que'
+            ' la\n'
             '# fuente declara. Deuda heredada CONGELADA (tarea #245): uno\n'
             '# listado no bloquea, uno nuevo si. Se retira la linea al\n'
-            '# corregirlo, o el baseline miente sobre deuda que ya no existe.\n'
-            + '\n'.join(sorted(offenders, key=key)) + '\n')
+            '# corregirlo, o el baseline miente sobre deuda que ya no'
+            ' existe.\n'
+            + '\n'.join(sorted(offenders)) + '\n')
         print(f'baseline escrito: {len(offenders)} entradas')
         return 0
 
-    fresh = sorted(set(offenders) - frozen, key=key)
+    fresh = sorted(set(offenders) - frozen)
 
     for row in collisions:
-        print(f'COLISION — dos clases de la fuente sobre la misma de Django:\n  {row}')
+        print('COLISION — dos clases de la fuente sobre la misma de '
+              f'Django:\n  {row}')
     if collisions:
         print()
 
     if fresh:
-        print(f'FAIL — {len(fresh)} atributo(s) responden distinto de la fuente,\n'
+        print(f'FAIL — {len(fresh)} atributo(s) responden distinto de la '
+              'fuente,\n'
               f'       fuera del baseline:\n')
         for row in fresh:
             attribute, django_name, reference_name = row.split('::')
@@ -478,9 +505,12 @@ def main():
             print(f'  {attribute:18s} {django_name:16s} '
                   f'la fuente declara {origen}{literal}  '
                   f'(aqui: '
-                  f'{answered_here_by_name(django_name, attribute, by_name)!r})')
-        print('\nEl mecanismo esta construido: install_class_attribute_overrides() en\n'
-              'src/orm/fields.py instala por clase concreta. Se extiende, no se\n'
+                  f'{answered_here_by_name(django_name, attribute,
+                                           by_name)!r})')
+        print('\nEl mecanismo esta construido: '
+              'install_class_attribute_overrides() en\n'
+              'src/orm/fields.py instala por clase concreta. Se extiende, '
+              'no se\n'
               'inventa uno nuevo.')
     else:
         print('OK: cada atributo responde lo que la fuente declara')
@@ -489,18 +519,22 @@ def main():
           f'{len(installed)} atributos instalados; '
           f'{len(offenders)} incumplidor(es), {len(frozen)} en baseline)')
     if unreachable:
-        detalle = '; '.join(f'{k} -> {", ".join(v)}' for k, v in unreachable.items())
-        print(f'(fuera del alcance por construccion: {detalle} — no desciende de '
+        detalle = '; '.join(f'{k} -> {", ".join(v)}'
+                            for k, v in unreachable.items())
+        print(f'(fuera del alcance por construccion: {detalle} — no '
+              'desciende de '
               f'models.Field, asi que el parche de clase no la alcanza)')
     if excluded_by_form:
         print(f'(fuera del alcance por forma: {", ".join(excluded_by_form)} '
               f'— la fuente los resuelve con una property, y su valor depende '
-              f'de la instancia; ningun recorrido por AST puede decidirlos. Su '
+              'de la instancia; ningun recorrido por AST puede decidirlos. '
+              'Su '
               f'control es de conducta: '
               f'tests/unit/orm/test_field_class_attributes.py)')
     if excluded_here:
         print(f'(fuera del alcance por forma NUESTRA: '
-              f'{", ".join(sorted(set(excluded_here)))} — aqui la respuesta es '
+              f'{", ".join(sorted(set(excluded_here)))} — aqui la respuesta '
+              'es '
               f'una property, asi que sobre la clase devuelve el descriptor y '
               f'no el valor. Mismo control de conducta)')
     return 1 if (fresh and args.strict) else 0
