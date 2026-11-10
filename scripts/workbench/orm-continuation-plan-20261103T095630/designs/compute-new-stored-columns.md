@@ -86,3 +86,15 @@ dependencia sin aplicar (`InconsistentMigrationHistory`). Lo que sí lo
 resuelve: declarar como dependencias explícitas las hojas actuales de cada
 app cuyos campos lee el cómputo, medidas con el grafo de `depends` del campo
 (`registry.field_depends`). Es el siguiente paso de la TASK.
+
+## El sitio del archivo (gate de `7ba6cd22`)
+
+La suite integral de `7ba6cd22` dio `2 failed, 12493 passed` (más los 5
+ambientales conocidos): `check_mirrored_roots` rechazó
+`src/orm/migration_operations.py` por no tener contraparte de archivo en
+`odoo/orm`. Se creó sin listar antes la raíz de la referencia, que es la
+segunda cláusula de `atributos-de-clase-de-modelo.md`. El comportamiento sí
+tiene hogar en la referencia (`BaseModel._auto_init`, dentro de
+`models.py`), así que se declaró en `scripts/mirrored_roots_baseline.txt`
+como *split* de `models.py`, igual que `inherits.py` (`6dad029a`), en vez
+de moverlo a un sitio sin relación con su contrato.
