@@ -29,7 +29,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class HrSkill(TimeStampedModel):
+class HrSkill(models.BaseModel, TimeStampedModel):
     """``hr.skill`` — una habilidad, dentro de un tipo/categoría."""
 
     _name = 'hr.skill'

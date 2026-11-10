@@ -22,9 +22,10 @@ from addons.hr_skills.models.hr_individual_skill_mixin import (
     _default_skill_type,
 )
 from orm import registry
-from orm.environments import context_scope
+from orm.environments import Environment, context_scope
 from orm.fields_textual import TranslatedValue
 from orm.models import order_to_django
+from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.django_db
 
@@ -38,8 +39,11 @@ def two_types():
     HrSkillType.objects.all().delete()
     first = HrSkillType.objects.create(name='Alpha', sequence=1)
     second = HrSkillType.objects.create(name='Beta', sequence=1)
-    first.update_field_translations('name', {'es_MX': 'Zeta'})
-    second.update_field_translations('name', {'es_MX': 'Eta'})
+    # ≙ ``TransactionCase.env`` (``odoo19c: odoo/tests/common.py:1192``):
+    # superusuario, como la suite de la referencia escribe sus datos.
+    with Environment(None, SUPERUSER_ID, {}):
+        first.update_field_translations('name', {'es_MX': 'Zeta'})
+        second.update_field_translations('name', {'es_MX': 'Eta'})
     yield first, second
     registry.clear_cache('stable')
 

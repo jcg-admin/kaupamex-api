@@ -36,7 +36,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class HrSkillLevel(TimeStampedModel):
+class HrSkillLevel(models.BaseModel, TimeStampedModel):
     """``hr.skill.level`` — un nivel de progreso dentro de un tipo."""
 
     _name = 'hr.skill.level'

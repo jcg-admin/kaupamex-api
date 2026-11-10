@@ -56,7 +56,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class HrResumeLine(TimeStampedModel):
+class HrResumeLine(models.BaseModel, TimeStampedModel):
     """``hr.resume.line`` — una línea del CV de un empleado."""
 
     _name = 'hr.resume.line'

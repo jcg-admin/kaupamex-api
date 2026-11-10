@@ -73,7 +73,7 @@ def _get_default_color():
     return random.randint(1, 11)
 
 
-class HrSkillType(TimeStampedModel):
+class HrSkillType(models.BaseModel, TimeStampedModel):
     """``hr.skill.type`` — el catálogo de tipos de habilidad/certificación."""
 
     _name = 'hr.skill.type'

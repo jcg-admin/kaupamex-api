@@ -7,11 +7,12 @@ preservados (DEC-KX-03). Porte completo — 4 de 4 campos, sin métodos.
 """
 
 import fields
+import models
 
 from addons.base.models import TimeStampedModel
 
 
-class HrResumeLineType(TimeStampedModel):
+class HrResumeLineType(models.BaseModel, TimeStampedModel):
     """``hr.resume.line.type`` — el tipo de una línea del currículum."""
 
     _name = 'hr.resume.line.type'

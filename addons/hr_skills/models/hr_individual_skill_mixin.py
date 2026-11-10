@@ -422,7 +422,8 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         ``_order = 'sequence, name'`` de ``hr.skill``."""
         for record in self:
             if record.skill_type:
-                record.skill = record.skill_type.skill_ids.first()
+                skills = record.skill_type.skill_ids
+                record.skill = skills[0] if skills else False
             else:
                 record.skill = False
 
@@ -436,8 +437,8 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
             else:
                 skill_levels = record.skill_type.skill_level_ids
                 record.skill_level = (
-                    skill_levels.filter(default_level=True).first()
-                    or skill_levels.first())
+                    skill_levels.filtered('default_level') or skill_levels[0]
+                    if skill_levels else False)
 
     @api.depends('skill_id', 'skill_level_id')
     def _compute_display_name(self):
