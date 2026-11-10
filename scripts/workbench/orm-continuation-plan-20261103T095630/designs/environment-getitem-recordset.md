@@ -29,9 +29,13 @@ mecanismos:
 - `env['x'].browse(())` en el código que necesita el recordset (13 llamadas
   `_from_ids(env(), (), ())` en `src` y `addons`).
 
-Defecto con forma de ejemplo: `src/orm/models.py:7186` escribe
-`self.env['res.currency.rate']()` —instancia la clase— donde la fuente lee
-el recordset.
+`src/orm/models.py:7186` escribe `self.env['res.currency.rate']()`
+—instancia la clase— donde la fuente lee el recordset (`models.py:1976`).
+No es un defecto suelto: `res.currency.rate` no deriva de `BaseModel`
+(`src/addons/base/models/res_currency.py:891`), así que no tiene recordset,
+y una fila sin guardar es la única forma de llamar a `_field_to_sql`, que
+es método de instancia. Se resuelve cuando el modelo adopte `BaseModel`
+(TASK-API-0397), no cambiando la línea.
 
 ## Consumidores que dependen de la clase (medido)
 
@@ -77,7 +81,7 @@ que no son `BaseModel` y seguirán devolviendo la clase.
 
 | Grupo | Contenido | Prueba |
 |---|---|---|
-| G0 | `:7186` (`self.env[...]()`) → el recordset, como la fuente | `sum_currency` del `read_group` |
+| G0 | `res.currency.rate` adopta `BaseModel`; entonces `:7186` lee el recordset, como la fuente | `test_sum_currency_joins_the_latest_rate` |
 | G1 | los 50 consumidores de `src`/`addons` pasan a no depender de que `env[...]` sea la clase (`type(...)`, métodos del ORM) — sin cambiar todavía `__getitem__` | regresión completa: comportamiento igual |
 | G2 | `__getitem__` devuelve `model._from_ids(self, (), ())` para un `BaseModel` | `test_environment_mapping.py` y las 6 aserciones `is` de tests pasan a comparar `type(...)`, con su razón |
 | G3 | `_on_empty_recordset` y los `browse(())` defensivos quedan redundantes: se retiran | anulación: retirar G2 hace caer las pruebas de G2 |
