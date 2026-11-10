@@ -92,3 +92,32 @@ declara cuántas y cuáles.
 
 La conducta de `update`/`upgrade` de un módulo ya instalado (versión,
 migraciones `pre`/`post` de Odoo, desinstalación): fuera de esta unidad.
+
+## L1 — implementación (2026-11-10)
+
+`IrModel._reflect_models(app_labels, module=None)` llama al final a
+`_update_model_xmlids(module, classes)`, que escribe `<módulo>.model_<nombre>`
+por `IrModelData._update_xmlids` para cada modelo cuya app es el módulo y que
+declara **su propio** `_name`. `Registry._reflect_all` le pasa
+`context.get('module')`. Sin módulo no escribe nada, como la fuente.
+
+Hallazgo de la implementación: el primer intento chocó en
+`ON CONFLICT DO UPDATE command cannot affect row a second time`. Dos modelos
+de `hr` (`HrDepartment`, `HrJob`) no declaraban `_name` y heredaban
+`'mail.thread'` del mixin. Medido en todo el árbol: **12** modelos concretos
+con `_name` heredado (`fleet` ×4, `hr` ×2, `analytic`, `base_automation`,
+`mass_mailing`, `stock.ReturnRequest`, `helpdesk.SupportTicket`,
+`website.StaticPage`). Por eso el filtro es `'_name' in vars(model)`, y los
+dos de `hr` reciben sus atributos de clase de la referencia (`_name`,
+`_description`, `_inherit`; `_order` en el departamento), con los que
+dependen de campos no portados declarados como pendientes en su docstring.
+`makemigrations hr --check`: sin cambios.
+
+Prueba: `tests/unit/base/test_reflect_models_xmlids.py` (4 casos; RED 3 de 4).
+Controles: sin la llamada caen exactamente 2
+(`test_the_module_models_get_their_xmlid`,
+`test_only_the_models_with_a_reference_name_get_an_xmlid`); sin el filtro de
+dueño cae exactamente 1 (`test_a_model_of_another_module_is_not_named_by_this_one`).
+Subconjunto derivado (`grep -rlE "_reflect_models|_reflect_all|init_models|
+hr\.department|hr\.job|HrDepartment|HrJob|..." tests/`, 9 directorios):
+**6189 passed, 65 skipped, 0 failed**.
