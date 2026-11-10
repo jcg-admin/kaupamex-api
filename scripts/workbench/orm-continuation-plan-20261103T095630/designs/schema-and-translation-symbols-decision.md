@@ -266,3 +266,40 @@ temporal dentro de un punto de guardado que se deshace.
 Subconjunto derivado (`grep` de los símbolos tocados en `tests/`): 201
 passed. Pendiente de s2: la base nueva y el alias distinto de `default` —los
 cubre ci-multidb al cerrar el bloque, cuando `_auto_init` tenga llamador.
+
+### s3 y s4 — resultado (2026-11-10T22:47:48)
+
+**s3, `_auto_init`.** Portado como conciliación: un modelo abstracto,
+proxy o no administrado (`_auto` ≙ `Meta.managed`) se salta; tabla o
+columna declarada ausente → `ValueError` que nombra la migración que falta;
+`_check_removed_columns` y `_add_sql_constraints` con su contrato.
+
+| Prueba | Anulación que la tumba (y sólo a ella) |
+|---|---|
+| `test_on_a_synchronised_schema_it_emits_no_schema_ddl` (`CaptureQueriesContext`: 0 `CREATE`/`ALTER`/`DROP`) | — es la prueba de que no hay segunda autoridad |
+| `test_it_relaxes_an_orphan_column` | sin `_check_removed_columns` |
+| `test_a_missing_declared_column_names_its_migration` | sin la comprobación de columnas |
+| `test_a_missing_table_names_its_migration` | sin `table_exists`; su primera forma (`match=TABLE`) **no discriminaba**, porque el error de columnas también nombra la tabla, y se ajustó a `match='Table <tabla> '` antes de ejecutar el control |
+
+**s4, llamador productivo.** `Registry.init_models` llama
+`_auto_init(using=<alias del registro>)` en cada modelo antes del reflejo,
+como `odoo/orm/registry.py:750-752`. `test_init_models_runs_the_reconciliation`
+cae sin la llamada. Efecto observado: la instalación de la sesión de
+pruebas ya concilia la base, y la prueba de s2 que suponía el estado
+«recién migrado» pasó a fijarlo explícitamente (`COMMENT … IS NULL`).
+
+**s1 integrado.** `_check_removed_columns` tiene ahora llamador productivo
+(`init_models` → `_auto_init`), con alias explícito.
+
+### s5 — el gancho `init` (pendiente, medido)
+
+La fuente llama `model.init()` tras `_auto_init` (`registry.py:752`).
+`BaseModel.init` está `not_verified` (`unresolved`) y dos modelos lo
+sobreescriben con efectos: `ir.config_parameter.init` (siembra parámetros,
+alias por defecto en su firma) y `hr.employee.public.init`
+(`CREATE OR REPLACE VIEW`, cuyo docstring dice que ningún flujo lo ejecuta y
+que su autoridad es una migración `RunSQL` pendiente). Cablear `init` sin
+resolver esos dos cambia la conducta de la instalación; queda como unidad
+propia: portar `BaseModel.init` (gancho vacío), pasar el alias a los dos
+overrides y decidir con medición si la vista de `hr.employee.public` la
+crea la migración o el gancho.
