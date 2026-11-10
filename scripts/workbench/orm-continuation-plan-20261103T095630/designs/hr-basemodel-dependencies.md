@@ -50,6 +50,54 @@ se verifica con la suite de su addon más `test_orm`.
 *Ciega a:* qué API de recordset usa cada consumidor de esos modelos; eso se
 mide por grupo antes de cambiar su base.
 
+## Unidad A — skills
+
+Medición exploratoria en un worktree aparte (`exp-hr-a`, base `fd0331d8`
+más el commit de Many2many): las cinco clases cambian su base a
+`(models.BaseModel, TimeStampedModel)`, la misma forma que
+`HrIndividualSkillMixin`. Sobre `tests/unit/hr_skills`,
+`tests/unit/hr_recruitment_skills`, `tests/unit/hr`,
+`tests/unit/orm/test_translated_ordering.py` y `tests/integration/test_orm`
+(el subconjunto derivado: los únicos directorios que nombran estos modelos):
+**4 failed, 562 passed, 3 errors**. Dos causas:
+
+1. `_compute_skill_id` y `_compute_skill_level_id` del mixin usaban la API
+   de `QuerySet` (`.first()`, `.filter(default_level=True)`) sobre
+   `skill_ids`/`skill_level_ids`. Con un comodelo `BaseModel` el valor es un
+   recordset; la fuente (`hr_individual_skill_mixin.py:230-247`) usa
+   `skill_ids[0] if skill_ids else False` y
+   `skill_levels.filtered('default_level') or skill_levels[0] if skill_levels
+   else False`. Se portan literales.
+2. El fixture `two_types` de `test_translated_ordering.py` escribía
+   traducciones sin entorno; `BaseModel.update_field_translations` aplica
+   `check_access` y la escritura sin usuario se rechaza. La referencia
+   escribe sus datos de prueba como superusuario (`TransactionCase.env`,
+   `odoo/tests/common.py:1192`); el fixture pasa a hacerlo dentro de
+   `Environment(None, SUPERUSER_ID, {})`, la forma del fixture `env` de
+   `test_orm`.
+
+Con las dos adaptaciones el subconjunto da **569 passed, 6 xfailed**. Sin
+migración: la herencia de `BaseModel` es Python y no cambia columnas.
+
+Prueba discriminante añadida en `test_individual_skill_recordset.py`: los
+cinco modelos derivan de `BaseModel` y `skill_type.skill_ids` es un
+recordset de `hr.skill`. Control: devolver las cinco bases a
+`TimeStampedModel` hace caer 10 pruebas — las 6 nuevas y los 4 cómputos del
+contrato (`test_individual_skill_contract.py`), que con la forma de la fuente
+dependen del recordset —; sobreviven las 30 restantes de `hr_skills` y
+`test_translated_ordering`.
+
+*Métrica:* el subconjunto derivado por `grep` de los nombres de modelo,
+clase y addon en `tests/`.
+*Ciega a:* consumidores que lleguen a estos modelos por herencia o por
+recorrido sin nombrarlos; por eso la unidad cierra con el gate completo.
+
+Gate completo en el worktree cualificado (`exp-hr-a`, base `8f69391c`,
+`THYROX_ROOT=/home/user/thyrox THYROX_CLONE_PREFIX=kaupamex-`,
+`pytest -n 4 -q --reuse-db -p no:randomly`): **12 587 passed, 66 skipped,
+6 xfailed, 0 failed, 5 errors** en 547 s; los 5 errores son los de
+`test_multidb_isolation.py` que exigen la base desechable de `ci-multidb`.
+
 ## Pendiente
 
 - Corregir la cita en el hallazgo de docs (`#365` → `TASK-API-0397`): es
