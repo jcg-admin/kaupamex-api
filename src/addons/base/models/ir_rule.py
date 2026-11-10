@@ -90,6 +90,7 @@ import logging
 
 from django.apps import apps
 
+import api
 import fields
 import models
 
@@ -191,6 +192,19 @@ class IrRule(TimeStampedModel):
         verbose_name='Modelo',
         help_text="Odoo model_id. Label del modelo, p.ej. 'sale.SaleOrder'.",
     )
+    #: ≙ ``model_id`` (``odoo19c: ir_rule.py:24``): ``Many2one('ir.model',
+    #: index=True, required=True, ondelete='cascade')``, en forma C. Es como
+    #: los archivos de datos nombran el modelo. ``save()`` lo mantiene igual
+    #: a ``model_name`` en los dos sentidos (``_sync_model_reference``), así
+    #: que los lectores de la etiqueta no cambian. ``null=True`` mientras
+    #: ``ir.model`` no tenga fila para todo modelo instalado (diseño
+    #: ``module-install-cycle.md``, L4d).
+    model_id = fields.Many2one(
+        'base.IrModel', db_column='model_id', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='rule_ids',
+        verbose_name='Modelo (ir.model)',
+        help_text='Odoo model_id.',
+    )
     groups = fields.Many2many(
         ResGroups,
         blank=True,
@@ -214,9 +228,8 @@ class IrRule(TimeStampedModel):
 
     class Meta:
         db_table = 'ir_rule'
-        # ≙ ``_order = 'model_id DESC,id'``; ver el docstring del módulo para
-        # por qué ordena por texto y no por id de la FK.
-        ordering = ['-model_name', 'id']
+        # ≙ ``_order = 'model_id DESC,id'``.
+        ordering = ['-model_id', 'id']
         verbose_name = 'Regla de registro'
         verbose_name_plural = 'Reglas de registro'
         constraints = [
@@ -316,6 +329,7 @@ class IrRule(TimeStampedModel):
         edición — y en una regla de registro eso no es una caché fría: es
         acceso concedido a filas que la regla nueva prohíbe.
         """
+        self._sync_model_reference()
         self._check_model_name()
         self._check_domain()
         result = super().save(*args, **kwargs)
@@ -780,6 +794,46 @@ class IrRule(TimeStampedModel):
             .filter(pk__in=pks)
             ._get_redirect_suggested_company(user=user)
         )
+
+    def _sync_model_reference(self):
+        """Iguala ``model_id`` y ``model_name`` antes de guardar.
+
+        Gana el que cambió: con ``model_id`` asignado (o cambiado) la etiqueta
+        sale de su fila de ``ir.model``; si sólo cambió la etiqueta,
+        ``model_id`` es la fila que la nombra, o ``None`` si el modelo no
+        tiene fila.
+        """
+        IrModel = apps.get_model('base', 'IrModel')
+        previous = None
+        if self.pk:
+            previous = type(self)._base_manager.filter(pk=self.pk).values(
+                'model_id', 'model_name').first()
+        model_changed = previous is None or (
+            previous['model_id'] != self.model_id_id)
+        name_changed = previous is not None and (
+            previous['model_name'] != self.model_name)
+        if self.model_id_id and (model_changed or not name_changed):
+            self.model_name = self.model_id.model
+        elif self.model_name:
+            self.model_id = IrModel.objects.filter(
+                model=self.model_name).first()
+
+    @api.depends('groups')
+    def _compute_global(self):
+        """≙ ``_compute_global`` (``odoo19c: ir_rule.py:53-56``)."""
+        setattr(self, 'global',
+                not self.groups.exists() if self.pk else True)
+
+
+#: ≙ ``global`` (``odoo19c: ir_rule.py:270-279``): ``global`` es palabra
+#: reservada, así que la fuente lo añade a la clase por asignación; aquí es
+#: ``add_to_class``, el mismo gesto en Django.
+IrRule.add_to_class('global', fields.Boolean(
+    compute='_compute_global', store=True, default=True,
+    verbose_name='Global',
+    help_text='If no group is specified the rule is global and applied to '
+              'everyone (Odoo global).',
+))
 
 
 class RuleScopedManager(models.AccessManager):
