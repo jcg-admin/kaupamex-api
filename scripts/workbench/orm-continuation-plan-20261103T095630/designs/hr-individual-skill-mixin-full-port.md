@@ -120,3 +120,32 @@ acuñe su identidad; no se inventa ninguna.
   (`_group_by_xmlid`). Sin ACL, un usuario que no sea superusuario no lee
   estos recordsets; hoy ningún consumidor lo hace. Dependencia registrada:
   datos de grupos de `hr` y sembrado de ACL por addon.
+
+## U5 — resultado (2026-11-10)
+
+Portados los cuatro transformadores y conectados a `hr.job.write`,
+`hr.employee.create` y `hr.employee.write` (`api@323e4c2c`; diseño,
+correcciones y anulación en `hr-individual-skill-commands.md`). Destapó y
+corrigió H-API-1213 (`_pop_one2many_values` excluía la relación inversa de
+Django).
+
+## U6 — dependencia medida, no portada (2026-11-10)
+
+Las tres piezas de U6 necesitan que el consumidor sea un recordset con
+`search`/`_search`:
+
+| Pieza de la fuente | Consumidor aquí | Qué falta |
+|---|---|---|
+| `hr_job._search_current_job_skill_ids` (`:33-48`) | `hr.job`: fila de Django, sin `search` (medido: `hasattr(HrJob, 'search')` → `False`) | que `hr.job` derive de `BaseModel` |
+| `hr_job.create` (`:55-60`) | `hr.job` sin el `create` del ORM | ídem |
+| `hr_employee._add_certification_activity_to_employees` (`:60-144`) | `hr.employee`: fila de Django | ídem para `hr.employee` |
+| `hr_skill_type` `@api.onchange` / `copy` | `hr.skill.type`: fila de Django | ídem para `hr.skill.type` |
+
+Adoptarlo no es un cambio de herencia: `hr.job` declara en la fuente seis
+atributos de clase (`_name`, `_description`, `_inherit`, `_order` y dos
+`Constraint`) y cinco métodos (`create`, `copy_data`, `write`,
+`_compute_employees`, `_compute_allowed_user_ids`) que aquí no están, y sus
+consumidores de Django (28 archivos nombran `HrJob`) pasan a recibir un
+recordset. Es el alcance de H-API-1083, cuya decisión sigue abierta en su
+sucesor (tarea #365). U6 queda bloqueado por esa decisión; no se porta un
+método sin llamador.
