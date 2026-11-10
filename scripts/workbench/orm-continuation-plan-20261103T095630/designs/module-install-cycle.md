@@ -121,3 +121,34 @@ dueño cae exactamente 1 (`test_a_model_of_another_module_is_not_named_by_this_o
 Subconjunto derivado (`grep -rlE "_reflect_models|_reflect_all|init_models|
 hr\.department|hr\.job|HrDepartment|HrJob|..." tests/`, 9 directorios):
 **6189 passed, 65 skipped, 0 failed**.
+
+## L2 — implementación (2026-11-10)
+
+La medición sobre los 124 módulos en orden de grafo (`probe_cycle.py`,
+transacción revertida) encontró tres fallos de `init_models`, y los tres
+eran divergencias con la referencia:
+
+| Fallo | Referencia | Corrección |
+|---|---|---|
+| `_reflect_selections` rechaza `res.partner.bank.acc_type` (etiquetas perezosas) | sólo refleja `if isinstance(field.selection, list)` (`ir_model.py:1547`); una selección invocable se salta | `if not isinstance(choices, (list, tuple))`: la invocable de Django (`CallableChoiceIterator`) se salta |
+| `check_indexes`: `'One2many' object has no attribute 'concrete'`, y `IrModelInherit` sin `_fields` | `Model._fields` + `field.column_type and field.store` (`registry.py:813-814`) | `model_field_registry(model)` (el registro de campos legible por la clase, también la de Django) y `getattr(field, 'concrete', False)` |
+| `_reflect_model_params` de `product.removal`: `Meta.ordering` con `OrderBy` | `'order': model._order`, siempre texto (`ir_model.py:430`) | `_ordering_text`: cada término a su texto (`name`, `name desc`) |
+
+Tras las tres, `init_models` termina para los 124 módulos y escribe 205
+XML-ID `model_*`.
+
+Pruebas nuevas: `test_reflect_selections_callable.py` (2),
+`test_reflect_model_params_ordering.py` (2), y dos casos en
+`test_index_method.py`. Controles: quitar el salto de la invocable cae
+exactamente `test_a_callable_selection_is_left_out`; volver a `_fields` cae
+exactamente el caso del modelo de Django; volver a `field.concrete` cae
+exactamente el del `One2many` declarado; el RED de la traducción del orden
+fue `TypeError: expected str instance, OrderBy found`.
+
+`test_registry_schema_axis.py` usa dobles de modelo: su `_Meta` expone ahora
+`get_fields()` y `private_fields`, la interfaz que `model_field_registry` lee
+de un modelo real.
+
+Subconjunto derivado (`grep -rlE "check_indexes|_reflect_selections|
+_reflect_model_params|_reflect_models|init_models|IrModelFieldsSelection"
+tests/`, 6 directorios): **7570 passed, 65 skipped, 6 xfailed, 0 failed**.
