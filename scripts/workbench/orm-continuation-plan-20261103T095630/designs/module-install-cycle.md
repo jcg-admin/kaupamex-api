@@ -267,3 +267,157 @@ Pruebas: la columna existe y su valor sigue al recurso al crear; asignar el
 usuario en el empleado lo escribe en el recurso; la migración rellena una fila
 previa; la regla `hr_employee_comp_rule` resuelve `user_id`. Control: sin la
 sincronía cae el caso de creación.
+
+### L4b — `res.partner.employee_ids` y `hr.departure.reason.country_code` (diseño)
+
+Las dos rutas que faltaban en las reglas de `hr_security.xml`
+(`odoo19c: addons/hr/security/hr_security.xml:64-66,100-101`):
+
+```
+[('partner_id.employee_ids', '=', False)]                         res.partner.bank
+[('country_code', 'in', user.env.companies.mapped('country_code') + [False])]
+```
+
+**`employee_ids`.** La fuente lo declara en `hr/models/res_partner.py:11-13`
+como `One2many('hr.employee', 'work_contact_id')`. Aquí el reverso ya existe
+y es el de `HrEmployee.work_contact`, pero con `related_name=
+'employee_work_contacts'`: el nombre no es el de la fuente y
+`model_field_registry(ResPartner)` no responde a `employee_ids`. TRAE: el
+reverso de Django es el One2many; se le da el nombre de la fuente
+(`related_name='employee_ids'`) y los nueve lectores pasan a él. No cambia el
+esquema; la migración es de estado (`AlterField`). En `res.users` el
+`employee_ids` propio (el de `user_id`, L4a) tapa al delegado del partner,
+igual que en la fuente, donde `hr/models/res_users.py` lo redeclara.
+
+**`country_code`.** La fuente: `fields.Char(related='country_id.code')`, no
+almacenado. Aquí es una `property`, invisible para el dominio. TRAE: el campo
+relacionado no almacenado del ORM (`Field.setup_related`,
+`_search_related` instalado desde `orm/domains.py`), con el texto de la
+fuente; el precedente es `ResCompany.country_code`
+(`src/addons/base/models/res_company.py:634`). La lectura del registro no
+cambia (`''` sin país).
+
+Pruebas: `ResPartner._fields['employee_ids']` existe y es el reverso de
+`work_contact`; un dominio `[('partner_id.employee_ids', '=', False)]` sobre
+`res.partner.bank` separa la cuenta de un empleado de otra; `country_code`
+está en `_fields` y `search([('country_code', 'in', ['MX', False])])` filtra
+por el código del país. Control: con el nombre viejo cae el caso del dominio
+de cuentas; con la `property` cae el de `country_code`.
+
+### L4c — datos de seguridad de `hr` y `hr_skills` por el manifiesto (diseño)
+
+Fuente: `odoo19c: addons/hr/security/{hr_security.xml,ir.model.access.csv}`
+y `addons/hr_skills/security/{hr_skills_security.xml,ir.model.access.csv}`,
+declarados en la clave `data` de cada manifiesto. Licencia LGPL-3: se copian
+y se adaptan, con atribución.
+
+**Conducta medida hoy.** `IrModelAccess.check` (`ir_model.py`, `check`)
+niega si el modelo no está en `_get_allowed_models`: sin filas de ACL un
+usuario que no es superusuario no lee ningún modelo de `hr`. Las pruebas de
+L4a lo mostraron (`PermissionDenied` al guardar sin `sudo`). Cargar los
+archivos es lo que da acceso a `base.group_user`, `hr.group_hr_user` y
+`hr.group_hr_manager`; no hay que elevar nada.
+
+**Resolución medida** contra los XML-ID que dejan L1–L3 (corrige las cifras
+de L4, que eran 18 y 13):
+
+| Archivo | Filas | Resuelven | Faltan y por qué |
+|---|---|---|---|
+| `hr/ir.model.access.csv` | 26 | 16 → **20** | 4 `resource.model_*`: los modelos de `resource` no declaran `_name` (se portan, ver abajo); 4 asistentes (`hr.departure.wizard`, `hr.version.wizard`, `hr.bank.account.allocation.wizard[_line]`): son modelos abstractos de Django, sin tabla ni fila en `ir.model`; 2 de `mail.activity.plan[_template]`: modelo no portado |
+| `hr_skills/ir.model.access.csv` | 20 | **14** | 5 de los tres informes y 1 del asistente de CV: modelos no portados |
+
+**`_name` de `resource`.** `ResourceResource`, `ResourceCalendar`,
+`ResourceCalendarAttendance` y `ResourceCalendarLeaves` no declaran los
+atributos de clase que la fuente declara (`resource/models/*.py`): se portan
+`_name`, `_description` y `_order` donde la fuente los tiene
+(`atributos-de-clase-de-modelo.md`). Con eso `resource.model_resource_*`
+existe y las cuatro filas de ACL resuelven. `db_table` ya coincide con el
+nombre.
+
+**Omisiones en el XML, declaradas en el propio archivo:**
+
+- `group_hr_manager.user_ids` (`base.user_root`, `base.user_admin`): esos
+  usuarios no existen en este árbol; los usuarios se crean por configuración.
+- `mail_plan_rule_group_hr_manager` y `mail_plan_templates_rule_group_hr_manager`:
+  modelo no portado.
+- En `hr_skills`, las cinco reglas de los tres informes.
+
+El resto se copia con su `noupdate`. Las rutas de dominio que nombran ya
+resuelven tras L4a y L4b.
+
+**Carga.** `'data': ['security/hr_security.xml', 'security/ir.model.access.csv']`
+en `addons/hr/__manifest__.py` (y su par en `hr_skills`); los lee `load_data`
+dentro de `load_modules` (L3). Sin migración, sin SQL, sin segundo cargador.
+
+Pruebas: tras `load_modules`, `hr.group_hr_user` existe, implica
+`base.group_user` y cuelga de `hr.res_groups_privilege_employees`;
+`hr.group_hr_manager` implica `hr.group_hr_user`; hay 20 filas de ACL de
+`hr` y 14 de `hr_skills` con el grupo de la fuente; las reglas
+`hr_employee_comp_rule` y `ir_rule_res_partner_bank_internal_users` existen
+con su dominio. Control: quitar el archivo del manifiesto hace caer
+exactamente esas pruebas. El acceso por privilegio lo mide L5.
+
+#### L4c — lo que destapó la carga real (2026-11-10)
+
+Cargar `hr_security.xml` por `load_data` encontró, en orden, cinco huecos
+del contrato que cualquier archivo de datos de seguridad necesita:
+
+1. **`res.groups.privilege` sin `_name`.** El cargador no podía nombrar el
+   modelo del primer registro. Se portan `_name`, `_description` y `_order`
+   (`odoo19c: odoo/addons/base/models/res_groups_privilege.py:5-7`).
+2. **`_load_records_create` no aplicaba comandos x2many.** La fuente crea
+   con `self.create(vals_list)`, que interpreta los triples de `Command` del
+   lado directo de un `Many2many`; aquí `_load_records_write` ya lo hacía y
+   `_load_records_create` asignaba la lista sobre el manager de Django.
+   Se aparta el lado directo y se aplica tras guardar con
+   `apply_many2many_commands`.
+3. **Comandos cortos.** `is_command_list` exigía tres elementos; la fuente
+   lee por índice y sus datos escriben `(4, id)`, `(3, id)` y `(5,)`. Se
+   admiten de uno a tres elementos y `command_triples` los completa en los
+   tres recorridos que desempaquetan.
+4. **Instalación no atómica.** Un registro que falló dejó en la base de
+   pruebas el grupo `Administrator` sin XML-ID (fila 3745, creada a las
+   18:46:20 por este trabajo y retirada a mano). La fuente confirma tras
+   cargar cada módulo y revierte el que falla; `load_modules` envuelve cada
+   paquete en `transaction.atomic(using)` y vuelca el entorno dentro.
+5. **`ir.rule.model_id` y `ir.rule.global`.** Ver L4d.
+
+Mientras L4d no esté, la clave `data` de los dos manifiestos no se activa:
+con ella la siembra de la sesión de pruebas falla en la primera regla.
+
+### L4d — `ir.rule.model_id` y `ir.rule.global` (diseño)
+
+Fuente (`odoo19c: odoo/addons/base/models/ir_rule.py`): `model_id =
+fields.Many2one('ir.model', required=True, index=True, ondelete='cascade')`
+y `global = fields.Boolean(compute='_compute_global', store=True)`. Aquí
+`model_id` es la divergencia declarada `model_name` (texto, tarea #139) y
+`global` la `property` `global_`. Los archivos de datos de la fuente nombran
+el modelo por `model_id ref="model_..."` y la regla de estructuras salariales
+escribe `global`.
+
+Medición: `IrModel.model` guarda el mismo texto que `IrRule.model_name`
+(la etiqueta de Django, p. ej. `hr.HrEmployee`), 58 lecturas de
+`model_name` sobre reglas y 23 `IrRule.objects.*` en `src`, `addons` y
+`tests`.
+
+Forma: `model_id` como FK a `IrModel` en forma C (`on_delete=CASCADE`,
+`db_index`), y `model_name` conservado como columna que `save()` mantiene
+igual a `model_id.model` en los dos sentidos —como `HrEmployee.user_id` en
+L4a—, de modo que los 58 lectores no cambian en este pase. La migración
+rellena `model_id` desde `model_name`. `_order` pasa a la forma de la fuente
+(`['-model_id', 'id']`). `global` se porta como columna almacenada calculada
+de los grupos (`True` sin grupos); el valor escrito por los datos coincide
+con el calculado.
+
+**Hallazgo al medir L4d (2026-11-10): `ir.model` no tiene fila para todo
+modelo instalado.** De las cuatro reglas de la base de pruebas, dos
+(`sale_subscription.CompanyModuleSubscription`,
+`sale_subscription.SubscriptionInvoice`) nombran modelos sin fila en
+`ir.model`; el módulo `sale_subscription` está `installed` y no tiene
+ninguna. Causa: `load_modules` pasa a `init_models` los nombres de
+`registry.models`, que sólo conoce los modelos con `_name`, mientras que la
+fuente refleja todo modelo del módulo (`_reflect_models` sobre el registro
+completo). Consecuencia para L4d: `model_id` no puede ser `NOT NULL` hasta
+que la reflexión cubra todo modelo instalado; se declara `null=True` con esta
+condición de cierre, y el relleno deja sin `model_id` las filas cuyo modelo
+no tiene fila.
