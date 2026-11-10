@@ -52,10 +52,14 @@ Los nombres de los ``Many2one`` son los de Django (``skill``,
    * - ``_expire_individual_skills`` / ``_create_individual_skills`` /
        ``_write_individual_skills`` / ``_get_transformed_commands``
        (``:257-537``)
-     - pendiente: U5 del diseño. El bloqueo que se declaraba aquí —"el
-       protocolo de comandos x2many no existe en este ORM"— es falso:
-       ``orm.commands`` y ``apply_one2many_commands`` existen. Lo que faltaba
-       era que los consumidores fueran recordsets (U1).
+     - portados (U5). Los consumen ``hr.job.write``, ``hr.employee.create``
+       y ``hr.employee.write`` (``overrides=``, ≙ ``super()``). DIVERGENCIA
+       de defecto en ``_get_transformed_commands``: la fuente llama
+       ``updated_ids.append`` sobre un ``set`` (``:525``); se porta la
+       intención con ``set.add``. En ``_write_individual_skills`` el
+       registro escrito se archiva dos veces, igual que en la fuente
+       (``:479``): ``_create_individual_skills`` lo encuentra vigente.
+
 
 Divergencia declarada
 =====================
@@ -66,7 +70,7 @@ llamada sola.
 """
 
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 
 import api
 import fields
@@ -400,7 +404,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
 
     def _compute_certification_skill_type_count(self):
         """≙ ``_compute_certification_skill_type_count`` (``:220-225``)."""
-        count = self.env['hr.skill.type'].objects.filter(
+        count = HrSkillType.objects.filter(
             is_certification=True).count()
         for record in self:
             record.certification_skill_type_count = count
@@ -453,33 +457,259 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         )
 
     # ------------------------------------------------------------------
-    # Pendiente — transformadores de comandos (U5 del diseño)
+    # Transformadores de comandos — ≙ ``:257-537``
     # ------------------------------------------------------------------
 
     def _expire_individual_skills(self):
-        """Pendiente — U5 del diseño (``:257-295``)."""
-        raise NotImplementedError(
-            'Transformador de comandos pendiente de portar — '
-            'U5 de hr-individual-skill-mixin-full-port.md.',
-        )
+        """≙ ``_expire_individual_skills`` (``:257-294``).
+
+        Archiva todo registro de ``self``: si no venció y archivarlo no choca
+        con otro, ``valid_to`` pasa a ayer; si se creó desde ayer, ya venció
+        o archivarlo chocaría, se borra. Devuelve comandos ``WRITE`` y
+        ``UNLINK``.
+        """
+        yesterday = fields.Date.today() - timedelta(days=1)
+        empty = self.env[self._name].browse(())
+        to_remove = empty
+        to_archive = empty
+        for individual_skill in self:
+            if (individual_skill.valid_from >= yesterday
+                    or (individual_skill.valid_to
+                        and individual_skill.valid_to <= yesterday)):
+                to_remove += individual_skill
+            else:
+                to_archive += individual_skill
+        if to_archive:
+            linked = self._linked_field_name()
+            overlapping_dict = self._get_overlapping_individual_skill([{
+                linked: skill[linked].id,
+                'skill_id': skill.skill.id,
+                'id': skill.id,
+                'valid_from': skill.valid_from,
+                'valid_to': yesterday,
+                'skill_level_id': skill.skill_level.id,
+                'is_certification': skill.is_certification,
+            } for skill in to_archive])
+            new_overlapped_skill_ids = []
+            for new_skills in overlapping_dict.values():
+                for new_skill in new_skills:
+                    new_overlapped_skill_ids.append(new_skill['id'])
+            changed_to_remove = to_archive.filtered(
+                lambda ind_skill: ind_skill.id in new_overlapped_skill_ids)
+            to_archive -= changed_to_remove
+            to_remove += changed_to_remove
+        return ([[2, skill.id] for skill in to_remove]
+                + [[1, skill.id, {'valid_to': yesterday}]
+                   for skill in to_archive])
 
     def _create_individual_skills(self, vals_list):
-        """Pendiente — U5 del diseño."""
-        raise NotImplementedError(
-            'Transformador de comandos pendiente de portar — '
-            'U5 de hr-individual-skill-mixin-full-port.md.',
-        )
+        """≙ ``_create_individual_skills`` (``:296-415``).
+
+        Traduce comandos ``CREATE`` en ``CREATE``, ``WRITE`` y ``UNLINK``
+        para conservar el historial y respetar las restricciones: un valor
+        repetido en el lote se crea una vez, una certificación idéntica ya
+        existente se omite y una habilidad regular vigente del mismo
+        individuo se archiva.
+        """
+        can_edit_certification_validity_period = (
+            self._can_edit_certification_validity_period())
+        linked = self._linked_field_name()
+        seen_skills = set()
+        skills_to_archive = self.env[self._name].browse(())
+        vals_to_return = []
+
+        validity_domain = fields.Domain.OR([
+            fields.Domain('valid_to', '=', False),
+            fields.Domain('valid_to', '>=', fields.Date.today()),
+        ])
+        if can_edit_certification_validity_period:
+            validity_domain = fields.Domain.OR([
+                validity_domain,
+                fields.Domain('is_certification', '=', True),
+            ])
+        existing_skills_domain = fields.Domain.AND([
+            fields.Domain.OR([
+                fields.Domain.AND([
+                    fields.Domain(linked, '=', vals.get(linked, False)),
+                    fields.Domain(
+                        'skill_id', '=', vals.get('skill_id', False)),
+                ])
+                for vals in vals_list
+            ]),
+            validity_domain,
+        ])
+        existing_skills = self.env[self._name].search(existing_skills_domain)
+        existing_skills_grouped = existing_skills.grouped(
+            lambda skill: (skill[linked].id, skill.skill.id))
+
+        if can_edit_certification_validity_period:
+            certification_set = {}
+            for cert in existing_skills.filtered(lambda s: s.is_certification):
+                key = (
+                    cert[linked].id,
+                    cert.skill.id,
+                    cert.skill_level.id,
+                    fields.Date.from_string(cert.valid_from),
+                    fields.Date.from_string(cert.valid_to),
+                )
+                certification_set[key] = cert
+            certification_types = set(
+                HrSkillType.objects.filter(
+                    pk__in=[vals['skill_type_id'] for vals in vals_list],
+                    is_certification=True,
+                ).values_list('pk', flat=True))
+        for vals in vals_list:
+            individual_skill_id = vals.get(linked, False)
+            skill_id = vals['skill_id']
+            skill_type_id = vals['skill_type_id']
+            skill_level_id = vals['skill_level_id']
+            valid_from = fields.Date.from_string(vals.get('valid_from'))
+            valid_to = fields.Date.from_string(vals.get('valid_to'))
+
+            if can_edit_certification_validity_period:
+                is_certificate = skill_type_id in certification_types
+            else:
+                is_certificate = False
+
+            skill_key = (individual_skill_id, skill_id, valid_from, valid_to)
+            # Remove duplicate skills
+            if skill_key in seen_skills:
+                continue
+            seen_skills.add(skill_key)
+
+            if is_certificate:
+                key = (individual_skill_id, skill_id, skill_level_id,
+                       valid_from, valid_to)
+                # Remove duplicate certification
+                if certification_set.get(key):
+                    continue
+            else:
+                # Archive existing regular skill if the person already have
+                # one with the same skill
+                existing_skill = existing_skills_grouped.get(
+                    (individual_skill_id, skill_id))
+                if existing_skill:
+                    skills_to_archive += existing_skill
+
+            vals_to_return.append(vals)
+
+        return (skills_to_archive._expire_individual_skills()
+                + [[0, 0, new_create_val]
+                   for new_create_val in vals_to_return])
 
     def _write_individual_skills(self, commands):
-        """Pendiente — U5 del diseño."""
-        raise NotImplementedError(
-            'Transformador de comandos pendiente de portar — '
-            'U5 de hr-individual-skill-mixin-full-port.md.',
-        )
+        """≙ ``_write_individual_skills`` (``:417-479``).
+
+        Un ``write`` que no toca ``skill_type_id``, ``skill_id``,
+        ``skill_level_id`` ni el campo ligado pasa igual; uno que los toca
+        archiva el registro y crea otro con los valores del registro, los de
+        ``vals`` (que mandan) y los campos pasivos. Las fechas sólo se
+        conservan en una certificación.
+        """
+        linked = self._linked_field_name()
+        self_dict = self.grouped('id')
+        result_command = []
+        create_vals = []
+        remove_from_expire = self.env[self._name].browse(())
+
+        def _get_passive_field_value(field, skill):
+            """El valor de ``field`` listo para un ``vals``: el id de un
+            ``Many2one``, los ids de un x2many, el valor tal cual si no."""
+            field_type = self._fields[field].type
+            if field_type == 'many2one':
+                return skill[field].id
+            if field_type in ('many2many', 'one2many'):
+                return skill[field].ids
+            return skill[field]
+
+        for command in commands:
+            ind_skill = self_dict.get(command[1])
+            vals = command[2]
+            if not any(key in vals for key in
+                       ['skill_type_id', 'skill_id', 'skill_level_id',
+                        linked]):
+                result_command.append([1, ind_skill.id, vals])
+                remove_from_expire += ind_skill
+                continue
+
+            passive_vals = {
+                field: vals.get(field, _get_passive_field_value(
+                    field, ind_skill))
+                for field in self._get_passive_fields()
+            }
+            new_vals = {
+                linked: vals.get(linked, ind_skill[linked].id),
+                'skill_id': vals.get('skill_id', ind_skill.skill.id),
+                'skill_level_id': vals.get(
+                    'skill_level_id', ind_skill.skill_level.id),
+                'skill_type_id': vals.get(
+                    'skill_type_id', ind_skill.skill_type.id),
+                **passive_vals,
+            }
+            skill_type = HrSkillType.objects.get(
+                pk=new_vals['skill_type_id'])
+            valid_from = vals.get(
+                'valid_from',
+                ind_skill.valid_from if skill_type.is_certification
+                else fields.Date.today())
+            valid_to = vals.get(
+                'valid_to',
+                ind_skill.valid_to if skill_type.is_certification else False)
+            new_vals.update({'valid_from': valid_from, 'valid_to': valid_to})
+            create_vals.append(new_vals)
+        return (result_command
+                + (self - remove_from_expire)._expire_individual_skills()
+                + self.env[self._name].browse(())._create_individual_skills(
+                    create_vals))
 
     def _get_transformed_commands(self, commands, individuals):
-        """Pendiente — U5 del diseño."""
-        raise NotImplementedError(
-            'Transformador de comandos pendiente de portar — '
-            'U5 de hr-individual-skill-mixin-full-port.md.',
-        )
+        """≙ ``_get_transformed_commands`` (``:481-537``).
+
+        Reparte los comandos ``1``, ``2`` y ``0`` (copiando el ``0`` por cada
+        individuo cuando los hay), descarta el ``1`` de un id que también se
+        borra y devuelve ``expire(borrados) + write(escritos) +
+        create(creados)``.
+
+        DIVERGENCIA de defecto, declarada: en la rama del id mixto la fuente
+        reinicia ``updated_ids = set()`` y después llama a
+        ``updated_ids.append(...)``, que lanzaría ``AttributeError``. Se porta
+        la intención —conservar los ``1`` no mixtos— con un ``set.add``.
+        """
+        if not commands:
+            return None
+        linked = self._linked_field_name()
+        updated_ids = set()
+        updated_commands = []
+        created_values = []
+        unlinked_ids = set()
+        for command in commands:
+            if command[0] == 1:
+                updated_ids.add(command[1])
+                updated_commands.append(command)
+            elif command[0] == 2:
+                unlinked_ids.add(command[1])
+            elif command[0] == 0:
+                if individuals:
+                    for individual in individuals:
+                        individual_command = command[2]
+                        individual_command[linked] = individual.id
+                        created_values.append(individual_command)
+                else:
+                    created_values.append(command[2])
+        mixed_command_ids = list(updated_ids & unlinked_ids)
+        if mixed_command_ids:
+            # reset updated values
+            updated_ids = set()
+            updated_commands = []
+            for command in commands:
+                if command[1] not in mixed_command_ids and command[0] == 1:
+                    updated_commands.append(command)
+                    updated_ids.add(command[1])
+        model = self.env[self._name]
+        unlinked_commands = model.browse(
+            list(unlinked_ids))._expire_individual_skills()
+        updated_commands = model.browse(
+            list(updated_ids))._write_individual_skills(updated_commands)
+        created_commands = model.browse(())._create_individual_skills(
+            created_values)
+        return unlinked_commands + updated_commands + created_commands

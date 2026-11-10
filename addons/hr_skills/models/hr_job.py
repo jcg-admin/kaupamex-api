@@ -31,9 +31,13 @@ Porte símbolo por símbolo — 3 campos + 4 métodos
        consumiría un futuro filtro DRF sobre este campo
    * - ``_compute_skill_ids`` (``:50-53``)
      - portado
-   * - ``create`` (``:55-60``) / ``write`` (``:62-66``)
-     - BLOQUEADOS — protocolo de comandos x2many (ver DIVERGENCIA 3 de
-       ``hr_individual_skill_mixin.py``)
+   * - ``write`` (``:62-66``)
+     - portado — ``overrides=`` (≙ ``super()``): los comandos pasan por
+       ``_get_transformed_commands`` antes de ``RecordLoaderMixin.write``
+   * - ``create`` (``:55-60``)
+     - DEPENDENCIA INSATISFECHA — ``hr.job`` es un modelo de Django sin el
+       ``create`` del ORM (no hay a quién entregar el ``super()``); se
+       cierra con su adopción de ``BaseModel`` (H-API-1083)
 """
 
 from datetime import date
@@ -41,6 +45,7 @@ from datetime import date
 import fields
 import models
 
+from orm.environments import env
 from orm.model_classes import extend_model
 
 
@@ -88,7 +93,23 @@ def apply_hr_skills_hr_job_extensions():
             '_compute_current_job_skill_ids': _compute_current_job_skill_ids,
             '_compute_skill_ids': _compute_skill_ids,
         },
+        overrides={'write': write},
         propiedades={
             'current_job_skill_ids': current_job_skill_ids,
         },
     )
+
+
+def write(self, previous, vals):
+    """≙ ``write`` (``:62-66``): los comandos de ``job_skill_ids`` (y los de
+    ``current_job_skill_ids``, que la fuente suma) pasan por
+    ``_get_transformed_commands`` antes de aplicarse, para que una habilidad
+    escrita archive la anterior en vez de pisarla."""
+    if 'current_job_skill_ids' in vals or 'job_skill_ids' in vals:
+        vals_job_skill = (list(vals.pop('current_job_skill_ids', []))
+                          + list(vals.get('job_skill_ids', [])))
+        vals['job_skill_ids'] = (
+            env()['hr.job.skill'].browse(())
+            ._get_transformed_commands(
+                vals_job_skill, type(self).objects.filter(pk=self.pk)))
+    return previous(vals)

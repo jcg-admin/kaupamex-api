@@ -20,9 +20,8 @@ Porte símbolo por símbolo — 6 campos + 8 métodos
        ``hr_skills.HrEmployeeSkill.employee``
        (``related_name='employee_skill_ids'``)
    * - ``current_employee_skill_ids`` (compute, readonly=False, ``:20-21``)
-     - propiedad de sólo lectura — la escritura anidada es parte del
-       protocolo de comandos BLOQUEADO (ver ``hr_individual_skill_
-       mixin.py``, DIVERGENCIA 3)
+     - propiedad de sólo lectura; sus comandos en ``vals`` se suman a
+       ``employee_skill_ids`` en ``create``/``write``, como en la fuente
    * - ``skill_ids`` (Many2many, compute+store, ``:22``)
      - portado — columna real (``store=True``); recómputo
        ``_compute_skill_ids()`` disponible (sin motor de ``@api.depends``)
@@ -39,9 +38,9 @@ Porte símbolo por símbolo — 6 campos + 8 métodos
    * - ``_compute_display_certification_page`` (``:42-43``)
      - portado
    * - ``create`` (``:45-51``) / ``write`` (``:53-58``)
-     - BLOQUEADOS — protocolo de comandos x2many (ver DIVERGENCIA 3 de
-       ``hr_individual_skill_mixin.py``); sin ellos, la escritura anidada
-       de habilidades desde el ``vals`` del empleado no tiene transporte
+     - portados — ``overrides=`` sobre ``DefaultGetMixin.create`` y
+       ``RecordLoaderMixin.write``; los comandos pasan por
+       ``_get_transformed_commands``
    * - ``_add_certification_activity_to_employees`` (``:60-144``)
      - BLOQUEADO por ausencia de ``Domain`` exportado (``fields.Domain`` —
        tarea **#356** de ``docs: source/fields/__init__.py``); depende
@@ -73,6 +72,7 @@ from addons.base.models import ResUsers
 from addons.hr.models.hr_employee import HrEmployee
 from addons.hr_skills.models.hr_employee_skill import HrEmployeeSkill
 from addons.hr_skills.models.hr_skill_type import HrSkillType
+from orm.environments import env
 from orm.model_classes import extend_model
 
 
@@ -235,9 +235,43 @@ def apply_hr_skills_hr_employee_extensions():
             ),
             'get_internal_resume_lines': get_internal_resume_lines,
         },
+        overrides={'create': create, 'write': write},
         propiedades={
             'current_employee_skill_ids': current_employee_skill_ids,
             'certification_ids': certification_ids,
             'display_certification_page': display_certification_page,
         },
     )
+
+
+def _pop_employee_skill_commands(vals):
+    """Los comandos que la fuente junta en ``employee_skill_ids``: los de
+    ``current_employee_skill_ids`` y ``certification_ids`` (que se retiran
+    de ``vals``) más los propios (``:48-49``, ``:55-56``)."""
+    return (list(vals.pop('current_employee_skill_ids', []))
+            + list(vals.pop('certification_ids', []))
+            + list(vals.get('employee_skill_ids', [])))
+
+
+def create(cls, previous, vals_list, *args, **kwargs):
+    """≙ ``create`` (``:45-51``). En la fuente ``self`` es el recordset vacío
+    del modelo, así que los ``CREATE`` no se copian por individuo. Un
+    ``dict`` suelto se acepta como lo acepta ``@api.model_create_multi``."""
+    if isinstance(vals_list, dict):
+        vals_list = [vals_list]
+    for vals in vals_list:
+        vals['employee_skill_ids'] = (
+            env()['hr.employee.skill'].browse(())._get_transformed_commands(
+                _pop_employee_skill_commands(vals), cls.objects.none()))
+    return previous(vals_list, *args, **kwargs)
+
+
+def write(self, previous, vals):
+    """≙ ``write`` (``:53-58``)."""
+    if ('current_employee_skill_ids' in vals or 'certification_ids' in vals
+            or 'employee_skill_ids' in vals):
+        vals['employee_skill_ids'] = (
+            env()['hr.employee.skill'].browse(())._get_transformed_commands(
+                _pop_employee_skill_commands(vals),
+                type(self).objects.filter(pk=self.pk)))
+    return previous(vals)

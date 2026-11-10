@@ -3141,12 +3141,13 @@ class RecordLoaderMixin(FieldSqlMixin):
         for fname in list(values):
             field = registry_.get(fname)
             # Sólo la relación inversa de Django: un ``fields.One2many``
-            # declarado (``type == 'one2many'``) aplica sus comandos con su
-            # propio descriptor al asignarse, y desde que figura en
-            # ``_fields`` también aparecería aquí.
+            # declarado aplica sus comandos con su propio descriptor al
+            # asignarse, y desde que figura en ``_fields`` también
+            # aparecería aquí. Se distingue por su clase: el ``type`` no
+            # sirve, porque ``ForeignObjectRel.type`` también vale
+            # ``'one2many'`` (``orm/fields.py``).
             if (getattr(field, 'one_to_many', False)
-                    and not isinstance(field, Field)
-                    and getattr(field, 'type', None) != 'one2many'
+                    and not isinstance(field, (Field, DeclaredOne2many))
                     and is_command_list(values[fname])):
                 popped.append((field, values.pop(fname)))
         return popped
