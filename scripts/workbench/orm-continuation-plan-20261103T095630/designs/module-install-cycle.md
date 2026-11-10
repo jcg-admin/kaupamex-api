@@ -421,3 +421,30 @@ completo). Consecuencia para L4d: `model_id` no puede ser `NOT NULL` hasta
 que la reflexión cubra todo modelo instalado; se declara `null=True` con esta
 condición de cierre, y el relleno deja sin `model_id` las filas cuyo modelo
 no tiene fila.
+
+L4d implementado: `model_id` (forma C, `CASCADE`, `related_name='rule_ids'`
+≙ `ir.model.rule_ids`) con `_sync_model_reference` en `save()`, `global`
+añadido con `add_to_class` como la fuente lo añade con `setattr`, almacenado
+y calculado de `groups` por el mecanismo de `modified` del `m2m_changed`; la
+migración `base.0105` rellena las dos columnas. Un `QuerySet` de Django no
+vuelca los calculados pendientes antes de filtrar (la búsqueda de la fuente
+sí, `flush_model` de los campos del dominio): la prueba vuelca a mano.
+
+### L4e — el usuario del contexto de evaluación al instalar (medido, pendiente)
+
+Con L4d, la carga de `hr_security.xml` llega a `hr_employee_comp_rule` y su
+validación (`_check_domain`, ≙ `@api.constrains('domain_force')`) falla:
+`'NoneType' object has no attribute 'id'` al evaluar
+`user.employee_id.parent_id.id`. Dos causas medidas:
+
+1. `IrRule._eval_context` usa `user=None` si nadie lo pasa, y dentro de
+   `Environment(using, SUPERUSER_ID, {})` `get_current_user()` devuelve
+   `None`: no existe el `base.user_root` de la fuente (uid 1), que es el
+   `env.user` con el que la fuente instala.
+2. `res.users.employee_id` (hr) devuelve `None` sin empleado; en la fuente es
+   un recordset vacío, sobre el que `.parent_id.id` es `False`.
+
+Condición de cierre: `env.user` del superusuario existe como registro (la
+fila de `base.user_root` o su equivalente declarado) y la lectura de un
+Many2one vacío por la ruta del dominio no levanta. Hasta entonces la clave
+`data` de los manifiestos de `hr` y `hr_skills` sigue sin activar.
