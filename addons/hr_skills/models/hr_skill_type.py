@@ -62,6 +62,7 @@ Divergencias declaradas
 import random
 
 import fields
+import models
 
 from addons.base.models import TimeStampedModel
 from exceptions import ValidationError
@@ -111,7 +112,7 @@ class HrSkillType(TimeStampedModel):
 
     class Meta:
         db_table = 'hr_skill_type'
-        ordering = ['sequence', 'name']
+        ordering = ['sequence', models.TranslatedValue('name').asc()]
         verbose_name = 'Tipo de habilidad'
         verbose_name_plural = 'Tipos de habilidad'
 

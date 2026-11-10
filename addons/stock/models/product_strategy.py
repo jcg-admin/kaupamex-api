@@ -159,7 +159,7 @@ class ProductRemoval(TimeStampedModel):
 
     class Meta:
         db_table = 'product_removal'
-        ordering = ['name']
+        ordering = [models.TranslatedValue('name').asc()]
         verbose_name = 'Estrategia de retiro'
         verbose_name_plural = 'Estrategias de retiro'
 

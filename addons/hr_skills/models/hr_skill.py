@@ -52,7 +52,7 @@ class HrSkill(TimeStampedModel):
 
     class Meta:
         db_table = 'hr_skill'
-        ordering = ['sequence', 'name']
+        ordering = ['sequence', models.TranslatedValue('name').asc()]
         verbose_name = 'Habilidad'
         verbose_name_plural = 'Habilidades'
 

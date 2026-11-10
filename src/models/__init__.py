@@ -121,6 +121,7 @@ from orm.models import (
 )
 from orm.model_classes import is_model_class, is_model_definition
 from orm.models_transient import TransientModel
+from orm.fields_textual import TranslatedValue
 from orm.table_objects import Constraint, Index, UniqueIndex
 from orm.utils import (
     READ_GROUP_NUMBER_GRANULARITY,

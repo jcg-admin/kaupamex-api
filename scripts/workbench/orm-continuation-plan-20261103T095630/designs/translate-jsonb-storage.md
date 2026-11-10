@@ -222,3 +222,18 @@ hidrata la fila) ni el compilador de Django.
 2. `order_to_django(HrSkillType, 'sequence, name')` idem.
 3. `_default_skill_type()` devuelve el primero por el texto del idioma.
 4. `TranslatedValue` se deconstruye y reconstruye (migración).
+
+### Resultado de la segunda unidad
+
+- RED: el módulo de pruebas no importa (`TranslatedValue` no existía); 4/4.
+- GREEN: `test_translated_ordering.py` 4 passed; con `test_translated_char.py`
+  y la guarda de sincronía, 19 passed.
+- Anulación, restaurada con `cmp`: sin `TranslatedValue` en
+  `order_to_django` cae sólo su caso; `Meta.ordering` de vuelta a `'name'`
+  tumba sólo el orden por defecto; el consumidor de `hr_skills` con `'name'`
+  tumba sólo `_default_skill_type`.
+- Regresión derivada (`tests/integration/sale`, `tests/unit/{hr,
+  hr_recruitment_skills,orm,scripts,stock}`): `1 failed, 4142 passed`. El
+  fallo era la guarda de la fachada: un addon no importa de `orm.*`. Se
+  publica `TranslatedValue` por la fachada `models` (junto a `Constraint` e
+  `Index`) y los addons usan `models.TranslatedValue`.

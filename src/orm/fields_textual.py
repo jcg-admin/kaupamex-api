@@ -76,7 +76,8 @@ from orm.fields_nonstored import (
 from tools.misc import SENTINEL
 from tools.sql import SQL, convert_column, convert_column_translatable
 
-__all__ = ['Char', 'Text', 'Html', 'LangProxyDict', 'TranslatedChar']
+__all__ = ['Char', 'Text', 'Html', 'LangProxyDict', 'TranslatedChar',
+           'TranslatedValue']
 
 #: El idioma base de la fuente: el valor que todo campo traducible conserva
 #: y al que cae la lectura sin traducción (``fields_textual.py:216-224``).
@@ -470,25 +471,33 @@ def _fallback_langs(lang):
     return (lang, 'en_US')
 
 
-class _TranslatedText(models.Func):
+class TranslatedValue(models.Func):
     """El texto del idioma activo con respaldo — ≙ la rama de ``to_sql``
-    (``:394-402``) para una consulta de Django.
+    (``fields_textual.py:394-402``) para una consulta de Django.
 
-    ``COALESCE(col->>idioma, col->>'en_US')``. Sin esta expresión un
-    ``.filter(name='Kg')`` compararía la columna ``jsonb`` con ``'"Kg"'``: no
-    da error y no casa nada.
+    ``COALESCE(col->>idioma, col->>'en_US')``. La usan los lookups de texto,
+    ``order_to_django`` y el ``Meta.ordering`` de los modelos que ordenan por
+    un campo traducible: sin ella, un filtro compararía la columna ``jsonb``
+    con ``'"Kg"'`` (no da error y no casa nada) y un orden seguiría el
+    ``jsonb`` crudo y no el texto.
+
+    Recibe el nombre del campo o una expresión, y toma el campo del ``Col``
+    ya resuelto: así es serializable en una migración
+    (``TranslatedValue('name').asc()`` en ``Meta.ordering``).
     """
 
     output_field = models.TextField()
 
-    def __init__(self, expression, field):
-        super().__init__(expression)
-        self.translated_field = field
+    def __init__(self, expression, **extra):
+        if isinstance(expression, str):
+            expression = models.F(expression)
+        super().__init__(expression, **extra)
 
     def as_sql(self, compiler, connection, **extra_context):
-        column, params = compiler.compile(self.source_expressions[0])
-        langs = self.translated_field.get_translation_fallback_langs(
-            current_env())
+        source = self.source_expressions[0]
+        field = getattr(source, 'target', None) or source.output_field
+        column, params = compiler.compile(source)
+        langs = field.get_translation_fallback_langs(current_env())
         parts, all_params = [], []
         for lang in langs:
             parts.append(f'({column})->>%s')
@@ -517,8 +526,7 @@ def _translated_lookup(base):
 
     class TranslatedLookup(base):
         def __init__(self, lhs, rhs):
-            field = lhs.output_field
-            super().__init__(_TranslatedText(lhs, field), rhs)
+            super().__init__(TranslatedValue(lhs), rhs)
 
     TranslatedLookup.__name__ = f'Translated{base.__name__}'
     TranslatedLookup.__qualname__ = TranslatedLookup.__name__

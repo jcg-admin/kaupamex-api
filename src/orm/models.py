@@ -113,7 +113,7 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         _field_cache_record_id,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
-from orm.fields_textual import BASE_LANG, Char
+from orm.fields_textual import BASE_LANG, Char, TranslatedValue
 from orm.fields_temporal import Date, Datetime
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
@@ -5703,7 +5703,12 @@ def order_to_django(model, order, reverse=False, prefix='', seen=frozenset()):
             continue
         column = ('pk' if fname == 'id' and not prefix
                   else prefix + getattr(field, 'attname', fname))
-        terms.append(_ordering(F(column), direction, nulls))
+        expression = F(column)
+        if getattr(field, 'translate', False) is True:
+            # el texto del idioma activo, como ``Field.to_sql`` en la fuente
+            # (``fields_textual.py:394-402``), no el ``jsonb`` crudo
+            expression = TranslatedValue(expression)
+        terms.append(_ordering(expression, direction, nulls))
     return terms
 
 

@@ -117,7 +117,10 @@ from exceptions import ValidationError
 def _default_skill_type():
     """≙ ``_default_skill_type_id`` (``:41-44``) — ver DIVERGENCIA 1."""
     return (
-        HrSkillType.objects.order_by('sequence', 'name')
+        # ``name`` es traducible: el orden es el del texto del idioma activo,
+        # como el ``_order = "sequence, name"`` de la fuente (TASK-GEN-0060)
+        HrSkillType.objects.order_by(
+            'sequence', models.TranslatedValue('name'))
         .values_list('pk', flat=True)
         .first()
     )
