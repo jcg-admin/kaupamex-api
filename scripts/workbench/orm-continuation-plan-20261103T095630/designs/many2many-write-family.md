@@ -186,6 +186,20 @@ E731` del gate (la identidad: `sorted(..., key=key)` es `sorted(...)`) y
 partir líneas desplazadas; la salida del gate es idéntica antes y después
 (`diff` vacío) y su suite `test_field_class_attributes.py` da 15 passed.
 
+## Inventario tras la unidad (`8f4cd889`)
+
+`inventory_by_kind.py` sobre `src/orm` y `src/tools`: 2512 aplicables, 969
+satisfechos, **365** ausentes, 0 divergentes, 1178 sin verificar. Frente a
+`c9c7b545` cambia una fila: `_RelationalMulti.write_batch` pasa de
+`not_verified` a `absent`. Es una **ceguera del instrumento**, no una
+ausencia: el censo marca `absent` cuando ningún `def write_batch` se declara
+en el árbol, y la unidad sacó el método de la clase `One2many` para
+instalarlo con `setattr` desde `_relational_multi_write_batch`. Medido:
+`One2many.write_batch.__name__` y `ManyToManyField.write_batch.__name__` son
+`_relational_multi_write_batch`. Corregirlo exige que el censo reconozca las
+instalaciones por `setattr` sobre un dueño mapeado; queda registrado aquí y
+no se cuenta como progreso ni como retroceso.
+
 ## Pendiente
 
 - `test_copy_batch` (`test_onchange.py:1013-1024`): necesita

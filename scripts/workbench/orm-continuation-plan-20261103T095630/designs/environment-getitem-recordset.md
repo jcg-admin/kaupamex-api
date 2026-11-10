@@ -129,6 +129,20 @@ Después, cada uno de los 47 sitios pasa de `env[name]` a
 comportamiento no cambia mientras `env[name]` siga siendo la clase. G2 cambia
 `__getitem__` sobre un árbol que ya no depende de ella.
 
+**Refinamiento de los 47 sitios.** El sondeo cuenta una variable asignada
+desde `env[...]` en cualquier punto de la función, así que incluye variables
+como `comodel` que en el sitio contado vienen de `field.related_model`. Y G2
+sólo cambia el resultado para un `BaseModel`: un modelo de Django sigue
+devolviendo la clase. Leídos los seis primeros de `models.py`
+(`:1739`, `:2076`, `:2244`, `:2611`, `:4308`, `:7238`), cinco ya distinguen
+los dos casos (`hasattr(comodel, '_from_ids')`, `issubclass(comodel,
+DefaultGetMixin)`, `hasattr(model, '_has_field_access')`) o son de un
+comodelo de Django (`res.currency.rate`). La clasificación definitiva se
+hace sitio por sitio en la implementación de G1, con tres desenlaces:
+*afectado por G2* (cambia a `env.registry[name]` o `type(records)`),
+*ya bifurca* (sin cambio) y *sólo Django* (sin cambio, cubierto por la
+divergencia declarada).
+
 Pruebas de G1: `env.registry[name] is` la clase registrada; `in`, `len` e
 iteración sobre los nombres; `KeyError` ante un nombre desconocido (≙
 `:317-320`).
