@@ -11,7 +11,7 @@
   "blind_to": [
     "Una restricción en un modelo no registrado en Django o aplicada por llamada en vez de por decorador.",
     "Los tres pares de modelos Django sin el create/write del ORM (account.move, res.users.settings.embedded.action): su despacho por decorador no se mide aquí porque no existe.",
-    "La separación no-inversos/inversos de write y check_access('create') tras validar, que siguen pendientes con TASK-API-0504.",
+    "La separación no-inversos/inversos de write y check_access('create') tras validar, que siguen pendientes con TASK-API-0510.",
     "El arnés odoo/tests de la fuente, del que sólo se portó _assertRaises."
   ],
   "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/hallazgos/hallazgo-H-API-1212-create-y-write-no-validaban-restricciones-almacenadas.rst",
@@ -22,5 +22,5 @@
     "detectado_por": "censo por AST al construir la matriz de impacto"
   },
   "findings": ["H-API-1212"],
-  "tasks": ["TASK-API-0504"]
+  "tasks": ["TASK-API-0510"]
 }

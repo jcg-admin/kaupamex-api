@@ -106,8 +106,8 @@ tras el `assertRaises`.
 | 1.2.4 nombre único | un `Many2one` tiene dos nombres (`skill`, `skill_id`) en `model_field_registry`; la comparación literal los separaba | CONSTRUYE — comparación por campo (diff de trabajo) |
 | 1.3.9 inversos en `create` | `models.py:1017` | TRAE |
 | 1.4.5 almacenados en `_create` | ausente antes del cambio | CONSTRUYE — diff de trabajo |
-| 1.4.6 `check_access('create')` tras validar | ausente en `_create`; `create` lo comprueba al entrar | pendiente, dependencia de TASK-API-0504 (flujo de escritura) |
-| 1.5.5 / 1.5.7 en `write` | ausentes antes del cambio | CONSTRUYE parcial — una validación de lo escrito tras escribir; el orden «no inversos, inversos, inversos» no está separado (pendiente con `_write`, TASK-API-0504) |
+| 1.4.6 `check_access('create')` tras validar | ausente en `_create`; `create` lo comprueba al entrar | pendiente, dependencia de TASK-API-0510 (flujo de escritura) |
+| 1.5.5 / 1.5.7 en `write` | ausentes antes del cambio | CONSTRUYE parcial — una validación de lo escrito tras escribir; el orden «no inversos, inversos, inversos» no está separado (pendiente con `_write`, TASK-API-0510) |
 | 1.5.4 `real_recs` | `BaseModel.write` recorre registros guardados; un registro de `new()` no pasa por aquí | divergencia sin efecto observado, sin prueba |
 | 1.7 savepoint en pruebas | `odoo/tests/` **no está porteado**; existe sólo el fixture `assert_raises` (`tests/integration/test_orm/conftest.py`), que imita `_assertRaises` con `transaction.atomic()` e invalida la caché | TRAE parcial; las pruebas de hr_skills usaron `transaction.atomic()` suelto sin reutilizarlo — corregido abajo |
 
@@ -253,7 +253,7 @@ Dos controles **sobrevivieron** y no se aceptaron:
 1. `test_15_constraint_inverse` y el modelo `test_orm.compute.inverse`
    (`odoo19c: …/test_orm/models/test_orm.py:544-585`).
 2. Separar en `write` la validación de no-inversos e inversos y
-   `check_access('create')` tras validar en `_create` (TASK-API-0504).
+   `check_access('create')` tras validar en `_create` (TASK-API-0510).
 3. Los tres pares de modelos Django sin el `create`/`write` del ORM
    (H-API-1083).
 4. `odoo/tests/` no está porteado (12 archivos, 5 447 líneas); sólo
@@ -314,7 +314,7 @@ Medido con sondas:
 las líneas inversas en caché sólo se leen para registros de `new()`, y la rama
 `NewId` de `FieldDescriptor.__set__` ya las actualiza; para registros
 guardados el `One2many` se lee de la base. **Retirado** sin camino
-observable; queda como obligación ligada a TASK-API-0504 (caché de `_write`).
+observable; queda como obligación ligada a TASK-API-0510 (caché de `_write`).
 
 ## 12. Controles de anulación adicionales (árbol del gate 3)
 
@@ -324,3 +324,11 @@ observable; queda como obligación ligada a TASK-API-0504 (caché de `_write`).
 | descarte de `fields_cache` (incl. `None`) | `test_compute_stored_many2one_one2many` |
 
 Gate 3 lanzado 06:04:59Z sobre `outputs/gate3-hashes.txt`.
+
+## 13. Corrección de una cita
+
+Este banco citaba `TASK-API-0504` como dueña del flujo de escritura. Leído el
+store de Thyrox en sólo lectura (`citation_id`), `TASK-API-0504` es «Unidad
+6e-2: decodificar jsonb en las consultas crudas»; el flujo
+`_write`/`_write_multi`/`_flush` es **`TASK-API-0510`**. Las citas de este
+banco y de H-API-1212 se corrigieron a `TASK-API-0510`.
