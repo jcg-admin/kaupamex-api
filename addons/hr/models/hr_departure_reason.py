@@ -17,10 +17,10 @@ No pueden borrarse (ver ``delete()``).
      - Desenlace
      - Detalle
    * - ``country_code`` (``related='country_id.code'``)
-     - DIVERGENCIA de mecanismo
-     - Sin campo ``related`` persistido en este stack, se expone como
-       ``@property`` de sólo lectura — mismo patrón exacto que
-       ``ResCompany.country_code`` en ``res_company.py`` de este árbol.
+     - PORTADO
+     - Relacionado no almacenado del ORM, con el texto de la fuente; lo
+       navega la regla ``ir_rule_hr_departure_reason_multi_company``. Mismo
+       mecanismo que ``ResCompany.country_code``.
    * - ``_get_default_departure_reasons`` (``@api.model``)
      - DIVERGENCIA de mecanismo
      - Sin decorador ``@api.model`` en este stack, se porta como
@@ -92,6 +92,10 @@ class HrDepartureReason(TimeStampedModel):
         ),
     )
 
+    #: ≙ ``country_code = fields.Char(related='country_id.code')``
+    #: (``odoo19c: hr/models/hr_departure_reason.py:15``).
+    country_code = fields.Char(related='country_id.code')
+
     class Meta:
         db_table = 'hr_departure_reason'
         verbose_name = 'Motivo de baja'
@@ -100,12 +104,6 @@ class HrDepartureReason(TimeStampedModel):
 
     def __str__(self):
         return self.name
-
-    @property
-    def country_code(self):
-        """``related='country_id.code'``."""
-        country = self.country
-        return getattr(country, 'code', '') if country else ''
 
     @classmethod
     def _get_default_departure_reasons(cls):

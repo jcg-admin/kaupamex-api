@@ -4,8 +4,10 @@ Adaptación de Odoo hr/models/res_partner.py (odoo-tools@622ddc2a, odoo19c:,
 LGPL-3, 111 líneas) — atribución y aviso de licencia preservados
 (DEC-KX-03).
 
-Porte símbolo por símbolo — 10 símbolos: 6 portados, 1 ya existente, 3 BLOQUEADOS
-==================================================================================
+Porte BLOQUEADO — 3 de 10 símbolos
+===================================
+
+6 portados, 1 ya existente y 3 bloqueados, símbolo por símbolo:
 
 .. list-table::
    :header-rows: 1
@@ -16,7 +18,9 @@ Porte símbolo por símbolo — 10 símbolos: 6 portados, 1 ya existente, 3 BLOQ
    * - ``employee_ids`` (One2many, ``:11-13``)
      - portado sin código
      - reverso automático de ``hr.HrEmployee.work_contact``
-       (``related_name='employee_work_contacts'``) — mismo criterio que
+       (``related_name='employee_ids'``, el nombre de la fuente; lo
+       navega la regla ``ir_rule_res_partner_bank_internal_users``) —
+       mismo criterio que
        ``resource_calendar_ids`` en ``resource/models/res_company.py``
    * - ``employees_count`` (compute, ``:14``)
      - portado
@@ -61,8 +65,9 @@ declara aquí a nivel de módulo (la extensión no es clase), y es la que consum
 
 Hasta este pase la llamada nombraba el destino con el **par de Django**
 (``'base', 'ResPartner'``) y lo justificaba con *"el destino no declara
-``_name``"*. Eso dejó de ser cierto: ``src/addons/base/models/res_partner.py:280``
-declara ``_name = 'res.partner'`` con espaciado alineado, así que un grep de
+``_name``"*. Eso dejó de ser cierto:
+``src/addons/base/models/res_partner.py:280`` declara
+``_name = 'res.partner'`` con espaciado alineado, así que un grep de
 ``_name = 'res.partner'`` no lo ve. Medido en runtime,
 ``resolve_model_key('res.partner')`` devuelve ``('base', 'respartner')``.
 
@@ -85,7 +90,8 @@ from orm.model_classes import extend_model
 from tools.translate import _
 
 
-#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es
+#: clase).
 _inherit = 'res.partner'
 
 
@@ -95,7 +101,7 @@ def _current_company_employees(partner):
     Helper propio del puerto (la referencia inlinea el filtro
     ``e.company_id in self.env.companies`` dos veces).
     """
-    employees = partner.employee_work_contacts.all()
+    employees = partner.employee_ids.all()
     company_ids = get_current_companies()
     if company_ids:
         employees = employees.filter(company_id__in=company_ids)
@@ -121,7 +127,7 @@ def _compute_employee(self):
     devuelve, igual que ``_compute_current_version_id`` de
     ``hr_employee.py``.
     """
-    self.employee = self.employee_work_contacts.exists()
+    self.employee = self.employee_ids.exists()
     return self.employee
 
 
@@ -136,7 +142,7 @@ def _get_all_addr(self):
     ``res.partner`` no existe hoy (medido: 0 hits de ``_get_all_addr`` en
     ``src/addons/base``).
     """
-    employee = self.employee_work_contacts.first()
+    employee = self.employee_ids.first()
     version = employee.version if employee is not None and employee.version_id else None
     if version is None:
         return None
@@ -159,7 +165,7 @@ def _unlink_contact_rel_employee(self):
     debe invocarlo antes de ``delete()``. El ``RedirectWarning`` (mensaje +
     acción de navegación) degrada a ``UserError``: la acción era UI.
     """
-    if self.employee_work_contacts.exists():
+    if self.employee_ids.exists():
         raise UserError(
             _('No puedes eliminar contactos ligados a empleados.\n'
               'Archívalos en su lugar.\n\n'

@@ -121,7 +121,7 @@ def _compute_employee_id(self):
     activas, o ``None`` si el partner no es empleado."""
     if not self.partner_id or not self.partner.employee:
         return None
-    employees = self.partner.employee_work_contacts.all()
+    employees = self.partner.employee_ids.all()
     company_ids = get_current_companies()
     if company_ids:
         employees = employees.filter(company_id__in=company_ids)
@@ -198,7 +198,7 @@ def _compute_display_name(self, user=None):
     if (
         not is_hr
         and self.partner_id
-        and self.partner.employee_work_contacts.exists()
+        and self.partner.employee_ids.exists()
     ):
         self.display_name = label = self._masked_acc_number()
         return label

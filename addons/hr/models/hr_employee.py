@@ -460,7 +460,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     )
     work_contact = fields.Many2one(
         ResPartner, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='employee_work_contacts',
+        related_name='employee_ids',
         verbose_name='Contacto de trabajo',
         help_text='Odoo work_contact_id.',
     )
@@ -1428,7 +1428,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
 
     def _compute_work_contact_details(self):
         """≙ ``_compute_work_contact_details`` (``:822-828``)."""
-        if self.work_contact_id and self.work_contact.employee_work_contacts.count() <= 1:
+        if (self.work_contact_id
+                and self.work_contact.employee_ids.count() <= 1):
             self.work_phone = self.work_contact.phone
             self.work_email = self.work_contact.email
 
@@ -1437,7 +1438,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         if not self.work_contact_id:
             self._create_work_contacts()
             return
-        if self.work_contact.employee_work_contacts.count() <= 1:
+        if self.work_contact.employee_ids.count() <= 1:
             self.work_contact.email = self.work_email
             self.work_contact.phone = self.work_phone
             self.work_contact.save(update_fields=['email', 'phone'])
@@ -1445,7 +1446,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     def _remove_work_contact_id(self, user, employee_company=None):
         """≙ ``_remove_work_contact_id`` (``:1314-1323``)."""
         employee_company = employee_company or self.company_id
-        old_partner_employees = user.partner.employee_work_contacts.exclude(
+        old_partner_employees = user.partner.employee_ids.exclude(
             pk=self.pk,
         ).filter(company_id=employee_company)
         old_partner_employees = [

@@ -47,16 +47,18 @@ class TestHrDepartureReasonDefaultCountry:
 
 
 class TestHrDepartureReasonCountryCode:
-    """≙ ``related='country_id.code'``, expuesto como ``@property``."""
+    """≙ ``country_code = fields.Char(related='country_id.code')``."""
 
     def test_country_code_reads_through_country(self, mexico):
         reason = HrDepartureReason.objects.create(
             name='Con país', country=mexico)
         assert reason.country_code == mexico.code
 
-    def test_country_code_is_empty_without_a_country(self):
+    def test_country_code_is_false_without_a_country(self):
+        """Un ``related`` sobre un Many2one vacío da ``False``, como en la
+        fuente; la ``property`` anterior daba ``''``."""
         reason = HrDepartureReason.objects.create(name='Sin país')
-        assert reason.country_code == ''
+        assert reason.country_code is False
 
 
 class TestHrDepartureReasonDefaultReasonsSeed:
@@ -91,9 +93,9 @@ class TestHrDepartureReasonDefaultReasonsSeed:
         La fuente los numera por debajo de cualquier motivo que un usuario
         añada después, y eso es lo que los mantiene arriba en el catálogo.
         """
-        by_name = {m.name: m.sequence
-                   for m in HrDepartureReason._get_default_departure_reasons()}
-        assert by_name == {'Despedido': 0, 'Renunció': 1, 'Jubilado': 2}
+        reasons = HrDepartureReason._get_default_departure_reasons()
+        assert sorted((m.sequence, m.name) for m in reasons) == [
+            (0, 'Despedido'), (1, 'Renunció'), (2, 'Jubilado')]
 
     def test_the_master_reasons_carry_no_country(self, company):
         """≙ ``<field name="country_id" eval="False"/>`` de la fuente.
