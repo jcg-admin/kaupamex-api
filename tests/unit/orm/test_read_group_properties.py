@@ -21,7 +21,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def env(db):
+def env(db, system_user):
     environment = Environment(None, SUPERUSER_ID, {})
     with environment:
         yield environment
@@ -31,7 +31,8 @@ def env(db):
 def seeded(env):
     red, blue = env['test_orm.category'].create(
         [{'name': 'red'}, {'name': 'blue'}])
-    discussion = env['test_orm.discussion'].create({'name': 'd'})
+    discussion = env['test_orm.discussion'].create(
+        {'name': 'd', 'participants': [(6, 0, [env.user.id])]})
     discussion.write({'attributes_definition': [
         {'name': 'tag', 'type': 'char', 'string': 'Tag'},
         {'name': 'state', 'type': 'selection', 'string': 'State',

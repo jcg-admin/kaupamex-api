@@ -2139,16 +2139,23 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
 
     def __get__(self, instance, cls=None):
         if (instance is not None
-                and getattr(instance, '_ids', None) is not None
-                and self.field.attname not in instance.__dict__):
+                and getattr(instance, '_ids', None) is not None):
             # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1668``): el
             # caché del entorno se consulta ANTES que la base. Un recordset
             # poblado por ``_insert_cache`` o por ``_update_cache`` tiene ahí
             # su valor, y un registro de ``new()`` no tiene otra fuente: el
             # ``refresh_from_db`` de Django consultaría por ``pk=NewId``.
+            #
+            # Y antes que el ``__dict__`` de la instancia: en la fuente la
+            # caché es la única copia del valor, y aquí dos objetos Python del
+            # mismo registro tienen cada uno su ``__dict__``. Un cómputo que
+            # asigna sobre uno escribe la caché (``FieldDescriptor.__set__``);
+            # el otro, leyendo su ``__dict__``, devolvía el valor viejo.
             field_cache = self.field._get_cache(get_environment())
             if instance.pk in field_cache:
-                return field_cache[instance.pk]
+                value = field_cache[instance.pk]
+                instance.__dict__[self.field.attname] = value
+                return value
             if isinstance(instance.pk, NewId):
                 return None
         if (instance is None
@@ -2222,8 +2229,14 @@ def _install_field_descriptor(field, cls):
     declara compute, sin duplicar la implementación del setter.
     """
     current = cls.__dict__.get(field.attname)
+    # Un ``Many2one`` calculado y almacenado también: en la fuente el
+    # ``__set__`` es el mismo para todo campo (``odoo19c: odoo/orm/fields.py:
+    # 1807-1841``), y su rama protegida es la que lleva a la caché lo que el
+    # cómputo asigna. Con el ``ForeignKeyDeferredAttribute`` de Django la
+    # asignación del cómputo sólo tocaba el ``__dict__`` de la instancia, y
+    # una restricción que lo leyera en el mismo cómputo veía el valor viejo.
     if (type(current) is ForeignKeyDeferredAttribute
-            and field.store and not field.compute and not field.related):
+            and field.store and not field.related):
         setattr(cls, field.attname, StoredMany2oneIdDescriptor(field))
         return
     # Re-invocable desde ``Field.setup``: un campo ``related=`` no tiene

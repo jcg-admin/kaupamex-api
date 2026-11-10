@@ -1,0 +1,19 @@
+model	kind	method	declared	unresolved	nonstored	computed_stored	create_path	write_path	ran_before	runs_after
+account.AccountMove	django	_check_balanced	line_ids				none	none	never	never
+crm.CrmLead	django	_check_won_validity	probability,stage_id			stage_id	none	RecordLoaderMixin.write	recompute	recompute,write
+hr_recruitment_skills.HrApplicantSkill	BaseModel	_check_date	valid_from,valid_to				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_recruitment_skills.HrApplicantSkill	BaseModel	_check_not_overlapping_regular_skill	valid_from,valid_to,skill_id,skill_type_id,skill_level_id,applicant_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_recruitment_skills.HrApplicantSkill	BaseModel	_check_skill_level	skill_type_id,skill_level_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_recruitment_skills.HrApplicantSkill	BaseModel	_check_skill_type	skill_id,skill_type_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrEmployeeSkill	BaseModel	_check_date	valid_from,valid_to				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrEmployeeSkill	BaseModel	_check_not_overlapping_regular_skill	valid_from,valid_to,skill_id,skill_type_id,skill_level_id,employee				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrEmployeeSkill	BaseModel	_check_skill_level	skill_type_id,skill_level_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrEmployeeSkill	BaseModel	_check_skill_type	skill_id,skill_type_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrJobSkill	BaseModel	_check_date	valid_from,valid_to				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrJobSkill	BaseModel	_check_not_overlapping_regular_skill	valid_from,valid_to,skill_id,skill_type_id,skill_level_id,job				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrJobSkill	BaseModel	_check_skill_level	skill_type_id,skill_level_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+hr_skills.HrJobSkill	BaseModel	_check_skill_type	skill_id,skill_type_id				DefaultGetMixin._create	BaseModel.write	never	create,write
+test_orm.TestOrmMessage	BaseModel	_check_author	author,discussion				DefaultGetMixin._create	BaseModel.write	never	create,write
+test_orm.TestOrmMessage	BaseModel	_check_name	name			name	DefaultGetMixin._create	BaseModel.write	recompute	recompute,create,write
+web.ResUsersSettingsEmbeddedAction	django	_check_embedded_actions_order	embedded_actions_order				none	none	never	never
+web.ResUsersSettingsEmbeddedAction	django	_check_embedded_actions_visibility	embedded_actions_visibility				none	none	never	never

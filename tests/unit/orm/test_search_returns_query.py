@@ -26,7 +26,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def env(db):
+def env(db, system_user):
     environment = Environment(None, SUPERUSER_ID, {})
     with environment:
         yield environment
@@ -186,8 +186,10 @@ def test_global_and_group_rules_combine_like_the_reference(env, foos):
 
 
 def test_the_comodel_rule_restricts_the_many2one_subquery(env):
-    hidden = env['test_orm.discussion'].create({'name': 'hidden'})
-    shown = env['test_orm.discussion'].create({'name': 'shown'})
+    hidden = env['test_orm.discussion'].create(
+        {'name': 'hidden', 'participants': [(6, 0, [env.user.id])]})
+    shown = env['test_orm.discussion'].create(
+        {'name': 'shown', 'participants': [(6, 0, [env.user.id])]})
     for discussion in (hidden, shown):
         env['test_orm.message'].create({'discussion': discussion.id,
                                         'name': 'm'})

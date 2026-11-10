@@ -117,6 +117,7 @@ def test_commands_on_a_declared_one2many(env):
     Discussion = env['test_orm.discussion']
     discussion = Discussion.create({
         'name': 'd',
+        'participants': [Command.set([env.user.id])],
         'messages': [Command.create({'priority': 1}),
                      Command.create({'priority': 2})],
     })

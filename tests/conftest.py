@@ -54,6 +54,13 @@ from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 from tests.fixtures import reference_tree
 
 import pytest
+from contextlib import contextmanager
+
+from django.db import DEFAULT_DB_ALIAS, connections
+from exceptions import AccessError
+from orm.environments import get_transaction
+from orm.utils import SUPERUSER_ID
+from service.db import savepoint
 from orm.environments import get_transaction
 from orm.registry import clear_cache
 from pytest_django.plugin import blocking_manager_key
@@ -506,3 +513,54 @@ def _clear_the_orm_transaction():
     """
     yield
     get_transaction().clear()
+
+
+@pytest.fixture
+def assert_raises(db):
+    """≙ ``BaseCase._assertRaises``
+    (``odoo19c: odoo/tests/common.py:502-524``).
+
+    La fuente entra en ``self.env.cr.savepoint()`` —el que vacía la
+    transacción del ORM al abrir (``odoo/sql_db.py:132-151``)— y, si la
+    excepción esperada salta, lo deshace: la base vuelve al punto anterior y
+    la transacción del ORM se limpia (``cr.clear()``), así que una escritura
+    rechazada no deja cómputos pendientes ni contamina las aserciones
+    siguientes. Para un ``AccessError`` limpia además antes de empezar,
+    porque el vaciado deja la caché llena y ocultaría el error (``:507-512``).
+
+    Aquí el savepoint es :func:`service.db.savepoint`. Lo que la fuente no
+    necesita y aquí sí: una fila de Django guarda sus valores en la propia
+    instancia, fuera de la caché del ORM; se descartan los de los registros
+    que la prueba nombra para que la siguiente lectura vaya a la base.
+    """
+    @contextmanager
+    def raises(exception, *records):
+        with pytest.raises(exception) as info:
+            with savepoint(connections[DEFAULT_DB_ALIAS]):
+                if issubclass(exception, AccessError):
+                    get_transaction().clear()
+                yield info
+        for record in records:
+            for field in record._meta.concrete_fields:
+                record.__dict__.pop(field.attname, None)
+            record._state.fields_cache.clear()
+
+    return raises
+
+
+@pytest.fixture
+def system_user(db):
+    """``__system__``, el usuario de ``TransactionCase.env``
+    (``odoo19c: odoo/tests/common.py:1192``: ``api.SUPERUSER_ID``).
+
+    La base de pruebas no lo trae sembrado, y sin él ``env.user`` es vacío:
+    todo lo que la fuente rellena con el usuario actuante —el ``author`` de
+    ``test_orm.message``, por defecto ``env.user``— quedaría sin valor, y una
+    restricción que lo lea (``_check_author``) rechazaría datos que allá son
+    válidos.
+    """
+    user = get_user_model().objects.filter(pk=SUPERUSER_ID).first()
+    if user is None:
+        user = get_user_model().objects.create_user(
+            '__system__', pk=SUPERUSER_ID, password=None)
+    return user

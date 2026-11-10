@@ -15,7 +15,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def env(db):
+def env(db, system_user):
     environment = Environment(None, SUPERUSER_ID, {})
     with environment:
         yield environment
@@ -23,8 +23,10 @@ def env(db):
 
 @pytest.fixture
 def data(env):
-    first = env['test_orm.discussion'].create({'name': 'first'})
-    second = env['test_orm.discussion'].create({'name': 'second'})
+    first = env['test_orm.discussion'].create(
+        {'name': 'first', 'participants': [(6, 0, [env.user.id])]})
+    second = env['test_orm.discussion'].create(
+        {'name': 'second', 'participants': [(6, 0, [env.user.id])]})
     messages = env['test_orm.message'].create([
         {'discussion': first.id, 'priority': 1, 'name': 'a'},
         {'discussion': first.id, 'priority': 4, 'name': 'b'},
@@ -38,9 +40,11 @@ def tagged(env):
     red, blue = env['test_orm.category'].create(
         [{'name': 'red'}, {'name': 'blue'}])
     one = env['test_orm.discussion'].create(
-        {'name': 'one', 'categories': [(6, 0, [red.id, blue.id])]})
+        {'name': 'one', 'participants': [(6, 0, [env.user.id])],
+         'categories': [(6, 0, [red.id, blue.id])]})
     two = env['test_orm.discussion'].create(
-        {'name': 'two', 'categories': [(6, 0, [red.id])]})
+        {'name': 'two', 'participants': [(6, 0, [env.user.id])],
+         'categories': [(6, 0, [red.id])]})
     return red, blue, one | two
 
 

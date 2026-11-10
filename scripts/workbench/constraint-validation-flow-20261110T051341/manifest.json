@@ -1,0 +1,26 @@
+{
+  "question": "¿En qué momentos valida Odoo 19 Community las restricciones Python de los campos almacenados en create, _create, write y el recómputo, con qué selección y transacción, y cuáles de los @api.constrains de este árbol corrían antes y corren después del porte?",
+  "instrument": [
+    "scripts/workbench/constraint-validation-flow-20261110T051341/probes/constraint_decorators.py",
+    "python3 probes/constraint_decorators.py addons src",
+    "scripts/workbench/constraint-validation-flow-20261110T051341/probes/constraint_matrix.py",
+    "cd src && PYTHONPATH=. DJANGO_SETTINGS_MODULE=config.settings.testing python ../probes/constraint_matrix.py",
+    "scripts/workbench/constraint-validation-flow-20261110T051341/probes/nullification_controls.py"
+  ],
+  "metric": "Decoradores @constrains por AST bajo addons/ y src/ (sin migraciones), y pares (modelo concreto, método) que recoge registry.constraint_methods, con la vía por la que corrían antes (recómputo, inverso) y después (create, write). Controles: casos que caen al retirar cada pieza del porte.",
+  "blind_to": [
+    "Una restricción en un modelo no registrado en Django o aplicada por llamada en vez de por decorador.",
+    "Los tres pares de modelos Django sin el create/write del ORM (account.move, res.users.settings.embedded.action): su despacho por decorador no se mide aquí porque no existe.",
+    "La separación no-inversos/inversos de write y check_access('create') tras validar, que siguen pendientes con TASK-API-0504.",
+    "El arnés odoo/tests de la fuente, del que sólo se portó _assertRaises."
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-raiz-orm/hallazgos/hallazgo-H-API-1212-create-y-write-no-validaban-restricciones-almacenadas.rst",
+  "source": "odoo-tools@abe4040ec1a45beee90fb694e4eae4453e46b389 (odoo/orm/models.py, odoo/sql_db.py, odoo/tests/common.py, addons/test_orm) y api@28e8c8c5 + el diff del gate 3 (outputs/gate3-hashes.txt)",
+  "corrected_premise": {
+    "antes": "96 decoradores @api.constrains en 52 archivos quedaban inactivos",
+    "despues": "10 decoradores en 5 archivos, 18 pares sobre modelos concretos; el grep contaba menciones en docstrings y comentarios",
+    "detectado_por": "censo por AST al construir la matriz de impacto"
+  },
+  "findings": ["H-API-1212"],
+  "tasks": ["TASK-API-0504"]
+}

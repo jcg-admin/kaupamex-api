@@ -1,0 +1,70 @@
+{
+ "tests": [
+  "tests/unit/hr_skills",
+  "tests/integration/test_orm/test_constraints.py",
+  "tests/unit/service/test_savepoint.py",
+  "tests/integration/test_orm/test_one2many.py"
+ ],
+ "cases": [
+  {
+   "name": "before-modifying-relations",
+   "path": "src/orm/models.py",
+   "old": "                    and registry.is_modifying_relations(fields_written[fname])]",
+   "new": "                    and False]"
+  },
+  {
+   "name": "m2o-fields-cache-drop",
+   "path": "src/orm/models.py",
+   "old": "            if cached_pk != getattr(instance, self.field.attname):\n                del fields_cache[self.field.cache_name]",
+   "new": "            if False:\n                del fields_cache[self.field.cache_name]"
+  },
+  {
+   "name": "x2many-django-read",
+   "path": "src/orm/models.py",
+   "old": "    if (isinstance(instance, BaseModel)\n            and isinstance(self, _related_descriptors.ManyToManyDescriptor)\n            and not self.reverse",
+   "new": "    if (False and isinstance(instance, BaseModel)\n            and isinstance(self, _related_descriptors.ManyToManyDescriptor)\n            and not self.reverse"
+  },
+  {
+   "name": "algebra-sub",
+   "path": "src/orm/models.py",
+   "old": "    def __sub__(self, other):\n        \"\"\"≙ ``__sub__`` (``:6564-6574``)",
+   "new": "    def _retired_sub(self, other):\n        \"\"\"≙ ``__sub__`` (``:6564-6574``)"
+  },
+  {
+   "name": "m2m-queryset-write",
+   "path": "src/orm/models.py",
+   "old": "            if (isinstance(field, ManyToManyField)\n                    and isinstance(value, QuerySet)",
+   "new": "            if (False and isinstance(field, ManyToManyField)\n                    and isinstance(value, QuerySet)"
+  },
+  {
+   "name": "flushing-open",
+   "path": "src/service/db.py",
+   "old": "        self._transaction = _connection_transaction(connection.alias)\n        self._transaction.flush()",
+   "new": "        self._transaction = _connection_transaction(connection.alias)"
+  },
+  {
+   "name": "m2o-read-recompute",
+   "path": "src/orm/models.py",
+   "old": "        # hereda ese ``__get__`` en la fuente; aquí su lectura no pasa por\n        # ``FieldDescriptor``, así que se procesa en este punto.\n        self.field.recompute(instance)",
+   "new": "        # hereda ese ``__get__`` en la fuente; aquí su lectura no pasa por\n        # ``FieldDescriptor``, así que se procesa en este punto.\n        pass"
+  },
+  {
+   "name": "m2o-new-compute",
+   "path": "src/orm/models.py",
+   "old": "        # valor falta en caché, se calcula. Es el caso del formulario.\n        self.field.compute_value(instance)",
+   "new": "        # valor falta en caché, se calcula. Es el caso del formulario.\n        pass"
+  },
+  {
+   "name": "m2o-cache-first",
+   "path": "src/orm/fields.py",
+   "old": "            if instance.pk in field_cache:\n                value = field_cache[instance.pk]\n                instance.__dict__[self.field.attname] = value\n                return value",
+   "new": "            if instance.pk in field_cache and self.field.attname not in instance.__dict__:\n                value = field_cache[instance.pk]\n                instance.__dict__[self.field.attname] = value\n                return value"
+  },
+  {
+   "name": "computed-fk-descriptor",
+   "path": "src/orm/fields.py",
+   "old": "            and field.store and not field.related):",
+   "new": "            and field.store and not field.compute and not field.related):"
+  }
+ ]
+}

@@ -125,7 +125,7 @@ from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS,
                        FieldRegistryDescriptor, OriginIds,
                        as_record_list, browse, check_object_name,
                        model_field_registry, parse_field_expr, record_ids)
-from service.db import Savepoint
+from service.db import savepoint as cursor_savepoint
 from tools import date_utils
 from tools.cache import ormcache
 from tools.constants import PREFETCH_MAX
@@ -322,6 +322,72 @@ class AccessQuerySet(QuerySet):
     primero la ACL del **modelo** (``ir.model.access``), y sólo si pasa, las
     reglas de **fila** (``ir.rule``).
     """
+
+    # === operaciones de conjunto — ≙ ``BaseModel.__add__`` … ``union``
+    # (``odoo19c: odoo/orm/models.py:6544-6610``) =========================
+    #
+    # El conjunto de filas de un modelo de Django es este ``QuerySet``, y un
+    # ``Many2one`` hacia ese modelo vale una fila suelta: la fila se trata
+    # como el singleton que es en la fuente. Django ya da ``&`` y ``|`` entre
+    # dos ``QuerySet`` (intersección y unión por consulta) y se conservan;
+    # sólo se añade lo que falta: ``+``, ``-`` y el operando de una fila.
+    # El resultado se construye con :func:`~orm.utils.browse`, que impone el
+    # orden de los ids como la tupla ``_ids`` de la fuente.
+
+    def _operand_ids(self, other, symbol):
+        """Los ids de ``other`` en orden, o ``TypeError`` con el texto de la
+        fuente: modelo distinto → *inconsistent models*; otro tipo →
+        *unsupported operand types*."""
+        if isinstance(other, QuerySet):
+            other_model = other.model
+        elif isinstance(other, Model):
+            other_model = type(other)
+        else:
+            raise TypeError(
+                f"unsupported operand types in: {self} {symbol} {other!r}")
+        if (other_model._meta.concrete_model
+                is not self.model._meta.concrete_model):
+            raise TypeError(
+                f"inconsistent models in: {self} {symbol} {other}")
+        if isinstance(other, QuerySet):
+            return list(other.values_list('pk', flat=True))
+        return [other.pk]
+
+    def _own_ids(self):
+        return list(self.values_list('pk', flat=True))
+
+    def __add__(self, other):
+        """≙ ``__add__``/``concat`` (``:6544-6562``). Un id repetido sale una
+        vez: :func:`~orm.utils.browse` lo declara, una fila no se duplica en
+        SQL."""
+        ids = self._own_ids() + self._operand_ids(other, '+')
+        return browse(self.model, ids)
+
+    def __sub__(self, other):
+        """≙ ``__sub__`` (``:6564-6574``): conserva el orden de ``self``."""
+        other_ids = set(self._operand_ids(other, '-'))
+        return browse(self.model,
+                      [id_ for id_ in self._own_ids() if id_ not in other_ids])
+
+    def __and__(self, other):
+        """≙ ``__and__`` (``:6576-6586``) para una fila suelta; entre dos
+        ``QuerySet`` manda la intersección de Django."""
+        if isinstance(other, QuerySet):
+            self._operand_ids(other, '&')
+            return super().__and__(other)
+        other_ids = set(self._operand_ids(other, '&'))
+        return browse(self.model,
+                      [id_ for id_ in self._own_ids() if id_ in other_ids])
+
+    def __or__(self, other):
+        """≙ ``__or__``/``union`` (``:6588-6610``) para una fila suelta,
+        primera aparición primero; entre dos ``QuerySet`` manda la unión de
+        Django."""
+        if isinstance(other, QuerySet):
+            self._operand_ids(other, '|')
+            return super().__or__(other)
+        ids = list(OrderedSet(self._own_ids() + self._operand_ids(other, '|')))
+        return browse(self.model, ids)
 
     def _check_access(self, operation, user=None):
         """``None`` si puede; si no, ``(prohibidos, fábrica de error)``.
@@ -1180,6 +1246,19 @@ class DefaultGetMixin:
                     env().protecting(data['protected'], data['record']))
             # mark computed fields as todo
             modified(records, list(model_field_registry(cls)), create=True)
+
+        # check Python constraints for stored fields — ≙ ``:4948-4949``. Un
+        # ``BaseModel`` valida el lote como recordset, así que una
+        # restricción de lote ve todas las filas nuevas; un modelo de Django
+        # valida fila a fila.
+        stored_names = [name for data in data_list for name in data['stored']]
+        if hasattr(cls, '_from_ids'):
+            created = tuple(ids)
+            cls._from_ids(env(), created, created)._validate_fields(
+                stored_names)
+        else:
+            for data in data_list:
+                data['record']._validate_fields(stored_names)
 
         return records
 
@@ -2903,6 +2982,7 @@ class RecordLoaderMixin(FieldSqlMixin):
                   if fname not in (pk_name, 'id')}
         if not values:
             return True
+        written = list(values)
         determine_inverses = self._group_written_inverses(values)
         self._warm_x2many_before_inverse(determine_inverses)
         protected = self._protected_while_writing(values)
@@ -2946,8 +3026,21 @@ class RecordLoaderMixin(FieldSqlMixin):
                 silenced_relations = [
                     fname for fname in silenced
                     if getattr(fields_written[fname], 'relational', False)]
-                if silenced_relations:
-                    self.modified(silenced_relations, before=True)
+                # ``:4400-4418`` y ``:4460``: lo que depende de un campo que
+                # modifica relaciones —un relacional, o la dependencia de un
+                # relacional calculado— se marca también ANTES de escribir:
+                # el camino de datos cambia, y el registro viejo del otro
+                # extremo sólo se alcanza con el valor viejo. Sin esta pasada
+                # el contenedor viejo de un ``Many2one`` calculado no recibía
+                # su recálculo.
+                modifying_relations = [
+                    fname for fname in values
+                    if fname in fields_written
+                    and fname not in silenced_relations
+                    and registry.is_modifying_relations(fields_written[fname])]
+                if silenced_relations or modifying_relations:
+                    self.modified(silenced_relations + modifying_relations,
+                                  before=True)
                 self.__dict__[WRITING_VALUES] = True
                 try:
                     for fname, value in values.items():
@@ -2990,6 +3083,11 @@ class RecordLoaderMixin(FieldSqlMixin):
             # protección, una vez por grupo.
             for fields in determine_inverses.values():
                 fields[0].determine_inverse(self)
+        # ``:4491`` y ``:4514`` — las restricciones de lo escrito, inversos
+        # incluidos. Un ``BaseModel`` las corre una vez sobre el recordset
+        # entero en su ``write``; aquí sólo la fila de un modelo de Django.
+        if not hasattr(type(self), '_from_ids'):
+            self._validate_fields(written)
         return True
 
     def _pop_many2many_values(self, values):
@@ -3011,6 +3109,18 @@ class RecordLoaderMixin(FieldSqlMixin):
             # Django, que no tiene columna); el inverso es un
             # ``ManyToManyRel``.
             if (isinstance(field, ManyToManyField)
+                    and isinstance(value, QuerySet)
+                    and value.model._meta.concrete_model
+                    is field.related_model._meta.concrete_model):
+                # ≙ ``_RelationalMulti.convert_to_write`` (``odoo19c: odoo/
+                # orm/fields_relational.py:676-702``) con un recordset del
+                # comodelo: ``[Command.set(ids)]``. Las filas de Django están
+                # siempre guardadas, así que no hay ``Command.create`` ni
+                # ``Command.update`` que emitir.
+                values.pop(fname)
+                popped[field.name] = [
+                    (6, 0, list(value.values_list('pk', flat=True)))]
+            elif (isinstance(field, ManyToManyField)
                     and not isinstance(value, (ManyToManySet, ManyToManyLink))
                     and (value is False or value is None
                          or is_command_list(value)
@@ -3635,7 +3745,9 @@ class RecordLoaderMixin(FieldSqlMixin):
           inválido.
         - **Cada fallo vuelve al punto de retorno.** Sin eso la transacción
           queda abortada en PostgreSQL y el resto del archivo ya no se puede
-          importar — es lo que :class:`service.db.Savepoint` existe para dar.
+          importar — es lo que :func:`service.db.savepoint` existe para
+          dar; como ``cr.savepoint()`` de la fuente, vacía la transacción
+          del ORM.
         - **El recorrido se corta a los diez errores** si además hay más de uno
           por cada diez filas, con el aviso de la fuente: un archivo con el
           formato equivocado produciría un informe ilegible.
@@ -3653,7 +3765,7 @@ class RecordLoaderMixin(FieldSqlMixin):
         noupdate = context.get('noupdate', False)
 
         connection = connections[using]
-        savepoint = Savepoint(connection)
+        savepoint = cursor_savepoint(connection)
 
         fields = [fix_import_export_id_paths(f) for f in fields]
 
@@ -3702,7 +3814,7 @@ class RecordLoaderMixin(FieldSqlMixin):
             # try to create in batch
             global_error_message = None
             try:
-                with Savepoint(connection):
+                with cursor_savepoint(connection):
                     recs = cls._load_records(data_list, mode == 'update',
                                              using=using)
                     ids.extend(record.pk for record in recs)
@@ -5577,11 +5689,21 @@ def _validate_fields(self, field_names, excluded_names=()):
     methods = registry.constraint_methods(type(self))
     if not methods:
         return
-    field_names = set(field_names)
-    excluded_names = set(excluded_names)
+    # Un ``Many2one`` tiene aquí dos nombres —``partner`` y ``partner_id``—
+    # para un solo campo; allá el nombre es único. Se compara por campo: los
+    # ``vals`` llegan con el nombre de Django y una restricción portada
+    # declara el de la fuente.
+    fields_by_name = model_field_registry(type(self))
+
+    def canonical(names):
+        return {getattr(fields_by_name.get(name), 'name', name)
+                for name in names}
+
+    field_names = canonical(field_names)
+    excluded_names = canonical(excluded_names)
     with elevate_privileges():
         for check in methods:
-            declared = check._constrains
+            declared = canonical(check._constrains)
             if (not field_names.isdisjoint(declared)
                     and excluded_names.isdisjoint(declared)):
                 check(self)
@@ -5769,6 +5891,23 @@ def _x2many_descriptor_get(self, instance, cls=None):
                    else self.field.related_model)
     else:
         comodel = self.rel.related_model
+    if (isinstance(instance, BaseModel)
+            and isinstance(self, _related_descriptors.ManyToManyDescriptor)
+            and not self.reverse and isinstance(comodel, type)
+            and not issubclass(comodel, BaseModel)):
+        # El comodelo es de Django: su conjunto de filas es el ``QuerySet``
+        # de su gestor — la forma en que este árbol lee el valor de
+        # ``convert_to_record`` (``odoo19c: odoo/orm/fields_relational.py:
+        # 643``) para un modelo sin recordset propio. El orden es su
+        # ``Meta.ordering``, que el gestor ya aplica y que es la forma Django
+        # de su ``_order``; traducir el ``_order`` fallaría con un campo sin
+        # columna (``res.users.name``). Sólo el lado directo: los accesores
+        # inversos que Django crea solo no son campos de la fuente y
+        # conservan el gestor.
+        if instance.pk is None or isinstance(instance.pk, NewId):
+            return browse(comodel, ())
+        rows = _DJANGO_X2MANY_GET(self, instance, cls).all()
+        return browse(comodel, list(rows.values_list('pk', flat=True)))
     if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
             and issubclass(comodel, BaseModel)):
         return _DJANGO_X2MANY_GET(self, instance, cls)
@@ -5914,6 +6053,35 @@ def _forward_get(self, instance, cls=None):
     un solo id o una fila de Django siguen la lectura de Django.
     """
     ids = getattr(instance, '_ids', None) if instance is not None else None
+    if (instance is not None and getattr(self.field, 'compute', None)
+            and getattr(self.field, 'store', False)):
+        # ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1664-1666``):
+        # antes de leer, los cómputos pendientes del campo. El ``Many2one``
+        # hereda ese ``__get__`` en la fuente; aquí su lectura no pasa por
+        # ``FieldDescriptor``, así que se procesa en este punto.
+        self.field.recompute(instance)
+    if (instance is not None and getattr(self.field, 'compute', None)
+            and isinstance(instance.pk, NewId)
+            and not getattr(instance, '_origin', None)
+            and instance.pk not in self.field._get_cache(env())
+            and not env().is_protected(self.field, instance.pk)):
+        # ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1736-1763``): un
+        # registro de ``new()`` sin origen no tiene fila de la que leer; si el
+        # valor falta en caché, se calcula. Es el caso del formulario.
+        self.field.compute_value(instance)
+    if instance is not None and getattr(instance, '_ids', None) is not None:
+        # El objeto relacionado que Django guarda en ``_state.fields_cache``
+        # es otra copia por instancia. Cuando el valor lo escribió otro objeto
+        # del mismo registro —un cómputo itera sus propias instancias—, esa
+        # copia queda vieja; si no coincide con la clave (que
+        # ``StoredMany2oneIdDescriptor`` lee de la caché del ORM), se descarta.
+        fields_cache = instance._state.fields_cache
+        if self.field.cache_name in fields_cache:
+            cached = fields_cache[self.field.cache_name]
+            # Django guarda también ``None`` para «sin relación».
+            cached_pk = cached.pk if cached is not None else None
+            if cached_pk != getattr(instance, self.field.attname):
+                del fields_cache[self.field.cache_name]
     comodel = self.field.remote_field.model
     to_records = isinstance(comodel, type) and issubclass(comodel, BaseModel)
     if to_records and ids is not None and not ids:
@@ -9865,6 +10033,8 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                 ) from error
         for record in self:
             super(BaseModel, record).write(vals)
+        # ≙ ``real_recs._validate_fields(vals, inverse_fields)`` (``:4491``)
+        self._validate_fields(vals)
         return True
 
     @api.deprecated("Deprecated since 19.0, use action_archive or "
