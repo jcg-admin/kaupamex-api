@@ -298,16 +298,12 @@ class OnboardingOnboardingStep(models.Model):
         pasa un ``placeholder`` explícito — el mismo despacho de la fuente
         (``odoo19c: odoo/addons/base/models/ir_binary.py:212-213``).
 
-        DIVERGENCIA declarada: la fuente cierra con
-        ``return super()._get_placeholder_filename(field)``, que sube al
-        ``BaseModel``. Aquí ese eslabón no existe —ningún modelo del árbol lo
-        declara— así que devolver ``None`` cede al default de ``IrBinary``
-        (``DEFAULT_PLACEHOLDER_PATH``), que es donde la cadena de la fuente
-        termina de todos modos.
+        Cierra con ``super()``, como la fuente: la base devuelve ``False`` y
+        ``IrBinary`` cae en su marcador por defecto (TASK-API-0513).
         """
         if field == 'step_image':
             return 'base/static/img/onboarding_default.png'
-        return None
+        return super()._get_placeholder_filename(field)
 
     def _create_progress_steps(self, company=None):
         """``_create_progress_steps`` (línea 113-133), adaptado a un solo

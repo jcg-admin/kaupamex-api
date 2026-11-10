@@ -10718,3 +10718,21 @@ def apply_onchange_methods(record, methods, result, excluded_methods,
                 res['warning'].get('message') or "",
                 res['warning'].get('type') or "",
             ))
+
+
+def _get_placeholder_filename(self, field):
+    """La imagen de relleno de ``field``: ninguna, salvo que el modelo la dé.
+
+    ≙ ``BaseModel._get_placeholder_filename`` (``odoo19c:
+    odoo/orm/models.py:6999-7004``). Docstring de la fuente: *"Returns the
+    filename of the placeholder to use, set on web/static/img by default, or
+    the complete path to access it (eg: module/path/to/image.png)."*
+
+    Se cuelga de ``Model`` y no sólo de ``BaseModel``, como los métodos de
+    motor: ``ir.binary`` la llama sobre cualquier registro, y aquí un
+    registro puede ser un modelo de Django sin recordset (TASK-API-0513).
+    """
+    return False
+
+
+Model._get_placeholder_filename = _get_placeholder_filename

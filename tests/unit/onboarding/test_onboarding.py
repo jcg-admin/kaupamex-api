@@ -320,11 +320,11 @@ class TestStepImagePlaceholder:
         )
 
     def test_any_other_field_falls_back_to_the_default(self):
-        """La fuente cierra con ``super()``, que sube al ``BaseModel``. Aqui
-        ese eslabon no existe, asi que ``None`` cede al default de
-        ``IrBinary`` — el mismo sitio donde la cadena de la fuente termina."""
+        """La fuente cierra con ``super()``, que sube al ``BaseModel`` y
+        devuelve ``False``; ``IrBinary`` cae entonces en su marcador por
+        defecto (TASK-API-0513)."""
         step = _step('Placeholder B')
-        assert step._get_placeholder_filename('otro_campo') is None
+        assert step._get_placeholder_filename('otro_campo') is False
 
     def test_ir_binary_asks_the_record_when_no_placeholder_is_given(self):
         """El despacho, medido de punta a punta: sin ``placeholder`` explicito

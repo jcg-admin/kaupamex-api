@@ -264,9 +264,7 @@ class IrBinary:
             # despacho que hace util a ``_get_placeholder_filename`` — sin el,
             # un modelo podia declararlo y nadie lo leia nunca.
             if not placeholder:
-                obtener = getattr(record, '_get_placeholder_filename', None)
-                if obtener is not None:
-                    placeholder = obtener(field_name)
+                placeholder = record._get_placeholder_filename(field_name)
             data = cls.placeholder(placeholder)
             response = FileResponse(
                 iter([data]),
