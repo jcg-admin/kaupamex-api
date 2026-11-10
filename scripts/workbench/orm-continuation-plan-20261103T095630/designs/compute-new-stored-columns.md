@@ -74,3 +74,15 @@ retirar una migración de rescate.
   exactamente el 1 y el 2; el 3 (tabla vacía) sobrevive, como debe.
 - Pendiente en esta TASK: las 5 migraciones de rescate (`account`, `base`,
   `crm`, `sale`, `test_orm`) y el guardián de `AddField`.
+
+## Riesgo a resolver antes de las migraciones de rescate
+
+La operación usa la clase vigente del modelo. En una cadena de migraciones,
+su cómputo puede leer columnas que migraciones posteriores de **otras** apps
+aún no crearon (p. ej. `crmlead.company_id` lee de `res.partner`). La
+dependencia `__latest__` no es válida: en una base desplegada, al entrar una
+migración nueva en esa app, la de rescate ya aplicada quedaría con una
+dependencia sin aplicar (`InconsistentMigrationHistory`). Lo que sí lo
+resuelve: declarar como dependencias explícitas las hojas actuales de cada
+app cuyos campos lee el cómputo, medidas con el grafo de `depends` del campo
+(`registry.field_depends`). Es el siguiente paso de la TASK.
