@@ -98,3 +98,21 @@ tiene hogar en la referencia (`BaseModel._auto_init`, dentro de
 `models.py`), así que se declaró en `scripts/mirrored_roots_baseline.txt`
 como *split* de `models.py`, igual que `inherits.py` (`6dad029a`), en vez
 de moverlo a un sitio sin relación con su contrato.
+
+## Segundo tramo: migraciones de rescate y guardián (2026-11-10)
+
+- Dependencias medidas recorriendo `registry.field_depends` de cada campo
+  (`scratchpad/probe-catchup-deps.py`): `account`, `base` y `test_orm` sólo
+  leen su app; `crm` lee `base`, `crm` y `sales_team`; `sale` lee `account`,
+  `base` y `sale`. Cada migración de rescate depende de las **hojas
+  vigentes** de esas apps (ya aplicadas en una base desplegada, así que no
+  hay historia inconsistente):
+  `account/0031`, `base/0103`, `crm/0005` (17 campos), `sale/0015`,
+  `test_orm/0042`. En una base nueva las tablas están vacías al llegar ahí y
+  la operación sale sin consultar más.
+- Guardián `test_new_computed_columns_are_computed.py`: RED con exactamente
+  los 30 campos medidos (tras tolerar un campo de terceros —`simplejwt`—
+  que una migración añade y otra retira); GREEN con las cinco migraciones;
+  sin la de `crm` caen exactamente sus 17.
+- Sincronía (TASK-API-0515) sigue verde: `ComputeStoredFields` es
+  `RunPython` y no cambia el estado de los modelos.
