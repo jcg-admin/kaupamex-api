@@ -152,3 +152,109 @@ de un modelo real.
 Subconjunto derivado (`grep -rlE "check_indexes|_reflect_selections|
 _reflect_model_params|_reflect_models|init_models|IrModelFieldsSelection"
 tests/`, 6 directorios): **7570 passed, 65 skipped, 6 xfailed, 0 failed**.
+
+## L3 — implementación (2026-11-10)
+
+- `modules.loading.load_modules(using)`: `update_module_list` (catálogo y
+  `create_categories`), grafo `ModuleGraph.from_database(..., mode='update')`
+  sobre `installed_addon_names()` (el modo `load` de la fuente descarta los no
+  instalados), y por módulo `init_models(..., {'module': name}, install)`,
+  `load_data({}, 'init'|'update', 'data', package, using)` y estado
+  `installed`; al final `flush_all`, dentro de un `Environment` de
+  superusuario.
+- `installed_addon_names` pasa a `modules/module.py` (descubrimiento de
+  addons); `update_module_list` lo importa de allí: `modules` no importa
+  `addons`.
+- Receptor `addons/base/install_cycle.load_modules_after_migrate`, conectado
+  en `BaseConfig.ready()` con `importlib.import_module` (excepción #4 de
+  `no-lazy-imports.md`: el módulo importa `modules.loading`, que define
+  modelos). Guardas de `create_permissions`: sólo con `plan` (`migrate` lo
+  pasa; `flush` no) y sólo donde el router migra `base`.
+- Siembra de pruebas: `_install_modules` al final de `_SEEDERS`, porque tras
+  un `flush` el receptor no actúa.
+
+Observación de camino real: `create_test_db(keepdb=True)` ejecuta `migrate`
+también con `--reuse-db`, así que la base de pruebas quedó con los 124 módulos
+`installed` y 205 XML-ID `model_*` por el propio receptor, sin la siembra.
+
+Consecuencia para las pruebas: las que construían su catálogo (`base`,
+`sale`…) o sus filas reflejadas suponían tablas vacías. Se les da
+`empty_module_catalog` (fixture de `tests/conftest.py` que vacía el catálogo
+dentro de la transacción) o parten sin los XML-ID/restricciones que el ciclo
+crea; `test_fk_three_axes` vacía la caché de la transacción, porque la fila de
+`ir.model` que mide ya existe y leerla la deja en caché.
+
+Prueba: `tests/integration/base/test_load_modules.py` (5 casos). Controles:
+sin `init_models` cae `test_the_models_get_their_module_xmlid`; sin `load_data`
+cae `test_the_data_files_load_in_graph_order`; sin el estado caen
+`test_every_installed_addon_ends_installed` y la de orden (su segunda pasada
+espera `update`); sin la guarda de `plan` cae
+`test_migrate_runs_the_cycle_and_flush_does_not`.
+
+Primer gate completo: 5 failed, 21 errors, todos de pruebas que suponían el
+catálogo vacío (`base_install_request` 19, `test_fk_three_axes` 1,
+`test_sql_error_to_message` 1) — corregidos como arriba.
+
+Gate completo de la forma final: **12 628 passed, 66 skipped, 6 xfailed,
+0 failed, 5 errors** en 540 s (los 5 de `test_multidb_isolation.py`).
+
+## L4 — medición previa (2026-11-10)
+
+**ACL.** Filas de `ir.model.access.csv` cuyo `model_id:id` resuelve a un
+modelo reflejado aquí (medido contra los XML-ID `model_*` que deja L3):
+`hr` 18 de 26 y `hr_skills` 13 de 20. Las demás nombran modelos no
+portados: asistentes (`hr.departure.wizard`, `hr.version.wizard`,
+`hr.bank.account.allocation.wizard[_line]`, `hr.employee.cv.wizard`),
+informes (`hr.employee.skill.report`, `…certification_report`,
+`…skill.history.report`), `resource.resource`, `resource.calendar[_attendance]`
+y `mail.activity.plan[_template]`. Se vendorizan los dos CSV sin esas filas y
+el archivo declara cuáles faltan y por qué, como
+`base/security/ir_model_access.py`.
+
+**Reglas.** Rutas de dominio resueltas contra `model_field_registry`
+(`probe_rule_paths.py`):
+
+| Regla | Ruta que falta | Qué la cierra |
+|---|---|---|
+| `hr.hr_employee_comp_rule` | `hr.employee.user_id` | portar `user_id` como en la fuente: Many2one relacionado y almacenado (`related='resource_id.user_id'`, `store=True`, `ondelete='restrict'`, `index='btree_not_null'`); hoy es una `property` |
+| `hr_skills.hr_skills_rule_employee_update` | `hr.employee.user_id` | ídem |
+| `hr_skills.hr_skill_rule_employee_update` | `hr.employee.user_id` | ídem |
+| `hr.ir_rule_res_partner_bank_internal_users` | `res.partner.employee_ids` | el One2many de `hr/models/res_partner.py:11` (inverso de `work_contact_id`) |
+| `hr.ir_rule_hr_departure_reason_multi_company` | `hr.departure.reason.country_code` | `related='country_id.code'` (`hr_departure_reason.py:15`) |
+
+Las reglas de `mail.activity.plan*` y de los tres informes de `hr_skills`
+quedan fuera con su modelo. Las demás resuelven.
+
+Consecuencia de orden: L4 empieza por `hr.employee.user_id` (campo, migración
+y valor en las filas existentes, que es el contrato de los calculados
+almacenados), sigue con `res.partner.employee_ids` y `country_code`, y sólo
+entonces carga los dos archivos de seguridad por el manifiesto.
+
+### L4a — `hr.employee.user_id` (diseño)
+
+Referencia (`odoo19c: addons/hr/models/hr_employee.py:86-94`):
+`user_id = fields.Many2one('res.users', 'User', related='resource_id.user_id',
+store=True, readonly=False, check_company=True, precompute=True,
+index='btree_not_null', ondelete='restrict')`.
+
+Aquí `hr.employee` no deriva de `BaseModel`: es un modelo de Django con
+`ResourceMixin`, que ya sincroniza en `save()` los otros dos relacionados
+almacenados del recurso (`company_id`, `resource_calendar_id`; divergencia 2
+de `hr_employee.py`), y `user` es hoy una `property` de sólo lectura sobre
+`resource.user` (23 consumidores medidos con
+`grep -rn "employee\.user\b|resource__user|…" addons src`).
+
+Forma: el campo se declara como columna (`user`, attname `user_id`, FK a
+`res.users`, `on_delete=PROTECT` ≙ `ondelete='restrict'`, índice parcial
+`IS NOT NULL` ≙ `btree_not_null`) con el mismo mecanismo de sincronía del
+mixin, en los dos sentidos que da `readonly=False` en la fuente: al guardar,
+un valor asignado al empleado se escribe en su recurso y, si no se asignó, el
+empleado toma el del recurso. La migración añade la columna y la rellena desde
+`resource.user_id` en las filas existentes (`RunPython`, mismo papel que
+`ComputeStoredFields` para un calculado). La `property` desaparece y los
+consumidores leen el campo, que conserva el nombre.
+
+Pruebas: la columna existe y su valor sigue al recurso al crear; asignar el
+usuario en el empleado lo escribe en el recurso; la migración rellena una fila
+previa; la regla `hr_employee_comp_rule` resuelve `user_id`. Control: sin la
+sincronía cae el caso de creación.
