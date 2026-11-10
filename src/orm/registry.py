@@ -2404,7 +2404,7 @@ class Registry(Mapping):
             return
 
         app_labels = {model._meta.app_label for model in model_classes}
-        ir_model._reflect_models(app_labels)
+        ir_model._reflect_models(app_labels, module=context.get('module'))
 
         wanted = {model._meta.label for model in model_classes}
         for row in ir_model.objects.filter(model__in=[m._name for m in model_classes]):

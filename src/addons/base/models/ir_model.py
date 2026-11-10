@@ -792,8 +792,9 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         }
 
     @classmethod
-    def _reflect_models(cls, app_labels=None):
-        """Refleja el registro de Django en filas — inverso de ``_reflect_model``.
+    def _reflect_models(cls, app_labels=None, module=None):
+        """Refleja el registro de Django en filas — inverso de
+        ``_reflect_model``.
 
         La referencia refleja desde su propio registro; aquí la fuente es
         ``apps.get_models()``. Devuelve ``(creadas, actualizadas)``, contadas
@@ -824,11 +825,13 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         desinstalación, no de reflexión.
         """
         expected = {}
+        classes = {}
         for model in apps.get_models(include_auto_created=True):
             if app_labels and model._meta.app_label not in app_labels:
                 continue
             label = f'{model._meta.app_label}.{model._meta.object_name}'
             expected[label] = cls._reflect_model_params(model)
+            classes[label] = model
         if not expected:
             return 0, 0
         columns = list(next(iter(expected.values())))
@@ -840,15 +843,43 @@ class IrModel(models.OriginMixin, TimeStampedModel):
             or any(getattr(stored[label], column) != params[column]
                    for column in columns)
         ]
-        if not pending:
-            return 0, 0
-        cls.objects.bulk_create(
-            [cls(model=label, **params) for label, params in pending],
-            update_conflicts=True, unique_fields=['model'],
-            update_fields=[*columns, 'updated_at'])
-        registry.clear_cache('stable')
+        if pending:
+            cls.objects.bulk_create(
+                [cls(model=label, **params) for label, params in pending],
+                update_conflicts=True, unique_fields=['model'],
+                update_fields=[*columns, 'updated_at'])
+            registry.clear_cache('stable')
+        cls._update_model_xmlids(module, classes)
         created = sum(label not in stored for label, _ in pending)
         return created, len(pending) - created
+
+    @classmethod
+    def _update_model_xmlids(cls, module, classes):
+        """El XML-ID de cada modelo del módulo — ≙ el tramo «update their
+        XML id» de ``_reflect_models`` (``odoo19c: :462-475``).
+
+        Sin ``module`` en el contexto la fuente no escribe nada, y aquí
+        tampoco. El dueño es ``model._module`` allá (el módulo que extendió el
+        modelo por última vez); aquí, la app de Django que lo declara
+        (``_meta.app_label``), que es el único dueño que este registro lleva.
+        Un modelo sin ``_name`` propio no tiene nombre en la referencia del
+        que derivar ``model_<nombre>`` (``model_xmlid``, ``:63-65``) y no
+        recibe XML-ID: si lo hereda de un mixin (``mail.thread``), no es el
+        modelo que ese nombre designa.
+        """
+        if not module:
+            return
+        owned = {label: model for label, model in classes.items()
+                 if model._meta.app_label == module
+                 and '_name' in vars(model)}
+        if not owned:
+            return
+        rows = cls.objects.filter(model__in=owned)
+        IrModelData._update_xmlids([
+            {'xml_id': '%s.model_%s' % (
+                module, owned[row.model]._name.replace('.', '_')),
+             'record': row}
+            for row in rows])
 
 
 class IrModelFields(models.OriginMixin, TimeStampedModel):

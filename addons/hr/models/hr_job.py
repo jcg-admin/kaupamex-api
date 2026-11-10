@@ -18,7 +18,19 @@ from addons.mail.models import MailThread
 
 
 class HrJob(MailThread, TimeStampedModel):
-    """``hr.job`` — catálogo de puestos. El departamento es opcional."""
+    """``hr.job`` — catálogo de puestos. El departamento es opcional.
+
+    Atributos de clase de la referencia
+    (``odoo19c: hr/models/hr_job.py:9-12``): ``_name``, ``_description`` e
+    ``_inherit`` se declaran verbatim.
+    Pendiente: ``_order = 'sequence'``, porque este puerto aún no tiene el
+    campo ``sequence``; también los objetos de tabla ``_name_company_uniq`` y
+    ``_no_of_recruitment_positive`` (``:42-49``).
+    """
+
+    _name = 'hr.job'
+    _description = 'Job Position'
+    _inherit = ['mail.thread']
 
     name = fields.Char(verbose_name='Puesto')  # D-3: ex title
     department = fields.Many2one(

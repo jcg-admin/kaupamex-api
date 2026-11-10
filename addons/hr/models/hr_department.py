@@ -25,7 +25,19 @@ class HrDepartment(MailThread, TimeStampedModel):
     Hereda ``MailThread`` igual que ``hr.department`` hereda ``mail.thread``
     en la referencia (``odoo19c: hr/models/hr_department.py:14``); el mixin es
     abstracto y no agrega columnas.
+
+    Atributos de clase de la referencia (``odoo19c:
+    hr/models/hr_department.py:12-17``): ``_name``, ``_description``,
+    ``_inherit`` y ``_order`` se declaran verbatim. Pendientes, por campos
+    que este puerto aún no tiene: ``_rec_name = 'complete_name'`` (falta
+    ``complete_name``) y ``_parent_store = True`` (``parent_path`` existe,
+    pero el modelo no deriva de ``BaseModel``, que es quien mantiene el árbol).
     """
+
+    _name = 'hr.department'
+    _description = 'Department'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _order = 'name'
 
     name = fields.Char(verbose_name='Nombre')
     # D-2: FK directa a base.ResCompany (Odoo company_id, res.company). El eje
