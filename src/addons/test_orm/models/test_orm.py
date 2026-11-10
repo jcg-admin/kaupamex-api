@@ -1470,3 +1470,38 @@ class TestOrmComputeOnchangeLine(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_compute_onchange_line'
+
+
+class TestOrmSharedCompute(TestOrmModel):
+    """≙ ``test_orm.shared.compute`` (``odoo19c: odoo/addons/test_orm/
+    models/test_orm.py:2454-2476``): ``start`` y ``end`` editables y
+    calculados por el mismo método, y ``name`` calculado de los dos."""
+
+    _name = 'test_orm.shared.compute'
+    _description = 'test_orm.shared.compute'
+
+    name = fields.Char(compute='_compute_name', store=True, readonly=False,
+                       null=True)
+    start = fields.Integer(compute='_compute_start_end', store=True,
+                           readonly=False, null=True)
+    end = fields.Integer(compute='_compute_start_end', store=True,
+                         readonly=False, null=True)
+
+    @depends('start', 'end')
+    def _compute_name(self):
+        for record in self:
+            if record.start and record.end:
+                record.name = f"{record.start}->{record.end}"
+
+    @depends('name')
+    def _compute_start_end(self):
+        for record in self:
+            if record.name and '->' in record.name:
+                record.start, record.end = map(int, record.name.split('->'))
+            if not record.start:
+                record.start = 0
+            if not record.end:
+                record.end = 10
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_shared_compute'
