@@ -147,6 +147,58 @@ Pruebas de G1: `env.registry[name] is` la clase registrada; `in`, `len` e
 iteración sobre los nombres; `KeyError` ante un nombre desconocido (≙
 `:317-320`).
 
+## G1a — implementación
+
+- `Registry.clear_cache(*cache_names)` en la instancia (≙ `registry.py:971-987`),
+  delegando en `orm.registry.clear_cache`, el eje de proceso.
+- `Environment.registry` devuelve `registry.Registry(self.db_alias)`, la misma
+  base que `env.cr`.
+- Textos corregidos donde decían que `env.registry` era el módulo
+  (`src/orm/registry.py`, `src/orm/models.py` en `_read_group_expand_full` y
+  en `_is_an_ordinary_table`, que pasa a leer `self.env.registry` como
+  `self.pool` de la fuente).
+
+Pruebas (`tests/unit/orm/test_environment_registry.py`): RED 4 failed sobre
+`c5c5ff29` (la de `clear_cache` pasaba sin discriminar mientras
+`env.registry` era el módulo; se le añadió `'clear_cache' in vars(Registry)`),
+GREEN 4 passed. Consumidores de `env.registry.<x>`: `base_automation`, `crm`,
+`ir_rule`, `ir_ui_menu`, `res_currency`, `res_users`, `fields.py`
+(`unaccent`), `models.py`; su subconjunto derivado abarca 49 directorios de
+`tests/`, así que la verificación es el gate completo.
+
+**Primer gate completo de G1a: 7 failed.** `Environment.cache_key` leía
+`self.registry.field_depends_context`; con `env.registry` como instancia, ese
+mapa era una **copia** tomada en `Registry.init` (`self.field_depends_context
+= field_depends_context`), y las pruebas que parchean el global del módulo
+(`test_environments_cache.py`, `test_uid_cache_key_contract.py`) leían otro
+objeto. Ningún código de producción reasigna esos globales, pero la copia
+contradecía el propio comentario de `init` («ejes derivados, compartidos con
+el proceso»). Corrección: `field_depends`, `field_depends_context` y
+`many2one_company_dependents` pasan a ser propiedades de `Registry` que leen
+el global del módulo, su único dueño.
+
+Controles de anulación sobre `test_environments_cache.py`,
+`test_uid_cache_key_contract.py`, `test_environment_registry.py` y
+`test_registry_class.py` (93 casos):
+
+| Anulación | Caen |
+|---|---|
+| `env.registry` devuelve el módulo | 3 (las de mapa, identidad y `KeyError`; la de `clear_cache` mide `Registry.clear_cache`, que esta anulación no retira) |
+| `field_depends_context` copiado en `init` | 7 (las de `cache_key`) |
+
+Segundo gate completo (árbol principal sobre `1d75518a` más G1a): **12 593
+passed, 66 skipped, 6 xfailed, 0 failed, 5 errors** en 692 s; los 5 errores
+son los de `test_multidb_isolation.py` (base desechable de `ci-multidb`).
+
+Después del gate, la admisión de estilo pidió dos cambios sin efecto en la
+conducta: los cuatro miembros nuevos de `Registry` (`field_depends`,
+`field_depends_context`, `many2one_company_dependents`, `clear_cache`) se
+mueven al final de la clase —la huella de la admisión incluye la posición de
+cada sentencia en su contenedor, e insertarlos a mitad desplazaba la de los
+miembros siguientes— y el docstring del módulo se reescribe en 79 columnas
+(su tabla describía todavía un puerto sin `Registry`). Las 93 pruebas de las
+cuatro suites afectadas siguen en verde tras el cambio.
+
 ## Pendiente
 
 - Medir el flujo entre funciones (clases devueltas por funciones auxiliares
