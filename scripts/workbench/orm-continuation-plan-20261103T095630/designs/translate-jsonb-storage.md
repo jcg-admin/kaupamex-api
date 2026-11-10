@@ -161,3 +161,64 @@ mapa guardado (la columna), no el texto del idioma; el `ORDER BY` de Django
 sobre el campo ordena `jsonb` — el orden del ORM pasa por `to_sql`; los
 términos (`translate` invocable) y la caché por idioma de la fuente no se
 portan.
+
+## Segunda unidad: orden por idioma y revisión del contrato (2026-11-10)
+
+El alcance canónico de TASK-GEN-0060 (leído del store, sólo lectura) dice:
+*«(a) el campo jsonb con lectura/escritura por idioma activo, (b) la
+reescritura de consulta para filtrar/ordenar por el idioma, (c) la
+migración de los varchar existentes»*. El orden es parte de (b): no es una
+divergencia declarable, es alcance pendiente de la misma TASK.
+
+### Consumidores medidos
+
+| Vía | Consumidor | Hoy | Contrato |
+|---|---|---|---|
+| ORM `_order_field_to_sql` | búsquedas de `BaseModel` | `to_sql` → texto del idioma | correcto |
+| `order_to_django` (`models.py`) | `F(attname)` | `jsonb` crudo | texto del idioma (`_order_field_to_sql`, `:5262-5322`) |
+| `Meta.ordering` | `stock.ProductRemoval` `['name']`; `hr_skills.HrSkillType` y `HrSkill` `['sequence', 'name']` | `jsonb` crudo | `_order = "sequence, name"` sobre el texto (`odoo19c: hr_skills/models/hr_skill*.py`) |
+| `order_by` explícito | `hr_individual_skill_mixin._default_skill_type` | `jsonb` crudo | `search([], limit=1)` con ese `_order` (`:41-45`) |
+| `values`/`values_list` | ninguno de producto sobre los 14 campos (`base_automation.py:1070` lee `IrModelFields.name`, que no es traducible) | mapa guardado | sin consumidor: queda el contrato de Django (la columna) |
+
+`product.removal` no declara `_order` en la referencia (su orden es `id`);
+`Meta.ordering = ['name']` es divergencia previa del árbol, no de esta
+unidad. Se conserva su intención y se traduce; queda registrada.
+
+### Mecanismo — uno solo
+
+`_TranslatedText` pasa a ser `TranslatedValue(Func)`, una expresión
+pública y serializable en migraciones (recibe el nombre o la expresión y
+toma el campo del `Col` resuelto). La usan:
+
+1. los lookups de texto (ya lo hacían con la clase anterior);
+2. `order_to_django` para un campo traducible;
+3. `Meta.ordering` de los tres modelos (`TranslatedValue('name').asc()`);
+4. el consumidor explícito de `hr_skills`.
+
+No se reescribe `get_col` (cambiaría también el `SELECT` con que Django
+hidrata la fila) ni el compilador de Django.
+
+### Clasificación de lo que queda fuera
+
+- **Términos** (`translate` invocable, `html_translate`): no hay campo del
+  árbol que los declare, pero sí campos cuya fuente declara `translate` y
+  aquí no (cota inferior por `help_text` que lo nombra: `fleet` 3,
+  `website.configurator.feature` 2, `stock.rule` 1, `product` 3, `hr_skills`
+  1). Pertenecen al denominador del eje (TASK-GEN-0436), no se retiran; su
+  censo exacto por AST frente a la referencia es la condición para abrirlos.
+- **Caché por idioma.** Para filas de Django no hay diferencia observable:
+  el descriptor resuelve el idioma del contexto en cada lectura. Para un
+  `BaseModel` sí la habría (`record.with_context(lang=…)` lleva su entorno);
+  hoy no hay `BaseModel` con campo traducible, así que se registra la
+  condición: el primer `BaseModel` traducible exige leer `instance.env`.
+- **Propiedad de los métodos.** Los tres métodos y `copy_translations` de
+  fila cuelgan de `Model`; `BaseModel` los hereda y sólo redefine
+  `copy_translations` (recursión `One2many`), que comparte la rama de campo
+  con `_copy_field_translation`. Sin duplicado.
+
+### Pruebas (RED previstas)
+
+1. `Meta.ordering` de `HrSkillType` sigue el texto del idioma activo.
+2. `order_to_django(HrSkillType, 'sequence, name')` idem.
+3. `_default_skill_type()` devuelve el primero por el texto del idioma.
+4. `TranslatedValue` se deconstruye y reconstruye (migración).
