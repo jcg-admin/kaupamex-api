@@ -196,6 +196,25 @@ Decisión: TRAE. El archivo de la referencia (LGPL-3, atribución en su
 cabecera) se vendoriza en `src/addons/base/data/ir_module_category_data.xml`
 y se carga con `convert_xml_import`; no se reescribe como lista de Python.
 
+**Paso 0 — tensión de diseño, sin resolver (2026-11-10).** Los datos de
+este árbol se siembran desde migraciones con modelos **históricos**
+(`apps.get_model`), para que una migración no dependa del código vivo
+(`res_groups_data.py`, `ir_model_access.py`). `convert_xml_import` trabaja con
+los modelos **vivos** (`env[modelo]`): llamado desde una migración, una
+columna que añadiera a `ir.module.category` una migración posterior haría
+fallar la reconstrucción desde cero (`--create-db` de CI), porque el modelo
+vivo ya la declara y la tabla todavía no. Las salidas son tres, y ninguna se
+toma sin decidirla:
+
+| Salida | Coste |
+|---|---|
+| migración con `convert_xml_import` | acopla la migración al modelo vivo (el riesgo de arriba) |
+| lector propio del XML sobre modelos históricos | segundo intérprete del mismo XML: un mecanismo paralelo al cargador |
+| carga en el ciclo de instalación (TASK-API-0382) | el ciclo no existe todavía |
+
+Hasta decidirla, el paso 0 queda medido y diseñado, sin implementar; la
+seguridad de HR queda pendiente detrás de él (H-API-1216).
+
 Orden: (0) las 27 categorías de `base`; (1) grupos y privilegio de `hr`; (2) ACL de `hr` y de `hr_skills`
 derivadas; (3) reglas de `hr_skills_security.xml` sobre `hr.resume.line`;
 (4) el resto de addons `hr*` por el mismo camino.
