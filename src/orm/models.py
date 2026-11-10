@@ -7685,8 +7685,9 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         method for filling in empty groups for all possible values of the
         field being grouped by"*.
 
-        Adaptaciones declaradas, sin cambio de conducta: ``env.registry`` es
-        aquí un módulo, así que el método se busca en ``type(self)``; los
+        Adaptaciones declaradas, sin cambio de conducta: el método se busca
+        en ``type(self)``, que es la clase que ``env.registry[self._name]``
+        devuelve en la fuente; los
         registros del comodelo se construyen con
         :func:`_read_group_recordset`; un ``QuerySet`` de Django no ofrece
         ``sudo`` ni ``_fold_name``, y se omiten sólo cuando faltan.
@@ -10093,12 +10094,10 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         """Si la tabla del modelo es ordinaria (``relkind = 'r'``).
 
         ≙ ``odoo19c: odoo/orm/models.py:596-597``: la respuesta es del
-        registro de la base (``self.pool``), no del modelo. Aquí
-        ``env.registry`` es el módulo, así que el registro de la base se pide
-        por el alias del entorno.
+        registro de la base (``self.pool``), no del modelo; aquí
+        ``self.env.registry``, el ``Registry`` del alias del entorno.
         """
-        return registry.Registry(self.env.db_alias).is_an_ordinary_table(
-            type(self))
+        return self.env.registry.is_an_ordinary_table(type(self))
 
     @_on_empty_recordset
     def check_field_access_rights(self, operation, field_names):

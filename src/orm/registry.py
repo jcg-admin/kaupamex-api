@@ -1,33 +1,37 @@
 """``Registry`` — fiel a ``odoo/orm/registry.py`` (Odoo 19).
 
-En Odoo el ``Registry`` es el mapa **por base de datos** de nombre de modelo →
-clase de modelo (``registry['res.partner']``). Se construye al cargar los addons
-de esa DB, cachea la estructura de modelos/campos y coordina el setup del schema.
-Es singleton por ``db_name`` (``Registry(db_name)`` devuelve el existente).
+En Odoo el ``Registry`` es el mapa **por base de datos** de nombre de modelo
+→ clase de modelo (``registry['res.partner']``). Se construye al cargar los
+addons de esa DB, cachea la estructura de modelos/campos y coordina el setup
+del schema. Es singleton por ``db_name`` (``Registry(db_name)`` devuelve el
+existente).
 
-Mapeo a Django — **Django ya provee el registro de modelos**, y por eso el
-puerto no lo duplica; lo que sí recrea es todo lo que la fuente cuelga del
-registro y Django no tiene (el mapa por nombre punteado, el eje de campos y
-disparadores, el de schema, la carga y la señalización entre procesos):
+Mapeo a Django — **Django ya provee el registro de modelos**; lo que el
+puerto recrea es todo lo que la fuente cuelga del registro y Django no tiene
+(el mapa por nombre punteado, el eje de campos y disparadores, el de schema,
+la carga y la señalización entre procesos), y la clase :class:`Registry` con
+su mitad ``Mapping``:
 
-===================================  ===================================================
-Odoo ``Registry``                    Equivalente Django
-===================================  ===================================================
-``Registry(db_name)``                ``django.apps.apps`` (registro global de apps)
-``registry['res.partner']``          ``apps.get_model('base', 'ResPartner')``
-por-DB (multi-tenant)                ``django.db.connections`` + DB router
-                                     (``orm/routers.py``, ya presente: multi-DB
-                                     DB-per-company SOL-091)
-setup de schema al boot              migraciones Django (``makemigrations`` /
-                                     ``migrate``)
-caché de estructura modelo/campo     metadata ``Model._meta`` (campos, índices, FKs)
-===================================  ===================================================
+============================  ================================================
+Odoo ``Registry``             Equivalente aquí
+============================  ================================================
+``Registry(db_name)``         :class:`Registry` por alias de ``connections``;
+                              las clases las da ``django.apps.apps``
+``registry['res.partner']``   ``Registry(alias)['res.partner']`` y
+                              ``env.registry['res.partner']``
+por-DB (multi-tenant)         ``django.db.connections`` + DB router
+                              (``orm/routers.py``: DB-per-company SOL-091)
+setup de schema al boot       migraciones Django (``makemigrations`` /
+                              ``migrate``)
+caché de estructura           metadata ``Model._meta`` (campos, índices, FKs)
+============================  ================================================
 
-Recrear ``Registry`` sobre Django duplicaría ``django.apps`` y el manejo de
-conexiones. La **dimensión por-DB** (que en Odoo justifica un registry por
-tenant) aquí la cubre el router multi-DB de ``orm/routers.py`` + ``connections``.
-Un addon portado que leía ``self.env.registry[name]`` se adapta a
-``apps.get_model(...)``; el "singleton por DB" a ``connections[alias]``.
+La **dimensión por-DB** (que en Odoo justifica un registry por tenant) aquí
+la cubre el router multi-DB de ``orm/routers.py`` + ``connections``.
+``env.registry`` es la instancia de :class:`Registry` de la base del entorno
+(``Registry(env.db_alias)``), así que ``self.env.registry[name]`` devuelve la
+clase como en la fuente; el "singleton por DB" se resuelve por el alias de
+``connections``.
 
 ``_name`` — el mapa nombre punteado → clase
 =============================================
@@ -1933,12 +1937,12 @@ class Registry(Mapping):
         self.updated_modules = []
         self.loaded_xmlids = loaded_xmlids
 
-        # Ejes derivados, compartidos con el proceso (ver el docstring).
-        self.field_depends = field_depends
-        self.field_depends_context = field_depends_context
+        # Ejes derivados, compartidos con el proceso (ver el docstring):
+        # ``field_depends``, ``field_depends_context`` y
+        # ``many2one_company_dependents`` son propiedades que leen el global
+        # del módulo, su único dueño, en lugar de una copia tomada aquí.
         self.many2many_relations = defaultdict(OrderedSet)
         self.field_setup_dependents = Collector()
-        self.many2one_company_dependents = many2one_company_dependents
         self.not_null_fields = not_null_fields()
 
         # Los dos memos del eje de disparadores son **los del proceso**, no
@@ -3054,6 +3058,39 @@ class Registry(Mapping):
         if kind == '_inherits':
             return orm.model_classes.inherits_children(model._name)
         return ()
+
+    @property
+    def field_depends(self):
+        """≙ ``Registry.field_depends`` (``:252``): el eje del proceso,
+        :data:`field_depends` del módulo."""
+        return globals()['field_depends']
+
+    @property
+    def field_depends_context(self):
+        """≙ ``Registry.field_depends_context`` (``:253``): el eje del
+        proceso, :data:`field_depends_context` del módulo. Se lee al usarlo,
+        no se copia en ``init``: desde que ``env.registry`` es esta
+        instancia, una copia dejaba a ``Environment.cache_key`` leyendo un
+        mapa distinto del que el módulo publica."""
+        return globals()['field_depends_context']
+
+    @property
+    def many2one_company_dependents(self):
+        """≙ ``Registry.many2one_company_dependents`` (``:257``): el eje
+        del proceso, del módulo."""
+        return globals()['many2one_company_dependents']
+
+    def clear_cache(self, *cache_names):
+        """Vacía las cachés de ``tools.ormcache`` de esos nombres — ≙
+        ``:971-987``.
+
+        Docstring de la fuente, verbatim: *"Clear the caches associated to
+        methods decorated with ``tools.ormcache`` if cache is in
+        `cache_name` subset."* Las cachés son del proceso, no de la base,
+        así que delega en :func:`clear_cache` del módulo, que es el eje que
+        ya llaman los consumidores por ``registry.clear_cache``.
+        """
+        clear_cache(*cache_names)
 
 
 def _call_hooks(registry, name):

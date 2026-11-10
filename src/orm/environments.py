@@ -1170,8 +1170,16 @@ class Environment(abc.Mapping):
 
     @property
     def registry(self):
-        """≙ ``env.registry`` (``:172``) — aquí el registro es un módulo."""
-        return registry
+        """≙ ``env.registry`` (``:172``): el ``Registry`` de la base de este
+        entorno — un ``Mapping`` de nombre de modelo a su clase
+        (``odoo19c: odoo/orm/registry.py:84,309-320``).
+
+        La base es :attr:`db_alias`, el mismo alias que :attr:`cr`. Las
+        funciones del módulo ``orm.registry`` siguen siendo el eje de
+        proceso; la instancia las expone donde la fuente las tiene
+        (``clear_cache``, ``field_depends``…).
+        """
+        return registry.Registry(self.db_alias)
 
     @property
     def transaction(self):
