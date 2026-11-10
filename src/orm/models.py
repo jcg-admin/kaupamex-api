@@ -2030,8 +2030,10 @@ class CopyMixin:
         medidos en **0** definiciones bajo ``src/``.
 
         El método existe con su firma para que :meth:`copy` lo llame donde la
-        fuente lo llama: cuando #333 construya el almacenamiento, el cuerpo se
-        escribe aquí y ``copy`` no cambia. Sucesor: tarea **#333**.
+        fuente lo llama: cuando se construya el almacenamiento, el cuerpo se
+        escribe aquí y ``copy`` no cambia. Sucesor: **TASK-GEN-0060** (la
+        cita anterior, ``#333``, era un ordinal del tablero que resuelve a
+        otro sujeto).
         """
         return None
 
