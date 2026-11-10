@@ -303,3 +303,29 @@ resolver esos dos cambia la conducta de la instalación; queda como unidad
 propia: portar `BaseModel.init` (gancho vacío), pasar el alias a los dos
 overrides y decidir con medición si la vista de `hr.employee.public` la
 crea la migración o el gancho.
+
+### s5 — diseño medido (2026-11-10T23:01:06)
+
+**Contrato.** `BaseModel.init` (`odoo19c: odoo/orm/models.py:3250-3253`):
+gancho vacío, «called after `_auto_init`, and may be overridden to create or
+modify a model's database schema»; `init_models` lo llama justo después
+(`registry.py:752`).
+
+**Medido antes de cablearlo.** Dos modelos lo sobreescriben:
+
+| Modelo | Override | Medición |
+|---|---|---|
+| `hr.employee.public` (`Meta.managed = False`, ≙ `_auto = False`) | `CREATE OR REPLACE VIEW` sobre `hr_employee`/`hr_version`/`resource_resource`, por `connection` (alias por defecto) | **la vista no existe** en la base de pruebas (`pg_class` vacío): hoy nadie llama a `init` y `hr.employee.public` no se puede leer. Su SQL, ejecutado dentro de una transacción deshecha, crea la vista y `HrEmployeePublic.objects.count()` responde |
+| `ir.config_parameter` | siembra los parámetros ausentes (idempotente), ya con `using` | la siembra de migración y `_SEEDERS` ya los dejan; volver a llamarlo no cambia nada |
+
+**TRAE / CONSTRUYE.** CONSTRUYE el gancho vacío en el mixin del cargador
+(`classmethod init(cls, using=None)`), la llamada en `init_models` tras
+`_auto_init` con el alias del registro, y el alias en el override de
+`hr.employee.public` (`connections[using]`). La vista es un objeto que el
+estado de migraciones **no modela** (modelo no administrado): crearla aquí no
+compite con `migrate`, que es la regla de la autoridad del esquema.
+
+**Pruebas.** `init_models` sobre `hr.employee.public` crea la vista en la base
+del registro; el gancho base no emite nada; reejecutar `init` es idempotente
+(`CREATE OR REPLACE`). Control: sin la llamada en `init_models`, la vista no
+existe.
