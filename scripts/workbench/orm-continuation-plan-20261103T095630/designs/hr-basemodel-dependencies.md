@@ -156,7 +156,16 @@ su `model_id:id` es el de un modelo cargado; permisos verbatim). Precedentes:
 `src/addons/base/security/ir_model_access.py`,
 `src/addons/base/data/res_groups_data.py`, `addons/sale/security/ir_rules.py`.
 
-Orden: (1) grupos y privilegio de `hr`; (2) ACL de `hr` y de `hr_skills`
+**Paso 0, dependencia medida.** El privilegio `res_groups_privilege_employees`
+cuelga de `base.module_category_human_resources`, que es dato de **`base`**
+(`odoo19c: odoo/addons/base/data/ir_module_category_data.xml:43-46`), no de
+`hr`. Ese archivo declara **27** categorías (campos `name` 27, `sequence` 22,
+`parent_id` 6, `description` 4, `visible` 4, `exclusive` 1) y aquí sólo existe
+`base.module_category_master_data` (medido en `ir.model.data`). El paso 0
+porta el archivo completo con su dueño, `base`, por el mismo camino que
+`res_groups_data.py` (siembra viva más migración de datos).
+
+Orden: (0) las 27 categorías de `base`; (1) grupos y privilegio de `hr`; (2) ACL de `hr` y de `hr_skills`
 derivadas; (3) reglas de `hr_skills_security.xml` sobre `hr.resume.line`;
 (4) el resto de addons `hr*` por el mismo camino.
 
