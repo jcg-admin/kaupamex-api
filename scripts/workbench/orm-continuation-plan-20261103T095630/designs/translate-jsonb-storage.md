@@ -82,3 +82,46 @@ crear un campo de traducciones aparte.
 Lo que este diseño no cierra: la implementación. Es una unidad amplia —campo,
 caché por idioma, lectura y búsqueda por idioma, migración de 14 columnas— y
 se ejecuta como TASK-GEN-0060 con estas pruebas como RED.
+
+## Implementación — decisiones medidas (2026-11-10)
+
+Mediciones previas, sobre la base de pruebas migrada (`orm_x2hokp_qa`):
+
+- Ninguna de las 14 columnas tiene índice ni restricción `UNIQUE`/`CHECK`
+  propia (`pg_indexes`, `pg_constraint`); la conversión no tiene objetos que
+  rehacer. Filas con datos: sólo `hr_departure_reason.name` (3, sembradas
+  por migración de datos).
+- Consumidores Django por valor (`.filter(<campo>=…)`) en código de
+  producto: cero en los 14 campos. Las pruebas se miden con la regresión.
+- `tools.sql.convert_column_translatable` ya está portado
+  (`src/tools/sql.py:668`) con el `USING` de la fuente; la migración lo usa,
+  no copia el SQL.
+- `models.Field._convert_db_column` (`orm/fields.py`) no tiene la rama de
+  `BaseString` (`odoo19c: fields_textual.py:64-68`); se añade, y la
+  operación de migración llama al método del campo, de modo que la única
+  autoridad de esquema siguen siendo las migraciones y el SQL sale del ORM.
+- Búsqueda: `_search` compila por `Domain._to_sql` → `Field.condition_to_sql`
+  → `Field.to_sql`; ahí entra la rama `translate` de la fuente
+  (`fields_textual.py:394-402`, `COALESCE(col->>lang, col->>'en_US')`).
+
+Forma del campo — el patrón de `CompanyDependent`, con la clave `lang`:
+
+| Pieza | Decisión |
+|---|---|
+| Clase | `TranslatedChar(models.JSONField)` en `orm/fields_textual.py` (la fuente lo tiene en `BaseString`; no hay archivo nuevo), `type = 'char'` |
+| Despacho | `fields.Char(translate=True)` la devuelve, como `company_dependent=True` devuelve `CompanyDependent` |
+| `attname` | `<campo>_translations` guarda el mapa; la columna conserva el nombre del campo |
+| Descriptor sobre `name` | lee `translation_lang` con respaldo `get_translation_fallback_langs`; escribe la clave del idioma; `None`/`False` vacía la columna |
+| Alta | `{'en_US': v, lang: v}` (`convert_to_column_insert`, `:84-91`) |
+| Escritura | `{**mapa, lang: v}`; si `en_US` no está activo, también `en_US` (`:317-325`) |
+| Tamaño | `s[:size]` (`convert_to_cache`, `:101-115`) |
+| Consultas Django | `get_lookup` envuelve el lado izquierdo con el texto del idioma con respaldo, para que `.filter(name='Kg')` compare texto; sin esto la comparación `jsonb = '"Kg"'` no da error y no casa nada |
+| `to_sql` | rama `translate` de la fuente |
+| Migración | `SeparateDatabaseAndState`: estado `AlterField`, base `ConvertColumnTranslatable` (`migration_operations.py`), reversible |
+| Métodos | `get_field_translations`, `update_field_translations`, `_update_field_translations` en `BaseModel`; `_get_stored_translations` en el campo; la rama de traducción de los dos `copy_translations` |
+
+Fuera de esta unidad, declarado: términos (`translate` invocable) — ningún
+campo del árbol lo declara; `prefetch_langs`/`LangProxyDict` en la caché del
+ORM — el descriptor resuelve el idioma sobre el mapa de la fila, como hace
+`CompanyDependent` con la empresa; la caché por idioma de la fuente queda
+como divergencia de mecanismo y su clase ya existe sin consumidor.
