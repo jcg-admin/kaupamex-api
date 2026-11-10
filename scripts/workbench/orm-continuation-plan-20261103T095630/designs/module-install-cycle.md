@@ -500,3 +500,47 @@ el contexto de evaluación sino adoptar `BaseModel` en `hr.employee`
 (CONSTRUYE sobre la raíz existente), medir sus consumidores y llevar
 `res.users.employee_id` a devolver el recordset. Primera mitad (el registro
 del superusuario) sin cambio: sigue abierta la ocupación del id 1.
+
+#### L4e — secuencia derivada (2026-11-10)
+
+Medido tras el replanteo, la regla `hr_employee_comp_rule` necesita cinco
+cosas, en este orden:
+
+| # | Qué | TRAE / CONSTRUYE | Evidencia |
+|---|---|---|---|
+| e1 | `hr.employee` deriva de `BaseModel` | TRAE: la base de recordsets existe; precedente `6dd45001` (grupo A de TASK-API-0397) | con el cambio, 254 de 257 pruebas de `hr`, `hr_skills`, `hr_recruitment`, `fleet`, `sale_timesheet` e `integration/hr` siguen verdes; las 3 rojas son las de los datos de seguridad, sin activar |
+| e2 | `hr.employee.parent_id` en forma C (`child_ids` como reverso, `hr_employee.py` de la fuente) | CONSTRUYE sobre ADR-029 | `parent` es forma A: su `parent_id` es el id escalar y `user.employee_id.parent_id.id` falla aunque el empleado exista |
+| e3 | `res.users.employee_id`: `Many2one` no almacenado, `compute='_compute_company_employee'`, `search='_search_company_employee'` (`hr/models/res_users.py:64-65`, `:266-286` de la fuente) | TRAE: campos no almacenados calculados del ORM | hoy es la propiedad `employee`, que devuelve `None` |
+| e4 | `IrRule._eval_context` toma el usuario del entorno si nadie lo pasa (`user = self.env.user` en `ir_rule.py:38-51` de la fuente) | TRAE: `get_current_user()` | hoy `user=None` |
+| e5 | `base.partner_root` y `base.user_root` (uid `SUPERUSER_ID`), como los crea la inicialización de la base de la fuente (`base_data.sql`, no el cargador) | CONSTRUYE en una migración de `base` por los modelos, mismo patrón que `0027_seed_base_groups`; si la fila 1 existe, recibe el XML-ID sin más cambios porque este árbol ya la trata como superusuario | sin fila con id 1, `get_current_user()` es `None` bajo `SUPERUSER_ID` |
+
+Lectura de un `Many2one` sobre un recordset VACÍO: el `FieldDescriptor`
+cubre la rama de tamaño de `Field.__get__` (`fields.py:1653-1661` de la
+fuente), pero el accesor del attname de una FK en forma A no; con forma C la
+ruta del dominio pasa por el campo y no por el attname.
+
+#### L4e — implementación y medición (2026-11-10T20:48:46)
+
+e1–e5 implementados como la tabla anterior. Con ellos la carga real de
+`hr_security.xml` avanzó hasta su línea 88 y destapó dos piezas más, y una
+tercera que no se cierra en este pase.
+
+| # | Qué destapó | Desenlace | Control de anulación |
+|---|---|---|---|
+| e6 | `order_to_django` no recorría un `related` sin columna: el `_order = 'name, login'` de `res.users` ordena por el `name` del partner (`_inherits`). ≙ `_order_field_to_sql` → `_field_to_sql` (`odoo19c: odoo/orm/models.py:2919-2922`) | CONSTRUYE: se recorre el camino del `related` y se ordena en el comodelo | retirada la rama, caen exactamente los 3 casos de `tests/unit/orm/test_order_follows_related.py`; los 11 de `test_order_to_sql.py` siguen |
+| e7 | el converter de `ir.fields` comparaba el modelo del XML-ID contra `_name` (`ir.model`), pero `ir_model_data.model` guarda la etiqueta de Django (`base.IrModel`), que es la llave declarada en `ir_model.py` («Qué va en `model`»): todo `model_id:id` del CSV de la referencia se rechazaba y la fila llegaba sin `model_id` | se compara con `model._meta.label`; medido, 0 filas del almacén usan la forma `_name`, así que las dos pruebas que la fijaban se alinearon con la etiqueta | restaurada la comparación con `_name`, falla la instalación misma —la carga del CSV de HR va en `post_migrate`— y caen en setup los 21 casos de `test_ir_fields_relational.py` y `test_hr_security_data.py`: discrimina, pero sin aislar los dos casos que dependen de ella |
+| e8 | tres reglas —`ir_rule_hr_contract_type_multi_company`, `ir_rule_hr_departure_reason_multi_company`, `ir_rule_hr_payroll_structure_type_multi_company`— evalúan `user.env.companies…` | **bloqueo medido**: exige `res.users` y `res.company` sobre `BaseModel`. Adoptarlo en `res.users` (medido) hizo caer 35 casos del subconjunto `base`/`hr`/`authz`/`orm`: 19 por e6, ya cerrado, y 16 porque el contrato de acceso de `res.users` se activa en los flujos de autenticación (`check_access('read')` sin usuario ni `sudo` en el alta de 2FA, `main_user_id` vacío como recordset). Se revirtió; las tres reglas se omiten en `hr_security.xml` con la omisión declarada en su cabecera | — |
+
+e4 y e5 tienen prueba directa: `test_the_rule_context_takes_the_acting_user`
+(retirado e4, cae sólo ese caso entre 19) y `tests/unit/base/test_root_user_seed.py`.
+e5 es una migración; su anulación exige una base nueva, y la cubre
+ci-multidb (`--create-db`). Las dos pruebas de `test_res_users_constraints.py`
+que fabricaban la fila `SUPERUSER_ID` ahora usan la sembrada: con ella
+presente, fabricarla viola la clave.
+
+**Sucesor de e8** (sin id acuñado; lo acuña quien tenga el TaskStore):
+adoptar `BaseModel` en `res.users` y `res.company`, con el contrato de
+acceso de `res.users` en autenticación resuelto como la fuente —el alta de
+2FA escribe con `sudo()` (`auth_totp/models/res_users.py:109-110`)— y
+`env.user`/`env.companies` devolviendo recordsets. Condición de cierre: las
+tres reglas de e8 cargan sin omisión y sus dominios filtran.
