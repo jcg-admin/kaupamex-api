@@ -1,4 +1,5 @@
-"""``web`` — capa de datos del cliente web. Adaptación de Odoo, licencia LGPL-3.
+"""``web`` — capa de datos del cliente web. Adaptación de Odoo, licencia
+LGPL-3.
 
 Fuente: ``odoo19c: addons/web/models/models.py`` (``odoo-tools@622ddc2a``,
 2360 líneas). Cáscara de solo controladores hasta H-API-369 / DEC-FW-04
@@ -38,7 +39,8 @@ correr. **Ninguna de las tres seguía dando cero:**
    grep -rln "date_utils|def start_of" src/tools/*.py src/orm/*.py
        citado: 0    hoy: 3   (src/tools/date_utils.py, orm/domains.py,
                               orm/fields_temporal.py)
-   grep -rln "_update_cache|field_computed|def modified(|_apply_onchange_methods"
+   grep -rln "_update_cache|field_computed|def modified(|
+        _apply_onchange_methods"
         src/orm/*.py src/addons/*/models/*.py
        citado: 0    hoy: 1   (orm/environments.py)
    grep -rln "update_field_translations|get_installed(" src/ --include="*.py"
@@ -102,7 +104,8 @@ Segundo pase — familia ``read_group`` (9 + 4 formatters anidados):
 ``_web_read_group_format`` · ``_web_read_group_groupby_formatter`` (fábrica
 que produce ``formatter_many2one``/``formatter_many2many``/
 ``formatter_time_granularity``/``formatter_date_number_granularity``).
-``.values().annotate()``/``.aggregate()`` de Django reemplaza el ``_read_group``
+``.values().annotate()``/``.aggregate()`` de Django reemplaza el
+``_read_group``
 propio de Odoo; ``Trunc*``/``Extract*`` de ``django.db.models.functions``
 reemplazan la resolución de granularidad temporal. Divergencia declarada: las
 etiquetas de bucket temporal usan ``strftime``/ISO, no ``babel`` (ausente del
@@ -113,7 +116,8 @@ no existe como closure aparte porque no hace falta.
 
 Segundo pase — familia ``search_panel`` (7 + 1 ``get_parent_id`` anidado):
 ``_search_panel_domain_image`` · ``_search_panel_field_image`` ·
-``_search_panel_global_counters`` · ``_search_panel_sanitized_parent_hierarchy``
+``_search_panel_global_counters`` ·
+``_search_panel_sanitized_parent_hierarchy``
 (con ``get_parent_id``) · ``_search_panel_selection_range`` ·
 ``search_panel_select_range`` · ``search_panel_select_multi_range``.
 Divergencia declarada: la jerarquía usa la convención de campo literal
@@ -196,7 +200,8 @@ propia:
   ``read_progress_bar`` agrega con ``.values().annotate()`` directo y nunca
   ve una tupla — es la divergencia que su propio docstring ya declara.
 - ``formatter_follow_many2one`` recorre ``campo.subcampo`` recursivamente;
-  aquí el path punteado colapsa en un único lookup Django (``campo__subcampo``).
+  aquí el path punteado colapsa en un único lookup Django
+  (``campo__subcampo``).
 - ``group_id_name`` (tres copias en las ramas de ``search_panel``) elige entre
   devolver el valor crudo o el par ``(valor, etiqueta)``; en el puerto esa
   decisión está en línea en cada rama, sin closure con nombre.
@@ -206,7 +211,8 @@ propia:
 CSS por-compañía (``web.asset_styles_company_report``) desde
 ``primary_color``/``secondary_color`` vía ``ir.qweb._render``. Medido hoy:
 ``grep -rn "styles_company_report" src/addons/`` → **0** (no existe ese
-adjunto/vista); ``grep -n "def _render" src/addons/base/models/ir_template_expressions.py``
+adjunto/vista);
+``grep -n "def _render" src/addons/base/models/ir_template_expressions.py``
 → **0** — el compilador de QWeb no está portado y su ``render`` levanta
 ``NotImplementedError`` a propósito (``ir_template_expressions.py:708-720``).
 
@@ -225,8 +231,9 @@ que invalidar en cada request porque no hay *bundle* dinámico de ningún tipo.
 
 **``web_override_translations`` (1 método).** Sobrescribe la traducción
 inline de un campo para el idioma activo. Su cuerpo consume dos símbolos, y
-**hoy sólo falta uno**: ``grep -rn "def update_field_translations" src/
---include="*.py"`` → **0**.
+**hoy no falta ninguno**: ``update_field_translations`` existe desde
+TASK-GEN-0060 (``orm/models.py``, sección «Traducciones por campo»). El
+método queda desbloqueado y sin portar.
 
   ``res.lang.get_installed()`` **ya no falta**: se portó el 2026-09-02 junto a
   ``base_setup`` —lo consume ``ResConfigSettings._compute_language_count``— y
@@ -234,31 +241,19 @@ inline de un campo para el idioma activo. Su cuerpo consume dos símbolos, y
   ausente y era la mitad de su razón de bloqueo; se corrige aquí porque el
   porte que lo trajo es el que caducó el reclamo.
 
-  La razón vieja citaba ``grep -rln "update_field_translations|get_installed("``
+  La razón vieja citaba
+  ``grep -rln "update_field_translations|get_installed("``
   sin ``def``, y ese comando **hoy da 2**: sus dos aciertos son prosa en
   docstrings que nombran los símbolos **para decir que faltan**
   (``orm/models.py:1173`` y ``base/models/res_partner.py:2083``). El cero
   había caducado como instrumento sin que el mecanismo cambiara.
 
-Y no es una razón sin sucesor: los dos que faltan **ya tienen tarea
-nombrada** en el árbol, cada uno por su cuenta.
+El registro de los dos símbolos, por separado:
 
-- ``update_field_translations`` espera al almacenamiento por idioma. La
-  referencia guarda el campo traducible como columna ``jsonb``
-  ``{lang: valor}``; aquí ``translate=True`` se **anota** en el campo
-  (``field.translate``) y la columna sigue siendo ``varchar``. Sucesor:
-  tarea **#333**, ya citada en ``orm/fields_textual.py:165`` y en
-  ``orm/models.py:1177`` (donde ``copy_translations`` está bloqueado por lo
-  mismo). El alcance de ese almacenamiento —una columna ``jsonb`` y su
-  migración por cada campo que hoy declara la bandera— lo publica el propio
-  comando, y aquí se nombra en vez de transcribirse: es una propiedad del
-  árbol, que crece, no un hecho de este archivo.
-
-  .. code-block:: bash
-
-     # el conteo del día; descontar migraciones y los dos archivos del ORM
-     # que sólo documentan la bandera, que no declaran campo
-     grep -rn "translate=True" src/ addons/ --include='*.py' | grep -v /migrations/
+- ``update_field_translations`` existe desde TASK-GEN-0060: todo modelo
+  lo recibe (``orm/models.py``, sección «Traducciones por campo») y los
+  campos ``translate=True`` guardan ``jsonb`` ``{lang: valor}``
+  (``orm/fields_textual.py::TranslatedChar``).
 - ``get_installed`` espera a la tarea **#104**, citada en
   ``base/models/res_partner.py:2085``.
 

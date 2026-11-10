@@ -37,11 +37,13 @@ class TestHrContractTypeOrdering:
     def test_default_ordering_is_by_sequence(self):
         HrContractType.objects.create(name='Segundo', sequence=20)
         HrContractType.objects.create(name='Primero', sequence=10)
-        names = list(
-            HrContractType.objects.order_by(
-                *HrContractType._meta.ordering
-            ).values_list('name', flat=True)
-        )
+        # el atributo, no ``values_list``: ``name`` es traducible y la
+        # columna guarda el mapa por idioma (TASK-GEN-0060)
+        names = [
+            contract_type.name
+            for contract_type in HrContractType.objects.order_by(
+                *HrContractType._meta.ordering)
+        ]
         assert names == ['Primero', 'Segundo']
 
 

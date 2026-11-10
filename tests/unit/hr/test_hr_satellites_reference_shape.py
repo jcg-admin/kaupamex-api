@@ -46,7 +46,8 @@ SATELLITE_LABELS = [
     'hr_work_entry.HrWorkEntryType',
 ]
 
-#: El campo que ``hr_timesheet`` cuelga de ``uom.uom`` por extensión. Su columna
+#: El campo que ``hr_timesheet`` cuelga de ``uom.uom`` por extensión.
+#: Su columna
 #: vive en ``uom`` —y por eso su migración salió ahí, no en ``hr_timesheet``—,
 #: pero el campo es del satélite y se mide con los demás. El resto de los
 #: ``Char`` de ``uom.Uom`` NO entra: son de su propio addon.
@@ -65,7 +66,11 @@ def _char_fields(label):
     model = apps.get_model(label)
     return [
         f for f in model._meta.get_fields()
-        if getattr(f, 'get_internal_type', None) and f.get_internal_type() == 'CharField'
+        if getattr(f, 'get_internal_type', None)
+        # un ``Char`` traducible guarda ``jsonb`` (TASK-GEN-0060) y sigue
+        # siendo ``Char`` por su tipo de la fuente
+        and (f.get_internal_type() == 'CharField'
+             or getattr(f, 'translate', False) is True)
     ]
 
 
@@ -123,7 +128,11 @@ def test_the_satellite_char_columns_match_the_declared_caps():
         if not model._meta.managed:
             continue
         for f in _char_fields(label):
-            if getattr(f, 'column', None):
+            # un traducible guarda ``jsonb``: su tope vive en el campo
+            # (``s[:size]``, ``odoo19c: fields_textual.py:101-115``), no en
+            # la columna — lo mide el test de arriba
+            if (getattr(f, 'column', None)
+                    and getattr(f, 'translate', False) is not True):
                 expected[(model._meta.db_table, f.column)] = \
                     CAPPED_BY_DECISION.get((label, f.name))
     uom_model = apps.get_model(UOM_FIELD[0])

@@ -113,7 +113,7 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         _field_cache_record_id,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
-from orm.fields_textual import Char
+from orm.fields_textual import BASE_LANG, Char
 from orm.fields_temporal import Date, Datetime
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
@@ -2016,26 +2016,14 @@ class CopyMixin:
         return CopyMixin.copy_data(child, default, seen=seen)
 
     def copy_translations(self, new, excluded=()):
-        """BLOQUEADO por ``translate`` — el almacenamiento por idioma.
+        """Copia las traducciones del original al registro nuevo.
 
         ≙ ``copy_translations`` (``odoo19c: odoo/orm/models.py:5465-5528``).
-
-        No es una divergencia de mecanismo ni una omisión: **no hay
-        traducciones que copiar**. La referencia guarda el campo traducible
-        como columna ``jsonb`` ``{lang: valor}``; aquí ``translate=True`` se
-        **anota** en el campo (``field.translate``, ``orm/fields_textual``)
-        y la columna sigue siendo ``varchar`` con un solo idioma. Los tres
-        símbolos que el cuerpo consume —``_get_stored_translations``,
-        ``update_field_translations``, ``get_translation_dictionary``— están
-        medidos en **0** definiciones bajo ``src/``.
-
-        El método existe con su firma para que :meth:`copy` lo llame donde la
-        fuente lo llama: cuando se construya el almacenamiento, el cuerpo se
-        escribe aquí y ``copy`` no cambia. Sucesor: **TASK-GEN-0060** (la
-        cita anterior, ``#333``, era un ordinal del tablero que resuelve a
-        otro sujeto).
+        Delega en la función de módulo :func:`copy_translations`, la misma
+        que todo modelo de Django recibe (TASK-GEN-0060): una sola
+        implementación de la rama de los campos traducibles.
         """
-        return None
+        return copy_translations(self, new, excluded)
 
     def copy(self, default=None):
         """Duplica el registro, con sus hijos, aplicando ``default``.
@@ -5143,6 +5131,194 @@ def invalidate_recordset(self, fnames=None, flush=True):
     _invalidate_cache(self, fnames, tuple(record_ids(as_record_list(self))))
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Traducciones por campo — ≙ ``update_field_translations``,
+# ``_update_field_translations``, ``get_field_translations`` y la rama de
+# traducción de ``copy_translations`` (``odoo19c: odoo/orm/models.py:
+# 3492-3703``, ``:5465-5528``) — TASK-GEN-0060
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Allá cuelgan de ``BaseModel`` y todo modelo los tiene. Aquí los 12 modelos
+# con campos traducibles son de Django, no ``BaseModel``, así que se cuelgan de
+# ``Model`` como los métodos de motor de arriba; ``BaseModel`` los hereda.
+#
+# Divergencias declaradas: la rama de términos (``translate`` invocable) no
+# tiene receptor —el despachador lleva ``translate`` a ``bool``—, y el
+# ``self[field_name] = self[field_name]`` final de la fuente, que dispara las
+# sobrecargas de ``write``, no tiene contraparte sobre una fila de Django: el
+# anuncio a los cómputos lo hace ``modified``.
+
+
+def _installed_langs():
+    """Los idiomas válidos: los instalados más ``en_US`` (``:3562``)."""
+    return ({code for code, _ in env()['res.lang'].get_installed()}
+            | {'en_US'})
+
+
+def _record_connection(record):
+    return connections[record._state.db or DEFAULT_DB_ALIAS]
+
+
+def update_field_translations(self, field_name, translations,
+                              source_lang=''):
+    """Update the translations for a given field. — ≙
+    ``update_field_translations`` (``:3492-3502``)"""
+    return self._update_field_translations(
+        field_name, translations, source_lang=source_lang)
+
+
+def _update_field_translations(self, field_name, translations, digest=None,
+                               source_lang=''):
+    """Update the translations for a given field. — ≙
+    ``_update_field_translations`` (``:3505-3660``)
+
+    ``{idioma: valor}``: un ``str`` es la traducción nueva; ``False`` retira
+    la del idioma y la lectura cae al ``en_US``.
+    """
+    if hasattr(self, 'ensure_one'):
+        self.ensure_one()
+    if hasattr(self, 'check_access'):
+        self.check_access('write')
+    field = type(self)._meta.get_field(field_name)
+    if hasattr(self, '_check_field_access'):
+        self._check_field_access(field, 'write')
+
+    valid_langs = _installed_langs()
+    source_lang = source_lang or 'en_US'
+    missing_langs = (set(translations) | {source_lang}) - valid_langs
+    if missing_langs:
+        raise UserError(
+            'The following languages are not activated: %s'
+            % ', '.join(sorted(missing_langs)))
+
+    if not getattr(field, 'translate', False):
+        return False
+    related = getattr(field, 'related', None)
+    if (not getattr(field, 'store', True) and not related
+            and getattr(field, 'compute', None)):
+        return False
+    if related and not getattr(field, 'store', True):
+        related_path, field_name = related.rsplit('.', 1)
+        return self.mapped(related_path)._update_field_translations(
+            field_name, translations, digest)
+    if field.translate is not True:
+        # los términos no tienen receptor; ver la cabecera de la sección
+        return False
+
+    if any(translation and not isinstance(translation, str)
+           for translation in translations.values()):
+        raise UserError('Translations for model translated fields only'
+                        ' accept falsy values and str')
+    translations = dict(translations)
+    english_value = translations.get('en_US', True)
+    if not english_value and english_value != '':
+        translations.pop('en_US')
+    translations = {
+        lang: translation if isinstance(translation, str) else None
+        for lang, translation in translations.items()
+    }
+    if not translations:
+        return False
+
+    lang = env().lang
+    if translations.get('en_US') is not None:
+        fallback = translations['en_US']
+    elif translations.get(lang) is not None:
+        fallback = translations[lang]
+    else:
+        fallback = next(
+            (v for v in translations.values() if v is not None), None)
+    # ``self.invalidate_recordset([field_name])`` de la fuente; una fila de
+    # Django no lleva entorno propio, así que se usa el activo.
+    field._invalidate_cache(env(), (self.pk,))
+    query = SQL(
+        """ UPDATE %(table)s
+            SET %(field)s = NULLIF(
+                jsonb_strip_nulls(%(fallback)s::jsonb
+                    || COALESCE(%(field)s, '{}'::jsonb) || %(value)s::jsonb),
+                '{}'::jsonb)
+            WHERE id = %(id)s
+            RETURNING %(field)s
+        """,
+        table=SQL.identifier(type(self)._meta.db_table),
+        field=SQL.identifier(field.column),
+        fallback=json.dumps({BASE_LANG: fallback}),
+        value=json.dumps(translations),
+        id=self.pk,
+    )
+    with _record_connection(self).cursor() as cr:
+        cr.execute(query.code, query.params)
+        row = cr.fetchone()
+    value = row[0] if row else None
+    if isinstance(value, str):
+        value = json.loads(value)
+    # La fila en memoria se queda con el mapa nuevo, como la caché de la
+    # fuente tras su invalidación y relectura.
+    self.__dict__[field.attname] = value
+    self.modified([field_name])
+    return True
+
+
+def get_field_translations(self, field_name, langs=None):
+    """Get model/model_term translations for records. — ≙
+    ``get_field_translations`` (``:3664-3703``)
+
+    :return: ``(translations, context)``: una entrada ``{lang, source,
+        value}`` por idioma, y el contexto de presentación.
+    """
+    if hasattr(self, 'ensure_one'):
+        self.ensure_one()
+    field = type(self)._meta.get_field(field_name)
+    langs = set(langs or [code for code, _ in
+                          env()['res.lang'].get_installed()])
+    translate = getattr(field, 'translate', False)
+    if not translate:
+        translations = []
+    else:
+        stored = field._get_stored_translations(self) or {}
+        english_value = field.translated_value(stored, 'en_US')
+        translations = [{
+            'lang': lang,
+            'source': english_value,
+            'value': field.translated_value(stored, lang),
+        } for lang in langs]
+    context = {
+        'translation_type': ('text' if getattr(field, 'type', None)
+                             in ('text', 'html') else 'char'),
+        'translation_show_source': callable(translate),
+    }
+    return translations, context
+
+
+def _copy_field_translation(old, new, field, valid_langs, lang):
+    """La rama de un campo traducible de ``copy_translations``
+    (``:5508-5514``): copia los idiomas guardados salvo el activo, que ya
+    copió ``copy_data``."""
+    if not getattr(old, field.name):
+        return
+    stored = field._get_stored_translations(old)
+    if not stored:
+        return
+    new.update_field_translations(field.name, {
+        k: v for k, v in stored.items() if k in valid_langs and k != lang})
+
+
+def copy_translations(self, new, excluded=()):
+    """Recursively copy the translations from original to new record. — ≙
+    ``copy_translations`` (``:5465-5528``) sobre una fila de Django.
+
+    Divergencia declarada: sin ``_fields`` ni ``One2many`` propios, sólo se
+    copia la rama de los campos traducibles; la recursión por líneas es la
+    de :meth:`BaseModel.copy_translations`.
+    """
+    valid_langs = _installed_langs()
+    lang = env().lang or 'en_US'
+    for field in type(self)._meta.concrete_fields:
+        if (getattr(field, 'translate', False) is True and _copies(field)
+                and field.name not in excluded):
+            _copy_field_translation(self, new, field, valid_langs, lang)
+
+
 for _engine_method in (modified, _modified, _modified_triggers,
                        _recompute_model, _recompute_recordset,
                        _recompute_field, _flush, flush_model,
@@ -5150,6 +5326,11 @@ for _engine_method in (modified, _modified, _modified_triggers,
                        invalidate_recordset):
     setattr(Model, _engine_method.__name__, _engine_method)
     setattr(QuerySet, _engine_method.__name__, _engine_method)
+
+for _translation_method in (update_field_translations,
+                            _update_field_translations,
+                            get_field_translations, copy_translations):
+    setattr(Model, _translation_method.__name__, _translation_method)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -8491,11 +8672,10 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         """Recursively copy the translations from original to new record.
         — ≙ ``copy_translations`` (``odoo19c: odoo/orm/models.py:5465-5528``)
 
-        Se portan la guarda, la exclusión de lo heredado de un padre dado y
-        la recursión por las líneas ``One2many``, emparejadas por id. La rama
-        de los campos traducibles no tiene qué copiar: la columna guarda un
-        solo idioma y lo copia ``copy_data``; el almacenamiento por idioma es
-        la tarea #333, y con él esta rama recibe el cuerpo de la fuente.
+        Se portan la guarda, la exclusión de lo heredado de un padre dado, la
+        recursión por las líneas ``One2many`` emparejadas por id y la rama de
+        los campos traducibles (TASK-GEN-0060), compartida con las filas de
+        Django en :func:`_copy_field_translation`.
         """
         old = self
         if '__copy_translations_seen' not in old.env.context:
@@ -8505,6 +8685,8 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         if old.id in seen_map[old._name]:
             return
         seen_map[old._name].add(old.id)
+        valid_langs = _installed_langs()
+        lang = self.env.lang or 'en_US'
         for name, field in old._fields.items():
             if not _copies(field):
                 continue
@@ -8518,6 +8700,10 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                 new_lines = _x2many_records(field, new[name]).sorted(key='id')
                 for old_line, new_line in zip(old_lines, new_lines):
                     old_line.copy_translations(new_line)
+            elif (getattr(field, 'translate', False) is True
+                  and getattr(field, 'store', True)
+                  and name not in excluded):
+                _copy_field_translation(old, new, field, valid_langs, lang)
 
     def copy(self, default=None):
         """Duplicate record ``self`` updating it with default values. — ≙

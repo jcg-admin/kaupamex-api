@@ -125,3 +125,39 @@ campo del árbol lo declara; `prefetch_langs`/`LangProxyDict` en la caché del
 ORM — el descriptor resuelve el idioma sobre el mapa de la fila, como hace
 `CompanyDependent` con la empresa; la caché por idioma de la fuente queda
 como divergencia de mecanismo y su clase ya existe sin consumidor.
+
+## RED, GREEN, regresión y anulación (2026-11-10)
+
+- RED (`tests/unit/orm/test_translated_char.py`, sobre `afeecc89`):
+  `13 failed`, cada uno por su causa prevista (columna `varchar`, sin
+  `update_field_translations`, operador `->>` inexistente sobre `varchar`).
+- Defecto del primer diseño, medido: la conversión dentro de
+  `SeparateDatabaseAndState` no hacía nada. Cada operación de base recibe el
+  estado viejo más su propio `state_forwards`, así que veía el `CharField`
+  y salía antes de convertir; la migración quedaba aplicada y la columna en
+  `varchar`. `ConvertColumnTranslatable` es ahora un `AlterField` que
+  convierte por el campo de destino.
+- Migración aplicada sobre la base de pruebas: las 14 columnas son `jsonb`;
+  las 3 filas sembradas quedan `{"en_US": <texto>}`. La reversa se prueba
+  en `test_conversion_round_trips_the_text`.
+- Regresión derivada (17 directorios): `8 failed, 9367 passed`. Siete
+  causas: tres pruebas que afirmaban el estado anterior (los símbolos no
+  existían; la bandera no cambiaba el almacenamiento; un reclamo de cero en
+  `web/models/models.py`), dos que leían `max_length`/`values_list` como si
+  la columna fuera `varchar`, y un defecto real: `QuerySet.update(campo=str)`
+  rechazaba el texto. Se cierra con la fusión de `_write_multi`
+  (`COALESCE(col, {'en_US': v}) || {idioma: v}`) en `get_db_prep_save`.
+- GREEN: `14 passed`; las siete del derivado, verdes.
+- Anulación, cada una restaurada y verificada con `cmp`, `__pycache__`
+  retirado: sin los lookups de texto → cae sólo el filtro Django; sin la
+  rama de `to_sql` → sólo `to_sql`; sin respaldo → sólo la lectura con
+  respaldo; sin `en_US` en el alta → sólo el alta; `False` como `''` → sólo
+  la retirada del idioma; sin la rama de copia → sólo la copia; sin la
+  fusión del `UPDATE` → la prueba del `UPDATE` y las tres de
+  `base_sparse_field` que escriben por esa vía.
+
+Divergencias declaradas en el código: `values()`/`values_list()` entregan el
+mapa guardado (la columna), no el texto del idioma; el `ORDER BY` de Django
+sobre el campo ordena `jsonb` — el orden del ORM pasa por `to_sql`; los
+términos (`translate` invocable) y la caché por idioma de la fuente no se
+portan.

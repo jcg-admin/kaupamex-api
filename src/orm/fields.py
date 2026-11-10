@@ -761,6 +761,17 @@ def _field_to_sql_expression(self, model, alias):
             f"Cannot convert {self} to SQL because it is not stored")
 
     sql_field = SQL.identifier(alias, self.column, to_flush=self)
+    # ``fields_textual.py:394-402`` — la rama ``translate``: el texto del
+    # idioma activo con su respaldo, salvo que el contexto pida el mapa
+    # entero (``prefetch_langs``).
+    environment = get_environment()
+    if (getattr(self, 'translate', False) is True
+            and not environment.context.get('prefetch_langs')):
+        langs = self.get_translation_fallback_langs(environment)
+        sql_field_langs = [SQL("%s->>%s", sql_field, lang) for lang in langs]
+        if len(sql_field_langs) == 1:
+            return sql_field_langs[0]
+        return SQL("COALESCE(%s)", SQL(", ").join(sql_field_langs))
     if not getattr(self, 'company_dependent', False):
         return sql_field
 

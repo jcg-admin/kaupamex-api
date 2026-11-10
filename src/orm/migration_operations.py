@@ -56,3 +56,51 @@ class ComputeStoredFields(migrations.RunPython):
     def describe(self):
         return (f'Compute {", ".join(self.field_names)} on '
                 f'{self.app_label}.{self.model_name}')
+
+
+class ConvertColumnTranslatable(migrations.AlterField):
+    """``AlterField`` que convierte la columna por el campo de destino.
+
+    ≙ ``Field.update_db_column`` → ``_convert_db_column`` (``odoo19c:
+    odoo/orm/fields.py:1112-1143``, ``fields_textual.py:64-68``): cuando el
+    tipo de la columna no coincide con el del campo, el ORM la convierte, y
+    hacia o desde ``jsonb`` traducible pasa por
+    ``convert_column_translatable`` (el texto queda bajo ``en_US``).
+
+    El estado lo cambia ``AlterField`` y la base la convierte el campo del
+    estado de destino con su propio ``_convert_db_column``; en la reversa el
+    destino es el estado anterior, así que el ``jsonb`` vuelve a texto. No va
+    dentro de un ``SeparateDatabaseAndState``: ahí cada operación de base
+    recibe el estado viejo más su propio ``state_forwards``, y vería el campo
+    anterior (medido: la columna seguía en ``varchar`` con la migración
+    aplicada). TASK-GEN-0060.
+    """
+
+    def database_forwards(self, app_label, schema_editor, from_state,
+                          to_state):
+        self._convert(app_label, schema_editor, to_state)
+
+    def database_backwards(self, app_label, schema_editor, from_state,
+                           to_state):
+        self._convert(app_label, schema_editor, to_state)
+
+    def _convert(self, app_label, schema_editor, state):
+        model = state.apps.get_model(app_label, self.model_name)
+        if not self.allow_migrate_model(schema_editor.connection.alias,
+                                        model):
+            return
+        field = model._meta.get_field(self.name)
+        with schema_editor.connection.cursor() as cr:
+            cr.execute(
+                'SELECT udt_name FROM information_schema.columns'
+                ' WHERE table_schema = current_schema()'
+                ' AND table_name = %s AND column_name = %s',
+                [model._meta.db_table, field.column])
+            row = cr.fetchone()
+            if row is None or row[0] == field.column_type[0]:
+                return
+            field._convert_db_column(model, {'udt_name': row[0]}, cr=cr)
+
+    def describe(self):
+        return (f'Alter field {self.name} on {self.model_name} and convert'
+                ' its column')

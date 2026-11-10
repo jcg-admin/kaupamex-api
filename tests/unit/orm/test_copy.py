@@ -49,6 +49,7 @@ confirma.
 import collections
 
 import pytest
+from django.apps import apps
 from orm.environments import sudo
 
 import fields
@@ -217,19 +218,21 @@ class TestCopyTranslations:
         partner = ResPartner.objects.create(name='Original')
         assert partner.copy_translations(partner, excluded=()) is None
 
-    def test_the_three_symbols_it_would_need_do_not_exist(self):
-        """El bloqueo se mide, no se afirma.
+    def test_the_symbols_its_body_consumes_now_exist(self):
+        """La condición de cierre del bloqueo, medida (TASK-GEN-0060).
 
-        Es la condición de cierre de la tarea #333: cuando estos tres existan,
-        el cuerpo se puede escribir.
+        Antes esta prueba afirmaba que no existían. Hoy todo modelo recibe
+        ``update_field_translations`` y el campo traducible lleva
+        ``_get_stored_translations``. ``get_translation_dictionary`` sigue sin
+        existir: es de la rama de términos, que no tiene receptor.
         """
         partner = ResPartner.objects.create(name='Original')
-        for symbol in (
-            '_get_stored_translations',
-            'update_field_translations',
-            'get_translation_dictionary',
-        ):
-            assert not hasattr(partner, symbol)
+        assert hasattr(partner, 'update_field_translations')
+        assert hasattr(partner, 'get_field_translations')
+        field = apps.get_model('hr', 'HrDepartureReason')._meta.get_field(
+            'name')
+        assert hasattr(field, '_get_stored_translations')
+        assert not hasattr(partner, 'get_translation_dictionary')
 
 
 @pytest.mark.django_db

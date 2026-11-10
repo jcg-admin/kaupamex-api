@@ -61,9 +61,12 @@ antes; la clase sólo aporta el tipo.
 """
 
 import collections.abc
+import json
 
-from django.db import models
+from django.db import DEFAULT_DB_ALIAS, connections, models, router
+from django.db.models.query_utils import DeferredAttribute
 
+from orm.environments import env as current_env
 from orm.fields_company_dependent import CompanyDependent, make_dispatcher
 from orm.fields_nonstored import (
     _UNSET,
@@ -71,8 +74,13 @@ from orm.fields_nonstored import (
     apply_source_defaults,
 )
 from tools.misc import SENTINEL
+from tools.sql import SQL, convert_column, convert_column_translatable
 
-__all__ = ['Char', 'Text', 'Html', 'LangProxyDict']
+__all__ = ['Char', 'Text', 'Html', 'LangProxyDict', 'TranslatedChar']
+
+#: El idioma base de la fuente: el valor que todo campo traducible conserva
+#: y al que cae la lectura sin traducción (``fields_textual.py:216-224``).
+BASE_LANG = 'en_US'
 
 Text = make_dispatcher('Text', 'text', models.TextField)
 
@@ -201,23 +209,16 @@ def Char(
     El primer argumento posicional ya coincidía: es ``verbose_name`` en Django
     y la etiqueta en la referencia.
 
-    .. warning:: ``translate=True`` todavía no traduce nada.
+    ``translate=True`` — una fila, un valor por idioma
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-       La referencia almacena el campo traducible como **columna ``jsonb``**
-       ``{lang: valor}`` y resuelve el idioma en el ORM
-       (``odoo19c: odoo/orm/fields_textual.py:53`` — ``if self.store and
-       self.translate``; ``:66`` — ``column['udt_name'] == 'jsonb'``). Aquí la
-       bandera **se conserva en el campo** (``field.translate``, el mismo
-       nombre que la fuente le da en ``odoo19c: odoo/orm/fields.py:288``) para
-       que la declaración sea fiel y greppeable, pero el almacenamiento por
-       idioma no está construido: hoy la columna sigue siendo ``varchar`` y
-       guarda un solo idioma.
-
-       Anotarla en vez de aceptarla y tirarla es deliberado: un ``**kwargs``
-       que se traga la bandera deja el árbol sin forma de medir cuántos campos
-       esperan traducción. Con la anota, el barrido es un ``grep``.
-
-       Almacenamiento ``jsonb`` + resolución por idioma: tarea **#333**.
+    Cuarta rama del despachador (TASK-GEN-0060). Un traducible almacenado
+    devuelve un :class:`TranslatedChar`: la columna es ``jsonb``
+    ``{idioma: valor}``, como en la fuente
+    (``odoo19c: odoo/orm/fields.py:783``),
+    y leer el atributo da el valor del idioma activo con respaldo a ``en_US``.
+    La bandera sigue en el campo (``field.translate``, ``:288``), así que el
+    barrido de los campos traducibles sigue siendo un ``grep``.
 
     ``company_dependent=True`` — una fila, un valor por empresa
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,6 +269,10 @@ def Char(
         if required:
             raise ValueError('company_dependent field cannot be required')
         campo = CompanyDependent(*args, base_type='char', **kwargs)
+    elif translate and store:
+        #: ``fields.py:783`` — un traducible almacenado es una columna
+        #: ``jsonb`` ``{idioma: valor}``. Ver :class:`TranslatedChar`.
+        campo = TranslatedChar(*args, **kwargs)
     else:
         #: El ``CharField`` se construye con columna y sin ella. ``store`` es
         #: atributo del campo, no una clase distinta: la forma sin columna la
@@ -308,11 +313,11 @@ class LangProxyDict(collections.abc.MutableMapping):
     falso y no tiene fila que consultar.
 
     **Todavía no tiene consumidor en este árbol.** La columna ``jsonb`` por
-    idioma que la fuente usa para un campo ``translate=True`` no está
-    construida —hoy la columna es ``varchar`` y guarda un solo idioma, ver el
-    aviso de :func:`Char`—; construirla es la tarea **#333**, y el eje completo
-    de traducción del ORM la **#184**. La clase se porta entera contra su
-    contrato para que ese trabajo la encuentre hecha.
+    idioma ya existe (:class:`TranslatedChar`, TASK-GEN-0060), pero el idioma
+    lo resuelve el descriptor sobre el mapa de la fila y no la caché del ORM:
+    es la divergencia de mecanismo declarada en esa sección. El eje completo
+    de traducción del ORM es TASK-GEN-0436. La clase se porta entera contra
+    su contrato.
     """
 
     __slots__ = ('_cache', '_field', '_lang')
@@ -433,3 +438,308 @@ models.TextField.convert_to_cache = _textual_convert_to_cache
 
 models.CharField.convert_to_column = _textual_convert_to_column
 models.TextField.convert_to_column = _textual_convert_to_column
+
+
+# ===========================================================================
+# ``translate=True`` — una fila, un valor por idioma (TASK-GEN-0060)
+# ===========================================================================
+#
+# ≙ la rama ``translate`` de ``BaseString`` (``odoo19c: odoo/orm/
+# fields_textual.py``) y la columna ``jsonb`` de ``Field.column_type``
+# (``odoo19c: odoo/orm/fields.py:783``). Es el mismo patrón que
+# :class:`~orm.fields_company_dependent.CompanyDependent` con la clave del
+# idioma en lugar de la empresa: el atributo interno guarda el mapa y el
+# público entrega el valor del idioma activo.
+#
+# Divergencia de mecanismo, declarada: la fuente resuelve el idioma en su
+# caché (``_get_cache_impl`` con :class:`LangProxyDict`, ``:226-231``); aquí el
+# descriptor lo resuelve sobre el mapa de la fila, como hace el campo
+# dependiente de empresa con la empresa. Los términos (``translate``
+# invocable, ``:70-196``) no tienen consumidor: el despachador lleva
+# ``translate`` a ``bool``, así que ningún campo del árbol los declara.
+
+
+def _fallback_langs(lang):
+    """≙ ``get_translation_fallback_langs`` (``:216-224``) sobre un código."""
+    if lang == '_en_US':
+        return ('_en_US', 'en_US')
+    if lang == 'en_US':
+        return ('en_US',)
+    if lang.startswith('_'):
+        return (lang, lang[1:], '_en_US', 'en_US')
+    return (lang, 'en_US')
+
+
+class _TranslatedText(models.Func):
+    """El texto del idioma activo con respaldo — ≙ la rama de ``to_sql``
+    (``:394-402``) para una consulta de Django.
+
+    ``COALESCE(col->>idioma, col->>'en_US')``. Sin esta expresión un
+    ``.filter(name='Kg')`` compararía la columna ``jsonb`` con ``'"Kg"'``: no
+    da error y no casa nada.
+    """
+
+    output_field = models.TextField()
+
+    def __init__(self, expression, field):
+        super().__init__(expression)
+        self.translated_field = field
+
+    def as_sql(self, compiler, connection, **extra_context):
+        column, params = compiler.compile(self.source_expressions[0])
+        langs = self.translated_field.get_translation_fallback_langs(
+            current_env())
+        parts, all_params = [], []
+        for lang in langs:
+            parts.append(f'({column})->>%s')
+            all_params.extend([*params, lang])
+        if len(parts) == 1:
+            return parts[0], all_params
+        return f"COALESCE({', '.join(parts)})", all_params
+
+
+#: Los lookups de texto que comparan el valor del idioma. ``isnull`` y los de
+#: clave de ``JSONField`` (``has_key``…) siguen sobre la columna: preguntan
+#: por el mapa, no por el texto.
+_TEXT_LOOKUPS = frozenset({
+    'exact', 'iexact', 'contains', 'icontains', 'in', 'gt', 'gte', 'lt',
+    'lte', 'startswith', 'istartswith', 'endswith', 'iendswith', 'regex',
+    'iregex', 'like', 'ilike',
+})
+
+_translated_lookups = {}
+
+
+def _translated_lookup(base):
+    """El lookup de texto ``base`` aplicado al valor del idioma activo."""
+    if base in _translated_lookups:
+        return _translated_lookups[base]
+
+    class TranslatedLookup(base):
+        def __init__(self, lhs, rhs):
+            field = lhs.output_field
+            super().__init__(_TranslatedText(lhs, field), rhs)
+
+    TranslatedLookup.__name__ = f'Translated{base.__name__}'
+    TranslatedLookup.__qualname__ = TranslatedLookup.__name__
+    _translated_lookups[base] = TranslatedLookup
+    return TranslatedLookup
+
+
+class _TranslatedMerge:
+    """El lado derecho del ``SET`` de un ``UPDATE`` por idioma — ≙ la rama
+    ``translate`` de ``_write_multi`` (``odoo19c: odoo/orm/models.py:
+    4564-4576``)."""
+
+    def __init__(self, field, value):
+        self.field = field
+        self.value = value
+
+    def as_sql(self, compiler, connection):
+        env = current_env()
+        lang = self.field.translation_lang(env)
+        new = {lang: self.value}
+        if lang != 'en_US' and not env['res.lang']._get_data(code='en_US'):
+            new[BASE_LANG] = self.value
+        column = connection.ops.quote_name(self.field.column)
+        return (f'COALESCE({column}, %s::jsonb) || %s::jsonb',
+                [json.dumps({BASE_LANG: self.value}), json.dumps(new)])
+
+
+class _TranslatedAttribute(DeferredAttribute):
+    """La indirección por idioma — ≙ ``convert_to_record`` (``:117-123``) y
+    ``write`` (``:288-325``) para ``translate=True``."""
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+        field = self.field
+        if field.attname in instance.__dict__:
+            stored = instance.__dict__[field.attname]
+        else:
+            stored = super().__get__(instance, cls)
+        return field.translated_value(
+            stored, field.translation_lang(current_env()))
+
+    def __set__(self, instance, value):
+        field = self.field
+        # El mapa crudo —lo que Django asigna al hidratar la fila— y el vacío
+        # pasan tal cual: ``False``/``None`` vacían la columna, como
+        # ``super().write`` en la fuente (``:289-291``).
+        if value is None or value is False or isinstance(value, dict):
+            instance.__dict__[field.attname] = value or None
+            return
+        value = field.convert_to_cache(value, instance)
+        env = current_env()
+        lang = field.translation_lang(env)
+        stored = instance.__dict__.get(field.attname)
+        if not stored:
+            # ``convert_to_column_insert`` (``:84-91``).
+            instance.__dict__[field.attname] = {BASE_LANG: value, lang: value}
+            return
+        stored = {**stored, lang: value}
+        # ``:322-324`` — sin ``en_US`` activo se escribe también, para que su
+        # valor siga siendo significativo.
+        if lang != 'en_US' and not env['res.lang']._get_data(code='en_US'):
+            stored[BASE_LANG] = value
+        instance.__dict__[field.attname] = stored
+
+
+class TranslatedChar(models.JSONField):
+    """``fields.Char(translate=True)`` — la columna ``jsonb`` por idioma."""
+
+    #: ≙ ``Char.type`` — el tipo de la fuente, que ``type_for`` publica.
+    type = 'char'
+    #: ≙ ``BaseString.translate`` (``fields_textual.py:35``).
+    translate = True
+
+    #: Ver :meth:`CompanyDependent.get_attname`: la columna lleva el mapa y
+    #: el atributo público el valor de un idioma; sin separarlos,
+    #: ``refresh_from_db`` copiaría el escalar sobre el mapa.
+    RAW_ATTNAME_SUFFIX = '_translations'
+
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('translate', None)
+        super().__init__(*args, **kwargs)
+
+    def _check_default(self):
+        """Un default escalar es válido: :meth:`get_default` lo entrega como
+        mapa nuevo en cada llamada, así que no hay instancia compartida."""
+        if self.has_default() and isinstance(self.default, str):
+            return []
+        return super()._check_default()
+
+    def get_default(self):
+        """El default de la fuente es el VALOR (``fields.Char(default='')``);
+        la columna guarda el mapa, así que se entrega como lo haría un alta:
+        ``{'en_US': valor, idioma: valor}`` (``convert_to_column_insert``,
+        ``:84-91``)."""
+        value = super().get_default()
+        if value is None or isinstance(value, dict):
+            return value
+        value = self.convert_to_cache(value, None)
+        if value is None:
+            return None
+        lang = self.translation_lang(current_env())
+        return {BASE_LANG: value, lang: value}
+
+    def get_attname(self):
+        return f'{self.name}{self.RAW_ATTNAME_SUFFIX}'
+
+    def set_attributes_from_name(self, name):
+        super().set_attributes_from_name(name)
+        self.column = self.db_column or self.name
+
+    def contribute_to_class(self, cls, name, private_only=False):
+        super().contribute_to_class(cls, name, private_only=private_only)
+        setattr(cls, self.name, _TranslatedAttribute(self))
+
+    def get_lookup(self, lookup_name):
+        """Los lookups de texto comparan el valor del idioma activo."""
+        if lookup_name in _TEXT_LOOKUPS:
+            base = models.CharField.get_lookups().get(lookup_name)
+            if base is not None:
+                return _translated_lookup(base)
+        return super().get_lookup(lookup_name)
+
+    def translation_lang(self, env):
+        """≙ ``translation_lang`` (``:213-214``)."""
+        return env.lang or 'en_US'
+
+    def get_translation_fallback_langs(self, env):
+        """≙ ``get_translation_fallback_langs`` (``:216-224``)."""
+        return _fallback_langs(self.translation_lang(env))
+
+    def translated_value(self, stored, lang):
+        """El valor de ``lang`` con su respaldo; ``None`` sin mapa."""
+        if not stored:
+            return None
+        for candidate in _fallback_langs(lang):
+            if candidate in stored:
+                return stored[candidate]
+        return None
+
+    def raw_translations(self, record):
+        """El mapa crudo ``{idioma: valor}`` de la fila."""
+        return record.__dict__.get(self.attname) or {}
+
+    def _get_stored_translations(self, record):
+        """≙ ``_get_stored_translations`` (``:198-211``) — el mapa guardado,
+        leído de la base y no de la fila en memoria."""
+        query = SQL('SELECT %s FROM %s WHERE id = %s',
+                    SQL.identifier(self.column),
+                    SQL.identifier(type(record)._meta.db_table),
+                    record.pk)
+        with connections[router.db_for_read(type(record))].cursor() as cr:
+            cr.execute(query.code, query.params)
+            row = cr.fetchone()
+        value = row[0] if row else None
+        if isinstance(value, str):
+            value = json.loads(value)
+        return value
+
+    def get_db_prep_save(self, value, connection):
+        """Un texto en un ``UPDATE`` masivo escribe sólo su idioma.
+
+        ``QuerySet.update(campo='x')`` no pasa por el descriptor; la fuente
+        resuelve esa escritura en ``_write_multi`` con
+        ``COALESCE(col, {'en_US': v}) || {idioma: v}`` (``odoo19c:
+        odoo/orm/models.py:4564-4576``), que conserva los demás idiomas. El
+        mapa (``dict``) y las expresiones siguen el camino de ``JSONField``.
+        """
+        if isinstance(value, (str, bytes)):
+            return _TranslatedMerge(self, self.convert_to_cache(value, None))
+        return super().get_db_prep_save(value, connection)
+
+    def pre_save(self, model_instance, add):
+        return model_instance.__dict__.get(self.attname)
+
+    def value_from_object(self, obj):
+        return self.raw_translations(obj)
+
+    def get_prep_value(self, value):
+        if value is None:
+            return None
+        if not isinstance(value, dict):
+            raise ValueError(
+                f'{self.name!r} guarda un mapa por idioma; recibió'
+                f' {type(value).__name__}. Asigne por el atributo para'
+                ' escribir el valor del idioma activo.')
+        return value
+
+
+TranslatedChar.convert_to_cache = _textual_convert_to_cache
+
+
+def _string_convert_db_column(self, model, column, cr=None):
+    """≙ ``BaseString._convert_db_column`` (``:64-68``).
+
+    Hacia o desde una columna traducible pasa por
+    :func:`~tools.sql.convert_column_translatable`, que deja el texto bajo
+    ``en_US``; el resto, por :func:`~tools.sql.convert_column`.
+
+    Divergencia declarada: el cursor opcional. Aquí el esquema lo evoluciona
+    la migración sobre la conexión de su alias
+    (:class:`~orm.migration_operations.ConvertColumnTranslatable`), y la base
+    por empresa no es la ``default``.
+    """
+    table = model._meta.db_table
+    column_type = self.column_type[1]
+
+    def convert(cursor):
+        if self.translate or column['udt_name'] == 'jsonb':
+            convert_column_translatable(cursor, table, self.column,
+                                        column_type)
+        else:
+            convert_column(cursor, table, self.column, column_type)
+
+    if cr is not None:
+        convert(cr)
+        return
+    with connections[DEFAULT_DB_ALIAS].cursor() as cursor:
+        convert(cursor)
+
+
+models.CharField._convert_db_column = _string_convert_db_column
+models.TextField._convert_db_column = _string_convert_db_column
+TranslatedChar._convert_db_column = _string_convert_db_column

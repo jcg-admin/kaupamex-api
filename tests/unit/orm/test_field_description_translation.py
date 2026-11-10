@@ -3,7 +3,8 @@
 Referencia: odoo19c@abe4040ec1, odoo/addons/base/models/ir_model.py,
 IrModelFields.field_description. Se evalúa la declaración AST real con la
 fábrica pública del Consumer; no se inventa una copia del modelo ni se abre
-la base de datos. Esto mide metadata, no almacenamiento multilingüe.
+la base de datos. Mide la declaración y la clase de almacenamiento que
+elige; el almacenamiento mismo lo mide ``test_translated_char.py``.
 """
 import ast
 import copy
@@ -61,7 +62,13 @@ def test_removing_the_flag_loses_the_translation_contract():
     )
 
 
-def test_the_annotation_does_not_claim_multilingual_storage():
+def test_the_flag_selects_the_multilingual_storage():
+    """Desde TASK-GEN-0060 la bandera cambia el almacenamiento: la columna
+    es ``jsonb`` ``{idioma: valor}`` (``odoo19c: odoo/orm/fields.py:783``).
+    Antes esta prueba afirmaba lo contrario, que la bandera sólo se anotaba.
+    """
     translated = build_field(field_declaration())
     plain = build_field(without_translation(field_declaration()))
-    assert translated.deconstruct() == plain.deconstruct()
+    assert type(translated).__name__ == 'TranslatedChar'
+    assert type(plain).__name__ == 'CharField'
+    assert translated.deconstruct() != plain.deconstruct()

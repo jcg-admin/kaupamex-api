@@ -53,8 +53,8 @@ Divergencias declaradas
 5. **``@api.constrains`` → ``clean()``** — las dos validaciones se invocan
    desde ``clean()``; quien escriba sin ``full_clean()`` puede llamarlas
    directo (los nombres se conservan verbatim).
-6. **``translate=True``** se anota en el campo sin traducir todavía (aviso de
-   ``orm/fields_textual.py::Char``, tarea #333).
+6. **``translate=True``** guarda ``jsonb`` ``{idioma: valor}``
+   (``orm/fields_textual.py::TranslatedChar``, TASK-GEN-0060).
 """
 
 import fields
