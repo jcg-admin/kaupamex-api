@@ -1,0 +1,14 @@
+ir_model_fields	field_description	CharField	True	character varying(255)	base
+base_automation	name	CharField	True	character varying(255)	base_automation
+hr_contract_type	name	CharField	True	character varying	hr
+hr_departure_reason	name	CharField	True	character varying	hr
+product_removal	name	CharField	True	character varying(120)	stock
+product_removal	method	CharField	True	character varying(32)	stock
+stock_picking_type	name	CharField	True	character varying(100)	stock
+account_tax	invoice_label	CharField	True	character varying(255)	account
+hr_skill_type	name	CharField	True	character varying	hr_skills
+hr_skill	name	CharField	True	character varying	hr_skills
+hr_resume_line_type	name	CharField	True	character varying	hr_skills
+hr_resume_line	name	CharField	True	character varying	hr_skills
+hr_work_entry_type	name	CharField	True	character varying	hr_work_entry
+hr_work_entry_type	display_code	CharField	True	character varying(3)	hr_work_entry

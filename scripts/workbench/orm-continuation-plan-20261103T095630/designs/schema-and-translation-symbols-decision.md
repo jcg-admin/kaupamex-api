@@ -54,17 +54,17 @@ que sigue la reemplaza.
   `pre-commit`, ni ninguna prueba ejecutan `makemigrations --check` ni el
   autodetector.
 - **Traducciones:** 14 campos `translate=True`, todos `CharField` sobre
-  `varchar`, en 12 tablas de 7 apps (`scratchpad/translate-fields.tsv`);
+  `varchar`, en 12 tablas de 7 apps (`outputs/translate-fields.tsv`);
   ninguno con traducción por términos.
 
 ## Matriz
 
 | Contrato de referencia | Revisión | Consumidores en la referencia | Comportamiento exigido | Mecanismo Django existente | Capacidad PostgreSQL | Divergencia observada | Implementación elegida | Migración | Consumidores afectados | Pruebas discriminantes | Verificación | Obligación restante |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `_auto_init`: tabla, columnas, tipo, `NOT NULL`, índices (`:3170-3236`, `Field.update_db`) | `abe4040ec1` | `registry.init_models` (`registry.py:751`) | el esquema refleja los campos declarados | `makemigrations` + `migrate` | DDL transaccional | ninguna en el estado (0 columnas faltantes u huérfanas; sincronía limpia); **sí** en la garantía: nada impide que un modelo cambie sin migración | contrato **satisfecho por mecanismo equivalente**; corrección mínima: prueba que exige `makemigrations --check` limpio | ninguna | toda app | la prueba de sincronía (cae con un campo sin migración) | sonda + `makemigrations --check` | **TASK-API-0515** (guardián) |
+| `_auto_init`: tabla, columnas, tipo, `NOT NULL`, índices (`:3170-3236`, `Field.update_db`) | `abe4040ec1` | `registry.init_models` (`registry.py:751`) | el esquema refleja los campos declarados | `makemigrations` + `migrate` | DDL transaccional | ninguna en el estado (0 columnas faltantes u huérfanas; sincronía limpia); **sí** en la garantía: nada impide que un modelo cambie sin migración | contrato **satisfecho por mecanismo equivalente**; corrección mínima: prueba que exige `makemigrations --check` limpio | ninguna | toda app | `test_migrations_in_sync.py` (proceso aparte; sin la migración `0041` de `test_orm` cae y la nombra) | sonda + `makemigrations --check`; guardián verde | **TASK-API-0515**: implementado, pendiente de gate |
 | `_auto_init`: marcar para cómputo los calculados almacenados nuevos sobre filas existentes (`:3229-3238`) y `parent_path` nuevo (`:3201-3204`, `:3246-3247`) | ídem | ídem | una columna calculada nueva se calcula sobre las filas que ya existen | `AddField` deja `NULL` o el default; ningún `post_migrate` recalcula | — | **ausencia funcional** (ningún mecanismo) | no se cablea `_auto_init`: se añade el cálculo como paso de la migración que introduce la columna (`RunPython` con `_recompute`/`_parent_store_compute`), la misma autoridad | por migración que añada un calculado almacenado | apps que añadan calculados | migración de prueba sobre filas existentes | pendiente | **TASK-API-0516** (unidad aparte) |
 | `_check_removed_columns` (`:3109-3136`) | ídem | `_auto_init` (`:3217`), `modules/loading.py:518` | una columna que el modelo ya no declara pierde su `NOT NULL` (desinstalación, campo retirado) | retirar un campo genera `RemoveField`, que borra la columna (más fuerte); la desinstalación no retira código | — | 0 columnas huérfanas; la equivalencia depende de la misma sincronía | **satisfecho por mecanismo equivalente**, divergencia estructural declarada (se borra la columna en vez de relajarla); el guardián de sincronía lo protege | ninguna | — | la misma prueba de sincronía (un campo retirado sin migración la tumba) | sonda | cubierta por TASK-API-0515 |
-| `_add_sql_constraints` (`:3262-3268`) | ídem | `_auto_init` (`:3244`); el mensaje de error lee `_table_objects` (`:3275`) | todo objeto de tabla declarado existe en la base con su `full_name` y su mensaje llega al error | `Meta.constraints`/`Meta.indexes` + migraciones; `add_meta_index` (`model_classes.py:835`) ya escribe `Meta` y `original_attrs` | `ADD CONSTRAINT`, `CREATE INDEX` | **real**: el objeto declarado con la forma de la referencia nunca llega a `Meta`, ni a migración, ni a la base, ni al mensaje (1 de 1) | puente en `class_prepared` (≙ paso 7 de `model_classes._setup`, `odoo19c: model_classes.py:455-461`): `to_django()` a `Meta` por la vía de `add_meta_index` + hermano `add_meta_constraint`, y `_table_objects` por `full_name`; **no** se cablea `apply_to_database` (sería una segunda autoridad) | `AddConstraint` en `test_orm` | `test_orm.category`, `_sql_error_to_message`, `ir.model.constraint` | constraint en `Meta`, `_table_objects`, existencia en PostgreSQL, mensaje del error | pendiente | **TASK-API-0514**, en curso |
+| `_add_sql_constraints` (`:3262-3268`) | ídem | `_auto_init` (`:3244`); el mensaje de error lee `_table_objects` (`:3275`) | todo objeto de tabla declarado existe en la base con su `full_name` y su mensaje llega al error | `Meta.constraints`/`Meta.indexes` + migraciones; `add_meta_index` (`model_classes.py:835`) ya escribe `Meta` y `original_attrs` | `ADD CONSTRAINT`, `CREATE INDEX` | **real**: el objeto declarado con la forma de la referencia nunca llega a `Meta`, ni a migración, ni a la base, ni al mensaje (1 de 1) | puente en `class_prepared` (≙ paso 7 de `model_classes._setup`, `odoo19c: model_classes.py:455-461`): `to_django()` a `Meta` por la vía de `add_meta_index` + hermano `add_meta_constraint`, y `_table_objects` por `full_name`; **no** se cablea `apply_to_database` (sería una segunda autoridad) | `AddConstraint` en `test_orm` | `test_orm.category`, `_sql_error_to_message`, `ir.model.constraint` | `test_table_objects_reach_meta.py`: RED 4/4 (con `color = -1` aceptado por PostgreSQL); GREEN 4/4; sin el receptor caen 1, 2 y 4, sobrevive 3 (depende de la migración aplicada) | regresión derivada 6296 passed (el único rojo era el guardián en proceso, corregido) | **TASK-API-0514**: implementado, pendiente de gate |
 | `get_field_translations`, `update_field_translations`, `_update_field_translations` (`:3492-3703`) | ídem | `web` (diálogo de traducciones), `copy_translations` (`:5465-5528`), importación | columna `jsonb {lang: valor}`, lectura por `lang` con respaldo `en_US`, escritura de un idioma conservando los demás | `JSONField`, `django.contrib.postgres` cableado | `jsonb`, operadores `->>`, `||`, índices de expresión | **ausencia funcional**: `translate=True` sólo se anota; 14 columnas `varchar` | se construye el eje `translate` del campo sobre `JSONField` (sin capa paralela), y los tres métodos encima | `varchar` → `jsonb` en 14 columnas, con conservación del valor actual bajo `en_US` | 7 apps, `copy_translations`, búsquedas por campo traducible | migración con filas existentes, lectura por idioma, escritura que conserva idiomas | pendiente | **TASK-GEN-0060** (existente), con TASK-GEN-0436 |
 
 ## TASK canónica de traducciones
@@ -85,3 +85,19 @@ existentes que cubren la obligación, medidas en el store del proveedor:
 
 `copy_translations` (`models.py`) se corrige para citar TASK-GEN-0060 en
 lugar de `#333`.
+
+## Resultados de TASK-API-0514 y TASK-API-0515 (2026-11-10)
+
+- Puente: receptor `determine_table_objects` en `class_prepared`
+  (`src/orm/model_classes.py`), con `add_meta_constraint` hermano de
+  `add_meta_index`. `makemigrations --dry-run` propuso exactamente una
+  operación: `AddConstraint test_orm_category_positive_color`, emitida como
+  `src/addons/test_orm/migrations/0041_category_positive_color.py`.
+- Guardián: la primera forma corría `makemigrations` dentro del proceso de
+  pytest y, en la regresión, contó como cambios los modelos de sondeo que
+  los módulos de prueba registran en `apps` (`CacheProbe`,
+  `ComputeDispatchProbe`…) y `AccountInvoiceReport`. Corre ahora en un
+  proceso aparte, como `manage.py makemigrations --check`: verde junto a
+  esos módulos, rojo sin la migración `0041`.
+- `AccountInvoiceReport` no se registra al cargar `account` (H-API-682,
+  preexistente): queda fuera del guardián y de esta unidad.
