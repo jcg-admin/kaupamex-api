@@ -235,6 +235,47 @@ cada dueño de Django); `issubclass(One2many, _RelationalMulti)`; las suites
 existentes de escritura relacional sin cambios. Control: retirar un nombre de
 la clase hace caer la prueba de su instalación en cada dueño.
 
+## `_RelationalMulti` explícita — implementación
+
+Alcance de esta unidad: lo que el bucle de instalación ponía en los dos
+dueños (`write`, `write_batch`, `create`, `convert_to_record_multi`,
+`write_sequence = 20`). Los demás miembros compartidos
+(`_update_inverse`, `_update_cache`, `convert_to_cache`,
+`convert_to_display_name`) se instalan hoy con envoltorios distintos por
+dueño (`_reverse_one2many_only`, propiedades sobre `ManyToOneRel`) y quedan
+para su propia unidad.
+
+- `class _RelationalMulti` declarada al final del módulo; los cuatro métodos
+  se movieron de funciones de módulo a métodos sin cambiar firma ni cuerpo
+  (comparado por AST, docstrings normalizados con `inspect.cleandoc`: iguales
+  en los cuatro).
+- Los dos dueños, `One2many` y `models.ManyToManyField`, reciben los miembros
+  leídos de `vars(_RelationalMulti)` (sin una segunda lista).
+- **Pendiente declarado: que `One2many` herede de `_RelationalMulti`**, como
+  en la fuente. Se implementó así primero y el gate completo pasó (12 602
+  passed, 0 failed), pero cambiar la cabecera de `One2many` cambia el
+  contexto sintáctico de toda la clase y la admisión de estilo cuenta como
+  introducidas sus 30 líneas largas heredadas, entre ellas dos tablas RST de
+  su docstring que no se parten sin rehacerlas. Queda para una unidad que
+  rehaga ese docstring; la conducta no cambia (los mismos objetos función en
+  el mismo dueño).
+- RED (`tests/unit/orm/test_relational_multi_class.py`): fallo de colección,
+  `_RelationalMulti` no existía. GREEN: 6 passed, más
+  `test_compute_onchange.py` y `test_one2many.py` (36 passed en total).
+- Control: renombrar `create` en la clase hace caer exactamente
+  `test_the_django_owner_carries_the_same_function[create]`.
+- Inventario sobre el árbol: ausentes **365 → 360** (`_RelationalMulti`
+  clase y cuatro métodos pasan de `absent` a `not_verified`). Pasar a
+  `satisfied` exige la columna de evidencia por conducta del censo (diseño
+  de arriba), aún no construida.
+- Gate completo de la primera forma (con herencia): **12 602 passed, 66
+  skipped, 6 xfailed, 0 failed, 5 errors** en 571 s.
+- Gate completo de la forma final (instalador en los dos dueños, sin la
+  prueba de `issubclass`): **12 601 passed, 66 skipped, 6 xfailed, 0 failed,
+  5 errors** en 570 s. La diferencia de uno con la primera forma es esa
+  prueba retirada; los 5 errores son los de `test_multidb_isolation.py`
+  (fixture que exige una base por defecto desechable).
+
 ## Pendiente
 
 - `test_copy_batch` (`test_onchange.py:1013-1024`): necesita

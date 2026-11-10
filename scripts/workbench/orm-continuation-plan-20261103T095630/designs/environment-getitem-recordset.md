@@ -248,8 +248,45 @@ Gate completo (árbol principal, base `3b610d63` más G2): **12 596 passed,
 de `test_multidb_isolation.py`.
 
 Queda **G3**: con `env[name]` como recordset, el descriptor
-`_on_empty_recordset` (11 métodos) y los `browse(())` defensivos del árbol
+`_on_empty_recordset` (9 métodos) y los `browse(())` defensivos del árbol
 son redundantes; se retiran en su propia unidad, con su control.
+
+## G3 — retirar `_on_empty_recordset` y los `browse(())` defensivos
+
+Diseño escrito antes de tocar código (2026-11-10).
+
+**Qué cubre el descriptor hoy.** `_on_empty_recordset`
+(`src/orm/models.py:6220`) envuelve **9** métodos de `BaseModel` (medido con `grep -n
+_on_empty_recordset src/orm/models.py`: dos asignaciones y siete
+decoradores; la cifra «11» de G2 estaba mal): `flush_model`,
+`invalidate_model`, `_write`, `browse`, `new`, `check_access_rights`,
+`_is_an_ordinary_table`, `check_field_access_rights` y
+`_determine_fields_to_fetch`. Llamado sobre la **clase**, inyecta el recordset vacío del entorno
+activo. La fuente no tiene equivalente: sus métodos sólo se llaman sobre
+recordsets, porque `env[name]` siempre devuelve uno
+(`odoo19c: odoo/orm/environments.py:105`).
+
+**Los `browse(())` del árbol se reparten en dos clases**, y sólo una es
+redundante:
+
+| Clase | Sitios | Veredicto |
+|---|---|---|
+| sobre `env[name]`, que tras G2 ya es el recordset vacío | `fields_relational.py:2345,2467,2561,2700`; `hr_individual_skill_mixin.py:473,519,614,663`; `hr_job.py:112`; `hr_employee.py:264,274` | se retira el `.browse(())` |
+| sobre una **clase** (`join` devuelve `related_model`, `cls` de un `classmethod`, el modelo que recibe el exportador) | `fields_relational.py:2364`; `models.py:4148`; `web/controllers/export.py:1163` | se reemplaza por `model.env[cls._name]`/`env[cls._name]`, que es la forma de la fuente; donde no haya entorno a mano se declara |
+
+**El riesgo** está en los llamadores que invocan uno de los 9 métodos sobre
+la clase y que un grep no ve (la clase llega por `type(records)`,
+`MODELS_BY_NAME`, `related_model` o una función auxiliar). El instrumento es
+de conducta: se retira el descriptor y se ejecuta la suite completa; cada
+`TypeError`/`AttributeError` por falta de `self` nombra un llamador, que se
+corrige pasando por `env[cls._name]`. No se reintroduce un sustituto con
+otro nombre.
+
+**Control:** con el descriptor retirado y los llamadores corregidos, una
+prueba nueva afirma que `BaseModel.browse` en la clase ya no es un
+descriptor (`vars(BaseModel)['browse']` es una función) y que
+`env['x'].browse(ids)` sigue funcionando. Reponer el descriptor hace caer la
+primera; quitar G2 hace caer la segunda.
 
 ## Pendiente
 
