@@ -151,3 +151,35 @@ migración—, que es lo que la fuente le encarga.
 | s2 | `_add_sql_constraints` | un objeto de tabla ausente en la base se crea; uno presente no se recrea |
 | s3 | `_auto_init` | sobre el esquema sincronizado no emite DDL; una columna huérfana pierde el `NOT NULL` |
 | s4 | receptor en `init_models` (`_auto_init` + `init`) por alias | la instalación lo llama una vez por modelo `_auto` |
+
+### s1 — resultado (2026-11-10T22:18:27)
+
+`_check_removed_columns` portado en el mixin del cargador (lo adopta todo
+modelo concreto vía `TimeStampedModel`), `classmethod` con `using`.
+`tests/unit/orm/test_schema_auto_init.py`: RED 2/2 (sin el método), GREEN
+2/2. Anulaciones: sin `drop_not_null` cae sólo
+`test_an_orphan_column_loses_its_not_null`; sin el filtro de columnas
+declaradas cae sólo `test_a_declared_column_keeps_its_not_null`.
+
+### s2 — alcance medido antes de implementar (2026-11-10T22:18:27)
+
+`_add_sql_constraints` es una línea, pero lo que llama no tiene el contrato
+de la fuente:
+
+| Pieza | Fuente (`odoo/orm/table_objects.py`) | Aquí | Defecto |
+|---|---|---|---|
+| `Constraint.apply_to_database` | `:109-122`: compara `constraint_definition`; igual → nada; distinta → `drop_constraint` y `post_constraint(add_constraint)` | `orm/table_objects.py:294`: `editor.add_constraint` siempre, por `connection` (alias por defecto) | no es idempotente: sobre una base migrada choca con la restricción existente; y escribe en la base equivocada |
+| `Index.apply_to_database` | `:154-185`: compara `index_definition` y su comentario; igual → nada; distinta → `drop_index` y `post_constraint(add_index)` | `:390`: `editor.add_index` siempre | ídem |
+| `sql.add_constraint` | deja `COMMENT ON CONSTRAINT … IS <definición>` | portado así (`tools/sql.py:824`) | — |
+| `RawConstraint.create_sql` (la migración) | — | `ADD CONSTRAINT` sin comentario | una restricción creada por migración no lleva la definición declarada, y `constraint_definition` devuelve la normalizada de `pg_get_constraintdef`: la compararía distinta y la recrearía |
+
+Primitivas ya portadas (TRAE): `constraint_definition`, `add_constraint`,
+`drop_constraint`, `index_definition`, `add_index`, `drop_index`,
+`Registry.post_constraint`/`finalize_constraints`.
+
+CONSTRUYE: los dos `apply_to_database` con el contrato de la fuente, por el
+alias que se les pase; `RawConstraint.create_sql` y `RawIndex` dejan el
+mismo comentario que `sql.add_constraint`/`sql.add_index`, para que
+migración y conciliación lleguen al mismo estado. Una base ya migrada sin el
+comentario se recrea **una vez** con la misma definición y desde ahí es
+estable; se declara aquí y se mide.
