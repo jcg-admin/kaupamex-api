@@ -101,3 +101,53 @@ lugar de `#333`.
   esos módulos, rojo sin la migración `0041`.
 - `AccountInvoiceReport` no se registra al cargar `account` (H-API-682,
   preexistente): queda fuera del guardián y de esta unidad.
+
+## Revisión del 2026-11-10T22:14:39 — los tres símbolos se portan con su contrato
+
+**Qué se revisa.** La matriz de arriba declara `_auto_init` y
+`_check_removed_columns` «satisfechos por mecanismo equivalente», y
+`_add_sql_constraints` resuelto por el puente a `Meta`, sin receptor en
+`init_models` (`orm/registry.py:2332-2340`). La directiva del ejecutor
+(«Continuidad persistente…», §9) prohíbe declarar una divergencia para no
+implementar, y la anterior manda que una divergencia que existía por faltar
+la raíz ORM se implemente como la referencia. El inventario los cuenta
+`absent` (`outputs/line-reconciliation-20261110.md`, línea 12-13). La
+historia de arriba se conserva: la decisión de no crear una segunda
+autoridad sigue en pie y gobierna esta revisión.
+
+**Contrato** (`odoo19c: odoo/orm/models.py`, `abe4040ec1`):
+`_check_removed_columns` (:3109-3136) quita el `NOT NULL` de toda columna
+de la tabla que el modelo ya no declara como almacenada; `_auto_init`
+(:3170-3248) crea la tabla si falta, llama a `_check_removed_columns` si
+ya existía, pone al día cada columna con `Field.update_db`, marca para
+cómputo los calculados nuevos sobre filas existentes, aplica
+`_add_sql_constraints` y calcula `parent_path` si la columna es nueva;
+`_add_sql_constraints` (:3262-3268) aplica cada objeto de
+`_table_objects` con `apply_to_database`. Los llama `init_models`
+(`odoo/orm/registry.py:751`), modelo a modelo, seguidos de `init()`.
+
+**TRAE / CONSTRUYE.** Todo lo que tocan existe: `tools.sql` porta
+`table_exists`, `create_model_table`, `table_columns`, `column_exists`,
+`create_column` y `drop_not_null`; `orm/table_objects.py` porta los tres
+`apply_to_database`; `_table_objects` lo llena el puente de TASK-API-0514.
+Se CONSTRUYE sólo el receptor: los tres métodos en `BaseModel` y su
+llamada desde `Registry.init_models`, por el alias del registro (L4f).
+
+**Por qué no es una segunda autoridad.** `init_models` corre en
+`post_migrate`, después de `migrate`. Con el guardián de sincronía
+(`test_migrations_in_sync.py`) la tabla, las columnas y los objetos ya
+existen, y cada paso de la fuente comprueba antes de actuar: crear sólo si
+falta, `update_db` sólo si la columna difiere, `apply_to_database` sólo si
+la definición difiere, `drop_not_null` sólo sobre columnas que el modelo no
+declara. Su efecto normal es nulo y medible; actúa sólo donde `migrate` no
+llega —columnas de otro módulo desinstalado, objetos de tabla declarados sin
+migración—, que es lo que la fuente le encarga.
+
+**Orden de implementación**, cada paso con RED/GREEN y anulación:
+
+| # | Pieza | Prueba |
+|---|---|---|
+| s1 | `_check_removed_columns` | columna huérfana `NOT NULL` → queda anulable; una declarada no se toca |
+| s2 | `_add_sql_constraints` | un objeto de tabla ausente en la base se crea; uno presente no se recrea |
+| s3 | `_auto_init` | sobre el esquema sincronizado no emite DDL; una columna huérfana pierde el `NOT NULL` |
+| s4 | receptor en `init_models` (`_auto_init` + `init`) por alias | la instalación lo llama una vez por modelo `_auto` |
