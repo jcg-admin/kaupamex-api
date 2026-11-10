@@ -244,3 +244,25 @@ es, por tanto, nulo en esta revisión: la regla de arriba no recrea nada.
 ausente; existente y equivalente sin comentario (migración); existente con el
 comentario de la conciliación; definición distinta; reejecución sin cambios;
 alias de base distinto del por defecto (en la base desechable de ci-multidb).
+
+### s2 — resultado (2026-11-10T22:41:41)
+
+`_add_sql_constraints` portado junto a `_check_removed_columns`;
+`Constraint.apply_to_database` e `Index.apply_to_database` con el contrato
+de la fuente y la regla de autoridad de arriba (`orm/table_objects.py`). La
+forma normalizada de un `CHECK` se sondea con `NOT VALID` y un nombre
+temporal dentro de un punto de guardado que se deshace.
+
+| Prueba (`test_schema_auto_init.py`) | Estado inicial | RED | Anulación que la tumba (y sólo a ella) |
+|---|---|---|---|
+| `test_a_migrated_equivalent_constraint_is_not_recreated` | creada por migración, sin comentario | cae (sin método) | sin la sonda normalizada |
+| `test_a_second_run_changes_nothing` | tras la conciliación | cae | — (la cubre la anterior) |
+| `test_an_absent_constraint_is_restored` | ausente | cae | sin la reposición del ausente |
+| `test_a_different_constraint_is_reported_not_recreated` | definición distinta | cae | recreando en vez de informar |
+| `test_an_absent_index_is_created_with_its_comment` | índice ausente | — | — |
+| `test_a_second_index_run_changes_nothing` | tras crearlo | — | — |
+| `test_an_index_without_comment_is_kept` | índice sin comentario | — | sin la regla `:159`; su primera versión **no discriminaba** (la rama que informa tampoco recrea) y se le añadió que la conservación sea silenciosa |
+
+Subconjunto derivado (`grep` de los símbolos tocados en `tests/`): 201
+passed. Pendiente de s2: la base nueva y el alias distinto de `default` —los
+cubre ci-multidb al cerrar el bloque, cuando `_auto_init` tenga llamador.
