@@ -1032,3 +1032,16 @@ src/orm/fields_relational.py	_Relational._description_relation	attribute	tests/u
 src/orm/fields_relational.py	_Relational._related_context	attribute	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/fields_relational.py	One2many._internal_description_domain_raw	method	tests/unit/orm/test_contract_model_persisted_reference.py
 src/orm/model_classes.py	_add_inherited_fields	function	tests/unit/orm/test_inherited_fields.py
+src/orm/models.py	BaseModel._search	method	tests/unit/orm/test_search_returns_query.py
+src/orm/models.py	BaseModel._read_group	method	tests/unit/orm/test_read_group.py
+src/orm/models.py	BaseModel._read_group_empty_value	method	tests/unit/orm/test_read_group_postprocess.py
+src/orm/models.py	BaseModel._read_group_expand_full	method	tests/unit/orm/test_read_group_fill_results.py
+src/orm/models.py	BaseModel._read_group_fill_results	method	tests/unit/orm/test_read_group_fill_results.py
+src/orm/models.py	BaseModel._read_group_format_result	method	tests/unit/orm/test_read_group_format_result.py
+src/orm/models.py	BaseModel._read_group_groupby_properties	method	tests/unit/orm/test_read_group_properties.py
+src/orm/models.py	BaseModel._read_group_format_result_properties	method	tests/unit/orm/test_read_group_properties.py
+src/orm/models.py	BaseModel.read_group	method	tests/unit/orm/test_read_group_public.py
+src/orm/models.py	BaseModel._write	method	tests/unit/orm/test_write_multi.py
+src/orm/models.py	BaseModel._write_multi	method	tests/unit/orm/test_write_multi.py
+src/orm/models.py	BaseModel._get_placeholder_filename	method	tests/unit/orm/test_placeholder_filename.py
+src/orm/models.py	BaseModel._table_objects	attribute	tests/unit/orm/test_table_objects_reach_meta.py
