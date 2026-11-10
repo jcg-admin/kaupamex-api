@@ -385,7 +385,7 @@ def test_optimize_level_by_level(env, monkeypatch):
     def search_foo(model, operator, value):
         return [('name', '=', str(tuple(value)))]
 
-    monkeypatch.setattr(env['test_orm.bar'], '_search_foo',
+    monkeypatch.setattr(type(env['test_orm.bar']), '_search_foo',
                         classmethod(search_foo))
     domain = Domain('foo', '=', 4) | Domain('foo', '=', 5)
     assert domain.optimize_full(env['test_orm.bar']) == Domain(

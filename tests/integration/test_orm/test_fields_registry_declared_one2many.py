@@ -15,4 +15,4 @@ def test_fields_holds_a_declared_one2many(env):
     Discussion = env['test_orm.discussion']
     field = Discussion._fields['messages']
     assert field.type == 'one2many'
-    assert field is vars(Discussion)['messages']
+    assert field is vars(type(Discussion))['messages']

@@ -113,7 +113,7 @@ def test_a_later_save_reads_the_clock_again(monkeypatch):
         return base.replace(microsecond=next(readings))
 
     monkeypatch.setattr(fields_temporal, 'transaction_now', advancing)
-    Model = current_env()['test_orm.related']
+    Model = type(current_env()['test_orm.related'])
     with sudo():
         row = Model(name='a')
         row.save()

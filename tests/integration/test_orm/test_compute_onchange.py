@@ -278,7 +278,7 @@ def test_many2many_write_batch_accepts_the_comodel_queryset(env):
     record = model.create({'foo': 'none'})
     one, two = env['test_orm.multi.tag'].create([{'name': 'qs-a'},
                                                  {'name': 'qs-b'}])
-    queryset = env['test_orm.multi.tag'].objects.filter(
+    queryset = type(env['test_orm.multi.tag']).objects.filter(
         pk__in=[one.id, two.id])
     field.write_batch([(record, queryset)])
     assert _tags_in_database(record) == sorted([one.id, two.id])

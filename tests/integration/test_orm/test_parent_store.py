@@ -25,7 +25,8 @@ def tree(env):
 
 
 def _path(env, record):
-    return env['test_orm.category'].objects.get(pk=record.id).parent_path
+    return type(env['test_orm.category']).objects.get(
+        pk=record.id).parent_path
 
 
 def test_create_sets_the_materialized_path(env, tree):

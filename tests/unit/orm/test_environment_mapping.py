@@ -26,7 +26,10 @@ def test_the_environment_is_a_mapping(env):
 
 
 def test_get_returns_the_model_or_the_default(env):
-    assert env.get('test_orm.category') is env['test_orm.category']
+    # ≙ ``Mapping.get`` sobre ``__getitem__``: un recordset vacío del modelo.
+    found = env.get('test_orm.category')
+    assert type(found) is type(env['test_orm.category'])
+    assert found._ids == ()
     assert env.get('no.such.model') is None
     assert env.get('no.such.model', 'fallback') == 'fallback'
 

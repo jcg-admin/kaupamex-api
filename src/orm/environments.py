@@ -936,6 +936,12 @@ class Environment(abc.Mapping):
         """
         model = registry.MODELS_BY_NAME.get(model_name)
         if model is not None:
+            if hasattr(model, '_from_ids'):
+                # ``self.registry[model_name](self, (), ())``: el recordset
+                # vacío del modelo con este entorno.
+                return model._from_ids(self, (), ())
+            # Un modelo de Django sin ``BaseModel`` no tiene recordset; se
+            # devuelve su clase (divergencia declarada en el diseño).
             return model
         if '.' in model_name:
             label, _, klass = model_name.partition('.')

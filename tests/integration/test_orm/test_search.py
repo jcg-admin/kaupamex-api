@@ -8,7 +8,6 @@ contexto, la ventana ``offset``/``limit`` y ``search_count``.
 
 import pytest
 
-from orm.environments import context_scope
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
@@ -35,9 +34,8 @@ def test_naming_active_in_the_domain_lifts_the_filter(env, records):
 
 
 def test_the_context_lifts_the_filter(env, records):
-    with context_scope(active_test=False):
-        found = env['test_orm.model_active_field'].search(
-            [('id', 'in', records.ids)], order='name')
+    found = env['test_orm.model_active_field'].with_context(
+        active_test=False).search([('id', 'in', records.ids)], order='name')
     assert found.mapped('name') == ['a', 'b', 'c']
 
 
