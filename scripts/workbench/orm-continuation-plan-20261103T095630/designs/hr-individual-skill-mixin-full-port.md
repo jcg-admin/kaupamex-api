@@ -94,3 +94,29 @@ TASK-API-0345 (`pending`) cubre la parte que dependía de `Domain` en
 escribe en el store de Thyrox, prohibido desde este nodo (directiva del
 ejecutor 2026-11-10). Las unidades se citan por este diseño hasta que VM-A
 acuñe su identidad; no se inventa ninguna.
+
+## U1 — resultado (2026-11-10)
+
+- RED: 4/4 (`issubclass(..., BaseModel)` falso; `HrJobSkill` sin `search`).
+- Cambio: `HrIndividualSkillMixin(models.BaseModel, TimeStampedModel)` con
+  `Meta(TimeStampedModel.Meta)`; la guarda de sincronía de migraciones
+  sigue verde (sin cambio de columnas).
+- Dos huecos del ORM destapados por el primer `search` y corregidos donde
+  viven:
+  1. `_order_field_to_sql` sobre un `Many2one` cuyo comodelo es fila de
+     Django (`_from_ids` inexistente): se delega en una fila sin guardar del
+     comodelo, que trae `_order_to_sql` por `OrderMixin`.
+  2. `_many2one_condition_to_sql` comparaba `field_expr` sólo con el nombre;
+     el dominio de la fuente dice `skill_id` y el campo aquí es `skill` con
+     columna `skill_id`: se acepta también `attname`.
+- GREEN: 5 passed. Anulación (restaurada con `cmp`): base vieja → 4 caen;
+  sin la delegación al comodelo → caen las 2 búsquedas (las dos ordenan por
+  `_order`); sin `attname` → cae sólo la del camino `skill_id.name`.
+- Regresión derivada (`tests/unit/{orm,hr,hr_recruitment_skills,hr_skills}`,
+  `tests/integration/{test_orm,base}`): 4170 passed, 0 failed.
+- ACL: la referencia declara filas para `hr.employee.skill`/`hr.job.skill`
+  con `hr.group_hr_user` y `base.group_user`; los grupos de `hr` no están
+  sembrados y el sembrador de ACL sólo resuelve grupos de `base`
+  (`_group_by_xmlid`). Sin ACL, un usuario que no sea superusuario no lee
+  estos recordsets; hoy ningún consumidor lo hace. Dependencia registrada:
+  datos de grupos de `hr` y sembrado de ACL por addon.

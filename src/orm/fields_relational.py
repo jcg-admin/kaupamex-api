@@ -2141,8 +2141,11 @@ def _many2one_condition_to_sql(self, field_expr, operator, value, model,
     acceso y, si el dominio lo favorece, por ``LEFT JOIN``. El resto de
     operadores va al cuerpo de ``Field``.
     """
+    # ``field_expr`` es el nombre de la fuente; aquí un ``Many2one`` puede
+    # llamarse ``skill`` con columna ``skill_id``, y el dominio de la fuente
+    # dice ``skill_id``: los dos nombran el mismo campo
     if (operator not in ('any', 'not any', 'any!', 'not any!')
-            or field_expr != self.name):
+            or field_expr not in (self.name, self.attname)):
         # el resto de operadores, según el tipo de la columna
         return models.Field.condition_to_sql(
             self, field_expr, operator, value, model, alias, query)

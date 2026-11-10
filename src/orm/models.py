@@ -4174,7 +4174,17 @@ class OrderMixin:
             # comodelo de ``x_id``
             # ``env[nombre]`` es aquí la clase; el orden se delega en el
             # recordset vacío del comodelo en el mismo entorno.
-            comodel = self.env[field.comodel_name]._from_ids(self.env, (), ())
+            comodel = self.env[field.comodel_name]
+            if hasattr(comodel, '_from_ids'):
+                comodel = comodel._from_ids(self.env, (), ())
+            else:
+                # comodelo de Django (no ``BaseModel``): no hay recordset
+                # vacío, pero una fila sin guardar lleva los mismos métodos de
+                # orden (``OrderMixin`` vía ``TimeStampedModel``) y su
+                # ``_order``. Su propio orden por ``Many2one`` no tiene la
+                # guarda de ciclo por contexto: una fila de Django no lleva
+                # entorno con que reabrirlo.
+                comodel = comodel()
             if property_name == 'id':
                 coorder = 'id'
                 sql_field = self._field_to_sql(alias, fname, query)

@@ -138,8 +138,15 @@ def _dates_overlap(start_a, end_a, start_b, end_b):
     return True
 
 
-class HrIndividualSkillMixin(TimeStampedModel):
-    """``hr.individual.skill.mixin`` — nivel de habilidad de un individuo."""
+class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
+    """``hr.individual.skill.mixin`` — nivel de habilidad de un individuo.
+
+    ≙ ``class HrIndividualSkillMixin(models.AbstractModel)`` (``:11``): un
+    ``BaseModel`` abstracto, así que sus consumidores son recordsets con
+    ``env``, ``search`` y ``Domain`` (H-API-1083). ``TimeStampedModel``
+    conserva las columnas y el ``Meta`` del esquema ya migrado, como en
+    ``test_orm.TestOrmModel``.
+    """
 
     _name = 'hr.individual.skill.mixin'
     _description = 'Skill level'
@@ -191,7 +198,7 @@ class HrIndividualSkillMixin(TimeStampedModel):
         ),
     )
 
-    class Meta:
+    class Meta(TimeStampedModel.Meta):
         abstract = True
 
     def __str__(self):
