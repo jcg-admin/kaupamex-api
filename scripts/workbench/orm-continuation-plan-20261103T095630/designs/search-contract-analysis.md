@@ -262,7 +262,13 @@ an explicitly owned disposable default*) — y `make ci-multidb` con
 
 Citas durables acuñadas con `bin/task_ids ingest-board` (store del
 proveedor, capa `api`). Ninguna se cierra aquí: «aceptado» exige el nivel 3
-de una revisión que contenga la unidad, y el de `ed3ec61f` está en curso.
+de una revisión que contenga la unidad. El de `ed3ec61f` dio suite verde salvo
+los 5 ambientales y un multidb rojo por **colisión** con el multidb de
+`2d2eb633` que corría a la vez (las cuatro pruebas murieron en la
+preparación: *"database company_278835915521850_db does not exist … just
+been dropped"*); el multidb de `2d2eb633`, solo en su tramo final, salió
+verde. Dos `ci-multidb` no se ejecutan en paralelo: el nivel 3 que cubre
+estas unidades es el de `1b6fde6c`, en curso, con su multidb a solas.
 
 | TASK | Unidad / símbolos | Commit | Referencia | Diseño | RED | GREEN | Anulación | Regresión | Gate integral | Settlement en el ledger | Integración | Aceptación | Pendiente | Siguiente |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -270,8 +276,11 @@ de una revisión que contenga la unidad, y el de `ed3ec61f` está en curso.
 | TASK-API-0506 | 6a `_read_group_expand_full`, `_read_group_fill_results`, `Selection(group_expand=True)` | `23c243b9` | `:2310-2385`, `fields_selection.py:85-91` | `read-group-fill-results.md` | 8/8 | 8 | 5/8 y 1/8 | nivel 2 `59a8b2e8` (10914 passed) | `9b7cabfc`: verde salvo ambientales | no | sí | pendiente | `__fold` sobre comodelo de Django declarado, sin caso | — |
 | TASK-API-0507 | 6c `READ_GROUP_DISPLAY_FORMAT`, `_read_group_format_result` | `feb4a7a9` | `:315-333`, `:2554-2638` | `read-group-format-result.md` | 9/9 | 9 | 2 y 1 | ídem | `9b7cabfc` | no | sí | pendiente | la rama `properties` pasó a 6e | — |
 | TASK-API-0508 | 6d `regex_field_agg`, `read_group` | `59a8b2e8` | `:112`, `:2746-2878` | `read-group-public.md` | `regex_field_agg`: caso propio que pasa al declararlo; `read_group`: 7/8 | 8 | 1 y 1 (`read_group`); `regex_field_agg` sin el grupo `nombre:func(campo)`: caen exactamente 2 (su caso y el agregado con nombre de `read_group`) | ídem | `9b7cabfc` | no | sí | pendiente | — | gate `ed3ec61f` |
-| TASK-API-0509 | 6e `_read_group_groupby_properties`, `_read_group_format_result_properties` | `d9e3555c` (+ `9b7cabfc` tipo, `453c66b8` Mapping) | `:2638-2744`, `:2935-3041` | `read-group-properties.md` | 6/6 (`NotImplementedError`) | 6 | 1 y 2 | focalizada | **en curso**: `ed3ec61f` | no | no (sin nivel 3) | no | `many2many`/`datetime` de propiedad sin caso | gate `ed3ec61f` |
-| TASK-API-0504 | 6e-2 `jsonb` en `execute_sql` y `execute_query_dict` | `2d2eb633`, `ed3ec61f` (expectativa de consumidor) | `odoo/sql_db.py` (psycopg2 por defecto), `fields_properties.py:143,295,896,919` | `orm-raw-query-jsonb.md` | 2/5 | 5 | 1 y 1 | matriz por ruta `outputs/jsonb-paths-2d2eb633.md` | `2d2eb633`: 1 fallo de consumidor (corregido en `ed3ec61f`) + 5 ambientales; multidb de `2d2eb633` en curso; **`ed3ec61f` en curso** | no (selección por `local_plan supply`/`task_continuation next`; ejecución manual) | no | no | — | gate `ed3ec61f` |
+| TASK-API-0509 | 6e `_read_group_groupby_properties`, `_read_group_format_result_properties` | `d9e3555c` (+ `9b7cabfc` tipo, `453c66b8` Mapping) | `:2638-2744`, `:2935-3041` | `read-group-properties.md` | 6/6 (`NotImplementedError`) | 6 | 1 y 2 | focalizada | `ed3ec61f`: suite verde salvo ambientales; multidb rojo por colisión (ambiental demostrado); **`1b6fde6c` en curso** | no | no (sin nivel 3 completo) | no | `many2many`/`datetime` de propiedad sin caso | gate `1b6fde6c` |
+| TASK-API-0504 | 6e-2 `jsonb` en `execute_sql` y `execute_query_dict` | `2d2eb633`, `ed3ec61f` (expectativa de consumidor) | `odoo/sql_db.py` (psycopg2 por defecto), `fields_properties.py:143,295,896,919` | `orm-raw-query-jsonb.md` | 2/5 | 5 | 1 y 1 | matriz por ruta `outputs/jsonb-paths-2d2eb633.md` | `2d2eb633`: 1 fallo de consumidor (corregido en `ed3ec61f`) + 5 ambientales, multidb verde; `ed3ec61f`: suite verde salvo ambientales, multidb rojo por colisión; **`1b6fde6c` en curso** | no (selección por `local_plan supply`/`task_continuation next`; ejecución manual) | no | no | — | gate `1b6fde6c` |
+| TASK-API-0510 | `_write`, `_write_multi`; `_flush` por `_write_multi` | `a922d9c9` (diseño), `1b6fde6c` | `:4520-4608`, `:6386-6432` | `write-multi-flush.md` | 7/8 | 8 | 1, 2 y 1 | derivada 23 directorios: primero 18 fallos (`_flush` también vuelca modelos de Django sin recordset), después 9391 passed | **en curso**: `1b6fde6c` | no | no | no | `UPDATE … FROM VALUES` por lotes: DESCONOCIDO con condición de cierre en el diseño | gate `1b6fde6c` |
+| TASK-API-0511 | `write` anuncia los calculados que escribe (H-API-1209) | `7c9a796c` (diseño); código sin commitear | `:4440-4493` | `write-announces-computed.md` | 1/4 | 4 | 1 y 1 | pendiente (tras el gate de `1b6fde6c`) | no | no | no | no | — | regresión derivada, commit, gate |
+| TASK-API-0512 | leer un `Many2one` diferido no anuncia escritura (H-API-1210) | código y diseño sin commitear | `fields.py` `Field.__get__` → `fetch` | `many2one-deferred-read.md` | 1/3 | 3 | 1 | pendiente | no | no | no | no | — | regresión derivada, commit, gate |
 
 `json null` y `NULL` SQL dan los dos `None` en el camino del ORM, igual que
 psycopg2 en la fuente; ningún consumidor medido los distingue.

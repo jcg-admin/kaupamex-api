@@ -2140,7 +2140,23 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
                 return field_cache[instance.pk]
             if isinstance(instance.pk, NewId):
                 return None
-        return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
+        if (instance is None
+                or self.field.attname in instance.__dict__):
+            return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
+        # La carga diferida de Django (``refresh_from_db``) asigna con
+        # ``setattr``: es una lectura, no una escritura. Mismo tramo de carga
+        # que el descriptor escalar (``FieldDescriptor.__get__``): sin la
+        # marca, ``__set__`` anunciaba ``modified()`` y marcaba recómputos
+        # (H-API-1210).
+        building = instance.__dict__.get('_orm_building')
+        instance.__dict__['_orm_building'] = True
+        try:
+            return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
+        finally:
+            if building is None:
+                instance.__dict__.pop('_orm_building', None)
+            else:
+                instance.__dict__['_orm_building'] = building
 
     def __set__(self, instance, value):
         """``False`` es la ausencia de relación — ≙
