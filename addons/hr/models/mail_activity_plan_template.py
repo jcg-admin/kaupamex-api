@@ -82,10 +82,10 @@ def _get_closest_parent_user(
                 'responsible': current_user,
                 'warning': error_message,
             }
-        if responsible_parent.user is not None:
+        if responsible_parent.user_id is not None:
             return {
                 'error': False,
-                'responsible': responsible_parent.user,
+                'responsible': responsible_parent.user_id,
                 'warning': False,
             }
         if responsible_parent in viewed_responsible:
@@ -120,7 +120,7 @@ def _determine_responsible(responsible_type, employee, current_user=None):
                 'El coach del empleado %s no está asignado.', employee.name
             )
         result['responsible'] = (
-            employee.coach.user if employee.coach_id else None
+            employee.coach.user_id if employee.coach_id else None
         )
         if employee.coach_id and not result['responsible']:
             # Si el coach no está ligado a un usuario, se intenta con el
@@ -141,7 +141,7 @@ def _determine_responsible(responsible_type, employee, current_user=None):
                 'El gerente del empleado %s no está asignado.', employee.name
             )
         result['responsible'] = (
-            employee.parent.user if employee.parent_id else None
+            employee.parent.user_id if employee.parent_id else None
         )
         if employee.parent_id and not result['responsible']:
             result = _get_closest_parent_user(
@@ -154,7 +154,7 @@ def _determine_responsible(responsible_type, employee, current_user=None):
                 current_user=current_user,
             )
     elif responsible_type == 'employee':
-        result['responsible'] = employee.user
+        result['responsible'] = employee.user_id
         if not result['responsible']:
             result = _get_closest_parent_user(
                 employee=employee,

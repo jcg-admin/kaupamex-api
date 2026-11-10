@@ -127,7 +127,7 @@ class HrDepartureWizard(TransientModel):
     def _compute_is_user_employee(cls, employees):
         """≙ ``_compute_is_user_employee`` (``:53-59``) — ¿algún empleado de
         la selección tiene usuario vinculado?"""
-        return any(employee.user is not None for employee in employees)
+        return any(employee.user_id is not None for employee in employees)
 
     @classmethod
     def action_register_departure(
@@ -171,7 +171,7 @@ class HrDepartureWizard(TransientModel):
         if remove_related_user:
             employees_by_user = {}
             for employee in employees:
-                user = employee.user
+                user = employee.user_id
                 if user is None:
                     continue
                 employees_by_user.setdefault(user.pk, (user, []))[1].append(
@@ -179,7 +179,7 @@ class HrDepartureWizard(TransientModel):
                 )
             for user, selected in employees_by_user.values():
                 total_linked = HrEmployee.objects.filter(
-                    resource__user=user,
+                    user_id=user,
                 ).count()
                 if len(selected) == total_linked:
                     allow_archived_users.append(user)
@@ -194,7 +194,7 @@ class HrDepartureWizard(TransientModel):
                 continue
             if employee_termination:
                 archived_employees.append(employee)
-                user = employee.user
+                user = employee.user_id
                 if (
                     remove_related_user
                     and user is not None

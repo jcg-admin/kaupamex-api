@@ -67,7 +67,7 @@ def _free_company_car(cls, employees, departure_date):
     (conductor y empleado a ``None``)."""
     driver_partner_pks = set()
     for employee in employees:
-        user = employee.user
+        user = employee.user_id
         if user is not None and user.partner_id:
             driver_partner_pks.add(user.partner_id)
         if employee.work_contact_id:

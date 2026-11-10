@@ -51,11 +51,11 @@ Bloqueos y divergencias declarados
    de este árbol no trae esos helpers (medido). La función recibe la
    dirección ya extraída y la normaliza de forma mínima
    (``strip().lower()``).
-5. **``user_id.email`` → ruta ORM real.** ``hr.HrEmployee.user`` es una
-   propiedad (delegada a ``resource.user``), no filtrable por ORM; el
-   segundo intento de la referencia se traduce al camino de columnas
+5. **``user_id.email`` → ruta ORM real.** El segundo intento de la
+   referencia se traduce al camino de columnas
    ``resource__user__partner__email`` (el correo del usuario vive en su
-   partner en este árbol).
+   partner en este árbol); ``HrEmployee.user_id`` almacenado da el mismo
+   valor porque ``save()`` lo iguala al usuario del recurso.
 """
 
 from addons.hr.models.hr_employee import HrEmployee

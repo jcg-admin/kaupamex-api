@@ -103,10 +103,11 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
   del chatter; ``MailThread`` de este árbol no distingue esa variante
   (DIVERGENCIA de mecanismo).
 - **``resource.mixin``** da ``resource``, ``company`` y ``resource_calendar``
-  YA sincronizados en ``save()`` — por eso ``company_id``/``resource_calendar_id``
-  de la referencia **no se redeclaran aquí**: ya están, heredados. La
-  referencia los hace ``required=True``/delegados-al-contrato; aquí quedan
-  opcionales (``company``, mismo D-2 que ``hr_department.py``) o apuntando al
+  YA sincronizados en ``save()`` — por eso ``company_id``/
+  ``resource_calendar_id`` de la referencia **no se redeclaran aquí**: ya
+  están, heredados. La referencia los hace
+  ``required=True``/delegados-al-contrato; aquí quedan opcionales
+  (``company``, mismo D-2 que ``hr_department.py``) o apuntando al
   calendario del recurso en vez del contrato (``resource_calendar``,
   DIVERGENCIA — ver tabla abajo).
 - **``avatar.mixin``** da ``image_1920``…``image_128`` + los cinco
@@ -130,17 +131,23 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
    * - ``name``/``active`` (``related='resource_id.*', store=True``)
      - DIVERGENCIA
      - Se portan como columnas propias (no ``related``) — mismo D-3 que
-       ``hr_department.py``/``hr_job.py``. ``ResourceMixin._create_linked_resource``
-       ya lee ``getattr(self, 'name', '')`` para nombrar el recurso, así que
-       el valor viaja igual al crear.
-   * - ``user_id``, ``user_partner_id``, ``share``, ``phone``, ``email``,
-       ``is_user_active`` (``related=...``)
+       ``hr_department.py``/``hr_job.py``.
+       ``ResourceMixin._create_linked_resource`` ya lee
+       ``getattr(self, 'name', '')`` para nombrar el recurso, así que el
+       valor viaja igual al crear.
+   * - ``user_id`` (``related='resource_id.user_id', store=True,
+       readonly=False``)
+     - PORTADO
+     - Many2one almacenado (forma C de ADR-029). ``save()`` lo mantiene
+       igual al usuario del recurso en los dos sentidos
+       (``_sync_resource_user``); la migración ``0014`` copia el valor en
+       las filas previas.
+   * - ``user_partner_id``, ``share``, ``phone``, ``email``,
+       ``is_user_active`` (``related='user_id.*'``)
      - DIVERGENCIA
-     - Propiedades de sólo lectura que delegan a ``self.resource.user`` —
-       mismo criterio que la divergencia 1 de ``resource_resource.py``
+     - Propiedades de sólo lectura que leen ``self.user_id`` — mismo
+       criterio que la divergencia 1 de ``resource_resource.py``
        (``avatar_128``/``share``/``email``/``phone`` como ``@property``).
-       Quien necesite reasignar el usuario escribe en ``self.resource.user``,
-       igual que la ``tz`` de ``ResourceMixin``.
    * - ``im_status`` (``related='user_id.im_status'``)
      - BLOQUEADO por ``base.ResUsers.im_status``
      - ``base.ResUsers`` no declara ``im_status`` — es infraestructura de
@@ -152,7 +159,8 @@ final (mismo patrón que ``ResPartner``/``StockPicking`` en este árbol).
        ``Selection`` de opciones dinámicas — este ORM no resuelve un
        ``Selection`` contra una tabla en tiempo de metadata. ``_lang_get``
        SÍ se porta como classmethod (ver métodos).
-   * - ``certificate`` (``Selection`` dinámico vía ``_get_certificate_selection``)
+   * - ``certificate`` (``Selection`` dinámico vía
+       ``_get_certificate_selection``)
      - DIVERGENCIA
      - ``TextChoices`` fijo (``Certificate``) — mismo criterio que
        ``hr_work_location.py::LocationType``. ``_get_certificate_selection``
@@ -252,8 +260,8 @@ Métodos — resumen (detalle completo en :ref:`h-api-683`)
   ``hr.version``:
 
   - BLOQUEADO por ``resource.mixin._get_calendars`` — ``_get_calendars`` es
-    un ``super()`` sobre la mixin, que no lo declara; y ``_get_calendar_tz_batch``
-    lo consume. Sucesor: tarea **#514**.
+    un ``super()`` sobre la mixin, que no lo declara; y
+    ``_get_calendar_tz_batch`` lo consume. Sucesor: tarea **#514**.
   - BLOQUEADO por ``resource.ResourceCalendar._work_intervals_batch`` — el
     motor de intervalos, del que cuelgan ``_get_unusual_days``,
     ``_employee_attendance_intervals``, ``_get_expected_attendances`` y
@@ -321,6 +329,7 @@ from addons.base.models import (
     ResLang,
     ResPartner,
     ResPartnerBank,
+    ResUsers,
     TimeStampedModel,
 )
 from addons.base.models.avatar_mixin import AvatarMixin
@@ -384,6 +393,19 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         default=True, verbose_name='Activo',
         help_text='Odoo active (related=resource_id.active — columna propia).',
     )
+    #: ≙ ``user_id`` (``odoo19c: hr/models/hr_employee.py:86-94``): el
+    #: usuario del recurso, almacenado (``related='resource_id.user_id'``,
+    #: ``store=True``, ``readonly=False``). Lo mantiene ``save()`` en los
+    #: dos sentidos, con el mecanismo de los otros relacionados del recurso
+    #: (``ResourceMixin.save``). ``related_name`` es el ``employee_ids`` de
+    #: ``res.users`` en la fuente (``hr/models/res_users.py``).
+    user_id = fields.Many2one(
+        ResUsers, db_column='user_id', on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='employee_ids', index='btree_not_null', db_index=False,
+        verbose_name='Usuario',
+        help_text='Odoo user_id (related=resource_id.user_id, store=True).',
+    )
     hr_presence_state = fields.Selection(
         choices=[
             ('present', 'Presente'),
@@ -411,8 +433,9 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
             ('presence_archive', 'Archivado'),
             ('presence_undetermined', 'Indeterminado')],
         blank=True, default='',
-        help_text='BLOQUEADO por ``hr_presence_state`` — _compute_presence_icon '
-                  'deriva de ese campo, que queda en su default. '
+        help_text='BLOQUEADO por ``hr_presence_state`` — '
+                  '_compute_presence_icon deriva de ese campo, que queda '
+                  'en su default. '
                   'Sucesor: tarea #21.',
     )
     show_hr_icon_display = fields.Boolean(default=False)
@@ -423,9 +446,18 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     )
 
     company_country_code = fields.Char(blank=True, default='')
-    work_phone = fields.Char(blank=True, default='', verbose_name='Teléfono de trabajo')
-    mobile_phone = fields.Char(blank=True, default='', verbose_name='Celular de trabajo')
-    work_email = fields.Char(blank=True, default='', verbose_name='Correo de trabajo')
+    work_phone = fields.Char(
+        blank=True, default='',
+        verbose_name='Teléfono de trabajo',
+    )
+    mobile_phone = fields.Char(
+        blank=True, default='',
+        verbose_name='Celular de trabajo',
+    )
+    work_email = fields.Char(
+        blank=True, default='',
+        verbose_name='Correo de trabajo',
+    )
     work_contact = fields.Many2one(
         ResPartner, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='employee_work_contacts',
@@ -439,20 +471,36 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         help_text='Odoo legal_name (compute+store+readonly=False — se '
                   'rellena desde name en save() si está vacío).',
     )
-    private_phone = fields.Char(blank=True, default='', verbose_name='Teléfono privado')
-    private_email = fields.Char(blank=True, default='', verbose_name='Correo privado')
+    private_phone = fields.Char(
+        blank=True, default='',
+        verbose_name='Teléfono privado',
+    )
+    private_email = fields.Char(
+        blank=True, default='',
+        verbose_name='Correo privado',
+    )
     lang = fields.Char(
         blank=True, default='', verbose_name='Idioma',
         help_text='Código de base.ResLang.code (Odoo lang — Selection '
                   'dinámico, ver divergencia del docstring del módulo).',
     )
-    place_of_birth = fields.Char(blank=True, default='', verbose_name='Lugar de nacimiento')
+    place_of_birth = fields.Char(
+        blank=True, default='',
+        verbose_name='Lugar de nacimiento',
+    )
     country_of_birth = fields.Many2one(
         ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_employees_born_here', verbose_name='País de nacimiento',
+        related_name='hr_employees_born_here',
+        verbose_name='País de nacimiento',
     )
-    birthday = fields.Date(null=True, blank=True, verbose_name='Fecha de nacimiento')
-    birthday_public_display = fields.Boolean(default=False, verbose_name='Mostrar a todos los empleados')
+    birthday = fields.Date(
+        null=True, blank=True,
+        verbose_name='Fecha de nacimiento',
+    )
+    birthday_public_display = fields.Boolean(
+        default=False,
+        verbose_name='Mostrar a todos los empleados',
+    )
     birthday_public_display_string = fields.Char(blank=True, default='hidden')
 
     bank_account = fields.Many2many(
@@ -462,24 +510,43 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         help_text='Odoo bank_account_ids — cuentas para pagar la nómina.',
     )
     salary_distribution = fields.Json(
-        null=True, blank=True, default=dict, verbose_name='Distribución de nómina',
+        null=True, blank=True, default=dict,
+        verbose_name='Distribución de nómina',
         help_text='Odoo salary_distribution: {"<bank_account_id>": '
                   '{"sequence", "amount", "amount_is_percentage"}}.',
     )
 
-    permit_no = fields.Char(blank=True, default='', verbose_name='No. de permiso de trabajo')
+    permit_no = fields.Char(
+        blank=True, default='',
+        verbose_name='No. de permiso de trabajo',
+    )
     visa_no = fields.Char(blank=True, default='', verbose_name='No. de visa')
-    visa_expire = fields.Date(null=True, blank=True, verbose_name='Vencimiento de visa')
-    work_permit_expiration_date = fields.Date(null=True, blank=True, verbose_name='Vencimiento de permiso de trabajo')
-    has_work_permit = fields.Binary(null=True, blank=True, verbose_name='Permiso de trabajo (archivo)')
+    visa_expire = fields.Date(
+        null=True, blank=True,
+        verbose_name='Vencimiento de visa',
+    )
+    work_permit_expiration_date = fields.Date(
+        null=True, blank=True,
+        verbose_name='Vencimiento de permiso de trabajo',
+    )
+    has_work_permit = fields.Binary(
+        null=True, blank=True,
+        verbose_name='Permiso de trabajo (archivo)',
+    )
     work_permit_scheduled_activity = fields.Boolean(default=False)
     work_permit_name = fields.Char(blank=True, default='')
     certificate = fields.Selection(
         choices=Certificate.choices, blank=True, default='',
         verbose_name='Nivel de estudios',
     )
-    study_field = fields.Char(blank=True, default='', verbose_name='Área de estudio')
-    study_school = fields.Char(blank=True, default='', verbose_name='Institución')
+    study_field = fields.Char(
+        blank=True, default='',
+        verbose_name='Área de estudio',
+    )
+    study_school = fields.Char(
+        blank=True, default='',
+        verbose_name='Institución',
+    )
     emergency_contact = fields.Char(blank=True, default='')
     emergency_phone = fields.Char(blank=True, default='')
 
@@ -523,8 +590,14 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
                   'Meta.constraints (``hr_employee_barcode_uniq``), no aquí.',
     )
     pin = fields.Char(blank=True, default='', verbose_name='PIN')
-    id_card = fields.Binary(null=True, blank=True, verbose_name='Copia de identificación')
-    driving_license = fields.Binary(null=True, blank=True, verbose_name='Licencia de conducir')
+    id_card = fields.Binary(
+        null=True, blank=True,
+        verbose_name='Copia de identificación',
+    )
+    driving_license = fields.Binary(
+        null=True, blank=True,
+        verbose_name='Licencia de conducir',
+    )
     private_car_plate = fields.Char(blank=True, default='')
     related_partners_count = fields.Integer(default=0)
 
@@ -534,8 +607,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         verbose_name = 'Empleado'
         verbose_name_plural = 'Empleados'
         # ``_user_uniq`` de la referencia (``:248-251``) está
-        # BLOQUEADO por ``user_id`` — aquí es una property, no una columna,
-        # y una UniqueConstraint de base de datos necesita la columna.
+        # pendiente: ``user_id`` ya es columna; falta declarar la
+        # restricción con los objetos de tabla de la referencia.
         # Sucesor: tarea #515.
         constraints = [
             # ``_barcode_uniq`` (``:244-247``) — ``unique=True`` en el campo
@@ -551,39 +624,34 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         return self.name
 
     # ------------------------------------------------------------------
-    # Delegación a resource.user — propiedades de sólo lectura
+    # Delegación a user_id — propiedades de sólo lectura
     # (DIVERGENCIA, ver docstring del módulo)
     # ------------------------------------------------------------------
 
     @property
-    def user(self):
-        """≙ ``user_id`` (``related='resource_id.user_id'``)."""
-        return self.resource.user if self.resource_id else None
-
-    @property
     def user_partner(self):
         """≙ ``user_partner_id``."""
-        return self.user.partner if self.user else None
+        return self.user_id.partner if self.user_id_id else None
 
     @property
     def share(self):
         """≙ ``share`` (``related='user_id.share'``)."""
-        return bool(self.user and self.user.share)
+        return bool(self.user_id_id and self.user_id.share)
 
     @property
     def phone(self):
         """≙ ``phone`` (``related='user_id.phone'``)."""
-        return self.user.phone if self.user else ''
+        return self.user_id.phone if self.user_id_id else ''
 
     @property
     def email(self):
         """≙ ``email`` (``related='user_id.email'``)."""
-        return self.user.email if self.user else ''
+        return self.user_id.email if self.user_id_id else ''
 
     @property
     def is_user_active(self):
         """≙ ``is_user_active`` (``related='user_id.active'``)."""
-        return bool(self.user and self.user.is_active)
+        return bool(self.user_id_id and self.user_id.is_active)
 
     @property
     def currency(self):
@@ -1381,7 +1449,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
             pk=self.pk,
         ).filter(company_id=employee_company)
         old_partner_employees = [
-            e for e in old_partner_employees if not e.user
+            e for e in old_partner_employees if not e.user_id_id
         ]
         for employee in old_partner_employees:
             employee.work_contact = None
@@ -1459,6 +1527,27 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         account.allow_out_payment = not account.allow_out_payment
         account.save(update_fields=['allow_out_payment'])
 
+    def _sync_resource_user(self, previous_user_id):
+        """Mantiene ``user_id`` igual al usuario del recurso — el
+        ``related='resource_id.user_id'`` almacenado y escribible de la fuente.
+
+        Si el empleado cambió su usuario, el cambio se escribe en el recurso
+        (el inverso de un ``related`` con ``readonly=False``); si no, el
+        empleado toma el del recurso. Corre tras el guardado porque
+        ``ResourceMixin.save`` crea el recurso de un empleado nuevo.
+        """
+        resource = self.resource
+        if resource is None:
+            return
+        if self.user_id_id != previous_user_id:
+            if resource.user_id != self.user_id_id:
+                resource.user_id = self.user_id_id
+                resource.save(update_fields=['user'])
+        elif resource.user_id != self.user_id_id:
+            self.user_id_id = resource.user_id
+            type(self).objects.filter(pk=self.pk).update(
+                user_id=self.user_id_id)
+
     def _sync_salary_distribution(self):
         """≙ ``_sync_salary_distribution`` (``:287-329``) — puerto fiel del
         algoritmo de redistribución al agregar/quitar cuentas bancarias.
@@ -1476,7 +1565,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         unchanged_ids = account_ids & current_ids
 
         ordered = sorted(
-            ((i, data) for i, data in current.items() if int(i) in unchanged_ids),
+            ((i, data) for i, data in current.items()
+             if int(i) in unchanged_ids),
             key=lambda kv: (
                 not kv[1].get('amount_is_percentage'),
                 kv[1].get('sequence', float('inf')),
@@ -1495,12 +1585,19 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
                 new_distribution[first_id]['amount'] += removed_percentage
 
         total_allocated = sum(
-            d['amount'] for d in new_distribution.values() if d['amount_is_percentage']
+            d['amount'] for d in new_distribution.values()
+            if d['amount_is_percentage']
         )
         remaining = max(0.0, 100.0 - total_allocated)
-        seq = max((d.get('sequence', 0) for d in new_distribution.values()), default=0)
+        seq = max(
+            (d.get('sequence', 0) for d in new_distribution.values()),
+            default=0,
+        )
         currency = self.currency
-        amount = currency.round(remaining / len(added_ids)) if added_ids and currency else 0.0
+        amount = (
+            currency.round(remaining / len(added_ids))
+            if added_ids and currency else 0.0
+        )
         added_ids = list(added_ids)
         for i, new_id in enumerate(added_ids):
             seq += 1
@@ -1522,7 +1619,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         if self.pin and not self.pin.isdigit():
             raise ValidationError('El PIN debe ser una secuencia de dígitos.')
         if self.barcode and not (
-            re.match(r'^[A-Za-z0-9]+$', self.barcode) and len(self.barcode) <= 18
+            re.match(r'^[A-Za-z0-9]+$', self.barcode)
+            and len(self.barcode) <= 18
         ):
             raise ValidationError(
                 'El ID de gafete debe ser alfanumérico, sin acentos y de '
@@ -1536,7 +1634,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
                 amount = values.get('amount')
                 is_percentage = values.get('amount_is_percentage', True)
                 if is_percentage and (
-                    not isinstance(amount, (int, float)) or not (0 <= amount <= 100)
+                    not isinstance(amount, (int, float))
+                    or not (0 <= amount <= 100)
                 ):
                     raise ValidationError(
                         'Cada porcentaje de distribución debe ser un número '
@@ -1558,13 +1657,14 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         ``work_permit_name``, ``newly_hired``. ``ResourceMixin.save()``
         (llamado por ``super()``) crea el ``resource`` ligado si falta.
         """
-        previous_parent_id = None
+        previous_parent_id = previous_user_id = None
         if self.pk:
             previous = self.__class__.objects.filter(pk=self.pk).values(
-                'parent_id',
+                'parent_id', 'user_id',
             ).first()
             if previous:
                 previous_parent_id = previous['parent_id']
+                previous_user_id = previous['user_id']
 
         if not self.legal_name:
             self.legal_name = self.name
@@ -1572,7 +1672,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         self._compute_coach(previous_parent_id)
 
         if self.birthday and self.birthday_public_display:
-            self.birthday_public_display_string = self.birthday.strftime('%d %B')
+            self.birthday_public_display_string = (
+                self.birthday.strftime('%d %B'))
         else:
             self.birthday_public_display_string = 'hidden'
 
@@ -1592,6 +1693,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         self._compute_work_location_type()
 
         super().save(*args, **kwargs)
+        self._sync_resource_user(previous_user_id)
 
         # Post-save: lo que depende del pk (bank_account M2M, related_partners
         # count) se sincroniza tras la escritura, igual que el patrón
@@ -1610,9 +1712,11 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     # ------------------------------------------------------------------
 
     def _get_employee_m2o_to_empty_on_archived_employees(self):
-        """≙ ``_get_employee_m2o_to_empty_on_archived_employees`` (``:1478-1479``)."""
+        """≙ ``_get_employee_m2o_to_empty_on_archived_employees``
+        (``:1478-1479``)."""
         return ['parent', 'coach']
 
     def _get_user_m2o_to_empty_on_archived_employees(self):
-        """≙ ``_get_user_m2o_to_empty_on_archived_employees`` (``:1481-1482``)."""
+        """≙ ``_get_user_m2o_to_empty_on_archived_employees``
+        (``:1481-1482``)."""
         return []

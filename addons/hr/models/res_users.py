@@ -7,10 +7,11 @@ LGPL-3, 339 líneas) — atribución y aviso de licencia preservados
 El vínculo usuario ↔ empleado en este árbol
 =============================================
 
-La referencia tiene ``hr.employee.user_id`` como columna; aquí el vínculo
-vive en el recurso (``resource.ResourceResource.user``) y
-``hr.HrEmployee.user`` es una propiedad delegada. Por eso todo camino ORM
-de este archivo filtra por ``resource__user`` en vez de ``user_id``.
+La referencia tiene ``hr.employee.user_id`` como columna almacenada
+(``related='resource_id.user_id'``) y aquí también: ``HrEmployee.user_id``
+(``hr.0014``). Los caminos ORM de este archivo filtran todavía por
+``resource__user``, que da el mismo conjunto porque ``save()`` mantiene
+las dos columnas iguales.
 
 Porte símbolo por símbolo — 55 símbolos de la referencia
 ==========================================================

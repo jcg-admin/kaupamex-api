@@ -224,8 +224,8 @@ def _vehicle_pre_save(sender, instance, **kwargs):
         old_employee = HrEmployee.objects.filter(
             pk=old_driver_employee_id,
         ).first()
-        if old_employee is not None and old_employee.user is not None:
-            partners_to_unsubscribe.append(old_employee.user.partner_id)
+        if old_employee is not None and old_employee.user_id is not None:
+            partners_to_unsubscribe.append(old_employee.user_id.partner_id)
         if partners_to_unsubscribe:
             instance.message_unsubscribe(partners_to_unsubscribe)
 
