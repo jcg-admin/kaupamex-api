@@ -22,6 +22,13 @@ from addons.base.models.ir_model import IrModel, IrModelData
 pytestmark = pytest.mark.django_db
 
 
+@pytest.fixture(autouse=True)
+def _without_model_xmlids(db):
+    """``migrate`` ya reflejó los modelos con su módulo: se parte de una base
+    sin XML-ID de modelo, dentro de la transacción de la prueba."""
+    IrModelData.objects.filter(name__startswith='model_').delete()
+
+
 def _xmlid_target(module, name):
     return (IrModelData.objects.filter(module=module, name=name)
             .values_list('model', 'res_id').first())

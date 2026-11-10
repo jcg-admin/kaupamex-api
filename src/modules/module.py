@@ -40,6 +40,8 @@ import typing
 from collections.abc import Mapping
 from pathlib import Path
 
+from django.conf import settings
+
 import release
 
 MANIFEST_NAMES = ['__manifest__.py']
@@ -311,3 +313,18 @@ def check_python_external_dependency(pydep: str) -> None:
         raise MissingDependency(
             f'Falta la dependencia externa {pydep!r} (import {module_name!r})'
         )
+
+
+def installed_addon_names():
+    """Nombres de addon que ``INSTALLED_APPS`` carga.
+
+    Se derivan de la lista efectiva de Django, no del texto del settings: es el
+    hecho de qué está cargado, no lo que un archivo dice. Es el conjunto que
+    el ciclo de instalación (``modules.loading.load_modules``) instala y el
+    que ``update_module_list`` usa para su informe de ``auto_install``.
+    """
+    return {
+        app.rsplit('.', 1)[-1]
+        for app in settings.INSTALLED_APPS
+        if app.startswith('addons.')
+    }

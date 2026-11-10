@@ -18,7 +18,10 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def module():
+def module(empty_module_catalog):
+    # ``migrate`` ya dio a cada modelo su XML-ID de módulo; el escenario de
+    # estas pruebas declara los suyos (``_declare``)
+    IrModelData.objects.filter(name__startswith='model_').delete()
     return IrModule.objects.create(name='sale', shortdesc='Ventas')
 
 

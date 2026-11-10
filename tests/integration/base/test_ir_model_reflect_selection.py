@@ -209,7 +209,7 @@ class TestReflectConstraint:
 class TestReflectModel:
     """≙ ``_reflect_model`` (``odoo19c: :1992-2003``)."""
 
-    def test_it_reads_the_table_objects_from_meta(self, db):
+    def test_it_reads_the_table_objects_from_meta(self, empty_module_catalog):
         _module('base')
         _model_row()
         rows = IrModelConstraint._reflect_model(IrModelData)

@@ -164,7 +164,8 @@ class TestGetModuleInfo:
 class TestGetLatestVersion:
     """≙ ``_get_latest_version`` (``odoo19c: ir_module.py:211-215``)."""
 
-    def test_it_reads_the_version_from_disk_not_from_the_row(self, db):
+    def test_it_reads_the_version_from_disk_not_from_the_row(
+            self, empty_module_catalog):
         """El punto entero del método: la fila puede estar atrasada.
 
         Se guarda una versión falsa en el catálogo y se comprueba que el
@@ -178,7 +179,8 @@ class TestGetLatestVersion:
             == IrModule.get_module_info('base')['version']
         )
 
-    def test_an_addon_without_manifest_falls_back_to_one_dot_zero(self, db):
+    def test_an_addon_without_manifest_falls_back_to_one_dot_zero(
+            self, empty_module_catalog):
         row = IrModule.objects.create(name='no_existe_este_addon')
         assert row._get_latest_version().endswith('1.0')
 
@@ -186,7 +188,7 @@ class TestGetLatestVersion:
 class TestGetAndGetId:
     """≙ ``_get`` y ``_get_id`` (``odoo19c: ir_module.py:898-909``)."""
 
-    def test_get_id_returns_the_primary_key(self, db):
+    def test_get_id_returns_the_primary_key(self, empty_module_catalog):
         row = IrModule.objects.create(name='modulo_de_prueba')
         assert IrModule._get_id('modulo_de_prueba') == row.pk
 

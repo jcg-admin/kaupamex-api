@@ -6,7 +6,6 @@ registra nuevos módulos como no instalados y reconcilia sus dependencias.
 Toda la actualización se confirma o revierte en la conexión seleccionada.
 """
 
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
@@ -18,20 +17,8 @@ from addons.authz.declaration import (
 from addons.base.models import IrModule, IrModuleDependency
 from modules import ModuleGraph
 from modules.db import create_categories, validate_category_paths
-from modules.module import ADDONS_PATHS, get_module_path, get_modules
-
-
-def installed_addon_names():
-    """Nombres de addon que ``INSTALLED_APPS`` carga.
-
-    Se derivan de la lista efectiva de Django, no del texto del settings: es el
-    hecho de qué está cargado, no lo que un archivo dice.
-    """
-    return {
-        app.rsplit('.', 1)[-1]
-        for app in settings.INSTALLED_APPS
-        if app.startswith('addons.')
-    }
+from modules.module import (ADDONS_PATHS, get_module_path, get_modules,
+                            installed_addon_names)
 
 
 class Command(BaseCommand):

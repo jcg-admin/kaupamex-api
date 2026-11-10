@@ -22,7 +22,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def catalogue(db):
+def catalogue(empty_module_catalog):
     """
     Tres addons: ``sale`` depende de ``product``, que depende de ``base``.
     """

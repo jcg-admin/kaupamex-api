@@ -13,7 +13,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def graph_manifests(monkeypatch):
+def graph_manifests(monkeypatch, empty_module_catalog):
     manifests = {
         'base': {'depends': [], 'installable': True},
         'snapshot_child': {'depends': ['base'], 'installable': True},

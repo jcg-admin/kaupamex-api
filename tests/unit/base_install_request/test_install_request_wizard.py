@@ -28,6 +28,12 @@ from modules import module_graph
 pytestmark = pytest.mark.django_db
 
 
+@pytest.fixture(autouse=True)
+def _own_catalog(empty_module_catalog):
+    """Estas pruebas construyen su catálogo (``sale``, ``product``,
+    ``base_setup``…) sobre una base que ``migrate`` ya dejó instalada."""
+
+
 @pytest.fixture
 def sale():
     """Un módulo desinstalado, que es el dominio de los dos ``module_id``."""

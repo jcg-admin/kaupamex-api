@@ -21,7 +21,10 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 ``default`` bajo N>1.
 """
 
+import importlib
+
 from django.apps import AppConfig, apps
+from django.db.models.signals import post_migrate
 
 from orm.inherits import ensure_inherits
 from orm.model_classes import (
@@ -105,3 +108,11 @@ class BaseConfig(AppConfig):
         # ``ready()``). La dispara el primer consumidor tras ``apps.ready``
         # —``orm.model_classes.ensure_field_setup``—, que es el momento
         # «tras el último módulo» de la fuente (``loading.py:488``).
+        # El ciclo de instalación corre al final de cada ``migrate``
+        # (designs/module-install-cycle.md, L3).
+        # El receptor vive en su módulo y se importa aquí, con el registro
+        # de apps ya poblado (excepción #4 de ``no-lazy-imports.md``).
+        cycle = importlib.import_module('addons.base.install_cycle')
+        post_migrate.connect(cycle.load_modules_after_migrate, sender=self,
+                             dispatch_uid='base.load_modules_after_migrate')
+

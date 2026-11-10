@@ -48,9 +48,12 @@ def test_the_message_of_the_constraint_row_of_the_model_wins():
     model = IrModel._get('res.groups') or IrModel.objects.create(
         model='res.groups', name='Access Groups')
     module, _ = IrModule.objects.get_or_create(name='base')
-    IrModelConstraint.objects.create(
-        name='res_groups_name_uniq', model=model, module=module, type='u',
-        message='Mensaje registrado')
+    # ``migrate`` ya reflejó la restricción con su módulo: la prueba fija su
+    # mensaje sobre esa fila, o la crea si no está.
+    IrModelConstraint.objects.update_or_create(
+        name='res_groups_name_uniq', module=module,
+        defaults={'model': model, 'type': 'u',
+                  'message': 'Mensaje registrado'})
     assert ResGroups._sql_error_to_message(exc) == 'Mensaje registrado'
 
 

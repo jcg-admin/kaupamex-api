@@ -58,6 +58,8 @@ from contextlib import contextmanager
 
 from django.db import DEFAULT_DB_ALIAS, connections
 from exceptions import AccessError
+from modules.loading import load_modules
+from addons.base.models import IrModule
 from orm.environments import get_transaction
 from orm.utils import SUPERUSER_ID
 from service.db import savepoint
@@ -380,6 +382,18 @@ _CRON_SPECS = (
 )
 
 
+def _install_modules():
+    """El ciclo de instalación que ``migrate`` dispara por ``post_migrate``.
+
+    ``flush`` emite la misma señal sin ``plan`` y el receptor no la atiende,
+    así que tras un test transaccional el catálogo de módulos, los XML-ID de
+    modelo y los datos de los manifiestos se reponen aquí; va el último porque
+    los datos de seguridad citan los grupos de ``base`` sembrados antes
+    (``designs/module-install-cycle.md``, L3).
+    """
+    load_modules(DEFAULT_DB_ALIAS)
+
+
 def _crons_seed():
     """Re-aplica las siete siembras de cron. Idempotente por clave natural."""
     for spec in _CRON_SPECS:
@@ -406,6 +420,7 @@ _SEEDERS = (
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
     incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
     _crons_seed,                # las siete siembras de ir.cron
+    _install_modules,           # el ciclo de instalación (post_migrate)
 )
 
 
@@ -564,3 +579,17 @@ def system_user(db):
         user = get_user_model().objects.create_user(
             '__system__', pk=SUPERUSER_ID, password=None)
     return user
+
+
+@pytest.fixture
+def empty_module_catalog(db):
+    """Un catálogo de módulos vacío, dentro de la transacción de la prueba.
+
+    ``migrate`` instala los addons de ``INSTALLED_APPS`` (``post_migrate``,
+    ``designs/module-install-cycle.md``): la base de pruebas tiene sus 124
+    filas en ``ir_module_module``, como una base de la referencia tiene sus
+    módulos instalados. Una prueba que construye su propio catálogo
+    (``base``, ``sale``…) parte de éste; el borrado arrastra dependencias y
+    restricciones reflejadas, y la transacción lo deshace al terminar.
+    """
+    IrModule.objects.all().delete()

@@ -43,8 +43,8 @@ class TestTheExternalIdOfACategory:
         externo sin su módulo no es único: dos addons pueden llamar igual a su
         categoría, y quien lo resuelva traería la del otro.
         """
-        _external_id(category, 'base', 'module_category_sales')
-        assert category.xml_id == 'base.module_category_sales'
+        _external_id(category, 'base', 'module_category_test_sales')
+        assert category.xml_id == 'base.module_category_test_sales'
 
     def test_a_category_nobody_declared_reads_empty(self, category):
         """``:99`` — ``xml_ids.get(cat.id, [''])[0]``.

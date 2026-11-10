@@ -44,6 +44,7 @@ from rest_framework import serializers
 
 from addons.base.models.ir_model import IrModel
 from addons.base_automation.models.base_automation import BaseAutomation
+from orm.environments import env
 
 
 class TestDjangoSeparatesThreeAxes:
@@ -298,6 +299,10 @@ class TestDjangoDoesHaveAttributeLevelLaziness:
         # ``ir.model`` ya leída por la siembra, el campo diferido salía de la
         # caché y la consulta que este caso mide no ocurría.
         self._automation('base.ResDeviceLog', 'Proxy')
+        # ``migrate`` ya reflejó la fila de ``ir.model`` y leerla la dejó en
+        # la caché de la transacción: se vacía para medir el referenciado
+        # que aún no se leyó.
+        env().invalidate_all()
         fresh = (
             BaseAutomation.objects.select_related('model_id')
             .only('name', 'model_id__id')

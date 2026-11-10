@@ -4,14 +4,25 @@ Corresponds to pinned Odoo19Community modules/loading.py::load_data. An
 explicit database alias replaces the reference Environment database binding.
 This stage neither commits nor marks a module installed: the caller owns
 schema readiness, registry setup, transaction, hooks and finalization.
+
+``load_modules`` is that caller for the addons of ``INSTALLED_APPS``: the
+per-module step of the reference ``load_module_graph`` over a migrated
+database (designs/module-install-cycle.md).
 """
 
 import logging
 import traceback
 
+from django.apps import apps
+from django.core.management import call_command
 from django.db import connections, router, transaction
 from django.db.transaction import TransactionManagementError
 
+from modules.module import installed_addon_names
+from modules.module_graph import ModuleGraph
+from orm.environments import Environment
+from orm.registry import Registry
+from orm.utils import SUPERUSER_ID
 from tools.convert import convert_file
 
 _logger = logging.getLogger(__name__)
@@ -185,3 +196,46 @@ def load_demo(env, package, idref, mode):
                     module_id=package.id, error=error
                 )
         return False
+
+
+def load_modules(using):
+    """Install or update the addons of ``INSTALLED_APPS`` on ``using``.
+
+    Adapts the per-module step of Odoo Community 19 ``load_module_graph``
+    (``odoo/modules/loading.py:186-260``, LGPL-3): in graph order, each
+    module gets ``init_models`` with the module in context, which reflects
+    its models and gives them their ``model_<name>`` xmlid, then
+    ``load_data`` of its manifest ``data`` files, and ends ``installed``. A
+    module not yet installed loads in ``init`` mode and an installed one in
+    ``update`` mode, as the reference does for install and upgrade.
+
+    The catalog is refreshed first by ``update_module_list``, the reference
+    ``update_list``, whose ``create_categories`` gives each module its
+    category. Declared divergence: installing here is being in
+    ``INSTALLED_APPS`` with the schema migrated, so every listed addon is
+    installed; installation on request stays with TASK-API-0382.
+    """
+    call_command('update_module_list', database=using, verbosity=0)
+    IrModule = apps.get_model('base', 'IrModule')
+    rows = {row.name: row for row in IrModule.objects.using(using)}
+    graph = ModuleGraph.from_database(
+        installed_addon_names(), using=using, mode='update')
+    registry = Registry(using)
+    with Environment(using, SUPERUSER_ID, {}) as environment:
+        for package in graph:
+            row = rows[package.name]
+            install = row.state != IrModule.STATE_INSTALLED
+            model_names = [
+                name for name, model in registry.models.items()
+                if getattr(getattr(model, '_meta', None), 'app_label',
+                           None) == package.name
+            ]
+            with connections[using].cursor() as cursor:
+                registry.init_models(
+                    cursor, model_names, {'module': package.name}, install)
+            load_data({}, 'init' if install else 'update', 'data', package,
+                      using=using)
+            if install:
+                row.state = IrModule.STATE_INSTALLED
+                row.save(using=using, update_fields=['state', 'updated_at'])
+        environment.flush_all()

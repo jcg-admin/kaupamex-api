@@ -44,7 +44,7 @@ def module_graph():
     return graph
 
 
-def test_the_command_reports_auto_install_coherence():
+def test_the_command_reports_auto_install_coherence(empty_module_catalog):
     """El chequeo corre dentro del comando, no es una función suelta."""
     IrModule.objects.bulk_create(
         [
@@ -137,7 +137,8 @@ def test_an_addon_without_auto_install_never_appears():
     assert plain not in graph.auto_installable(reduced)
 
 
-def test_imported_code_does_not_hide_auto_install_candidates_in_empty_catalog():
+def test_imported_code_does_not_hide_auto_install_candidates_in_empty_catalog(
+        empty_module_catalog):
     assert not IrModule.objects.exists()
     out = io.StringIO()
     call_command('update_module_list', '--dry-run', stdout=out)

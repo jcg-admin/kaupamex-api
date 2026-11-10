@@ -10,7 +10,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def module_rows(monkeypatch):
+def module_rows(monkeypatch, empty_module_catalog):
     manifests = {
         'state_root': {'depends': [], 'installable': True},
         'state_leaf': {'depends': ['state_root'], 'installable': True},
