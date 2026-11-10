@@ -24,6 +24,7 @@ from django.apps import apps
 
 from orm import registry
 from orm.decorators import constrains, ondelete, onchange
+from orm.environments import env as current_env
 from orm.models import BaseModel
 
 PROPERTIES = (
@@ -81,6 +82,6 @@ def test_the_marked_double_is_not_empty(name, collector, shape):
 def test_a_real_model_with_onchange_methods():
     model = next(model for model in apps.get_models()
                  if getattr(model, '_name', None) == 'test_orm.discussion')
-    value = model.browse()._onchange_methods
+    value = current_env()[model._name]._onchange_methods
     assert value
     assert value == dict(registry.onchange_methods(model))

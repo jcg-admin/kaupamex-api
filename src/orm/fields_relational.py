@@ -105,7 +105,8 @@ from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import (Command, apply_many2many_commands,
-                          apply_one2many_commands, is_command_list)
+                          apply_one2many_commands, comodel_records,
+                          is_command_list)
 from orm.environments import Query, env as get_environment, get_current_uid
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
@@ -1585,7 +1586,8 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
 
 
 def _many2one_join(self, model, alias, query):
-    """``join`` — añade el LEFT JOIN de este Many2one y devuelve (modelo, alias).
+    """``join`` — añade el LEFT JOIN de este Many2one y devuelve
+    ``(comodelo, alias)``.
 
     ≙ ``Many2one.join`` (``odoo19c: odoo/orm/fields_relational.py:466-478``).
     Es lo que ``BaseModel._traverse_related_sql`` invoca en cada salto de un
@@ -1596,12 +1598,12 @@ def _many2one_join(self, model, alias, query):
     del lado izquierdo salga del mismo sitio que cualquier otra, con su
     comprobación de acceso incluida.
 
-    Divergencias de nombre, las dos mecánicas: el comodelo se obtiene de
-    ``self.related_model`` en vez de ``model.env[self.comodel_name]`` —Django
-    ya lo tiene resuelto en el campo—, y su tabla de ``_meta.db_table`` en vez
-    de ``_table``.
+    El comodelo es ``model.env[self.comodel_name]``, el recordset vacío,
+    como en la fuente; un comodelo de Django sin ``BaseModel`` sigue como
+    clase. Divergencia de nombre, mecánica: la tabla sale de
+    ``_meta.db_table`` en vez de ``_table``.
     """
-    comodel = self.related_model
+    comodel = comodel_records(model, self.related_model)
     coalias = query.make_alias(alias, self.name)
     query.add_join('LEFT JOIN', coalias, comodel._meta.db_table, SQL(
         "%s = %s",
@@ -1701,7 +1703,7 @@ def _many2one_convert_to_cache(self, value, record, validate=True):
         id_ = value[0] if value else None
     elif isinstance(value, dict):
         # return a new record (with the given field 'id' as origin)
-        comodel = self.related_model
+        comodel = comodel_records(record, self.related_model)
         origin = comodel.browse(value.get('id'))
         id_ = comodel.new(value, origin=origin).id
     else:
@@ -1865,10 +1867,11 @@ def _relational_multi_convert_to_cache(self, value, record, validate=True):
     """``_RelationalMulti.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/
     fields_relational.py:589-641``. Formato: tupla de ids.
 
-    Divergencia de forma: el comodelo es ``self.related_model`` (la clase) y
-    el nombre del campo en el dueño es el accesor del inverso de Django en la
-    relación inversa (el ``One2many`` de la fuente) y ``self.name`` en el
-    ``Many2many`` directo (:func:`_relational_multi_owner_name`).
+    El comodelo es ``record.env[comodel_name]``, como en la fuente.
+    Divergencia de forma: el nombre del campo en el dueño es el accesor del
+    inverso de Django en la relación inversa (el ``One2many`` de la fuente)
+    y ``self.name`` en el ``Many2many`` directo
+    (:func:`_relational_multi_owner_name`).
     """
     # cache format: tuple(ids)
     if getattr(value, '_ids', None) is not None:
@@ -1882,7 +1885,7 @@ def _relational_multi_convert_to_cache(self, value, record, validate=True):
 
     elif isinstance(value, (list, tuple)):
         # value is a list/tuple of commands, dicts or record ids
-        comodel = self.related_model
+        comodel = comodel_records(record, self.related_model)
         # if record is new, the field's value is new records
         if record and not record.id:
             def browse(it):
@@ -2342,7 +2345,6 @@ def _many2one_condition_to_sql(self, field_expr, operator, value, model,
             value = django_comodel_rows(comodel, value, bypass_access)
         left_join = False
     else:
-        comodel = comodel.browse(())
         # ¿LEFT JOIN?
         left_join = bypass_access and _is_domain(value)
     if left_join and not positive:
@@ -2359,9 +2361,6 @@ def _many2one_condition_to_sql(self, field_expr, operator, value, model,
 
     if left_join:
         comodel, coalias = self.join(model, alias, query)
-        # ``join`` da la clase (``related_model``); el dominio pide el
-        # recordset vacío, como el ``env[...]`` de la fuente
-        comodel = comodel.browse(())
         if not positive:
             value = (~value).optimize_full(comodel)
         sql = value._to_sql(comodel, coalias, query)
@@ -2464,7 +2463,7 @@ def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
                             query):
     """``_RelationalMulti.condition_to_sql`` — ≙ ``:779-818``."""
     assert field_expr == self.name, "Supporting condition only to field"
-    comodel = model.env[_multi_comodel_name(self)].browse(())
+    comodel = model.env[_multi_comodel_name(self)]
     if not getattr(self, 'store', True):
         raise ValueError(
             f"Cannot convert {self} to SQL because it is not stored")
@@ -2558,7 +2557,7 @@ def _one2many_condition_to_sql_relational(self, model, alias, exists,
     if coquery.is_empty():
         return SQL("FALSE") if exists else SQL("TRUE")
 
-    comodel = model.env[self.comodel_name].browse(()).sudo()
+    comodel = model.env[self.comodel_name].sudo()
     inverse_field = comodel._fields[self.inverse_name]
     if not getattr(inverse_field, 'concrete', True):
         # los ids del modelo ligados a los del comodelo, en memoria
@@ -2697,7 +2696,7 @@ def _relational_description_domain(self, env):
     domain = self._internal_description_domain_raw(env)
     if self.check_company:
         field_to_check = None
-        model = env[self.model_name].browse(())
+        model = env[self.model_name]
         if self.company_dependent:
             cids = '[allowed_company_ids[0]]'
         elif self.model_name == 'res.company':
@@ -2869,9 +2868,10 @@ def write_new_one2many(rel, owner, value):
     transacción, indexado por el ``NewId`` del dueño, y cada ``CREATE`` es una
     línea de ``new()`` cuyo inverso apunta al dueño, como en la fuente.
     """
-    comodel = rel.related_model
+    environment = get_environment()
+    comodel = comodel_records(environment, rel.related_model)
     inverse = rel.field.name
-    cache = get_environment().transaction.field_data[rel]
+    cache = environment.transaction.field_data[rel]
     ids = list(cache.get(owner.pk, ()))
     if not is_command_list(value):
         ids = getattr(value, '_ids', None)

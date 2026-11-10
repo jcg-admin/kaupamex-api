@@ -17,6 +17,7 @@ import pytest
 
 from addons.test_orm.models.test_orm import TestOrmDiscussion
 from addons.web.controllers.export import CSVExport
+from orm.environments import env as current_env
 from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
@@ -34,7 +35,7 @@ def _rows(model, ids, names):
 
 def test_the_id_column_is_the_external_id():
     with sudo():
-        discussion = TestOrmDiscussion.browse(()).create(
+        discussion = current_env()['test_orm.discussion'].create(
             {'name': 'exportada'})
         rows = _rows(TestOrmDiscussion, [discussion.id], ['name', 'id'])
     assert rows[0][0] == 'exportada'

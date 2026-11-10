@@ -16,6 +16,8 @@ mecanismo declarado en sus docstrings.
 import pytest
 from django.apps import apps
 
+from orm.environments import env as current_env
+
 pytestmark = pytest.mark.django_db
 
 
@@ -30,12 +32,12 @@ def _table(query, model):
 
 def test_a_plain_table_keeps_its_identifier():
     model = _model()
-    records = model.browse((1,))
+    records = current_env()[model._name].browse((1,))
     assert _table(records._as_query(), model).code == '"ir_attachment"'
 
 
 def test_a_table_query_is_what_the_query_reads(monkeypatch):
     model = _model()
     monkeypatch.setattr(model, '_table_query', 'SELECT 1 AS id')
-    records = model.browse((1,))
+    records = current_env()[model._name].browse((1,))
     assert _table(records._as_query(), model).code == '(SELECT 1 AS id)'

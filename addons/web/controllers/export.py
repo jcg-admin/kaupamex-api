@@ -139,10 +139,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from exceptions import UserError
-# Una sola sentencia de ``orm.models``, que reexporta los cuatro: ``to_q`` es
-# el de ``osv.expression``, ``PREFETCH_MAX`` el de ``tools.constants`` y
-# ``split_every`` el de ``tools.misc`` (los mismos objetos).
-from orm.models import PREFETCH_MAX, BaseModel, split_every, to_q
+# Una sola sentencia de ``orm.models``, que reexporta los cinco: ``to_q`` es
+# el de ``osv.expression``, ``PREFETCH_MAX`` el de ``tools.constants``,
+# ``split_every`` el de ``tools.misc`` y ``env`` el de ``orm.environments``
+# (los mismos objetos).
+from orm.models import (PREFETCH_MAX, BaseModel, env as current_env,
+                        split_every, to_q)
 
 from addons.authz.permissions import HasCapability, RequireCapability
 from addons.base.models import IrExports, IrModelFields, ResCurrency
@@ -1160,7 +1162,8 @@ def _export_model_rows(model, ids, domain, field_names, import_compat,
     """
     if not issubclass(model, BaseModel):
         return _export_rows(base_queryset.iterator(), field_names)
-    Model = model.browse(()).with_context(import_compat=import_compat)
+    Model = current_env()[model._name].with_context(
+        import_compat=import_compat)
     records = Model.browse(ids) if ids else Model.search(domain)
     all_rows = []
     for batch in split_every(PREFETCH_MAX, records.ids, Model.browse):

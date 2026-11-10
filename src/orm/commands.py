@@ -170,6 +170,22 @@ def _record_env(record):
     return environment if isinstance(environment, Environment) else env()
 
 
+def comodel_records(scope, comodel):
+    """El comodelo como lo usa la fuente: ``model.env[comodel_name]``, el
+    recordset vacío del entorno.
+
+    ``scope`` es el entorno, o el registro del que se toma (``_record_env``:
+    una fila de Django sin ``BaseModel`` actúa en el ambiental). Un comodelo
+    de Django sin ``BaseModel`` no tiene recordset y sigue como clase, con su
+    manager.
+    """
+    if not hasattr(comodel, '_from_ids'):
+        return comodel
+    environment = (scope if isinstance(scope, Environment)
+                   else _record_env(scope))
+    return environment[comodel._name]
+
+
 def _check_sudo_commands(environment, comodel):
     """El entorno en que corren los comandos sobre ``comodel`` — ≙
     ``_RelationalMulti._check_sudo_commands`` (``odoo19c:
@@ -212,8 +228,9 @@ def apply_many2many_commands(record, field, value):
             manager.set(value)
         return
     comodel = field.related_model
-    with _check_sudo_commands(_record_env(record), comodel):
-        _apply_many2many_triples(manager, comodel, value)
+    with _check_sudo_commands(_record_env(record), comodel) as environment:
+        _apply_many2many_triples(
+            manager, comodel_records(environment, comodel), value)
 
 
 def _apply_many2many_triples(manager, comodel, value):
@@ -270,11 +287,12 @@ def apply_one2many_commands(record, rel, value, create=False):
     :func:`_check_sudo_commands` decide para el comodelo — ≙ la cabecera de
     ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
     975-977``)."""
-    with _check_sudo_commands(_record_env(record), rel.related_model):
-        _apply_one2many_triples(record, rel, value, create)
+    with _check_sudo_commands(_record_env(record),
+                              rel.related_model) as environment:
+        _apply_one2many_triples(record, rel, value, create, environment)
 
 
-def _apply_one2many_triples(record, rel, value, create=False):
+def _apply_one2many_triples(record, rel, value, create, environment):
     """Aplica los comandos de un One2many sobre su inverso — ≙
     ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
     969-1045``), rama almacenada, para un solo registro.
@@ -292,6 +310,7 @@ def _apply_one2many_triples(record, rel, value, create=False):
     los declara aquí.
     """
     comodel = rel.related_model
+    records = comodel_records(environment, comodel)
     inverse = rel.field.name
     cascade = rel.field.remote_field.on_delete is _django_models.CASCADE
     to_create, to_delete, to_link = [], [], []
@@ -305,22 +324,22 @@ def _apply_one2many_triples(record, rel, value, create=False):
         if cascade:
             to_delete.extend(ids)
         else:
-            for line in _line_rows(comodel, ids):
+            for line in _line_rows(records, ids):
                 _write_line(line, {inverse: None})
 
     def flush():
         before = set(current_ids()) if to_link else set()
         if to_delete:
-            rows = _line_rows(comodel, list(dict.fromkeys(to_delete)))
-            if hasattr(comodel, 'browse'):
-                comodel.browse([row.id for row in rows]).unlink()
+            rows = _line_rows(records, list(dict.fromkeys(to_delete)))
+            if hasattr(records, 'browse'):
+                records.browse([row.id for row in rows]).unlink()
             else:
                 comodel._base_manager.filter(
                     pk__in=[row.pk for row in rows]).delete()
             to_delete.clear()
         if to_create:
-            if hasattr(comodel, 'create'):
-                comodel.create(list(to_create))
+            if hasattr(records, 'create'):
+                records.create(list(to_create))
             else:
                 for vals in to_create:
                     comodel.objects.create(**vals)
@@ -335,7 +354,7 @@ def _apply_one2many_triples(record, rel, value, create=False):
                 raise MissingError(
                     f'Record does not exist or has been deleted: '
                     f'{comodel._meta.label}({missing})')
-            for line in _line_rows(comodel, ids):
+            for line in _line_rows(records, ids):
                 _write_line(line, {inverse: record.pk})
             to_link.clear()
 
@@ -344,7 +363,7 @@ def _apply_one2many_triples(record, rel, value, create=False):
             to_create.append(dict(payload, **{inverse: record.pk}))
             allow_full_delete = False
         elif code == Command.UPDATE:
-            for line in _line_rows(comodel, [target]):
+            for line in _line_rows(records, [target]):
                 _write_line(line, payload)
         elif code == Command.DELETE:
             to_delete.append(target)
@@ -365,7 +384,7 @@ def _apply_one2many_triples(record, rel, value, create=False):
             keep = set(line_ids)
             unlink([i for i in current_ids() if i not in keep])
             flush()
-            for line in _line_rows(comodel, line_ids):
+            for line in _line_rows(records, line_ids):
                 _write_line(line, {inverse: record.pk})
         else:
             raise ValueError(f'Comando x2many desconocido: {code!r}')

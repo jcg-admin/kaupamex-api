@@ -180,7 +180,7 @@ def test_compute_inverse(env):
                    captured)
     assert (record.foo, record.bar) == ('Bar', 'Bar')
 
-    model = model.browse(()).with_context(default_bar='Def')
+    model = model.with_context(default_bar='Def')
 
     # no value, some default
     with CaptureQueriesContext(connection) as captured:
@@ -206,7 +206,7 @@ def test_compute_inverse_values_without_query_shape(env):
     assert (record.foo, record.bar) == ('Foo', 'Foo')
     record = model.create({'foo': 'Foo', 'bar': 'Bar'})
     assert (record.foo, record.bar) == ('Bar', 'Bar')
-    model = model.browse(()).with_context(default_bar='Def')
+    model = model.with_context(default_bar='Def')
     record = model.create({'foo': 'Foo'})
     assert (record.foo, record.bar) == ('Def', 'Def')
     record = model.create({'foo': 'Foo', 'bar': 'Bar'})

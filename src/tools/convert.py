@@ -104,7 +104,7 @@ from orm import registry
 from orm.commands import Command
 from orm.domains import to_q
 from orm.environments import (
-    Environment, context_scope, get_context, sudo, user_scope,
+    Environment, context_scope, env, get_context, sudo, user_scope,
 )
 from orm.fields_reference import Reference
 from orm.fields_textual import Html
@@ -536,10 +536,10 @@ class XmlImport:
             # base, el entorno de ese alias lleva el recordset a su conexión,
             # como ``self.env.cr`` en la fuente.
             if self.using == DEFAULT_DB_ALIAS:
-                model.browse(sorted(pks)).unlink()
+                env()[model._name].browse(sorted(pks)).unlink()
             else:
-                with Environment(self.using):
-                    model.browse(sorted(pks)).unlink()
+                with Environment(self.using) as environment:
+                    environment[model._name].browse(sorted(pks)).unlink()
             return
         # Un modelo que no es ``BaseModel`` no tiene ``unlink``: se borra por
         # la tabla, en la base de la carga.

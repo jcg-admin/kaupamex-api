@@ -1,7 +1,7 @@
 """Campos relacionales de ``BaseModel``, contra ``odoo19c``.
 
-La rejilla (``tests/fixtures/model_relational_grid.py``) recibe en la
-referencia ``env['test_orm.category']`` y aquí la clase del mismo ``_name``.
+La rejilla (``tests/fixtures/model_relational_grid.py``) recibe
+``env['test_orm.category']`` en los dos lados.
 La base de referencia tiene que traer ``test_orm`` instalado
 (``orm_refproc_test_orm``, que inicializa
 ``scripts/workbench/reference-environment-isolated-20261106T071536/``); con
@@ -15,8 +15,8 @@ base, y a ``Many2many``/``One2many``, que esta rejilla no pregunta.
 import pathlib
 
 import pytest
-from django.apps import apps
 
+from orm.environments import env as current_env
 from tests.fixtures import model_relational_grid, reference_process
 
 pytestmark = [pytest.mark.reference, pytest.mark.django_db]
@@ -32,9 +32,7 @@ def reference_trace():
 
 
 def _ours():
-    model = next(model for model in apps.get_models()
-                 if getattr(model, '_name', None) == MODEL)
-    return model_relational_grid.trace(None, model, MODEL)
+    return model_relational_grid.trace(None, current_env()[MODEL], MODEL)
 
 
 def test_the_trace_matches_the_reference(reference_trace):

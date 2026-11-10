@@ -109,7 +109,7 @@ def write(self, previous, vals):
         vals_job_skill = (list(vals.pop('current_job_skill_ids', []))
                           + list(vals.get('job_skill_ids', [])))
         vals['job_skill_ids'] = (
-            env()['hr.job.skill'].browse(())
+            env()['hr.job.skill']
             ._get_transformed_commands(
                 vals_job_skill, type(self).objects.filter(pk=self.pk)))
     return previous(vals)

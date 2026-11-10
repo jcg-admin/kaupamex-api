@@ -104,7 +104,7 @@ def _seed():
         email='other@x.test')
     other.partner.street = 'other street'
     other.partner.save()
-    env = MODELS_BY_NAME['test_orm.related'].browse(()).env
+    env = current_env()
     foo = env['test_orm.related_foo'].create({'name': 'foo'})
     secret = env['test_orm.related'].create({'name': 'secret',
                                              'foo_id': foo.id})

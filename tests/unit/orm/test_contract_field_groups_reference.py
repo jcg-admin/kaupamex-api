@@ -57,7 +57,7 @@ def _seed():
             login=f'groups-{actor}', password=None, name=f'groups-{actor}')
         user.group_ids.add(group, *(_group(xmlid) for xmlid in extra))
         users[actor] = user.pk
-    record = MODELS_BY_NAME[MODEL].browse(()).env[MODEL].create({'a': 7})
+    record = current_env()[MODEL].create({'a': 7})
     return {**users, 'record': record.id}
 
 

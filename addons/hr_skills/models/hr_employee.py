@@ -261,7 +261,7 @@ def create(cls, previous, vals_list, *args, **kwargs):
         vals_list = [vals_list]
     for vals in vals_list:
         vals['employee_skill_ids'] = (
-            env()['hr.employee.skill'].browse(())._get_transformed_commands(
+            env()['hr.employee.skill']._get_transformed_commands(
                 _pop_employee_skill_commands(vals), cls.objects.none()))
     return previous(vals_list, *args, **kwargs)
 
@@ -271,7 +271,7 @@ def write(self, previous, vals):
     if ('current_employee_skill_ids' in vals or 'certification_ids' in vals
             or 'employee_skill_ids' in vals):
         vals['employee_skill_ids'] = (
-            env()['hr.employee.skill'].browse(())._get_transformed_commands(
+            env()['hr.employee.skill']._get_transformed_commands(
                 _pop_employee_skill_commands(vals),
                 type(self).objects.filter(pk=self.pk)))
     return previous(vals)

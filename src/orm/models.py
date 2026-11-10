@@ -4145,7 +4145,8 @@ def search_display_name(model_cls, operator, value):
         return Domain.FALSE if negative else Domain.TRUE
 
     combine = Domain.AND if negative else Domain.OR
-    record = cls.browse(()) if hasattr(cls, '_from_ids') else None
+    record = (cls._from_ids(env(), (), ()) if hasattr(cls, '_from_ids')
+              else None)
     domains = []
     for field_name in search_fnames:
         # un camino ``partner_id.name``: el campo es el último del camino
@@ -4663,9 +4664,15 @@ def _model_of_records(records):
     ``or (self if isinstance(self, type) else None)``, asi que **declaraban**
     admitir la clase; lo que faltaba era que esta funcion llegara a devolverla
     en vez de reventar antes.
+
+    Un recordset lleva su modelo aunque esté vacío: es la forma de la fuente
+    (``self.env[nombre].flush_model()``) y la que usa ``flush_all``, así que
+    no se deduce de sus filas.
     """
     if isinstance(records, type):
         return records
+    if isinstance(records, BaseModel):
+        return type(records)
     if isinstance(records, QuerySet):
         return records.model
     rows = as_record_list(records)
@@ -5105,7 +5112,12 @@ def _flush(self):
                 ids.append(record_id)
                 vals_list.append(vals)
         if issubclass(model, BaseModel):
-            model.browse(ids)._write_multi(vals_list)
+            # el ``self.browse(ids)`` de la fuente; quien vuelca desde el
+            # eje de esquema pasa la clase o un ``QuerySet``
+            # (``_model_of_records``) y el recordset sale del entorno activo
+            records = (self if isinstance(self, BaseModel)
+                       else model._from_ids(env(), (), ()))
+            records.browse(ids)._write_multi(vals_list)
         else:
             # un modelo de Django sin recordset no tiene ``_write_multi``: su
             # escritura es la misma, sin la capa de ``parent_path``
@@ -6215,36 +6227,6 @@ class RecordCache(collections.abc.Mapping):
     def __len__(self):
         """Cuántos campos tienen valor en caché."""
         return sum(1 for name in self)
-
-
-class _on_empty_recordset:
-    """Un método de recordset que también se llama sobre la clase.
-
-    ``env['x']`` devuelve aquí la **clase** del modelo, no el recordset vacío
-    que devuelve la fuente (``odoo19c: odoo/orm/environments.py:105``). Con
-    eso ``env['x'].browse(ids)`` —la forma más corriente de la fuente— llegaba
-    al método sin ``self`` y moría con ``AttributeError``. Este descriptor
-    cierra esa diferencia: llamado sobre la clase, el método recibe el
-    recordset vacío del entorno activo, que es exactamente lo que la fuente
-    le pasa. Llamado sobre un recordset, se comporta como un método normal.
-
-    El recordset vacío se construye al **llamar**, no al leer el atributo,
-    para que inspeccionar la clase no exija un entorno activo.
-    """
-
-    def __init__(self, func):
-        self.func = func
-        functools.update_wrapper(self, func)
-
-    def __get__(self, instance, owner):
-        if instance is not None:
-            return self.func.__get__(instance, owner)
-        func = self.func
-
-        @functools.wraps(func)
-        def on_empty(*args, **kwargs):
-            return func(owner._from_ids(env(), (), ()), *args, **kwargs)
-        return on_empty
 
 
 def _read_properties(records, field, name, data):
@@ -8595,7 +8577,8 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         lecturas que el formato dispare.
         """
         if not fields:
-            fields = list(cls.browse().fields_get(attributes=()))
+            fields = list(cls._from_ids(env(), (), ()).fields_get(
+                attributes=()))
         records = cls.search_fetch(domain or [], fields, offset=offset,
                                    limit=limit, order=order)
         if 'active_test' in records.env.context:
@@ -8917,12 +8900,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             old_record.copy_translations(new_record, excluded=default or ())
         return new_records
 
-    #: ``env['x'].flush_model()`` / ``env['x'].invalidate_model()`` — la forma
-    #: corriente de la fuente — llega aquí sobre la clase; el descriptor le
-    #: da el recordset vacío del entorno activo, como a ``browse``.
-    flush_model = _on_empty_recordset(flush_model)
-    invalidate_model = _on_empty_recordset(invalidate_model)
-
     def _compute_field_value(self, field):
         """Calcula ``field`` sobre ``self`` y valida lo calculado. — ≙
         ``_compute_field_value`` (``odoo19c: odoo/orm/models.py``)
@@ -8939,7 +8916,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             fnames = [f.name for f in registry.field_computed[field]]
             self.filtered(lambda record: record.id)._validate_fields(fnames)
 
-    @_on_empty_recordset
     def _write(self, vals):
         """Escritura de bajo nivel: los mismos ``vals`` en cada registro.
 
@@ -9101,7 +9077,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         ))
         self.invalidate_model(['parent_path'])
 
-    @_on_empty_recordset
     @api.private
     def browse(self, ids=()):
         """Return a recordset for the ids provided as parameter in the current
@@ -9502,7 +9477,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                     result[name] = value
         return result
 
-    @_on_empty_recordset
     def new(self, values=None, origin=None, ref=None):
         """ Return a new record instance attached to the current environment
         and
@@ -9685,22 +9659,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             Note that first occurrence order is preserved. — ≙ ``:6587``
         """
         return self.union(other)
-
-    def __ror__(self, other):
-        """``Modelo | recordset``, con la clase del modelo a la izquierda.
-
-        **Divergencia de mecanismo**, la misma que declara
-        :class:`_on_empty_recordset`: ``env['x']`` devuelve aquí la clase y no
-        el recordset vacío de la fuente, así que la forma
-        ``acc = env['x']; acc |= rec`` (``odoo19c: odoo/tools/xml_utils.py``)
-        llega a este método con la clase en ``other``. La clase se lee como su
-        recordset vacío y la unión es la de :meth:`__or__`. Cualquier otro
-        operando conserva la conducta de Python (``NotImplemented``).
-        """
-        if (isinstance(other, type)
-                and getattr(other, '_name', None) == self._name):
-            return other._from_ids(self.env, (), ()) | self
-        return NotImplemented
 
     @api.private
     def union(self, *args):
@@ -9974,7 +9932,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             return self - result[0]
         return self
 
-    @_on_empty_recordset
     @api.deprecated("check_access_rights() is deprecated since 18.0; "
                     "use check_access() instead.")
     def check_access_rights(self, operation, raise_exception=True):
@@ -10089,7 +10046,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         self.ensure_one()
         return 'en_US'
 
-    @_on_empty_recordset
     def _is_an_ordinary_table(self):
         """Si la tabla del modelo es ordinaria (``relkind = 'r'``).
 
@@ -10099,7 +10055,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         """
         return self.env.registry.is_an_ordinary_table(type(self))
 
-    @_on_empty_recordset
     def check_field_access_rights(self, operation, field_names):
         """Los campos de ``field_names`` a los que el usuario tiene acceso.
 
@@ -10190,7 +10145,6 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
                 IrRule = registry.model_by_name('ir.rule')
                 raise IrRule._make_access_error('read', forbidden)
 
-    @_on_empty_recordset
     def _determine_fields_to_fetch(self, field_names=None,
                                    ignore_when_in_cache=False):
         """Los campos que hay que traer de la base entre ``field_names``,

@@ -3102,11 +3102,16 @@ def _call_hooks(registry, name):
     ``BaseModel`` declaran el gancho y responden a ``browse``; un modelo de
     Django sin ellos no tiene qué invocar. Quien instala los ganchos vuelca
     después lo que escribieron, con ``env.flush_all()``, como la fuente.
+
+    El gancho se llama sobre el recordset vacío del entorno activo, el
+    ``env[model_name]`` de la fuente (``for model in env.values():
+    model._register_hook()``).
     """
+    environment = orm.environments.env()
     for model in list(registry.models.values()):
         if (isinstance(model, type) and hasattr(model, name)
-                and hasattr(model, 'browse')):
-            getattr(model.browse(), name)()
+                and hasattr(model, '_from_ids')):
+            getattr(model._from_ids(environment, (), ()), name)()
 
 
 def _collector_fields(model):

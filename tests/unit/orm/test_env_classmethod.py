@@ -57,33 +57,37 @@ def test_from_the_class_it_reads_the_ambient_channels(model):
 
 def test_sudo_reaches_the_classmethod(model):
     with user_scope(7):
-        records = model.browse(()).sudo()
+        records = current_environment()[MODEL].sudo()
         assert model._probe_channels()[1] is False
         assert records._probe_channels()[1] is True
 
 
 def test_with_user_reaches_the_classmethod(model):
     with user_scope(7):
-        uid, su, _ = model.browse(()).with_user(9)._probe_channels()
+        records = current_environment()[MODEL].with_user(9)
+        uid, su, _ = records._probe_channels()
     assert (uid, su) == (9, False)
 
 
 def test_with_context_replaces_the_context(model):
     with user_scope(7), context_scope(lang='es_MX', tz='UTC'):
-        records = model.browse(()).with_context({'active_test': False})
+        records = current_environment()[MODEL].with_context(
+            {'active_test': False})
         assert records._probe_channels()[2] == {'active_test': False}
 
 
 def test_the_channels_are_restored_after_the_call(model):
     with user_scope(7), context_scope(lang='es_MX'):
-        records = model.browse(()).sudo().with_context(active_test=False)
+        records = current_environment()[MODEL].sudo().with_context(
+            active_test=False)
         records._probe_channels()
         assert _channels(model) == (7, False, {'lang': 'es_MX'})
 
 
 def test_the_channels_are_restored_when_the_method_raises(model):
     with user_scope(7), context_scope(lang='es_MX'):
-        records = model.browse(()).with_user(9).with_context(lang='en_US')
+        records = current_environment()[MODEL].with_user(9).with_context(
+            lang='en_US')
         with pytest.raises(RuntimeError) as raised:
             records._probe_failing()
         assert raised.value.args[0][:2] == (9, False)
@@ -102,11 +106,15 @@ def test_the_adopted_display_name_classmethods_are_wrapped():
 def test_a_classmethod_declared_by_the_model_is_wrapped():
     """Un método de clase que el modelo declara en su cuerpo no hereda la
     envoltura de ``BaseModel``: la recibe de ``__init_subclass__``. Se mide
-    sobre ``test_orm.bar``, que hereda ``DisplayNameMixin`` y por eso no
-    pasa por ``adopt_display_name``, que también envuelve."""
-    bar = next(model for model in apps.get_models()
-               if getattr(model, '_name', None) == 'test_orm.bar')
-    assert isinstance(vars(bar)['_search_foo'], _EnvClassmethod)
+    sobre ``hr.employee.skill``, que hereda ``DisplayNameMixin`` y por eso
+    no pasa por ``adopt_display_name``, que también envuelve; su
+    ``get_current_skills_by_employee`` es un método de clase declarado en el
+    cuerpo. (Se medía sobre ``test_orm.bar._search_foo``, que vuelve a ser un
+    método de instancia como en la fuente.)"""
+    skill = next(model for model in apps.get_models()
+                 if getattr(model, '_name', None) == 'hr.employee.skill')
+    assert isinstance(vars(skill)['get_current_skills_by_employee'],
+                      _EnvClassmethod)
 
 
 def test_env_returns_the_entered_environment(model):
@@ -114,7 +122,8 @@ def test_env_returns_the_entered_environment(model):
     nueva de los canales: lo construido ahí conserva el contexto al salir.
     Fuera del bloque vuelve a ser la vista ambiental."""
     with user_scope(7):
-        derived = model.browse(()).with_context(active_test=False).env
+        derived = current_environment()[MODEL].with_context(
+            active_test=False).env
         with derived:
             assert current_environment() is derived
         assert current_environment() is not derived
@@ -125,7 +134,8 @@ def test_a_nested_scope_wins_over_the_entered_environment(model):
     """Un ``sudo()`` o un ``user_scope`` abierto dentro de ``with <entorno>:``
     cambia el canal, y ``env()`` refleja lo que el bloque interior pidió."""
     with user_scope(7):
-        derived = model.browse(()).with_context(active_test=False).env
+        derived = current_environment()[MODEL].with_context(
+            active_test=False).env
         with derived:
             with sudo():
                 assert current_environment().su is True

@@ -1,8 +1,8 @@
 """Métodos base de ``BaseModel`` con recordset, contra ``odoo19c``.
 
-La rejilla (``tests/fixtures/model_record_grid.py``) recibe en la referencia
-``env['ir.attachment']`` sobre una base con ``base`` y aquí la clase del
-mismo ``_name``; toma el método de ``BaseModel``, no del modelo, porque
+La rejilla (``tests/fixtures/model_record_grid.py``) recibe
+``env['ir.attachment']`` en los dos lados, sobre una base con ``base``;
+toma el método de ``BaseModel``, no del modelo, porque
 ``ir.attachment`` redefine ``_can_return_content`` en la fuente y el
 contrato que se mide es el de la base.
 
@@ -15,8 +15,8 @@ por DEC-11 en ``src/addons/base/models/ir_binary.py``.
 import pathlib
 
 import pytest
-from django.apps import apps
 
+from orm.environments import env as current_env
 from orm.environments import sudo
 
 from tests.fixtures import model_record_grid, reference_process
@@ -39,10 +39,8 @@ def _ours():
     lectura de la base comprueba la ACL como ``fetch`` (TASK-API-0182) y
     deniega: el paso del id inexistente lo medía. El equivalente del actor
     con acceso es el bloque elevado."""
-    model = next(model for model in apps.get_models()
-                 if getattr(model, '_name', None) == MODEL)
     with sudo():
-        return model_record_grid.trace(None, model, MODEL)
+        return model_record_grid.trace(None, current_env()[MODEL], MODEL)
 
 
 def test_the_trace_matches_the_reference(reference_trace):

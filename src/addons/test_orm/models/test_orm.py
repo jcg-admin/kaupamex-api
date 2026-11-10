@@ -811,13 +811,10 @@ class TestOrmBar(TestOrmModel):
             bar.foo = self.env['test_orm.foo'].search(
                 [('name', '=', bar.name)], limit=1)
 
-    @classmethod
-    def _search_foo(cls, operator, value):
-        # ``@classmethod``: el método ``search=`` se invoca sobre la clase,
-        # que es lo que ``env['x']`` devuelve aquí.
+    def _search_foo(self, operator, value):
         if operator not in ('in', 'any'):
             return NotImplemented
-        records = TestOrmFoo.browse(value)
+        records = self.env['test_orm.foo'].browse(value)
         return [('name', 'in', records.mapped('name'))]
 
     class Meta(TestOrmModel.Meta):

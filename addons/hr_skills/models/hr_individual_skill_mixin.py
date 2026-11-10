@@ -470,7 +470,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         ``UNLINK``.
         """
         yesterday = fields.Date.today() - timedelta(days=1)
-        empty = self.env[self._name].browse(())
+        empty = self.env[self._name]
         to_remove = empty
         to_archive = empty
         for individual_skill in self:
@@ -516,7 +516,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
             self._can_edit_certification_validity_period())
         linked = self._linked_field_name()
         seen_skills = set()
-        skills_to_archive = self.env[self._name].browse(())
+        skills_to_archive = self.env[self._name]
         vals_to_return = []
 
         validity_domain = fields.Domain.OR([
@@ -611,7 +611,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         self_dict = self.grouped('id')
         result_command = []
         create_vals = []
-        remove_from_expire = self.env[self._name].browse(())
+        remove_from_expire = self.env[self._name]
 
         def _get_passive_field_value(field, skill):
             """El valor de ``field`` listo para un ``vals``: el id de un
@@ -660,7 +660,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
             create_vals.append(new_vals)
         return (result_command
                 + (self - remove_from_expire)._expire_individual_skills()
-                + self.env[self._name].browse(())._create_individual_skills(
+                + self.env[self._name]._create_individual_skills(
                     create_vals))
 
     def _get_transformed_commands(self, commands, individuals):

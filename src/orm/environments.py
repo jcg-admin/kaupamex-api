@@ -1416,7 +1416,12 @@ class Environment(abc.Mapping):
             if not models_to_flush:
                 break
             for model in models_to_flush:
-                model.objects.none().flush_model()
+                # ``self[model_name].flush_model()``: el recordset vacío; un
+                # modelo de Django sin ``BaseModel`` vuelca por su ``QuerySet``
+                if hasattr(model, '_from_ids'):
+                    model._from_ids(self, (), ()).flush_model()
+                else:
+                    model.objects.none().flush_model()
         else:
             _logger.warning("Too many iterations for flushing fields!")
 
