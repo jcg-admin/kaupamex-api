@@ -2919,80 +2919,6 @@ def _relational_multi_comodel(field):
     return field._comodel()
 
 
-def _relational_multi_write(self, records, value):
-    """≙ ``_RelationalMulti.write`` (``:737-740``): descarta el recálculo
-    pendiente de ``self`` sobre ``records`` y escribe por lote.
-
-    DIVERGENCIA declarada: un ``Many2many`` hacia un comodelo de Django (sin
-    recordset propio) guarda en caché el ``QuerySet`` del comodelo, que es la
-    forma en que este árbol representa ese valor; conserva la escritura
-    genérica de ``models.Field`` (``fields.py:1501-1518``), resuelta en tiempo
-    de llamada.
-    """
-    if not hasattr(_relational_multi_comodel(self), '_from_ids'):
-        return models.Field.write(self, records, value)
-    records = _as_records(records)
-    get_environment().remove_to_compute(
-        self, [record.pk for record in records])
-    self.write_batch([(records, value)])
-
-
-def _relational_multi_write_batch(self, records_commands_list, create=False):
-    """≙ ``_RelationalMulti.write_batch`` (``:742-764``): normaliza cada valor
-    a una lista de comandos y despacha a ``write_real`` si todos los
-    registros son reales, o a ``write_new`` si todos son nuevos."""
-    if not records_commands_list:
-        return
-    comodel_name = getattr(_relational_multi_comodel(self), '_name', None)
-    normalized = []
-    for records, value in records_commands_list:
-        if isinstance(value, tuple):
-            value = [Command.set(value)]
-        elif (hasattr(value, '_ids')
-              and getattr(value, '_name', None) == comodel_name):
-            value = [Command.set(value._ids)]
-        elif (isinstance(value, models.QuerySet)
-              and value.model._meta.concrete_model
-              is _relational_multi_comodel(self)._meta.concrete_model):
-            # El conjunto de filas de un comodelo de Django es su
-            # ``QuerySet``: es el recordset de la rama anterior.
-            value = [Command.set(tuple(value.values_list('pk', flat=True)))]
-        elif value is False or value is None:
-            value = [Command.clear()]
-        elif (isinstance(value, list) and value
-              and not isinstance(value[0], (tuple, list))):
-            value = [Command.set(tuple(
-                getattr(item, 'pk', item) for item in value))]
-        if not isinstance(value, list):
-            raise ValueError(f'Wrong value for {self}: {value}')
-        normalized.append((_as_records(records), value))
-    record_ids = {record.pk for records, _commands in normalized
-                  for record in records}
-    if all(not isinstance(rid, NewId) for rid in record_ids):
-        self.write_real(normalized, create)
-    else:
-        assert all(isinstance(rid, NewId) for rid in record_ids), (
-            f'{normalized} contains a mix of real and new records. '
-            f'It is not supported.')
-        self.write_new(normalized)
-
-
-def _relational_multi_create(self, record_values):
-    """≙ ``_RelationalMulti.create`` (``:728-735``): *"Write the value of
-    ``self`` on the given records, which have just been created."* — por
-    lote y con ``create=True``, no par a par como ``Field.create``."""
-    self.write_batch(record_values, True)
-
-
-def _relational_multi_convert_to_record_multi(self, values, records):
-    """≙ ``_RelationalMulti.convert_to_record_multi`` (``:655-666``): la
-    unión, sin repetir, de los ids de ``values`` como recordset del
-    comodelo."""
-    comodel = _relational_multi_comodel(self)
-    ids = tuple(unique(id_ for value in values for id_ in value))
-    return comodel._from_ids(get_environment(), ids, ids)
-
-
 def _many2many_write_real(self, records_commands_list, create=False):
     """≙ ``Many2many.write_real`` (``:1413-1594``).
 
@@ -3084,17 +3010,101 @@ def _many2many_write_relation(self, records_commands_list, new):
                         id_ for id_ in inv_cache[y] if id_ != x))
 
 
-for _relational_multi_owner in (One2many, models.ManyToManyField):
-    for _relational_multi_name, _relational_multi_body in (
-            ('write', _relational_multi_write),
-            ('write_batch', _relational_multi_write_batch),
-            ('create', _relational_multi_create),
-            ('convert_to_record_multi',
-             _relational_multi_convert_to_record_multi)):
-        setattr(_relational_multi_owner, _relational_multi_name,
-                _relational_multi_body)
+class _RelationalMulti:
+    """La familia compartida de los x2many — ≙ ``class _RelationalMulti``
+    (``odoo19c: odoo/orm/fields_relational.py:556``).
+
+    En la fuente es la base de ``One2many`` y ``Many2many``. Aquí los dos
+    dueños reciben estos mismos miembros leídos de ``vars(_RelationalMulti)``
+    justo debajo: ``models.ManyToManyField`` es una clase de Django, sin MRO
+    que podamos tocar, y ``One2many`` hereda de ella en la fuente pero aquí
+    no todavía (ver el diseño ``many2many-write-family.md``). Lo específico
+    de tipo (``write_real``/``write_new`` de ``Many2many``) vive en su dueño.
+    """
+
     #: ≙ ``write_sequence = 20`` (``:558``): los x2many se escriben al final
     #: de un ``write``, porque al borrar líneas vuelcan otros campos.
-    _relational_multi_owner.write_sequence = 20
+    write_sequence = 20
+
+    def convert_to_record_multi(self, values, records):
+        """≙ ``_RelationalMulti.convert_to_record_multi`` (``:655-666``): la
+        unión, sin repetir, de los ids de ``values`` como recordset del
+        comodelo."""
+        comodel = _relational_multi_comodel(self)
+        ids = tuple(unique(id_ for value in values for id_ in value))
+        return comodel._from_ids(get_environment(), ids, ids)
+
+    def write(self, records, value):
+        """≙ ``_RelationalMulti.write`` (``:737-740``): descarta el recálculo
+        pendiente de ``self`` sobre ``records`` y escribe por lote.
+
+        DIVERGENCIA declarada: un ``Many2many`` hacia un comodelo de Django
+        (sin recordset propio) guarda en caché el ``QuerySet`` del comodelo,
+        que es la forma en que este árbol representa ese valor; conserva la
+        escritura genérica de ``models.Field`` (``fields.py:1501-1518``),
+        resuelta en tiempo de llamada.
+        """
+        if not hasattr(_relational_multi_comodel(self), '_from_ids'):
+            return models.Field.write(self, records, value)
+        records = _as_records(records)
+        get_environment().remove_to_compute(
+            self, [record.pk for record in records])
+        self.write_batch([(records, value)])
+
+    def write_batch(self, records_commands_list, create=False):
+        """≙ ``_RelationalMulti.write_batch`` (``:742-764``): normaliza cada
+        valor a una lista de comandos y despacha a ``write_real`` si todos los
+        registros son reales, o a ``write_new`` si todos son nuevos."""
+        if not records_commands_list:
+            return
+        comodel_name = getattr(_relational_multi_comodel(self), '_name', None)
+        normalized = []
+        for records, value in records_commands_list:
+            if isinstance(value, tuple):
+                value = [Command.set(value)]
+            elif (hasattr(value, '_ids')
+                  and getattr(value, '_name', None) == comodel_name):
+                value = [Command.set(value._ids)]
+            elif (isinstance(value, models.QuerySet)
+                  and value.model._meta.concrete_model
+                  is _relational_multi_comodel(self)._meta.concrete_model):
+                # El conjunto de filas de un comodelo de Django es su
+                # ``QuerySet``: es el recordset de la rama anterior.
+                value = [Command.set(
+                    tuple(value.values_list('pk', flat=True)))]
+            elif value is False or value is None:
+                value = [Command.clear()]
+            elif (isinstance(value, list) and value
+                  and not isinstance(value[0], (tuple, list))):
+                value = [Command.set(tuple(
+                    getattr(item, 'pk', item) for item in value))]
+            if not isinstance(value, list):
+                raise ValueError(f'Wrong value for {self}: {value}')
+            normalized.append((_as_records(records), value))
+        record_ids = {record.pk for records, _commands in normalized
+                      for record in records}
+        if all(not isinstance(rid, NewId) for rid in record_ids):
+            self.write_real(normalized, create)
+        else:
+            assert all(isinstance(rid, NewId) for rid in record_ids), (
+                f'{normalized} contains a mix of real and new records. '
+                f'It is not supported.')
+            self.write_new(normalized)
+
+    def create(self, record_values):
+        """≙ ``_RelationalMulti.create`` (``:728-735``): *"Write the value of
+        ``self`` on the given records, which have just been created."* — por
+        lote y con ``create=True``, no par a par como ``Field.create``."""
+        self.write_batch(record_values, True)
+
+
+# Los dueños reciben los miembros de ``_RelationalMulti`` leídos de su
+# ``__dict__``: los mismos objetos función en los dos.
+for _relational_multi_owner in (One2many, models.ManyToManyField):
+    for _relational_multi_name, _relational_multi_member in vars(
+            _RelationalMulti).items():
+        if not _relational_multi_name.startswith('__'):
+            setattr(_relational_multi_owner, _relational_multi_name,
+                    _relational_multi_member)
 models.ManyToManyField.write_real = _many2many_write_real
 models.ManyToManyField.write_new = _many2many_write_new
