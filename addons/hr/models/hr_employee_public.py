@@ -119,6 +119,7 @@ from django.utils import timezone
 
 import fields
 import models
+from tools.sql import drop_view_if_exists
 
 from addons.hr.models.hr_employee import HrEmployee
 
@@ -634,6 +635,9 @@ class HrEmployeePublic(models.Model):
             ')'
         )
         with connections[using or DEFAULT_DB_ALIAS].cursor() as cursor:
+            # ≙ ``tools.drop_view_if_exists`` (``:196``): una vista previa con
+            # otras columnas no admite ``REPLACE``.
+            drop_view_if_exists(cursor, cls._meta.db_table)
             cursor.execute(sql)
 
     def get_avatar_card_data(self, field_names):

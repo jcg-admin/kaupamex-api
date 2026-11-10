@@ -207,3 +207,56 @@ def test_company_schemas_and_native_connections(two_company_databases):
             assert name == alias and users and metadata
             cursor.execute("SELECT count(*) FROM pg_constraint c JOIN pg_class p ON p.oid=c.confrelid WHERE c.contype='f' AND p.relname='res_users'")
             assert cursor.fetchone()[0] > 0
+
+
+_EMPLOYEE_VIEW = 'hr_employee_public'
+
+
+def _view_kind(alias):
+    """``relkind`` de la vista en la base ``alias``, o ``None``."""
+    with connections[alias].cursor() as cursor:
+        cursor.execute('SELECT relkind FROM pg_class WHERE relname = %s',
+                       [_EMPLOYEE_VIEW])
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+
+def _employee_public():
+    """``hr.employee.public`` desde el registro de apps, sin import propio."""
+    return ResCompany._meta.apps.get_model('hr', 'HrEmployeePublic')
+
+
+def _drop_employee_view(alias):
+    with connections[alias].cursor() as cursor:
+        cursor.execute(f'DROP VIEW IF EXISTS {_EMPLOYEE_VIEW}')
+
+
+def test_init_creates_the_view_only_in_the_selected_database(
+        two_company_databases):
+    """≙ ``model.init()`` en ``init_models`` (``odoo19c: odoo/orm/
+    registry.py:751-752``) con el cursor de la base que se instala.
+
+    1. el aprovisionamiento de cada base deja su vista (la crea el gancho
+       desde el ciclo de instalación; ninguna migración la crea);
+    2. ``init(using=A)`` la crea en A y no toca B ni la base por defecto;
+    3. reejecutarlo conserva el resultado.
+    Sin el ``using`` en el override, la vista cae en la base por defecto.
+    """
+    alias_a, alias_b = two_company_databases
+    for alias in (alias_a, alias_b):
+        assert _view_kind(alias) == 'v', alias
+    default_before = _view_kind('default')
+    _drop_employee_view(alias_a)
+    _drop_employee_view(alias_b)
+
+    _employee_public().init(using=alias_a)
+    assert _view_kind(alias_a) == 'v'
+    assert _view_kind(alias_b) is None
+    assert _view_kind('default') == default_before
+
+    _employee_public().init(using=alias_a)
+    assert _view_kind(alias_a) == 'v'
+    assert _view_kind(alias_b) is None
+
+    _employee_public().init(using=alias_b)
+    assert _view_kind(alias_b) == 'v'

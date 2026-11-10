@@ -131,3 +131,49 @@ idempotente filtrando antes por estado: sólo se asienta un ítem sin fila
 | 16 `_RelationalMulti` | sin prueba registrada como evidencia del símbolo |
 | 17 `Environment.user`/`company`/`companies` | e8 |
 | 18 Unidad L | sus obligaciones viven en addons (fuera de las raíces del inventario); depende de e8 para las tres reglas omitidas |
+
+## Conciliación tras s1–s5 (2026-11-10T23:43:48, `e302630b`)
+
+### El plan, por vía de ejecución
+
+| Estado final en `outputs/continuation.jsonl` | Ítems | Vía |
+|---|---|---|
+| `accepted` | 189 | **todos** `source: preexisting`: implementados a mano y asentados después con `probes/settle_item.py` (vía `preexisting` de `task_continuation`), con su `verify` en verde y el árbol limpio |
+| `hard_block` | 2 | `misc-stripped-sys-argv` (no hay parser que declare `-s/-u/-i`; depende de TASK-API-0382) y `attachment-record-access` (falta `create_uid` en `ir_attachment`) |
+| ejecutados por un worker de Thyrox | **0** | ningún `attempt` del plan lleva otra fuente que `preexisting` |
+
+Total: 191 ítems y 385 eventos (190 `attempt`, 189 `accepted`,
+6 `hard_block`). No se ha escrito ninguna fila nueva en este pase.
+
+### Las líneas `settlement_pending`, con su estado actual
+
+| Línea | Diseño | Commit | Pruebas | Anulación | Gate | Estado en el inventario | Asentable hoy |
+|---|---|---|---|---|---|---|---|
+| 8 `_flush` | `write-multi-flush.md` | sí | sí | sí | completo | `homonym` | no: firma `homonym` |
+| 9 `modified`/`_modified` | `write-announces-computed.md` | sí | sí | sí | completo | `homonym` | no |
+| 10 Many2one sin recómputo | `many2one-deferred-read.md` | sí | sí | sí | completo | (fila del plan `accepted`) | ya asentada como ítem del plan |
+| 11 `_get_placeholder_filename` | `placeholder-filename.md` | sí | `test_placeholder_filename.py` | sí | completo | `homonym` | no |
+| 12 `_table_objects`/`_add_sql_constraints` | `schema-and-translation-symbols-decision.md` (s2) | `555ac073` | 7 casos | sí | completo + multidb 5/5 (`555ac073`) | `paired_by_name` / `value` | no: vía `RecordLoaderMixin` declarada (`models.py:4493`) |
+| 13 `_auto_init`/`_check_removed_columns` | ídem (s1, s3, s4) | `555ac073` | 7 casos | sí | ídem | `paired_by_name` | no, por la misma vía |
+| s5 `init` | ídem (s5) | `e302630b` + corrección en curso | 4 unitarias + 1 multidb | sí (2) | completo `e302630b`: 12 689 passed, 0 failed | `paired_by_name` | no, por la misma vía |
+| 14 almacenados nuevos | `compute-new-stored-columns.md` | sí | sí | sí | completo | sin símbolo de referencia | no aplica asentamiento por símbolo |
+| 15 TASK-GEN-0060 | `translate-jsonb-storage.md` | parcial | sí | — | — | `installed_elsewhere` | no |
+| 16 `_RelationalMulti` | `many2many-write-family.md` | sí | sí | sí | completo | sin fila de evidencia | falta la fila en `verified_contracts.tsv` |
+| 17 `Environment.user/company/companies` | `environment-*.md` | — | — | — | — | e8 | no: frontera e8 |
+| 18 Unidad L / HR | `module-install-cycle.md`, `hr-basemodel-dependencies.md` | sí | sí | sí | completo | fuera de las raíces del inventario | no |
+
+**Por qué `paired_by_name` impide asentar s1–s5.** El censo
+(`inventory_by_kind.py`, §26) exige coincidencia estructural **con la
+misma clase dueña**. En la fuente estos métodos cuelgan de `BaseModel`;
+aquí viven en `RecordLoaderMixin`, porque `models.Model` es el de Django.
+Esa divergencia de vía está declarada, así que el símbolo queda
+`not_verified` por regla y no se fuerza a `satisfied`. **Obligación
+abierta:** decidir si el censo debe aceptar la dueña declarada del mixin
+como coincidencia estructural. Es una regla del inventario, no de este
+pase.
+
+### Ninguna unidad se reimplementó por faltarle el asentamiento
+
+Las líneas 8, 9, 11 y 16 tienen implementación, pruebas y gate. Sólo les
+falta el estado del inventario o la fila de evidencia. No se repitió su
+trabajo.

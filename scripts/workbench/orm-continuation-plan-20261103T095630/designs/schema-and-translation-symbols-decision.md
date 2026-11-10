@@ -350,3 +350,42 @@ existe.
   En las dos, 16 siguen en verde.
 - *Ciega a:* que la vista caiga en la base del alias y no en la de por
   defecto; eso lo mide el ci-multidb, no esta suite.
+
+### s5 — contrato completo de `init` en la fuente, y lo que faltaba (2026-11-10T23:42:38)
+
+Derivado de `odoo19c` (odoo-tools `abe4040ec1`):
+
+| Aspecto | Fuente | Aquí |
+|---|---|---|
+| Invocación | `init_models` (`registry.py:749-751`): `for model in models: model._auto_init(); model.init()`, sobre **todos** los modelos del módulo, sin filtrar | igual: `init` en todo modelo que lo declare, haya o no `_auto_init` |
+| Orden | justo después del `_auto_init` **del mismo modelo**, antes de los `_reflect_*` y de la cola `_post_init_queue` | igual |
+| Abstractos / `_auto = False` | se llama también (el `_auto_init` de un abstracto no hace nada; `init` sí corre) | igual: un modelo `managed = False` pasa por `init` |
+| Gancho base | vacío, `@api.private` (`models.py:3250-3253`) | vacío, sin SQL (prueba `test_the_base_init_hook_emits_nothing`) |
+| Vistas SQL | `drop_view_if_exists` y luego `CREATE or REPLACE VIEW` (`hr_employee_public.py:195-203`, `res_device.py:230`) | **faltaba** `drop_view_if_exists`: una vista previa con otras columnas no admite `REPLACE`. Corregido (prueba `test_init_replaces_a_view_with_another_column_set`, rojo con «cannot change name of view column») |
+| Reejecución | cada instalación o actualización del módulo vuelve a llamarlo; los overrides son idempotentes | igual |
+| Base / alias | el `cr` del `Environment` de esa base | `using` = alias del registro (`Registry._alias()`) |
+| Transacción | la del ciclo de carga: un error en `init` aborta la carga del módulo | `load_modules` envuelve `init_models` en `transaction.atomic(using=…)`: un error revierte el paso del módulo |
+| Dependencias | la vista lee `hr_employee`/`hr_version`; las tablas ya existen porque sus módulos se cargan antes en el grafo | igual (grafo de `load_modules`) |
+
+**Otros `init` de la fuente en `base`, sin porte (barrido del archivo):**
+
+| Modelo | Qué hace en la fuente | Estado aquí |
+|---|---|---|
+| `ir.logging` (`ir_logging.py:36`) | retira `ir_logging_write_uid_fkey` | pendiente de medir si esa FK existe aquí |
+| `res.company` (`res_company.py:102`) | asigna `paperformat_euro` a compañías sin formato | pendiente: depende del porte de `paperformat_id` |
+| `res.users` (`res_users.py:277`) | cifra las contraseñas en claro escritas por SQL | divergencia de mecanismo candidata: el cifrado lo hace `django.contrib.auth`; falta declararla en el archivo |
+| `res.users.apikeys` (`res_users.py:1531`) | `CREATE TABLE IF NOT EXISTS` de su tabla | pendiente de medir contra la migración que crea la tabla |
+| `res.device` (`res_device.py:230`) | crea su vista | la crea `base.0004` (`RunSQL`); no se duplica en `init` |
+
+**Prueba multidb discriminante** (`tests/integration/company/test_multidb_isolation.py::
+test_init_creates_the_view_only_in_the_selected_database`):
+el aprovisionamiento de cada base de empresa deja la vista; tras retirarla,
+`init(using=A)` la crea en A, **no** en B, y no cambia la base por defecto;
+reejecutarlo conserva el estado. Se ejecuta sólo en el gate ci-multidb, que
+es el que aporta las dos bases desechables: el gate genérico no la contiene.
+Control: con el override escribiendo por la base por defecto, la vista no
+aparece en A.
+
+**Propietario único:** `hr.0009_hremployeepublic` declara `managed: False`
+y no tiene `RunSQL`; ninguna migración de `hr` crea la vista. Su único
+creador es `init`.

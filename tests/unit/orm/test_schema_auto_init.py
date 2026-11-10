@@ -265,3 +265,20 @@ def test_a_second_init_keeps_the_view(env):
     model.init(using=connection.alias)
     model.init(using=connection.alias)
     assert _relkind(VIEW) == 'v'
+
+
+def test_init_replaces_a_view_with_another_column_set(env):
+    """≙ ``tools.drop_view_if_exists`` antes del ``CREATE or REPLACE``
+    (``odoo19c: addons/hr/models/hr_employee_public.py:196``): una vista
+    previa con otras columnas no admite ``REPLACE``, así que se retira."""
+    _drop_view()
+    with connection.cursor() as cr:
+        cr.execute(f'CREATE VIEW {VIEW} AS SELECT 1 AS legacy_column')
+    Registry(connection.alias).models['hr.employee.public'].init(
+        using=connection.alias)
+    with connection.cursor() as cr:
+        cr.execute("SELECT count(*) FROM information_schema.columns "
+                   "WHERE table_name = %s AND column_name = 'legacy_column'",
+                   [VIEW])
+        assert cr.fetchone()[0] == 0
+    assert _relkind(VIEW) == 'v'
