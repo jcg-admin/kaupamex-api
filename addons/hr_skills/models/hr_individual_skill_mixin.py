@@ -1,12 +1,18 @@
 """``hr.individual.skill.mixin`` — el nivel de una habilidad ligada a un
-"individuo" (empleado o puesto).
+"individuo" (empleado, puesto o candidato).
 
 Adaptación fiel de Odoo hr_skills/models/hr_individual_skill_mixin.py
-(odoo-tools@622ddc2a, odoo19c:, LGPL-3, 537 líneas) — atribución y aviso de
-licencia preservados (DEC-KX-03).
+(odoo-tools@abe4040ec1, odoo19c:, LGPL-3, 537 líneas) — atribución y aviso de
+licencia preservados (DEC-KX-03). Diseño del porte:
+``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+hr-individual-skill-mixin-full-port.md``.
 
 Porte símbolo por símbolo — 12 campos + 16 métodos
 =====================================================
+
+Los nombres de los ``Many2one`` son los de Django (``skill``,
+``skill_level``, ``skill_type``); su columna conserva el nombre de la fuente
+(``skill_id``…) y los dominios y ``@api.constrains`` aceptan los dos.
 
 .. list-table::
    :header-rows: 1
@@ -16,126 +22,102 @@ Porte símbolo por símbolo — 12 campos + 16 métodos
    * - ``skill_id`` / ``skill_level_id`` / ``skill_type_id`` /
        ``valid_from`` / ``valid_to`` / ``display_warning_message``
        (``:47-63``)
-     - portados verbatim (columnas reales)
+     - portados (columnas reales); ``skill_id`` y ``skill_level_id`` son
+       ``compute`` almacenados y editables, como en la fuente
    * - ``level_progress`` / ``color`` / ``levels_count`` /
-       ``certification_skill_type_count`` / ``is_certification``
-       (related/compute sin store, ``:54-62``)
-     - propiedades — delegan en ``skill_level``/``skill_type``
-   * - ``_linked_field_name`` (``:17-18``)
-     - portado — abstracto, ``NotImplementedError``
-   * - ``_get_passive_fields`` (``:20-34``)
-     - portado verbatim (``[]``)
-   * - ``_can_edit_certification_validity_period`` (``:36-40``)
-     - portado verbatim (``True``)
+       ``is_certification`` (``related``) y
+       ``certification_skill_type_count`` (``compute``), ``:54-62``
+     - portados como campos sin almacenar
+   * - ``_linked_field_name`` / ``_get_passive_fields`` /
+       ``_can_edit_certification_validity_period`` (``:17-40``)
+     - portados
    * - ``_default_skill_type_id`` (``:42-45``)
-     - portado (DIVERGENCIA 1 — sin ``self.env.context``)
-   * - ``_check_not_overlapping_regular_skill`` (``:68-110``)
-     - portado (DIVERGENCIA 2 — adaptado a instancia única, ver abajo)
-   * - ``_get_overlapping_individual_skill`` (``:111-195``)
-     - BLOQUEADO — la forma multi-vals-dict sólo tiene sentido para validar
-       un lote de comandos ANTES de tocar la BD (ver DIVERGENCIA 2); su
-       invariante ya está cubierta por
-       ``_check_not_overlapping_regular_skill`` adaptada
-   * - ``_check_date`` (``:196-206``) / ``_check_skill_type``
-       (``:207-213``) / ``_check_skill_level`` (``:214-219``)
-     - portados — wireados a ``clean()``
+     - portado; el ``default=`` del campo lee el mismo contexto
+   * - ``_check_not_overlapping_regular_skill`` (``:64-110``) /
+       ``_get_overlapping_individual_skill`` (``:111-195``)
+     - portados — ``@api.constrains`` por lote
+   * - ``_check_date`` / ``_check_skill_type`` / ``_check_skill_level``
+       (``:196-219``)
+     - portados — ``@api.constrains``
    * - ``_compute_certification_skill_type_count`` (``:220-225``)
      - portado
-   * - ``_onchange_is_certification`` (``:226-231``)
-     - portado (divergencia) — sin motor de ``@api.onchange``
-   * - ``_compute_skill_id`` (``:232-239``) / ``_compute_skill_level_id``
-       (``:240-248``)
-     - portados
+   * - ``_onchange_is_certification`` / ``_onchange_valid_date``
+       (``:226-231``, ``:254-256``)
+     - portados — ``@api.onchange``
+   * - ``_compute_skill_id`` / ``_compute_skill_level_id`` (``:232-248``)
+     - portados — ``@api.depends``; se calculan en un registro de ``new()``
+       y al cambiar el tipo
    * - ``_compute_display_name`` (``:249-253``)
-     - portado — ``__str__``
-   * - ``_onchange_valid_date`` (``:254-256``)
-     - portado (divergencia) — sin motor de ``@api.onchange``
-   * - ``_expire_individual_skills`` (``:257-295``)
-     - BLOQUEADO — ver DIVERGENCIA 3
-   * - ``_create_individual_skills`` (``:296-416``)
-     - BLOQUEADO — ídem
-   * - ``_write_individual_skills`` (``:417-480``)
-     - BLOQUEADO — ídem
-   * - ``_get_transformed_commands`` (``:481-537``)
-     - BLOQUEADO — ídem
+     - portado
+   * - ``_expire_individual_skills`` / ``_create_individual_skills`` /
+       ``_write_individual_skills`` / ``_get_transformed_commands``
+       (``:257-537``)
+     - pendiente: U5 del diseño. El bloqueo que se declaraba aquí —"el
+       protocolo de comandos x2many no existe en este ORM"— es falso:
+       ``orm.commands`` y ``apply_one2many_commands`` existen. Lo que faltaba
+       era que los consumidores fueran recordsets (U1).
 
-Los números de línea de esta tabla se midieron con ``grep -n`` contra el
-archivo fuente citado arriba (``odoo-tools@622ddc2a``), no reconstruidos
-de memoria — la primera versión de esta tabla usaba un conteo de 342
-líneas para un archivo de 537; se corrigió al medirlo.
+Divergencia declarada
+=====================
 
-Divergencias declaradas
-========================
-
-1. **``_default_skill_type_id`` sin contexto de request.** La referencia
-   decide con ``self.env.context.get('certificate_skill')`` cuál rama de
-   ``search`` usar. Sin contexto de request en este ORM, el default es
-   siempre "el primer tipo existente" — la rama ``certificate_skill``
-   (primer tipo QUE SEA certificación) queda para quien instancie pasando
-   ``skill_type=`` explícito.
-
-2. **``_check_not_overlapping_regular_skill`` — de lote a instancia única.**
-   La referencia valida N comandos ANTES de escribir ninguno (para que un
-   ``create`` con varias skills nuevas se rechace atómicamente si dos de
-   ellas chocan entre sí). Aquí, sin el protocolo de comandos (ver
-   divergencia 3), la validación es por instancia — ``clean()`` compara
-   ``self`` contra sus hermanos YA GUARDADOS del mismo ``_linked_field_
-   name()``. Es la misma invariante de negocio (una sola habilidad regular
-   activa por ``skill_id``; certificaciones no duplicadas por rango de
-   fecha) aplicada registro a registro en vez de en lote.
-
-3. **El protocolo de comandos x2many no existe en este ORM — bloqueo
-   colectivo de las cuatro funciones de traducción.** ``_expire_
-   individual_skills``, ``_create_individual_skills``,
-   ``_write_individual_skills`` y ``_get_transformed_commands`` existen
-   ÚNICAMENTE para traducir listas de comandos Odoo (``[(0,0,vals)]``,
-   ``[(1,id,vals)]``, ``[(2,id)]``) — el mecanismo con el que Odoo escribe
-   un one2many anidado desde el ``vals`` de un padre
-   (``employee.write({'employee_skill_ids': [...]})``) — en OTRA lista de
-   comandos que aplica archivado-no-borrado y evita duplicados. En este
-   stack un one2many se escribe con llamadas directas al manager
-   (``EmployeeSkill.objects.create(...)``), no con listas de comandos: no
-   hay transporte que traducir. Portarlas construiría infraestructura para
-   un protocolo que este ORM no tiene. El **consumidor natural** de esta
-   lógica (archivar en vez de borrar una habilidad reciente; no duplicar
-   una certificación) es la capa de serializer DRF que reciba el payload
-   anidado — no construida en este pase (sin vistas, ver el manifest).
-   Sucesor: el serializer de ``hr.employee.skill``/``hr.job.skill`` cuando
-   se pida esa capa.
+``create`` y ``write`` no son atómicos, igual que en la fuente: una
+restricción que falla deshace la transacción que envuelve la llamada, no la
+llamada sola.
 """
 
+from collections import defaultdict
 from datetime import date
 
+import api
 import fields
 import models
 
 from addons.base.models import TimeStampedModel
 from addons.hr_skills.models.hr_skill_type import HrSkillType
 from exceptions import ValidationError
+from orm.environments import get_context
+
+
+def _skill_type_for_context(context):
+    """La rama de ``_default_skill_type_id`` (``:42-45``) para un contexto.
+
+    ``search([], limit=1)`` sobre ``hr.skill.type`` sigue su ``_order =
+    "sequence, name"``; ``name`` es traducible, así que el orden es el del
+    texto del idioma activo (TASK-GEN-0060).
+    """
+    types = HrSkillType.objects.order_by(
+        'sequence', models.TranslatedValue('name'))
+    if context.get('certificate_skill', False):
+        types = types.filter(is_certification=True)
+    return types.first()
 
 
 def _default_skill_type():
-    """≙ ``_default_skill_type_id`` (``:41-44``) — ver DIVERGENCIA 1."""
+    """El ``default=`` del campo ``skill_type`` — ≙ ``_default_skill_type_id``.
+
+    Django invoca el default sin argumentos, así que no hay recordset que
+    pasar; el contexto se lee del canal en curso, que es el mismo
+    ``env.context`` que la fuente consulta: un ``with_context`` llega aquí
+    porque el despacho del método activa su entorno. Devuelve la clave
+    primaria porque las migraciones serializan esta función por su ruta.
+    """
+    record = _skill_type_for_context(get_context())
+    return record.pk if record else None
+
+
+def _overlaps(matching_ind_skill, vals):
+    """La comparación de ``:183-191``: ¿el registro guardado se solapa con
+    el alta ``vals``? Un ``valid_to`` vacío es un periodo abierto."""
     return (
-        # ``name`` es traducible: el orden es el del texto del idioma activo,
-        # como el ``_order = "sequence, name"`` de la fuente (TASK-GEN-0060)
-        HrSkillType.objects.order_by(
-            'sequence', models.TranslatedValue('name'))
-        .values_list('pk', flat=True)
-        .first()
+        matching_ind_skill.valid_from <= vals['valid_from']
+        and (not matching_ind_skill.valid_to
+             or matching_ind_skill.valid_to >= vals['valid_from'])
+    ) or (
+        vals['valid_to'] is not None
+        and matching_ind_skill.valid_from <= vals['valid_to']
+        and (not matching_ind_skill.valid_to
+             or matching_ind_skill.valid_to >= vals['valid_to'])
     )
-
-
-def _dates_overlap(start_a, end_a, start_b, end_b):
-    """¿Los intervalos ``[start_a, end_a]`` y ``[start_b, end_b]`` se
-    solapan? ``end_a``/``end_b`` en ``None`` significa "sin fin" (abierto).
-    Helper propio del puerto — la forma en instancia única de la
-    comparación que ``_get_overlapping_individual_skill`` hacía en lote."""
-    if end_a is not None and start_b > end_a:
-        return False
-    if end_b is not None and start_a > end_b:
-        return False
-    return True
 
 
 class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
@@ -155,6 +137,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
 
     skill = fields.Many2one(
         'hr_skills.HrSkill',
+        compute='_compute_skill_id', store=True, readonly=False,
         null=False, on_delete=models.CASCADE,
         related_name='%(app_label)s_%(class)s_skill_set',
         verbose_name='Habilidad',
@@ -165,6 +148,7 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
     )
     skill_level = fields.Many2one(
         'hr_skills.HrSkillLevel',
+        compute='_compute_skill_level_id', store=True, readonly=False,
         null=False, on_delete=models.CASCADE,
         related_name='%(app_label)s_%(class)s_skill_level_set',
         verbose_name='Nivel',
@@ -198,48 +182,15 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         ),
     )
 
+    level_progress = fields.Integer(related='skill_level.level_progress')
+    color = fields.Integer(related='skill_type.color')
+    levels_count = fields.Integer(related='skill_type.levels_count')
+    certification_skill_type_count = fields.Integer(
+        compute='_compute_certification_skill_type_count')
+    is_certification = fields.Boolean(related='skill_type.is_certification')
+
     class Meta(TimeStampedModel.Meta):
         abstract = True
-
-    def __str__(self):
-        """≙ ``_compute_display_name`` (``:236-239``)."""
-        skill_name = self.skill.name if self.skill_id else ''
-        level_name = self.skill_level.name if self.skill_level_id else ''
-        return f'{skill_name}: {level_name}'
-
-    # ------------------------------------------------------------------
-    # Propiedades — related/compute sin store
-    # ------------------------------------------------------------------
-
-    @property
-    def level_progress(self):
-        """
-        ≙ ``level_progress`` (``related='skill_level_id.level_progress'``).
-        """
-        return self.skill_level.level_progress if self.skill_level_id else 0
-
-    @property
-    def color(self):
-        """≙ ``color`` (``related='skill_type_id.color'``)."""
-        return self.skill_type.color if self.skill_type_id else 0
-
-    @property
-    def levels_count(self):
-        """≙ ``levels_count`` (``related='skill_type_id.levels_count'``)."""
-        return self.skill_type.levels_count if self.skill_type_id else 0
-
-    @property
-    def is_certification(self):
-        """
-        ≙ ``is_certification`` (``related='skill_type_id.is_certification'``).
-        """
-        return bool(self.skill_type_id and self.skill_type.is_certification)
-
-    @property
-    def certification_skill_type_count(self):
-        """≙ ``certification_skill_type_count`` — la propiedad que expone
-        ``_compute_certification_skill_type_count`` (``:208-210``)."""
-        return self._compute_certification_skill_type_count()
 
     # ------------------------------------------------------------------
     # Métodos — comportamiento por sub-modelo
@@ -260,130 +211,241 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         verbatim (``True``)."""
         return True
 
+    def _default_skill_type_id(self):
+        """≙ ``_default_skill_type_id`` (``:42-45``)."""
+        return _skill_type_for_context(self.env.context)
+
     # ------------------------------------------------------------------
-    # Validaciones — ≙ los cuatro ``@api.constrains``, wireadas a clean()
+    # Restricciones — ≙ los cuatro ``@api.constrains`` de la fuente
     # ------------------------------------------------------------------
 
-    def clean(self):
-        """Consolida los cuatro ``@api.constrains`` de la referencia — no
-        hay motor de dependencias que los dispare por separado."""
-        super().clean()
-        self._check_date()
-        if self.skill_type_id:
-            self._check_skill_type()
-            self._check_skill_level()
-        self._check_not_overlapping_regular_skill()
-
+    @api.constrains(lambda self: [
+        'valid_from', 'valid_to', 'skill_id', 'skill_type_id',
+        'skill_level_id', self._linked_field_name(),
+    ])
     def _check_not_overlapping_regular_skill(self):
-        """≙ ``_check_not_overlapping_regular_skill`` (``:65-105``) —
-        DIVERGENCIA 2: instancia única contra sus hermanos ya guardados
-        (ver docstring del módulo)."""
-        if not self.skill_id:
-            return
-        field_name = self._linked_field_name()
-        linked_id = getattr(self, f'{field_name}_id')
-        siblings = (
-            type(self)
-            .objects.filter(**{field_name: linked_id, 'skill': self.skill_id})
-            .exclude(pk=self.pk)
-        )
-        if self.is_certification:
-            if not self._can_edit_certification_validity_period():
-                return
-            duplicate = siblings.filter(
-                skill_level=self.skill_level_id,
-                valid_from=self.valid_from,
-                valid_to=self.valid_to,
-            )
-            if duplicate.exists():
-                raise ValidationError(
-                    'Ya existe una certificación idéntica para este '
-                    'individuo (misma habilidad, nivel y periodo de '
-                    'validez).',
-                )
-            return
-        for sibling in siblings:
-            if _dates_overlap(
-                self.valid_from,
-                self.valid_to,
-                sibling.valid_from,
-                sibling.valid_to,
-            ):
-                raise ValidationError(
-                    f'{self.skill.name if self.skill_id else ""} se solapa '
-                    f'con una habilidad existente del {sibling.valid_from} '
-                    f'al {sibling.valid_to}.',
-                )
+        """≙ ``_check_not_overlapping_regular_skill`` (``:64-110``).
 
+        Habilidades: una sola activa por ``skill_id`` en cada individuo.
+        Certificaciones: varias con la misma habilidad y nivel mientras su
+        periodo de validez difiera. En ambos casos no se admiten dos registros
+        con exactamente los mismos valores. El lote entero se valida en una
+        sola búsqueda, así que dos altas del mismo ``create`` que chocan entre
+        sí también se rechazan.
+        """
+        linked = self._linked_field_name()
+        overlapping_dict = self._get_overlapping_individual_skill([{
+            linked: skill_ind[linked].id,
+            'skill_id': skill_ind.skill.id,
+            'id': skill_ind.id,
+            'valid_from': skill_ind.valid_from,
+            'valid_to': skill_ind.valid_to,
+            'skill_level_id': skill_ind.skill_level.id,
+            'is_certification': skill_ind.is_certification,
+        } for skill_ind in self])
+        if overlapping_dict:
+            errors = []
+            for existing_ind_skill, new_ind_skills in overlapping_dict.items():
+                conflicting = ', '.join(
+                    [str(ind_skill) for ind_skill in new_ind_skills])
+                errors.append(
+                    f'• {conflicting} '
+                    f'conflicts with the existing skill/certification '
+                    f'{existing_ind_skill.display_name} from '
+                    f'{existing_ind_skill.valid_from} to '
+                    f'{existing_ind_skill.valid_to}',
+                )
+            error_msg = self.env._(
+                "The following skills can't be created as they overlap or "
+                'exactly match existing skills:\n%(collisions)s',
+                collisions='\n'.join(errors),
+            )
+            raise ValidationError(error_msg)
+
+    def _get_overlapping_individual_skill(self, vals_list):
+        """≙ ``_get_overlapping_individual_skill`` (``:111-195``).
+
+        Una sola búsqueda con el ``OR`` de las condiciones de cada alta; cada
+        coincidencia se empareja con las altas de su misma clave para separar
+        el solapamiento real del falso positivo del ``OR``.
+        """
+        can_edit_certification_validity_period = (
+            self._can_edit_certification_validity_period())
+        linked = self._linked_field_name()
+        matching_skill_domain = fields.Domain.FALSE
+        overlapping_dict = defaultdict(list)
+        certification_dict = defaultdict(list)
+        regular_dict = defaultdict(list)
+        for individual_skill_vals in vals_list:
+            ind_domain = fields.Domain.AND([
+                fields.Domain(
+                    f'{linked}.id', '=', individual_skill_vals[linked]),
+                fields.Domain(
+                    'skill_id.id', '=', individual_skill_vals['skill_id']),
+                fields.Domain('id', '!=', individual_skill_vals['id']),
+            ])
+            if (can_edit_certification_validity_period
+                    and individual_skill_vals['is_certification']):
+                ind_domain = fields.Domain.AND([
+                    ind_domain,
+                    fields.Domain('skill_level_id.id', '=',
+                                  individual_skill_vals['skill_level_id']),
+                    fields.Domain('valid_from', '=',
+                                  individual_skill_vals['valid_from']),
+                    fields.Domain('valid_to', '=',
+                                  individual_skill_vals['valid_to']),
+                ])
+                key = (
+                    individual_skill_vals[linked],
+                    individual_skill_vals['skill_id'],
+                    individual_skill_vals['skill_level_id'],
+                    fields.Date.from_string(
+                        individual_skill_vals['valid_from']),
+                    fields.Date.from_string(
+                        individual_skill_vals['valid_to']),
+                )
+                certification_dict[key].append(individual_skill_vals)
+            else:
+                valid_from = individual_skill_vals['valid_from']
+                valid_to = individual_skill_vals['valid_to']
+                ind_domain = fields.Domain.AND([
+                    ind_domain,
+                    fields.Domain.OR([
+                        fields.Domain.AND([
+                            fields.Domain('valid_from', '<=', valid_from),
+                            fields.Domain.OR([
+                                fields.Domain('valid_to', '=', False),
+                                fields.Domain('valid_to', '>=', valid_from),
+                            ]),
+                        ]),
+                        fields.Domain.AND([
+                            fields.Domain('valid_from', '<=', valid_to),
+                            fields.Domain.OR([
+                                fields.Domain('valid_to', '=', False),
+                                fields.Domain('valid_to', '>=', valid_to),
+                            ]),
+                        ]),
+                    ]),
+                ])
+                key = (
+                    individual_skill_vals[linked],
+                    individual_skill_vals['skill_id'],
+                )
+                regular_dict[key].append(individual_skill_vals)
+            matching_skill_domain = fields.Domain.OR(
+                [matching_skill_domain, ind_domain])
+        matching_individual_skills = self.env[self._name].search(
+            matching_skill_domain)
+        for matching_ind_skill in matching_individual_skills:
+            if (can_edit_certification_validity_period
+                    and matching_ind_skill.is_certification):
+                similar_certifications = certification_dict.get((
+                    matching_ind_skill[linked].id,
+                    matching_ind_skill.skill.id,
+                    matching_ind_skill.skill_level.id,
+                    fields.Date.from_string(matching_ind_skill.valid_from),
+                    fields.Date.from_string(matching_ind_skill.valid_to),
+                ))
+                if similar_certifications:
+                    overlapping_dict[matching_ind_skill].extend(
+                        similar_certifications)
+            else:
+                similar_regular_skills = regular_dict.get((
+                    matching_ind_skill[linked].id,
+                    matching_ind_skill.skill.id,
+                ), [])
+                for similar_regular_skill in similar_regular_skills:
+                    if _overlaps(matching_ind_skill, similar_regular_skill):
+                        overlapping_dict[matching_ind_skill].append(
+                            similar_regular_skill)
+        return overlapping_dict
+
+    @api.constrains('valid_from', 'valid_to')
     def _check_date(self):
-        """≙ ``_check_date`` (``:183-192``)."""
-        if (
-            self.valid_to
-            and self.valid_from
-            and self.valid_from > self.valid_to
-        ):
-            raise ValidationError(
-                f'{self} — la fecha de fin de validez es anterior a la de '
-                'inicio.',
-            )
+        """≙ ``_check_date`` (``:196-205``)."""
+        error_ind_skill_msg = ''
+        for ind_skill in self:
+            if (ind_skill.valid_to
+                    and ind_skill.valid_from > ind_skill.valid_to):
+                error_ind_skill_msg += self.env._(
+                    '• %(skill_name)s from %(valid_from)s to %(valid_to)s',
+                    skill_name=ind_skill.display_name,
+                    valid_from=ind_skill.valid_from,
+                    valid_to=ind_skill.valid_to,
+                )
+        if error_ind_skill_msg:
+            raise ValidationError(self.env._(
+                'The following skills have their valid stop date prior to '
+                'their valid start date:\n') + error_ind_skill_msg)
 
+    @api.constrains('skill_id', 'skill_type_id')
     def _check_skill_type(self):
-        """≙ ``_check_skill_type`` (``:194-198``)."""
-        if self.skill_id and self.skill.skill_type_id != self.skill_type_id:
-            raise ValidationError(
-                f'La habilidad {self.skill.name} y el tipo '
-                f'{self.skill_type.name} no coinciden.',
-            )
+        """≙ ``_check_skill_type`` (``:207-212``)."""
+        for record in self:
+            if record.skill.skill_type_id != record.skill_type_id:
+                raise ValidationError(self.env._(
+                    "The skill %(name)s and skill type %(type)s don't match",
+                    name=record.skill.name, type=record.skill_type.name))
 
+    @api.constrains('skill_type_id', 'skill_level_id')
     def _check_skill_level(self):
-        """≙ ``_check_skill_level`` (``:200-206``)."""
-        if (
-            self.skill_level_id
-            and self.skill_level.skill_type_id != self.skill_type_id
-        ):
-            raise ValidationError(
-                f'El nivel {self.skill_level.name} no es válido para el '
-                f'tipo de habilidad {self.skill_type.name}.',
-            )
+        """≙ ``_check_skill_level`` (``:214-219``)."""
+        for record in self:
+            if record.skill_level.skill_type_id != record.skill_type_id:
+                raise ValidationError(self.env._(
+                    'The skill level %(level)s is not valid for skill type: '
+                    '%(type)s',
+                    level=record.skill_level.name,
+                    type=record.skill_type.name))
 
     def _compute_certification_skill_type_count(self):
-        """≙ ``_compute_certification_skill_type_count`` (``:208-210``)."""
-        return HrSkillType.objects.filter(is_certification=True).count()
+        """≙ ``_compute_certification_skill_type_count`` (``:220-225``)."""
+        count = self.env['hr.skill.type'].objects.filter(
+            is_certification=True).count()
+        for record in self:
+            record.certification_skill_type_count = count
 
+    @api.onchange('is_certification')
     def _onchange_is_certification(self):
-        """≙ ``_onchange_is_certification`` (``:213-217``) — DIVERGENCIA:
-        sin motor de ``@api.onchange``, no auto-wireado."""
+        """≙ ``_onchange_is_certification`` (``:226-231``)."""
         self.valid_from = date.today()
         if not self.is_certification:
             self.valid_to = None
 
+    @api.depends('skill_type_id')
     def _compute_skill_id(self):
-        """≙ ``_compute_skill_id`` (``:219-225``)."""
-        if self.skill_type_id:
-            first_skill = self.skill_type.skill_ids.order_by(
-                'sequence',
-                'name',
-            ).first()
-            self.skill = first_skill
-        else:
-            self.skill = None
-        return self.skill
+        """≙ ``_compute_skill_id`` (``:232-238``). ``skill_ids`` sigue el
+        ``_order = 'sequence, name'`` de ``hr.skill``."""
+        for record in self:
+            if record.skill_type:
+                record.skill = record.skill_type.skill_ids.first()
+            else:
+                record.skill = False
 
+    @api.depends('skill_id')
     def _compute_skill_level_id(self):
-        """≙ ``_compute_skill_level_id`` (``:227-234``)."""
-        if not self.skill_id:
-            self.skill_level = None
-        else:
-            levels = self.skill_type.skill_level_ids
-            default = levels.filter(default_level=True).first()
-            self.skill_level = (
-                default or levels.order_by('level_progress').first()
-            )
-        return self.skill_level
+        """≙ ``_compute_skill_level_id`` (``:240-247``): el nivel por
+        defecto del tipo y, si no hay, el primero por ``level_progress``."""
+        for record in self:
+            if not record.skill:
+                record.skill_level = False
+            else:
+                skill_levels = record.skill_type.skill_level_ids
+                record.skill_level = (
+                    skill_levels.filter(default_level=True).first()
+                    or skill_levels.first())
 
+    @api.depends('skill_id', 'skill_level_id')
+    def _compute_display_name(self):
+        """≙ ``_compute_display_name`` (``:249-253``)."""
+        for individual_skill in self:
+            individual_skill.display_name = (
+                f'{individual_skill.skill.name}: '
+                f'{individual_skill.skill_level.name}')
+
+    @api.onchange('valid_to', 'valid_from')
     def _onchange_valid_date(self):
-        """≙ ``_onchange_valid_date`` (``:241-243``) — DIVERGENCIA: sin
-        motor de ``@api.onchange``, no auto-wireado."""
+        """≙ ``_onchange_valid_date`` (``:254-256``)."""
         self.display_warning_message = bool(
             self.valid_to
             and self.valid_from
@@ -391,33 +453,33 @@ class HrIndividualSkillMixin(models.BaseModel, TimeStampedModel):
         )
 
     # ------------------------------------------------------------------
-    # BLOQUEADO — protocolo de comandos x2many (ver DIVERGENCIA 3)
+    # Pendiente — transformadores de comandos (U5 del diseño)
     # ------------------------------------------------------------------
 
     def _expire_individual_skills(self):
-        """BLOQUEADO — ver DIVERGENCIA 3 del docstring del módulo."""
+        """Pendiente — U5 del diseño (``:257-295``)."""
         raise NotImplementedError(
-            'Protocolo de comandos x2many sin equivalente en este ORM — '
-            'ver DIVERGENCIA 3 de hr_individual_skill_mixin.py.',
+            'Transformador de comandos pendiente de portar — '
+            'U5 de hr-individual-skill-mixin-full-port.md.',
         )
 
     def _create_individual_skills(self, vals_list):
-        """BLOQUEADO — ver DIVERGENCIA 3."""
+        """Pendiente — U5 del diseño."""
         raise NotImplementedError(
-            'Protocolo de comandos x2many sin equivalente en este ORM — '
-            'ver DIVERGENCIA 3 de hr_individual_skill_mixin.py.',
+            'Transformador de comandos pendiente de portar — '
+            'U5 de hr-individual-skill-mixin-full-port.md.',
         )
 
     def _write_individual_skills(self, commands):
-        """BLOQUEADO — ver DIVERGENCIA 3."""
+        """Pendiente — U5 del diseño."""
         raise NotImplementedError(
-            'Protocolo de comandos x2many sin equivalente en este ORM — '
-            'ver DIVERGENCIA 3 de hr_individual_skill_mixin.py.',
+            'Transformador de comandos pendiente de portar — '
+            'U5 de hr-individual-skill-mixin-full-port.md.',
         )
 
     def _get_transformed_commands(self, commands, individuals):
-        """BLOQUEADO — ver DIVERGENCIA 3."""
+        """Pendiente — U5 del diseño."""
         raise NotImplementedError(
-            'Protocolo de comandos x2many sin equivalente en este ORM — '
-            'ver DIVERGENCIA 3 de hr_individual_skill_mixin.py.',
+            'Transformador de comandos pendiente de portar — '
+            'U5 de hr-individual-skill-mixin-full-port.md.',
         )
