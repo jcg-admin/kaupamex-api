@@ -30,6 +30,7 @@ misma cadena de llamadas se salta.
 
 import threading
 
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
@@ -98,7 +99,7 @@ def _capture_old_values(sender, instance, **kwargs):
 
 @receiver(post_save, dispatch_uid='base_automation.dispatch_create_write')
 def _dispatch_create_write(sender, instance, created, **kwargs):
-    if _skip(sender):
+    if _skip(sender) or not _rules_table_exists(kwargs.get('using')):
         return
     model_name = _model_name(sender)
     triggers = CREATE_TRIGGERS if created else WRITE_TRIGGERS
@@ -141,7 +142,7 @@ def _dispatch_unlink(sender, instance, **kwargs):
     acciones ANTES de borrar (``make_unlink``: "check conditions... call
     original method" al final). Con ``post_delete`` la fila ya no existe y
     ``_filter_post`` (que re-consulta la base) siempre daría vacío."""
-    if _skip(sender):
+    if _skip(sender) or not _rules_table_exists(kwargs.get('using')):
         return
     model_name = _model_name(sender)
     automations = BaseAutomation._get_actions(model_name, ['on_unlink'])
@@ -159,3 +160,31 @@ def _dispatch_unlink(sender, instance, **kwargs):
                 automation._process(sender, pks)
         finally:
             processing.discard(key)
+
+
+#: Alias cuya tabla ``base_automation`` ya existe. Una vez creada no
+#: desaparece en el proceso, así que basta medirla hasta verla.
+_RULES_TABLE_SEEN = set()
+
+
+def _rules_table_exists(using):
+    """«Sin tabla ⇒ sin reglas» también para los modelos vivos.
+
+    ``_skip`` cubre los modelos históricos de una migración; un
+    ``ComputeStoredFields`` escribe con los modelos vivos dentro de
+    ``migrate`` (``base.0105`` calcula ``ir.rule.global``), cuando en una base
+    nueva la tabla de ``base_automation`` todavía no existe. La fuente nunca
+    tiene el parche activo durante la carga (STEP 9 de ``load_modules``).
+    Medido: ``make ci-multidb`` sobre ``b08a7da1`` con ``--create-db`` moría
+    con ``relation "base_automation" does not exist``.
+    """
+    alias = using or DEFAULT_DB_ALIAS
+    if alias in _RULES_TABLE_SEEN:
+        return True
+    connection = connections[alias]
+    with connection.cursor() as cursor:
+        tables = connection.introspection.table_names(cursor)
+    if BaseAutomation._meta.db_table in tables:
+        _RULES_TABLE_SEEN.add(alias)
+        return True
+    return False
