@@ -2703,7 +2703,8 @@ class Registry(Mapping):
                         _schema.warning("Missing not-null constraint on %s", field)
 
     def check_indexes(self, cr, model_names):
-        """Crea o retira los indices de columna de los modelos dados — ≙ ``:805-892``.
+        """Crea o retira los indices de columna de los modelos dados —
+        ≙ ``:805-892``.
 
         Docstring de la fuente, verbatim: *"Create or drop column indexes for
         the given models"*.
@@ -2721,15 +2722,19 @@ class Registry(Mapping):
         campos y no declaran ninguno de los dos atributos. ``field.concrete``
         va delante porque es el que **si** declaran, y su ``False`` los deja
         fuera por cortocircuito. Es el mismo veredicto que da la fuente a su
-        ``One2many``, dicho con el vocabulario del stack.
+        ``One2many``, dicho con el vocabulario del stack. El ``One2many``
+        declarado de este ORM no es un campo de Django y no lleva
+        ``concrete``: se lee con ``getattr`` y su ausencia vale ``False``,
+        el mismo resultado que su ``column_type = None`` da en la fuente.
         """
         expected = [
             (make_index_name(model._table, field.name), model._table, field)
             for model_name in model_names
             for model in [self.models[model_name]]
             if self._has_ordinary_schema(model)
-            for field in model._fields.values()
-            if field.concrete and field.column_type and field.store
+            for field in model_field_registry(model).values()
+            if getattr(field, 'concrete', False) and field.column_type
+            and field.store
         ]
         if not expected:
             return

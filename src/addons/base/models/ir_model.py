@@ -209,7 +209,7 @@ import fields
 import models
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db.models.fields import NOT_PROVIDED
+from django.db.models import NOT_PROVIDED, F
 from django.utils import timezone
 
 from addons.base.models.ir_module import IrModule
@@ -783,7 +783,8 @@ class IrModel(models.OriginMixin, TimeStampedModel):
             'name': str(getattr(model, '_description', None)
                         or model._meta.verbose_name),
             'order': (getattr(model, '_order', None)
-                      or ', '.join(model._meta.ordering) or 'id'),
+                      or ', '.join(map(_ordering_text, model._meta.ordering))
+                      or 'id'),
             'info': info.strip(),
             'state': STATE_BASE,
             'abstract': model._meta.abstract,
@@ -1969,7 +1970,8 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
 
     @classmethod
     def _reflect_selections(cls, model_classes, using=DEFAULT_DB_ALIAS):
-        """Refleja las selecciones de los campos dados — ``_reflect_selections``.
+        """Refleja las selecciones de los campos dados —
+        ``_reflect_selections``.
 
         Docstring de la fuente, verbatim: *"Reflect the selections of the
         fields of the given models"* (``odoo19c: :1543-1600``).
@@ -1980,14 +1982,18 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
 
         La fuente recorre ``model._fields`` buscando ``selection`` y
         ``reference``; aquí el equivalente es un campo de Django con
-        ``choices``, que es la misma información en el mismo sitio.
+        ``choices``, que es la misma información en el mismo sitio. Y como
+        allá (``if isinstance(field.selection, list)``, ``:1547``), una
+        selección invocable —que Django envuelve en
+        ``CallableChoiceIterator``— no se refleja: su contenido depende de
+        quién la llame.
         """
         offenders = OrderedSet()
         pending = []
         for model_cls in model_classes:
             for field in model_cls._meta.get_fields():
                 choices = getattr(field, 'choices', None)
-                if not choices:
+                if not isinstance(choices, (list, tuple)) or not choices:
                     continue
                 for value, label in choices:
                     if not isinstance(value, str) or not isinstance(label, str):
@@ -3585,3 +3591,19 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
             'xml_id': xmlid, 'record': record, 'noupdate': noupdate,
         }])
         return cls.objects.get(module=module, name=name)
+
+
+def _ordering_text(term):
+    """Un término de ``Meta.ordering`` como el texto de un ``_order``.
+
+    Django admite en ``ordering`` expresiones además de nombres; el
+    ``_order`` de la referencia es siempre texto
+    (``odoo19c: ir_model.py:430``).
+    Una expresión se escribe con los campos que ordena y su dirección:
+    ``TranslatedValue('name').asc()`` es ``name``.
+    """
+    if isinstance(term, str):
+        return term
+    names = [part.name for part in term.flatten() if isinstance(part, F)]
+    text = ', '.join(names)
+    return f'{text} desc' if getattr(term, 'descending', False) else text

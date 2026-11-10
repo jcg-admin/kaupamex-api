@@ -98,9 +98,17 @@ class _Field:
 
 
 class _Meta:
-    def __init__(self, *, managed=True, abstract=False):
+    """Lo que ``model_field_registry`` lee de ``_meta``: los campos con
+    columna por ``get_fields()`` y los demás por ``private_fields``."""
+
+    def __init__(self, *, managed=True, abstract=False, fields=()):
         self.managed = managed
         self.abstract = abstract
+        self.private_fields = ()
+        self._fields = list(fields)
+
+    def get_fields(self):
+        return list(self._fields)
 
 
 class _Model:
@@ -108,7 +116,7 @@ class _Model:
         self._name = name
         self._table = table
         self._fields = {field.name: field for field in fields}
-        self._meta = _Meta(managed=managed, abstract=abstract)
+        self._meta = _Meta(managed=managed, abstract=abstract, fields=fields)
 
 
 class TestCheckNullConstraints:

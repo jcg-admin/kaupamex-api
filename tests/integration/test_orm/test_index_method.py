@@ -74,3 +74,23 @@ def test_index_rebuilt_when_method_changes(registry, cr):
     # El btree obsoleto se retira y se rehace como gin/trigram con el mismo
     # nombre.
     assert _index_method(cr, indexname) == 'gin'
+
+
+def test_a_declared_one2many_is_not_a_column_to_index(registry, cr):
+    """Un ``One2many`` declarado no tiene columna, y la fuente lo deja
+    fuera por ``field.column_type`` (``odoo19c: odoo/orm/registry.py:814``).
+    ``test_orm.discussion`` declara uno; el recorrido no puede caerse en
+    él (``designs/module-install-cycle.md``, L2)."""
+    model = registry['test_orm.discussion']
+    assert any(type(field).__name__ == 'One2many'
+               for field in model._fields.values())
+    registry.check_indexes(cr, ['test_orm.discussion'])
+
+
+def test_a_django_model_without_basemodel_is_walked_by_its_fields(
+        registry, cr):
+    """``ir.model.inherit`` es un modelo de Django sin ``BaseModel``: sus
+    campos se leen con ``model_field_registry``, no con ``_fields``."""
+    model = registry['ir.model.inherit']
+    assert not hasattr(model, '_fields')
+    registry.check_indexes(cr, ['ir.model.inherit'])
