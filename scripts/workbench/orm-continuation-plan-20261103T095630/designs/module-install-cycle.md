@@ -544,3 +544,46 @@ acceso de `res.users` en autenticación resuelto como la fuente —el alta de
 2FA escribe con `sudo()` (`auth_totp/models/res_users.py:109-110`)— y
 `env.user`/`env.companies` devolviendo recordsets. Condición de cierre: las
 tres reglas de e8 cargan sin omisión y sus dominios filtran.
+
+### e8 — `res.users` y `res.company` sobre `BaseModel` (diseño, 2026-11-10T21:24:42)
+
+Sucesor declarado de L4e. Medición previa, sobre `feature/vm-x2hokp-orm-root@8ab54be4`:
+
+- `ResCompany` deriva sólo de `TimeStampedModel`; `ResUsers`, de
+  `DefaultGetMixin` y `TimeStampedModel`. Ninguno es recordset.
+- `env.company`/`env.companies` aparecen 119 veces en `src` y `addons`
+  (`grep -rn "env.companies\|env.company\b\|env().company\b"`, sin
+  comentarios). Hoy `Environment.companies` devuelve una **lista**
+  (`orm/environments.py:1126-1132`); la fuente devuelve un recordset
+  (`odoo19c: odoo/orm/environments.py:246-253`).
+- **La pieza que explica los 16 casos de autenticación**: en la fuente
+  `env.user` es `self(su=True)['res.users'].browse(self.uid)`
+  (`environments.py:208-213`). Es un recordset **elevado**, así que leer
+  sus campos no pasa por la ACL. Aquí `as_current_user` ya eleva la fila
+  (`environments.py:2144`), pero un usuario obtenido por `objects.get` en
+  un servicio no: con `BaseModel` ese registro lleva el entorno del
+  llamador y `check_access('read')` lo rechaza. Los ocho casos de TOTP
+  (`test_totp.py`, `test_totp_recovery.py`, `test_rpc_api_key_channel.py`)
+  caen así. La fuente escribe el secreto con `self.sudo()`
+  (`auth_totp/models/res_users.py:109-110`).
+
+Población que cae al adoptarlo en `res.users` (medida antes de revertir):
+`test_totp.py`, `test_totp_recovery.py`, `test_rpc_api_key_channel.py`,
+`test_res_partner_user_and_lang.py` (`main_user_id` vacío pasa a ser
+`res.users()`, como en la fuente), `test_res_users_constraints.py` (ya
+resuelto por la siembra de 0106), `test_contract_access_on_read_reference.py`,
+`test_read_group_postprocess.py` (sus dos casos usan `res.users` como
+ejemplo de comodelo de Django; hay que elegir otro) y
+`test_field_lifecycle_methods.py` (ya resuelto).
+
+Secuencia derivada:
+
+| # | Qué | TRAE / CONSTRUYE |
+|---|---|---|
+| e8a | `Environment.user` devuelve el recordset elevado de `res.users`, y los servicios que reciben una fila la elevan como la fuente (`sudo()` en el alta de 2FA) | TRAE: `as_current_user` y `sudo` existen |
+| e8b | `ResUsers` sobre `BaseModel`; las pruebas que usan `res.users` como «comodelo de Django» pasan a otro modelo que siga fuera de `BaseModel` | TRAE: precedente `hr.employee` (e1) |
+| e8c | `ResCompany` sobre `BaseModel`; `env.company`/`env.companies` devuelven recordsets; se miden los 119 consumidores | TRAE |
+| e8d | se restauran en `hr_security.xml` las tres reglas omitidas | — |
+
+Condición de cierre: las tres reglas de e8d cargan y filtran por el país de
+las empresas activas, y el gate completo y ci-multidb siguen verdes.
