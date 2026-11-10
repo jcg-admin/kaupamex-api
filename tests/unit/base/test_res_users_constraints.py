@@ -191,7 +191,9 @@ def test_the_system_logins_cannot_be_deleted(db, login):
     """≙ ``:654-660`` — el administrador y el usuario publico se archivan, no
     se borran. El cuarto de la fuente, la plantilla de usuario portal, no
     existe en este arbol: se invita por endpoint."""
-    user = _make_user(login)
+    # ``__system__`` ya existe: lo siembra ``base`` (``base.user_root``).
+    user = (ResUsers.objects.filter(login=login).first()
+            or _make_user(login))
     with pytest.raises(UserError, match='Archívalo'):
         user.delete()
 
@@ -239,8 +241,8 @@ def test_the_batch_delete_refuses_a_system_login(db):
 
 def test_the_batch_delete_refuses_the_superuser(db):
     """El super-usuario tampoco sale por lote — ≙ ``:651-652``."""
-    user = _make_user('cualquier-login')
-    ResUsers.objects.filter(pk=user.pk).update(id=SUPERUSER_ID)
+    # El super-usuario lo siembra ``base`` (``base.user_root``).
+    assert ResUsers.objects.filter(pk=SUPERUSER_ID).exists()
     with pytest.raises(UserError, match='super-usuario'):
         with transaction.atomic():
             ResUsers.objects.filter(pk=SUPERUSER_ID).delete()

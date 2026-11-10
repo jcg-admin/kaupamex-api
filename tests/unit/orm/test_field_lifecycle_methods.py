@@ -234,12 +234,15 @@ class TestCompanyDependentFallback:
         self, partner_model, monkeypatch
     ):
         barcode = model_field_registry(partner_model)['barcode']
+        # Se crea antes del parche: el respaldo vale para todo partner sin
+        # valor, y con ``base.partner_root`` presente la unicidad del código
+        # de barras vería dos al guardar. Lo medido es el respaldo, no el alta.
+        record = partner_model.objects.create(name='Con respaldo')
         monkeypatch.setattr(
             MODELS_BY_NAME['ir.default'],
             '_get_model_defaults',
             classmethod(lambda cls, *a, **k: {'barcode': 'MX-RESPALDO'}),
             raising=False,
         )
-        record = partner_model.objects.create(name='Con respaldo')
 
         assert barcode.get_company_dependent_fallback(record) == 'MX-RESPALDO'

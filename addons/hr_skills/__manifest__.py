@@ -32,6 +32,14 @@
     # manifest la declara (DEC-KX-03 punto 1): `hr_skills` en Odoo Community
     # es LGPL-3.
     'license': 'LGPL-3',
+    # Seguridad de la fuente, en su orden (``odoo19c:
+    # hr_skills/__manifest__.py:17-19``), por ``load_data``.
+    # ``ir.model.access.csv`` es copia fiel sin las seis filas de los tres
+    # informes y del asistente de CV, modelos no portados.
+    'data': [
+        'security/ir.model.access.csv',
+        'security/hr_skills_security.xml',
+    ],
     'application': False,
     'installable': True,
     'auto_install': False,

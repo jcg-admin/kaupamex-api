@@ -1503,12 +1503,22 @@ def _field_cache_record_id(field, instance):
 
 
 class NonStoredMany2oneAccessor(ForwardManyToOneDescriptor):
-    """Prepare lazy field metadata before reading the Django relation cache."""
+    """Prepare lazy field metadata before reading the Django relation cache.
+
+    Sin valor, un comodelo del ORM entrega su recordset vacío, como
+    ``Many2one.convert_to_record`` en la fuente (``odoo19c: odoo/orm/
+    fields_relational.py``); uno de Django sigue dando ``None``.
+    """
 
     def __get__(self, instance, cls=None):
         if instance is not None and ensure_field_setup.pending:
             ensure_field_setup()
-        return super().__get__(instance, cls)
+        value = super().__get__(instance, cls)
+        if instance is not None and value is None:
+            comodel = self.field.related_model
+            if hasattr(comodel, '_from_ids'):
+                return comodel._from_ids(get_environment(), (), ())
+        return value
 
 
 class FieldDescriptor(DeferredAttribute):

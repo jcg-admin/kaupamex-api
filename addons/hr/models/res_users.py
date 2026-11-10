@@ -125,6 +125,8 @@ columnas viven en este árbol). Detalle:
 
 from django.db import models as dj_models
 
+import fields
+
 from addons.base.models import ResPartnerBank
 from addons.hr.models.hr_employee import HrEmployee
 from addons.hr.models.hr_employee_category import HrEmployeeCategory
@@ -195,12 +197,19 @@ def employees(self):
 
 def _compute_company_employee(self):
     """El empleado de la empresa activa — ≙ ``_compute_company_employee``
-    (``:265-272``)."""
-    queryset = HrEmployee.objects.filter(resource__user=self)
+    (``:265-272``): el de ``user_id`` en la empresa del entorno.
+
+    Asigna ``employee_id`` (el ``Many2one`` no almacenado de la fuente) y
+    devuelve el valor para la propiedad ``employee``, que lo sigue leyendo.
+    Sin empresa activa no se acota, como antes de este pase.
+    """
+    queryset = HrEmployee.objects.filter(user_id=self.pk)
     company_id = get_current_company()
     if company_id:
         queryset = queryset.filter(company_id=company_id)
-    return queryset.first()
+    employee = queryset.first()
+    self.employee_id = employee
+    return employee
 
 
 def employee(self):
@@ -209,15 +218,11 @@ def employee(self):
     return self._compute_company_employee()
 
 
-def _search_company_employee(cls, employee_ids):
-    """Usuarios cuyos empleados están en ``employee_ids`` — ≙
-    ``_search_company_employee`` (``:274-286``). DIVERGENCIA: queryset
-    directo (ver docstring del módulo)."""
-    return cls.objects.filter(
-        resource_resources__hr_hremployee_resource_mixin_set__pk__in=list(
-            employee_ids
-        ),
-    ).distinct()
+def _search_company_employee(cls, operator, value):
+    """≙ ``_search_company_employee`` (``:274-286``): equivale a
+    ``[('employee_ids', operator, value)]``. La fuente lo cambia por los ids
+    para abreviar la consulta; aquí se devuelve el dominio equivalente."""
+    return [('employee_ids', operator, value)]
 
 
 def _compute_is_hr_user(self):
@@ -615,6 +620,18 @@ def apply_hr_res_users_extensions():
     extend_model(
         'base',
         'ResUsers',
+        # ≙ ``employee_id`` (``hr/models/res_users.py:64-65`` de la fuente):
+        # ``Many2one`` no almacenado con cómputo y búsqueda. Lo leen las
+        # reglas de ``hr`` (``user.employee_id.parent_id.id``).
+        campos={
+            'employee_id': fields.Many2one(
+                'hr.HrEmployee', store=False,
+                compute='_compute_company_employee',
+                search='_search_company_employee',
+                on_delete=dj_models.SET_NULL, related_name='+',
+                string='Company employee',
+            ),
+        },
         metodos={
             '_employee_ids_domain': _employee_ids_domain,
             '_compute_company_employee': _compute_company_employee,

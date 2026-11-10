@@ -34,7 +34,7 @@ Campos — 5 de 13 portados como columna real
        desde ``employee.department`` en el mismo receptor.
    * - ``manager_id`` (``:75``)
      - **portado** — ``manager`` (FK ``hr.HrEmployee``), sincronizado desde
-       ``employee.parent`` en el mismo receptor.
+       ``employee.parent_id`` en el mismo receptor.
    * - ``user_id`` (``:70``)
      - **BLOQUEADO — declarado, no un símbolo nuevo.** El campo ``user`` YA
        existe en ``AccountAnalyticLine`` (``api: addons/analytic/models/
@@ -208,7 +208,7 @@ def _sync_timesheet_derived_fields(sender, instance, **kwargs):
 
     if instance.employee_id:
         instance.department = instance.employee.department
-        instance.manager = instance.employee.parent
+        instance.manager = instance.employee.parent_id
         # ``unit_amount`` es Float (odoo19c: analytic_line.py); ``amount`` es
         # Decimal (fields.Monetary → DecimalField). Aritmética Decimal para
         # evitar el TypeError de mezclar float y Decimal directamente.

@@ -340,7 +340,8 @@ from .hr_employee_category import HrEmployeeCategory
 from .hr_version import HrVersion
 
 
-class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
+class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
+                 ResourceMixin, AvatarMixin,
                  models.DefaultGetMixin, TimeStampedModel):
     """``hr.employee`` — un empleado.
 
@@ -363,7 +364,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     _primary_email = 'work_email'
 
     class Certificate(models.TextChoices):
-        """≙ ``_get_certificate_selection`` (``:444-451``), fijo (ver DIVERGENCIA)."""
+        """≙ ``_get_certificate_selection`` (``:444-451``), fijo (ver
+        DIVERGENCIA)."""
 
         GRADUATE = 'graduate', 'Bachillerato'
         BACHELOR = 'bachelor', 'Licenciatura'
@@ -565,10 +567,13 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     )
 
     # --- employee in company ----------------------------------------------
-    parent = fields.Many2one(
-        'self', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='children', verbose_name='Gerente',
-        help_text='Odoo parent_id.',
+    #: ≙ ``parent_id`` (``odoo19c: hr/models/hr_employee.py:193-195``) en
+    #: forma C, con ``child_ids`` como reverso: la ruta ``parent_id.user_id``
+    #: de ``hr_employee_comp_rule`` pasa por el campo, no por el id escalar.
+    parent_id = fields.Many2one(
+        'self', db_column='parent_id', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='child_ids',
+        verbose_name='Gerente', help_text='Odoo parent_id.',
     )
     coach = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
@@ -683,7 +688,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
 
     @property
     def current_date_version(self):
-        """≙ ``current_date_version`` (``related='version_id.date_version'``)."""
+        """≙ ``current_date_version``
+        (``related='version_id.date_version'``)."""
         return self.version.date_version if self.version_id else None
 
     @property
@@ -702,23 +708,29 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     def version_revision(self):
         """≙ ``version_revision`` (``:199``) — posición 1-based en el
 
-        ≙ ``_compute_version_revision`` (``odoo19c: hr/models/hr_employee.py``).
+        ≙ ``_compute_version_revision`` (``odoo19c:
+        hr/models/hr_employee.py``).
         historial ordenado por ``date_version``."""
         if not self.version_id:
             return 0
         ordered_ids = list(
-            self.versions.order_by('date_version').values_list('pk', flat=True),
+            self.versions.order_by('date_version')
+            .values_list('pk', flat=True),
         )
-        return ordered_ids.index(self.version_id) + 1 if self.version_id in ordered_ids else 0
+        if self.version_id not in ordered_ids:
+            return 0
+        return ordered_ids.index(self.version_id) + 1
 
     @property
     def contract_date_start(self):
-        """≙ ``contract_date_start`` (``related='version_id.contract_date_start'``)."""
+        """≙ ``contract_date_start``
+        (``related='version_id.contract_date_start'``)."""
         return self.version.contract_date_start if self.version_id else None
 
     @property
     def contract_date_end(self):
-        """≙ ``contract_date_end`` (``related='version_id.contract_date_end'``)."""
+        """≙ ``contract_date_end``
+        (``related='version_id.contract_date_end'``)."""
         return self.version.contract_date_end if self.version_id else None
 
     @property
@@ -765,12 +777,14 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
 
     @property
     def structure_type(self):
-        """≙ ``structure_type_id`` (``related='version_id.structure_type_id'``)."""
+        """≙ ``structure_type_id``
+        (``related='version_id.structure_type_id'``)."""
         return self.version.structure_type if self.version_id else None
 
     @property
     def contract_type(self):
-        """≙ ``contract_type_id`` (``related='version_id.contract_type_id'``)."""
+        """≙ ``contract_type_id``
+        (``related='version_id.contract_type_id'``)."""
         return self.version.contract_type if self.version_id else None
 
     @property
@@ -848,7 +862,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         versions = self.versions.all()
         if before_date:
             return [version for version in versions
-                    if version.date_start and version.date_start <= before_date]
+                    if version.date_start
+                    and version.date_start <= before_date]
         return list(versions)
 
     def _get_first_versions_filtered(self, no_gap=True, before_date=None):
@@ -897,12 +912,14 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     def _get_first_version_date(self, no_gap=True):
         """≙ ``_get_first_version_date`` (``:488-490``)."""
         versions = self._get_first_versions_filtered(no_gap=no_gap)
-        starts = [version.date_start for version in versions if version.date_start]
+        starts = [version.date_start for version in versions
+                  if version.date_start]
         return min(starts) if starts else None
 
     def _get_first_contract_date(self, no_gap=True):
         """≙ ``_get_first_contract_date`` (``:492-495``)."""
-        versions = [version for version in self._get_first_versions_filtered(no_gap=no_gap)
+        versions = [version for version
+                    in self._get_first_versions_filtered(no_gap=no_gap)
                     if version.contract_date_start]
         starts = [version.contract_date_start for version in versions]
         return min(starts) if starts else None
@@ -914,13 +931,15 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         si el empleado no tiene historial.
         """
         on_date = on_date or date.today()
-        versions = list(self.versions.filter(active=True).order_by('date_version'))
+        versions = list(
+            self.versions.filter(active=True).order_by('date_version'))
         if not versions:
             versions = list(self.versions.all().order_by('date_version'))
         if not versions:
             return None
         filtered = [version for version in versions
-                    if version.date_version and version.date_version <= on_date]
+                    if version.date_version
+                    and version.date_version <= on_date]
         if not filtered:
             return versions[0]
         return max(filtered, key=lambda version: version.date_version)
@@ -954,7 +973,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
             previous = employee.version_id
             employee._compute_current_version_id()
             if employee.version_id != previous:
-                cls.objects.filter(pk=employee.pk).update(version=employee.version_id)
+                cls.objects.filter(pk=employee.pk).update(
+                    version=employee.version_id)
                 updated += 1
         return updated
 
@@ -973,7 +993,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         tipo en un empleado sin versión.
         """
         location = self.work_location
-        self.work_location_type = (location.location_type if location else '') or ''
+        self.work_location_type = (
+            (location.location_type if location else '') or '')
         return self.work_location_type
 
     # --- contrato ------------------------------------------------------
@@ -1004,7 +1025,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         para una columna de fecha de este ORM.
         """
         for date_from, date_to in self._get_all_contract_dates():
-            if date_from <= on_date and (date_to is None or date_to >= on_date):
+            if date_from <= on_date and (
+                    date_to is None or date_to >= on_date):
                 return date_from, date_to
         return None, None
 
@@ -1057,7 +1079,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
             by_contract = contract_versions_by_employee.setdefault(
                 version.employee_id, {},
             )
-            by_contract.setdefault(version.contract_date_start, []).append(version)
+            by_contract.setdefault(
+                version.contract_date_start, []).append(version)
         return contract_versions_by_employee
 
     @classmethod
@@ -1089,8 +1112,10 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
                     selected.append(chosen)
         return contracts_by_employee
 
-    def _get_versions_with_contract_overlap_with_period(self, date_from, date_to):
-        """≙ ``_get_versions_with_contract_overlap_with_period`` (``:1767-1775``)."""
+    def _get_versions_with_contract_overlap_with_period(
+            self, date_from, date_to):
+        """≙ ``_get_versions_with_contract_overlap_with_period``
+        (``:1767-1775``)."""
         return list(self.versions.filter(
             models.Q(contract_date_start__isnull=False)
             & models.Q(contract_date_start__lte=date_to)
@@ -1099,7 +1124,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         ).order_by('date_version', 'pk'))
 
     @classmethod
-    def _get_all_versions_with_contract_overlap_with_period(cls, date_from, date_to):
+    def _get_all_versions_with_contract_overlap_with_period(
+            cls, date_from, date_to):
         """≙ ``_get_all_versions_with_contract_overlap_with_period``
         (``:1633-1640``) — el mismo corte sobre todos los empleados,
         activos y archivados."""
@@ -1131,13 +1157,16 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
             raise ValueError('date_version is required')
         if isinstance(version_date, str):
             version_date = date.fromisoformat(version_date)
-        elif hasattr(version_date, 'date') and not isinstance(version_date, date):
+        elif (hasattr(version_date, 'date')
+              and not isinstance(version_date, date)):
             version_date = version_date.date()
 
         version_to_copy = self._get_version(version_date)
         if version_to_copy is None:
-            version_to_copy = self.versions.order_by('date_version', 'pk').first()
-        if version_to_copy is not None and version_to_copy.date_version == version_date:
+            version_to_copy = self.versions.order_by(
+                'date_version', 'pk').first()
+        if (version_to_copy is not None
+                and version_to_copy.date_version == version_date):
             return version_to_copy
 
         date_from, date_to = self._get_contract_dates(version_date)
@@ -1199,8 +1228,10 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         if isinstance(on_date, str):
             on_date = date.fromisoformat(on_date)
 
-        contracts = self._get_contract_versions([self], None, None).get(self.pk, {})
-        future_contract_dates = [start for start in contracts if start > on_date]
+        contracts = self._get_contract_versions(
+            [self], None, None).get(self.pk, {})
+        future_contract_dates = [
+            start for start in contracts if start > on_date]
         new_contract_date_end = (
             min(future_contract_dates) - timedelta(days=1)
             if future_contract_dates else None
@@ -1236,7 +1267,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
             return self.resource_calendar.tz
         if self.tz:
             return self.tz
-        company_calendar = self.company.resource_calendar if self.company_id else None
+        company_calendar = (
+            self.company.resource_calendar if self.company_id else None)
         if company_calendar is not None and company_calendar.tz:
             return company_calendar.tz
         return 'UTC'
@@ -1271,14 +1303,18 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         version_periods_by_employee = {}
         for employee in employees:
             if check_contract:
-                versions = employee._get_versions_with_contract_overlap_with_period(
-                    start.date(), stop.date(),
+                versions = (
+                    employee._get_versions_with_contract_overlap_with_period(
+                        start.date(), stop.date(),
+                    )
                 )
             else:
                 versions = [
-                    version for version in employee.versions.order_by('date_version')
+                    version for version
+                    in employee.versions.order_by('date_version')
                     if version.date_start and version.date_start <= stop.date()
-                    and (version.date_end is None or version.date_end >= start.date())
+                    and (version.date_end is None
+                         or version.date_end >= start.date())
                 ]
             periods = version_periods_by_employee.setdefault(employee.pk, [])
             for version in versions:
@@ -1286,7 +1322,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
                 # zona del propio empleado (≙ ``:1617-1618``).
                 tz_name = (
                     version.resource_calendar.tz
-                    if version.resource_calendar_id and version.resource_calendar.tz
+                    if version.resource_calendar_id
+                    and version.resource_calendar.tz
                     else (employee._get_tz())
                 )
                 tz = ZoneInfo(tz_name)
@@ -1295,7 +1332,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
                 ).astimezone(ZoneInfo('UTC'))
                 if version.date_end:
                     date_end = datetime.combine(
-                        version.date_end + timedelta(days=1), time.min, tzinfo=tz,
+                        version.date_end + timedelta(days=1), time.min,
+                        tzinfo=tz,
                     ).astimezone(ZoneInfo('UTC'))
                 else:
                     date_end = stop
@@ -1307,7 +1345,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         return version_periods_by_employee
 
     @classmethod
-    def _get_calendar_periods(cls, employees, start, stop, check_contract=True):
+    def _get_calendar_periods(
+            cls, employees, start, stop, check_contract=True):
         """≙ ``_get_calendar_periods`` (``:1626-1631``) — los mismos tramos,
         con el calendario de cada versión como valor."""
         return cls._get_version_periods(
@@ -1320,12 +1359,15 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
 
     @classmethod
     def _lang_get(cls):
-        """Idiomas activos — ≙ ``self.env['res.lang'].get_installed()`` (``:76-78``)."""
-        return list(ResLang.objects.filter(active=True).values_list('code', 'name'))
+        """Idiomas activos — ≙ ``self.env['res.lang'].get_installed()``
+        (``:76-78``)."""
+        return list(ResLang.objects.filter(active=True)
+                    .values_list('code', 'name'))
 
     @classmethod
     def _get_certificate_selection(cls):
-        """≙ ``_get_certificate_selection`` (``:443-451``) — lista, no ``TextChoices``.
+        """≙ ``_get_certificate_selection`` (``:443-451``) — lista, no
+        ``TextChoices``.
 
         Se conserva la forma de método (además de ``Certificate``, ver
         DIVERGENCIA del docstring del módulo) porque un consumidor puede
@@ -1334,12 +1376,14 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         return list(cls.Certificate.choices)
 
     def _get_new_hire_field(self):
-        """≙ ``_get_new_hire_field`` (``:419-420``): ``'create_date'`` → ``created_at``."""
+        """≙ ``_get_new_hire_field`` (``:419-420``): ``'create_date'`` →
+        ``created_at``."""
         return 'created_at'
 
     @property
     def newly_hired_computed(self):
-        """≙ ``_compute_newly_hired`` (``:422-431``) — contratado hace < 90 días.
+        """≙ ``_compute_newly_hired`` (``:422-431``) — contratado hace < 90
+        días.
 
         Nombrado distinto de ``newly_hired`` (el campo persistido) porque
         Django no recomputa columnas al leer; ``save()`` sincroniza el
@@ -1368,7 +1412,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         if not self.birthday:
             return 0
         years = target_date.year - self.birthday.year
-        if (target_date.month, target_date.day) < (self.birthday.month, self.birthday.day):
+        if ((target_date.month, target_date.day)
+                < (self.birthday.month, self.birthday.day)):
             years -= 1
         return years
 
@@ -1398,8 +1443,9 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         ``self.__class__.objects.filter(pk=self.pk).values('parent_id')``
         antes de escribir).
         """
-        manager = self.parent
-        if manager and (self.coach_id == previous_parent_id or not self.coach_id):
+        manager = self.parent_id
+        if manager and (self.coach_id == previous_parent_id
+                        or not self.coach_id):
             self.coach = manager
         elif not self.coach_id:
             self.coach = None
@@ -1483,7 +1529,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         distribution = self.salary_distribution or {}
         return min(
             accounts,
-            key=lambda acc: distribution.get(str(acc.pk), {}).get('sequence', float('inf')),
+            key=lambda acc: distribution.get(
+                str(acc.pk), {}).get('sequence', float('inf')),
         )
 
     @property
@@ -1502,7 +1549,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
         distribution = self.salary_distribution or {}
         return [
             account for account in self.bank_account.all()
-            if not distribution.get(str(account.pk), {}).get('amount_is_percentage', True)
+            if not distribution.get(str(account.pk), {}).get(
+                'amount_is_percentage', True)
         ]
 
     def get_bank_account_salary_allocation(self, account_id):
@@ -1715,7 +1763,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
     def _get_employee_m2o_to_empty_on_archived_employees(self):
         """≙ ``_get_employee_m2o_to_empty_on_archived_employees``
         (``:1478-1479``)."""
-        return ['parent', 'coach']
+        return ['parent_id', 'coach']
 
     def _get_user_m2o_to_empty_on_archived_employees(self):
         """≙ ``_get_user_m2o_to_empty_on_archived_employees``

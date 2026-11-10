@@ -191,7 +191,6 @@ addons/hr/models/hr_department.py::HrDepartment.parent
 addons/hr/models/hr_departure_reason.py::HrDepartureReason.country
 addons/hr/models/hr_employee.py::HrEmployee.coach
 addons/hr/models/hr_employee.py::HrEmployee.country_of_birth
-addons/hr/models/hr_employee.py::HrEmployee.parent
 addons/hr/models/hr_employee.py::HrEmployee.version
 addons/hr/models/hr_employee.py::HrEmployee.work_contact
 addons/hr/models/hr_job.py::HrJob.company

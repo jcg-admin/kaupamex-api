@@ -690,15 +690,13 @@ class IrFieldsConverter:
                 import_cache[xmlid] = result
 
         res_model, res_id = result
-        expected = registry.name_of(model)
-        if expected is None:
-            # Sin ``_name`` la guarda no puede discriminar, y un paso mudo
-            # sería el verde que no distingue «el modelo coincide» de «no sé
-            # mirar» — sub-patrón D de ``metrica-decide-la-conclusion.md``.
-            raise ValueError(
-                'El modelo %s no declara ``_name``, así que no se puede '
-                'comprobar a qué modelo apunta el identificador externo %s'
-                % (model.__name__, xmlid))
+        # ``ir_model_data.model`` guarda la etiqueta de Django
+        # (``base.IrModel``), no el ``_name`` (``ir.model``): es la llave que
+        # ``IrModelData`` declara y la que escriben la reflexión y el
+        # cargador (``ir_model.py``, «Qué va en ``model``»). La guarda compara
+        # con esa misma llave; contra ``_name`` rechazaba todo identificador
+        # de un archivo CSV de la referencia.
+        expected = model._meta.label
         if res_model != expected:
             MSG = ('Identificador externo inválido %s: se esperaba el modelo '
                    '%r, se encontró %r')

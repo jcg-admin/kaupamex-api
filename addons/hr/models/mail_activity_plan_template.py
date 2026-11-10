@@ -100,7 +100,7 @@ def _get_closest_parent_user(
                 'responsible': False,
             }
         viewed_responsible.append(responsible_parent)
-        responsible_parent = responsible_parent.parent
+        responsible_parent = responsible_parent.parent_id
 
 
 def _determine_responsible(responsible_type, employee, current_user=None):
@@ -128,7 +128,7 @@ def _determine_responsible(responsible_type, employee, current_user=None):
             # nadie aparece, cae al usuario actual.
             result = _get_closest_parent_user(
                 employee=employee,
-                responsible=employee.coach.parent,
+                responsible=employee.coach.parent_id,
                 error_message=_(
                     'El usuario del coach de %s no está asignado.',
                     employee.name,
@@ -141,12 +141,12 @@ def _determine_responsible(responsible_type, employee, current_user=None):
                 'El gerente del empleado %s no está asignado.', employee.name
             )
         result['responsible'] = (
-            employee.parent.user_id if employee.parent_id else None
+            employee.parent_id.user_id if employee.parent_id else None
         )
         if employee.parent_id and not result['responsible']:
             result = _get_closest_parent_user(
                 employee=employee,
-                responsible=employee.parent.parent,
+                responsible=employee.parent_id.parent_id,
                 error_message=_(
                     'El gerente de %s debería estar ligado a un usuario.',
                     employee.name,
@@ -158,7 +158,7 @@ def _determine_responsible(responsible_type, employee, current_user=None):
         if not result['responsible']:
             result = _get_closest_parent_user(
                 employee=employee,
-                responsible=employee.parent,
+                responsible=employee.parent_id,
                 error_message=_(
                     'El empleado %s debería estar ligado a un usuario.',
                     employee.name,

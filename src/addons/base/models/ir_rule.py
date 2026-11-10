@@ -355,11 +355,13 @@ class IrRule(TimeStampedModel):
         ``company_id`` es la actual (la primera activada).
 
         ``user`` se pasa desde el llamador que lo tenga (una vista con
-        ``request.user``); un dominio que use ``user.id`` sin usuario en
-        contexto revienta al evaluarse, que es preferible a inventar uno.
+        ``request.user``); si nadie lo pasa es el del entorno, como el
+        ``self.env.user`` de la fuente —al instalar, ``base.user_root``—. Sin
+        usuario en ninguno de los dos, un dominio que use ``user.id``
+        revienta al evaluarse, que es preferible a inventar uno.
         """
         return {
-            'user': user,
+            'user': user if user is not None else get_current_user(),
             'company_ids': list(get_current_companies()),
             'company_id': get_current_company(),
         }

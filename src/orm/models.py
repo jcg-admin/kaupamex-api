@@ -5868,6 +5868,21 @@ def order_to_django(model, order, reverse=False, prefix='', seen=frozenset()):
                 comodel, coorder, reverse=direction == 'DESC',
                 prefix=path + '__', seen=seen | {field}))
             continue
+        related = getattr(field, 'related', None)
+        if related and getattr(field, 'column', None) is None:
+            # ≙ ``_order_field_to_sql`` → ``_field_to_sql`` (``:2919-2922``):
+            # un ``related`` sin columna se ordena recorriendo su camino, que
+            # es como ``res.users`` ordena por ``name`` (``_inherits``).
+            target, path = model, prefix
+            *steps, last = related.split('.')
+            for step in steps:
+                hop = model_field_registry(target)[step]
+                path += hop.name + '__'
+                target = hop.related_model
+            terms.extend(order_to_django(
+                target, f"{last} {direction} {nulls}".strip(),
+                prefix=path, seen=seen))
+            continue
         column = ('pk' if fname == 'id' and not prefix
                   else prefix + getattr(field, 'attname', fname))
         expression = F(column)

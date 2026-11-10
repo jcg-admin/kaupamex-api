@@ -19,6 +19,16 @@
     # manifest
     # la declara (DEC-KX-03 punto 1): `hr` en Odoo Community es LGPL-3.
     'license': 'LGPL-3',
+    # Seguridad de la fuente (``odoo19c: hr/__manifest__.py:21-22``), por
+    # ``load_data`` en el ciclo de instalación. ``ir.model.access.csv`` es
+    # copia fiel sin seis filas cuyo modelo no tiene fila en ``ir.model``:
+    # los cuatro asistentes (modelos abstractos de Django, sin tabla) y
+    # ``mail.activity.plan[_template]`` (no portados). Las omisiones del XML
+    # se declaran en su cabecera.
+    'data': [
+        'security/hr_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'application': False,  # corte parcial, no el módulo completo
     'installable': True,
     'auto_install': False,
