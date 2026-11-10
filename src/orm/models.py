@@ -135,7 +135,7 @@ from tools.misc import (OrderedSet, ReadonlyDict, groupby, partition,
                         DEFAULT_SERVER_DATE_FORMAT,
                         DEFAULT_SERVER_DATETIME_FORMAT)
 from tools.query import Query
-from tools.sql import SQL
+from tools.sql import SQL, drop_not_null
 from tools.i18n import format_list
 from loglevels import exception_to_unicode
 
@@ -4102,6 +4102,53 @@ class RecordLoaderMixin(FieldSqlMixin):
                 "index=True to the field definition." % name, obj=cls,
                 id='orm.E102')]
         return []
+
+    @classmethod
+    def _check_removed_columns(cls, log=False, using=None):
+        """≙ ``BaseModel._check_removed_columns`` (``odoo19c: odoo/orm/
+        models.py:3109-3136``).
+
+        Recorre las columnas de la tabla y quita el ``NOT NULL`` de las que el
+        modelo ya no declara como almacenadas —«fields which were required
+        but have been removed (or will be added by another module)»—. Sin él,
+        una columna que dejó un campo retirado o un módulo que la añadía hace
+        fallar todo alta que no la nombra.
+
+        ``_abstract`` se lee en ``_meta.abstract``: aquí todo modelo hereda
+        ``_abstract = True`` (tarea #329). ``env.cr`` es el cursor de la base
+        ``using``, que ``init_models`` pasa con el alias de su registro (L4f
+        de ``designs/module-install-cycle.md``).
+        """
+        if cls._meta.abstract:
+            return
+        table = cls._meta.db_table
+        columns = [
+            field.column for field in model_field_registry(cls).values()
+            if getattr(field, 'concrete', False)
+            and getattr(field, 'column', None)
+        ]
+        alias = using or get_current_cr() or DEFAULT_DB_ALIAS
+        with connections[alias].cursor() as cr:
+            cr.execute(
+                """ SELECT a.attname, a.attnotnull
+                      FROM pg_class c, pg_attribute a
+                     WHERE c.relname=%s
+                       AND c.relnamespace = current_schema::regnamespace
+                       AND c.oid=a.attrelid
+                       AND a.attisdropped=%s
+                       AND pg_catalog.format_type(a.atttypid, a.atttypmod)
+                           NOT IN ('cid', 'tid', 'oid', 'xid')
+                       AND a.attname <> ALL(%s) """,
+                [table, False, columns])
+            for attname, attnotnull in cr.fetchall():
+                if log:
+                    _logger.debug(
+                        "column %s is in the table %s but not in the "
+                        "corresponding object %s",
+                        attname, table, getattr(cls, '_name', None)
+                        or cls._meta.label)
+                if attnotnull:
+                    drop_not_null(cr, table, attname)
 
     @classmethod
     def check(cls, **kwargs):
