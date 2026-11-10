@@ -2368,8 +2368,15 @@ class Registry(Mapping):
             using = self._alias()
             for name in model_names:
                 model = self.models.get(name)
-                if model is not None and hasattr(model, '_auto_init'):
+                if model is None:
+                    continue
+                if hasattr(model, '_auto_init'):
                     model._auto_init(using=using)
+                # ≙ ``model.init()`` tras ``_auto_init`` (``:752``): todo
+                # modelo de la fuente lo tiene; aquí también un modelo de
+                # Django sin el cargador (``hr.employee.public``).
+                if hasattr(model, 'init'):
+                    model.init(using=using)
 
             self._reflect_all(model_names, context)
 

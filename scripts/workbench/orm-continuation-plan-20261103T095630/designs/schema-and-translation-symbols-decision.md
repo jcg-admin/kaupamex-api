@@ -329,3 +329,24 @@ compite con `migrate`, que es la regla de la autoridad del esquema.
 del registro; el gancho base no emite nada; reejecutar `init` es idempotente
 (`CREATE OR REPLACE`). Control: sin la llamada en `init_models`, la vista no
 existe.
+
+### s5 — resultado (2026-11-10T23:07:10)
+
+- **Medido al implementar:** `hr.employee.public` es un modelo de Django
+  sin el mixin del cargador (no tiene `_auto_init`). En la fuente todo
+  modelo tiene `init`, así que `init_models` llama `init(using=…)` en
+  cualquier modelo que lo declare, haya o no `_auto_init`.
+- **Llamador productivo:** `install_cycle` → `modules.loading.load_modules`
+  → `Registry.init_models` (`src/modules/loading.py:239`).
+- **Una sola autoridad por vista:** `res.device` no sobreescribe `init` (su
+  vista la crea `base.0004`); `hr.employee.public` no tiene migración que
+  la cree. Ningún objeto queda con dos creadores.
+- **Pruebas** (`tests/unit/orm/test_schema_auto_init.py`, 3 nuevas): el
+  gancho base no emite SQL; `init_models` crea la vista; un segundo `init`
+  la conserva. Suite del archivo: 17 passed.
+- **Anulación:** sin `model.init(...)` en `init_models` cae exactamente
+  `test_init_models_creates_the_view_of_an_unmanaged_model`; con un gancho
+  base que ejecuta SQL cae exactamente `test_the_base_init_hook_emits_nothing`.
+  En las dos, 16 siguen en verde.
+- *Ciega a:* que la vista caiga en la base del alias y no en la de por
+  defecto; eso lo mide el ci-multidb, no esta suite.

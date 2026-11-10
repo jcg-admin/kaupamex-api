@@ -4214,6 +4214,18 @@ class RecordLoaderMixin(FieldSqlMixin):
             obj.apply_to_database(cls, using=alias)
 
     @classmethod
+    def init(cls, using=None):
+        """≙ ``BaseModel.init`` (``odoo19c: odoo/orm/models.py:3250-3253``):
+        «called after ``_auto_init``, and may be overridden to create or
+        modify a model's database schema».
+
+        El gancho base no hace nada. ``init_models`` lo llama con la base del
+        registro (``using``), también sobre un modelo con ``Meta.managed =
+        False`` (≙ ``_auto = False``): su vista es un objeto que el estado de
+        migraciones no modela.
+        """
+
+    @classmethod
     def check(cls, **kwargs):
         """El ``check`` de Django más ``_check_parent_path`` para un modelo
         con ``_parent_store`` — el punto de ``_auto_init`` (``:3214``)."""

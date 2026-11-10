@@ -217,3 +217,51 @@ def test_init_models_runs_the_reconciliation(env):
         registry.init_models(cr, ['test_orm.category'],
                              {'module': 'test_orm'}, install=False)
     assert _nullable('orphan_flag') == 'YES'
+
+
+# --- s5: el gancho init, tras _auto_init ----------------------------------
+
+VIEW = 'hr_employee_public'
+
+
+def _relkind(name):
+    with connection.cursor() as cr:
+        cr.execute('SELECT relkind FROM pg_class WHERE relname = %s', [name])
+        row = cr.fetchone()
+        return row[0] if row else None
+
+
+def _drop_view():
+    with connection.cursor() as cr:
+        cr.execute(f'DROP VIEW IF EXISTS {VIEW}')
+
+
+def test_the_base_init_hook_emits_nothing(env):
+    """≙ ``BaseModel.init`` (``odoo19c: odoo/orm/models.py:3250-3253``): el
+    gancho base no toca el esquema."""
+    with CaptureQueriesContext(connection) as queries:
+        Registry(connection.alias).models['test_orm.category'].init(
+            using=connection.alias)
+    assert len(queries) == 0
+
+
+def test_init_models_creates_the_view_of_an_unmanaged_model(env):
+    """``hr.employee.public`` no tiene tabla (``_auto = False``): su vista la
+    crea su ``init`` cuando ``init_models`` lo llama tras ``_auto_init``
+    (``odoo19c: odoo/orm/registry.py:751-752``)."""
+    _drop_view()
+    registry = Registry(connection.alias)
+    with connection.cursor() as cr:
+        registry.init_models(cr, ['hr.employee.public'],
+                             {'module': 'hr'}, install=False)
+    assert _relkind(VIEW) == 'v'
+    assert registry.models['hr.employee.public'].objects.count() >= 0
+
+
+def test_a_second_init_keeps_the_view(env):
+    """``CREATE OR REPLACE``: volver a llamar ``init`` no cambia el estado."""
+    _drop_view()
+    model = Registry(connection.alias).models['hr.employee.public']
+    model.init(using=connection.alias)
+    model.init(using=connection.alias)
+    assert _relkind(VIEW) == 'v'

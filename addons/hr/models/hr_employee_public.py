@@ -114,7 +114,7 @@ Divergencias transversales
 
 from datetime import timedelta
 
-from django.db import connection
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.utils import timezone
 
 import fields
@@ -610,8 +610,9 @@ class HrEmployeePublic(models.Model):
         )
 
     @classmethod
-    def init(cls):
-        """Crea o reemplaza la vista — ≙ ``init`` (``:195-203``).
+    def init(cls, using=None):
+        """Crea o reemplaza la vista — ≙ ``init`` (``:195-203``), en la base
+        ``using``.
 
         El JOIN a la versión y al recurso es LEFT: un empleado sin versión
         vigente o sin recurso sigue siendo visible (con esas columnas en
@@ -619,8 +620,10 @@ class HrEmployeePublic(models.Model):
         ``current_version_id`` es obligatorio allá; aquí ``version_id`` es
         opcional (ver ``hr_employee.py``).
 
-        NO la ejecuta ningún flujo de este pase: la migración ``RunSQL``
-        que la instala es el sucesor (mismo flujo que ``base.ResDevice``).
+        La llama ``Registry.init_models`` tras ``_auto_init``, como la
+        fuente (``odoo19c: odoo/orm/registry.py:751-752``): la vista es un
+        objeto que el estado de migraciones no modela, y su única fuente de
+        definición es ``_get_fields``.
         """
         sql = (
             f'CREATE or REPLACE VIEW {cls._meta.db_table} as ('
@@ -630,7 +633,7 @@ class HrEmployeePublic(models.Model):
             'LEFT JOIN resource_resource r ON r.id = e.resource_id'
             ')'
         )
-        with connection.cursor() as cursor:
+        with connections[using or DEFAULT_DB_ALIAS].cursor() as cursor:
             cursor.execute(sql)
 
     def get_avatar_card_data(self, field_names):
