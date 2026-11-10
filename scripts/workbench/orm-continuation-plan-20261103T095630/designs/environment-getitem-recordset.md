@@ -288,6 +288,60 @@ descriptor (`vars(BaseModel)['browse']` es una función) y que
 `env['x'].browse(ids)` sigue funcionando. Reponer el descriptor hace caer la
 primera; quitar G2 hace caer la segunda.
 
+## G3 — implementación
+
+Medición exploratoria (descriptor retirado, subconjunto `orm`, `test_orm`,
+`base`, `hr*`, `web`): 115 failed y 139 errors. Agrupados por el marco que
+llama sobre la clase, los llamadores eran:
+
+| Sitio | Corrección |
+|---|---|
+| `registry._call_hooks` | `model._from_ids(env(), (), ())._register_hook()`, el `env[name]` de la fuente (`odoo/modules/loading.py:588-595`) |
+| `Environment.flush_all` | `model._from_ids(self, (), ()).flush_model()`; el `QuerySet` vacío queda para los modelos de Django |
+| `models._flush` | `self.browse(ids)`; la clase o un `QuerySet` del eje de esquema toman el recordset del entorno activo |
+| `models._model_of_records` | un recordset lleva su modelo aunque esté vacío; sin esto `flush_all` no volcaba nada (6 fallos del gate) |
+| `commands` (One2many y Many2many) | `comodel_records(scope, comodel)`: `env[comodel_name]`; un comodelo de Django sigue como clase con su manager |
+| `fields_relational` (`join`, `convert_to_cache` de Many2one y x2many, `write_new_one2many`) | el comodelo es `env[comodel_name]`; `join` devuelve el recordset, como la fuente, y desaparece el `browse(())` posterior |
+| `convert._tag_delete` | `env[model._name].browse(pks).unlink()` |
+| `models.search_read`, `_search_display_name` | `cls._from_ids(env(), (), ())`, la forma de los métodos de clase envueltos |
+| `web/controllers/export.py` | `env[model._name].with_context(...)` |
+| `test_orm.bar._search_foo` | vuelve a ser método de instancia, como en la fuente (`self.env['test_orm.foo'].browse(value)`) |
+
+Se retiran los 10 `.browse(())` sobre `env[...]` (`fields_relational` y
+`hr_skills`) y `BaseModel.__ror__`, que la fuente no declara y existía por la
+misma adaptación. Diez pruebas y rejillas pasan a `env[MODEL]`; las tres
+rejillas diferenciales reciben ahora el mismo objeto que la referencia.
+
+Prueba nueva: `tests/unit/orm/test_environment_recordset_only.py` (12 casos).
+
+Controles de anulación:
+
+- reponer el descriptor sobre los 9 métodos y `__ror__`: caen exactamente
+  11 de 12 casos de la prueba nueva; sobrevive
+  `test_browse_on_the_empty_recordset_keeps_its_environment`, que mide G2;
+- retirar la rama `BaseModel` de `_model_of_records`: caen exactamente los 6
+  casos de conducta que el gate había marcado (`test_search` ×3,
+  `test_create_recordset`, `test_one2many::test_recomputation_ends`,
+  `test_flush_convergence`) y ningún otro de esos cuatro archivos.
+
+Primer gate completo: 10 failed. Seis por `_model_of_records`, tres de la
+prueba nueva (forma del atributo y clase de la excepción) y
+`test_env_classmethod`, que medía la envoltura sobre `_search_foo`; ahora
+lo mide sobre `hr.employee.skill.get_current_skills_by_employee`.
+
+Gate completo de la forma final: **12 613 passed, 66 skipped, 6 xfailed,
+0 failed, 5 errors** en 693 s; los 5 errores son los de
+`test_multidb_isolation.py` (fixture que exige una base desechable).
+
+Tras el gate, la admisión de estilo pidió partir líneas largas introducidas
+(comentarios, docstrings y cinco líneas de prueba) y no añadir una sentencia
+`import` en `web/controllers/export.py`, que desplazaba el contexto de
+líneas largas heredadas: `env` se toma allí de la misma sentencia de
+`orm.models`, que lo reexporta (el mismo objeto). Son cambios sin efecto de
+conducta; el subconjunto que los toca (`test_env_classmethod`, la prueba
+nueva, `tests/*/web`, `test_one2many` y las dos rejillas de referencia) da
+132 passed, 5 skipped (las de referencia, sin árbol montado aquí).
+
 ## Pendiente
 
 - Medir el flujo entre funciones (clases devueltas por funciones auxiliares
