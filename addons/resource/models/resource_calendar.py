@@ -113,6 +113,12 @@ _DEFAULT_WEEK_SPEC = [
 class ResourceCalendar(TimeStampedModel):
     """``resource.calendar`` — horario de trabajo asociado a recursos."""
 
+    # Atributos de clase de modelo de la fuente
+    # (``odoo19c: resource/models/resource_calendar.py:43-44``); no declara
+    # ``_order``.
+    _name = 'resource.calendar'
+    _description = 'Resource Working Time'
+
     name = fields.Char(max_length=200, help_text='Odoo name (required).')
     active = fields.Boolean(
         default=True,

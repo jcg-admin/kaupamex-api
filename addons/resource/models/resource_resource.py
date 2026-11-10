@@ -57,6 +57,12 @@ class ResourceResource(TimeStampedModel):
     """``resource.resource`` — algo planificable: una persona o una
     máquina/centro de trabajo."""
 
+    # Atributos de clase de modelo de la fuente
+    # (``odoo19c: resource/models/resource_resource.py:17-19``).
+    _name = 'resource.resource'
+    _description = 'Resources'
+    _order = 'name'
+
     name = fields.Char(max_length=200, help_text='Odoo name.')
     active = fields.Boolean(
         default=True,

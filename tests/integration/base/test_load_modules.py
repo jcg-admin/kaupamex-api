@@ -86,3 +86,22 @@ def test_migrate_runs_the_cycle_and_flush_does_not(monkeypatch):
     emit_post_migrate_signal(0, False, 'default', plan=[])
     emit_post_migrate_signal(0, False, 'default')
     assert seen == ['default']
+
+
+def test_a_failing_module_leaves_none_of_its_rows(monkeypatch):
+    """Cada módulo se instala en su transacción: un archivo de datos que falla
+    a medias no deja filas, como en la fuente, que confirma tras cargar un
+    módulo y revierte el que falla (``loading.py:186-260``)."""
+    privilege = apps.get_model('base', 'ResGroupsPrivilege')
+    real = loading.load_data
+
+    def failing(idref, mode, kind, package, *, using):
+        if package.name == 'hr':
+            privilege.objects.using(using).create(name='Carga a medias')
+            raise RuntimeError('archivo de datos roto')
+        return real(idref, mode, kind, package, using=using)
+
+    monkeypatch.setattr(loading, 'load_data', failing)
+    with pytest.raises(RuntimeError):
+        loading.load_modules('default')
+    assert not privilege.objects.filter(name='Carga a medias').exists()

@@ -105,8 +105,8 @@ from django.db.models.fields.related import (RelatedField,
                                              lazy_related_operation)
 
 from orm.commands import (Command, apply_many2many_commands,
-                          apply_one2many_commands, comodel_records,
-                          is_command_list)
+                          apply_one2many_commands, command_triples,
+                          comodel_records, is_command_list)
 from orm.environments import Query, env as get_environment, get_current_uid
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
@@ -576,7 +576,7 @@ class One2many:
         comodel = self._comodel()
         current = list(current)
         if is_command_list(value):
-            for code, target, payload in value:
+            for code, target, payload in command_triples(value):
                 if code == Command.CREATE:
                     current.append(comodel.create(payload).id)
                 elif code == Command.UPDATE:

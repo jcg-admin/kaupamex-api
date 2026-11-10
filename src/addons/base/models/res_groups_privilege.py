@@ -31,6 +31,14 @@ class ResGroupsPrivilege(TimeStampedModel):
     Etiqueta que agrupa grupos en el formulario (``res.groups.privilege``).
     """
 
+    # Atributos de clase de modelo de la fuente (``odoo19c:
+    # odoo/addons/base/models/res_groups_privilege.py:5-7``). Sin ``_name``
+    # el cargador de datos no podía nombrar el modelo de los registros
+    # ``res.groups.privilege`` de ``hr/security/hr_security.xml``.
+    _name = 'res.groups.privilege'
+    _description = 'Privileges'
+    _order = 'sequence, name, id'
+
     name = models.CharField(max_length=120, verbose_name='Nombre')
     description = models.TextField(
         blank=True,

@@ -3433,14 +3433,28 @@ class RecordLoaderMixin(FieldSqlMixin):
         Es el símbolo que ``ResPartner._load_records_create`` sobreescribe
         (``odoo19c: res_partner.py:988``): el enganche que el cargador ofrece
         para que un modelo intervenga en la creación desde datos.
+
+        La fuente crea con ``self.create(vals_list)``, que interpreta los
+        triples de ``Command`` del lado directo de un ``Many2many``
+        (``Many2many.write_real``). Aquí ``create`` no existe en todo modelo,
+        así que el lado directo se aparta y se aplica con la fila ya guardada
+        con :func:`apply_many2many_commands`, como hace
+        ``_load_records_write`` (diseño ``module-install-cycle.md``, L4c).
         """
         records = []
+        registry_ = model_field_registry(cls)
         for vals in vals_list:
             scalar, relational = cls._load_records_split_relational(vals)
+            many2many = {
+                name: scalar.pop(name) for name in list(scalar)
+                if isinstance(registry_.get(name), ManyToManyField)
+            }
             record = cls.objects.using(using).create(
                 **cls._load_records_coerce_vals(scalar))
             if relational:
                 record._load_records_apply_relational(relational)
+            for name, value in many2many.items():
+                apply_many2many_commands(record, registry_[name], value)
             records.append(record)
         if any(isinstance(field, Properties)
                for field in cls._meta.get_fields()):

@@ -214,6 +214,10 @@ def load_modules(using):
     category. Declared divergence: installing here is being in
     ``INSTALLED_APPS`` with the schema migrated, so every listed addon is
     installed; installation on request stays with TASK-API-0382.
+
+    Each module runs in its own transaction, as the reference commits after
+    a module loads and leaves a failing one rolled back: a data file that
+    fails halfway leaves none of that module's rows behind.
     """
     call_command('update_module_list', database=using, verbosity=0)
     IrModule = apps.get_model('base', 'IrModule')
@@ -230,12 +234,15 @@ def load_modules(using):
                 if getattr(getattr(model, '_meta', None), 'app_label',
                            None) == package.name
             ]
-            with connections[using].cursor() as cursor:
-                registry.init_models(
-                    cursor, model_names, {'module': package.name}, install)
-            load_data({}, 'init' if install else 'update', 'data', package,
-                      using=using)
-            if install:
-                row.state = IrModule.STATE_INSTALLED
-                row.save(using=using, update_fields=['state', 'updated_at'])
-        environment.flush_all()
+            with transaction.atomic(using=using):
+                with connections[using].cursor() as cursor:
+                    registry.init_models(
+                        cursor, model_names, {'module': package.name},
+                        install)
+                load_data({}, 'init' if install else 'update', 'data',
+                          package, using=using)
+                if install:
+                    row.state = IrModule.STATE_INSTALLED
+                    row.save(using=using,
+                             update_fields=['state', 'updated_at'])
+                environment.flush_all()

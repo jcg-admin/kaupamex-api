@@ -69,6 +69,12 @@ class ResourceCalendarAttendance(TimeStampedModel):
     """``resource.calendar.attendance`` — un tramo de trabajo de un día de
     la semana (p. ej. "Lunes mañana, 08:00-12:00")."""
 
+    # Atributos de clase de modelo de la fuente (``odoo19c:
+    # resource/models/resource_calendar_attendance.py:10-12``).
+    _name = 'resource.calendar.attendance'
+    _description = 'Work Detail'
+    _order = 'sequence, week_type, dayofweek, hour_from'
+
     name = fields.Char(max_length=100, help_text='Odoo name.')
     dayofweek = fields.Selection(
         max_length=1,

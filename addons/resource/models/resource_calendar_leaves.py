@@ -54,6 +54,12 @@ class ResourceCalendarLeaves(TimeStampedModel):
     """``resource.calendar.leaves`` — una ausencia general de la compañía o
     de un recurso concreto."""
 
+    # Atributos de clase de modelo de la fuente (``odoo19c:
+    # resource/models/resource_calendar_leaves.py:13-15``).
+    _name = 'resource.calendar.leaves'
+    _description = 'Resource Time Off Detail'
+    _order = 'date_from'
+
     name = fields.Char(
         max_length=200, blank=True, default='', help_text='Odoo name.'
     )

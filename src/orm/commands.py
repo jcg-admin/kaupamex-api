@@ -124,15 +124,28 @@ def _is_id(value):
 
 
 def is_command_list(value):
-    """``True`` si ``value`` es una lista de triples de comando de la fuente.
+    """``True`` si ``value`` es una lista de comandos x2many de la fuente.
 
     El código es un ``int`` —el literal de RPC o el miembro de
-    :class:`Command`, que es un ``IntEnum``—, nunca un ``bool``.
+    :class:`Command`, que es un ``IntEnum``—, nunca un ``bool``. La fuente
+    lee cada comando por índice (``command[0]``, ``command[1]``,
+    ``command[2]``; ``odoo19c: odoo/orm/fields_relational.py:1464-1481``), así
+    que también son comandos las formas cortas que escriben sus archivos de
+    datos: ``(4, id)``, ``(3, id)`` y ``(5,)``. Las recorre
+    :func:`command_triples`.
     """
     return (isinstance(value, (list, tuple)) and bool(value)
-            and all(isinstance(item, (list, tuple)) and len(item) == 3
+            and all(isinstance(item, (list, tuple)) and 1 <= len(item) <= 3
                     and isinstance(item[0], int)
                     and not isinstance(item[0], bool) for item in value))
+
+
+def command_triples(commands):
+    """Cada comando como ``(código, objetivo, carga)``, con lo que falta en
+    ``0`` — la lectura por índice de la fuente sobre una forma corta."""
+    for command in commands:
+        code, target, payload = (tuple(command) + (0, 0))[:3]
+        yield code, target, payload
 
 
 def _row_id(value):
@@ -236,7 +249,7 @@ def apply_many2many_commands(record, field, value):
 def _apply_many2many_triples(manager, comodel, value):
     """Los triples de ``Many2many.write_real`` (``:1460-1495``), dentro del
     entorno que :func:`_check_sudo_commands` decide."""
-    for code, target, payload in value:
+    for code, target, payload in command_triples(value):
         if code == Command.CREATE:
             created = (comodel.create(payload) if hasattr(comodel, 'create')
                        else comodel.objects.create(**payload))
@@ -358,7 +371,7 @@ def _apply_one2many_triples(record, rel, value, create, environment):
                 _write_line(line, {inverse: record.pk})
             to_link.clear()
 
-    for code, target, payload in value:
+    for code, target, payload in command_triples(value):
         if code == Command.CREATE:
             to_create.append(dict(payload, **{inverse: record.pk}))
             allow_full_delete = False
