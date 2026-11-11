@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="4" failures="0" skipped="0" tests="5" time="1074.312" timestamp="2026-11-10T15:24:07.014548" hostname="vm"><testcase classname="tests.integration.company.test_multidb_isolation.TestN1DegenerationRealWrite" name="test_domain_write_without_any_company_alias_lands_in_default" time="535.675" /><testcase classname="tests.integration.company.test_multidb_isolation.TestCrossCompanyIsolationByBase" name="test_write_under_company_scope_lands_in_its_own_base" time="537.884"><error message="failed on setup with &quot;tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside&#10;&lt;record id=&quot;hr_employee_comp_rule&quot; model=&quot;ir.rule&quot;&gt;&#10;        &lt;field name=&quot;name&quot;&gt;Employee multi company rule&lt;/field&gt;&#10;        &lt;field name=&quot;model_id&quot; ref=&quot;model_hr_employee&quot;/&gt;&#10;        &lt;field name=&quot;domain_force&quot;&gt;['|', '|', '|',&#10;            ('company_id', 'in', company_ids + [False]),&#10;            ('parent_id.user_id', '=', user.id),&#10;            ('id', '=', user.employee_id.parent_id.id),&#10;            ('user_id', '=', user.id)&#10;        ]&lt;/field&gt;&#10;    &lt;/record&gt;&quot;">src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:654: in _tag_record
+    return self._tag_record_inner(rec, model, rec_model, rec_id,
+src/tools/convert.py:741: in _tag_record_inner
+    f_val = self.id_get(f_ref, raise_if_not_found=nodeattr2bool(
+src/tools/convert.py:490: in id_get
+    return self.model_id_get(id_str, raise_if_not_found)[1]
+src/tools/convert.py:496: in model_id_get
+    return IrModelData._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3099: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3087: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: hr.model_hr_employee
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:79: in two_company_databases
+    with _company_databases((_ALIAS_A, _ALIAS_B)) as aliases:
+/usr/local/lib/python3.13/contextlib.py:141: in __enter__
+    return next(self.gen)
+tests/integration/company/test_multidb_isolation.py:62: in _company_databases
+    svc.provision_company_database(alias)
+src/service/db.py:494: in provision_company_database
+    _migrate_company_database(db_name, using)
+src/service/db.py:472: in _migrate_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:381: in handle
+    emit_post_migrate_signal(
+.venv/lib/python3.13/site-packages/django/core/management/sql.py:52: in emit_post_migrate_signal
+    models.signals.post_migrate.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+src/addons/base/install_cycle.py:30: in load_modules_after_migrate
+    modules.loading.load_modules(using)
+src/modules/loading.py:242: in load_modules
+    load_data({}, 'init' if install else 'update', 'data',
+src/modules/loading.py:119: in load_data
+    convert_file(
+src/tools/convert.py:1015: in convert_file
+    convert_xml_import(module, handle, idref, mode, noupdate,
+src/tools/convert.py:1139: in convert_xml_import
+    obj.parse(doc.getroot())
+src/tools/convert.py:951: in parse
+    self._tag_root(de)
+src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:936: in _tag_root
+    raise ParseError(
+E   tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside
+E   &lt;record id="hr_employee_comp_rule" model="ir.rule"&gt;
+E           &lt;field name="name"&gt;Employee multi company rule&lt;/field&gt;
+E           &lt;field name="model_id" ref="model_hr_employee"/&gt;
+E           &lt;field name="domain_force"&gt;['|', '|', '|',
+E               ('company_id', 'in', company_ids + [False]),
+E               ('parent_id.user_id', '=', user.id),
+E               ('id', '=', user.employee_id.parent_id.id),
+E               ('user_id', '=', user.id)
+E           ]&lt;/field&gt;
+E       &lt;/record&gt;</error></testcase><testcase classname="tests.integration.company.test_multidb_isolation.TestCrossCompanyIsolationByBase" name="test_rows_from_company_a_not_visible_under_company_b_scope" time="0.000"><error message="failed on setup with &quot;tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside&#10;&lt;record id=&quot;hr_employee_comp_rule&quot; model=&quot;ir.rule&quot;&gt;&#10;        &lt;field name=&quot;name&quot;&gt;Employee multi company rule&lt;/field&gt;&#10;        &lt;field name=&quot;model_id&quot; ref=&quot;model_hr_employee&quot;/&gt;&#10;        &lt;field name=&quot;domain_force&quot;&gt;['|', '|', '|',&#10;            ('company_id', 'in', company_ids + [False]),&#10;            ('parent_id.user_id', '=', user.id),&#10;            ('id', '=', user.employee_id.parent_id.id),&#10;            ('user_id', '=', user.id)&#10;        ]&lt;/field&gt;&#10;    &lt;/record&gt;&quot;">src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:654: in _tag_record
+    return self._tag_record_inner(rec, model, rec_model, rec_id,
+src/tools/convert.py:741: in _tag_record_inner
+    f_val = self.id_get(f_ref, raise_if_not_found=nodeattr2bool(
+src/tools/convert.py:490: in id_get
+    return self.model_id_get(id_str, raise_if_not_found)[1]
+src/tools/convert.py:496: in model_id_get
+    return IrModelData._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3099: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3087: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: hr.model_hr_employee
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:79: in two_company_databases
+    with _company_databases((_ALIAS_A, _ALIAS_B)) as aliases:
+/usr/local/lib/python3.13/contextlib.py:141: in __enter__
+    return next(self.gen)
+tests/integration/company/test_multidb_isolation.py:62: in _company_databases
+    svc.provision_company_database(alias)
+src/service/db.py:494: in provision_company_database
+    _migrate_company_database(db_name, using)
+src/service/db.py:472: in _migrate_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:381: in handle
+    emit_post_migrate_signal(
+.venv/lib/python3.13/site-packages/django/core/management/sql.py:52: in emit_post_migrate_signal
+    models.signals.post_migrate.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+src/addons/base/install_cycle.py:30: in load_modules_after_migrate
+    modules.loading.load_modules(using)
+src/modules/loading.py:242: in load_modules
+    load_data({}, 'init' if install else 'update', 'data',
+src/modules/loading.py:119: in load_data
+    convert_file(
+src/tools/convert.py:1015: in convert_file
+    convert_xml_import(module, handle, idref, mode, noupdate,
+src/tools/convert.py:1139: in convert_xml_import
+    obj.parse(doc.getroot())
+src/tools/convert.py:951: in parse
+    self._tag_root(de)
+src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:936: in _tag_root
+    raise ParseError(
+E   tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside
+E   &lt;record id="hr_employee_comp_rule" model="ir.rule"&gt;
+E           &lt;field name="name"&gt;Employee multi company rule&lt;/field&gt;
+E           &lt;field name="model_id" ref="model_hr_employee"/&gt;
+E           &lt;field name="domain_force"&gt;['|', '|', '|',
+E               ('company_id', 'in', company_ids + [False]),
+E               ('parent_id.user_id', '=', user.id),
+E               ('id', '=', user.employee_id.parent_id.id),
+E               ('user_id', '=', user.id)
+E           ]&lt;/field&gt;
+E       &lt;/record&gt;</error></testcase><testcase classname="tests.integration.company.test_multidb_isolation.TestSol085RowScopingIntraBase" name="test_row_scoping_filters_by_row_and_fk_resolves_intra_base" time="0.000"><error message="failed on setup with &quot;tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside&#10;&lt;record id=&quot;hr_employee_comp_rule&quot; model=&quot;ir.rule&quot;&gt;&#10;        &lt;field name=&quot;name&quot;&gt;Employee multi company rule&lt;/field&gt;&#10;        &lt;field name=&quot;model_id&quot; ref=&quot;model_hr_employee&quot;/&gt;&#10;        &lt;field name=&quot;domain_force&quot;&gt;['|', '|', '|',&#10;            ('company_id', 'in', company_ids + [False]),&#10;            ('parent_id.user_id', '=', user.id),&#10;            ('id', '=', user.employee_id.parent_id.id),&#10;            ('user_id', '=', user.id)&#10;        ]&lt;/field&gt;&#10;    &lt;/record&gt;&quot;">src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:654: in _tag_record
+    return self._tag_record_inner(rec, model, rec_model, rec_id,
+src/tools/convert.py:741: in _tag_record_inner
+    f_val = self.id_get(f_ref, raise_if_not_found=nodeattr2bool(
+src/tools/convert.py:490: in id_get
+    return self.model_id_get(id_str, raise_if_not_found)[1]
+src/tools/convert.py:496: in model_id_get
+    return IrModelData._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3099: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3087: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: hr.model_hr_employee
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:79: in two_company_databases
+    with _company_databases((_ALIAS_A, _ALIAS_B)) as aliases:
+/usr/local/lib/python3.13/contextlib.py:141: in __enter__
+    return next(self.gen)
+tests/integration/company/test_multidb_isolation.py:62: in _company_databases
+    svc.provision_company_database(alias)
+src/service/db.py:494: in provision_company_database
+    _migrate_company_database(db_name, using)
+src/service/db.py:472: in _migrate_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:381: in handle
+    emit_post_migrate_signal(
+.venv/lib/python3.13/site-packages/django/core/management/sql.py:52: in emit_post_migrate_signal
+    models.signals.post_migrate.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+src/addons/base/install_cycle.py:30: in load_modules_after_migrate
+    modules.loading.load_modules(using)
+src/modules/loading.py:242: in load_modules
+    load_data({}, 'init' if install else 'update', 'data',
+src/modules/loading.py:119: in load_data
+    convert_file(
+src/tools/convert.py:1015: in convert_file
+    convert_xml_import(module, handle, idref, mode, noupdate,
+src/tools/convert.py:1139: in convert_xml_import
+    obj.parse(doc.getroot())
+src/tools/convert.py:951: in parse
+    self._tag_root(de)
+src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:936: in _tag_root
+    raise ParseError(
+E   tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside
+E   &lt;record id="hr_employee_comp_rule" model="ir.rule"&gt;
+E           &lt;field name="name"&gt;Employee multi company rule&lt;/field&gt;
+E           &lt;field name="model_id" ref="model_hr_employee"/&gt;
+E           &lt;field name="domain_force"&gt;['|', '|', '|',
+E               ('company_id', 'in', company_ids + [False]),
+E               ('parent_id.user_id', '=', user.id),
+E               ('id', '=', user.employee_id.parent_id.id),
+E               ('user_id', '=', user.id)
+E           ]&lt;/field&gt;
+E       &lt;/record&gt;</error></testcase><testcase classname="tests.integration.company.test_multidb_isolation" name="test_company_schemas_and_native_connections" time="0.001"><error message="failed on setup with &quot;tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside&#10;&lt;record id=&quot;hr_employee_comp_rule&quot; model=&quot;ir.rule&quot;&gt;&#10;        &lt;field name=&quot;name&quot;&gt;Employee multi company rule&lt;/field&gt;&#10;        &lt;field name=&quot;model_id&quot; ref=&quot;model_hr_employee&quot;/&gt;&#10;        &lt;field name=&quot;domain_force&quot;&gt;['|', '|', '|',&#10;            ('company_id', 'in', company_ids + [False]),&#10;            ('parent_id.user_id', '=', user.id),&#10;            ('id', '=', user.employee_id.parent_id.id),&#10;            ('user_id', '=', user.id)&#10;        ]&lt;/field&gt;&#10;    &lt;/record&gt;&quot;">src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:654: in _tag_record
+    return self._tag_record_inner(rec, model, rec_model, rec_id,
+src/tools/convert.py:741: in _tag_record_inner
+    f_val = self.id_get(f_ref, raise_if_not_found=nodeattr2bool(
+src/tools/convert.py:490: in id_get
+    return self.model_id_get(id_str, raise_if_not_found)[1]
+src/tools/convert.py:496: in model_id_get
+    return IrModelData._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3099: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:147: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:222: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3087: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: hr.model_hr_employee
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:79: in two_company_databases
+    with _company_databases((_ALIAS_A, _ALIAS_B)) as aliases:
+/usr/local/lib/python3.13/contextlib.py:141: in __enter__
+    return next(self.gen)
+tests/integration/company/test_multidb_isolation.py:62: in _company_databases
+    svc.provision_company_database(alias)
+src/service/db.py:494: in provision_company_database
+    _migrate_company_database(db_name, using)
+src/service/db.py:472: in _migrate_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:381: in handle
+    emit_post_migrate_signal(
+.venv/lib/python3.13/site-packages/django/core/management/sql.py:52: in emit_post_migrate_signal
+    models.signals.post_migrate.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+src/addons/base/install_cycle.py:30: in load_modules_after_migrate
+    modules.loading.load_modules(using)
+src/modules/loading.py:242: in load_modules
+    load_data({}, 'init' if install else 'update', 'data',
+src/modules/loading.py:119: in load_data
+    convert_file(
+src/tools/convert.py:1015: in convert_file
+    convert_xml_import(module, handle, idref, mode, noupdate,
+src/tools/convert.py:1139: in convert_xml_import
+    obj.parse(doc.getroot())
+src/tools/convert.py:951: in parse
+    self._tag_root(de)
+src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:936: in _tag_root
+    raise ParseError(
+E   tools.convert.ParseError: while parsing /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-8ab54be4/kaupamex-api/addons/hr/security/hr_security.xml:47, somewhere inside
+E   &lt;record id="hr_employee_comp_rule" model="ir.rule"&gt;
+E           &lt;field name="name"&gt;Employee multi company rule&lt;/field&gt;
+E           &lt;field name="model_id" ref="model_hr_employee"/&gt;
+E           &lt;field name="domain_force"&gt;['|', '|', '|',
+E               ('company_id', 'in', company_ids + [False]),
+E               ('parent_id.user_id', '=', user.id),
+E               ('id', '=', user.employee_id.parent_id.id),
+E               ('user_id', '=', user.id)
+E           ]&lt;/field&gt;
+E       &lt;/record&gt;</error></testcase></testsuite></testsuites>

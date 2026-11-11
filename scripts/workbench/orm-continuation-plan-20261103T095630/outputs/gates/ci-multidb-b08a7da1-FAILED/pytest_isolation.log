@@ -1,0 +1,440 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-7.4.4, pluggy-1.6.0 -- /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-b08a7da1/kaupamex-api/.venv/bin/python3
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-b08a7da1/kaupamex-api
+configfile: pytest.ini
+plugins: Faker-40.20.0, xdist-3.6.1, django-4.7.0
+collecting ... collected 5 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default ERROR [ 20%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base ERROR [ 40%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope ERROR [ 60%]
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base ERROR [ 80%]
+tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections ERROR [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/special.py:199: in database_forwards
+    self.code(from_state.apps, schema_editor)
+src/orm/migration_operations.py:50: in _compute
+    Model.flush_model(model, self.field_names)
+src/orm/models.py:5224: in flush_model
+    _flush(self)
+src/orm/models.py:5138: in _flush
+    _write_rows(model, ids, vals_list)
+src/orm/models.py:5177: in _write_rows
+    row.save(update_fields=names)
+src/addons/base/models/ir_rule.py:335: in save
+    result = super().save(*args, **kwargs)
+src/orm/fields_temporal.py:604: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3248: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1779: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:981: in save_base
+    post_save.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/base_automation/models/signals.py:106: in _dispatch_create_write
+    if not automations:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:404: in __bool__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+---------------------------- Captured stderr setup -----------------------------
+Creating test database for alias 'default'...
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/special.py:199: in database_forwards
+    self.code(from_state.apps, schema_editor)
+src/orm/migration_operations.py:50: in _compute
+    Model.flush_model(model, self.field_names)
+src/orm/models.py:5224: in flush_model
+    _flush(self)
+src/orm/models.py:5138: in _flush
+    _write_rows(model, ids, vals_list)
+src/orm/models.py:5177: in _write_rows
+    row.save(update_fields=names)
+src/addons/base/models/ir_rule.py:335: in save
+    result = super().save(*args, **kwargs)
+src/orm/fields_temporal.py:604: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3248: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1779: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:981: in save_base
+    post_save.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/base_automation/models/signals.py:106: in _dispatch_create_write
+    if not automations:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:404: in __bool__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_rows_from_company_a_not_visible_under_company_b_scope _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/special.py:199: in database_forwards
+    self.code(from_state.apps, schema_editor)
+src/orm/migration_operations.py:50: in _compute
+    Model.flush_model(model, self.field_names)
+src/orm/models.py:5224: in flush_model
+    _flush(self)
+src/orm/models.py:5138: in _flush
+    _write_rows(model, ids, vals_list)
+src/orm/models.py:5177: in _write_rows
+    row.save(update_fields=names)
+src/addons/base/models/ir_rule.py:335: in save
+    result = super().save(*args, **kwargs)
+src/orm/fields_temporal.py:604: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3248: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1779: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:981: in save_base
+    post_save.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/base_automation/models/signals.py:106: in _dispatch_create_write
+    if not automations:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:404: in __bool__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+_ ERROR at setup of TestSol085RowScopingIntraBase.test_row_scoping_filters_by_row_and_fk_resolves_intra_base _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/special.py:199: in database_forwards
+    self.code(from_state.apps, schema_editor)
+src/orm/migration_operations.py:50: in _compute
+    Model.flush_model(model, self.field_names)
+src/orm/models.py:5224: in flush_model
+    _flush(self)
+src/orm/models.py:5138: in _flush
+    _write_rows(model, ids, vals_list)
+src/orm/models.py:5177: in _write_rows
+    row.save(update_fields=names)
+src/addons/base/models/ir_rule.py:335: in save
+    result = super().save(*args, **kwargs)
+src/orm/fields_temporal.py:604: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3248: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1779: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:981: in save_base
+    post_save.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/base_automation/models/signals.py:106: in _dispatch_create_write
+    if not automations:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:404: in __bool__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/special.py:199: in database_forwards
+    self.code(from_state.apps, schema_editor)
+src/orm/migration_operations.py:50: in _compute
+    Model.flush_model(model, self.field_names)
+src/orm/models.py:5224: in flush_model
+    _flush(self)
+src/orm/models.py:5138: in _flush
+    _write_rows(model, ids, vals_list)
+src/orm/models.py:5177: in _write_rows
+    row.save(update_fields=names)
+src/addons/base/models/ir_rule.py:335: in save
+    result = super().save(*args, **kwargs)
+src/orm/fields_temporal.py:604: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3248: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1779: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:981: in save_base
+    post_save.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/base_automation/models/signals.py:106: in _dispatch_create_write
+    if not automations:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:404: in __bool__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "base_automation" does not exist
+E   LINE 1: ...filter_domain", "base_automation"."last_run" FROM "base_auto...
+E                                                                ^
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-b08a7da1/kaupamex-api/src/orm/fields.py:4458: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-b08a7da1/kaupamex-api/src/orm/fields.py:4458: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-b08a7da1/kaupamex-api/test-results/multidb/junit_isolation.xml -
+=========================== short test summary info ============================
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+================== 2 warnings, 5 errors in 243.27s (0:04:03) ===================
