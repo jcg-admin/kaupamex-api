@@ -54,9 +54,11 @@ class MrpBom(TimeStampedModel):
     # uno: la plantilla es obligatoria y la variante es opcional. Estaban
     # fusionados aquí en un solo 'product' cuyo help_text ya admitía la mezcla
     # ("Odoo product_id/product_tmpl_id"). Ver H-API-208.
+    #: Obligatorio sin ``ondelete`` en la fuente (``mrp_bom.py:31-34``): su
+    #: defecto es ``restrict``; borrar una plantilla con listas falla.
     product_tmpl = fields.Many2one(
         'product.ProductTemplate',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='boms',
         help_text='Plantilla fabricada (Odoo product_tmpl_id, required).',
     )

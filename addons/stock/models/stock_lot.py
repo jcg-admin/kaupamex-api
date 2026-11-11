@@ -266,9 +266,11 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             'fabricante (Odoo ref).'
         ),
     )
+    #: Obligatorio sin ``ondelete`` en la fuente (``stock_lot.py:44-48``): su
+    #: defecto es ``restrict``; borrar un producto con lotes falla.
     product = fields.Many2one(
         'product.ProductProduct',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='lots',
         help_text='Producto (Odoo product_id).',
     )

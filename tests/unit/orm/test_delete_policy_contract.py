@@ -37,6 +37,8 @@ CORRECTED = {
     # designs/country-and-todo-restrict-ondelete.md
     'base.ResCountryState.country', 'base_address_extended.ResCity.country_id',
     'base.IrActionsTodo.action',
+    # designs/product-lot-bom-restrict-ondelete.md
+    'stock.StockLot.product', 'mrp.MrpBom.product_tmpl',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
