@@ -32,6 +32,7 @@ from orm.model_classes import (
     ensure_access_managers,
     ensure_base_urls,
     ensure_display_names,
+    ensure_log_access,
     ensure_model_class_attributes,
     ensure_rec_names,
     ensure_schema_hooks,
@@ -100,6 +101,9 @@ class BaseConfig(AppConfig):
         # (``_auto_init``, ``init``…), para los que no heredan el cargador.
         ensure_schema_hooks()
         ensure_base_urls()
+        # Las columnas de acceso de la fuente en los modelos de la referencia
+        # que no heredan ``TimeStampedModel`` (DEC-09).
+        ensure_log_access()
         # Y ``ensure_inherits()``, que cablea la delegacion de TODO modelo
         # registrado que declare ``_inherits`` — no solo ``ResUsers``. El
         # bucle escrito a mano que habia aqui dejaba fuera a ``ir.cron``, que

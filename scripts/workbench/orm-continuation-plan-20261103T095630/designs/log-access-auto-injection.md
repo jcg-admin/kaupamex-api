@@ -119,3 +119,29 @@ archivos en `.venv/…/django/contrib/{contenttypes,sessions,admin,auth}/migrati
 
 El stack instalado no se modificó de forma persistente.
 
+
+## Verificación (2026-11-11, sobre `d084db32`)
+
+- Base desechable `orm_x2hokp_wtc` migrada desde cero con la unidad C: las
+  pruebas de A, de C y de la operación de cómputo dan 20 de 21 en la primera
+  ejecución. La que falló fue la prueba: creaba `res.country` con `TM`, que
+  es Turkmenistán y ya lo siembra la base. Pasa a `QZ`, de uso privado en
+  ISO 3166-1. `res.country` no hereda la base del ORM y no tiene `write()`,
+  así que la prueba usa `save()`, que es su ruta.
+- `makemigrations --check`: sin cambios.
+- **Las dos mitades de juicio actúan al cargar las clases.** Una mutación
+  global de cualquiera rompe el arranque. La comprobación de sincronía entre
+  modelos y migraciones (TASK-API-0515) responde `Columns … of table
+  ir_model_inherit … do not exist`, y las 8 pruebas caen en el montaje. Ese
+  control no discrimina por prueba. Por eso las anulaciones se acotan a las
+  sondas del módulo de prueba:
+
+  | Mitad anulada | Cae | Sobreviven |
+  |---|---|---|
+  | exclusión `_log_access = False` | `test_a_probe_with_log_access_off_receives_nothing` | 9 |
+  | comprobación de columnas presentes | `test_a_declared_column_is_not_overwritten` | 9 |
+
+  La primera versión de la segunda prueba pasaba con la mutación por dos
+  razones. Declaraba `create_date`, que en A todavía no es columna del
+  log-access. Y `get_field` devuelve el primer campo de un nombre repetido,
+  así que el duplicado sólo se ve contando los campos locales.

@@ -1766,3 +1766,84 @@ def determine_table_objects(sender, **kwargs):
         else:
             add_meta_index(sender, obj.to_django(sender))
     sender._table_objects = ReadonlyDict(table_objects)
+
+
+#: Dónde se declaran las cuatro columnas de acceso que se copian: la base
+#: común del árbol. Se resuelve con ``importlib`` por la misma razón que
+#: :func:`adopt_display_name`: importarla al top arrastra ``orm.models``.
+LOG_ACCESS_DECLARER = 'addons.base.models.timestamped_mixin'
+
+
+def _wants_log_access(model_cls):
+    """¿Le corresponde al modelo el log-access de la fuente?
+
+    ≙ ``attrs.get('_log_access', self._auto)`` (``odoo19c:
+    odoo/orm/models.py:283``) y ``_log_access = _auto``
+    (``odoo/orm/model_classes.py:267``). ``_auto`` es aquí ``Meta.managed``
+    (``orm/models.py``, la nota de :class:`Model`), no el atributo: la
+    ``BaseModel`` de este árbol lo declara ``False`` como la de la fuente y no
+    hay una ``Model`` que lo devuelva a ``True``. Sólo los modelos de la
+    referencia —con ``_name`` propio—; las tablas de un Many2many no llevan
+    columnas, como allá.
+    """
+    meta = model_cls._meta
+    if meta.abstract or meta.proxy or not meta.managed:
+        return False
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return False
+    if not model_cls.__dict__.get('_name'):
+        return False
+    return getattr(model_cls, '_log_access', True) is not False
+
+
+def adopt_log_access(model_cls):
+    """Instala las columnas de acceso en el modelo que no las hereda.
+
+    ≙ el ``add_default`` de las cuatro columnas en el metaclase de la fuente
+    (``odoo19c: odoo/orm/models.py:274-292``): **todo** modelo con
+    ``_log_access`` las tiene sin declararlas, y un campo declarado no se
+    pisa. Aquí las declara ``TimeStampedModel`` y esta función las copia a
+    los modelos de la referencia que no lo heredan (DEC-09,
+    ``designs/log-access-auto-injection.md``), con ``add_to_class`` sobre una
+    ``copy.deepcopy``, que es lo que ``ModelBase`` hace con los campos de una
+    base abstracta.
+
+    :returns: cuántas columnas instaló — 0 si no le corresponde o ya las
+        tenía, para que el llamador mida en vez de suponer.
+    """
+    if not _wants_log_access(model_cls):
+        return 0
+    declarer = importlib.import_module(LOG_ACCESS_DECLARER).TimeStampedModel
+    present = {field.name
+               for cls in (model_cls, *model_cls._meta.get_parent_list())
+               for field in cls._meta.local_fields}
+    adopted = 0
+    for name in LOG_ACCESS_COLUMNS:
+        if name in present:
+            continue
+        model_cls.add_to_class(
+            name, copy.deepcopy(declarer._meta.get_field(name)))
+        adopted += 1
+    return adopted
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_log_access')
+def _adopt_log_access_on_prepared(sender, **kwargs):
+    """Instala el log-access en cuanto la clase queda construida."""
+    adopt_log_access(sender)
+
+
+def ensure_log_access():
+    """Barre el registro por si la señal llegó tarde.
+
+    Dos vías por la razón de ``H-API-577``, igual que
+    :func:`ensure_display_names`. Un campo añadido después de poblado el
+    registro invalida las cachés de relaciones: se vacían.
+
+    :returns: cuántas columnas se instalaron en el barrido.
+    """
+    adopted = sum(adopt_log_access(model)
+                  for model in apps.get_models(include_auto_created=True))
+    if adopted:
+        apps.clear_cache()
+    return adopted

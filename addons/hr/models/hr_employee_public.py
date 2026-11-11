@@ -137,13 +137,31 @@ class HrEmployeePublic(models.Model):
     _description = 'Public Employee'
     _order = 'name'
     _auto = False
-    _log_access = True  # incluye los campos mágicos (aquí, create_date)
+    _log_access = True  # incluye los campos mágicos
 
     # ==== Columnas de la vista (ver _get_fields) ====
     create_date = fields.Datetime(
         null=True,
         blank=True,
         help_text='Odoo create_date — en la vista sale de e.created_at.',
+    )
+    # ≙ las otras tres columnas mágicas: con ``_log_access = True`` la
+    # fuente las tiene en ``_fields`` y ``_get_fields`` las selecciona de
+    # ``hr_employee`` como a cualquier campo almacenado (``:185-193``).
+    create_uid = fields.Many2one(
+        'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
+        db_constraint=False, related_name='+',
+        help_text='Odoo create_uid — en la vista sale de e.create_uid_id.',
+    )
+    write_date = fields.Datetime(
+        null=True,
+        blank=True,
+        help_text='Odoo write_date — en la vista sale de e.updated_at.',
+    )
+    write_uid = fields.Many2one(
+        'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
+        db_constraint=False, related_name='+',
+        help_text='Odoo write_uid — en la vista sale de e.write_uid_id.',
     )
     name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
@@ -592,6 +610,9 @@ class HrEmployeePublic(models.Model):
                 'e.name AS name',
                 'e.active AS active',
                 'e.created_at AS create_date',
+                'e.create_uid_id AS create_uid_id',
+                'e.updated_at AS write_date',
+                'e.write_uid_id AS write_uid_id',
                 'v.department_id AS department_id',
                 'v.job_id AS job_id',
                 'e.company_id AS company_id',
