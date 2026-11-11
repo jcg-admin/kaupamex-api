@@ -402,3 +402,20 @@ Medido contra `orm_x2hokp_qa` (solo lectura). Que exista el gancho común
 | `res.users` (`res_users.py:277-…`) | cifra las contraseñas escritas en claro por SQL | columna `password` presente; el cifrado lo da `django.contrib.auth` (`set_password`, `res_users.py:798`) | admisible: `init` que pasa las no cifradas por `make_password` (**TRAE**); falta medir el formato almacenado |
 | `res.users.apikeys` (`res_users.py:1531-…`) | `CREATE TABLE IF NOT EXISTS` con `CHECK (char_length(index) = 8)` y FK `ON DELETE CASCADE` | la tabla la crea `base.0039`; el `CHECK` está (`length(index) = 8`); la FK es `NO ACTION` diferida | la tabla la gobierna la migración (no se duplica); la FK entra en `foreign-keys-delete-contract.md` |
 | `res.device` (`res_device.py:230`) | crea la vista | la crea `base.0004` | no se duplica en `init` |
+
+### s5 — gates (2026-11-11T01:13:40)
+
+| Gate | Revisión | Resultado |
+|---|---|---|
+| ci-multidb | `e302630b` | 5/5, base `orm_bootstrap_e216a87ec4e2`, 1753 s |
+| ci-multidb | `3d7faad3` | **6/6**, incluido `test_init_creates_the_view_only_in_the_selected_database` |
+| ci-multidb con anulación (override escribiendo por `DEFAULT_DB_ALIAS`) | `3d7faad3` + mutación | **1 failed, 5 passed**: cae exactamente el caso nuevo, en su primera aserción (`assert None == 'v'` para la base de empresa, porque el aprovisionamiento dejó la vista en la base por defecto) |
+| completo | árbol en `38e71182` (código de `3d7faad3` más documentación y probes) | 12 689 passed, **1 failed**, 6 errors |
+
+El fallo del gate completo **no es de s5**: el gate de nombres de referencia
+(`test_check_identifier_reference_name.py::...::test_the_tree_is_clean`)
+encontró el identificador `odoo_name` en el probe
+`fk_reference_ondelete.py`, que entró con `ac9fa74d`. Se renombró a
+`model_name`; el gate vuelve a dar 12/12 y el probe, la misma salida. Los 6
+errores son el fixture multidb, que rehúsa fuera de su base desechable: los 5
+de siempre más el caso nuevo de `init(using)`, que sí pasa en el ci-multidb.

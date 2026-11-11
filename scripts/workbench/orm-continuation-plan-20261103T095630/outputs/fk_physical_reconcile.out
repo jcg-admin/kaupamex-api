@@ -1,0 +1,4 @@
+FK físicas: 1089
+  many2one de modelo propio: 906
+  many2many (tabla automática): 178
+  modelo de Django o de terceros: 5

@@ -92,7 +92,7 @@ def main(root, out):
     for model in apps.get_models():
         if model.__module__.startswith(THIRD) or not model._meta.managed:
             continue
-        odoo_name = getattr(model, '_name', None) or by_table.get(
+        model_name = getattr(model, '_name', None) or by_table.get(
             model._meta.db_table)
         for field in model._meta.local_fields:
             if not (isinstance(field, models.ForeignKey)
@@ -100,9 +100,9 @@ def main(root, out):
                 continue
             policy = field.remote_field.on_delete.__name__
             attribute = getattr(field, 'ondelete', None) or '-'
-            ref = (reference.get((odoo_name, field.column))
-                   or reference.get((odoo_name, field.name))
-                   or reference.get((odoo_name, field.name + '_id')))
+            ref = (reference.get((model_name, field.column))
+                   or reference.get((model_name, field.name))
+                   or reference.get((model_name, field.name + '_id')))
             ref_ondelete = ref[0].replace(' (defecto)', '') if ref else None
             deltype, deferrable = constraint.get(
                 (model._meta.db_table, field.column), ('-', '-'))
@@ -123,7 +123,7 @@ def main(root, out):
                 verdict = 'divergencia de atributo y de política'
             summary[verdict] += 1
             rows.append([
-                odoo_name or '-', ref[1] if ref else '-',
+                model_name or '-', ref[1] if ref else '-',
                 ref[0] if ref else '-', model._meta.label, field.name,
                 attribute, policy, deltype, deferrable, verdict])
     with open(out, 'w', newline='', encoding='utf-8') as handle:

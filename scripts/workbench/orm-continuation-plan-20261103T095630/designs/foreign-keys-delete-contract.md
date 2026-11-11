@@ -215,3 +215,40 @@ atributo.
 
 Los consumidores de cada campo y su prueba se registran al corregirlo,
 empezando por la clase de pérdida de datos.
+
+## Conciliación de las 1089 FK físicas (2026-11-11T01:13:40)
+
+Probe `probes/fk_physical_reconcile.py`: cada fila de `pg_constraint`
+(`contype = 'f'`, esquema actual) con su campo y su dueño. Salida en
+`outputs/fk_physical_reconcile.tsv`, con una fila por restricción.
+
+| Clase | FK |
+|---|---|
+| Many2one de modelo propio (la población del apéndice) | 906 |
+| Many2many en tabla automática (89 tablas, 2 FK cada una) | 178 |
+| modelos de Django o de terceros | 5 |
+| restricción sin campo | **0** |
+| **total** | **1089** |
+
+La diferencia de 183 con las 906 son las 178 de las tablas automáticas y las
+5 de terceros. Las intermedias explícitas (10 Many2many con `through`)
+cuentan entre las 906, porque sus FK son campos de un modelo propio.
+
+## Reproducción de las divergencias de política (2026-11-11T01:13:40)
+
+Probe `probes/fk_destructive_reproduce.py`: para cada una de las 140
+divergencias de política, toma una fila hija real de la base de pruebas y
+pide al `Collector` qué haría al borrar su padre (`collect` planifica sin
+borrar, dentro de una transacción revertida).
+
+| Resultado | FK |
+|---|---|
+| diferencia semántica sin pérdida (`set null` → `PROTECT`: rehúsa) | 3 |
+| no verificable: sin fila hija en la base | 137 |
+
+La base de pruebas casi no conserva filas (las pruebas revierten), así que
+**ninguna pérdida queda reproducida con datos existentes**. La reproducción
+pasa a pruebas dirigidas que construyen padre e hijo, una por familia:
+`res.device.log.user` (`set null` → `CASCADE`) e `ir.actions.todo.action`
+(`restrict` → `CASCADE`). Cada una lleva su `xfail` estricto con el
+contrato de la fuente y un control de lo observado hoy.

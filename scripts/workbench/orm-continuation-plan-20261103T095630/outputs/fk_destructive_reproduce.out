@@ -1,0 +1,7 @@
+divergencias de política medidas: 140
+  cascade -> SET_NULL: no verificable: sin fila hija en la base: 1
+  restrict -> CASCADE: no verificable: sin fila hija en la base: 48
+  restrict -> SET_NULL: no verificable: sin fila hija en la base: 20
+  set null -> CASCADE: no verificable: sin fila hija en la base: 48
+  set null -> PROTECT: diferencia semántica sin pérdida: 3
+  set null -> PROTECT: no verificable: sin fila hija en la base: 20
