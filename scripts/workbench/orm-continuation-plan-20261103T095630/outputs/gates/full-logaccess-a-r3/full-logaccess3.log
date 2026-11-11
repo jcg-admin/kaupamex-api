@@ -1,0 +1,1051 @@
+bringing up nodes...
+bringing up nodes...
+
+......................................................................ss [  0%]
+sssssss.sssssssss..ssssssss............................................. [  1%]
+......................................................................... [  1%]
+........................................................................ [  2%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+...................................................................F.... [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 20%]
+..........................F.........F................................... [ 21%]
+.....................xx................................................. [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 22%]
+..xx.xx................................................................. [ 23%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 25%]
+......................................................................F. [ 26%]
+...............................................F........................ [ 26%]
+........................................................................ [ 27%]
+.............................F.......................................... [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+............................................EEE...EEEE.E...EEEEE........ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+......................................................................... [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+...........................................................F............ [ 41%]
+..................................s.......ssssss....ssssssss.ss......... [ 42%]
+......................................................................... [ 42%]
+.....................................................................x.. [ 43%]
+..............F.x....................................................... [ 44%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+......................................................................... [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+......................................................................... [ 63%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+.........................................................sssssssssssssss [ 64%]
+s.............ssss.ss................................................... [ 65%]
+.................................................................xxx.x.x [ 65%]
+x....................................................................... [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+..........xxxxxxx.x.x.xxxxxxxxxxxxxxxxxxxxxxxxx..x..xxxxxxxxxxxx.xxxxxxx [ 72%]
+xxxxxxxxxxxxxxxxxxxxx................................................... [ 73%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 81%]
+......................................................................... [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+.............................Exception ignored in: <function Transport.__del__ at 0x7f5aae254b80>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+AttributeError: 'object' object has no attribute 'close'
+...Exception ignored in: <function Transport.__del__ at 0x7f5aae254b80>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+AttributeError: 'object' object has no attribute 'close'
+........................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+..............................EEEEEEEEEEEE.............................. [ 98%]
+........................................................................ [ 99%]
+........................................................................ [ 99%]
+........................                                                 [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestCreateDropsTheIncomingHistory.test_create_is_a_symbol_of_this_model _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestCreateDropsTheIncomingHistory.test_the_history_that_arrives_from_outside_is_discarded _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestCreateDropsTheIncomingHistory.test_the_django_path_discards_it_too _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestWriteGeneratesTheRevision.test_write_is_a_symbol_of_this_model _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestWriteGeneratesTheRevision.test_changing_the_versioned_field_inserts_a_revision _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestWriteGeneratesTheRevision.test_the_revision_id_grows_by_one_on_each_change _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestWriteGeneratesTheRevision.test_writing_the_same_content_adds_no_revision _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestWriteGeneratesTheRevision.test_writing_a_non_versioned_field_adds_no_revision _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestWriteGeneratesTheRevision.test_the_history_cannot_be_written_from_outside _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestTheGuardOnTheVersionedFieldType.test_versioning_a_non_html_field_is_refused _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestTheRestoreRoundTrip.test_the_content_comes_back_at_the_asked_revision _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestTheRestoreRoundTrip.test_the_metadata_carries_no_patch _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestTheSizeLimitIsTheOneOfTheSource.test_the_class_attribute_is_verbatim _
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DuplicateTable: relation "html_editor_history_probe" already exists
+
+The above exception was the direct cause of the following exception:
+tests/unit/html_editor/test_html_field_history.py:88: in tables
+    editor.create_model(model)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:513: in create_model
+    self.execute(sql, params or None)
+.venv/lib/python3.13/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+    return super().execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:205: in execute
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:103: in _execute
+    return self.cursor.execute(sql)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" already exists
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:70: in isolation_database_access
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_rows_from_company_a_not_visible_under_company_b_scope _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestSol085RowScopingIntraBase.test_row_scoping_filters_by_row_and_fk_resolves_intra_base _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+__ ERROR at setup of test_init_creates_the_view_only_in_the_selected_database __
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_paperformat_xml_ids_exist_in_every_base ________
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+______ ERROR at setup of test_company_init_writes_only_the_selected_base _______
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_____ ERROR at setup of test_company_init_ignores_the_active_company_scope _____
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_____ ERROR at setup of test_users_init_encrypts_only_in_the_selected_base _____
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+___ ERROR at setup of test_init_models_runs_both_inits_in_the_selected_base ____
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+=================================== FAILURES ===================================
+___ TestCancellationParity.test_borrar_al_admin_conserva_la_orden_cancelada ____
+[gw1] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/integration/sale/test_sale_order_parity_e1.py:155: in test_borrar_al_admin_conserva_la_orden_cancelada
+    admin.delete()
+src/addons/base/models/res_users.py:1370: in delete
+    return super().delete(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1300: in delete
+    return collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+_______________ test_deleting_a_user_cancels_the_pending_signup ________________
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_signup/test_signup_cancelled_on_user_exit.py:101: in test_deleting_a_user_cancels_the_pending_signup
+    user.delete()
+src/addons/base/models/res_users.py:1370: in delete
+    return super().delete(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1300: in delete
+    return collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+_________________ test_a_rolled_back_deletion_keeps_the_signup _________________
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_signup/test_signup_cancelled_on_user_exit.py:128: in test_a_rolled_back_deletion_keeps_the_signup
+    user.delete()
+src/addons/base/models/res_users.py:1370: in delete
+    return super().delete(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1300: in delete
+    return collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+_______________________ test_a_plain_user_can_be_deleted _______________________
+[gw1] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_res_users_constraints.py:176: in test_a_plain_user_can_be_deleted
+    user.delete()
+src/addons/base/models/res_users.py:1370: in delete
+    return super().delete(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1300: in delete
+    return collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+____________________ test_a_batch_of_plain_users_is_deleted ____________________
+[gw1] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_res_users_constraints.py:256: in test_a_batch_of_plain_users_is_deleted
+    ResUsers.objects.filter(pk__in=pks).delete()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1238: in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+______________ test_deleting_the_owner_does_not_try_to_mail_them _______________
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_totp_mail/test_device_removed_alert.py:193: in test_deleting_the_owner_does_not_try_to_mail_them
+    owner.delete()
+src/addons/base/models/res_users.py:1370: in delete
+    return super().delete(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1300: in delete
+    return collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_totp_mail/test_device_removed_alert.py:192: in test_deleting_the_owner_does_not_try_to_mail_them
+    with django_capture_on_commit_callbacks(execute=True):
+/usr/local/lib/python3.13/contextlib.py:162: in __exit__
+    self.gen.throw(value)
+.venv/lib/python3.13/site-packages/django/test/testcases.py:1533: in captureOnCommitCallbacks
+    callback()
+addons/authz_totp_mail/models/signals.py:165: in _flush_removed_devices
+    user = UserModel.objects.filter(pk=uid).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:99: in _execute
+    self.db.validate_no_broken_transaction()
+.venv/lib/python3.13/site-packages/django/db/backends/base/base.py:521: in validate_no_broken_transaction
+    raise TransactionManagementError(
+E   django.db.transaction.TransactionManagementError: An error occurred in the current transaction. You can't execute queries until the end of the 'atomic' block.
+_____________________ test_user_set_null_al_borrar_usuario _____________________
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedTable: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_cron.py:228: in test_user_set_null_al_borrar_usuario
+    user.delete()
+src/addons/base/models/res_users.py:1370: in delete
+    return super().delete(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1300: in delete
+    return collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: relation "html_editor_history_probe" does not exist
+E   LINE 1: UPDATE "html_editor_history_probe" SET "create_uid_id" = NUL...
+E                  ^
+______________ test_today_deleting_a_user_deletes_its_device_logs ______________
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column html_editor_history_probe.create_uid_id does not exist
+E   LINE 1: ...r_history_probe" SET "create_uid_id" = NULL WHERE "html_edit...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+tests/unit/orm/test_delete_policy_contract.py:109: in test_today_deleting_a_user_deletes_its_device_logs
+    type(user).objects.filter(pk=user.pk).delete()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1238: in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:489: in delete
+    combined_updates.update(**{field.name: value})
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column html_editor_history_probe.create_uid_id does not exist
+E   LINE 1: ...r_history_probe" SET "create_uid_id" = NULL WHERE "html_edit...
+E                                                                ^
+referencia: 39 de 314 pruebas marcadas se omitieron (el árbol está en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; los motivos, con -rs); sus contratos NO se verificaron en esta ejecución
+=========================== short test summary info ============================
+FAILED tests/integration/sale/test_sale_order_parity_e1.py::TestCancellationParity::test_borrar_al_admin_conserva_la_orden_cancelada
+FAILED tests/integration/authz_signup/test_signup_cancelled_on_user_exit.py::test_deleting_a_user_cancels_the_pending_signup
+FAILED tests/integration/authz_signup/test_signup_cancelled_on_user_exit.py::test_a_rolled_back_deletion_keeps_the_signup
+FAILED tests/unit/base/test_res_users_constraints.py::test_a_plain_user_can_be_deleted
+FAILED tests/unit/base/test_res_users_constraints.py::test_a_batch_of_plain_users_is_deleted
+FAILED tests/integration/authz_totp_mail/test_device_removed_alert.py::test_deleting_the_owner_does_not_try_to_mail_them
+FAILED tests/unit/base/test_ir_cron.py::test_user_set_null_al_borrar_usuario
+FAILED tests/unit/orm/test_delete_policy_contract.py::test_today_deleting_a_user_deletes_its_device_logs
+ERROR tests/unit/html_editor/test_html_field_history.py::TestCreateDropsTheIncomingHistory::test_create_is_a_symbol_of_this_model
+ERROR tests/unit/html_editor/test_html_field_history.py::TestCreateDropsTheIncomingHistory::test_the_history_that_arrives_from_outside_is_discarded
+ERROR tests/unit/html_editor/test_html_field_history.py::TestCreateDropsTheIncomingHistory::test_the_django_path_discards_it_too
+ERROR tests/unit/html_editor/test_html_field_history.py::TestWriteGeneratesTheRevision::test_write_is_a_symbol_of_this_model
+ERROR tests/unit/html_editor/test_html_field_history.py::TestWriteGeneratesTheRevision::test_changing_the_versioned_field_inserts_a_revision
+ERROR tests/unit/html_editor/test_html_field_history.py::TestWriteGeneratesTheRevision::test_the_revision_id_grows_by_one_on_each_change
+ERROR tests/unit/html_editor/test_html_field_history.py::TestWriteGeneratesTheRevision::test_writing_the_same_content_adds_no_revision
+ERROR tests/unit/html_editor/test_html_field_history.py::TestWriteGeneratesTheRevision::test_writing_a_non_versioned_field_adds_no_revision
+ERROR tests/unit/html_editor/test_html_field_history.py::TestWriteGeneratesTheRevision::test_the_history_cannot_be_written_from_outside
+ERROR tests/unit/html_editor/test_html_field_history.py::TestTheGuardOnTheVersionedFieldType::test_versioning_a_non_html_field_is_refused
+ERROR tests/unit/html_editor/test_html_field_history.py::TestTheRestoreRoundTrip::test_the_content_comes_back_at_the_asked_revision
+ERROR tests/unit/html_editor/test_html_field_history.py::TestTheRestoreRoundTrip::test_the_metadata_carries_no_patch
+ERROR tests/unit/html_editor/test_html_field_history.py::TestTheSizeLimitIsTheOneOfTheSource::test_the_class_attribute_is_verbatim
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database
+ERROR tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back
+ERROR tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base
+8 failed, 12731 passed, 66 skipped, 89 xfailed, 25 errors in 929.94s (0:15:29)
+EXIT=1
