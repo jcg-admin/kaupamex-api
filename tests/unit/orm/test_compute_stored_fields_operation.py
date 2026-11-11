@@ -77,6 +77,10 @@ def test_a_lagging_schema_waits_for_post_migrate(child):
                        'DROP COLUMN create_uid')
     _run(ComputeStoredFields('test_orm', 'testormmodelchildm2o', ['size1']))
     assert _stored(record_id) == (None, None)
+    # Un ``migrate`` parcial también emite ``post_migrate``: con la columna
+    # aún ausente, el cómputo sigue en espera en vez de fallar.
+    run_pending_computes(using=connection.alias)
+    assert _stored(record_id) == (None, None)
     with connection.cursor() as cursor:
         cursor.execute('ALTER TABLE test_orm_model_child_m2o '
                        'ADD COLUMN create_uid integer')

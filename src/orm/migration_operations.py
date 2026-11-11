@@ -7,7 +7,7 @@ odoo/orm/models.py:3170-3248``) y que una ``AddField`` no hace vive aquí,
 como operación de migración, para no abrir una segunda autoridad.
 """
 from django.apps import apps as live_apps
-from django.db import migrations
+from django.db import connections, migrations
 from django.db.models import Model
 
 from orm.environments import Environment
@@ -135,6 +135,19 @@ def _schema_lags(model, connection):
 
 def run_pending_computes(using='default', **kwargs):
     """Receptor de ``post_migrate``: ejecuta los cómputos en espera de la base
-    ``using`` con el esquema ya completo, y vacía su cola."""
+    ``using`` cuyo esquema ya está completo.
+
+    Un ``migrate`` parcial (``migrate base 0106``) también emite
+    ``post_migrate`` con el esquema aún atrasado: lo que sigue atrasado
+    queda en la cola para el siguiente.
+    """
+    connection = connections[using]
+    waiting = []
     for operation in PENDING_COMPUTES.pop(using, []):
-        operation.compute_now()
+        model = live_apps.get_model(operation.app_label, operation.model_name)
+        if _schema_lags(model, connection):
+            waiting.append(operation)
+        else:
+            operation.compute_now()
+    if waiting:
+        PENDING_COMPUTES[using] = waiting
