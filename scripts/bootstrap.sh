@@ -31,7 +31,7 @@
 #   Fase 2 — Paquetes      : instala dependencias del sistema
 #   Fase 3 — Python        : crea venv e instala requirements (uv)
 #   Fase 4 — Base de datos : arranca PostgreSQL, crea base produccion y QA
-#   Fase 5 — Migraciones   : ejecuta kaupamex-bin migrate + createcachetable
+#   Fase 5 — Migraciones   : ejecuta kaupamex-bin createcachetable + migrate
 #   Fase 6 — Verificacion  : estado completo del entorno
 #
 # Motor: PostgreSQL (ADR-028, supersede ADR-008/009). La Fase 4 NO provisiona
@@ -281,21 +281,22 @@ phase_migrations() {
         fi
     fi
 
-    DJANGO_SETTINGS_MODULE=config.settings.development \
-    "$python" "$kbin" migrate 2>&1 | tail -5 \
-        && log_success "Migraciones aplicadas" \
-        || log_warn "Migraciones con errores — revisa el output"
-
     # createcachetable es aparte de migrate — Django no la incluye en el
     # framework de migraciones (config.settings.base: CACHES usa
     # DatabaseCache). Sin esta tabla, cualquier vista con throttling
     # (REST_FRAMEWORK.DEFAULT_THROTTLE_CLASSES, global) responde 500 en
     # la primera peticion real. Idempotente: si la tabla ya existe, sale
-    # OK sin tocarla.
+    # OK sin tocarla. Va ANTES de migrate: la carga de datos de
+    # post_migrate ya lee la cache (designs/fresh-install-cache-table.md).
     DJANGO_SETTINGS_MODULE=config.settings.development \
     "$python" "$kbin" createcachetable 2>&1 | tail -3 \
         && log_success "Tabla de cache lista" \
         || log_warn "createcachetable con errores — revisa el output"
+
+    DJANGO_SETTINGS_MODULE=config.settings.development \
+    "$python" "$kbin" migrate 2>&1 | tail -5 \
+        && log_success "Migraciones aplicadas" \
+        || log_warn "Migraciones con errores — revisa el output"
 
     log_header "Fase 5b/6 — Static files"
     DJANGO_SETTINGS_MODULE=config.settings.development \

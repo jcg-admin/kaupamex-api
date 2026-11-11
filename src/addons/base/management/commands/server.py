@@ -140,7 +140,10 @@ class Command(BaseCommand):
         vacia ``seed()`` es un no-op. La referencia tampoco nombra una empresa
         real al arrancar.
         """
-        for command in ('migrate', 'createcachetable'):
+        # ``createcachetable`` va primero: la carga de datos de
+        # ``post_migrate`` ya lee la caché, y en una base nueva
+        # ``cache_table`` aún no existe (designs/fresh-install-cache-table.md).
+        for command in ('createcachetable', 'migrate'):
             try:
                 call_command(command, verbosity=0)
             except DatabaseError as err:

@@ -20,6 +20,10 @@ mkdir -p "$OUT"
 psql_db() { sudo -u postgres psql -d "$DB" -tA -F $'\t' -c "$1"; }
 
 sudo -u postgres createdb -O orm_x2hokp "$DB"
+# La tabla de caché va antes de migrar: la carga de datos de post_migrate la
+# lee (designs/fresh-install-cache-table.md).
+(cd "$WT_C" && DB_NAME="$DB" DJANGO_SETTINGS_MODULE=config.settings.development \
+    "$PY" src/manage.py createcachetable > "$OUT/cachetable.log" 2>&1)
 (cd "$WT_C" && DB_NAME="$DB" DJANGO_SETTINGS_MODULE=config.settings.development \
     "$PY" src/manage.py migrate --no-input > "$OUT/migrate-C.log" 2>&1)
 

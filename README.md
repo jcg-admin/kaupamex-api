@@ -25,15 +25,16 @@ cp src/.env.example src/.env
 #    config.settings.production, no development (H-API-394).
 export DJANGO_SETTINGS_MODULE=config.settings.development
 
-# 4. Aplicar migraciones — kaupamex-bin es el punto de entrada del
+# 4. createcachetable — Django no la incluye en el framework de
+#    migraciones (config.settings.base: CACHES usa DatabaseCache).
+#    Va ANTES de migrate: la carga de datos que corre al final de
+#    migrate ya lee la cache, y sin la tabla una base nueva falla.
+#    Idempotente.
+uv run python kaupamex-bin createcachetable
+
+# 5. Aplicar migraciones — kaupamex-bin es el punto de entrada del
 #    producto (equivalente de odoo-bin), no manage.py directo
 uv run python kaupamex-bin migrate
-
-# 5. createcachetable — Django no la incluye en el framework de
-#    migraciones (config.settings.base: CACHES usa DatabaseCache).
-#    Sin esta tabla, cualquier endpoint DRF (throttling global)
-#    responde 500 en la primera peticion real. Idempotente.
-uv run python kaupamex-bin createcachetable
 
 # 6. Crear superusuario
 uv run python kaupamex-bin createsuperuser

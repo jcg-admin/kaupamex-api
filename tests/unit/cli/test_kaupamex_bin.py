@@ -159,7 +159,7 @@ def test_stop_after_init_prepara_y_no_arranca(monkeypatch):
         config=str(REPO_ROOT / 'setup' / 'gunicorn.conf.py'),
         stop_after_init=True,
     )
-    assert corridos == ['migrate', 'createcachetable']
+    assert corridos == ['createcachetable', 'migrate']
 
 
 def test_no_init_salta_la_preparacion(monkeypatch):
