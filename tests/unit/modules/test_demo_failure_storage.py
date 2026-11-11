@@ -5,7 +5,7 @@ Actual PG schema controls for complete demo errors; not signal acceptance.
 from contextlib import contextmanager
 import importlib
 
-from django.db import connection
+from django.db import connection, models
 from django.db.migrations.exceptions import IrreversibleError
 from django.db.migrations.state import ModelState, ProjectState
 import pytest
@@ -36,6 +36,10 @@ def storage_models(legacy=False):
         item.options['constraints'] = []
         if model is IrDemoFailure and legacy:
             item.fields['error'].max_length = 255
+        # ``res.users`` no está en este estado fabricado: la autoría del
+        # log-access viaja como entero, con el mismo nombre de campo.
+        for name in ('create_uid', 'write_uid'):
+            item.fields[name] = models.IntegerField(null=True)
         state.add_model(item)
     classes = [
         state.apps.get_model('base', model.__name__)

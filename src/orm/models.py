@@ -91,6 +91,7 @@ from orm.environments import (
     context_scope, env, execute_query, get_context, get_current_company,
     get_current_cr,
     get_current_uid, get_current_user, get_transaction, is_su,
+    loading_log_access,
     sudo as elevate_privileges,
 )
 from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
@@ -115,7 +116,7 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
 from orm.fields_textual import BASE_LANG, Char, TranslatedValue
-from orm.fields_temporal import Date, Datetime
+from orm.fields_temporal import LOG_ACCESS_EXPLICIT, Date, Datetime
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
@@ -919,9 +920,10 @@ class DefaultGetMixin:
           inverso** (``:4737-4738``): aquí un x2many sin columna no tiene
           caché que invalidar — un campo sin columna recalcula al leer
           (:ref:`h-api-1106`).
-        - **Las columnas de autoría** (``create_uid``/``write_uid``) no
-          existen: ``LOG_ACCESS_COLUMNS`` de este árbol son las dos fechas de
-          ``TimeStampedModel``, ``auto_now``.
+        - **El ``setdefault`` de las columnas de acceso** (``:4801-4805``)
+          no está aquí: lo hace :class:`orm.fields_temporal.LogAccessUserField`
+          y ``TransactionDateTimeField`` en ``pre_save``
+          (``designs/log-access-columns-audit.md``).
 
         **INVENTORY:** ``cpython`` — ``collections.defaultdict``,
         ``contextlib.ExitStack`` (trae hecho); ``django`` — ``Model.__init__``
@@ -1147,8 +1149,9 @@ class DefaultGetMixin:
         columnas de acceso y los ``precompute`` de sólo lectura— y se sacan
         **después** de aplicar los defaults, como allá (``:4796-4800``). El
         ``setdefault`` de ``create_uid``/``create_date``/… (``:4801-4805``)
-        no tiene columna aquí: las dos fechas de ``TimeStampedModel`` son
-        ``auto_now`` y las escribe ``save()``.
+        lo hacen los propios campos en ``pre_save``
+        (:class:`orm.fields_temporal.LogAccessUserField`). La excepción del
+        superusuario en la carga la decide :func:`_log_access_bad_names`.
 
         ``_add_precomputed_values(result_vals_list)`` (``:4808``) no se llama
         desde aquí: en este árbol el precómputo corre en ``pre_save`` sobre la
@@ -1157,9 +1160,7 @@ class DefaultGetMixin:
         ``readonly`` de ``vals`` es lo que lo obliga a computarse
         (:func:`_precomputable_fields`).
         """
-        bad_names = ['id', 'parent_path']
-        if getattr(cls, '_log_access', True):
-            bad_names.extend(LOG_ACCESS_COLUMNS)
+        bad_names = ['id', 'parent_path', *_log_access_bad_names(cls)]
 
         # also discard precomputed readonly fields (to force their computation)
         bad_names.extend(
@@ -1407,10 +1408,10 @@ def _create_field_lookup(model, name):
 
 
 #: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``). Allá son
-#: ``create_uid``, ``create_date``, ``write_uid`` y ``write_date``; aquí el
-#: mecanismo es ``TimeStampedModel``, que declara dos —``created_at`` y
-#: ``updated_at``, ambas ``auto_now``— y ninguna de autoría. La divergencia es
-#: del mixin, no de este archivo: quién escribió la fila no se guarda.
+#: ``create_uid``, ``create_date``, ``write_uid`` y ``write_date``; aquí las
+#: declara ``TimeStampedModel`` (y ``TransientModel``): los dos usuarios con
+#: el nombre de la fuente y las dos fechas como ``created_at``/``updated_at``
+#: (``designs/log-access-columns-audit.md``).
 #: La lista se declara en ``orm.model_classes`` —que la necesita al construir
 #: la clase y no puede importar este modulo— y llega aqui por el import de
 #: arriba, con el nombre de la fuente.
@@ -2980,7 +2981,8 @@ class RecordLoaderMixin(FieldSqlMixin):
                     f"Invalid field {fname!r} in {model_name!r}")
         pk_name = self._meta.pk.name
         values = {fname: value for fname, value in values.items()
-                  if fname not in (pk_name, 'id')}
+                  if fname not in (pk_name, 'id',
+                                   *_log_access_bad_names(type(self)))}
         if not values:
             return True
         written = list(values)
@@ -3066,10 +3068,17 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # escritura se fecha. Aquí la fecha es ``auto_now`` y la pone
                 # ``pre_save``, pero un ``save`` con ``update_fields`` sólo
                 # guarda lo nombrado, así que la columna se nombra.
-                if (getattr(type(self), '_log_access', True)
-                        and 'updated_at' in writable
-                        and 'updated_at' not in update_fields):
-                    update_fields.append('updated_at')
+                if getattr(type(self), '_log_access', True):
+                    update_fields.extend(
+                        fname for fname in ('write_uid', 'updated_at')
+                        if fname in writable and fname not in update_fields)
+                    # Sólo en la carga llegan aquí: fuera, ``values`` ya no
+                    # las trae (:func:`_log_access_bad_names`). Se lee de
+                    # ``written`` porque un Many2one sale de ``values`` al
+                    # repartir los relacionales.
+                    self.__dict__[LOG_ACCESS_EXPLICIT] = [
+                        fname for fname in LOG_ACCESS_COLUMNS
+                        if fname in written]
                 self.save(update_fields=update_fields)
             if reparented:
                 _parent_store_update(self)
@@ -5272,8 +5281,9 @@ def _write_rows(model, ids, vals_list):
     """
     fields_of = model_field_registry(model)
     writable = model._meta._non_pk_concrete_field_names
-    log_access = (getattr(model, '_log_access', True)
-                  and 'updated_at' in writable)
+    log_access = [fname for fname in ('write_uid', 'updated_at')
+                  if getattr(model, '_log_access', True)
+                  and fname in writable]
     rows = {row.pk: row
             for row in model._base_manager.filter(pk__in=list(ids))}
     for record_id, vals in zip(ids, vals_list):
@@ -5294,8 +5304,8 @@ def _write_rows(model, ids, vals_list):
         if names:
             # ≙ ``log_vals | vals``: la fecha la pone ``auto_now`` en
             # ``pre_save``, pero sólo se guarda lo nombrado.
-            if log_access and 'updated_at' not in names:
-                names.append('updated_at')
+            names.extend(fname for fname in log_access
+                         if fname not in names)
             row.save(update_fields=names)
 
 
@@ -8846,10 +8856,10 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
             with the keys ``id``, the ``_log_access`` columns, ``xmlid``,
             ``xmlids`` and ``noupdate``.
 
-        **Divergencia declarada, la de** ``LOG_ACCESS_COLUMNS``: allá son
-        los dos usuarios y las dos fechas; aquí, las dos fechas que el árbol
-        declara (``orm/model_classes.py``). Se leen sólo si el modelo las
-        tiene, porque ``_log_access`` no las crea: son campos declarados.
+        ``LOG_ACCESS_COLUMNS`` son los dos usuarios y las dos fechas, como
+        allá; las fechas, con el nombre de este árbol
+        (``orm/model_classes.py``). Se leen sólo si el modelo las tiene,
+        porque ``_log_access`` no las crea: son campos declarados.
         El ``sudo()`` sobre ``ir.model.data`` es el gestor de Django, que no
         filtra por permiso, como en :meth:`_get_external_ids`.
         """
@@ -11228,3 +11238,20 @@ def _get_placeholder_filename(self, field):
 
 
 Model._get_placeholder_filename = _get_placeholder_filename
+
+
+def _log_access_bad_names(model):
+    """Las columnas de acceso que ``create``/``write`` quitan de ``vals``.
+
+    ≙ ``odoo19c: odoo/orm/models.py:4386-4390`` (``write``) y ``:4781-4785``
+    (``_prepare_create_values``): con ``_log_access`` ningún consumidor las
+    fija, salvo el superusuario mientras el registro aún no está listo
+    (``self.env.uid == SUPERUSER_ID and not self.pool.ready``), que es la
+    carga de datos. ``pool.ready`` es aquí ``Registry.ready`` de la base del
+    entorno, que ``load_modules`` enciende al terminar.
+    """
+    if not getattr(model, '_log_access', True):
+        return []
+    if loading_log_access():
+        return []
+    return list(LOG_ACCESS_COLUMNS)

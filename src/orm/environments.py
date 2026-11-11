@@ -2188,3 +2188,16 @@ def implicit_access_error(error, model):
         document_kind=description,
         document_model=model_name,
     ))
+
+
+def loading_log_access():
+    """¿Puede este guardado fijar las columnas de acceso a mano?
+
+    ≙ ``self.env.uid == SUPERUSER_ID and not self.pool.ready``
+    (``odoo19c: odoo/orm/models.py:4389,4783``): el superusuario mientras el
+    registro de la base aún no está listo, que es la carga de datos. Fuera de
+    esa ventana ``create``/``write`` descartan las columnas y las fija el ORM.
+    ``pool.ready`` es ``Registry.ready`` de la base del entorno, que
+    ``load_modules`` enciende al terminar.
+    """
+    return get_current_uid() == SUPERUSER_ID and not env().registry.ready

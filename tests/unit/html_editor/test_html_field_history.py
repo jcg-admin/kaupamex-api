@@ -36,6 +36,16 @@ class HistoryProbe(HtmlFieldHistoryMixin, TimeStampedModel):
 
     body = fields.Html(blank=True, default='')
     label = fields.Char(max_length=64, blank=True, default='')
+    # La sonda vive en el registro global y su tabla sólo en el worker que
+    # corrió la fixture: con ``SET_NULL`` el borrado de cualquier usuario
+    # actualizaría una tabla que puede no existir. La autoría no es lo que
+    # esta prueba mide.
+    create_uid = models.ForeignKey(
+        'base.ResUsers', models.DO_NOTHING, null=True, db_constraint=False,
+        related_name='+')
+    write_uid = models.ForeignKey(
+        'base.ResUsers', models.DO_NOTHING, null=True, db_constraint=False,
+        related_name='+')
 
     class Meta:
         app_label = 'html_editor'
@@ -60,6 +70,12 @@ class UnversionableProbe(HtmlFieldHistoryMixin, TimeStampedModel):
     _description = 'Html Editor History Probe Raw'
 
     body = fields.Text(blank=True, default='')
+    create_uid = models.ForeignKey(
+        'base.ResUsers', models.DO_NOTHING, null=True, db_constraint=False,
+        related_name='+')
+    write_uid = models.ForeignKey(
+        'base.ResUsers', models.DO_NOTHING, null=True, db_constraint=False,
+        related_name='+')
 
     class Meta:
         app_label = 'html_editor'

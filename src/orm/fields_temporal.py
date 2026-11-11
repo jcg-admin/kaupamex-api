@@ -69,7 +69,8 @@ from zoneinfo import ZoneInfo, available_timezones
 from django.db import connections, models, router
 from django.utils.dateparse import parse_datetime
 
-from orm.environments import get_context, get_current_tz
+from orm.environments import (get_context, get_current_tz, get_current_uid,
+                              loading_log_access)
 from orm.fields_company_dependent import make_dispatcher
 from orm.utils import READ_GROUP_NUMBER_GRANULARITY, parse_field_expr
 from tools import date_utils
@@ -605,3 +606,54 @@ class TransactionClockSaveMixin:
         finally:
             self.__dict__.pop(SAVE_NOW, None)
             self.__dict__.pop(SAVE_USING, None)
+            self.__dict__.pop(LOG_ACCESS_EXPLICIT, None)
+
+
+class LogAccessUserField(models.ForeignKey):
+    """``create_uid``/``write_uid`` — quién da de alta y quién escribe.
+
+    ≙ los dos ``Many2one('res.users')`` que el metaclase de la fuente añade
+    con ``_log_access`` (``odoo19c: odoo/orm/models.py:283-292``), y que
+    ``_create`` fija con ``env.uid`` (``:4801-4805``) y ``write`` mantiene al
+    día. Es el gemelo de :class:`TransactionDateTimeField` para las columnas de
+    usuario: ``stamp_on_create_only`` hace de ``auto_now_add`` y su ausencia de
+    ``auto_now``. Como aquel, se fija en ``pre_save``, así que un guardado con
+    ``update_fields`` sólo lo escribe si lo nombra.
+
+    Sin usuario en contexto no se inventa ninguno: el valor queda como estaba
+    (``NULL`` en un alta). La fuente siempre tiene ``env.uid``; aquí no.
+
+    En la carga de datos (:func:`orm.environments.loading_log_access`) el
+    valor explícito se conserva: es el ``vals.setdefault`` de la fuente
+    (``:4395-4396`` y ``:4802-4805``), que sólo rellena lo que no viene. En un
+    alta lo dice el propio valor; en una escritura lo anota ``write`` en
+    :data:`LOG_ACCESS_EXPLICIT`, porque la fila ya traía uno.
+
+    Se deconstruye como ``ForeignKey``: la columna es la misma, y la bandera
+    sólo gobierna el guardado.
+    """
+
+    def __init__(self, *args, stamp_on_create_only=False, **kwargs):
+        self.stamp_on_create_only = stamp_on_create_only
+        super().__init__(*args, **kwargs)
+
+    def pre_save(self, model_instance, add):
+        uid = get_current_uid()
+        explicit = (
+            self.name in model_instance.__dict__.get(LOG_ACCESS_EXPLICIT, ())
+            or (add and getattr(model_instance, self.attname) is not None
+                and loading_log_access()))
+        if (uid is not None and not explicit
+                and (add or not self.stamp_on_create_only)):
+            setattr(model_instance, self.attname, uid)
+        return super().pre_save(model_instance, add)
+
+    def deconstruct(self):
+        name, _path, args, kwargs = super().deconstruct()
+        return name, 'django.db.models.ForeignKey', args, kwargs
+
+
+#: Las columnas de acceso que un ``write`` en la carga de datos fija a mano;
+#: :class:`LogAccessUserField` no las pisa. Vive en la instancia sólo durante
+#: el ``save``, como :data:`SAVE_NOW`.
+LOG_ACCESS_EXPLICIT = '_orm_log_access_explicit'

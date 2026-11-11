@@ -34,7 +34,11 @@ def _build(attrs):
 
 
 def _dates():
-    return {'created_at': models.DateTimeField(null=True),
+    """Las cuatro columnas de ``LOG_ACCESS_COLUMNS``: las fechas y la
+    autoría, como enteros porque ``isolate_apps`` no trae ``res.users``."""
+    return {'create_uid': models.IntegerField(null=True),
+            'created_at': models.DateTimeField(null=True),
+            'write_uid': models.IntegerField(null=True),
             'updated_at': models.DateTimeField(null=True)}
 
 

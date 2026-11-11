@@ -120,7 +120,11 @@ class TestFieldsRegistry:
         """
         assert set(definition._fields) == {
             'id',
+            'create_uid',
+            'create_uid_id',
             'created_at',
+            'write_uid',
+            'write_uid_id',
             'updated_at',
             'properties_field',
             'properties_field_id',

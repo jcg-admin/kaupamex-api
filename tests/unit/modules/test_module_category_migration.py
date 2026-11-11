@@ -38,6 +38,10 @@ def historical_category_tables():
                 blank=True,
                 default='Uncategorized',
             )
+        # ``res.users`` no está en este estado fabricado: la autoría del
+        # log-access viaja como entero, con el mismo nombre de campo.
+        for name in ('create_uid', 'write_uid'):
+            item.fields[name] = models.IntegerField(null=True)
         state.add_model(item)
     historical_models = [
         state.apps.get_model('base', m.__name__) for m in source_models

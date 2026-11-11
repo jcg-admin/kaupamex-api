@@ -70,6 +70,9 @@ class CrmTeam(TimeStampedModel):
     member_ids = fields.Many2many(
         settings.AUTH_USER_MODEL,
         through='sales_team.CrmTeamMember',
+        # ``create_uid``/``write_uid`` del log-access también apuntan a
+        # ``res.users``: la pareja del vínculo se nombra.
+        through_fields=('crm_team_id', 'user_id'),
         related_name='sales_teams',
         blank=True,
         help_text='Vendedores del equipo (Odoo crm.team.member_ids).',

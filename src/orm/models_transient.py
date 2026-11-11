@@ -34,10 +34,11 @@ así que ``_transient_vacuum`` entra en su pasada sin cablear nada más.
 
 import datetime
 
-from django.db import router
+from django.db import models, router
 
 from orm.decorators import autovacuum
 from orm.fields_temporal import (
+    LogAccessUserField,
     TransactionClockSaveMixin,
     TransactionDateTimeField,
     transaction_now,
@@ -82,6 +83,15 @@ class TransientModel(TransactionClockSaveMixin, Model):
     #: el reloj de la transacción, ``cr.now()`` (``models.py:4801-4805``).
     created_at = TransactionDateTimeField(auto_now_add=True, null=True)
     updated_at = TransactionDateTimeField(auto_now=True, null=True)
+    create_uid = LogAccessUserField(
+        'base.ResUsers', models.SET_NULL, null=True, blank=True,
+        editable=False, related_name='+', db_index=False,
+        stamp_on_create_only=True,
+    )
+    write_uid = LogAccessUserField(
+        'base.ResUsers', models.SET_NULL, null=True, blank=True,
+        editable=False, related_name='+', db_index=False,
+    )
 
     #: ≙ ``:18-21``. ``_auto``: crea tabla; ``_register``: no se registra
     #: como modelo propio, sólo se hereda; ``_abstract``: no es abstracto.

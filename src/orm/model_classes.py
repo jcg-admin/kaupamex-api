@@ -1100,11 +1100,14 @@ def is_transient(model_cls):
     return bool(getattr(model_cls, '_transient', False))
 
 
-#: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``): las fechas
-#: que ``_log_access`` añade. Vive aqui y no en ``orm/models.py`` —que la
-#: reexporta con el mismo nombre— porque ``orm.models`` importa este modulo, y
+#: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``): las cuatro
+#: columnas que ``_log_access`` añade, con las fechas bajo su nombre de este
+#: árbol (``created_at``/``updated_at``;
+#: ``designs/log-access-columns-audit.md``).
+#: Vive aqui y no en ``orm/models.py`` —que la reexporta con el mismo
+#: nombre— porque ``orm.models`` importa este modulo, y
 #: :func:`check_transient_log_access` la necesita al construir la clase.
-LOG_ACCESS_COLUMNS = ['created_at', 'updated_at']
+LOG_ACCESS_COLUMNS = ['create_uid', 'created_at', 'write_uid', 'updated_at']
 
 
 def check_transient_log_access(model_cls):

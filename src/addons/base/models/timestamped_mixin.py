@@ -58,6 +58,7 @@ from django.db import models
 from orm.fields_temporal import (
     SAVE_NOW,
     SAVE_USING,
+    LogAccessUserField,
     TransactionClockSaveMixin,
     TransactionDateTimeField,
     transaction_now,
@@ -124,6 +125,19 @@ class TimeStampedModel(
     )
     updated_at = TransactionDateTimeField(
         auto_now=True,
+    )
+    #: ≙ ``create_uid``/``write_uid`` de ``_log_access`` (``odoo19c:
+    #: odoo/orm/models.py:283-292``): ``Many2one('res.users')`` sin
+    #: ``required`` ni ``ondelete``, cuyo defecto es ``set null``
+    #: (``fields_relational.py:274-282``), sin inverso y sin índice.
+    create_uid = LogAccessUserField(
+        'base.ResUsers', models.SET_NULL, null=True, blank=True,
+        editable=False, related_name='+', db_index=False,
+        stamp_on_create_only=True,
+    )
+    write_uid = LogAccessUserField(
+        'base.ResUsers', models.SET_NULL, null=True, blank=True,
+        editable=False, related_name='+', db_index=False,
     )
 
     class Meta:

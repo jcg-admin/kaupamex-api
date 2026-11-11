@@ -101,10 +101,11 @@ class TestMagicColumns:
     def test_the_audit_columns_are_the_log_access_ones(self):
         """≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: models.py:296``).
 
-        Allá son cuatro y dos son de autoría; aquí ``TimeStampedModel`` declara
-        dos y ninguna la guarda. La divergencia es del mixin, no de la copia.
+        Las cuatro de la fuente: dos de autoría y dos fechas, éstas con el
+        nombre de este árbol (``designs/log-access-columns-audit.md``).
         """
-        assert LOG_ACCESS_COLUMNS == ['created_at', 'updated_at']
+        assert LOG_ACCESS_COLUMNS == ['create_uid', 'created_at',
+                                      'write_uid', 'updated_at']
         assert set(LOG_ACCESS_COLUMNS) <= set(MAGIC_COLUMNS)
 
 
@@ -123,12 +124,13 @@ class TestCopyData:
 
     def test_the_audit_columns_do_not_travel(self):
         """
-        La copia es nueva: su fecha de alta es la suya, no la del original.
+        La copia es nueva: su fecha y su autor de alta son los suyos, no los
+        del original (``MAGIC_COLUMNS``, ``odoo19c: models.py:5420``).
         """
         partner = ResPartner.objects.create(name='Original')
         values = partner.copy_data()
-        assert 'created_at' not in values
-        assert 'updated_at' not in values
+        for name in LOG_ACCESS_COLUMNS:
+            assert name not in values
 
     def test_the_given_default_wins(self):
         partner = ResPartner.objects.create(name='Original', comment='texto')
