@@ -1,0 +1,907 @@
+reference_model	reference_field	reference_ondelete	django_field	field	ondelete_attribute	django_policy	confdeltype	deferrable	verdict
+ir.module.category	odoo/addons/base/models/ir_module.py:83	set null (defecto)	base.IrModuleCategory	parent	set null	PROTECT	a	True	divergencia de política
+ir.module.module	odoo/addons/base/models/ir_module.py:275	set null (defecto)	base.IrModule	category_id	set null	PROTECT	a	True	divergencia de política
+ir.module.module.dependency	odoo/addons/base/models/ir_module.py:1009	cascade	base.IrModuleDependency	module	set null	CASCADE	a	True	divergencia de atributo
+ir.module.module.exclusion	odoo/addons/base/models/ir_module.py:1074	cascade	base.IrModuleExclusion	module	set null	CASCADE	a	True	divergencia de atributo
+res.groups.privilege	odoo/addons/base/models/res_groups_privilege.py:13	set null (defecto)	base.ResGroupsPrivilege	category	-	PROTECT	a	True	divergencia de atributo y de política
+res.device.log	odoo/addons/base/models/res_device.py:28	set null (defecto)	base.ResDeviceLog	user	set null	CASCADE	a	True	divergencia de política
+res.users	odoo/addons/base/models/res_users.py:214	restrict	base.ResUsers	partner	restrict	PROTECT	a	True	coherente
+res.users	odoo/addons/base/models/res_users.py:245	restrict (defecto)	base.ResUsers	company	set null	PROTECT	a	True	divergencia de atributo
+res.users.log	-	-	base.ResUsersLog	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+res.users.apikeys	odoo/addons/base/models/res_users.py:1526	cascade	base.ResUsersApikeys	user	restrict	CASCADE	a	True	divergencia de atributo
+res.groups	odoo/addons/base/models/res_groups.py:36	set null (defecto)	base.ResGroups	privilege	set null	SET_NULL	a	True	coherente
+ir.ui.view	odoo/addons/base/models/ir_ui_view.py:169	restrict	base.IrUiView	inherit_id	set null	PROTECT	a	True	divergencia de atributo
+ir.ui.view.custom	odoo/addons/base/models/ir_ui_view.py:73	cascade	base.IrUiViewCustom	ref_id	restrict	CASCADE	a	True	divergencia de atributo
+ir.ui.view.custom	odoo/addons/base/models/ir_ui_view.py:74	cascade	base.IrUiViewCustom	user	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.fields	odoo/addons/base/models/ir_model.py:523	cascade	base.IrModelFields	model_id	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.fields	odoo/addons/base/models/ir_model.py:521	cascade	base.IrModelFields	relation_field_id	set null	CASCADE	a	True	divergencia de atributo
+ir.model.fields	odoo/addons/base/models/ir_model.py:536	cascade	base.IrModelFields	related_field_id	set null	CASCADE	a	True	divergencia de atributo
+ir.model.fields	addons/base_sparse_field/models/models.py:22	cascade	base.IrModelFields	serialization_field_id	set null	CASCADE	a	True	divergencia de atributo
+ir.model.inherit	odoo/addons/base/models/ir_model.py:1427	cascade	base.IrModelInherit	model_id	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.inherit	odoo/addons/base/models/ir_model.py:1428	cascade	base.IrModelInherit	parent_id	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.inherit	odoo/addons/base/models/ir_model.py:1429	cascade	base.IrModelInherit	parent_field_id	set null	CASCADE	a	True	divergencia de atributo
+ir.model.fields.selection	odoo/addons/base/models/ir_model.py:1513	cascade	base.IrModelFieldsSelection	field_id	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.constraint	odoo/addons/base/models/ir_model.py:1864	cascade	base.IrModelConstraint	model	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.constraint	odoo/addons/base/models/ir_model.py:1865	cascade	base.IrModelConstraint	module	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.relation	odoo/addons/base/models/ir_model.py:2017	cascade	base.IrModelRelation	model	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.relation	odoo/addons/base/models/ir_model.py:2018	cascade	base.IrModelRelation	module	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.access	odoo/addons/base/models/ir_model.py:2080	cascade	base.IrModelAccess	model_id	restrict	CASCADE	a	True	divergencia de atributo
+ir.model.access	odoo/addons/base/models/ir_model.py:2081	restrict	base.IrModelAccess	group_id	set null	PROTECT	a	True	divergencia de atributo
+properties.base.definition	odoo/addons/base/models/properties_base_definition.py:12	cascade	base.PropertiesBaseDefinition	properties_field	restrict	CASCADE	a	True	divergencia de atributo
+ir.attachment	odoo/addons/base/models/ir_attachment.py:459	set null (defecto)	base.IrAttachment	company	set null	SET_NULL	a	True	coherente
+ir.sequence	odoo/addons/base/models/ir_sequence.py:150	set null (defecto)	base.IrSequence	company	set null	CASCADE	a	True	divergencia de política
+ir.sequence.date_range	odoo/addons/base/models/ir_sequence.py:329	cascade	base.IrSequenceDateRange	sequence	restrict	CASCADE	a	True	divergencia de atributo
+-	-	-	base.IrActionsActWindowView	act_window	set null	CASCADE	a	True	sin contraparte en la fuente
+server.action.history.wizard	odoo/addons/base/models/ir_actions.py:477	set null (defecto)	base.ServerActionHistoryWizard	action	set null	CASCADE	a	True	divergencia de política
+server.action.history.wizard	odoo/addons/base/models/ir_actions.py:480	restrict (defecto)	base.ServerActionHistoryWizard	revision	set null	CASCADE	a	True	divergencia de atributo y de política
+ir.actions.server.history	odoo/addons/base/models/ir_actions.py:509	cascade	base.IrActionsServerHistory	action	restrict	CASCADE	a	True	divergencia de atributo
+ir.actions.server	odoo/addons/base/models/ir_actions.py:648	cascade	base.IrActionsServer	parent	set null	CASCADE	a	True	divergencia de atributo
+ir.actions.server	odoo/addons/base/models/ir_actions.py:652	set null (defecto)	base.IrActionsServer	crud_model_id	set null	CASCADE	a	True	divergencia de política
+ir.actions.server	odoo/addons/base/models/ir_actions.py:658	set null (defecto)	base.IrActionsServer	link_field_id	set null	CASCADE	a	True	divergencia de política
+ir.actions.server	odoo/addons/base/models/ir_actions.py:664	cascade	base.IrActionsServer	update_field_id	set null	CASCADE	a	True	divergencia de atributo
+ir.actions.server	odoo/addons/base/models/ir_actions.py:666	set null (defecto)	base.IrActionsServer	update_related_model_id	set null	CASCADE	a	True	divergencia de política
+ir.actions.server	odoo/addons/base/models/ir_actions.py:688	set null (defecto)	base.IrActionsServer	sequence_id	set null	CASCADE	a	True	divergencia de política
+ir.actions.server	-	-	base.IrActionsServer	resource_ref_content_type	set null	CASCADE	a	True	sin contraparte en la fuente
+ir.actions.server	odoo/addons/base/models/ir_actions.py:691	cascade	base.IrActionsServer	selection_value	set null	CASCADE	a	True	divergencia de atributo
+ir.actions.todo	odoo/addons/base/models/ir_actions.py:1357	restrict (defecto)	base.IrActionsTodo	action	restrict	CASCADE	a	True	divergencia de política
+ir.cron	odoo/addons/base/models/ir_cron.py:106	restrict	base.IrCron	ir_actions_server	restrict	PROTECT	a	True	coherente
+ir.cron	odoo/addons/base/models/ir_cron.py:110	restrict (defecto)	base.IrCron	user	set null	SET_NULL	a	True	divergencia de atributo y de política
+ir.cron.trigger	odoo/addons/base/models/ir_cron.py:903	cascade	base.IrCronTrigger	cron	restrict	CASCADE	a	True	divergencia de atributo
+ir.cron.progress	odoo/addons/base/models/ir_cron.py:923	cascade	base.IrCronProgress	cron	restrict	CASCADE	a	True	divergencia de atributo
+ir.demo_failure	odoo/addons/base/models/ir_demo_failure.py:10	restrict (defecto)	base.IrDemoFailure	module	restrict	CASCADE	a	True	divergencia de política
+ir.demo_failure	odoo/addons/base/models/ir_demo_failure.py:12	set null (defecto)	base.IrDemoFailure	wizard	set null	CASCADE	a	True	divergencia de política
+ir.actions.report	odoo/addons/base/models/ir_actions_report.py:185	set null (defecto)	base.IrActionsReport	paperformat_id	set null	SET_NULL	a	True	coherente
+ir.rule	odoo/addons/base/models/ir_rule.py:24	cascade	base.IrRule	model_id	set null	CASCADE	a	True	divergencia de atributo
+ir.embedded.actions	odoo/addons/base/models/ir_embedded_actions.py:15	cascade	base.IrEmbeddedActions	parent_action	restrict	CASCADE	a	True	divergencia de atributo
+ir.embedded.actions	odoo/addons/base/models/ir_embedded_actions.py:19	cascade	base.IrEmbeddedActions	action	set null	CASCADE	a	True	divergencia de atributo
+ir.embedded.actions	odoo/addons/base/models/ir_embedded_actions.py:22	cascade	base.IrEmbeddedActions	user	set null	CASCADE	a	True	divergencia de atributo
+ir.default	odoo/addons/base/models/ir_default.py:22	cascade	base.IrDefault	user	set null	CASCADE	a	True	divergencia de atributo
+ir.default	odoo/addons/base/models/ir_default.py:24	cascade	base.IrDefault	company	set null	CASCADE	a	True	divergencia de atributo
+ir.filters	-	-	base.IrFilters	user	set null	CASCADE	a	True	sin contraparte en la fuente
+ir.filters	odoo/addons/base/models/ir_filters.py:19	cascade	base.IrFilters	action_id	set null	CASCADE	a	True	divergencia de atributo
+ir.filters	odoo/addons/base/models/ir_filters.py:23	cascade	base.IrFilters	embedded_action	set null	CASCADE	a	True	divergencia de atributo
+ir.exports.line	odoo/addons/base/models/ir_exports.py:23	cascade	base.IrExportsLine	export	-	CASCADE	a	True	divergencia de atributo
+ir.ui.menu	odoo/addons/base/models/ir_ui_menu.py:27	restrict	base.IrUiMenu	parent	-	PROTECT	a	True	divergencia de atributo
+ir.ui.menu	-	-	base.IrUiMenu	group	-	PROTECT	a	True	sin contraparte en la fuente
+report.layout	odoo/addons/base/models/report_layout.py:12	restrict (defecto)	base.ReportLayout	view	-	PROTECT	a	True	divergencia de atributo
+res.country	odoo/addons/base/models/res_country.py:60	set null (defecto)	base.ResCountry	currency	set null	SET_NULL	a	True	coherente
+res.country.state	odoo/addons/base/models/res_country.py:204	restrict (defecto)	base.ResCountryState	country	restrict	CASCADE	a	True	divergencia de política
+res.currency.rate	odoo/addons/base/models/res_currency.py:375	cascade	base.ResCurrencyRate	currency	restrict	CASCADE	a	True	divergencia de atributo
+res.currency.rate	odoo/addons/base/models/res_currency.py:376	set null (defecto)	base.ResCurrencyRate	company	set null	CASCADE	a	True	divergencia de política
+res.partner	addons/mail/models/res_partner.py:23	set null (defecto)	base.ResPartner	parent	set null	SET_NULL	a	True	coherente
+res.partner	-	-	base.ResPartner	commercial_partner_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+res.partner	-	-	base.ResPartner	state	set null	SET_NULL	a	True	sin contraparte en la fuente
+res.partner	addons/base_vat/models/res_partner.py:103	set null (defecto)	base.ResPartner	country	set null	SET_NULL	a	True	coherente
+res.partner	addons/mail/models/res_partner.py:24	set null (defecto)	base.ResPartner	user	set null	SET_NULL	a	True	coherente
+res.partner	addons/stock/models/res_partner.py:11	company_dependent	base.ResPartner	property_stock_customer	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/stock/models/res_partner.py:15	company_dependent	base.ResPartner	property_stock_supplier	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:543	company_dependent	base.ResPartner	property_account_payable_id	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:548	company_dependent	base.ResPartner	property_account_receivable_id	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:553	company_dependent	base.ResPartner	property_account_position_id	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:557	company_dependent	base.ResPartner	property_payment_term_id	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:561	company_dependent	base.ResPartner	property_supplier_payment_term_id	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:616	company_dependent	base.ResPartner	property_outbound_payment_method_line_id	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:623	company_dependent	base.ResPartner	property_inbound_payment_method_line_id	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+res.partner	addons/account/models/partner.py:592	set null (defecto)	base.ResPartner	invoice_template_pdf_report_id	set null	SET_NULL	a	True	coherente
+res.partner.category	-	-	base.ResPartnerCategory	parent	set null	CASCADE	a	True	sin contraparte en la fuente
+res.company	odoo/addons/base/models/res_company.py:57	restrict (defecto)	base.ResCompany	partner	restrict	PROTECT	a	True	coherente
+res.company	odoo/addons/base/models/res_company.py:51	restrict	base.ResCompany	parent	set null	PROTECT	a	True	divergencia de atributo
+res.company	odoo/addons/base/models/res_company.py:67	restrict (defecto)	base.ResCompany	currency	restrict	PROTECT	a	True	coherente
+res.company	odoo/addons/base/models/res_company.py:87	set null (defecto)	base.ResCompany	paperformat	set null	SET_NULL	a	True	coherente
+res.company	addons/stock/models/res_company.py:17	restrict	base.ResCompany	internal_transit_location	set null	RESTRICT	a	True	divergencia de atributo
+res.company	addons/stock/models/res_company.py:20	set null (defecto)	base.ResCompany	stock_mail_confirmation_template	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:203	set null (defecto)	base.ResCompany	account_fiscal_country	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:126	set null (defecto)	base.ResCompany	account_sale_tax	set null	PROTECT	a	True	divergencia de política
+res.company	addons/account/models/company.py:127	set null (defecto)	base.ResCompany	account_purchase_tax	set null	PROTECT	a	True	divergencia de política
+res.company	addons/account/models/company.py:282	set null (defecto)	base.ResCompany	income_account_id	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:288	set null (defecto)	base.ResCompany	expense_account_id	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:122	set null (defecto)	base.ResCompany	account_journal_suspense_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:124	set null (defecto)	base.ResCompany	account_journal_early_pay_discount_loss_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:123	set null (defecto)	base.ResCompany	account_journal_early_pay_discount_gain_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:120	set null (defecto)	base.ResCompany	default_cash_difference_income_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:121	set null (defecto)	base.ResCompany	default_cash_difference_expense_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:113	set null (defecto)	base.ResCompany	transfer_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account/models/company.py:167	set null (defecto)	base.ResCompany	account_opening_move	set null	SET_NULL	a	True	coherente
+res.company	addons/hr_timesheet/models/res_company.py:19	set null (defecto)	base.ResCompany	project_time_mode_id	set null	SET_NULL	a	True	coherente
+res.company	addons/hr_timesheet/models/res_company.py:24	set null (defecto)	base.ResCompany	timesheet_encode_uom_id	set null	SET_NULL	a	True	coherente
+res.company	addons/hr_timesheet/models/res_company.py:26	set null (defecto)	base.ResCompany	internal_project_id	set null	SET_NULL	a	True	coherente
+res.company	addons/l10n_mx/models/res_company.py:9	set null (defecto)	base.ResCompany	l10n_mx_income_return_discount_account	set null	PROTECT	a	True	divergencia de política
+res.company	addons/l10n_mx/models/res_company.py:13	set null (defecto)	base.ResCompany	l10n_mx_income_re_invoicing_account	set null	PROTECT	a	True	divergencia de política
+res.company	addons/sale/models/res_company.py:28	set null (defecto)	base.ResCompany	sale_discount_product	set null	SET_NULL	a	True	coherente
+res.company	addons/sale/models/res_company.py:50	set null (defecto)	base.ResCompany	downpayment_account	set null	SET_NULL	a	True	coherente
+res.company	addons/account_peppol/models/res_company.py:86	set null (defecto)	base.ResCompany	peppol_purchase_journal	set null	SET_NULL	a	True	coherente
+res.company	addons/account_peppol/models/res_company.py:108	set null (defecto)	base.ResCompany	peppol_self_billing_reception_journal	set null	SET_NULL	a	True	coherente
+-	-	-	base.ResCompanyUsersRel	cid	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base.ResCompanyUsersRel	user_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base.CompanySetting	company	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base.ExportJob	requested_by	-	CASCADE	a	True	sin contraparte en la fuente
+res.bank	odoo/addons/base/models/res_bank.py:27	set null (defecto)	base.ResBank	state	set null	SET_NULL	a	True	coherente
+res.bank	odoo/addons/base/models/res_bank.py:28	set null (defecto)	base.ResBank	country	set null	SET_NULL	a	True	coherente
+res.partner.bank	odoo/addons/base/models/res_bank.py:94	cascade	base.ResPartnerBank	partner	restrict	CASCADE	a	True	divergencia de atributo
+res.partner.bank	odoo/addons/base/models/res_bank.py:96	set null (defecto)	base.ResPartnerBank	bank	set null	SET_NULL	a	True	coherente
+res.partner.bank	odoo/addons/base/models/res_bank.py:100	set null (defecto)	base.ResPartnerBank	currency	set null	SET_NULL	a	True	coherente
+res.users.deletion	odoo/addons/base/models/res_users_deletion.py:25	set null	base.ResUsersDeletion	user	set null	SET_NULL	a	True	coherente
+res.users.settings	odoo/addons/base/models/res_users_settings.py:12	cascade	base.ResUsersSettings	user	restrict	CASCADE	a	True	divergencia de atributo
+-	-	-	base.CheckoutAttempt	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.Capability	module	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	authz.RoleCapability	role	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.RoleCapability	capability	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.RoleAssignment	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.RoleAssignment	role	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.RoleAssignment	assigned_by	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	authz.DirectEntitlement	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.DirectEntitlement	capability	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.DirectEntitlement	granted_by	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	authz.EntitlementRevocation	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.EntitlementRevocation	capability	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz.EntitlementRevocation	revoked_by	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	authz_audit.AuthzEvent	actor	-	SET_NULL	a	True	sin contraparte en la fuente
+res.city	addons/base_address_extended/models/res_city.py:14	restrict (defecto)	base_address_extended.ResCity	country_id	restrict	CASCADE	a	True	divergencia de política
+res.city	addons/base_address_extended/models/res_city.py:15	set null (defecto)	base_address_extended.ResCity	state_id	set null	SET_NULL	a	True	coherente
+-	-	-	base_address_extended.CountryAddressPolicy	country	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base_address_extended.AddressStructured	partner	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base_address_extended.AddressStructured	city_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	base_geolocalize.PartnerGeolocation	partner	-	CASCADE	a	True	sin contraparte en la fuente
+certificate.key	addons/certificate/models/key.py:58	cascade	certificate.CertificateKey	company	restrict	CASCADE	a	True	divergencia de atributo
+certificate.certificate	addons/certificate/models/certificate.py:29	set null (defecto)	certificate.CertificateCertificate	private_key	set null	SET_NULL	a	True	coherente
+certificate.certificate	addons/certificate/models/certificate.py:38	set null (defecto)	certificate.CertificateCertificate	public_key	set null	SET_NULL	a	True	coherente
+certificate.certificate	addons/certificate/models/certificate.py:94	cascade	certificate.CertificateCertificate	company	restrict	CASCADE	a	True	divergencia de atributo
+-	-	-	loyalty.Voucher	deactivated_by	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	loyalty.Voucher	created_by	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	loyalty.Referral	referrer	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	loyalty.Referral	referee	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	loyalty.Referral	reward_voucher	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	loyalty.ReferralCode	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	loyalty.VoucherChangeLog	voucher	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	loyalty.VoucherChangeLog	changed_by	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	loyalty.VoucherUsage	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	loyalty.VoucherUsage	voucher	-	CASCADE	a	True	sin contraparte en la fuente
+onboarding.progress	addons/onboarding/models/onboarding_progress.py:23	cascade	onboarding.OnboardingProgress	onboarding	restrict	CASCADE	a	True	divergencia de atributo
+onboarding.progress	addons/onboarding/models/onboarding_progress.py:22	cascade	onboarding.OnboardingProgress	company	set null	CASCADE	a	True	divergencia de atributo
+onboarding.progress.step	addons/onboarding/models/onboarding_progress_step.py:16	cascade	onboarding.OnboardingProgressStep	step	restrict	CASCADE	a	True	divergencia de atributo
+onboarding.progress.step	addons/onboarding/models/onboarding_progress_step.py:19	cascade	onboarding.OnboardingProgressStep	company	set null	CASCADE	a	True	divergencia de atributo
+project.project	addons/sale_project/models/project_project.py:42	set null (defecto)	project.Project	partner	set null	SET_NULL	a	True	coherente
+project.project	addons/project/models/project_project.py:95	set null (defecto)	project.Project	company	set null	SET_NULL	a	True	coherente
+project.project	addons/sale_timesheet/models/project_project.py:46	set null (defecto)	project.Project	timesheet_product	set null	SET_NULL	a	True	coherente
+project.task	addons/hr_timesheet/models/project_task.py:32	set null (defecto)	project.ProjectTask	project	set null	CASCADE	a	True	divergencia de política
+project.task	addons/project/models/project_task.py:161	restrict	project.ProjectTask	stage	set null	SET_NULL	a	True	divergencia de atributo y de política
+project.task	-	-	project.ProjectTask	assignee	set null	SET_NULL	a	True	sin contraparte en la fuente
+project.task.type	addons/project_sms/models/project_task_type.py:10	set null (defecto)	project.ProjectTaskType	sms_template	set null	SET_NULL	a	True	coherente
+resource.calendar.attendance	addons/resource/models/resource_calendar_attendance.py:33	cascade	resource.ResourceCalendarAttendance	calendar	restrict	CASCADE	a	True	divergencia de atributo
+resource.calendar.attendance	addons/hr_work_entry/models/resource_calendar_attendance.py:12	set null (defecto)	resource.ResourceCalendarAttendance	work_entry_type	set null	SET_NULL	a	True	coherente
+resource.calendar.leaves	addons/resource/models/resource_calendar_leaves.py:36	set null (defecto)	resource.ResourceCalendarLeaves	company	set null	SET_NULL	a	True	coherente
+resource.calendar.leaves	addons/resource/models/resource_calendar_leaves.py:39	set null (defecto)	resource.ResourceCalendarLeaves	calendar	set null	SET_NULL	a	True	coherente
+resource.calendar.leaves	addons/resource/models/resource_calendar_leaves.py:47	set null (defecto)	resource.ResourceCalendarLeaves	resource	set null	SET_NULL	a	True	coherente
+resource.calendar.leaves	addons/hr_work_entry/models/resource_calendar_leaves.py:9	set null (defecto)	resource.ResourceCalendarLeaves	work_entry_type	set null	SET_NULL	a	True	coherente
+resource.resource	addons/resource/models/resource_resource.py:33	set null (defecto)	resource.ResourceResource	company	set null	SET_NULL	a	True	coherente
+resource.resource	addons/resource/models/resource_resource.py:38	set null (defecto)	resource.ResourceResource	user	set null	SET_NULL	a	True	coherente
+resource.resource	addons/resource/models/resource_resource.py:47	set null (defecto)	resource.ResourceResource	calendar	set null	SET_NULL	a	True	coherente
+resource.calendar	addons/resource/models/resource_calendar.py:72	set null (defecto)	resource.ResourceCalendar	company	set null	SET_NULL	a	True	coherente
+uom.uom	addons/uom/models/uom_uom.py:41	cascade	uom.Uom	relative_uom_id	set null	CASCADE	a	True	divergencia de atributo
+uom.uom	addons/stock/models/product.py:1345	set null (defecto)	uom.Uom	package_type	set null	SET_NULL	a	True	coherente
+utm.campaign	addons/utm/models/utm_campaign.py:17	restrict (defecto)	utm.UtmCampaign	user_id	set null	PROTECT	a	True	divergencia de atributo
+utm.campaign	addons/utm/models/utm_campaign.py:20	restrict	utm.UtmCampaign	stage_id	restrict	PROTECT	a	True	coherente
+res.users.settings.embedded.action	addons/web/models/res_users_settings_embedded_action.py:9	cascade	web.ResUsersSettingsEmbeddedAction	user_setting_id	restrict	CASCADE	a	True	divergencia de atributo
+res.users.settings.embedded.action	addons/web/models/res_users_settings_embedded_action.py:10	cascade	web.ResUsersSettingsEmbeddedAction	action_id	restrict	CASCADE	a	True	divergencia de atributo
+test_orm.category	odoo/addons/test_orm/models/test_orm.py:24	cascade	test_orm.TestOrmCategory	parent	cascade	CASCADE	a	True	coherente
+test_orm.discussion	odoo/addons/test_orm/models/test_orm.py:93	set null (defecto)	test_orm.TestOrmDiscussion	moderator	set null	SET_NULL	a	True	coherente
+test_orm.model_parent	odoo/addons/test_orm/models/test_orm.py:1298	set null (defecto)	test_orm.TestOrmModelParent	company	set null	SET_NULL	a	True	coherente
+test_orm.model_child	odoo/addons/test_orm/models/test_orm.py:1307	set null (defecto)	test_orm.TestOrmModelChild	company	set null	SET_NULL	a	True	coherente
+test_orm.model_child	odoo/addons/test_orm/models/test_orm.py:1308	set null (defecto)	test_orm.TestOrmModelChild	parent	set null	SET_NULL	a	True	coherente
+test_orm.model_child_nocheck	odoo/addons/test_orm/models/test_orm.py:1318	set null (defecto)	test_orm.TestOrmModelChildNocheck	company	set null	SET_NULL	a	True	coherente
+test_orm.model_child_nocheck	odoo/addons/test_orm/models/test_orm.py:1319	set null (defecto)	test_orm.TestOrmModelChildNocheck	parent	set null	SET_NULL	a	True	coherente
+test_orm.city	odoo/addons/test_orm/models/test_orm.py:1462	set null (defecto)	test_orm.TestOrmCity	country_id	set null	SET_NULL	a	True	coherente
+test_orm.model_active_field	odoo/addons/test_orm/models/test_orm.py:1355	set null (defecto)	test_orm.TestOrmModelActiveField	parent	set null	SET_NULL	a	True	coherente
+test_orm.crew	odoo/addons/test_orm/models/test_orm.py:1967	set null (defecto)	test_orm.TestOrmCrew	pirate_id	set null	SET_NULL	a	True	coherente
+test_orm.crew	odoo/addons/test_orm/models/test_orm.py:1968	set null (defecto)	test_orm.TestOrmCrew	prisoner_id	set null	SET_NULL	a	True	coherente
+test_orm.crew	odoo/addons/test_orm/models/test_orm.py:1969	set null (defecto)	test_orm.TestOrmCrew	ship_id	set null	SET_NULL	a	True	coherente
+test_orm.multi	odoo/addons/test_orm/models/test_orm.py:279	set null (defecto)	test_orm.TestOrmMulti	partner	set null	SET_NULL	a	True	coherente
+test_orm.multi.line	odoo/addons/test_orm/models/test_orm.py:304	cascade	test_orm.TestOrmMultiLine	multi	cascade	CASCADE	a	True	coherente
+test_orm.multi.line	odoo/addons/test_orm/models/test_orm.py:306	set null (defecto)	test_orm.TestOrmMultiLine	partner	set null	SET_NULL	a	True	coherente
+test_orm.related_foo	odoo/addons/test_orm/models/test_orm.py:497	set null (defecto)	test_orm.TestOrmRelatedFoo	bar_id	set null	SET_NULL	a	True	coherente
+test_orm.related	odoo/addons/test_orm/models/test_orm.py:460	set null (defecto)	test_orm.TestOrmRelated	foo_id	set null	SET_NULL	a	True	coherente
+test_orm.hierarchy.node	odoo/addons/test_orm/models/test_orm.py:2360	set null (defecto)	test_orm.TestOrmHierarchyNode	parent_id	set null	SET_NULL	a	True	coherente
+test_orm.hierarchy.head	odoo/addons/test_orm/models/test_orm.py:2352	set null (defecto)	test_orm.TestOrmHierarchyHead	node_id	set null	SET_NULL	a	True	coherente
+test_orm.related_inherits	odoo/addons/test_orm/models/test_orm.py:527	cascade	test_orm.TestOrmRelatedInherits	base_id	cascade	CASCADE	a	True	coherente
+test_orm.mixed	odoo/addons/test_orm/models/test_orm.py:385	set null (defecto)	test_orm.TestOrmMixed	currency_id	set null	SET_NULL	a	True	coherente
+test_orm.message	odoo/addons/test_orm/models/test_orm.py:142	cascade	test_orm.TestOrmMessage	discussion	cascade	CASCADE	a	True	coherente
+test_orm.message	odoo/addons/test_orm/models/test_orm.py:144	set null (defecto)	test_orm.TestOrmMessage	author	set null	SET_NULL	a	True	coherente
+test_orm.any.child	odoo/addons/test_orm/models/test_orm.py:2334	cascade	test_orm.TestOrmAnyChild	parent_id	cascade	CASCADE	a	True	coherente
+test_orm.any.child	odoo/addons/test_orm/models/test_orm.py:2335	set null (defecto)	test_orm.TestOrmAnyChild	link_sibling_id	set null	SET_NULL	a	True	coherente
+test_orm.model_child_m2o	odoo/addons/test_orm/models/test_orm.py:1410	cascade	test_orm.TestOrmModelChildM2o	parent_id	cascade	CASCADE	a	True	coherente
+test_orm.order.line	odoo/addons/test_orm/models/test_orm.py:692	cascade	test_orm.TestOrmOrderLine	order_id	cascade	CASCADE	a	True	coherente
+test_orm.team	odoo/addons/test_orm/models/test_orm.py:2291	set null (defecto)	test_orm.TestOrmTeam	parent_id	set null	SET_NULL	a	True	coherente
+test_orm.team.member	odoo/addons/test_orm/models/test_orm.py:2300	set null (defecto)	test_orm.TestOrmTeamMember	team_id	set null	SET_NULL	a	True	coherente
+test_orm.compute.member	odoo/addons/test_orm/models/test_orm.py:1701	set null (defecto)	test_orm.TestOrmComputeMember	container_id	set null	SET_NULL	a	True	coherente
+test_orm.unsearchable.o2m	odoo/addons/test_orm/models/test_orm.py:2309	set null (defecto)	test_orm.TestOrmUnsearchableO2m	stored_parent_id	set null	SET_NULL	a	True	coherente
+test_orm.computed_inverse_one2many_line	odoo/addons/test_orm/models/test_orm.py:1071	set null (defecto)	test_orm.TestOrmComputedInverseOne2manyLine	parent_id	set null	SET_NULL	a	True	coherente
+test_orm.model.some_access	odoo/addons/test_orm/models/test_orm.py:1829	set null (defecto)	test_orm.TestOrmModelSomeAccess	g_id	set null	SET_NULL	a	True	coherente
+test_orm.related_inherits_two	-	-	test_orm.TestOrmRelatedInheritsTwo	base_id	cascade	CASCADE	a	True	sin contraparte en la fuente
+test_orm.related_inherits_two	-	-	test_orm.TestOrmRelatedInheritsTwo	bar_parent_id	cascade	CASCADE	a	True	sin contraparte en la fuente
+test_orm.compute.inverse	odoo/addons/test_orm/models/test_orm.py:553	set null (defecto)	test_orm.TestOrmComputeInverse	parent_id	set null	SET_NULL	a	True	coherente
+test_orm.compute.onchange.line	odoo/addons/test_orm/models/test_orm.py:944	cascade	test_orm.TestOrmComputeOnchangeLine	record_id	cascade	CASCADE	a	True	coherente
+-	-	-	website.StaticPageVersion	page	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website.StaticPageVersion	created_by	-	SET_NULL	a	True	sin contraparte en la fuente
+website.menu	addons/website/models/website_menu.py:47	cascade	website.WebsiteMenu	website	-	CASCADE	a	True	divergencia de atributo
+website.menu	addons/website/models/website_menu.py:48	cascade	website.WebsiteMenu	parent	-	CASCADE	a	True	divergencia de atributo
+website.menu	-	-	website.WebsiteMenu	group	-	PROTECT	a	True	sin contraparte en la fuente
+website.menu	addons/website/models/website_menu.py:43	cascade	website.WebsiteMenu	page	-	CASCADE	a	True	divergencia de atributo
+website	addons/website/models/website.py:124	restrict (defecto)	website.Website	company	restrict	CASCADE	a	True	divergencia de política
+website	addons/website/models/website.py:129	restrict (defecto)	website.Website	default_lang	restrict	PROTECT	a	True	coherente
+website	addons/website/models/website.py:193	restrict (defecto)	website.Website	user	restrict	PROTECT	a	True	coherente
+website	addons/website/models/website.py:210	set null (defecto)	website.Website	theme	set null	SET_NULL	a	True	coherente
+-	-	-	website.WebsiteViewInfo	view	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website.WebsiteViewInfo	website	set null	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website.SearchEntry	user	-	CASCADE	a	True	sin contraparte en la fuente
+website.page	addons/website/models/website_page.py:39	cascade	website.WebsitePage	view	restrict	CASCADE	a	True	divergencia de atributo
+website.page	addons/website/models/website_page.py:55	cascade	website.WebsitePage	website	set null	CASCADE	a	True	divergencia de atributo
+website.rewrite	addons/website/models/website_rewrite.py:65	cascade	website.WebsiteRewrite	website	set null	CASCADE	a	True	divergencia de atributo
+website.rewrite	addons/website/models/website_rewrite.py:68	set null (defecto)	website.WebsiteRewrite	route	set null	SET_NULL	a	True	coherente
+-	-	-	website.StaticContentVersion	content	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website.StaticContentVersion	changed_by	-	SET_NULL	a	True	sin contraparte en la fuente
+website.configurator.feature	addons/website/models/website_configurator_feature.py:21	cascade	website.WebsiteConfiguratorFeature	page_view	-	CASCADE	a	True	divergencia de atributo
+website.configurator.feature	addons/website/models/website_configurator_feature.py:22	cascade	website.WebsiteConfiguratorFeature	module	-	CASCADE	a	True	divergencia de atributo
+res.company.ldap	addons/auth_ldap/models/res_company_ldap.py:39	cascade	authz_ldap.CompanyLdap	company	restrict	CASCADE	a	True	divergencia de atributo
+res.company.ldap	addons/auth_ldap/models/res_company_ldap.py:65	set null (defecto)	authz_ldap.CompanyLdap	user	set null	SET_NULL	a	True	coherente
+auth.passkey.key	-	-	authz_passkey.PasskeyKey	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz_reauth.ReauthSession	user	-	CASCADE	a	True	sin contraparte en la fuente
+auth_totp.device	-	-	authz_totp.AuthTotpDevice	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+auth.totp.rate.limit.log	addons/auth_totp/models/auth_totp_rate_limit_log.py:10	restrict (defecto)	authz_totp.AuthTotpRateLimitLog	user_id	restrict	CASCADE	a	True	divergencia de política
+-	-	-	authz_totp.TotpRecoveryCode	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz_totp.TotpSecret	user	-	CASCADE	a	True	sin contraparte en la fuente
+html_editor.converter.test	addons/html_editor/models/test_models.py:17	set null (defecto)	html_editor.Html_EditorConverterTest	many2one	set null	SET_NULL	a	True	coherente
+mail.alias	addons/mail/models/mail_alias.py:43	restrict	mail.MailAlias	alias_domain	set null	PROTECT	a	True	divergencia de atributo
+mail.alias	addons/mail/models/mail_alias.py:48	cascade	mail.MailAlias	alias_model	restrict	CASCADE	a	True	divergencia de atributo
+mail.alias	addons/mail/models/mail_alias.py:64	set null (defecto)	mail.MailAlias	alias_parent_model	set null	CASCADE	a	True	divergencia de política
+mail.message.subtype	addons/mail/models/mail_message_subtype.py:29	set null	mail.MailMessageSubtype	parent	set null	SET_NULL	a	True	coherente
+mail.message	addons/mail/models/mail_message.py:109	set null	mail.MailMessage	parent	set null	SET_NULL	a	True	coherente
+mail.message	addons/mail/models/mail_message.py:138	set null	mail.MailMessage	subtype	set null	SET_NULL	a	True	coherente
+mail.message	addons/mail/models/mail_message.py:145	set null	mail.MailMessage	author	set null	SET_NULL	a	True	coherente
+mail.followers	addons/mail/models/mail_followers.py:31	cascade	mail.MailFollowers	partner	restrict	CASCADE	a	True	divergencia de atributo
+mail.notification	-	-	mail.MailNotification	message	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.notification	-	-	mail.MailNotification	partner	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.notification	addons/mail/models/mail_notification.py:22	set null (defecto)	mail.MailNotification	mail_mail	set null	SET_NULL	a	True	coherente
+mail.notification	addons/sms/models/mail_notification.py:15	set null (defecto)	mail.MailNotification	sms	set null	SET_NULL	a	True	coherente
+mail.activity	addons/mail/models/mail_activity.py:65	restrict	mail.MailActivity	activity_type	set null	SET_NULL	a	True	divergencia de atributo y de política
+mail.activity	addons/mail/models/mail_activity.py:88	cascade	mail.MailActivity	user	set null	CASCADE	a	True	divergencia de atributo
+mail.tracking.value	-	-	mail.MailTrackingValue	message	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.tracking.value	addons/mail/models/mail_tracking_value.py:32	set null	mail.MailTrackingValue	currency	set null	SET_NULL	a	True	coherente
+mail.mail	addons/mail/models/mail_mail.py:46	cascade	mail.MailMail	mail_message	restrict	CASCADE	a	True	divergencia de atributo
+-	-	-	mail.Notification	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mail.Notification	mail_message	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	mail.NotificationPreference	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mail.ManualNotification	sender	-	SET_NULL	a	True	sin contraparte en la fuente
+product.document	addons/product/models/product_document.py:16	cascade	product.ProductDocument	ir_attachment	restrict	CASCADE	a	True	divergencia de atributo
+product.category	addons/product/models/product_category.py:21	cascade	product.ProductCategory	parent	set null	CASCADE	a	True	divergencia de atributo
+product.category	addons/stock/models/product.py:1284	set null (defecto)	product.ProductCategory	removal_strategy	set null	SET_NULL	a	True	coherente
+product.category	addons/account/models/product.py:17	company_dependent	product.ProductCategory	property_account_income_categ	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
+product.category	addons/account/models/product.py:24	company_dependent	product.ProductCategory	property_account_expense_categ	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
+product.template	addons/product/models/product_template.py:81	set null (defecto)	product.ProductTemplate	categ	set null	PROTECT	a	True	divergencia de política
+product.template	addons/product/models/product_template.py:124	set null (defecto)	product.ProductTemplate	company	set null	CASCADE	a	True	divergencia de política
+product.template	addons/product/models/product_template.py:118	restrict (defecto)	product.ProductTemplate	uom	set null	PROTECT	a	True	divergencia de atributo
+product.template	addons/stock/models/product.py:849	set null (defecto)	product.ProductTemplate	lot_sequence	set null	SET_NULL	a	True	coherente
+product.template	addons/account/models/product.py:53	company_dependent	product.ProductTemplate	property_account_income	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
+product.template	addons/account/models/product.py:57	company_dependent	product.ProductTemplate	property_account_expense	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
+product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	line	restrict	CASCADE	a	True	sin contraparte en la fuente
+product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	attribute_value	restrict	PROTECT	a	True	sin contraparte en la fuente
+product.product	addons/product/models/product_product.py:42	cascade	product.ProductProduct	product_tmpl	restrict	CASCADE	a	True	divergencia de atributo
+product.combo	addons/product/models/product_combo.py:14	set null (defecto)	product.ProductCombo	company	set null	CASCADE	a	True	divergencia de política
+product.combo.item	addons/product/models/product_combo_item.py:13	cascade	product.ProductComboItem	combo	restrict	CASCADE	a	True	divergencia de atributo
+product.combo.item	addons/product/models/product_combo_item.py:14	restrict	product.ProductComboItem	product	restrict	PROTECT	a	True	coherente
+product.combo.item	addons/product/models/product_combo_item.py:12	set null (defecto)	product.ProductComboItem	company	set null	CASCADE	a	True	divergencia de política
+product.pricelist	addons/product/models/product_pricelist.py:36	restrict (defecto)	product.ProductPricelist	currency	set null	PROTECT	a	True	divergencia de atributo
+product.pricelist	addons/product/models/product_pricelist.py:43	set null (defecto)	product.ProductPricelist	company	set null	CASCADE	a	True	divergencia de política
+product.pricelist.item	addons/product/models/product_pricelist_item.py:19	cascade	product.ProductPricelistItem	pricelist	set null	CASCADE	a	True	divergencia de atributo
+product.pricelist.item	addons/product/models/product_pricelist_item.py:72	cascade	product.ProductPricelistItem	categ	set null	CASCADE	a	True	divergencia de atributo
+product.pricelist.item	addons/product/models/product_pricelist_item.py:77	cascade	product.ProductPricelistItem	product_tmpl	set null	CASCADE	a	True	divergencia de atributo
+product.pricelist.item	addons/product/models/product_pricelist_item.py:82	cascade	product.ProductPricelistItem	product	set null	CASCADE	a	True	divergencia de atributo
+product.pricelist.item	addons/product/models/product_pricelist_item.py:104	set null (defecto)	product.ProductPricelistItem	base_pricelist	set null	PROTECT	a	True	divergencia de política
+product.supplierinfo	addons/product/models/product_supplierinfo.py:13	cascade	product.ProductSupplierinfo	partner	restrict	CASCADE	a	True	divergencia de atributo
+product.supplierinfo	addons/product/models/product_supplierinfo.py:25	restrict (defecto)	product.ProductSupplierinfo	product_uom	set null	PROTECT	a	True	divergencia de atributo
+product.supplierinfo	addons/product/models/product_supplierinfo.py:33	set null (defecto)	product.ProductSupplierinfo	company	set null	CASCADE	a	True	divergencia de política
+product.supplierinfo	addons/product/models/product_supplierinfo.py:36	restrict (defecto)	product.ProductSupplierinfo	currency	set null	PROTECT	a	True	divergencia de atributo
+product.supplierinfo	addons/product/models/product_supplierinfo.py:42	set null (defecto)	product.ProductSupplierinfo	product	set null	CASCADE	a	True	divergencia de política
+product.supplierinfo	addons/product/models/product_supplierinfo.py:47	cascade	product.ProductSupplierinfo	product_tmpl	restrict	CASCADE	a	True	divergencia de atributo
+product.supplierinfo	addons/purchase_requisition/models/product.py:11	set null (defecto)	product.ProductSupplierinfo	purchase_requisition_line	set null	CASCADE	a	True	divergencia de política
+product.uom	addons/product/models/product_uom.py:13	cascade	product.ProductUom	uom	restrict	CASCADE	a	True	divergencia de atributo
+product.uom	addons/product/models/product_uom.py:14	cascade	product.ProductUom	product	restrict	CASCADE	a	True	divergencia de atributo
+product.uom	addons/product/models/product_uom.py:16	set null (defecto)	product.ProductUom	company	set null	CASCADE	a	True	divergencia de política
+product.attribute.value	addons/product/models/product_attribute_value.py:21	cascade	product.ProductAttributeValue	attribute	restrict	CASCADE	a	True	divergencia de atributo
+product.template.attribute.line	addons/product/models/product_template_attribute_line.py:19	cascade	product.ProductTemplateAttributeLine	product_tmpl	restrict	CASCADE	a	True	divergencia de atributo
+product.template.attribute.line	addons/product/models/product_template_attribute_line.py:26	restrict	product.ProductTemplateAttributeLine	attribute	restrict	PROTECT	a	True	coherente
+product.attribute.custom.value	addons/product/models/product_attribute_custom_value.py:12	restrict	product.ProductAttributeCustomValue	custom_product_template_attribute_value_id	restrict	PROTECT	a	True	coherente
+account.analytic.plan	addons/analytic/models/analytic_plan.py:29	cascade	analytic.AccountAnalyticPlan	parent	set null	CASCADE	a	True	divergencia de atributo
+account.analytic.applicability	addons/analytic/models/analytic_plan.py:411	set null (defecto)	analytic.AccountAnalyticApplicability	analytic_plan	set null	SET_NULL	a	True	coherente
+account.analytic.applicability	addons/analytic/models/analytic_plan.py:427	set null (defecto)	analytic.AccountAnalyticApplicability	company	set null	SET_NULL	a	True	coherente
+account.analytic.applicability	addons/account/models/account_analytic_plan.py:24	set null (defecto)	analytic.AccountAnalyticApplicability	product_categ	set null	SET_NULL	a	True	coherente
+mail.thread	-	-	analytic.AccountAnalyticAccount	plan	restrict	PROTECT	a	True	sin contraparte en la fuente
+mail.thread	-	-	analytic.AccountAnalyticAccount	company	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	analytic.AccountAnalyticAccount	partner	set null	SET_NULL	a	True	sin contraparte en la fuente
+account.analytic.line	-	-	analytic.AccountAnalyticLine	account	set null	PROTECT	a	True	sin contraparte en la fuente
+account.analytic.line	addons/analytic/models/analytic_line.py:189	set null (defecto)	analytic.AccountAnalyticLine	product_uom	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:77	set null (defecto)	analytic.AccountAnalyticLine	partner	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:70	set null (defecto)	analytic.AccountAnalyticLine	user	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/analytic/models/analytic_line.py:204	restrict (defecto)	analytic.AccountAnalyticLine	company	restrict	CASCADE	a	True	divergencia de política
+account.analytic.line	addons/account/models/account_analytic_line.py:39	cascade	analytic.AccountAnalyticLine	move_line	set null	CASCADE	a	True	divergencia de atributo
+account.analytic.line	addons/account/models/account_analytic_line.py:19	restrict	analytic.AccountAnalyticLine	general_account	set null	PROTECT	a	True	divergencia de atributo
+account.analytic.line	addons/account/models/account_analytic_line.py:12	set null (defecto)	analytic.AccountAnalyticLine	product	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:62	set null (defecto)	analytic.AccountAnalyticLine	task	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:67	set null (defecto)	analytic.AccountAnalyticLine	project	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:71	set null (defecto)	analytic.AccountAnalyticLine	employee	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:74	set null (defecto)	analytic.AccountAnalyticLine	department	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/hr_timesheet/models/hr_timesheet.py:75	set null (defecto)	analytic.AccountAnalyticLine	manager	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/sale/models/analytic.py:9	set null (defecto)	analytic.AccountAnalyticLine	so_line	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/sale_timesheet/models/hr_timesheet.py:38	set null (defecto)	analytic.AccountAnalyticLine	timesheet_invoice	set null	SET_NULL	a	True	coherente
+account.analytic.line	addons/sale_timesheet/models/hr_timesheet.py:43	set null (defecto)	analytic.AccountAnalyticLine	order	set null	SET_NULL	a	True	coherente
+account.analytic.distribution.model	addons/analytic/models/analytic_distribution_model.py:19	cascade	analytic.AccountAnalyticDistributionModel	partner	set null	CASCADE	a	True	divergencia de atributo
+account.analytic.distribution.model	addons/analytic/models/analytic_distribution_model.py:31	cascade	analytic.AccountAnalyticDistributionModel	company	set null	CASCADE	a	True	divergencia de atributo
+account.analytic.distribution.model	addons/account/models/account_analytic_distribution_model.py:13	cascade	analytic.AccountAnalyticDistributionModel	product	set null	CASCADE	a	True	divergencia de atributo
+account.analytic.distribution.model	addons/account/models/account_analytic_distribution_model.py:20	cascade	analytic.AccountAnalyticDistributionModel	product_categ	set null	CASCADE	a	True	divergencia de atributo
+-	-	-	authz_signup.SignupRequest	partner	-	CASCADE	a	True	sin contraparte en la fuente
+db.backup.details	-	-	auto_backup.DbBackupDetails	db_backup_id	set null	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base_automation.BaseAutomationAction	action	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	base_automation.BaseAutomationAction	automation	-	CASCADE	a	True	sin contraparte en la fuente
+mail.thread	-	-	base_automation.BaseAutomation	model_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.thread	-	-	base_automation.BaseAutomation	trg_selection_field_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	base_automation.BaseAutomation	trg_date_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	base_automation.BaseAutomation	trg_date_calendar_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+base.module.install.request	-	-	base_install_request.BaseModuleInstallRequest	module_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+base.module.install.request	-	-	base_install_request.BaseModuleInstallRequest	user_id	set null	CASCADE	a	True	sin contraparte en la fuente
+base.module.install.review	-	-	base_install_request.BaseModuleInstallReview	module_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+digest.digest	addons/digest/models/digest.py:35	set null (defecto)	digest.DigestDigest	company_id	set null	SET_NULL	a	True	coherente
+mail.thread	-	-	fleet.FleetVehicleModel	brand	restrict	PROTECT	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleModel	category	set null	SET_NULL	a	True	sin contraparte en la fuente
+fleet.vehicle.odometer	addons/fleet/models/fleet_vehicle_odometer.py:15	restrict (defecto)	fleet.FleetVehicleOdometer	vehicle	restrict	CASCADE	a	True	divergencia de política
+fleet.vehicle.odometer	addons/fleet/models/fleet_vehicle_odometer.py:17	set null (defecto)	fleet.FleetVehicleOdometer	driver	set null	SET_NULL	a	True	coherente
+fleet.vehicle.assignation.log	addons/fleet/models/fleet_vehicle_assignation_log.py:12	restrict (defecto)	fleet.FleetVehicleAssignationLog	vehicle	restrict	CASCADE	a	True	divergencia de política
+fleet.vehicle.assignation.log	addons/fleet/models/fleet_vehicle_assignation_log.py:13	restrict (defecto)	fleet.FleetVehicleAssignationLog	driver	restrict	PROTECT	a	True	coherente
+fleet.vehicle.assignation.log	addons/hr_fleet/models/fleet_vehicle_assignation_log.py:9	set null (defecto)	fleet.FleetVehicleAssignationLog	driver_employee	set null	SET_NULL	a	True	coherente
+mail.thread	-	-	fleet.FleetVehicle	manager	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	company	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	driver	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	future_driver	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	model	restrict	PROTECT	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	brand	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	state	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	category	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	driver_employee	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicle	future_driver_employee	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogContract	vehicle	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogContract	cost_subtype	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogContract	company	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogContract	user	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogContract	insurer	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	vehicle	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	odometer_log	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	company	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	purchaser	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	vendor	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	service_type	restrict	PROTECT	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	purchaser_employee	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	fleet.FleetVehicleLogServices	account_move_line	set null	SET_NULL	a	True	sin contraparte en la fuente
+hr.payroll.structure.type	addons/hr/models/hr_payroll_structure_type.py:12	set null (defecto)	hr.HrPayrollStructureType	country	set null	SET_NULL	a	True	coherente
+hr.payroll.structure.type	addons/hr/models/hr_payroll_structure_type.py:9	set null (defecto)	hr.HrPayrollStructureType	default_resource_calendar	set null	SET_NULL	a	True	coherente
+hr.contract.type	addons/hr/models/hr_contract_type.py:15	set null (defecto)	hr.HrContractType	country	set null	SET_NULL	a	True	coherente
+hr.department	addons/hr/models/hr_department.py:22	set null (defecto)	hr.HrDepartment	company	set null	SET_NULL	a	True	coherente
+hr.department	addons/hr/models/hr_department.py:23	set null (defecto)	hr.HrDepartment	parent	set null	SET_NULL	a	True	coherente
+hr.departure.reason	addons/hr/models/hr_departure_reason.py:14	set null (defecto)	hr.HrDepartureReason	country	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:54	set null (defecto)	hr.HrVersion	employee	set null	CASCADE	a	True	divergencia de política
+hr.version	addons/hr/models/hr_version.py:52	set null (defecto)	hr.HrVersion	company	set null	SET_NULL	a	True	coherente
+hr.version	-	-	hr.HrVersion	last_modified_by	set null	SET_NULL	a	True	sin contraparte en la fuente
+hr.version	addons/hr/models/hr_version.py:71	set null (defecto)	hr.HrVersion	country	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:91	set null (defecto)	hr.HrVersion	private_state	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:96	set null (defecto)	hr.HrVersion	private_country	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:127	set null (defecto)	hr.HrVersion	department	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:130	set null (defecto)	hr.HrVersion	job	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:134	set null (defecto)	hr.HrVersion	address	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:142	set null (defecto)	hr.HrVersion	work_location	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:145	restrict	hr.HrVersion	departure_reason	set null	PROTECT	a	True	divergencia de atributo
+hr.version	addons/hr/models/hr_version.py:150	set null (defecto)	hr.HrVersion	resource_calendar	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:169	set null (defecto)	hr.HrVersion	contract_template	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:173	set null (defecto)	hr.HrVersion	structure_type	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:185	set null (defecto)	hr.HrVersion	contract_type	set null	SET_NULL	a	True	coherente
+hr.version	addons/hr/models/hr_version.py:192	restrict (defecto)	hr.HrVersion	hr_responsible	set null	SET_NULL	a	True	divergencia de atributo y de política
+hr.employee	addons/hr/models/hr_employee.py:83	restrict (defecto)	hr.HrEmployee	resource	restrict	PROTECT	a	True	coherente
+hr.employee	addons/hr/models/hr_employee.py:117	restrict (defecto)	hr.HrEmployee	company	set null	SET_NULL	a	True	divergencia de atributo y de política
+hr.employee	addons/hr/models/hr_employee.py:85	set null (defecto)	hr.HrEmployee	resource_calendar	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr/models/hr_employee.py:46	cascade	hr.HrEmployee	version	set null	SET_NULL	a	True	divergencia de atributo y de política
+hr.employee	addons/hr/models/hr_employee.py:86	restrict	hr.HrEmployee	user_id	set null	PROTECT	a	True	divergencia de atributo
+hr.employee	addons/hr/models/hr_employee.py:123	set null (defecto)	hr.HrEmployee	work_contact	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr/models/hr_employee.py:131	set null (defecto)	hr.HrEmployee	country_of_birth	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr/models/hr_employee.py:193	set null (defecto)	hr.HrEmployee	parent_id	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr/models/hr_employee.py:196	set null (defecto)	hr.HrEmployee	coach	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:11	set null (defecto)	hr.HrEmployee	monday_location	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:12	set null (defecto)	hr.HrEmployee	tuesday_location	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:13	set null (defecto)	hr.HrEmployee	wednesday_location	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:14	set null (defecto)	hr.HrEmployee	thursday_location	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:15	set null (defecto)	hr.HrEmployee	friday_location	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:16	set null (defecto)	hr.HrEmployee	saturday_location	set null	SET_NULL	a	True	coherente
+hr.employee	addons/hr_homeworking/models/hr_employee.py:17	set null (defecto)	hr.HrEmployee	sunday_location	set null	SET_NULL	a	True	coherente
+hr.job	addons/hr/models/hr_job.py:38	set null (defecto)	hr.HrJob	department	set null	SET_NULL	a	True	coherente
+hr.job	addons/hr/models/hr_job.py:39	set null (defecto)	hr.HrJob	company	set null	SET_NULL	a	True	coherente
+hr.job	addons/hr_recruitment/models/hr_job.py:36	set null (defecto)	hr.HrJob	user	set null	SET_NULL	a	True	coherente
+hr.job	addons/hr_recruitment/models/hr_job.py:38	set null (defecto)	hr.HrJob	address	set null	SET_NULL	a	True	coherente
+hr.job	addons/hr_recruitment/models/hr_job.py:73	set null (defecto)	hr.HrJob	expected_degree	set null	SET_NULL	a	True	coherente
+hr.work.location	addons/hr/models/hr_work_location.py:14	restrict (defecto)	hr.HrWorkLocation	company	set null	SET_NULL	a	True	divergencia de atributo y de política
+hr.work.location	addons/hr/models/hr_work_location.py:19	restrict (defecto)	hr.HrWorkLocation	address	set null	SET_NULL	a	True	divergencia de atributo y de política
+mailing.contact	addons/mass_mailing/models/mailing_contact.py:43	set null (defecto)	mass_mailing.MailingContact	country_id	set null	SET_NULL	a	True	coherente
+mailing.subscription	addons/mass_mailing/models/mailing_subscription.py:17	cascade	mass_mailing.MailingSubscription	contact_id	restrict	CASCADE	a	True	divergencia de atributo
+mailing.subscription	-	-	mass_mailing.MailingSubscription	mailing_list	restrict	CASCADE	a	True	sin contraparte en la fuente
+mail.thread	-	-	mass_mailing.MailingMailing	user	set null	SET_NULL	a	True	sin contraparte en la fuente
+mailing.trace	-	-	mass_mailing.MailingTrace	mailing	restrict	CASCADE	a	True	sin contraparte en la fuente
+mailing.trace	-	-	mass_mailing.MailingTrace	contact	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	payment.Payment	sale_order	-	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	payment.Refund	payment	-	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	payment.Chargeback	payment	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	payment.PaymentGatewayEvent	payment	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	payment.SavedCard	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	product_matrix.ProductMatrixConfig	product	-	CASCADE	a	True	sin contraparte en la fuente
+purchase.order	addons/purchase/models/purchase_order.py:91	restrict (defecto)	purchase.PurchaseOrder	partner_id	set null	SET_NULL	a	True	divergencia de atributo y de política
+purchase.order	addons/purchase/models/purchase_order.py:160	restrict (defecto)	purchase.PurchaseOrder	company_id	set null	CASCADE	a	True	divergencia de atributo y de política
+purchase.order	addons/purchase/models/purchase_order.py:98	restrict (defecto)	purchase.PurchaseOrder	currency_id	set null	PROTECT	a	True	divergencia de atributo
+purchase.order	addons/purchase_requisition/models/purchase.py:26	set null (defecto)	purchase.PurchaseOrder	requisition	set null	SET_NULL	a	True	coherente
+purchase.order	addons/purchase_requisition/models/purchase.py:29	set null (defecto)	purchase.PurchaseOrder	purchase_group	set null	SET_NULL	a	True	coherente
+purchase.order	addons/purchase_stock/models/purchase_order.py:24	restrict (defecto)	purchase.PurchaseOrder	picking_type	set null	PROTECT	a	True	divergencia de atributo
+purchase.order	addons/purchase_stock/models/purchase_order.py:23	set null (defecto)	purchase.PurchaseOrder	dest_address	set null	SET_NULL	a	True	coherente
+purchase.order.line	addons/purchase/models/purchase_order_line.py:51	cascade	purchase.PurchaseOrderLine	order_id	restrict	CASCADE	a	True	divergencia de atributo
+purchase.order.line	addons/purchase/models/purchase_order_line.py:37	restrict	purchase.PurchaseOrderLine	product_id	set null	PROTECT	a	True	divergencia de atributo
+purchase.order.line	addons/purchase/models/purchase_order_line.py:53	set null (defecto)	purchase.PurchaseOrderLine	company_id	set null	CASCADE	a	True	divergencia de política
+purchase.order.line	addons/purchase_stock/models/purchase_order_line.py:29	set null	purchase.PurchaseOrderLine	orderpoint	set null	SET_NULL	a	True	coherente
+purchase.order.line	addons/purchase_stock/models/purchase_order_line.py:35	set null (defecto)	purchase.PurchaseOrderLine	location_final	set null	SET_NULL	a	True	coherente
+-	-	-	rating.Review	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	rating.Review	product	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	rating.Review	sale_order	-	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	rating.Review	moderated_by	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	rating.ReviewModerationLog	review	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	rating.ReviewModerationLog	actor	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	rating.ReviewHelpfulVote	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	rating.ReviewHelpfulVote	review	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	rating.ReviewImage	review	-	CASCADE	a	True	sin contraparte en la fuente
+crm.team	addons/sales_team/models/crm_team.py:88	set null (defecto)	sales_team.CrmTeam	company_id	set null	CASCADE	a	True	divergencia de política
+crm.team	addons/sales_team/models/crm_team.py:93	set null (defecto)	sales_team.CrmTeam	user_id	set null	SET_NULL	a	True	coherente
+crm.team.member	addons/sales_team/models/crm_team_member.py:14	cascade	sales_team.CrmTeamMember	crm_team_id	restrict	CASCADE	a	True	divergencia de atributo
+crm.team.member	addons/sales_team/models/crm_team_member.py:19	cascade	sales_team.CrmTeamMember	user_id	restrict	CASCADE	a	True	divergencia de atributo
+stock.storage.category	addons/stock/models/stock_storage_category.py:22	set null (defecto)	stock.StockStorageCategory	company	set null	CASCADE	a	True	divergencia de política
+stock.storage.category.capacity	addons/stock/models/stock_storage_category.py:54	cascade	stock.StockStorageCategoryCapacity	storage_category	restrict	CASCADE	a	True	divergencia de atributo
+stock.storage.category.capacity	addons/stock/models/stock_storage_category.py:55	cascade	stock.StockStorageCategoryCapacity	product	set null	CASCADE	a	True	divergencia de atributo
+stock.storage.category.capacity	addons/stock/models/stock_storage_category.py:59	cascade	stock.StockStorageCategoryCapacity	package_type	set null	CASCADE	a	True	divergencia de atributo
+stock.package.type	-	-	stock.StockPackageType	sequence_ref	set null	SET_NULL	a	True	sin contraparte en la fuente
+stock.package.type	addons/stock/models/stock_package_type.py:30	set null (defecto)	stock.StockPackageType	company	set null	CASCADE	a	True	divergencia de política
+stock.putaway.rule	addons/stock/models/product_strategy.py:43	cascade	stock.StockPutawayRule	product	set null	CASCADE	a	True	divergencia de atributo
+stock.putaway.rule	addons/stock/models/product_strategy.py:49	cascade	stock.StockPutawayRule	category	set null	CASCADE	a	True	divergencia de atributo
+stock.putaway.rule	addons/stock/models/product_strategy.py:51	cascade	stock.StockPutawayRule	location_in	restrict	CASCADE	a	True	divergencia de atributo
+stock.putaway.rule	addons/stock/models/product_strategy.py:55	cascade	stock.StockPutawayRule	location_out	restrict	CASCADE	a	True	divergencia de atributo
+stock.putaway.rule	addons/stock/models/product_strategy.py:60	restrict (defecto)	stock.StockPutawayRule	company	restrict	CASCADE	a	True	divergencia de política
+stock.putaway.rule	addons/stock/models/product_strategy.py:64	cascade	stock.StockPutawayRule	storage_category	set null	CASCADE	a	True	divergencia de atributo
+stock.location	addons/stock/models/stock_location.py:48	set null (defecto)	stock.StockLocation	location	set null	SET_NULL	a	True	coherente
+stock.location	addons/stock/models/stock_location.py:60	set null (defecto)	stock.StockLocation	company	set null	CASCADE	a	True	divergencia de política
+stock.location	addons/stock/models/stock_location.py:66	set null (defecto)	stock.StockLocation	removal_strategy	set null	SET_NULL	a	True	coherente
+stock.location	addons/stock/models/stock_location.py:85	set null (defecto)	stock.StockLocation	warehouse	set null	SET_NULL	a	True	coherente
+stock.location	addons/stock/models/stock_location.py:86	set null (defecto)	stock.StockLocation	storage_category	set null	SET_NULL	a	True	coherente
+stock.route	addons/stock/models/stock_location.py:531	set null (defecto)	stock.StockRoute	supplied_wh	set null	SET_NULL	a	True	coherente
+stock.route	addons/stock/models/stock_location.py:532	set null (defecto)	stock.StockRoute	supplier_wh	set null	SET_NULL	a	True	coherente
+stock.route	addons/stock/models/stock_location.py:533	set null (defecto)	stock.StockRoute	company	set null	CASCADE	a	True	divergencia de política
+stock.package	addons/stock/models/stock_package.py:32	set null (defecto)	stock.StockPackage	package_type	set null	SET_NULL	a	True	coherente
+stock.package	addons/stock/models/stock_package.py:34	set null (defecto)	stock.StockPackage	location	set null	SET_NULL	a	True	coherente
+stock.package	addons/stock/models/stock_package.py:38	set null (defecto)	stock.StockPackage	company	set null	CASCADE	a	True	divergencia de política
+stock.package	addons/stock/models/stock_package.py:44	set null (defecto)	stock.StockPackage	parent_package	set null	SET_NULL	a	True	coherente
+stock.package	addons/stock/models/stock_package.py:47	set null (defecto)	stock.StockPackage	package_dest	set null	SET_NULL	a	True	coherente
+stock.package.history	addons/stock/models/stock_package_history.py:11	restrict (defecto)	stock.StockPackageHistory	company	restrict	CASCADE	a	True	divergencia de política
+stock.package.history	addons/stock/models/stock_package_history.py:12	set null (defecto)	stock.StockPackageHistory	location	set null	SET_NULL	a	True	coherente
+stock.package.history	addons/stock/models/stock_package_history.py:13	set null (defecto)	stock.StockPackageHistory	location_dest	set null	SET_NULL	a	True	coherente
+stock.package.history	addons/stock/models/stock_package_history.py:15	cascade	stock.StockPackageHistory	package	restrict	CASCADE	a	True	divergencia de atributo
+stock.package.history	addons/stock/models/stock_package_history.py:18	set null (defecto)	stock.StockPackageHistory	parent_orig	set null	SET_NULL	a	True	coherente
+stock.package.history	addons/stock/models/stock_package_history.py:20	set null (defecto)	stock.StockPackageHistory	parent_dest	set null	SET_NULL	a	True	coherente
+stock.package.history	addons/stock/models/stock_package_history.py:22	set null (defecto)	stock.StockPackageHistory	outermost_dest	set null	SET_NULL	a	True	coherente
+stock.lot	addons/stock/models/stock_lot.py:44	restrict (defecto)	stock.StockLot	product	restrict	CASCADE	a	True	divergencia de política
+stock.lot	addons/stock/models/stock_lot.py:56	set null (defecto)	stock.StockLot	company	set null	PROTECT	a	True	divergencia de política
+stock.lot	addons/stock/models/stock_lot.py:61	set null (defecto)	stock.StockLot	location	set null	SET_NULL	a	True	coherente
+stock.quant	addons/stock/models/stock_quant.py:45	restrict	stock.StockQuant	product	restrict	CASCADE	a	True	divergencia de política
+stock.quant	addons/stock/models/stock_quant.py:56	set null (defecto)	stock.StockQuant	company	set null	CASCADE	a	True	divergencia de política
+stock.quant	addons/stock/models/stock_quant.py:57	restrict	stock.StockQuant	location	restrict	CASCADE	a	True	divergencia de política
+stock.quant	addons/stock/models/stock_quant.py:64	restrict	stock.StockQuant	lot	set null	CASCADE	a	True	divergencia de atributo y de política
+stock.quant	addons/stock/models/stock_quant.py:70	restrict	stock.StockQuant	package	set null	RESTRICT	a	True	divergencia de atributo
+stock.quant	addons/stock/models/stock_quant.py:74	set null (defecto)	stock.StockQuant	owner	set null	SET_NULL	a	True	coherente
+stock.quant	addons/stock/models/stock_quant.py:115	set null (defecto)	stock.StockQuant	user	set null	SET_NULL	a	True	coherente
+stock.move.line	addons/stock/models/stock_move_line.py:21	set null (defecto)	stock.StockMoveLine	picking	set null	CASCADE	a	True	divergencia de política
+stock.move.line	addons/stock/models/stock_move_line.py:26	set null (defecto)	stock.StockMoveLine	move	set null	CASCADE	a	True	divergencia de política
+stock.move.line	addons/stock/models/stock_move_line.py:29	restrict (defecto)	stock.StockMoveLine	company	restrict	CASCADE	a	True	divergencia de política
+stock.move.line	addons/stock/models/stock_move_line.py:30	cascade	stock.StockMoveLine	product	set null	CASCADE	a	True	divergencia de atributo
+stock.move.line	addons/stock/models/stock_move_line.py:32	restrict (defecto)	stock.StockMoveLine	product_uom	set null	PROTECT	a	True	divergencia de atributo
+stock.move.line	addons/stock/models/stock_move_line.py:44	restrict	stock.StockMoveLine	package	set null	RESTRICT	a	True	divergencia de atributo
+stock.move.line	addons/stock/models/stock_move_line.py:48	set null (defecto)	stock.StockMoveLine	lot	set null	CASCADE	a	True	divergencia de política
+stock.move.line	addons/stock/models/stock_move_line.py:52	restrict	stock.StockMoveLine	result_package	set null	RESTRICT	a	True	divergencia de atributo
+stock.move.line	addons/stock/models/stock_move_line.py:58	set null (defecto)	stock.StockMoveLine	package_history	set null	SET_NULL	a	True	coherente
+stock.move.line	addons/stock/models/stock_move_line.py:64	set null (defecto)	stock.StockMoveLine	owner	set null	SET_NULL	a	True	coherente
+stock.move.line	addons/stock/models/stock_move_line.py:68	restrict (defecto)	stock.StockMoveLine	location	restrict	PROTECT	a	True	coherente
+stock.move.line	addons/stock/models/stock_move_line.py:72	restrict (defecto)	stock.StockMoveLine	location_dest	restrict	PROTECT	a	True	coherente
+-	-	-	stock.StockMoveLineConsumeRel	consume_line	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock.StockMoveLineConsumeRel	produce_line	restrict	CASCADE	a	True	sin contraparte en la fuente
+stock.rule	addons/stock/models/stock_rule.py:67	set null (defecto)	stock.StockRule	company	set null	CASCADE	a	True	divergencia de política
+stock.rule	addons/stock/models/stock_rule.py:70	restrict (defecto)	stock.StockRule	location_dest	restrict	CASCADE	a	True	divergencia de política
+stock.rule	addons/stock/models/stock_rule.py:71	set null (defecto)	stock.StockRule	location_src	set null	SET_NULL	a	True	coherente
+stock.rule	addons/stock/models/stock_rule.py:76	cascade	stock.StockRule	route	restrict	CASCADE	a	True	divergencia de atributo
+stock.rule	addons/stock/models/stock_rule.py:87	restrict (defecto)	stock.StockRule	picking_type	set null	CASCADE	a	True	divergencia de atributo y de política
+stock.rule	addons/stock/models/stock_rule.py:93	set null (defecto)	stock.StockRule	partner_address	set null	SET_NULL	a	True	coherente
+stock.rule	addons/stock/models/stock_rule.py:103	set null (defecto)	stock.StockRule	warehouse	set null	CASCADE	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:35	restrict (defecto)	stock.StockMove	company	restrict	PROTECT	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:39	restrict (defecto)	stock.StockMove	product	restrict	PROTECT	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:67	restrict (defecto)	stock.StockMove	product_uom	set null	PROTECT	a	True	divergencia de atributo
+stock.move	addons/stock/models/stock_move.py:194	set null (defecto)	stock.StockMove	packaging_uom	set null	PROTECT	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:75	restrict (defecto)	stock.StockMove	location	restrict	PROTECT	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:81	restrict (defecto)	stock.StockMove	location_dest	restrict	PROTECT	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:85	set null (defecto)	stock.StockMove	location_final	set null	PROTECT	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:168	set null (defecto)	stock.StockMove	warehouse	set null	PROTECT	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:93	set null (defecto)	stock.StockMove	partner	set null	SET_NULL	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:163	set null (defecto)	stock.StockMove	restrict_partner	set null	SET_NULL	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:106	set null (defecto)	stock.StockMove	picking	set null	CASCADE	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:150	set null (defecto)	stock.StockMove	picking_type	set null	PROTECT	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:143	restrict	stock.StockMove	rule	set null	PROTECT	a	True	divergencia de atributo
+stock.move	addons/stock/models/stock_move.py:155	set null (defecto)	stock.StockMove	origin_returned_move	set null	SET_NULL	a	True	coherente
+stock.move	addons/stock/models/stock_move.py:139	set null (defecto)	stock.StockMove	scrap	set null	CASCADE	a	True	divergencia de política
+stock.move	addons/stock/models/stock_move.py:189	set null (defecto)	stock.StockMove	orderpoint	set null	SET_NULL	a	True	coherente
+stock.move	addons/purchase_stock/models/stock_move.py:15	set null	stock.StockMove	purchase_line	set null	SET_NULL	a	True	coherente
+stock.picking.type	addons/stock/models/stock_picking.py:30	set null (defecto)	stock.StockPickingType	sequence_id	set null	SET_NULL	a	True	coherente
+stock.picking.type	addons/stock/models/stock_picking.py:34	restrict (defecto)	stock.StockPickingType	default_location_src	set null	PROTECT	a	True	divergencia de atributo
+stock.picking.type	addons/stock/models/stock_picking.py:38	restrict (defecto)	stock.StockPickingType	default_location_dest	set null	PROTECT	a	True	divergencia de atributo
+stock.picking.type	addons/stock/models/stock_picking.py:43	set null (defecto)	stock.StockPickingType	return_picking_type	set null	SET_NULL	a	True	coherente
+stock.picking.type	addons/stock/models/stock_picking.py:49	cascade	stock.StockPickingType	warehouse	set null	CASCADE	a	True	divergencia de atributo
+stock.picking.type	addons/stock/models/stock_picking.py:130	restrict (defecto)	stock.StockPickingType	company	set null	CASCADE	a	True	divergencia de atributo y de política
+-	-	-	stock.PickingTypeFavoriteUserRel	picking_type	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock.PickingTypeFavoriteUserRel	user	restrict	CASCADE	a	True	sin contraparte en la fuente
+stock.picking	addons/stock/models/stock_picking.py:609	restrict (defecto)	stock.StockPicking	location	set null	SET_NULL	a	True	divergencia de atributo y de política
+stock.picking	addons/stock/models/stock_picking.py:613	restrict (defecto)	stock.StockPicking	location_dest	set null	SET_NULL	a	True	divergencia de atributo y de política
+stock.picking	-	-	stock.StockPicking	sale_order	set null	SET_NULL	a	True	sin contraparte en la fuente
+stock.picking	addons/stock/models/stock_picking.py:620	restrict (defecto)	stock.StockPicking	picking_type	set null	SET_NULL	a	True	divergencia de atributo y de política
+stock.picking	addons/stock/models/stock_picking.py:631	set null (defecto)	stock.StockPicking	partner	set null	SET_NULL	a	True	coherente
+stock.picking	addons/stock/models/stock_picking.py:634	set null (defecto)	stock.StockPicking	company	set null	PROTECT	a	True	divergencia de política
+stock.picking	addons/stock/models/stock_picking.py:637	set null (defecto)	stock.StockPicking	user	set null	SET_NULL	a	True	coherente
+stock.picking	addons/stock/models/stock_picking.py:560	set null (defecto)	stock.StockPicking	backorder	set null	SET_NULL	a	True	coherente
+stock.picking	-	-	stock.StockPicking	return_of	set null	SET_NULL	a	True	sin contraparte en la fuente
+stock.picking	addons/stock/models/stock_picking.py:651	set null (defecto)	stock.StockPicking	owner	set null	SET_NULL	a	True	coherente
+stock.picking	addons/project_stock/models/stock_picking.py:9	set null (defecto)	stock.StockPicking	project	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:37	restrict (defecto)	stock.StockWarehouse	company	restrict	CASCADE	a	True	divergencia de política
+stock.warehouse	addons/stock/models/stock_warehouse.py:41	set null (defecto)	stock.StockWarehouse	partner	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:42	restrict (defecto)	stock.StockWarehouse	view_location	restrict	PROTECT	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:46	restrict (defecto)	stock.StockWarehouse	lot_stock	restrict	PROTECT	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:68	set null (defecto)	stock.StockWarehouse	wh_input_stock_loc	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:69	set null (defecto)	stock.StockWarehouse	wh_qc_stock_loc	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:70	set null (defecto)	stock.StockWarehouse	wh_output_stock_loc	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:71	set null (defecto)	stock.StockWarehouse	wh_pack_stock_loc	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:72	set null (defecto)	stock.StockWarehouse	mto_pull	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:73	set null (defecto)	stock.StockWarehouse	pick_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:74	set null (defecto)	stock.StockWarehouse	pack_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:75	set null (defecto)	stock.StockWarehouse	out_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:76	set null (defecto)	stock.StockWarehouse	in_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:77	set null (defecto)	stock.StockWarehouse	int_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:78	set null (defecto)	stock.StockWarehouse	qc_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:79	set null (defecto)	stock.StockWarehouse	store_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:80	set null (defecto)	stock.StockWarehouse	xdock_type	set null	SET_NULL	a	True	coherente
+stock.warehouse	addons/stock/models/stock_warehouse.py:81	restrict	stock.StockWarehouse	reception_route	set null	RESTRICT	a	True	divergencia de atributo
+stock.warehouse	addons/stock/models/stock_warehouse.py:82	restrict	stock.StockWarehouse	delivery_route	set null	RESTRICT	a	True	divergencia de atributo
+stock.warehouse	addons/purchase_stock/models/stock.py:52	set null (defecto)	stock.StockWarehouse	buy_pull	set null	SET_NULL	a	True	coherente
+-	-	-	stock.StockWarehouseResupply	supplied_wh	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock.StockWarehouseResupply	supplier_wh	restrict	CASCADE	a	True	sin contraparte en la fuente
+stock.scrap	addons/stock/models/stock_scrap.py:19	restrict (defecto)	stock.StockScrap	company	restrict	PROTECT	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:21	restrict (defecto)	stock.StockScrap	product	restrict	PROTECT	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:25	restrict (defecto)	stock.StockScrap	product_uom	restrict	PROTECT	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:30	set null (defecto)	stock.StockScrap	lot	set null	SET_NULL	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:33	set null (defecto)	stock.StockScrap	package	set null	SET_NULL	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:36	set null (defecto)	stock.StockScrap	owner	set null	SET_NULL	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:38	set null (defecto)	stock.StockScrap	picking	set null	SET_NULL	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:39	restrict (defecto)	stock.StockScrap	location	restrict	PROTECT	a	True	coherente
+stock.scrap	addons/stock/models/stock_scrap.py:43	restrict (defecto)	stock.StockScrap	scrap_location	restrict	PROTECT	a	True	coherente
+stock.warehouse.orderpoint	addons/stock/models/stock_orderpoint.py:37	cascade	stock.StockWarehouseOrderpoint	warehouse	restrict	CASCADE	a	True	divergencia de atributo
+stock.warehouse.orderpoint	addons/stock/models/stock_orderpoint.py:41	cascade	stock.StockWarehouseOrderpoint	location	restrict	CASCADE	a	True	divergencia de atributo
+stock.warehouse.orderpoint	addons/stock/models/stock_orderpoint.py:46	cascade	stock.StockWarehouseOrderpoint	product	restrict	CASCADE	a	True	divergencia de atributo
+stock.warehouse.orderpoint	addons/stock/models/stock_orderpoint.py:64	set null (defecto)	stock.StockWarehouseOrderpoint	replenishment_uom	set null	SET_NULL	a	True	coherente
+stock.warehouse.orderpoint	addons/stock/models/stock_orderpoint.py:68	restrict (defecto)	stock.StockWarehouseOrderpoint	company	restrict	CASCADE	a	True	divergencia de política
+stock.warehouse.orderpoint	addons/stock/models/stock_orderpoint.py:76	set null (defecto)	stock.StockWarehouseOrderpoint	route	set null	SET_NULL	a	True	coherente
+stock.warehouse.orderpoint	addons/purchase_stock/models/stock.py:145	set null (defecto)	stock.StockWarehouseOrderpoint	supplier	set null	SET_NULL	a	True	coherente
+mail.thread	-	-	stock.ReturnRequest	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock.ReturnItem	return_request	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock.ReturnHistoryEntry	return_request	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock.ReturnHistoryEntry	actor	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	stock.ReturnEvidence	return_request	-	CASCADE	a	True	sin contraparte en la fuente
+account.account	addons/account/models/account_account.py:35	set null (defecto)	account.AccountAccount	currency	set null	SET_NULL	a	True	coherente
+account.account	-	-	account.AccountAccount	company	restrict	CASCADE	a	True	sin contraparte en la fuente
+account.account.tag	addons/account/models/account_account_tag.py:15	set null (defecto)	account.AccountAccountTag	country	set null	SET_NULL	a	True	coherente
+account.bank.statement	addons/account/models/account_bank_statement.py:58	set null (defecto)	account.AccountBankStatement	company	set null	CASCADE	a	True	divergencia de política
+account.bank.statement	addons/account/models/account_bank_statement.py:63	set null (defecto)	account.AccountBankStatement	currency	set null	SET_NULL	a	True	coherente
+account.bank.statement	addons/account/models/account_bank_statement.py:68	set null (defecto)	account.AccountBankStatement	journal	set null	CASCADE	a	True	divergencia de política
+account.bank.statement.line	addons/account/models/account_bank_statement_line.py:25	cascade	account.AccountBankStatementLine	move	restrict	CASCADE	a	True	divergencia de atributo
+account.bank.statement.line	addons/account/models/account_bank_statement_line.py:31	restrict (defecto)	account.AccountBankStatementLine	journal	set null	PROTECT	a	True	divergencia de atributo
+account.bank.statement.line	addons/account/models/account_bank_statement_line.py:38	restrict (defecto)	account.AccountBankStatementLine	company	set null	CASCADE	a	True	divergencia de atributo y de política
+account.bank.statement.line	addons/account/models/account_bank_statement_line.py:45	set null (defecto)	account.AccountBankStatementLine	statement	set null	SET_NULL	a	True	coherente
+account.bank.statement.line	addons/account/models/account_bank_statement_line.py:60	restrict	account.AccountBankStatementLine	partner	set null	SET_NULL	a	True	divergencia de atributo y de política
+account.bank.statement.line	addons/account/models/account_bank_statement_line.py:89	set null (defecto)	account.AccountBankStatementLine	foreign_currency	set null	SET_NULL	a	True	coherente
+account.cash.rounding	addons/account/models/account_cash_rounding.py:25	company_dependent	account.AccountCashRounding	profit_account	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+account.cash.rounding	addons/account/models/account_cash_rounding.py:33	company_dependent	account.AccountCashRounding	loss_account	set null	SET_NULL	a	True	dependiente de empresa en la fuente (sin FK)
+account.fiscal.position	addons/account/models/partner.py:37	restrict (defecto)	account.AccountFiscalPosition	company	restrict	CASCADE	a	True	divergencia de política
+account.fiscal.position	addons/account/models/partner.py:56	set null (defecto)	account.AccountFiscalPosition	country	set null	SET_NULL	a	True	coherente
+account.fiscal.position	addons/account/models/partner.py:59	set null (defecto)	account.AccountFiscalPosition	country_group	set null	SET_NULL	a	True	coherente
+account.fiscal.position.account	addons/account/models/partner.py:316	cascade	account.AccountFiscalPositionAccount	position	restrict	CASCADE	a	True	divergencia de atributo
+account.fiscal.position.account	addons/account/models/partner.py:318	set null (defecto)	account.AccountFiscalPositionAccount	company	set null	CASCADE	a	True	divergencia de política
+account.fiscal.position.account	addons/account/models/partner.py:319	restrict (defecto)	account.AccountFiscalPositionAccount	account_src	restrict	CASCADE	a	True	divergencia de política
+account.fiscal.position.account	addons/account/models/partner.py:322	restrict (defecto)	account.AccountFiscalPositionAccount	account_dest	restrict	CASCADE	a	True	divergencia de política
+account.move.line	addons/account/models/account_move_line.py:32	cascade	account.AccountMoveLine	move	restrict	CASCADE	a	True	divergencia de atributo
+account.move.line	addons/account/models/account_move_line.py:93	restrict	account.AccountMoveLine	account	set null	PROTECT	a	True	divergencia de atributo
+account.move.line	addons/account/models/account_move_line.py:145	restrict (defecto)	account.AccountMoveLine	currency	set null	SET_NULL	a	True	divergencia de atributo y de política
+account.move.line	addons/account/models/account_move_line.py:255	set null (defecto)	account.AccountMoveLine	full_reconcile	set null	SET_NULL	a	True	coherente
+account.move.line	addons/account/models/account_move_line.py:42	set null (defecto)	account.AccountMoveLine	journal_id	set null	PROTECT	a	True	divergencia de política
+account.move.line	addons/account/models/account_move_line.py:55	set null (defecto)	account.AccountMoveLine	company_id	set null	CASCADE	a	True	divergencia de política
+account.move.line	addons/account/models/account_move_line.py:59	set null (defecto)	account.AccountMoveLine	company_currency_id	set null	SET_NULL	a	True	coherente
+account.move.line	addons/account/models/account_move_line.py:152	restrict	account.AccountMoveLine	partner_id	set null	PROTECT	a	True	divergencia de atributo
+account.move.line	addons/account/models/account_move_line.py:363	restrict	account.AccountMoveLine	product_id	set null	PROTECT	a	True	divergencia de atributo
+account.move.line	addons/account/models/account_move_line.py:372	restrict	account.AccountMoveLine	product_uom_id	set null	PROTECT	a	True	divergencia de atributo
+account.move.line	addons/account_fleet/models/account_move.py:35	set null (defecto)	account.AccountMoveLine	vehicle	set null	SET_NULL	a	True	coherente
+account.partial.reconcile	addons/account/models/account_partial_reconcile.py:15	restrict (defecto)	account.AccountPartialReconcile	debit_move	restrict	CASCADE	a	True	divergencia de política
+account.partial.reconcile	addons/account/models/account_partial_reconcile.py:18	restrict (defecto)	account.AccountPartialReconcile	credit_move	restrict	CASCADE	a	True	divergencia de política
+account.partial.reconcile	addons/account/models/account_partial_reconcile.py:21	set null (defecto)	account.AccountPartialReconcile	full_reconcile	set null	SET_NULL	a	True	coherente
+account.group	addons/account/models/account_account.py:1504	cascade	account.AccountGroup	parent	set null	CASCADE	a	True	divergencia de atributo
+account.group	addons/account/models/account_account.py:1508	restrict (defecto)	account.AccountGroup	company	restrict	CASCADE	a	True	divergencia de política
+account.journal	addons/account/models/account_journal.py:171	set null (defecto)	account.AccountJournal	currency	set null	SET_NULL	a	True	coherente
+account.journal	addons/account/models/account_journal.py:126	restrict	account.AccountJournal	default_account	set null	SET_NULL	a	True	divergencia de atributo y de política
+account.journal	addons/account/models/account_journal.py:172	restrict (defecto)	account.AccountJournal	company	restrict	CASCADE	a	True	divergencia de política
+account.journal	addons/account/models/account_journal.py:247	restrict	account.AccountJournal	bank_account_id	set null	RESTRICT	a	True	divergencia de atributo
+account.journal.group	addons/account/models/account_journal.py:23	set null (defecto)	account.AccountJournalGroup	company	set null	CASCADE	a	True	divergencia de política
+account.lock_exception	addons/account/models/account_lock_exception.py:29	restrict (defecto)	account.AccountLockException	company	restrict	CASCADE	a	True	divergencia de política
+account.lock_exception	addons/account/models/account_lock_exception.py:37	set null (defecto)	account.AccountLockException	user	set null	CASCADE	a	True	divergencia de política
+account.move	addons/account/models/account_move.py:161	restrict (defecto)	account.AccountMove	journal	restrict	PROTECT	a	True	coherente
+account.move	addons/account/models/account_move.py:419	restrict	account.AccountMove	partner	set null	SET_NULL	a	True	divergencia de atributo y de política
+account.move	addons/account/models/account_move.py:520	restrict (defecto)	account.AccountMove	currency	set null	SET_NULL	a	True	divergencia de atributo y de política
+account.move	addons/account/models/account_move.py:175	set null (defecto)	account.AccountMove	company	set null	CASCADE	a	True	divergencia de política
+account.move	addons/account/models/account_move.py:678	set null (defecto)	account.AccountMove	invoice_user_id	set null	SET_NULL	a	True	coherente
+account.move	addons/account/models/account_move.py:430	restrict	account.AccountMove	commercial_partner_id	set null	PROTECT	a	True	divergencia de atributo
+account.move	addons/account/models/account_move.py:456	restrict	account.AccountMove	fiscal_position_id	set null	PROTECT	a	True	divergencia de atributo
+account.move	addons/account_edi_ubl_cii/models/account_move.py:17	set null (defecto)	account.AccountMove	ubl_cii_xml_id	set null	SET_NULL	a	True	coherente
+account.payment	addons/account/models/account_payment.py:23	restrict (defecto)	account.AccountPayment	journal	restrict	PROTECT	a	True	coherente
+account.payment	addons/account/models/account_payment.py:116	restrict	account.AccountPayment	partner	set null	SET_NULL	a	True	divergencia de atributo y de política
+account.payment	addons/account/models/account_payment.py:110	set null (defecto)	account.AccountPayment	currency	set null	SET_NULL	a	True	coherente
+account.payment	addons/account/models/account_payment.py:30	restrict (defecto)	account.AccountPayment	company	restrict	CASCADE	a	True	divergencia de política
+account.payment.method.line	addons/account/models/account_payment_method.py:104	restrict (defecto)	account.AccountPaymentMethodLine	payment_method	restrict	CASCADE	a	True	divergencia de política
+account.payment.method.line	addons/account/models/account_payment_method.py:110	restrict	account.AccountPaymentMethodLine	payment_account	set null	PROTECT	a	True	divergencia de atributo
+account.payment.method.line	addons/account/models/account_payment_method.py:117	set null (defecto)	account.AccountPaymentMethodLine	journal	set null	CASCADE	a	True	divergencia de política
+account.payment.term	addons/account/models/account_payment_term.py:27	set null (defecto)	account.AccountPaymentTerm	company	set null	CASCADE	a	True	divergencia de política
+account.payment.term.line	addons/account/models/account_payment_term.py:308	cascade	account.AccountPaymentTermLine	payment	restrict	CASCADE	a	True	divergencia de atributo
+account.reconcile.model	addons/account/models/account_reconcile_model.py:102	restrict (defecto)	account.AccountReconcileModel	company	restrict	CASCADE	a	True	divergencia de política
+account.reconcile.model	addons/account/models/account_reconcile_model.py:118	set null (defecto)	account.AccountReconcileModel	mapped_partner	set null	SET_NULL	a	True	coherente
+account.reconcile.model.line	addons/account/models/account_reconcile_model.py:15	cascade	account.AccountReconcileModelLine	model	set null	CASCADE	a	True	divergencia de atributo
+account.reconcile.model.line	addons/account/models/account_reconcile_model.py:16	set null (defecto)	account.AccountReconcileModelLine	company	set null	CASCADE	a	True	divergencia de política
+account.reconcile.model.line	addons/account/models/account_reconcile_model.py:18	cascade	account.AccountReconcileModelLine	account	set null	CASCADE	a	True	divergencia de atributo
+account.reconcile.model.line	addons/account/models/account_reconcile_model.py:20	set null (defecto)	account.AccountReconcileModelLine	partner	set null	SET_NULL	a	True	coherente
+account.report	addons/account/models/account_report.py:56	set null (defecto)	account.AccountReport	root_report	set null	SET_NULL	a	True	coherente
+account.report	addons/account/models/account_report.py:66	set null (defecto)	account.AccountReport	country	set null	SET_NULL	a	True	coherente
+account.report.line	addons/account/models/account_report.py:356	cascade	account.AccountReportLine	report	restrict	CASCADE	a	True	divergencia de atributo
+account.report.line	addons/account/models/account_report.py:377	set null	account.AccountReportLine	parent	set null	SET_NULL	a	True	coherente
+account.report.line	addons/account/models/account_report.py:389	set null (defecto)	account.AccountReportLine	action	set null	SET_NULL	a	True	coherente
+account.report.expression	addons/account/models/account_report.py:584	cascade	account.AccountReportExpression	report_line	restrict	CASCADE	a	True	divergencia de atributo
+account.report.column	addons/account/models/account_report.py:940	set null (defecto)	account.AccountReportColumn	report	set null	CASCADE	a	True	divergencia de política
+account.report.column	addons/account/models/account_report.py:944	set null (defecto)	account.AccountReportColumn	custom_audit_action	set null	SET_NULL	a	True	coherente
+account.report.external.value	addons/account/models/account_report.py:958	cascade	account.AccountReportExternalValue	target_report_expression	restrict	CASCADE	a	True	divergencia de atributo
+account.report.external.value	addons/account/models/account_report.py:963	restrict (defecto)	account.AccountReportExternalValue	company	restrict	CASCADE	a	True	divergencia de política
+account.report.external.value	addons/account/models/account_report.py:967	set null (defecto)	account.AccountReportExternalValue	carryover_origin_report_line	set null	SET_NULL	a	True	coherente
+-	-	-	account.AccountTaxAlternative	src_tax	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account.AccountTaxAlternative	dest_tax	restrict	CASCADE	a	True	sin contraparte en la fuente
+account.tax	addons/account/models/account_tax.py:126	restrict (defecto)	account.AccountTax	company	restrict	CASCADE	a	True	divergencia de política
+account.tax	addons/account/models/account_tax.py:156	restrict (defecto)	account.AccountTax	tax_group	set null	PROTECT	a	True	divergencia de atributo
+account.tax.group	addons/account/models/account_tax.py:34	restrict (defecto)	account.AccountTaxGroup	company	restrict	CASCADE	a	True	divergencia de política
+account.tax.group	addons/account/models/account_tax.py:35	set null (defecto)	account.AccountTaxGroup	tax_payable_account	set null	SET_NULL	a	True	coherente
+account.tax.group	addons/account/models/account_tax.py:40	set null (defecto)	account.AccountTaxGroup	tax_receivable_account	set null	SET_NULL	a	True	coherente
+account.tax.group	addons/account/models/account_tax.py:45	set null (defecto)	account.AccountTaxGroup	advance_tax_payment_account	set null	SET_NULL	a	True	coherente
+account.tax.group	addons/account/models/account_tax.py:50	set null (defecto)	account.AccountTaxGroup	country	set null	SET_NULL	a	True	coherente
+account.tax.repartition.line	addons/account/models/account_tax.py:5257	set null (defecto)	account.AccountTaxRepartitionLine	account	set null	SET_NULL	a	True	coherente
+account.tax.repartition.line	addons/account/models/account_tax.py:5263	cascade	account.AccountTaxRepartitionLine	tax	set null	CASCADE	a	True	divergencia de atributo
+account.tax.repartition.line	addons/account/models/account_tax.py:5264	set null (defecto)	account.AccountTaxRepartitionLine	company	set null	CASCADE	a	True	divergencia de política
+account.financial.year.op	-	-	account.AccountFinancialYearOp	company_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+account.setup.bank.manual.config	-	-	account.AccountSetupBankManualConfig	res_partner_bank_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+account.setup.bank.manual.config	-	-	account.AccountSetupBankManualConfig	linked_journal_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+account.setup.bank.manual.config	-	-	account.AccountSetupBankManualConfig	company_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz_oauth.OauthAccount	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	authz_oauth.OauthAccount	provider	restrict	CASCADE	a	True	sin contraparte en la fuente
+crm.lead.scoring.frequency	addons/crm/models/crm_lead_scoring_frequency.py:15	cascade	crm.CrmLeadScoringFrequency	team_id	set null	CASCADE	a	True	divergencia de atributo
+crm.lead.scoring.frequency.field	addons/crm/models/crm_lead_scoring_frequency.py:26	cascade	crm.CrmLeadScoringFrequencyField	field_id	restrict	CASCADE	a	True	divergencia de atributo
+crm.lead	addons/crm/models/crm_lead.py:250	set null	crm.CrmLead	campaign_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:252	set null	crm.CrmLead	source_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:251	set null	crm.CrmLead	medium_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:104	set null (defecto)	crm.CrmLead	user_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:111	set null	crm.CrmLead	team_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:117	set null (defecto)	crm.CrmLead	company_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:130	restrict	crm.CrmLead	stage_id	set null	PROTECT	a	True	divergencia de atributo
+crm.lead	addons/crm/models/crm_lead.py:144	set null (defecto)	crm.CrmLead	recurring_plan	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:171	set null (defecto)	crm.CrmLead	partner_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:204	set null (defecto)	crm.CrmLead	lang_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:214	set null (defecto)	crm.CrmLead	state_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:218	set null (defecto)	crm.CrmLead	country_id	set null	SET_NULL	a	True	coherente
+crm.lead	addons/crm/models/crm_lead.py:234	restrict	crm.CrmLead	lost_reason_id	set null	PROTECT	a	True	divergencia de atributo
+-	-	-	crm.ContactMessage	reply_sent_by	-	SET_NULL	a	True	sin contraparte en la fuente
+hr.employee.location	addons/hr_homeworking/models/hr_homeworking.py:12	restrict (defecto)	hr_homeworking.HrEmployeeLocation	work_location_id	restrict	PROTECT	a	True	coherente
+hr.employee.location	addons/hr_homeworking/models/hr_homeworking.py:15	cascade	hr_homeworking.HrEmployeeLocation	employee_id	restrict	CASCADE	a	True	divergencia de atributo
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:122	set null	hr_recruitment.HrApplicant	campaign_id	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:124	set null	hr_recruitment.HrApplicant	source_id	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:123	set null	hr_recruitment.HrApplicant	medium_id	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:43	set null (defecto)	hr_recruitment.HrApplicant	partner	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:68	set null (defecto)	hr_recruitment.HrApplicant	type	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:71	set null (defecto)	hr_recruitment.HrApplicant	employee	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:77	restrict	hr_recruitment.HrApplicant	stage	set null	PROTECT	a	True	divergencia de atributo
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:82	set null (defecto)	hr_recruitment.HrApplicant	last_stage	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:85	set null (defecto)	hr_recruitment.HrApplicant	company	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:86	set null (defecto)	hr_recruitment.HrApplicant	user	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:93	set null (defecto)	hr_recruitment.HrApplicant	job	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:98	set null (defecto)	hr_recruitment.HrApplicant	department	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:117	set null (defecto)	hr_recruitment.HrApplicant	refuse_reason	set null	SET_NULL	a	True	coherente
+hr.applicant	addons/hr_recruitment/models/hr_applicant.py:139	set null (defecto)	hr_recruitment.HrApplicant	pool_applicant	set null	SET_NULL	a	True	coherente
+hr.applicant.refuse.reason	addons/hr_recruitment/models/hr_applicant_refuse_reason.py:14	set null (defecto)	hr_recruitment.HrApplicantRefuseReason	template	set null	SET_NULL	a	True	coherente
+hr.recruitment.source	-	-	hr_recruitment.HrRecruitmentSource	source_id	restrict	PROTECT	a	True	sin contraparte en la fuente
+hr.recruitment.source	addons/hr_recruitment/models/hr_recruitment_source.py:14	cascade	hr_recruitment.HrRecruitmentSource	job	set null	CASCADE	a	True	divergencia de atributo
+hr.recruitment.source	addons/hr_recruitment/models/hr_recruitment_source.py:15	restrict	hr_recruitment.HrRecruitmentSource	alias	set null	PROTECT	a	True	divergencia de atributo
+hr.recruitment.source	addons/hr_recruitment/models/hr_recruitment_source.py:16	set null (defecto)	hr_recruitment.HrRecruitmentSource	medium	set null	SET_NULL	a	True	coherente
+hr.recruitment.source	addons/hr_recruitment/models/hr_recruitment_source.py:17	set null (defecto)	hr_recruitment.HrRecruitmentSource	campaign	set null	SET_NULL	a	True	coherente
+hr.recruitment.stage	addons/hr_recruitment/models/hr_recruitment_stage.py:19	set null (defecto)	hr_recruitment.HrRecruitmentStage	template	set null	SET_NULL	a	True	coherente
+hr.talent.pool	addons/hr_recruitment/models/hr_talent_pool.py:17	set null (defecto)	hr_recruitment.HrTalentPool	company	set null	SET_NULL	a	True	coherente
+hr.talent.pool	addons/hr_recruitment/models/hr_talent_pool.py:23	set null (defecto)	hr_recruitment.HrTalentPool	pool_manager	set null	SET_NULL	a	True	coherente
+hr.skill	addons/hr_skills/models/hr_skill.py:14	cascade	hr_skills.HrSkill	skill_type	restrict	CASCADE	a	True	divergencia de atributo
+hr.skill.level	addons/hr_skills/models/hr_skill_level.py:12	cascade	hr_skills.HrSkillLevel	skill_type	set null	CASCADE	a	True	divergencia de atributo
+hr.resume.line	addons/hr_skills/models/hr_resume_line.py:13	cascade	hr_skills.HrResumeLine	employee	restrict	CASCADE	a	True	divergencia de atributo
+hr.resume.line	addons/hr_skills/models/hr_resume_line.py:22	set null (defecto)	hr_skills.HrResumeLine	line_type	set null	SET_NULL	a	True	coherente
+hr.employee.skill	-	-	hr_skills.HrEmployeeSkill	skill	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.employee.skill	-	-	hr_skills.HrEmployeeSkill	skill_level	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.employee.skill	-	-	hr_skills.HrEmployeeSkill	skill_type	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.employee.skill	addons/hr_skills/models/hr_employee_skill.py:13	cascade	hr_skills.HrEmployeeSkill	employee	restrict	CASCADE	a	True	divergencia de atributo
+hr.job.skill	-	-	hr_skills.HrJobSkill	skill	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.job.skill	-	-	hr_skills.HrJobSkill	skill_level	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.job.skill	-	-	hr_skills.HrJobSkill	skill_type	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.job.skill	addons/hr_skills/models/hr_job_skill.py:13	cascade	hr_skills.HrJobSkill	job	restrict	CASCADE	a	True	divergencia de atributo
+hr.work.entry.type	addons/hr_work_entry/models/hr_work_entry_type.py:20	set null (defecto)	hr_work_entry.HrWorkEntryType	country	set null	SET_NULL	a	True	coherente
+hr.work.entry	addons/hr_work_entry/models/hr_work_entry.py:25	restrict (defecto)	hr_work_entry.HrWorkEntry	employee	restrict	CASCADE	a	True	divergencia de política
+hr.work.entry	addons/hr_work_entry/models/hr_work_entry.py:26	restrict (defecto)	hr_work_entry.HrWorkEntry	version	restrict	CASCADE	a	True	divergencia de política
+hr.work.entry	addons/hr_work_entry/models/hr_work_entry.py:30	set null (defecto)	hr_work_entry.HrWorkEntry	work_entry_type	set null	SET_NULL	a	True	coherente
+hr.work.entry	addons/hr_work_entry/models/hr_work_entry.py:45	restrict (defecto)	hr_work_entry.HrWorkEntry	company	set null	PROTECT	a	True	divergencia de atributo
+hr.user.work.entry.employee	addons/hr_work_entry/models/hr_user_work_entry_employee.py:12	cascade	hr_work_entry.HrUserWorkEntryEmployee	user	restrict	CASCADE	a	True	divergencia de atributo
+hr.user.work.entry.employee	addons/hr_work_entry/models/hr_user_work_entry_employee.py:13	restrict (defecto)	hr_work_entry.HrUserWorkEntryEmployee	employee	restrict	CASCADE	a	True	divergencia de política
+purchase.requisition	addons/purchase_requisition/models/purchase_requisition.py:20	set null (defecto)	purchase_requisition.PurchaseRequisition	vendor	set null	PROTECT	a	True	divergencia de política
+purchase.requisition	addons/purchase_requisition/models/purchase_requisition.py:26	set null (defecto)	purchase_requisition.PurchaseRequisition	user	set null	SET_NULL	a	True	coherente
+purchase.requisition	addons/purchase_requisition/models/purchase_requisition.py:30	restrict (defecto)	purchase_requisition.PurchaseRequisition	company	restrict	CASCADE	a	True	divergencia de política
+purchase.requisition	addons/purchase_requisition/models/purchase_requisition.py:43	restrict (defecto)	purchase_requisition.PurchaseRequisition	currency	set null	PROTECT	a	True	divergencia de atributo
+purchase.requisition.line	addons/purchase_requisition/models/purchase_requisition.py:170	restrict (defecto)	purchase_requisition.PurchaseRequisitionLine	product	restrict	PROTECT	a	True	coherente
+purchase.requisition.line	addons/purchase_requisition/models/purchase_requisition.py:171	set null (defecto)	purchase_requisition.PurchaseRequisitionLine	product_uom	set null	PROTECT	a	True	divergencia de política
+purchase.requisition.line	addons/purchase_requisition/models/purchase_requisition.py:180	cascade	purchase_requisition.PurchaseRequisitionLine	requisition	restrict	CASCADE	a	True	divergencia de atributo
+-	-	-	account_add_gln.PartnerGln	partner	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_check_printing.CheckPrintingCompanySettings	company	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_check_printing.CheckPrintingJournalSettings	journal	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_check_printing.CheckPrintingJournalSettings	sequence	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	account_check_printing.CheckPrintingPaymentInfo	payment	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_debit_note.JournalDebitSequence	journal	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_debit_note.AccountMoveDebitNote	move	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_debit_note.AccountMoveDebitNote	origin	restrict	PROTECT	a	True	sin contraparte en la fuente
+account.edi.document	addons/account_edi/models/account_edi_document.py:19	cascade	account_edi.AccountEdiDocument	move_id	restrict	CASCADE	a	True	divergencia de atributo
+account.edi.document	addons/account_edi/models/account_edi_document.py:20	restrict (defecto)	account_edi.AccountEdiDocument	edi_format_id	restrict	PROTECT	a	True	coherente
+account.edi.document	addons/account_edi/models/account_edi_document.py:21	set null (defecto)	account_edi.AccountEdiDocument	attachment_id	set null	SET_NULL	a	True	coherente
+-	-	-	account_payment.AccountPaymentTransaction	payment	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountPaymentTransaction	transaction	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountPaymentTransaction	token	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountPaymentTransaction	source_payment	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountMoveTransactionLink	move	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountMoveTransactionLink	transaction	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountPaymentMethodLineProvider	method_line	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_payment.AccountPaymentMethodLineProvider	provider	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	account_payment.PaymentGatewayJournal	gateway	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_payment.PaymentGatewayJournal	journal	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	account_tax_python.AccountTaxFormula	tax	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_update_tax_tags.AccountMoveLineTax	line	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_update_tax_tags.AccountMoveLineTax	tax	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_update_tax_tags.AccountMoveLineTaxRepartition	line	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_update_tax_tags.AccountMoveLineTaxRepartition	repartition_line	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_update_tax_tags.AccountMoveLineTag	line	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	account_update_tax_tags.AccountMoveLineTag	tag	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.applicant.skill	-	-	hr_recruitment_skills.HrApplicantSkill	skill	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.applicant.skill	-	-	hr_recruitment_skills.HrApplicantSkill	skill_level	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.applicant.skill	-	-	hr_recruitment_skills.HrApplicantSkill	skill_type	restrict	CASCADE	a	True	sin contraparte en la fuente
+hr.applicant.skill	addons/hr_recruitment_skills/models/hr_applicant_skill.py:14	cascade	hr_recruitment_skills.HrApplicantSkill	applicant_id	restrict	CASCADE	a	True	divergencia de atributo
+account.analytic.line.calendar.employee	addons/hr_timesheet/models/account_analytic_line_calendar_employee.py:9	cascade	hr_timesheet.AccountAnalyticLineCalendarEmployee	user_id	restrict	CASCADE	a	True	divergencia de atributo
+account.analytic.line.calendar.employee	addons/hr_timesheet/models/account_analytic_line_calendar_employee.py:10	set null (defecto)	hr_timesheet.AccountAnalyticLineCalendarEmployee	employee_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:283	set null	sale.SaleOrder	campaign_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:285	set null	sale.SaleOrder	source_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:284	set null	sale.SaleOrder	medium_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:64	restrict (defecto)	sale.SaleOrder	partner	set null	SET_NULL	a	True	divergencia de atributo y de política
+sale.order	addons/sale/models/sale_order.py:216	set null	sale.SaleOrder	team	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:60	restrict (defecto)	sale.SaleOrder	company	set null	CASCADE	a	True	divergencia de atributo y de política
+sale.order	addons/delivery/models/sale_order.py:13	set null (defecto)	sale.SaleOrder	carrier	set null	SET_NULL	a	True	coherente
+sale.order	-	-	sale.SaleOrder	admin_cancelled_by	set null	SET_NULL	a	True	sin contraparte en la fuente
+sale.order	-	-	sale.SaleOrder	invoice	set null	SET_NULL	a	True	sin contraparte en la fuente
+sale.order	addons/sale/models/sale_order.py:104	set null	sale.SaleOrder	pending_email_template_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:140	set null (defecto)	sale.SaleOrder	journal_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:153	restrict (defecto)	sale.SaleOrder	partner_invoice_id	set null	SET_NULL	a	True	divergencia de atributo y de política
+sale.order	addons/sale/models/sale_order.py:160	restrict (defecto)	sale.SaleOrder	partner_shipping_id	set null	SET_NULL	a	True	divergencia de atributo y de política
+sale.order	addons/sale/models/sale_order.py:168	set null (defecto)	sale.SaleOrder	fiscal_position_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:176	set null (defecto)	sale.SaleOrder	payment_term_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:182	set null (defecto)	sale.SaleOrder	preferred_payment_method_line_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:187	set null (defecto)	sale.SaleOrder	pricelist_id	set null	SET_NULL	a	True	coherente
+sale.order	addons/sale/models/sale_order.py:195	restrict	sale.SaleOrder	currency_id	set null	PROTECT	a	True	divergencia de atributo
+sale.order	addons/sale/models/sale_order.py:207	set null (defecto)	sale.SaleOrder	user_id	set null	SET_NULL	a	True	coherente
+sale.order.line	addons/sale/models/sale_order_line.py:34	cascade	sale.SaleOrderLine	order	restrict	CASCADE	a	True	divergencia de atributo
+sale.order.line	addons/sale/models/sale_order_line.py:83	restrict	sale.SaleOrderLine	product	set null	PROTECT	a	True	divergencia de atributo
+sale.order.line	addons/sale/models/sale_order_line.py:41	set null (defecto)	sale.SaleOrderLine	company_id	set null	PROTECT	a	True	divergencia de política
+sale.order.line	addons/sale/models/sale_order_line.py:44	set null (defecto)	sale.SaleOrderLine	currency_id	set null	PROTECT	a	True	divergencia de política
+sale.order.line	addons/sale/models/sale_order_line.py:48	set null (defecto)	sale.SaleOrderLine	order_partner_id	set null	PROTECT	a	True	divergencia de política
+sale.order.line	addons/sale/models/sale_order_line.py:52	set null (defecto)	sale.SaleOrderLine	salesman_id	set null	SET_NULL	a	True	coherente
+sale.order.line	addons/sale/models/sale_order_line.py:132	restrict	sale.SaleOrderLine	product_uom_id	set null	PROTECT	a	True	divergencia de atributo
+sale.order.line	addons/sale/models/sale_order_line.py:139	cascade	sale.SaleOrderLine	linked_line_id	set null	CASCADE	a	True	divergencia de atributo
+sale.order.line	addons/sale/models/sale_order_line.py:159	set null (defecto)	sale.SaleOrderLine	combo_item_id	set null	PROTECT	a	True	divergencia de política
+-	-	-	sale_subscription.ModulePrice	module	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	sale_subscription.CompanyModuleSubscription	company	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_subscription.CompanyModuleSubscription	module	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	sale_subscription.SubscriptionInvoice	company	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_subscription.SubscriptionInvoice	subscription	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	sale_subscription.SubscriptionInvoice	run	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	sale_subscription.SubscriptionInvoice	account_move	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	stock_account.ProductCosting	product	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock_account.StockValuationLayer	product_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock_account.StockValuationLayer	stock_move_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+account_edi_proxy_client.user	addons/account_edi_proxy_client/models/account_edi_proxy_user.py:37	restrict (defecto)	account_edi_proxy_client.AccountEdiProxyUser	company_id	restrict	CASCADE	a	True	divergencia de política
+account_edi_proxy_client.user	addons/account_edi_proxy_client/models/account_edi_proxy_user.py:40	restrict (defecto)	account_edi_proxy_client.AccountEdiProxyUser	private_key_id	restrict	PROTECT	a	True	coherente
+-	-	-	delivery.ShipmentGuide	sale_order	-	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	delivery.ShipmentGuide	courier	-	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	delivery.ShipmentEvent	guide	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	delivery.ShipmentEvent	recorded_by	-	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	delivery.CarrierRateCard	courier	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	delivery.ShippingMethod	product	-	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	delivery.DeliveryAddress	sale_order	-	CASCADE	a	True	sin contraparte en la fuente
+mail.thread	-	-	helpdesk.SupportTicket	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	helpdesk.SupportTicketReply	ticket	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	helpdesk.SupportTicketReply	author	-	SET_NULL	a	True	sin contraparte en la fuente
+mrp.bom	addons/mrp/models/mrp_bom.py:31	restrict (defecto)	mrp.MrpBom	product_tmpl	restrict	CASCADE	a	True	divergencia de política
+mrp.bom	addons/mrp/models/mrp_bom.py:35	set null (defecto)	mrp.MrpBom	product	set null	CASCADE	a	True	divergencia de política
+mrp.bom.line	addons/mrp/models/mrp_bom.py:706	cascade	mrp.MrpBomLine	bom	restrict	CASCADE	a	True	divergencia de atributo
+mrp.bom.line	addons/mrp/models/mrp_bom.py:693	restrict (defecto)	mrp.MrpBomLine	product	restrict	PROTECT	a	True	coherente
+mrp.production	addons/mrp/models/mrp_production.py:89	restrict (defecto)	mrp.MrpProduction	product	restrict	PROTECT	a	True	coherente
+mrp.production	addons/mrp/models/mrp_production.py:160	set null (defecto)	mrp.MrpProduction	bom	set null	SET_NULL	a	True	coherente
+-	-	-	mrp.MrpProductionMove	production	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp.MrpProductionMove	move	-	CASCADE	a	True	sin contraparte en la fuente
+mrp.routing.workcenter	addons/mrp/models/mrp_routing.py:23	cascade	mrp.MrpRoutingWorkcenter	bom	set null	CASCADE	a	True	divergencia de atributo
+mrp.routing.workcenter	addons/mrp/models/mrp_routing.py:19	restrict (defecto)	mrp.MrpRoutingWorkcenter	workcenter	restrict	PROTECT	a	True	coherente
+mrp.workorder	addons/mrp/models/mrp_workorder.py:44	restrict (defecto)	mrp.MrpWorkorder	production	restrict	CASCADE	a	True	divergencia de política
+mrp.workorder	addons/mrp/models/mrp_workorder.py:35	restrict (defecto)	mrp.MrpWorkorder	workcenter	restrict	PROTECT	a	True	coherente
+mrp.workorder	addons/mrp/models/mrp_workorder.py:102	set null (defecto)	mrp.MrpWorkorder	operation	set null	SET_NULL	a	True	coherente
+-	-	-	sale_crm.SaleOrderOpportunity	order	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_crm.SaleOrderOpportunity	opportunity	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	sale_loyalty.SaleOrderCoupon	order	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_loyalty.SaleOrderCoupon	voucher	set null	SET_NULL	a	True	sin contraparte en la fuente
+sale.order.template.line	-	-	sale_management.SaleOrderTemplateLine	template	restrict	CASCADE	a	True	sin contraparte en la fuente
+sale.order.template.line	addons/sale_management/models/sale_order_template_line.py:34	set null (defecto)	sale_management.SaleOrderTemplateLine	product_id	set null	PROTECT	a	True	divergencia de política
+-	-	-	sale_margin.SaleOrderLineMargin	line	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_product_matrix.SaleOrderMatrix	order	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_project.SaleOrderLineProject	line	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_project.SaleOrderLineProject	project	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	sale_project.SaleOrderLineProject	task	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	sale_purchase.SaleLinePurchaseLink	sale_line	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_purchase.SaleLinePurchaseLink	purchase_line	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_sms.SaleOrderSmsConfirmation	order	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_sms.SaleOrderSmsConfirmation	message	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	sale_stock.SaleOrderDelivery	order	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_stock.SaleOrderLineDelivery	line	-	CASCADE	a	True	sin contraparte en la fuente
+project.sale.line.employee.map	addons/sale_timesheet/models/project_sale_line_employee_map.py:22	restrict (defecto)	sale_timesheet.ProjectSaleLineEmployeeMap	project	restrict	CASCADE	a	True	divergencia de política
+project.sale.line.employee.map	addons/sale_timesheet/models/project_sale_line_employee_map.py:23	restrict (defecto)	sale_timesheet.ProjectSaleLineEmployeeMap	employee	restrict	CASCADE	a	True	divergencia de política
+project.sale.line.employee.map	addons/sale_timesheet/models/project_sale_line_employee_map.py:25	set null (defecto)	sale_timesheet.ProjectSaleLineEmployeeMap	sale_line	set null	SET_NULL	a	True	coherente
+project.sale.line.employee.map	addons/sale_timesheet/models/project_sale_line_employee_map.py:34	set null (defecto)	sale_timesheet.ProjectSaleLineEmployeeMap	currency	set null	SET_NULL	a	True	coherente
+-	-	-	stock_landed_costs.StockLandedCostLine	cost	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock_landed_costs.StockValuationAdjustment	cost	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock_landed_costs.StockValuationAdjustment	cost_line	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	stock_landed_costs.StockValuationAdjustment	move	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	stock_landed_costs.StockValuationAdjustment	product	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.BomSubcontractor	bom	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.BomSubcontractor	subcontractor	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.SubcontractProduction	production	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.SubcontractProduction	subcontractor	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.SubcontractingLocation	location	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.Subcontractor	partner	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	mrp_subcontracting.Subcontractor	location	restrict	PROTECT	a	True	sin contraparte en la fuente
+-	-	-	sale_mrp.SaleOrderLineProduction	line	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	sale_mrp.SaleOrderLineProduction	production	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	website_sale.WebsiteSaleSettings	website	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website_sale.WebsiteSaleSettings	cart_recovery_mail_template_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	website_sale.WebsiteSaleSettings	salesteam_id	set null	SET_NULL	a	True	sin contraparte en la fuente
+-	-	-	website_sale.WebsiteSaleOrderInfo	sale_order	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website_sale.WebsiteSaleOrderInfo	website_id	restrict	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website_sale_wishlist.WishlistItem	user	-	CASCADE	a	True	sin contraparte en la fuente
+-	-	-	website_sale_wishlist.WishlistItem	product	-	CASCADE	a	True	sin contraparte en la fuente

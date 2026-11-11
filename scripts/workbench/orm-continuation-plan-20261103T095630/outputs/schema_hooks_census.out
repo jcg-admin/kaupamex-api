@@ -1,0 +1,8 @@
+modelos sin _auto_init (propios): 91
+por tipo: {'managed': 87, 'unmanaged': 4}
+con migración aplicada de su app: 91
+con objetos de tabla: []
+con init propio: ['base.SystemParameter', 'hr.HrEmployeePublic']
+con columnas huérfanas NOT NULL: []
+derivan de BaseModel: 0
+por app: {'account': 33, 'base': 19, 'base_address_extended': 4, 'analytic': 4, 'account_payment': 4, 'stock': 3, 'account_update_tax_tags': 3, 'base_geolocalize': 2, 'web': 2, 'base_install_request': 2, 'account_edi': 2, 'base_import_module': 1, 'base_setup': 1, 'base_sparse_field': 1, 'loyalty': 1, 'onboarding': 1, 'hr': 1, 'payment': 1, 'rating': 1, 'account_add_gln': 1, 'account_tax_python': 1, 'hr_timesheet': 1, 'account_edi_proxy_client': 1, 'delivery': 1}

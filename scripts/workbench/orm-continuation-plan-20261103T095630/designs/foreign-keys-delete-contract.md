@@ -147,3 +147,71 @@ y `on_delete` debe derivar de él. Es un barrido por campo contra
 
 Las 5 pruebas verdes de `bc487a66` cubren los productores. **No** cubren la
 familia de FK.
+
+## Apéndice: las FK clasificadas contra la fuente (2026-11-11T00:44:31)
+
+Probe `probes/fk_reference_ondelete.py`: lee por AST el `ondelete` de cada
+`fields.Many2one` de `odoo19c` (`addons/*/models` y
+`odoo/addons/*/models`), con el defecto de la fuente cuando no lo declara
+(`restrict` si `required`, `set null` si no). Lo cruza con cada FK del árbol
+y con su fila en `pg_constraint`. El modelo se reconoce por `_name` o por su
+tabla (`_name.replace('.', '_')`); el campo, por su columna, por su nombre o
+por su nombre con `_id`. La tabla completa, con una fila por FK, está en
+`outputs/fk_reference_ondelete.tsv`: modelo y campo de la fuente con su
+`archivo:línea`, `ondelete` de la fuente, campo de Django, atributo
+`ondelete`, política de Django, `confdeltype`, diferibilidad y veredicto.
+
+*Métrica:* 906 FK de modelos administrados propios con `db_constraint`.
+*Ciega a:* un `Many2one` de la fuente declarado fuera de `models/` o por
+`_inherits`. También a la FK cuyo nombre no coincide por ninguna de las tres
+reglas: 245 quedan «sin contraparte», y en ellas se mezclan modelos propios
+de Kaupamex (`authz`, …) con nombres que el emparejamiento no reconoce.
+
+| Veredicto | FK |
+|---|---|
+| coherente | 329 |
+| divergencia de atributo (la política es la de la fuente) | 177 |
+| divergencia de política | 111 |
+| divergencia de atributo y de política | 29 |
+| dependiente de empresa en la fuente (allí sin FK) | 15 |
+| sin contraparte en la fuente | 245 |
+
+Las 906 son `confdeltype = 'a'` (`NO ACTION`) y diferibles. **Ninguna**
+tiene en PostgreSQL la acción de la fuente: por esa columna, la restricción
+SQL diverge en todas.
+
+**Divergencias de política, por comportamiento observable al borrar el
+padre** (sin los 15 campos `company_dependent` de la fuente, que allí no tienen FK):
+
+| Fuente → nuestra política | FK | Efecto | Severidad | Ejemplos |
+|---|---|---|---|---|
+| `set null` → `CASCADE` | 48 | borra los hijos en vez de vaciar la referencia | **pérdida de datos** | base.ResDeviceLog.user (odoo/addons/base/models/res_device.py:28);base.IrSequence.company (odoo/addons/base/models/ir_sequence.py:150); |
+| `restrict` → `CASCADE` | 48 | borra los hijos donde la fuente rehúsa | **pérdida de datos** | base.ServerActionHistoryWizard.revision (odoo/addons/base/models/ir_actions.py:480);base.IrActionsTodo.action (odoo/addons/base/models/ir_actions.py:1357); |
+| `set null` → `PROTECT` | 23 | rehúsa donde la fuente vacía la referencia | bloqueo indebido | base.IrModuleCategory.parent (odoo/addons/base/models/ir_module.py:83);base.IrModule.category_id (odoo/addons/base/models/ir_module.py:275); |
+| `restrict` → `SET_NULL` | 20 | vacía la referencia donde la fuente rehúsa | pérdida de vínculo | base.IrCron.user (odoo/addons/base/models/ir_cron.py:110);project.ProjectTask.stage (addons/project/models/project_task.py:161); |
+| `cascade` → `SET_NULL` | 1 | conserva el hijo donde la fuente lo borra | huérfano lógico | hr.HrEmployee.version (addons/hr/models/hr_employee.py:46); |
+
+**Divergencias de atributo** (sin cambio de comportamiento hoy, pero
+`update_db_foreign_key` declararía otra política): 73 `restrict` →
+`set null`, 74 `cascade` → `restrict`, 50 `cascade` → `set null`, y 9 sin
+atributo.
+
+**Corrección requerida, por clase:**
+
+1. **Atributo** (177 + 29): el atributo `ondelete` debe ser el de la fuente.
+   Sólo cambia el atributo, no la migración, y lo verifica el propio probe.
+2. **Política** (111 + 29): `on_delete` debe derivar del `ondelete` de la
+   fuente. Cambiar `on_delete` genera una migración de Django (`AlterField`)
+   sin DDL de la FK en 6.0.5, porque la política vive en Python. Hay que
+   empezar por las 96 de pérdida de datos. Cada campo se verifica con una
+   prueba de borrado por el ORM.
+3. **Campos `company_dependent` en la fuente** (15): allí el valor vive en
+   un `jsonb` y no tiene FK; aquí son FK. Es una divergencia de mecanismo
+   que se resuelve con el porte `company_dependent`, no con `on_delete`.
+4. **Restricción SQL** (las 906): la acción de borrado en PostgreSQL exige
+   las variantes `DB_*` de Django 6.1 y cumplir `E323` en toda la cadena de
+   referencias. Es una unidad propia, con la actualización de Django como
+   dependencia, y no se aplica en parcial.
+
+Los consumidores de cada campo y su prueba se registran al corregirlo,
+empezando por la clase de pérdida de datos.
