@@ -241,11 +241,7 @@ def declared_index_name(cls, name):
     dependiente de empresa y los índices ``btree_not_null`` y ``trigram`` de
     un campo ordinario (``orm.fields``).
     """
-    base = f'{cls._meta.db_table}__{name}_index'
-    if len(base) > 30:
-        digest = names_digest(cls._meta.db_table, name, length=8)
-        base = f'{base[:21]}_{digest}'
-    return base
+    return table_index_name(cls._meta.db_table, name)
 
 
 class CompanyDependent(models.JSONField):
@@ -599,3 +595,18 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
     #: el alias no cambió.
     dispatcher.plain_field_class = plain
     return dispatcher
+
+
+def table_index_name(table, name):
+    """El nombre de :func:`declared_index_name` a partir de la tabla, para un
+    índice declarado en ``Meta``, donde la clase aún no existe.
+
+    ≙ ``make_index_name`` (``odoo19c: odoo/tools/sql.py:779-781``),
+    ``{tabla}__{campo}_index``, acotado a los 30 caracteres de
+    ``models.E034`` con un resumen estable de la tabla y el campo.
+    """
+    base = f'{table}__{name}_index'
+    if len(base) > 30:
+        digest = names_digest(table, name, length=8)
+        base = f'{base[:21]}_{digest}'
+    return base
