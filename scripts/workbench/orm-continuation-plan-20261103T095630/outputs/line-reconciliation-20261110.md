@@ -177,3 +177,35 @@ pase.
 Las líneas 8, 9, 11 y 16 tienen implementación, pruebas y gate. Sólo les
 falta el estado del inventario o la fila de evidencia. No se repitió su
 trabajo.
+
+### Denominador del inventario en `e302630b` (2026-11-10T23:59:38)
+
+`inventory_by_kind.py` sobre `e302630b` (referencia odoo-tools
+`abe4040ec1`): **2512 aplicables** = 980 satisfechos + 357 ausentes + 0
+divergentes + 1175 sin verificar.
+
+| Tipo | Aplicables | Satisfechos | Ausentes | Divergentes | Sin verificar |
+|---|---|---|---|---|---|
+| Clases | 159 | 50 | 43 | 0 | 66 |
+| Funciones | 457 | 273 | 133 | 0 | 51 |
+| Métodos | 1343 | 511 | 114 | 0 | 718 |
+| Atributos | 399 | 96 | 45 | 0 | 258 |
+| Propiedades | 76 | 32 | 14 | 0 | 30 |
+
+Es la misma cifra que en `b7abe492`: s1–s5 no movieron ninguna categoría.
+Los símbolos del esquema pasaron de `homonym` a `paired_by_name`, y los dos
+motivos cuentan como `not_verified`. El denominador no se ha reducido.
+
+Los estados que pide el seguimiento viven en **dos ejes**, no en uno:
+
+| Eje | Estados | Fuente |
+|---|---|---|
+| obligación (símbolo de referencia) | satisfecho, ausente, divergente, sin verificar | `inventory_by_kind.py` |
+| unidad de trabajo (ítem del plan) | implementada, asentada (`accepted`), bloqueada (`hard_block`), pendiente de asentar | `plan.jsonl` + `outputs/continuation.jsonl` |
+
+«Parcial», «integrada sin aceptación» y «aceptada» son estados de la
+unidad, no de la obligación. Hoy hay 189 unidades asentadas, todas
+`preexisting`; 2 bloqueadas; 11 líneas pendientes de asentar, con su
+motivo en la tabla de arriba. Ninguna unidad tiene aceptación formal: un
+asentamiento `accepted` registra que su `verify` pasó, no que se aceptara
+contra la definición de terminado.

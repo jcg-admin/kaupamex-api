@@ -389,3 +389,16 @@ aparece en A.
 **Propietario único:** `hr.0009_hremployeepublic` declara `managed: False`
 y no tiene `RunSQL`; ninguna migración de `hr` crea la vista. Su único
 creador es `init`.
+
+### Los cinco `init` de `base` sin porte: contrato y mecanismo (2026-11-11T00:15:06)
+
+Medido contra `orm_x2hokp_qa` (solo lectura). Que exista el gancho común
+**no** hace equivalente ningún override: cada uno tiene su contrato.
+
+| Modelo | Contrato de la fuente | Estado medido | Mecanismo y obligación |
+|---|---|---|---|
+| `ir.logging` (`ir_logging.py:36-46`) | retira `ir_logging_write_uid_fkey` para que un `INSERT` no tome el bloqueo de la FK | la tabla no tiene `write_uid` ni ninguna FK | el esquema ya cumple el objetivo; queda declarar la divergencia (sin `write_uid`) en el modelo |
+| `res.company` (`res_company.py:102-109`) | asigna `base.paperformat_euro` a las compañías sin formato, luego `super().init()` | `paperformat_id` existe; **el xmlid `base.paperformat_euro` no existe** en la base de pruebas; 0 compañías sin formato | admisible: `init` con `env.ref(..., False)`; depende de cargar el dato de formatos de papel |
+| `res.users` (`res_users.py:277-…`) | cifra las contraseñas escritas en claro por SQL | columna `password` presente; el cifrado lo da `django.contrib.auth` (`set_password`, `res_users.py:798`) | admisible: `init` que pasa las no cifradas por `make_password` (**TRAE**); falta medir el formato almacenado |
+| `res.users.apikeys` (`res_users.py:1531-…`) | `CREATE TABLE IF NOT EXISTS` con `CHECK (char_length(index) = 8)` y FK `ON DELETE CASCADE` | la tabla la crea `base.0039`; el `CHECK` está (`length(index) = 8`); la FK es `NO ACTION` diferida | la tabla la gobierna la migración (no se duplica); la FK entra en `foreign-keys-delete-contract.md` |
+| `res.device` (`res_device.py:230`) | crea la vista | la crea `base.0004` | no se duplica en `init` |

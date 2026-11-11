@@ -1,0 +1,14 @@
+on_delete de Django: {'SET_NULL': 392, 'CASCADE': 384, 'PROTECT': 128, 'RESTRICT': 7}
+ondelete de Odoo declarado: {'set null': 555, 'restrict': 230, '-': 116, 'cascade': 10}
+Many2many: {'auto': 89, 'explicit': 10}
+cruce (ondelete Odoo, on_delete Django):
+  ('set null', 'SET_NULL') 369 ['base.ResGroups.privilege', 'base.IrAttachment.company']
+  ('restrict', 'CASCADE') 181 ['base.ResUsersLog.user', 'base.ResUsersApikeys.user']
+  ('set null', 'CASCADE') 111 ['base.IrModuleDependency.module', 'base.IrModuleExclusion.module']
+  ('-', 'CASCADE') 82 ['admin.LogEntry.user', 'auth.Permission.content_type']
+  ('set null', 'PROTECT') 68 ['base.IrModuleCategory.parent', 'base.IrModule.category_id']
+  ('restrict', 'PROTECT') 49 ['base.ResUsers.partner', 'base.IrCron.ir_actions_server']
+  ('-', 'SET_NULL') 23 ['admin.LogEntry.content_type', 'token_blacklist.OutstandingToken.user']
+  ('-', 'PROTECT') 11 ['base.ResGroupsPrivilege.category', 'base.IrUiMenu.parent']
+  ('cascade', 'CASCADE') 10 ['test_orm.TestOrmCategory.parent', 'test_orm.TestOrmMultiLine.multi']
+  ('set null', 'RESTRICT') 7 ['base.ResCompany.internal_transit_location', 'stock.StockQuant.package']

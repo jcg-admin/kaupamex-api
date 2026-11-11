@@ -1,0 +1,7 @@
+1 ORM unlink (Collector, on_delete=CASCADE) hijo restante: 0
+1 señales pre_delete: ['test_orm_category', 'test_orm_category']
+2 SQL DELETE con ON DELETE CASCADE, hijos restantes: 0
+3 SQL DELETE contra FK diferida de Django: aceptado al momento: sí
+3 al forzar la comprobación: IntegrityError: insert or update on table "test_orm_category" violates foreign key constraint "test_orm_category_parent_48cb1273_fk_test_orm_category_id"
+4 RESTRICT (no diferible) error inmediato: IntegrityError
+revertido
