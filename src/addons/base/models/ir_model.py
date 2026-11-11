@@ -3085,10 +3085,15 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         if not name:
             raise ValueError(
                 'Identificador externo mal formado (falta el módulo): %s' % xmlid)
-        row = cls.objects.using(using).filter(module=module, name=name).first()
-        if row is None or not row.res_id:
+        # ≙ ``SELECT model, res_id FROM ir_model_data WHERE module=%s AND
+        # name=%s``: sólo esas dos columnas. Un default de campo que resuelve
+        # un XML-ID corre también dentro de una migración histórica, cuando
+        # el modelo vivo ya declara columnas que la tabla aún no tiene.
+        row = cls.objects.using(using).filter(
+            module=module, name=name).values_list('model', 'res_id').first()
+        if row is None or not row[1]:
             raise ValueError('Identificador externo no encontrado: %s' % xmlid)
-        return row.model, row.res_id
+        return row
 
     @classmethod
     def _xmlid_to_res_model_res_id(cls, xmlid, raise_if_not_found=False,

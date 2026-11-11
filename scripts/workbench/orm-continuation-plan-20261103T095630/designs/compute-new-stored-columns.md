@@ -116,3 +116,43 @@ de moverlo a un sitio sin relación con su contrato.
   sin la de `crm` caen exactamente sus 17.
 - Sincronía (TASK-API-0515) sigue verde: `ComputeStoredFields` es
   `RunPython` y no cambia el estado de los modelos.
+
+## Revisión 2026-11-11: el cómputo espera a que el esquema del modelo esté completo
+
+**Defecto medido.** Una base migrada desde cero falla en
+`base/0103_compute_new_stored_columns` con
+`column ir_rule.create_uid_id does not exist` (ci-multidb de `37890e41`,
+`outputs/gates/ci-multidb-37890e41/`, y la reproducción en una base
+desechable `orm_x2hokp_fresh`). La operación usa la clase **vigente** del
+modelo, que ya declara columnas que añadirá una migración **posterior**
+(`base/0109`). El `SELECT` del cómputo las nombra y la tabla aún no las tiene.
+Fallaría lo mismo con cualquier campo que se añada en adelante.
+
+**Lo que hace la fuente.** `_auto_init` (`odoo19c: odoo/orm/models.py:3170-3248`)
+recorre **todos** los campos del modelo instalado. Crea todas las columnas que
+faltan y sólo entonces marca para cómputo las filas existentes. En la fuente,
+el esquema y el código del modelo nunca están desfasados en el momento de
+calcular.
+
+**Mecanismo.**
+
+1. Al ejecutarse, la operación compara las columnas concretas del modelo vigente
+   con las de su tabla, introspectadas por la conexión del `schema_editor`.
+2. Si la tabla ya tiene todas, calcula al momento. Es la conducta anterior, y la
+   que ven una base al día y la suite de la operación.
+3. Si falta alguna, el cómputo queda pendiente en una cola del proceso,
+   indexada por alias de base. Un receptor de `post_migrate` lo ejecuta cuando
+   el `migrate` termina y todas las migraciones aplicables están aplicadas.
+   El receptor se conecta antes del ciclo de instalación de módulos
+   (`install_cycle.load_modules_after_migrate`), por el mismo orden de la
+   fuente: primero `_auto_init` y después la carga de datos.
+
+**Ciego a, declarado.** La cola vive en memoria del proceso de `migrate`.
+Puede ocurrir que el proceso muera después de aplicar la migración que la
+encola y antes de `post_migrate`. En ese caso la migración consta como
+aplicada y las filas quedan sin calcular. Una base nueva no tiene filas que
+perder. Una base existente con el esquema al día calcula al momento y no pasa
+por la cola. El hueco queda acotado a una base vieja que además se interrumpe
+a mitad del `migrate`.
+Condición de cierre: persistir la cola en la propia base si un consumidor
+migra bases con datos desde un esquema desfasado.

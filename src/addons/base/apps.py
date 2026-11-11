@@ -27,6 +27,7 @@ from django.apps import AppConfig, apps
 from django.db.models.signals import post_migrate
 
 from orm.inherits import ensure_inherits
+from orm.migration_operations import run_pending_computes
 from orm.model_classes import (
     ensure_access_managers,
     ensure_base_urls,
@@ -116,6 +117,11 @@ class BaseConfig(AppConfig):
         # (designs/module-install-cycle.md, L3).
         # El receptor vive en su módulo y se importa aquí, con el registro
         # de apps ya poblado (excepción #4 de ``no-lazy-imports.md``).
+        # Antes del ciclo de instalación, los cómputos de columnas nuevas que
+        # esperaban el esquema completo (≙ ``_auto_init`` antes de cargar
+        # datos; designs/compute-new-stored-columns.md).
+        post_migrate.connect(run_pending_computes, sender=self,
+                             dispatch_uid='base.run_pending_computes')
         cycle = importlib.import_module('addons.base.install_cycle')
         post_migrate.connect(cycle.load_modules_after_migrate, sender=self,
                              dispatch_uid='base.load_modules_after_migrate')

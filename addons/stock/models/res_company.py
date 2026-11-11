@@ -154,11 +154,12 @@ def _default_confirmation_mail_template(self=None):
     siembra de datos de ``stock`` es alcance de la tarea #330.
     """
     ir_model_data = apps.get_model('base', 'IrModelData')
-    registro = ir_model_data.objects.filter(
-        module='stock',
-        name='mail_template_data_delivery_confirmation',
-    ).first()
-    return registro.res_id if registro is not None else None
+    # ≙ ``self.env.ref(...)`` con ``ValueError`` → ``False``: el mismo
+    # ``_xmlid_lookup`` que el resto del árbol, que sólo lee ``model`` y
+    # ``res_id`` y por eso sirve también dentro de una migración histórica.
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+        'stock.mail_template_data_delivery_confirmation')
+    return res_id
 
 
 # --------------------------------------------------------------------------- #

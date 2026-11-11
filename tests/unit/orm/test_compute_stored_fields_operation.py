@@ -14,7 +14,7 @@ from django.apps import apps
 from django.db import connection
 
 from orm.environments import Environment
-from orm.migration_operations import ComputeStoredFields
+from orm.migration_operations import ComputeStoredFields, run_pending_computes
 from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.django_db
@@ -61,3 +61,26 @@ def test_fields_of_one_compute_are_filled_together(child):
 
 def test_an_empty_table_is_a_no_op(db):
     _run(ComputeStoredFields('test_orm', 'testormmodelparentm2o', ['cost']))
+
+
+def test_a_lagging_schema_waits_for_post_migrate(child):
+    """Una tabla a la que aún le falta una columna del modelo vigente (la
+    añadirá una migración posterior) no se calcula al momento: se espera al
+    ``post_migrate``, con el esquema completo (``odoo19c:
+    odoo/orm/models.py:3170-3248`` crea todas las columnas antes de
+    calcular). Diseño: ``designs/compute-new-stored-columns.md``."""
+    model, record_id = child
+    with connection.cursor() as cursor:
+        # Las FK diferidas del alta impiden un ALTER en la misma transacción.
+        cursor.execute('SET CONSTRAINTS ALL IMMEDIATE')
+        cursor.execute('ALTER TABLE test_orm_model_child_m2o '
+                       'DROP COLUMN create_uid_id')
+    _run(ComputeStoredFields('test_orm', 'testormmodelchildm2o', ['size1']))
+    assert _stored(record_id) == (None, None)
+    with connection.cursor() as cursor:
+        cursor.execute('ALTER TABLE test_orm_model_child_m2o '
+                       'ADD COLUMN create_uid_id integer')
+    run_pending_computes(using=connection.alias)
+    assert _stored(record_id)[0] == 4
+    run_pending_computes(using=connection.alias)
+    assert _stored(record_id)[0] == 4

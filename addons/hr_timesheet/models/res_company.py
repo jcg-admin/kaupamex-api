@@ -75,8 +75,15 @@ def _add_if_absent(model, name, field):
 def _default_hours_uom():
     """≙ ``_default_project_time_mode_id``/``_default_timesheet_encode_uom_id``
     (``odoo19c: hr_timesheet/models/res_company.py:11-17``) — ver divergencia
-    en el docstring del módulo."""
-    return Uom.objects.filter(name='Hours').first()
+    en el docstring del módulo.
+
+    Devuelve la pk, que es lo que un ``ForeignKey`` guarda de su default
+    (``ForeignKey.get_default``): ``AddField`` evalúa el default en
+    ``base/0029``, cuando ``uom_uom`` aún no tiene las columnas que el modelo
+    vivo declara, y leer la fila entera falla al migrar desde cero
+    (``designs/log-access-columns-audit.md``)."""
+    return Uom.objects.filter(name='Hours').values_list(
+        'pk', flat=True).first()
 
 
 def _check_internal_project_id_company(self):

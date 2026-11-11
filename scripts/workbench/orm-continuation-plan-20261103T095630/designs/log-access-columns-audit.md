@@ -136,3 +136,27 @@ C (autoinyección) y B (nombres). El orden y su razón están en el diseño de B
   la fuente no las fija un `UPDATE` crudo. Los consumidores que lo usan para
   escribir `updated_at` a mano (`sale/services.py:426`,
   `website/controllers/main.py:108,169`) se revisan en la hija B.
+
+## Defecto destapado por ci-multidb tras el commit `37890e41`
+
+El gate completo r4 pasó (12 752 passed), pero el ci-multidb de la misma
+revisión falló en el montaje: migrar desde cero la base por defecto evalúa
+el default invocable de un `AddField` histórico de `stock`
+(`_default_confirmation_mail_template`). Ese default leía la fila entera de
+`ir_model_data` con el modelo **vivo**, que ya declara `create_uid`, en un
+punto de la migración donde la columna aún no existe:
+`column ir_model_data.create_uid_id does not exist`.
+
+*Métrica del gate completo:* casos verdes sobre bases reutilizadas
+(`--reuse-db`).
+*Ciega a:* todo defecto que solo aparece al migrar desde cero. Por eso el
+ci-multidb, que crea su base, es parte de la verificación de esta unidad y
+no un extra.
+
+Corrección, fiel a la fuente: `_xmlid_lookup` lee solo `model` y `res_id`,
+como el `SELECT model, res_id FROM ir_model_data …` de
+`odoo19c: odoo/addons/base/models/ir_model.py` (`_xmlid_lookup`). El
+default de `stock` usa ese ayudante en lugar de su copia, como la fuente usa
+`env.ref`. Prueba: `test_the_lookup_reads_only_the_model_and_the_res_id`
+(RED sobre la consulta de fila entera).
+

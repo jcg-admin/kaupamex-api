@@ -13,10 +13,13 @@ esa siembra no se puede portar fiel.
 """
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
 from addons.uom.models import Uom
+from orm.registry import clear_cache
 from exceptions import UserError
 
 pytestmark = [pytest.mark.unit]
@@ -125,3 +128,25 @@ class TestElLectorQueEstabaInerte:
         with pytest.raises(UserError):
             gram.check_can_delete()
         assert libre.check_can_delete() is None
+
+
+@pytest.mark.django_db
+def test_the_lookup_reads_only_the_model_and_the_res_id():
+    """≙ ``SELECT model, res_id FROM ir_model_data WHERE module=%s AND
+    name=%s`` (``odoo19c: odoo/addons/base/models/ir_model.py``,
+    ``_xmlid_lookup``). Leer la fila entera hace depender la búsqueda de
+    columnas que una migración histórica todavía no creó: un default de
+    campo que resuelve un XML-ID se evalúa al migrar
+    (``designs/log-access-columns-audit.md``)."""
+    clear_cache('default')
+    with CaptureQueriesContext(connection) as queries:
+        IrModelData._xmlid_to_res_model_res_id('base.main_company')
+    selects = [q['sql'] for q in queries.captured_queries
+               if 'FROM "ir_model_data"' in q['sql']]
+    assert selects
+    for sql in selects:
+        columns = sql.split(' FROM ')[0]
+        assert '"ir_model_data"."model"' in columns
+        assert '"ir_model_data"."res_id"' in columns
+        assert '"create_uid_id"' not in columns
+        assert '"module"' not in columns

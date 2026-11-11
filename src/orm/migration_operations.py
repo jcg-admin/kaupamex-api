@@ -36,6 +36,18 @@ class ComputeStoredFields(migrations.RunPython):
 
     def _compute(self, apps, schema_editor):
         model = live_apps.get_model(self.app_label, self.model_name)
+        connection = schema_editor.connection
+        # El modelo vigente puede declarar columnas que añade una migración
+        # posterior; calcular ahora nombraría columnas que la tabla aún no
+        # tiene. Se espera al ``post_migrate`` (designs/compute-new-stored-
+        # columns.md, revisión 2026-11-11).
+        if _schema_lags(model, connection):
+            PENDING_COMPUTES.setdefault(connection.alias, []).append(self)
+            return
+        self.compute_now()
+
+    def compute_now(self):
+        model = live_apps.get_model(self.app_label, self.model_name)
         ids = list(model._base_manager.values_list('pk', flat=True))
         if not ids:
             return
@@ -104,3 +116,25 @@ class ConvertColumnTranslatable(migrations.AlterField):
     def describe(self):
         return (f'Alter field {self.name} on {self.model_name} and convert'
                 ' its column')
+
+
+#: Cómputos que esperan a que el esquema del modelo esté completo, por alias
+#: de base. Los llena ``ComputeStoredFields`` y los vacía el ``post_migrate``.
+PENDING_COMPUTES = {}
+
+
+def _schema_lags(model, connection):
+    """¿Le falta a la tabla alguna columna concreta del modelo vigente?"""
+    with connection.cursor() as cursor:
+        present = {column.name for column in
+                   connection.introspection.get_table_description(
+                       cursor, model._meta.db_table)}
+    declared = {field.column for field in model._meta.concrete_fields}
+    return not declared <= present
+
+
+def run_pending_computes(using='default', **kwargs):
+    """Receptor de ``post_migrate``: ejecuta los cómputos en espera de la base
+    ``using`` con el esquema ya completo, y vacía su cola."""
+    for operation in PENDING_COMPUTES.pop(using, []):
+        operation.compute_now()
