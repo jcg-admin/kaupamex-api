@@ -98,3 +98,52 @@ falla. La fila C de la primera tabla queda superada.
 El gate completo de `bb515cdf` cubrió la versión con `update`; el
 cambio posterior es el cuerpo de un método y se verifica con su subconjunto
 derivado (`full-bb515cdf` no cubre esta forma, y su registro lo dice).
+
+## El write de la fuente frente al nuestro, para vals = {paperformat_id} (2026-11-11T05:25:00)
+
+Llamador: `init_models` (`odoo19c: odoo/orm/registry.py:741-752`) con
+`env = Environment(cr, SUPERUSER_ID, context)`; `init` hace
+`self.search([('paperformat_id','=',False)])`, `env.ref('base.paperformat_euro', False)`
+y `company.write({'paperformat_id': ...})` por compañía
+(`res_company.py:102-109`).
+
+`ResCompany.write` de la fuente (`res_company.py:356-400`), rama por rama
+para esta clave:
+
+| Rama | Aplica | Por qué |
+|---|---|---|
+| `parent_id` → `UserError` | no | otra clave |
+| activar `currency_id` | no | otra clave |
+| `registry.clear_cache()` si toca `cache_invalidation_fields` | no | ese conjunto es `{'active','sequence'}` (`:340-345`) |
+| `clear_cache('assets')` | no | `font`, colores, `external_report_layout_id` |
+| archivar ramas | no | `active` |
+| copiar delegados a ramas | no | `_get_company_root_delegated_field_names` = `['currency_id']` (`:111-119`) |
+| `install_l10n_modules` | no | `country_id` |
+
+Queda `BaseModel.write`: comprobación de campo, protección, recómputo de
+dependientes y restricciones. Dependientes de `company.paperformat_id` en
+la referencia (grep sobre base, web, base_setup): sólo
+`base.document.layout.paperformat_id` (`addons/web/models/base_document_layout.py:61`),
+un `related` de un modelo transitorio, no almacenado. Ningún calculado
+almacenado depende del campo, así que la falta de `modified` en nuestro
+`write` (obligación abierta de `orm-write-modified`, plan) no cambia el
+resultado de esta escritura.
+
+Nuestro camino: `RecordLoaderMixin.write` (`src/orm/models.py:2957`) →
+`ResCompany.save` (`res_company.py:1041`, que sólo mantiene
+`parent_path`). Alias: el registro se lee con `using(alias)` y, desde
+`c5adb3ee`, se escribe dentro de `Environment(alias, SUPERUSER_ID, {})`
+(`designs/init-alias-propagation.md`). Transacción: `init` no abre una
+propia, como la fuente; corre en la del llamador (caso multidb con
+`atomic` + rollback).
+
+## Historia de verificación — tres implementaciones, tres veredictos
+
+| Implementación | Escritura | Veredicto | Evidencia |
+|---|---|---|---|
+| 1 | `QuerySet.update()` | gate completo verde, **rechazada** por `check_write_path` en el pre-commit | `outputs/gates/full-bb515cdf` (cubre sólo esta forma) |
+| 2 | `company.write()` sin entorno | subconjunto derivado verde; publicada en `d2b87463`; **falla con N>1** (`CompanyContextRequired`) | `outputs/gates/derived-company-init-write`; RED en `init-alias-propagation.md` |
+| 3 | `company.write()` dentro de `Environment(alias)` | en verificación: ci-multidb y gate completo sobre `c5adb3ee` | `outputs/gates/ci-multidb-c5adb3ee`, `full-c5adb3ee` |
+
+Los veredictos no se mezclan: el gate completo de la 1 no dice nada de la 2
+ni de la 3.

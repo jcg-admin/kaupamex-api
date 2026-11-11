@@ -132,3 +132,47 @@ Admisión: PASS. Los tres controles se repitieron sobre la forma final y cada
 uno tumba exactamente su caso (mismos resultados que la tabla anterior). La
 mención a `using` en `_set_encrypted_password` de la sección previa queda
 superada por ésta.
+
+## Contrato de credenciales, caso por caso (2026-11-11T05:24:12)
+
+Stack instalado: Django 6.0.5, passlib (contexto de
+`ResUsers._crypt_context`, `res_users.py:1798-1840`, esquemas
+`['pbkdf2_sha512', 'plaintext']`, `deprecated=['auto']`).
+
+**Equivalencia de la exclusión `!`, demostrada en la fuente instalada,
+no supuesta.** `django/contrib/auth/hashers.py:31-36`:
+
+    def is_password_usable(encoded):
+        return encoded is None or not encoded.startswith(UNUSABLE_PASSWORD_PREFIX)
+
+Con la columna `NOT NULL`, «no utilizable» ⇔ `startswith('!')`, y el
+filtro usa la misma constante (`hashers.UNUSABLE_PASSWORD_PREFIX`), no un
+literal. Prueba de equivalencia pendiente de añadir tras el gate en curso:
+para un conjunto de valores (marcador real de `make_password(None)`, MCF,
+claro, vacío), la selección del filtro SQL coincide con
+`not is_password_usable` en Python.
+
+Escritores de `res_users.password` en el árbol (grep de asignaciones y
+`update(password=...)`): `set_password` → MCF del contexto;
+`set_unusable_password` → `!`; `_set_encrypted_password` → sólo
+valores que `identify` no llama `plaintext`; `init` → MCF. Ningún
+escritor del producto produce otra forma.
+
+| Caso | Fuente | Aquí | Evidencia |
+|---|---|---|---|
+| sin contraseña | `NULL`, excluido por `IS NOT NULL` | no existe `NULL` (`NOT NULL`); la vacía se excluye | `test_an_empty_password_is_left_alone` |
+| marcador inutilizable | no existe en la fuente | excluido; sigue inutilizable | `test_an_unusable_password_stays_unusable` + control |
+| ya cifrada (MCF) | excluida por el regex | excluida, byte a byte | `test_an_encrypted_password_is_left_byte_for_byte` + control |
+| requiere conversión (claro) | se cifra | se cifra y verifica | `test_a_plaintext_password_is_encrypted_and_still_checks` |
+| superusuario | mismo camino | mismo camino; su fila es `!` en las bases sembradas | medición de `orm_x2hokp_qa`; caso multidb usa la primera fila de cada base |
+| usuario ordinario | mismo camino | mismo camino | suite unitaria (`UserFactory`) |
+| reejecución | idempotente (lo cifrado es MCF) | idempotente | prueba MCF + reejecución en el caso multidb |
+| hash de formato Django heredado (`pbkdf2_sha256$…`) | se cifraría como si fuera claro | **igual que la fuente**: el contexto no lo reconoce y nunca verifica; `init` lo cifraría y la cuenta quedaría con el hash como contraseña | 0 filas medidas; ningún escritor lo produce |
+
+Migración y recuperación: `init` no corre en `migrate`; corre en
+`init_models`. Cifrar es irreversible: si una base destino tuviera hashes
+de formato Django heredados, se convierten **antes** con su contraseña real
+(no hay otra forma) o se marcan inutilizables. La consulta de medición de
+la sección anterior se ejecuta sobre cada base destino antes de desplegar.
+Ninguna prueba exploratoria toca contraseñas reales: las suites usan bases
+de prueba y el caso multidb restaura los valores originales en `finally`.
