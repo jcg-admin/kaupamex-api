@@ -91,3 +91,15 @@ def test_the_check_asks_for_an_index():
                                                     null=True)})
     expected = NOT_INDEXED % probe._name
     assert [m.msg for m in probe._check_parent_path()] == [expected]
+
+
+def test_an_isolated_probe_stays_out_of_the_name_registry():
+    """Una sonda de ``isolate_apps`` no es un modelo instalado de ``base``.
+
+    Si entra en el registro por nombre, ``load_modules`` la elige para
+    ``base`` y ``_auto_init`` falla en el teardown porque su tabla no existe
+    (``designs/isolated-apps-registry-leak.md``).
+    """
+    probe = _probe({})
+    assert probe._name not in MODELS_BY_NAME
+    assert MODELS_BY_NAME['ir.ui.menu']._meta.label == 'base.IrUiMenu'

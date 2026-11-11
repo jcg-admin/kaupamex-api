@@ -353,7 +353,12 @@ def _register(model):
     cerraría el ciclo. Cada uno cuelga de la señal por su lado.
     """
     name = model.__dict__.get('_name')
-    if not name:
+    # Una clase de un registro de apps aislado (``isolate_apps``) no es un
+    # modelo instalado: la fuente sólo conoce los modelos del registro que
+    # carga (``odoo19c: odoo/orm/registry.py:84``). Una clase sin ``_meta``
+    # (el equivalente del ``AbstractModel``) cae en ``apps`` y se registra.
+    if not name or getattr(getattr(model, '_meta', None), 'apps',
+                           apps) is not apps:
         return
     previous = MODELS_BY_NAME.get(name)
     if previous is not None and previous is not model:

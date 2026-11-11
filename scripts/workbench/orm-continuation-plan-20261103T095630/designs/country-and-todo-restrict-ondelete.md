@@ -80,3 +80,12 @@ Directorios que nombran los modelos tocados (`tests/unit/base`,
   mientras el ci-multidb de `e2c7ba00` creaba bases en paralelo; la
   causa concreta no está determinada y no se atribuye. La reejecución en
   serie con log es la evidencia de que no dependen del cambio.
+
+  **Causa probable, medida en otro tramo (2026-11-11).** El patrón
+  reapareció en el derivado HR: 23 errors con `-n 4`, que pasan en serie.
+  Allí la traza dio en todos `Table base_parentpathprobe0 ... does not
+  exist` en el teardown de `tests/conftest.py`. La sonda de
+  `isolate_apps` de `test_parent_path_check` entraba en el registro por
+  nombre y `load_modules` la elegía para `base`. El log de este tramo
+  solo guardó el resumen y no la traza, así que aquí la causa es
+  INFERRED, no PROVEN. Ver `designs/isolated-apps-registry-leak.md`.
