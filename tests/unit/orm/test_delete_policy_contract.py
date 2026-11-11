@@ -39,6 +39,10 @@ CORRECTED = {
     'base.IrActionsTodo.action',
     # designs/product-lot-bom-restrict-ondelete.md
     'stock.StockLot.product', 'mrp.MrpBom.product_tmpl',
+    # designs/hr-workorder-restrict-ondelete.md
+    'hr_work_entry.HrWorkEntry.employee', 'hr_work_entry.HrWorkEntry.version',
+    'hr_work_entry.HrUserWorkEntryEmployee.employee',
+    'mrp.MrpWorkorder.production',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.

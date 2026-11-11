@@ -46,9 +46,11 @@ class HrUserWorkEntryEmployee(TimeStampedModel):
             'get_current_uid, ondelete=cascade).'
         ),
     )
+    #: Obligatorio sin ``ondelete`` en la fuente
+    #: (``hr_user_work_entry_employee.py:13``): su defecto es ``restrict``.
     employee = fields.Many2one(
         'hr.HrEmployee',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         verbose_name='Employee',
         related_name='work_entry_user_filters',
         help_text='Odoo employee_id (required).',

@@ -37,9 +37,11 @@ class MrpWorkorder(TimeStampedModel):
         default='',
         help_text='Descripción (Odoo mrp.workorder.name).',
     )
+    #: Obligatorio sin ``ondelete`` en la fuente (``mrp_workorder.py:44``):
+    #: su defecto es ``restrict``.
     production = fields.Many2one(
         'mrp.MrpProduction',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='workorders',
         help_text='Orden de fabricación (Odoo production_id).',
     )

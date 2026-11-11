@@ -152,9 +152,11 @@ class HrWorkEntry(TimeStampedModel):
 
     name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
+    #: Obligatorio sin ``ondelete`` en la fuente (``hr_work_entry.py:25``):
+    #: su defecto es ``restrict``.
     employee = fields.Many2one(
         'hr.HrEmployee',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='work_entries',
         verbose_name='Empleado',
@@ -163,9 +165,11 @@ class HrWorkEntry(TimeStampedModel):
             'domain= de compañía (filtro de formulario; lo aplica DRF).'
         ),
     )
+    #: Obligatorio sin ``ondelete`` en la fuente (``hr_work_entry.py:26``):
+    #: su defecto es ``restrict``.
     version = fields.Many2one(
         'hr.HrVersion',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='work_entries',
         verbose_name='Employee Record',
