@@ -1878,6 +1878,15 @@ class FieldDescriptor(DeferredAttribute):
         if field.primary_key:
             return
 
+        # Un modelo histórico (``__fake__`` del ``StateApps`` de una
+        # migración) reconstruye el campo con esta clase, pero no es el modelo
+        # vivo: su contrato es el de Django —el atributo, y ``save()``—, y la
+        # caché y el volcado son los del registro vivo. Marcarlo sucio dejaba
+        # en la transacción global un ``UPDATE`` con las columnas del estado
+        # histórico (tests/unit/orm/test_historical_model_writes.py).
+        if type(instance)._meta.apps is not apps:
+            return
+
         if instance.__dict__.get('_orm_building'):
             # **Construir NO es asignar, y esto lo decide la fuente.**
             #

@@ -198,3 +198,25 @@ las cuatro columnas. El gate también tiene que reconocer el constructor.
   odoo/addons/base/models/ir_sequence.py:219`): el léxico la lee como español,
   pero no se puede traducir sin romper el contrato, así que entra al baseline
   como deuda heredada.
+
+## Modelos históricos y la transacción global (ci-multidb sobre 04c28427)
+
+**Causa medida.** La ejecución de ci-multidb sobre `04c28427` cayó al
+provisionar la base de una empresa: `Registry.new` → `flush_all()` volcaba
+escrituras pendientes de `__fake__.ResUsers` id 1 con `created_at` y
+`updated_at`, columnas que la hija B ya había renombrado. Las dejó
+`base/0106_seed_root_user`, que guarda con modelos históricos.
+
+Los modelos del `StateApps` reconstruyen sus campos con las clases del ORM, así
+que llevan su `FieldDescriptor` (medido: `type(M.__dict__['write_date'])` es
+`orm.fields.FieldDescriptor` con `M._meta.apps is not apps`). Asignar sobre una
+fila histórica persistida marcaba el campo sucio en la transacción global.
+
+**Corrección.** `FieldDescriptor.__set__` escribe el atributo y retorna cuando
+el modelo no es del registro vivo. Es el mismo criterio que ya separa el
+registro de centinelas (`_meta.apps`). La fuente no tiene este caso: una
+migración de Odoo escribe con SQL o con el ORM vivo.
+
+**Verificación.** `tests/unit/orm/test_historical_model_writes.py`: sin la
+guarda falla exactamente `test_assigning_a_historical_row_leaves_the_transaction_clean`
+(1 failed, 2 passed); con ella, 3 passed. El caso vivo sigue marcando sucio.
