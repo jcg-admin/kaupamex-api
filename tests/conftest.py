@@ -53,6 +53,7 @@ from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 from tests.fixtures import reference_tree
 from addons.base.data.res_users_data import seed as root_user_seed
+from addons.base.data.report_paperformat_data import seed as paperformats_seed
 
 import pytest
 from contextlib import contextmanager
@@ -407,6 +408,7 @@ _SEEDERS = (
     langs_seed,                 # base/0026 (93 idiomas, en_US activo)
     base_groups_seed,           # base/0027 (12 grupos + 2 privilegios)
     root_user_seed,             # base/0106 (base.user_root, uid 1)
+    paperformats_seed,          # base/0107 (3 formatos de papel)
     password_policy_seed,       # authz_password_policy/0001
     signup_flags_seed,          # authz_signup/0001
     totp_params_seed,           # authz_totp/0001 + 0002

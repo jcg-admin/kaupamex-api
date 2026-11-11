@@ -130,6 +130,8 @@ import calendar
 import logging
 from datetime import date
 
+from django.db import DEFAULT_DB_ALIAS
+
 from zeep.cache import Base as ZeepCache
 
 import api
@@ -140,6 +142,7 @@ from orm.environments import sudo
 from tools import date_utils, zeep
 from tools.cache import ormcache
 from tools.translate import _
+from addons.base.models.ir_model import IrModelData
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_country import ResCountry, ResCountryState
 from addons.base.models.res_currency import ResCurrency
@@ -632,6 +635,33 @@ class ResCompany(TimeStampedModel):
     #: Era un ``@property`` y por eso la cadena de ``SiteConfigSettings`` no
     #: podía navegarlo.
     country_code = fields.Char(related='country.code', depends=['country'])
+
+    @classmethod
+    def init(cls, using=None):
+        """Da ``base.paperformat_euro`` a las compañías sin formato.
+
+        ≙ ``:102-109``. Como la fuente, recorre las compañías sin formato y
+        escribe una por una con ``write``, que pasa por el enganche del ORM
+        (``check_write_path``: un ``update`` en bloque se lo saltaba). Cada
+        registro se lee con ``using(alias)`` y ``write`` guarda en esa misma
+        base. Sin el XML-ID no se asigna nada, como el ``env.ref(...,
+        False)`` de allá.
+
+        Método de clase con ``using`` por el contrato de ``init`` de
+        ``orm.registry.init_models``: el hook corre por base, no por registro.
+        No encadena ``super().init()``: el único ``init`` de la cadena es el
+        vacío de ``RecordLoaderMixin``.
+        """
+        alias = using or DEFAULT_DB_ALIAS
+        _model, res_id = IrModelData._xmlid_to_res_model_res_id(
+            'base.paperformat_euro', using=alias)
+        if res_id is None:
+            return
+        paperformat_euro = ReportPaperformat.objects.using(alias).get(
+            pk=res_id)
+        for company in cls.objects.using(alias).filter(
+                paperformat__isnull=True):
+            company.write({'paperformat': paperformat_euro})
 
     @classmethod
     def _get_company_address_field_names(cls):

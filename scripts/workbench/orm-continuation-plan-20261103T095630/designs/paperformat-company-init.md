@@ -42,3 +42,59 @@ Diseño medido el 2026-11-11T01:48:01 sobre `52e38e84`, contra `odoo19c` (odoo-t
 5. `init_models` sobre `res.company` ejecuta el paso 3.
 6. Controles: sin la siembra cae 1; con `init` sin la guarda del formato
    existente cae la segunda mitad de 3.
+
+## Resultado de la implementación (2026-11-11T01:59:00, sin commitear todavía)
+
+- `src/addons/base/data/report_paperformat_data.py`: tabla `PAPERFORMATS`
+  (los tres registros del XML, verbatim) y `seed_paperformats(apps, alias)`
+  con semántica `noupdate` (`_existing`/`_xmlid_row` de `res_groups_data`).
+- `src/addons/base/migrations/0107_seed_paperformats.py` (depende de 0106).
+- `tests/conftest.py`: `paperformats_seed` en `_SEEDERS`.
+- `ResCompany.init(cls, using=None)`: `update` sobre `paperformat__isnull`
+  con el id de `base.paperformat_euro` resuelto por
+  `IrModelData._xmlid_to_res_model_res_id`.
+- `makemigrations base --check`: sin cambios.
+
+Pruebas: `tests/unit/base/test_paperformat_seed.py`, RED
+(`ModuleNotFoundError`) → GREEN 4/4.
+
+Controles de anulación (`nullify.sh`, una mutación cada vez):
+
+| Mutación | Cae | Veredicto |
+|---|---|---|
+| A: retirar el salto por XML-ID existente en la siembra | exactamente `test_a_second_seed_neither_duplicates_nor_overwrites` | discrimina |
+| B: retirar `.filter(paperformat__isnull=True)` en `init` | exactamente `test_company_init_gives_the_euro_format_to_a_company_without_one` | discrimina |
+| C: retirar la guarda `if res_id is None: return` | ninguna (4 passed) | mutante equivalente: `update(paperformat_id=None)` sobre compañías ya sin formato deja el mismo estado. Se conserva por fidelidad al `env.ref(..., False)` de la fuente; no es una obligación medible |
+
+| D: retirar `model.init(using=using)` en `init_models` | exactamente `test_init_models_runs_the_company_init` | discrimina (punto 5 del diseño) |
+
+Suite tras añadir el punto 5: 5/5. Se corrigió además el docstring de
+`init_models`, que aún decía que `init` no estaba cableado.
+
+*Métrica:* aserciones de la suite de la unidad con cada mutación.
+*Ciega a:* la ejecución de `init` desde `orm.registry.init_models` sobre una
+base distinta de la por defecto (lo cubre el patrón multidb, no esta suite).
+
+## Corrección por `check_write_path` (2026-11-11T02:33:41)
+
+El pre-commit rechazó el commit: `check_write_path` marcó
+`ResCompany.init` con *«se salta un enganche que la fuente usa — nuestro:
+por debajo · la fuente: por el enganche»*. La fuente escribe con
+`company.write(...)`; el `QuerySet.update()` de la primera versión pasaba
+por debajo del ORM (sin `write`, sin protecciones ni recómputos). Se
+corrige, no se congela: `init` recorre las compañías sin formato leídas con
+`using(alias)` y llama `write({'paperformat': ...})` en cada una.
+
+Controles repetidos sobre la forma final:
+
+| Mutación | Cae |
+|---|---|
+| B: `filter(paperformat__isnull=True)` → `all()` | exactamente `test_company_init_gives_the_euro_format_to_a_company_without_one` |
+| C: retirar la guarda del XML-ID | exactamente `test_company_init_without_the_euro_format_assigns_nothing` |
+
+C **deja de ser mutante equivalente**: sin la guarda, `get(pk=None)`
+falla. La fila C de la primera tabla queda superada.
+
+El gate completo de `bb515cdf` cubrió la versión con `update`; el
+cambio posterior es el cuerpo de un método y se verifica con su subconjunto
+derivado (`full-bb515cdf` no cubre esta forma, y su registro lo dice).

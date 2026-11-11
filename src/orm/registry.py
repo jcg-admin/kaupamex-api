@@ -2338,9 +2338,10 @@ class Registry(Mapping):
         la fuente (``:750-752``), por el alias de este registro. Aqui es la
         conciliacion tras ``migrate``: la migracion sigue siendo la autoridad
         del esquema (``designs/schema-and-translation-symbols-decision.md``,
-        «Autoridad del esquema»). ``init`` —el gancho que la fuente llama
-        despues— aun no: dos modelos lo sobreescriben con efectos (siembra de
-        parametros, una vista SQL) y su cableado se mide aparte (s5). Lo demas
+        «Autoridad del esquema»). Despues de ``_auto_init`` se llama ``init``
+        con el mismo alias, como alla (``:752``); los modelos que lo
+        sobreescriben con efectos —la vista de ``hr.employee.public``, el
+        formato de papel de ``res.company``— lo hacen por base. Lo demas
         sigue en el orden de la fuente: la cola diferida, el reflejo, el
         descarte del memo de tablas y las tres verificaciones de schema.
 

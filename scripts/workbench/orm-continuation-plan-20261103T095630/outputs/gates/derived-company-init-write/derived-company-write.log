@@ -1,0 +1,26 @@
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+[gw1] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:77: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:37: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+__ ERROR at setup of test_init_creates_the_view_only_in_the_selected_database __
+[gw1] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:77: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:37: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+referencia: 39 de 53 pruebas marcadas se omitieron (el árbol está en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; los motivos, con -rs); sus contratos NO se verificaron en esta ejecución
+=========================== short test summary info ============================
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database
+4797 passed, 39 skipped, 6 errors in 428.16s (0:07:08)
+EXIT=0
