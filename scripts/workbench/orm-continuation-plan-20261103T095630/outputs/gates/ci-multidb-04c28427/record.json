@@ -1,0 +1,37 @@
+{
+ "database": "orm_bootstrap_3d56293a4be9",
+ "revision": "04c284274efca50e5896d43258ed34cb3f31e7de",
+ "existed_before": false,
+ "companies_before": [
+  "company_11710386656870_db",
+  "company_11710386656871_db",
+  "company_201103761692838_db",
+  "company_201103761692839_db"
+ ],
+ "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+ "role": "orm_x2hokp",
+ "role_createdb": true,
+ "check_ci_database_exit": 0,
+ "pytest_exit": 1,
+ "pytest_seconds": 5615,
+ "owner_after": "orm_x2hokp",
+ "companies_after": [
+  "company_11710386656870_db",
+  "company_11710386656871_db",
+  "company_201103761692838_db",
+  "company_201103761692839_db"
+ ],
+ "dropped_companies": [],
+ "dropped": true,
+ "companies_left": [
+  "company_11710386656870_db",
+  "company_11710386656871_db",
+  "company_201103761692838_db",
+  "company_201103761692839_db"
+ ],
+ "python": "3.13.18",
+ "django": "6.0.5",
+ "psycopg": "3.3.4",
+ "pytest": "7.4.4",
+ "command": "pytest tests/integration/company/test_multidb_isolation.py --create-db -v"
+}
