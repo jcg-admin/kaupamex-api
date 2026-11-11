@@ -1,0 +1,949 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-7.4.4, pluggy-1.6.0 -- /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-37890e41/kaupamex-api/.venv/bin/python3
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-37890e41/kaupamex-api
+configfile: pytest.ini
+plugins: Faker-40.20.0, xdist-3.6.1, django-4.7.0
+collecting ... collected 12 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default ERROR [  8%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base ERROR [ 16%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope ERROR [ 25%]
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base ERROR [ 33%]
+tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections ERROR [ 41%]
+tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database ERROR [ 50%]
+tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base ERROR [ 58%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base ERROR [ 66%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope ERROR [ 75%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back ERROR [ 83%]
+tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base ERROR [ 91%]
+tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base ERROR [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+---------------------------- Captured stderr setup -----------------------------
+Creating test database for alias 'default'...
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_rows_from_company_a_not_visible_under_company_b_scope _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+_ ERROR at setup of TestSol085RowScopingIntraBase.test_row_scoping_filters_by_row_and_fk_resolves_intra_base _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+__ ERROR at setup of test_init_creates_the_view_only_in_the_selected_database __
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+________ ERROR at setup of test_paperformat_xml_ids_exist_in_every_base ________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+______ ERROR at setup of test_company_init_writes_only_the_selected_base _______
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+_____ ERROR at setup of test_company_init_ignores_the_active_company_scope _____
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+_ ERROR at setup of test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+_____ ERROR at setup of test_users_init_encrypts_only_in_the_selected_base _____
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+___ ERROR at setup of test_init_models_runs_both_inits_in_the_selected_base ____
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UndefinedColumn: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+
+The above exception was the direct cause of the following exception:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    ).first()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1145: in first
+    for obj in queryset[:1]:
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1624: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.ProgrammingError: column ir_model_data.create_uid_id does not exist
+E   LINE 1: ...data"."created_at", "ir_model_data"."updated_at", "ir_model_...
+E                                                                ^
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-37890e41/kaupamex-api/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-37890e41/kaupamex-api/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /home/user/kaupamex-api/scripts/workbench/orm-continuation-plan-20261103T095630/outputs/gates/ci-multidb-37890e41/junit_isolation.xml -
+=========================== short test summary info ============================
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database
+ERROR tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back
+ERROR tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base
+================== 2 warnings, 12 errors in 84.04s (0:01:24) ===================
