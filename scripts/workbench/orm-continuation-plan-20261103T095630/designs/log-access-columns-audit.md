@@ -114,15 +114,25 @@ modelo.
   `LOG_ACCESS_COLUMNS`, y el gate completo antes de publicar, porque el
   mecanismo es transversal.
 
+## Corrección del 2026-11-11 (directiva del ejecutor, §5-§8)
+
+Las tres reservas de la versión anterior de esta sección se retiran: eran
+obligaciones derivables de la referencia, no decisiones del ejecutor.
+
+| Antes | Ahora |
+|---|---|
+| nombre de las fechas: «decisión del ejecutor» | hija B, `designs/log-access-date-names.md`: `create_date`/`write_date` como nombre ORM, columna física sin cambio (`db_column`) y API v2 sin cambio (`source=`) |
+| auto-inyección: «DEC-09, diferida» | hija C, `designs/log-access-auto-injection.md`: `adopt_log_access` en `class_prepared` para los 25 modelos medidos |
+| protección de escritura: «requiere `create`/`write`, sucesor» | **implementada en la unidad A**, por la ruta contractual: `_log_access_bad_names` (`write` y `_prepare_create_values`) con la excepción del superusuario en carga (`orm.environments.loading_log_access`), `write_uid` en `update_fields` de `write` y del volcado de `_write_multi`, y el `setdefault` en carga (`LOG_ACCESS_EXPLICIT`) |
+
+Las hijas de TASK-API-0485 son: A (columnas de usuario y protección),
+C (autoinyección) y B (nombres). El orden y su razón están en el diseño de B.
+
 ## Lo que no cierra
 
-- El nombre de las fechas (`created_at`/`updated_at` frente a
-  `create_date`/`write_date`). Es una decisión del ejecutor: cambia la API v2.
-  DESCONOCIDO con condición de cierre: su veredicto.
-- La auto-inyección para modelos sin `TimeStampedModel` (DEC-09, diferida por
-  el ejecutor).
-- La protección de escritura de las cuatro columnas
-  (`odoo/orm/models.py:4384-4389`). Requiere el camino `create`/`write`
-  del ORM, no `save()`; queda como sucesor dentro de TASK-API-0485.
-- No hay TASK propia: esta VM no escribe en el TaskStore de thyrox. Se
-  registra bajo TASK-API-0485 en `plan.jsonl`.
+- No hay TASK propia: esta VM no escribe en el TaskStore de thyrox. Las
+  hijas se registran bajo TASK-API-0485 en `plan.jsonl`.
+- `QuerySet.update()` no pasa por el ORM y no fija las columnas, igual que en
+  la fuente no las fija un `UPDATE` crudo. Los consumidores que lo usan para
+  escribir `updated_at` a mano (`sale/services.py:426`,
+  `website/controllers/main.py:108,169`) se revisan en la hija B.
