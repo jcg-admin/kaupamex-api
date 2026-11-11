@@ -33,7 +33,7 @@ ir.sequence	odoo/addons/base/models/ir_sequence.py:150	set null (defecto)	base.I
 ir.sequence.date_range	odoo/addons/base/models/ir_sequence.py:329	cascade	base.IrSequenceDateRange	sequence	restrict	CASCADE	a	True	divergencia de atributo
 -	-	-	base.IrActionsActWindowView	act_window	set null	CASCADE	a	True	sin contraparte en la fuente
 server.action.history.wizard	odoo/addons/base/models/ir_actions.py:477	set null (defecto)	base.ServerActionHistoryWizard	action	set null	CASCADE	a	True	divergencia de política
-server.action.history.wizard	odoo/addons/base/models/ir_actions.py:480	restrict (defecto)	base.ServerActionHistoryWizard	revision	set null	CASCADE	a	True	divergencia de atributo y de política
+server.action.history.wizard	odoo/addons/base/models/ir_actions.py:480	cascade (defecto)	base.ServerActionHistoryWizard	revision	set null	CASCADE	a	True	divergencia de atributo
 ir.actions.server.history	odoo/addons/base/models/ir_actions.py:509	cascade	base.IrActionsServerHistory	action	restrict	CASCADE	a	True	divergencia de atributo
 ir.actions.server	odoo/addons/base/models/ir_actions.py:648	cascade	base.IrActionsServer	parent	set null	CASCADE	a	True	divergencia de atributo
 ir.actions.server	odoo/addons/base/models/ir_actions.py:652	set null (defecto)	base.IrActionsServer	crud_model_id	set null	CASCADE	a	True	divergencia de política
@@ -48,7 +48,7 @@ ir.cron	odoo/addons/base/models/ir_cron.py:106	restrict	base.IrCron	ir_actions_s
 ir.cron	odoo/addons/base/models/ir_cron.py:110	restrict (defecto)	base.IrCron	user	set null	SET_NULL	a	True	divergencia de atributo y de política
 ir.cron.trigger	odoo/addons/base/models/ir_cron.py:903	cascade	base.IrCronTrigger	cron	restrict	CASCADE	a	True	divergencia de atributo
 ir.cron.progress	odoo/addons/base/models/ir_cron.py:923	cascade	base.IrCronProgress	cron	restrict	CASCADE	a	True	divergencia de atributo
-ir.demo_failure	odoo/addons/base/models/ir_demo_failure.py:10	restrict (defecto)	base.IrDemoFailure	module	restrict	CASCADE	a	True	divergencia de política
+ir.demo_failure	odoo/addons/base/models/ir_demo_failure.py:10	cascade (defecto)	base.IrDemoFailure	module	restrict	CASCADE	a	True	divergencia de atributo
 ir.demo_failure	odoo/addons/base/models/ir_demo_failure.py:12	set null (defecto)	base.IrDemoFailure	wizard	set null	CASCADE	a	True	divergencia de política
 ir.actions.report	odoo/addons/base/models/ir_actions_report.py:185	set null (defecto)	base.IrActionsReport	paperformat_id	set null	SET_NULL	a	True	coherente
 ir.rule	odoo/addons/base/models/ir_rule.py:24	cascade	base.IrRule	model_id	set null	CASCADE	a	True	divergencia de atributo
@@ -246,7 +246,7 @@ res.company.ldap	addons/auth_ldap/models/res_company_ldap.py:65	set null (defect
 auth.passkey.key	-	-	authz_passkey.PasskeyKey	user	restrict	CASCADE	a	True	sin contraparte en la fuente
 -	-	-	authz_reauth.ReauthSession	user	-	CASCADE	a	True	sin contraparte en la fuente
 auth_totp.device	-	-	authz_totp.AuthTotpDevice	user	restrict	CASCADE	a	True	sin contraparte en la fuente
-auth.totp.rate.limit.log	addons/auth_totp/models/auth_totp_rate_limit_log.py:10	restrict (defecto)	authz_totp.AuthTotpRateLimitLog	user_id	restrict	CASCADE	a	True	divergencia de política
+auth.totp.rate.limit.log	addons/auth_totp/models/auth_totp_rate_limit_log.py:10	cascade (defecto)	authz_totp.AuthTotpRateLimitLog	user_id	restrict	CASCADE	a	True	divergencia de atributo
 -	-	-	authz_totp.TotpRecoveryCode	user	restrict	CASCADE	a	True	sin contraparte en la fuente
 -	-	-	authz_totp.TotpSecret	user	-	CASCADE	a	True	sin contraparte en la fuente
 html_editor.converter.test	addons/html_editor/models/test_models.py:17	set null (defecto)	html_editor.Html_EditorConverterTest	many2one	set null	SET_NULL	a	True	coherente
@@ -496,10 +496,10 @@ stock.package.history	addons/stock/models/stock_package_history.py:22	set null (
 stock.lot	addons/stock/models/stock_lot.py:44	restrict (defecto)	stock.StockLot	product	restrict	CASCADE	a	True	divergencia de política
 stock.lot	addons/stock/models/stock_lot.py:56	set null (defecto)	stock.StockLot	company	set null	PROTECT	a	True	divergencia de política
 stock.lot	addons/stock/models/stock_lot.py:61	set null (defecto)	stock.StockLot	location	set null	SET_NULL	a	True	coherente
-stock.quant	addons/stock/models/stock_quant.py:45	restrict	stock.StockQuant	product	restrict	CASCADE	a	True	divergencia de política
+stock.quant	addons/stock/models/stock_quant.py:45	restrict	stock.StockQuant	product	restrict	PROTECT	a	True	coherente
 stock.quant	addons/stock/models/stock_quant.py:56	set null (defecto)	stock.StockQuant	company	set null	CASCADE	a	True	divergencia de política
-stock.quant	addons/stock/models/stock_quant.py:57	restrict	stock.StockQuant	location	restrict	CASCADE	a	True	divergencia de política
-stock.quant	addons/stock/models/stock_quant.py:64	restrict	stock.StockQuant	lot	set null	CASCADE	a	True	divergencia de atributo y de política
+stock.quant	addons/stock/models/stock_quant.py:57	restrict	stock.StockQuant	location	restrict	PROTECT	a	True	coherente
+stock.quant	addons/stock/models/stock_quant.py:64	restrict	stock.StockQuant	lot	set null	PROTECT	a	True	divergencia de atributo
 stock.quant	addons/stock/models/stock_quant.py:70	restrict	stock.StockQuant	package	set null	RESTRICT	a	True	divergencia de atributo
 stock.quant	addons/stock/models/stock_quant.py:74	set null (defecto)	stock.StockQuant	owner	set null	SET_NULL	a	True	coherente
 stock.quant	addons/stock/models/stock_quant.py:115	set null (defecto)	stock.StockQuant	user	set null	SET_NULL	a	True	coherente

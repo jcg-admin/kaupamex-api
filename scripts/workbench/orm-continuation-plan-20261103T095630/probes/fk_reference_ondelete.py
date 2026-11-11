@@ -27,9 +27,8 @@ def literal(node):
         return None
 
 
-def reference_fields(root):
-    """``{(modelo, campo): (ondelete efectivo, archivo:línea)}``."""
-    found = {}
+def _classes(root):
+    """``(ruta, clase)`` de cada modelo de la fuente, parseado una vez."""
     files = list(root.glob('addons/*/models/*.py'))
     files += list(root.glob('odoo/addons/*/models/*.py'))
     for path in files:
@@ -38,34 +37,74 @@ def reference_fields(root):
         except (SyntaxError, UnicodeDecodeError):
             continue
         for cls in (n for n in tree.body if isinstance(n, ast.ClassDef)):
-            name = inherit = None
-            for stmt in cls.body:
-                if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
-                        and isinstance(stmt.targets[0], ast.Name)):
-                    if stmt.targets[0].id == '_name':
-                        name = literal(stmt.value)
-                    elif stmt.targets[0].id == '_inherit':
-                        inherit = literal(stmt.value)
-            model = name or (inherit if isinstance(inherit, str)
-                             else (inherit or [None])[0])
-            if not isinstance(model, str):
+            yield path, cls
+
+
+def _transient_models(classes):
+    """Modelos declarados con ``models.TransientModel`` como base."""
+    names = set()
+    for _path, cls in classes:
+        bases = {getattr(b, 'attr', getattr(b, 'id', None))
+                 for b in cls.bases}
+        if 'TransientModel' not in bases:
+            continue
+        for stmt in cls.body:
+            if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                    and isinstance(stmt.targets[0], ast.Name)
+                    and stmt.targets[0].id == '_name'):
+                names.add(literal(stmt.value))
+    return names
+
+
+def default_ondelete(model, comodel, required, transient):
+    """≙ ``Many2one.setup_nonrelated`` (``odoo19c: odoo/orm/
+    fields_relational.py:274-282``): de un transitorio a un comodelo que
+    no lo es, el obligatorio es ``cascade``; si no, ``restrict``. Sin
+    ``required``, ``set null`` en los dos casos."""
+    if not required:
+        return 'set null'
+    if model in transient and comodel not in transient:
+        return 'cascade'
+    return 'restrict'
+
+
+def reference_fields(root):
+    """``{(modelo, campo): (ondelete efectivo, archivo:línea)}``."""
+    found = {}
+    classes = list(_classes(root))
+    transient = _transient_models(classes)
+    for path, cls in classes:
+        name = inherit = None
+        for stmt in cls.body:
+            if (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                    and isinstance(stmt.targets[0], ast.Name)):
+                if stmt.targets[0].id == '_name':
+                    name = literal(stmt.value)
+                elif stmt.targets[0].id == '_inherit':
+                    inherit = literal(stmt.value)
+        model = name or (inherit if isinstance(inherit, str)
+                         else (inherit or [None])[0])
+        if not isinstance(model, str):
+            continue
+        for stmt in cls.body:
+            call = getattr(stmt, 'value', None)
+            if not (isinstance(stmt, ast.Assign)
+                    and isinstance(call, ast.Call)
+                    and getattr(call.func, 'attr', None) == 'Many2one'
+                    and isinstance(stmt.targets[0], ast.Name)):
                 continue
-            for stmt in cls.body:
-                call = getattr(stmt, 'value', None)
-                if not (isinstance(stmt, ast.Assign)
-                        and isinstance(call, ast.Call)
-                        and getattr(call.func, 'attr', None) == 'Many2one'
-                        and isinstance(stmt.targets[0], ast.Name)):
-                    continue
-                kwargs = {k.arg: literal(k.value) for k in call.keywords}
-                ondelete = kwargs.get('ondelete')
-                if kwargs.get('company_dependent'):
-                    ondelete = 'company_dependent'
-                elif ondelete is None:
-                    ondelete = ('restrict' if kwargs.get('required')
-                                else 'set null') + ' (defecto)'
-                found[(model, stmt.targets[0].id)] = (
-                    ondelete, f'{path.relative_to(root)}:{stmt.lineno}')
+            kwargs = {k.arg: literal(k.value) for k in call.keywords}
+            comodel = kwargs.get('comodel_name') or (
+                literal(call.args[0]) if call.args else None)
+            ondelete = kwargs.get('ondelete')
+            if kwargs.get('company_dependent'):
+                ondelete = 'company_dependent'
+            elif ondelete is None:
+                ondelete = default_ondelete(
+                    model, comodel, kwargs.get('required'),
+                    transient) + ' (defecto)'
+            found[(model, stmt.targets[0].id)] = (
+                ondelete, f'{path.relative_to(root)}:{stmt.lineno}')
     return found
 
 

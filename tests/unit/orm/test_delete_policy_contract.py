@@ -1,11 +1,11 @@
-"""Las 96 políticas de borrado de Django que destruyen lo que la fuente
+"""Las 93 políticas de borrado de Django que destruyen lo que la fuente
 conserva o protege.
 
 Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
 delete-policy-contract-tests.md``. Población: ``outputs/
 fk_reference_ondelete.tsv`` del mismo banco (odoo-tools ``abe4040ec1``),
 filas donde la fuente declara ``set null`` o ``restrict`` y Django
-``CASCADE``.
+``CASCADE`` (o declaraba, para las ya corregidas de ``CORRECTED``).
 
 Tres planos: el atributo de cada fila (``xfail`` estricto mientras difiera),
 el borrado por el ORM en dos representantes (lo observado hoy y el contrato
@@ -44,8 +44,9 @@ def _destructive_rows():
     with _MATRIX.open(newline='') as handle:
         for row in csv.DictReader(handle, delimiter='\t'):
             kind = row['reference_ondelete'].split(' (')[0]
-            if kind in _EXPECTED and row['django_policy'] == 'CASCADE':
-                ident = f"{row['django_field']}.{row['field']}"
+            ident = f"{row['django_field']}.{row['field']}"
+            if kind in _EXPECTED and (row['django_policy'] == 'CASCADE'
+                                      or ident in CORRECTED):
                 marks = () if ident in CORRECTED else pytest.mark.xfail(
                     strict=True, reason=(
                         f"{kind} -> CASCADE "
@@ -57,11 +58,14 @@ _ROWS = list(_destructive_rows())
 
 
 def test_the_population_is_the_measured_one():
-    """96 filas: 48 ``set null`` y 48 ``restrict`` (45 por defecto y 3
-    explícitas). Si la matriz cambia, este conteo lo dice antes que nadie."""
+    """93 filas: 48 ``set null`` y 45 ``restrict`` (42 por defecto y 3
+    explícitas). Eran 96 hasta aplicar la regla de los transitorios
+    (``odoo19c: odoo/orm/fields_relational.py:274-282``): tres Many2one
+    obligatorios de transitorios son ``cascade`` en la fuente. Si la matriz
+    cambia, este conteo lo dice antes que nadie."""
     kinds = [param.values[1] for param in _ROWS]
     assert (len(kinds), kinds.count('set null'),
-            kinds.count('restrict')) == (96, 48, 48)
+            kinds.count('restrict')) == (93, 48, 45)
 
 
 @pytest.mark.parametrize('row, kind', _ROWS)

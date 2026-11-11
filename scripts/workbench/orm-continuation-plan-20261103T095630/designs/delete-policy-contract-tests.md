@@ -73,3 +73,37 @@ dos familias tienen un representante con filas reales por el ORM y por
 SQL. Siguiente: corregir por fila, empezando por las `restrict` (la
 fuente rehúsa; `CASCADE` borra en silencio), cada una con su migración
 `AlterField` y su caso pasando de `xfail` a verde.
+
+## Corrección de la población: 93, no 96 (2026-11-11T05:50:12)
+
+La sonda `probes/fk_reference_ondelete.py` deducía el `ondelete` por
+defecto sólo de `required`. La fuente tiene una regla más
+(`odoo19c: odoo/orm/fields_relational.py:274-282`): de un
+`TransientModel` a un comodelo que no lo es, el Many2one obligatorio sin
+`ondelete` es **`cascade`**. La sonda ahora la aplica
+(`default_ondelete`, con los transitorios recogidos por su base
+`models.TransientModel`).
+
+Regenerada `outputs/fk_reference_ondelete.tsv` (907 líneas, igual que
+antes). El diff con la versión anterior es exactamente de seis filas:
+
+- tres transitorias pasan de `restrict (defecto)` a `cascade (defecto)` y
+  dejan de ser destructivas: `base.ServerActionHistoryWizard.revision`,
+  `base.IrDemoFailure.module`, `authz_totp.AuthTotpRateLimitLog.user_id`;
+- las tres de `stock.quant` muestran ya `PROTECT` (corrección de
+  `28e6118e`).
+
+Las otras dos filas transitorias de la lista (`ServerActionHistoryWizard.action`,
+`IrDemoFailure.wizard`) no son obligatorias: su defecto sigue siendo
+`set null` y siguen divergentes.
+
+Población vigente: **93** = 48 `set null` + 45 `restrict` (42 por
+defecto + 3 explícitas). De ellas, 3 corregidas (`stock.quant`) y 90
+pendientes. La prueba define la población como «la fuente dice `set null`
+o `restrict` y Django dice `CASCADE`, o lo decía (`CORRECTED`)», de modo
+que regenerar la tabla tras una corrección no saca la fila de la batería.
+Las cifras de 96 en `f98b85c3` y `28e6118e` quedan superadas por ésta.
+
+*Métrica:* filas de la tabla con esa condición.
+*Ciega a:* un modelo que herede de un transitorio por `_inherit` sin
+declarar `TransientModel` en sus bases (0 vistos en la población).
