@@ -80,7 +80,8 @@ def test_the_public_employee_view_exposes_the_four_magic_columns():
     names = {field.name for field in HrEmployeePublic._meta.local_fields}
     assert {'create_date', 'create_uid', 'write_date', 'write_uid'} <= names
     select = HrEmployeePublic._get_fields()
-    for column in ('create_uid_id', 'write_date', 'write_uid_id'):
+    # Forma C de ADR-029: la columna de la vista es la de la fuente.
+    for column in ('create_uid', 'write_date', 'write_uid'):
         assert f' AS {column}' in select
 
 

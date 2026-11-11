@@ -236,7 +236,9 @@ def declarations(path):
         # contraparte que consultar. El conjunto vacío NO absuelve: manda a
         # ``classify`` al respaldo del sufijo.
         relativa = None
-    fieles = reference_many2one(relativa) if relativa else frozenset()
+    fieles = SOURCE_METACLASS_MANY2ONE | (
+        reference_many2one(relativa) if relativa else frozenset()
+    )
     for klass in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
         for node in klass.body:
             # La referencia 19 declara el campo CON anotación de tipo —
@@ -359,6 +361,12 @@ def main():
         )
         return 1
     return 0
+
+
+#: Los ``Many2one`` que el metaclase de la fuente añade a todo modelo con
+#: ``_log_access`` (``odoo19c: odoo/orm/models.py:287-292``): ningún archivo de
+#: modelo los nombra, así que la contraparte del archivo no puede declararlos.
+SOURCE_METACLASS_MANY2ONE = frozenset({'create_uid', 'write_uid'})
 
 
 if __name__ == '__main__':

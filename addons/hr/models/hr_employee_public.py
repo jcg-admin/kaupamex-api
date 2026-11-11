@@ -150,7 +150,7 @@ class HrEmployeePublic(models.Model):
     # ``hr_employee`` como a cualquier campo almacenado (``:185-193``).
     create_uid = fields.Many2one(
         'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
-        db_constraint=False, related_name='+',
+        db_constraint=False, related_name='+', db_column='create_uid',
         help_text='Odoo create_uid — en la vista sale de e.create_uid_id.',
     )
     write_date = fields.Datetime(
@@ -160,7 +160,7 @@ class HrEmployeePublic(models.Model):
     )
     write_uid = fields.Many2one(
         'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
-        db_constraint=False, related_name='+',
+        db_constraint=False, related_name='+', db_column='write_uid',
         help_text='Odoo write_uid — en la vista sale de e.write_uid_id.',
     )
     name = fields.Char(blank=True, default='')
@@ -610,9 +610,9 @@ class HrEmployeePublic(models.Model):
                 'e.name AS name',
                 'e.active AS active',
                 'e.created_at AS create_date',
-                'e.create_uid_id AS create_uid_id',
+                'e.create_uid_id AS create_uid',
                 'e.updated_at AS write_date',
-                'e.write_uid_id AS write_uid_id',
+                'e.write_uid_id AS write_uid',
                 'v.department_id AS department_id',
                 'v.job_id AS job_id',
                 'e.company_id AS company_id',

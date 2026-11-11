@@ -345,3 +345,33 @@ class TestTheSourceDerivesStoreFromComputeAndRelated:
         )
 
         assert forms == {'parent_id': 'N'}
+
+
+class TestTheMetaclassDeclaresTheAuthorshipColumns:
+    """``create_uid`` y ``write_uid`` no los declara el archivo del modelo:
+    los añade el metaclase de la fuente a todo modelo con ``_log_access``
+    (``odoo19c: odoo/orm/models.py:287-292``). Su símbolo es el de la fuente
+    aunque la contraparte del archivo no lo nombre.
+
+    Qué haría fallar a estos casos: retirar de ``declarations`` la unión con
+    ``SOURCE_METACLASS_MANY2ONE``. ``create_uid`` con ``db_column`` vuelve a
+    D, y sin él vuelve a A.
+    """
+
+    def test_an_authorship_column_is_judged_against_the_metaclass(
+        self, tmp_path,
+    ):
+        path = tmp_path / 'hr_employee_public.py'
+        path.write_text(
+            'from django.db import models\n'
+            'import fields\n'
+            '\n'
+            'class HrEmployeePublic(models.Model):\n'
+            '    create_uid = fields.Many2one('
+            '\'res.users\', db_column=\'create_uid\')\n'
+            '    write_uid = fields.Many2one(\'res.users\')\n'
+        )
+
+        forms = {name: form for _k, name, form in gate.declarations(path)}
+
+        assert forms == {'create_uid': 'C', 'write_uid': 'B'}
