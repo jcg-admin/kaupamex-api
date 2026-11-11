@@ -107,6 +107,7 @@ __all__ = [
     'resolve_rec_name', 'ensure_rec_names',
     'DEFAULT_PARENT_NAME', 'parent_name_of',
     'adopt_access_manager', 'ensure_access_managers',
+    'SCHEMA_HOOKS', 'adopt_schema_hooks', 'ensure_schema_hooks',
     'add_field', 'pop_field',
     'is_abstract', 'is_transient', 'check_model_bases',
     'inherits_of', 'inherits_children',
@@ -573,6 +574,53 @@ def ensure_display_names():
     """
     return sum(1 for model in apps.get_models(include_auto_created=True)
                if adopt_display_name(model))
+
+
+SCHEMA_HOOKS = ('_auto_init', '_check_removed_columns', '_add_sql_constraints',
+                'init')
+
+
+def adopt_schema_hooks(model_cls):
+    """Le da al modelo los métodos de esquema que la fuente da a todos.
+
+    ≙ que ``_auto_init``, ``_check_removed_columns``, ``_add_sql_constraints``
+    e ``init`` cuelguen de ``BaseModel`` (``odoo19c: odoo/orm/models.py:
+    3152-3268``) y que ``init_models`` los llame en **todo** modelo
+    (``odoo19c: odoo/orm/registry.py:749-751``). Aquí los declara
+    :class:`orm.models.RecordLoaderMixin`; esta función los cuelga en los
+    modelos propios que no lo heredan, con el mismo discriminador que
+    :func:`adopt_display_name`: un modelo que ya resuelve el método por MRO
+    (``hr.employee.public`` declara su ``init``) lo conserva.
+
+    :returns: cuántos de los cuatro se colgaron — 0 si ya los tenía, es de
+        terceros, abstracto o proxy.
+    """
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return 0
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return 0
+    mixin = importlib.import_module('orm.models').RecordLoaderMixin
+    adopted = 0
+    for name in SCHEMA_HOOKS:
+        if getattr(model_cls, name, None) is None:
+            setattr(model_cls, name, mixin.__dict__[name])
+            adopted += 1
+    return adopted
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_schema_hooks')
+def _adopt_schema_hooks_on_prepared(sender, **kwargs):
+    """Adopta los métodos de esquema en cuanto la clase queda construida."""
+    adopt_schema_hooks(sender)
+
+
+def ensure_schema_hooks():
+    """Barre el registro por si la señal llegó tarde (``H-API-577``).
+
+    :returns: cuántos modelos adoptaron al menos un método en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_schema_hooks(model))
 
 
 @receiver(class_prepared, dispatch_uid='orm.model_classes.resolve_rec_name')

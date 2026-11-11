@@ -77,3 +77,45 @@ propios y, con toda probabilidad, heredan el entorno git del hook. Como el
 productor ya acepta el destino, llamarlo directamente evita la superficie
 protegida sin perder nada. La falla de la cualificación dentro del hook
 queda como observación de su propio arnés, sin diagnóstico cerrado.
+
+## Frontera de recuperación antes de un gate largo (2026-11-11T01:48:18)
+
+**Episodio.** El primer gate completo de `adopt_schema_hooks` corría sobre
+el árbol de trabajo, con cambios sin commitear, y un reinicio del contenedor
+lo cortó al 97 % (`uptime -s` 2026-11-11 01:33:03). El código sobrevivió en
+el árbol, pero nada garantizaba que lo hiciera, y el gate no dejó veredicto.
+
+**Corrección.** El repositorio prohíbe commitear mientras una suite corre
+sobre esos mismos cambios, así que la revisión estable no puede ser un
+commit de la rama antes del gate. Se usa una **referencia local de
+snapshot**:
+
+```text
+índice temporal → git read-tree HEAD → git add <rutas> → git write-tree
+→ git commit-tree -p HEAD → git update-ref refs/heads/local/<unidad>-candidate
+```
+
+No toca ni el índice real ni el árbol de trabajo, no es un commit de la rama
+y no se publica. Fija el contenido exacto que el gate verifica, con sus
+hashes, en el almacén de objetos del repositorio, que sobrevive a un
+reinicio. Aplicado a `adopt_schema_hooks`: `local/adopt-schema-hooks-candidate`
+= `8780c994`, los tres archivos con el mismo sha256 en el árbol y en el
+snapshot.
+
+**Secuencia de una unidad, desde ahora:** contrato → diseño persistido →
+implementación → RED/GREEN → anulación → regresión focalizada → admisión
+estática → **snapshot local con sus hashes** → gate completo → persistencia
+del veredicto (`persist_gate_evidence.py`) → commit y publicación por
+pathspec → settlement si corresponde → siguiente obligación.
+
+**Un gate cortado se registra como interrumpido**, sin veredicto:
+`status: interrupted`, `cause: container restart`,
+`final_verdict: unavailable`, con su revisión, su punto de corte y su
+`boot_id` si se registró. No se repite sólo para probar que se cortó.
+
+**Lo que no resuelve:** la ventana entre el último commit y el snapshot,
+y un gate cuyo log vive en el scratchpad hasta que se persiste. La mejora
+que cerraría la segunda, que el lanzador escriba directamente en
+`outputs/gates/`, ya está en los scripts de `probes/gate-procedure/` para
+el ci-multidb. Para el gate completo, `full-batch.sh` todavía escribe en el
+scratchpad.

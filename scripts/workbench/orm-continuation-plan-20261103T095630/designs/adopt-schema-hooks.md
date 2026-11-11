@@ -94,3 +94,34 @@ futura y la cobertura del ciclo de instalación.
   `rest_framework`), igual que los demás `adopt_*`.
 - Resolución de métodos: se cuelga el `classmethod` del `__dict__` del
   mixin, así que `cls` es el modelo adoptante y no el mixin.
+
+## Resultado (2026-11-11T01:51:52)
+
+TASK canónicas: **TASK-API-0515** (`_auto_init`, `_check_removed_columns`)
+y **TASK-API-0514** (`_add_sql_constraints`). Esta unidad lleva su contrato
+a los modelos que no heredan el cargador.
+
+- Implementación: `adopt_schema_hooks`, su receptor de `class_prepared` y
+  `ensure_schema_hooks` en `src/orm/model_classes.py`; el barrido, en
+  `BaseConfig.ready()` (`src/addons/base/apps.py`).
+- Pruebas (`tests/unit/orm/test_adopt_schema_hooks.py`): rojo por ausencia
+  de `SCHEMA_HOOKS`; verde 4/4.
+- Anulación 1 (adopción sin efecto): caen exactamente las 3 pruebas que
+  dependen de ella.
+- Anulación 2 (colgar aunque el modelo ya lo tenga): la primera versión de la
+  prueba del `init` propio **no discriminaba**, porque comprobaba que
+  `init` estuviera en `vars()`, cosa que también ocurre si lo pisa el
+  mixin. Se corrigió para exigir `HrEmployeePublic.init` por `__qualname__`,
+  y ahora cae exactamente esa prueba.
+- Gate completo sobre el snapshot `8780c994` (`local/adopt-schema-hooks-candidate`):
+  **12 699 passed, 0 failed, 6 errors** (el fixture multidb fuera de su base).
+  Evidencia: `outputs/gates/full-adopt-8780c994/`. El intento anterior,
+  cortado por el reinicio, está en `outputs/gates/full-adopt-interrupted/`
+  como interrumpido y sin veredicto.
+
+**Estado contractual:** implementado y verificado por gate completo; **no
+aceptado**. Queda pendiente: el ci-multidb de la revisión publicada (alias)
+y una prueba de evolución del esquema sobre uno de los 87 (una columna
+añadida al modelo sin migración debe detenerse en `_auto_init`). La
+presencia de los métodos no prueba por sí sola la equivalencia; la prueba de
+`init_models` sobre `res.country` sí ejerce la conciliación.

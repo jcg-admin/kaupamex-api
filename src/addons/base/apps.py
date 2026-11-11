@@ -33,6 +33,7 @@ from orm.model_classes import (
     ensure_display_names,
     ensure_model_class_attributes,
     ensure_rec_names,
+    ensure_schema_hooks,
 )
 
 
@@ -94,6 +95,9 @@ class BaseConfig(AppConfig):
         ensure_rec_names()
         ensure_access_managers()
         ensure_display_names()
+        # Los métodos de esquema que en la fuente tiene todo modelo
+        # (``_auto_init``, ``init``…), para los que no heredan el cargador.
+        ensure_schema_hooks()
         ensure_base_urls()
         # Y ``ensure_inherits()``, que cablea la delegacion de TODO modelo
         # registrado que declare ``_inherits`` — no solo ``ResUsers``. El
