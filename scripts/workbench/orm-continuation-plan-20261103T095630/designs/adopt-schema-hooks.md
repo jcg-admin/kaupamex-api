@@ -59,3 +59,38 @@ concretas.
 El barrido corre en `BaseConfig.ready()`, junto a `ensure_display_names`.
 El ciclo de instalación ya llama a `init_models` (s4). Con esto los 87
 modelos entran en la conciliación del esquema.
+
+## Clasificación medida y garantías del mecanismo (2026-11-11T00:46:33)
+
+Probe `probes/schema_hooks_census.py`, salida en
+`outputs/schema_hooks_census.out`. Modelos propios sin `_auto_init`: **91**.
+
+| Clase | Modelos | Qué harían los cuatro métodos hoy |
+|---|---|---|
+| administrados, con migración aplicada de su app | 87 | `_auto_init` comprueba la tabla y las columnas (0 faltan); `_check_removed_columns` no toca nada (0 columnas huérfanas `NOT NULL`); `_add_sql_constraints` no toca nada (0 objetos de tabla); `init` es el gancho vacío. **Ningún efecto SQL** |
+| no administrados | 4 | `_auto_init` sale por `managed = False`; `init` propio si lo declaran |
+| abstractos o proxy | 0 | — |
+| con `init` propio | 2 (`base.SystemParameter`, `hr.HrEmployeePublic`) | se conserva: el discriminador `getattr` lo ve resuelto |
+
+Propietario del esquema: en los 91, la migración de su propia app. La
+adopción **no** crea una segunda autoridad. La conciliación sólo detecta
+deriva (tabla o columna sin migración) y retira el `NOT NULL` de una
+columna que el modelo ya no declara, que es lo que la migración no modela.
+Hoy no cambia ninguna fila de ninguna tabla. Su valor es la detección
+futura y la cobertura del ciclo de instalación.
+
+**Garantías de `class_prepared`, medidas en el precedente
+`adopt_display_name`:**
+
+- La señal se emite al final de `ModelBase.__new__` (`_prepare`), una vez
+  por clase concreta, abstracta o proxy, antes de que el registro de apps
+  esté listo. `adopt_schema_hooks` no consulta el registro: sólo cuelga
+  atributos de clase.
+- Herencia: una subclase cargada después recibe su propia señal. Si su
+  padre ya adoptó los métodos, `getattr` los resuelve y no se cuelga nada.
+- El barrido `ensure_schema_hooks()` en `BaseConfig.ready()` cubre una
+  señal perdida. Es repetible: un segundo barrido devuelve 0.
+- Propietario: se excluyen `THIRD_PARTY_MODULE_PREFIXES` (`django.`,
+  `rest_framework`), igual que los demás `adopt_*`.
+- Resolución de métodos: se cuelga el `classmethod` del `__dict__` del
+  mixin, así que `cls` es el modelo adoptante y no el mixin.
